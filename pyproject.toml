@@ -1,0 +1,22 @@
+[project]
+name = "glassbox"
+version = "0.1.0"
+description = "A local-first CLI agent harness with a live dashboard."
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+license = { file = "LICENSE" }
+authors = [{ name = "Joshua Szepietowski" }]
+dependencies = []
+
+[project.scripts]
+glassbox = "glassbox.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8.3,<9"]
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

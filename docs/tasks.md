@@ -97,7 +97,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-001: Initialize Python Project Skeleton
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: none
 - Goal: create the Python 3.14 project skeleton managed by `uv`
 - Deliverables:
