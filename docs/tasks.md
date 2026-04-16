@@ -362,7 +362,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-031: Implement Service Interfaces And Runtime Context Objects
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-011`, `GBX-012`, `GBX-021`, `GBX-030`
 - Goal: define the main orchestration interfaces before implementing full runtime behavior
 - Deliverables:
