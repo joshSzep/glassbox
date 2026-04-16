@@ -164,7 +164,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-010: Implement Shared Core Types And Identifiers
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-003`
 - Goal: establish reusable typed primitives for the rest of the system
 - Deliverables:

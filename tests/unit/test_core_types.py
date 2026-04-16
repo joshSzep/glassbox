@@ -1,0 +1,77 @@
+"""Unit tests for shared Glassbox core types."""
+
+from uuid import UUID
+
+import pytest
+from pydantic import TypeAdapter, ValidationError
+
+from glassbox.core import (
+    ApprovalDecision,
+    ApprovalStatus,
+    SessionStatus,
+    ToolExecutionStatus,
+    TurnStatus,
+    new_approval_id,
+    new_artifact_id,
+    new_event_id,
+    new_message_id,
+    new_session_id,
+    new_tool_call_id,
+    new_turn_id,
+)
+
+
+@pytest.mark.parametrize(
+    ("adapter_type", "raw_value", "expected"),
+    [
+        (SessionStatus, "running", SessionStatus.RUNNING),
+        (TurnStatus, "building_context", TurnStatus.BUILDING_CONTEXT),
+        (ToolExecutionStatus, "authorized", ToolExecutionStatus.AUTHORIZED),
+        (ApprovalStatus, "pending", ApprovalStatus.PENDING),
+        (ApprovalDecision, "approved", ApprovalDecision.APPROVED),
+    ],
+)
+def test_state_types_validate_from_strings(
+    adapter_type: type[object],
+    raw_value: str,
+    expected: object,
+) -> None:
+    adapter = TypeAdapter(adapter_type)
+
+    assert adapter.validate_python(raw_value) == expected
+    assert adapter.dump_python(expected) == raw_value
+
+
+@pytest.mark.parametrize(
+    ("adapter_type", "raw_value"),
+    [
+        (SessionStatus, "paused"),
+        (TurnStatus, "running"),
+        (ToolExecutionStatus, "complete"),
+        (ApprovalStatus, "awaiting"),
+        (ApprovalDecision, "pending"),
+    ],
+)
+def test_state_types_reject_invalid_values(
+    adapter_type: type[object],
+    raw_value: str,
+) -> None:
+    adapter = TypeAdapter(adapter_type)
+
+    with pytest.raises(ValidationError):
+        adapter.validate_python(raw_value)
+
+
+def test_identifier_factories_return_uuids() -> None:
+    generated_ids = [
+        new_session_id(),
+        new_turn_id(),
+        new_message_id(),
+        new_tool_call_id(),
+        new_approval_id(),
+        new_event_id(),
+        new_artifact_id(),
+    ]
+
+    assert all(isinstance(identifier, UUID) for identifier in generated_ids)
+    assert len(set(generated_ids)) == len(generated_ids)
