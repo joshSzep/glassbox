@@ -11,7 +11,12 @@ import glassbox.store.artifacts as artifact_store
 import glassbox.store.sqlite as sqlite_store
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import ApprovalId, MessageId, SessionId, ToolCallId, TurnId
-from glassbox.core.models import SessionConfig, SessionRecord, SessionState
+from glassbox.core.models import (
+    SessionConfig,
+    SessionRecord,
+    SessionState,
+    TranscriptMessage,
+)
 from glassbox.core.types import SessionStatus
 from glassbox.store.artifacts import StoredArtifact
 
@@ -47,6 +52,12 @@ class SQLiteSessionRepository:
 
     def get_session_state(self, session_id: SessionId) -> SessionState | None:
         return sqlite_store.get_session_state(self._connection, session_id)
+
+    def list_transcript_messages(
+        self,
+        session_id: SessionId,
+    ) -> list[TranscriptMessage]:
+        return sqlite_store.list_transcript_messages(self._connection, session_id)
 
     def list_sessions(
         self,

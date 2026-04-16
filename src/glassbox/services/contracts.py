@@ -9,7 +9,12 @@ from typing import Protocol, runtime_checkable
 
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import ApprovalId, MessageId, SessionId, ToolCallId, TurnId
-from glassbox.core.models import SessionConfig, SessionRecord, SessionState
+from glassbox.core.models import (
+    SessionConfig,
+    SessionRecord,
+    SessionState,
+    TranscriptMessage,
+)
 from glassbox.core.types import ApprovalDecision, SessionStatus
 from glassbox.store.artifacts import StoredArtifact
 
@@ -32,6 +37,11 @@ class SessionRepository(Protocol):
     def get_session(self, session_id: SessionId) -> SessionRecord | None: ...
 
     def get_session_state(self, session_id: SessionId) -> SessionState | None: ...
+
+    def list_transcript_messages(
+        self,
+        session_id: SessionId,
+    ) -> list[TranscriptMessage]: ...
 
     def list_sessions(
         self,

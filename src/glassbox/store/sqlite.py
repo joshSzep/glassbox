@@ -28,7 +28,13 @@ from glassbox.core.events import (
     UserMessageReceived,
 )
 from glassbox.core.ids import ApprovalId, MessageId, SessionId, ToolCallId, TurnId
-from glassbox.core.models import SessionConfig, SessionRecord, SessionState
+from glassbox.core.models import (
+    MessagePart,
+    SessionConfig,
+    SessionRecord,
+    SessionState,
+    TranscriptMessage,
+)
 from glassbox.core.types import SessionStatus
 
 SCHEMA_VERSION = 2
@@ -363,6 +369,36 @@ def get_session_state(
             "last_sequence": row["last_sequence"],
         }
     )
+
+
+def list_transcript_messages(
+    connection: sqlite3.Connection,
+    session_id: SessionId,
+) -> list[TranscriptMessage]:
+    """Read transcript messages for a session in conversation order."""
+
+    rows = connection.execute(
+        """
+        select
+            message_id,
+            role,
+            content_text,
+            created_at
+        from transcript_messages
+        where session_id = ?
+        order by created_at asc
+        """,
+        (str(session_id),),
+    ).fetchall()
+    return [
+        TranscriptMessage(
+            message_id=row["message_id"],
+            role=row["role"],
+            parts=[MessagePart(kind="text", text=row["content_text"])],
+            created_at=row["created_at"],
+        )
+        for row in rows
+    ]
 
 
 def list_sessions(

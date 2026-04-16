@@ -10,11 +10,13 @@ import pytest
 from glassbox.core import (
     ApprovalDecision,
     EventEnvelope,
+    MessagePart,
     SessionConfig,
     SessionRecord,
     SessionStarted,
     SessionState,
     SessionStatus,
+    TranscriptMessage,
     new_artifact_id,
     new_session_id,
 )
@@ -57,6 +59,16 @@ class FakeSessionRepository:
 
     def get_session_state(self, session_id):
         return None
+
+    def list_transcript_messages(self, session_id):
+        return [
+            TranscriptMessage(
+                message_id=new_session_id(),
+                role="user",
+                parts=[MessagePart(kind="text", text="hello")],
+                created_at=datetime.now(UTC),
+            )
+        ]
 
     def list_sessions(self, *, status=None, limit=None):
         return []

@@ -398,7 +398,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-033: Implement Context Builder
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-011`, `GBX-024`, `GBX-032`
 - Goal: assemble the runtime context used for each model turn
 - Deliverables:
