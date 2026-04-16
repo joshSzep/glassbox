@@ -344,7 +344,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-030: Implement In-Process Event Bus
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-012`
 - Goal: provide pub-sub for runtime consumers such as CLI rendering and SSE streaming
 - Deliverables:
