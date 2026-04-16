@@ -245,7 +245,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-021: Implement Canonical Event Store
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-020`
 - Goal: persist and retrieve append-only events as the source of truth
 - Deliverables:
