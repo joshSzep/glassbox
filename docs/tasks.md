@@ -420,7 +420,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-040: Implement Minimal CLI Entry Point
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-032`
 - Goal: expose a working `glassbox` command with at least one executable path
 - Deliverables:
