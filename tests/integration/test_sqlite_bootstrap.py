@@ -13,6 +13,13 @@ def _table_names(connection: sqlite3.Connection) -> set[str]:
     return {row[0] for row in rows}
 
 
+def _index_names(connection: sqlite3.Connection) -> set[str]:
+    rows = connection.execute(
+        "select name from sqlite_master where type = 'index'"
+    ).fetchall()
+    return {row[0] for row in rows}
+
+
 def test_open_database_configures_sqlite_connection(tmp_path: Path) -> None:
     database_path = tmp_path / "glassbox.sqlite3"
 
@@ -33,13 +40,35 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
     try:
         initialize_database(connection)
         tables = _table_names(connection)
+        indexes = _index_names(connection)
         migration_versions = connection.execute(
             "select version from schema_migrations"
         ).fetchall()
     finally:
         connection.close()
 
-    assert {"schema_migrations", "sessions", "events"}.issubset(tables)
+    assert {
+        "schema_migrations",
+        "sessions",
+        "events",
+        "session_state",
+        "transcript_messages",
+        "tool_calls",
+        "approvals",
+    }.issubset(tables)
+    assert {
+        "idx_sessions_status_updated",
+        "idx_events_session_created",
+        "idx_events_session_type_sequence",
+        "idx_events_turn",
+        "idx_events_message",
+        "idx_events_tool_call",
+        "idx_events_approval",
+        "idx_transcript_messages_session_created",
+        "idx_tool_calls_session_status",
+        "idx_tool_calls_session_turn",
+        "idx_approvals_session_status",
+    }.issubset(indexes)
     assert [row[0] for row in migration_versions] == [SCHEMA_VERSION]
 
 

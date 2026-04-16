@@ -285,7 +285,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-023: Implement Projection Table Schemas
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-020`, `GBX-012`
 - Goal: create the read-model tables described in `database.md`
 - Deliverables:

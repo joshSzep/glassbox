@@ -18,7 +18,7 @@ from glassbox.core.ids import ApprovalId, MessageId, SessionId, ToolCallId, Turn
 from glassbox.core.models import SessionConfig, SessionRecord
 from glassbox.core.types import SessionStatus
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 type CorrelationValue = TurnId | MessageId | ToolCallId | ApprovalId
 
@@ -87,6 +87,74 @@ BOOTSTRAP_STATEMENTS = (
     """
     create index if not exists idx_events_approval
         on events (session_id, approval_id, sequence)
+    """,
+    """
+    create table if not exists session_state (
+        session_id text primary key,
+        status text not null,
+        current_turn_id text,
+        pending_approval_id text,
+        last_sequence integer not null,
+        updated_at text not null,
+        foreign key (session_id) references sessions(session_id)
+    )
+    """,
+    """
+    create table if not exists transcript_messages (
+        message_id text primary key,
+        session_id text not null,
+        turn_id text,
+        role text not null,
+        status text not null,
+        created_at text not null,
+        completed_at text,
+        content_text text not null default '',
+        foreign key (session_id) references sessions(session_id)
+    )
+    """,
+    """
+    create index if not exists idx_transcript_messages_session_created
+        on transcript_messages (session_id, created_at)
+    """,
+    """
+    create table if not exists tool_calls (
+        tool_call_id text primary key,
+        session_id text not null,
+        turn_id text not null,
+        tool_name text not null,
+        status text not null,
+        started_at text,
+        completed_at text,
+        summary text,
+        exit_code integer,
+        foreign key (session_id) references sessions(session_id)
+    )
+    """,
+    """
+    create index if not exists idx_tool_calls_session_status
+        on tool_calls (session_id, status)
+    """,
+    """
+    create index if not exists idx_tool_calls_session_turn
+        on tool_calls (session_id, turn_id)
+    """,
+    """
+    create table if not exists approvals (
+        approval_id text primary key,
+        session_id text not null,
+        turn_id text not null,
+        subject text not null,
+        reason text not null,
+        status text not null,
+        requested_at text not null,
+        resolved_at text,
+        decided_by text,
+        foreign key (session_id) references sessions(session_id)
+    )
+    """,
+    """
+    create index if not exists idx_approvals_session_status
+        on approvals (session_id, status)
     """,
 )
 
