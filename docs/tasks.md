@@ -454,7 +454,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-042: Implement Session-Oriented CLI Commands
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-040`, `GBX-041`
 - Goal: add the operator command surface described in the architecture doc
 - Deliverables:
