@@ -118,7 +118,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-002: Configure Ruff, Pytest, Ty, And Pre-Commit
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-001`
 - Goal: establish the project quality toolchain as executable defaults
 - Deliverables:

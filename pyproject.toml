@@ -12,11 +12,36 @@ dependencies = []
 glassbox = "glassbox.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8.3,<9"]
+dev = [
+	"pre-commit>=4.2,<5",
+	"pytest>=8.3,<9",
+	"ruff>=0.15,<0.16",
+	"ty>=0.0.1a16,<0.1",
+]
 
 [build-system]
 requires = ["hatchling>=1.27,<2"]
 build-backend = "hatchling.build"
 
+[tool.ruff]
+line-length = 88
+src = ["src", "tests"]
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "UP"]
+
 [tool.pytest.ini_options]
+addopts = ["-ra"]
 testpaths = ["tests"]
+
+[tool.ty.environment]
+python-version = "3.14"
+root = ["./src"]
+
+[tool.ty.src]
+include = ["src", "tests"]
+
+[tool.ty.terminal]
+error-on-warning = true
+output-format = "concise"
