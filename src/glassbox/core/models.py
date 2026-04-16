@@ -39,6 +39,21 @@ class SessionState(BaseModel):
     pending_approval_id: ApprovalId | None = None
 
 
+class SessionRecord(BaseModel):
+    """Coarse persisted metadata for listing and resuming sessions."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: SessionId
+    status: SessionStatus
+    created_at: datetime
+    updated_at: datetime
+    cwd: Path
+    model_name: str
+    approval_mode: str
+    last_sequence: int = Field(default=0, ge=0)
+
+
 class MessagePart(BaseModel):
     """A typed part of a transcript message."""
 

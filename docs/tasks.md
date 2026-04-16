@@ -266,7 +266,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-022: Implement Session Metadata Store
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-020`, `GBX-021`
 - Goal: manage coarse session records independently from full event replay
 - Deliverables:

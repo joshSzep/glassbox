@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from pathlib import Path
 
 from glassbox.core.events import (
@@ -14,6 +15,7 @@ from glassbox.core.events import (
     SessionStarted,
 )
 from glassbox.core.ids import ApprovalId, MessageId, SessionId, ToolCallId, TurnId
+from glassbox.core.models import SessionConfig, SessionRecord
 from glassbox.core.types import SessionStatus
 
 SCHEMA_VERSION = 1
@@ -112,6 +114,167 @@ def initialize_database(connection: sqlite3.Connection) -> None:
             "insert or ignore into schema_migrations(version) values (?)",
             (SCHEMA_VERSION,),
         )
+
+
+def create_session(
+    connection: sqlite3.Connection,
+    session_id: SessionId,
+    config: SessionConfig,
+    *,
+    status: SessionStatus = SessionStatus.IDLE,
+    created_at: datetime | None = None,
+    updated_at: datetime | None = None,
+    last_sequence: int = 0,
+) -> SessionRecord:
+    """Create and return a coarse session metadata row."""
+
+    effective_created_at = created_at or datetime.now(UTC)
+    effective_updated_at = updated_at or effective_created_at
+    with connection:
+        connection.execute(
+            """
+            insert into sessions (
+                session_id,
+                status,
+                created_at,
+                updated_at,
+                cwd,
+                model_name,
+                approval_mode,
+                last_sequence
+            ) values (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                str(session_id),
+                status,
+                effective_created_at.isoformat(),
+                effective_updated_at.isoformat(),
+                str(config.cwd),
+                config.model_name,
+                config.approval_mode,
+                last_sequence,
+            ),
+        )
+    created_session = get_session(connection, session_id)
+    if created_session is None:
+        raise RuntimeError("create_session did not persist the session row")
+    return created_session
+
+
+def update_session(
+    connection: sqlite3.Connection,
+    session_id: SessionId,
+    *,
+    status: SessionStatus | None = None,
+    updated_at: datetime | None = None,
+    cwd: Path | None = None,
+    model_name: str | None = None,
+    approval_mode: str | None = None,
+    last_sequence: int | None = None,
+) -> SessionRecord:
+    """Update coarse session metadata and return the stored row."""
+
+    session = get_session(connection, session_id)
+    if session is None:
+        raise ValueError(f"unknown session_id: {session_id}")
+
+    changes: dict[str, object] = {
+        "status": status or session.status,
+        "updated_at": (updated_at or datetime.now(UTC)).isoformat(),
+        "cwd": str(cwd or session.cwd),
+        "model_name": model_name or session.model_name,
+        "approval_mode": approval_mode or session.approval_mode,
+        "last_sequence": (
+            session.last_sequence if last_sequence is None else last_sequence
+        ),
+    }
+    with connection:
+        connection.execute(
+            """
+            update sessions
+            set
+                status = ?,
+                updated_at = ?,
+                cwd = ?,
+                model_name = ?,
+                approval_mode = ?,
+                last_sequence = ?
+            where session_id = ?
+            """,
+            (
+                changes["status"],
+                changes["updated_at"],
+                changes["cwd"],
+                changes["model_name"],
+                changes["approval_mode"],
+                changes["last_sequence"],
+                str(session_id),
+            ),
+        )
+    updated_session = get_session(connection, session_id)
+    if updated_session is None:
+        raise RuntimeError("update_session did not preserve the session row")
+    return updated_session
+
+
+def get_session(
+    connection: sqlite3.Connection,
+    session_id: SessionId,
+) -> SessionRecord | None:
+    """Fetch a persisted session metadata row by session identifier."""
+
+    row = connection.execute(
+        """
+        select
+            session_id,
+            status,
+            created_at,
+            updated_at,
+            cwd,
+            model_name,
+            approval_mode,
+            last_sequence
+        from sessions
+        where session_id = ?
+        """,
+        (str(session_id),),
+    ).fetchone()
+    if row is None:
+        return None
+    return _session_from_row(row)
+
+
+def list_sessions(
+    connection: sqlite3.Connection,
+    *,
+    status: SessionStatus | None = None,
+    limit: int | None = None,
+) -> list[SessionRecord]:
+    """List session metadata rows by recency, optionally filtered by status."""
+
+    query = """
+        select
+            session_id,
+            status,
+            created_at,
+            updated_at,
+            cwd,
+            model_name,
+            approval_mode,
+            last_sequence
+        from sessions
+    """
+    parameters: list[object] = []
+    if status is not None:
+        query += " where status = ?"
+        parameters.append(status)
+    query += " order by updated_at desc"
+    if limit is not None:
+        query += " limit ?"
+        parameters.append(limit)
+
+    rows = connection.execute(query, parameters).fetchall()
+    return [_session_from_row(row) for row in rows]
 
 
 def append_event(
@@ -290,12 +453,9 @@ def _ensure_session_row_for_append(
     connection: sqlite3.Connection,
     first_event: EventEnvelope,
 ) -> int:
-    row = connection.execute(
-        "select last_sequence from sessions where session_id = ?",
-        (str(first_event.session_id),),
-    ).fetchone()
-    if row is not None:
-        return int(row[0])
+    session = get_session(connection, first_event.session_id)
+    if session is not None:
+        return session.last_sequence
 
     payload = first_event.payload
     if not isinstance(payload, SessionStarted):
@@ -303,29 +463,18 @@ def _ensure_session_row_for_append(
             "cannot append non-SessionStarted event before a session row exists"
         )
 
-    connection.execute(
-        """
-        insert into sessions (
-            session_id,
-            status,
-            created_at,
-            updated_at,
-            cwd,
-            model_name,
-            approval_mode,
-            last_sequence
-        ) values (?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            str(first_event.session_id),
-            SessionStatus.RUNNING,
-            first_event.created_at.isoformat(),
-            first_event.created_at.isoformat(),
-            payload.cwd,
-            payload.model_name,
-            payload.approval_mode,
-            0,
+    create_session(
+        connection,
+        first_event.session_id,
+        SessionConfig(
+            model_name=payload.model_name,
+            cwd=Path(payload.cwd),
+            approval_mode=payload.approval_mode,
         ),
+        status=SessionStatus.RUNNING,
+        created_at=first_event.created_at,
+        updated_at=first_event.created_at,
+        last_sequence=0,
     )
     return 0
 
@@ -334,18 +483,12 @@ def _update_session_row_after_append(
     connection: sqlite3.Connection,
     last_event: EventEnvelope,
 ) -> None:
-    connection.execute(
-        """
-        update sessions
-        set status = ?, updated_at = ?, last_sequence = ?
-        where session_id = ?
-        """,
-        (
-            _session_status_for_event(last_event),
-            last_event.created_at.isoformat(),
-            last_event.sequence,
-            str(last_event.session_id),
-        ),
+    update_session(
+        connection,
+        last_event.session_id,
+        status=_session_status_for_event(last_event),
+        updated_at=last_event.created_at,
+        last_sequence=last_event.sequence,
     )
 
 
@@ -379,6 +522,21 @@ def _event_from_row(row: sqlite3.Row) -> EventEnvelope:
             "event_version": row["event_version"],
             "created_at": row["created_at"],
             "payload": payload_data,
+        }
+    )
+
+
+def _session_from_row(row: sqlite3.Row) -> SessionRecord:
+    return SessionRecord.model_validate(
+        {
+            "session_id": row["session_id"],
+            "status": row["status"],
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+            "cwd": row["cwd"],
+            "model_name": row["model_name"],
+            "approval_mode": row["approval_mode"],
+            "last_sequence": row["last_sequence"],
         }
     )
 
