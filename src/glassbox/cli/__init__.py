@@ -1,4 +1,4 @@
-"""CLI entrypoint for Glassbox."""
+"""CLI package for Glassbox."""
 
 
 def main() -> int:

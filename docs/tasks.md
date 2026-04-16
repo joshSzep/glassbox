@@ -143,7 +143,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-003: Create Base Package Layout
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-001`, `GBX-002`
 - Goal: create the module tree described in the architecture doc
 - Deliverables:
