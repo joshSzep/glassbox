@@ -437,7 +437,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-041: Implement CLI Renderer Backed By Events
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-030`, `GBX-040`
 - Goal: render terminal output from runtime events rather than ad hoc prints
 - Deliverables:

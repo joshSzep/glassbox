@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from glassbox.cli.renderer import CliEventRenderer
 from glassbox.core import SessionConfig
-from glassbox.runtime import default_database_path, open_runtime_context
+from glassbox.runtime import open_runtime_context
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -55,6 +57,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _run_command(args: argparse.Namespace) -> int:
+    return asyncio.run(_run_command_async(args))
+
+
+async def _run_command_async(args: argparse.Namespace) -> int:
     cwd = Path(args.cwd).resolve()
     db_path = Path(args.db_path).resolve() if args.db_path is not None else None
     config = SessionConfig(
@@ -64,29 +70,24 @@ def _run_command(args: argparse.Namespace) -> int:
     )
 
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
-        session_state = asyncio.run(
-            runtime_context.services.session_service.start_session(config)
-        )
-        if args.prompt:
-            asyncio.run(
-                runtime_context.services.session_service.submit_user_message(
-                    session_state.session_id,
-                    args.prompt,
-                )
+        renderer = CliEventRenderer(sys.stdout)
+        async with runtime_context.infrastructure.event_bus.subscribe() as subscription:
+            render_task = asyncio.create_task(
+                renderer.render_subscription(subscription)
             )
-            session_state = (
-                runtime_context.repositories.sessions.get_session_state(
-                    session_state.session_id,
+            try:
+                session_state = (
+                    await runtime_context.services.session_service.start_session(config)
                 )
-                or session_state
-            )
-
-        resolved_db_path = db_path or default_database_path(cwd)
-        print(
-            f"Started session {session_state.session_id} "
-            f"in {cwd} using {resolved_db_path}"
-        )
-        if args.prompt:
-            print(f"Queued initial prompt: {args.prompt}")
+                await asyncio.sleep(0)
+                if args.prompt:
+                    await runtime_context.services.session_service.submit_user_message(
+                        session_state.session_id,
+                        args.prompt,
+                    )
+                    await asyncio.sleep(0)
+            finally:
+                render_task.cancel()
+                await render_task
 
     return 0
