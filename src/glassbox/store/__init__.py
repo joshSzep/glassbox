@@ -12,6 +12,7 @@ from glassbox.store.sqlite import (
     read_events_by_correlation_id,
     read_session_events,
     read_session_events_after,
+    rebuild_session_projections,
     update_session,
 )
 
@@ -27,5 +28,6 @@ __all__ = [
     "read_events_by_correlation_id",
     "read_session_events",
     "read_session_events_after",
+    "rebuild_session_projections",
     "update_session",
 ]

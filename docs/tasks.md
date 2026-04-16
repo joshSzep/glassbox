@@ -305,7 +305,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-024: Implement Projection Handlers And Rebuilder
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-021`, `GBX-023`
 - Goal: convert canonical events into durable query-friendly tables
 - Deliverables:

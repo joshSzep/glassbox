@@ -9,10 +9,22 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from glassbox.core.events import (
+    ApprovalRequested,
+    ApprovalResolved,
+    AssistantMessageCompleted,
+    AssistantMessageDelta,
+    AssistantMessageStarted,
     EventEnvelope,
+    ModelToolCallRequested,
     SessionCompleted,
     SessionFailed,
     SessionStarted,
+    ToolExecutionCompleted,
+    ToolExecutionStarted,
+    TurnCompleted,
+    TurnFailed,
+    TurnStarted,
+    UserMessageReceived,
 )
 from glassbox.core.ids import ApprovalId, MessageId, SessionId, ToolCallId, TurnId
 from glassbox.core.models import SessionConfig, SessionRecord
@@ -412,6 +424,7 @@ def append_events(
                     stored_event.payload.model_dump_json(),
                 ),
             )
+            _apply_projection_event(connection, stored_event)
 
         _update_session_row_after_append(connection, stored_events[-1])
 
@@ -517,6 +530,19 @@ def read_events_by_correlation_id(
     return [_event_from_row(row) for row in rows]
 
 
+def rebuild_session_projections(
+    connection: sqlite3.Connection,
+    session_id: SessionId,
+) -> None:
+    """Rebuild all projection tables for a session from canonical events."""
+
+    session_events = read_session_events(connection, session_id)
+    with connection:
+        _clear_session_projections(connection, session_id)
+        for event in session_events:
+            _apply_projection_event(connection, event)
+
+
 def _ensure_session_row_for_append(
     connection: sqlite3.Connection,
     first_event: EventEnvelope,
@@ -613,3 +639,403 @@ def _stringify_identifier(value: CorrelationValue | None) -> str | None:
     if value is None:
         return None
     return str(value)
+
+
+def _apply_projection_event(
+    connection: sqlite3.Connection,
+    event: EventEnvelope,
+) -> None:
+    _apply_session_state_projection(connection, event)
+    _apply_transcript_projection(connection, event)
+    _apply_tool_call_projection(connection, event)
+    _apply_approval_projection(connection, event)
+
+
+def _clear_session_projections(
+    connection: sqlite3.Connection,
+    session_id: SessionId,
+) -> None:
+    session_id_value = str(session_id)
+    connection.execute(
+        "delete from session_state where session_id = ?",
+        (session_id_value,),
+    )
+    connection.execute(
+        "delete from transcript_messages where session_id = ?",
+        (session_id_value,),
+    )
+    connection.execute(
+        "delete from tool_calls where session_id = ?",
+        (session_id_value,),
+    )
+    connection.execute(
+        "delete from approvals where session_id = ?",
+        (session_id_value,),
+    )
+
+
+def _apply_session_state_projection(
+    connection: sqlite3.Connection,
+    event: EventEnvelope,
+) -> None:
+    existing_row = connection.execute(
+        """
+        select status, current_turn_id, pending_approval_id
+        from session_state
+        where session_id = ?
+        """,
+        (str(event.session_id),),
+    ).fetchone()
+    current_turn_id = (
+        existing_row["current_turn_id"] if existing_row is not None else None
+    )
+    pending_approval_id = (
+        existing_row["pending_approval_id"] if existing_row is not None else None
+    )
+    status = (
+        existing_row["status"] if existing_row is not None else SessionStatus.RUNNING
+    )
+
+    payload = event.payload
+    if isinstance(payload, SessionStarted):
+        status = SessionStatus.RUNNING
+    elif isinstance(payload, TurnStarted):
+        current_turn_id = str(payload.turn_id)
+        status = SessionStatus.RUNNING
+    elif isinstance(payload, TurnCompleted | TurnFailed):
+        current_turn_id = None
+        status = SessionStatus.RUNNING
+    elif isinstance(payload, ApprovalRequested):
+        pending_approval_id = str(payload.approval_id)
+        status = SessionStatus.AWAITING_APPROVAL
+    elif isinstance(payload, ApprovalResolved):
+        pending_approval_id = None
+        status = SessionStatus.RUNNING
+    elif isinstance(payload, SessionCompleted):
+        current_turn_id = None
+        pending_approval_id = None
+        status = SessionStatus.COMPLETED
+    elif isinstance(payload, SessionFailed):
+        current_turn_id = None
+        pending_approval_id = None
+        status = SessionStatus.FAILED
+
+    connection.execute(
+        """
+        insert into session_state (
+            session_id,
+            status,
+            current_turn_id,
+            pending_approval_id,
+            last_sequence,
+            updated_at
+        ) values (?, ?, ?, ?, ?, ?)
+        on conflict(session_id) do update set
+            status = excluded.status,
+            current_turn_id = excluded.current_turn_id,
+            pending_approval_id = excluded.pending_approval_id,
+            last_sequence = excluded.last_sequence,
+            updated_at = excluded.updated_at
+        """,
+        (
+            str(event.session_id),
+            status,
+            current_turn_id,
+            pending_approval_id,
+            event.sequence,
+            event.created_at.isoformat(),
+        ),
+    )
+
+
+def _apply_transcript_projection(
+    connection: sqlite3.Connection,
+    event: EventEnvelope,
+) -> None:
+    payload = event.payload
+    if isinstance(payload, SessionStarted | TurnStarted | TurnCompleted | TurnFailed):
+        return
+
+    if isinstance(payload, UserMessageReceived):
+        connection.execute(
+            """
+            insert into transcript_messages (
+                message_id,
+                session_id,
+                turn_id,
+                role,
+                status,
+                created_at,
+                completed_at,
+                content_text
+            ) values (?, ?, ?, ?, ?, ?, ?, ?)
+            on conflict(message_id) do update set
+                turn_id = excluded.turn_id,
+                role = excluded.role,
+                status = excluded.status,
+                created_at = excluded.created_at,
+                completed_at = excluded.completed_at,
+                content_text = excluded.content_text
+            """,
+            (
+                str(payload.message_id),
+                str(event.session_id),
+                _stringify_identifier(event.turn_id),
+                "user",
+                "completed",
+                event.created_at.isoformat(),
+                event.created_at.isoformat(),
+                payload.text,
+            ),
+        )
+        return
+
+    if isinstance(payload, AssistantMessageStarted):
+        connection.execute(
+            """
+            insert into transcript_messages (
+                message_id,
+                session_id,
+                turn_id,
+                role,
+                status,
+                created_at,
+                completed_at,
+                content_text
+            ) values (?, ?, ?, ?, ?, ?, ?, ?)
+            on conflict(message_id) do update set
+                turn_id = excluded.turn_id,
+                role = excluded.role,
+                status = excluded.status,
+                created_at = excluded.created_at,
+                content_text = excluded.content_text
+            """,
+            (
+                str(payload.message_id),
+                str(event.session_id),
+                _stringify_identifier(event.turn_id),
+                "assistant",
+                "streaming",
+                event.created_at.isoformat(),
+                None,
+                "",
+            ),
+        )
+        return
+
+    if isinstance(payload, AssistantMessageDelta):
+        connection.execute(
+            """
+            insert into transcript_messages (
+                message_id,
+                session_id,
+                turn_id,
+                role,
+                status,
+                created_at,
+                completed_at,
+                content_text
+            ) values (?, ?, ?, ?, ?, ?, ?, ?)
+            on conflict(message_id) do update set
+                turn_id = coalesce(excluded.turn_id, transcript_messages.turn_id),
+                role = excluded.role,
+                status = excluded.status,
+                content_text = transcript_messages.content_text || excluded.content_text
+            """,
+            (
+                str(payload.message_id),
+                str(event.session_id),
+                _stringify_identifier(event.turn_id),
+                "assistant",
+                "streaming",
+                event.created_at.isoformat(),
+                None,
+                payload.delta,
+            ),
+        )
+        return
+
+    if isinstance(payload, AssistantMessageCompleted):
+        content_text = "".join(part.text for part in payload.parts)
+        connection.execute(
+            """
+            insert into transcript_messages (
+                message_id,
+                session_id,
+                turn_id,
+                role,
+                status,
+                created_at,
+                completed_at,
+                content_text
+            ) values (?, ?, ?, ?, ?, ?, ?, ?)
+            on conflict(message_id) do update set
+                turn_id = coalesce(excluded.turn_id, transcript_messages.turn_id),
+                role = excluded.role,
+                status = excluded.status,
+                completed_at = excluded.completed_at,
+                content_text = excluded.content_text
+            """,
+            (
+                str(payload.message_id),
+                str(event.session_id),
+                _stringify_identifier(event.turn_id),
+                "assistant",
+                "completed",
+                event.created_at.isoformat(),
+                event.created_at.isoformat(),
+                content_text,
+            ),
+        )
+
+
+def _apply_tool_call_projection(
+    connection: sqlite3.Connection,
+    event: EventEnvelope,
+) -> None:
+    payload = event.payload
+    if isinstance(payload, ModelToolCallRequested):
+        connection.execute(
+            """
+            insert into tool_calls (
+                tool_call_id,
+                session_id,
+                turn_id,
+                tool_name,
+                status,
+                started_at,
+                completed_at,
+                summary,
+                exit_code
+            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            on conflict(tool_call_id) do update set
+                turn_id = excluded.turn_id,
+                tool_name = excluded.tool_name,
+                status = excluded.status
+            """,
+            (
+                str(payload.tool_call_id),
+                str(event.session_id),
+                str(payload.turn_id),
+                payload.tool_name,
+                "requested",
+                None,
+                None,
+                None,
+                None,
+            ),
+        )
+        return
+
+    if isinstance(payload, ToolExecutionStarted):
+        connection.execute(
+            """
+            insert into tool_calls (
+                tool_call_id,
+                session_id,
+                turn_id,
+                tool_name,
+                status,
+                started_at,
+                completed_at,
+                summary,
+                exit_code
+            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            on conflict(tool_call_id) do update set
+                turn_id = excluded.turn_id,
+                tool_name = excluded.tool_name,
+                status = excluded.status,
+                started_at = excluded.started_at
+            """,
+            (
+                str(payload.tool_call_id),
+                str(event.session_id),
+                str(payload.turn_id),
+                payload.tool_name,
+                "running",
+                event.created_at.isoformat(),
+                None,
+                None,
+                None,
+            ),
+        )
+        return
+
+    if isinstance(payload, ToolExecutionCompleted):
+        connection.execute(
+            """
+            update tool_calls
+            set
+                status = ?,
+                completed_at = ?,
+                summary = ?,
+                exit_code = ?
+            where tool_call_id = ?
+            """,
+            (
+                "succeeded" if payload.success else "failed",
+                event.created_at.isoformat(),
+                payload.summary,
+                payload.exit_code,
+                str(payload.tool_call_id),
+            ),
+        )
+
+
+def _apply_approval_projection(
+    connection: sqlite3.Connection,
+    event: EventEnvelope,
+) -> None:
+    payload = event.payload
+    if isinstance(payload, ApprovalRequested):
+        connection.execute(
+            """
+            insert into approvals (
+                approval_id,
+                session_id,
+                turn_id,
+                subject,
+                reason,
+                status,
+                requested_at,
+                resolved_at,
+                decided_by
+            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            on conflict(approval_id) do update set
+                turn_id = excluded.turn_id,
+                subject = excluded.subject,
+                reason = excluded.reason,
+                status = excluded.status,
+                requested_at = excluded.requested_at
+            """,
+            (
+                str(payload.approval_id),
+                str(event.session_id),
+                str(payload.turn_id),
+                payload.subject,
+                payload.reason,
+                "pending",
+                event.created_at.isoformat(),
+                None,
+                None,
+            ),
+        )
+        return
+
+    if isinstance(payload, ApprovalResolved):
+        connection.execute(
+            """
+            update approvals
+            set
+                status = ?,
+                resolved_at = ?,
+                decided_by = ?
+            where approval_id = ?
+            """,
+            (
+                payload.decision,
+                event.created_at.isoformat(),
+                payload.decided_by,
+                str(payload.approval_id),
+            ),
+        )
