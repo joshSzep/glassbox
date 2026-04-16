@@ -323,7 +323,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-025: Implement Artifact Storage Layer
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-021`
 - Goal: support large logs, diffs, and other file-backed artifacts without bloating the database
 - Deliverables:

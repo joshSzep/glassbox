@@ -1,5 +1,15 @@
 """Persistence package for Glassbox."""
 
+from glassbox.store.artifacts import (
+    StoredArtifact,
+    artifact_relative_path,
+    read_binary_artifact,
+    read_text_artifact,
+    record_binary_artifact,
+    record_text_artifact,
+    write_binary_artifact,
+    write_text_artifact,
+)
 from glassbox.store.sqlite import (
     SCHEMA_VERSION,
     append_event,
@@ -18,16 +28,24 @@ from glassbox.store.sqlite import (
 
 __all__ = [
     "SCHEMA_VERSION",
+    "StoredArtifact",
     "append_event",
     "append_events",
+    "artifact_relative_path",
     "create_session",
     "get_session",
     "initialize_database",
     "list_sessions",
     "open_database",
+    "read_binary_artifact",
     "read_events_by_correlation_id",
     "read_session_events",
     "read_session_events_after",
+    "read_text_artifact",
+    "record_binary_artifact",
+    "record_text_artifact",
     "rebuild_session_projections",
     "update_session",
+    "write_binary_artifact",
+    "write_text_artifact",
 ]
