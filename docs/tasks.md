@@ -477,7 +477,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-050: Implement Model Adapter Layer
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-012`, `GBX-033`
 - Goal: isolate `pydantic-ai` integration behind a stable internal adapter
 - Deliverables:
@@ -495,7 +495,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-051: Implement Prompt Templates And Policy-Aware System Prompt
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-033`, `GBX-050`
 - Goal: encode the baseline model instructions for Glassbox behavior
 - Deliverables:
