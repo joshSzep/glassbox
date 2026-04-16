@@ -181,7 +181,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-011: Implement Core Pydantic Models
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-010`
 - Goal: encode the main domain models from the architecture doc
 - Deliverables:
@@ -202,7 +202,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-012: Implement Event Payload Models And Envelope
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-010`, `GBX-011`
 - Goal: encode the event-sourced contract in typed Pydantic models
 - Deliverables:
@@ -227,7 +227,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-020: Implement SQLite Connection And Migration Bootstrap
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-003`, `GBX-012`
 - Goal: create the storage bootstrap layer for SQLite
 - Deliverables:
