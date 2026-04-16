@@ -55,6 +55,9 @@ class FakeSessionRepository:
     def get_session(self, session_id):
         return None
 
+    def get_session_state(self, session_id):
+        return None
+
     def list_sessions(self, *, status=None, limit=None):
         return []
 
@@ -175,6 +178,13 @@ class FakeSessionService:
 
     async def resume_session(self, session_id) -> SessionState:
         return SessionState(session_id=session_id, status=SessionStatus.RUNNING)
+
+    async def stop_session(
+        self,
+        session_id,
+        reason: str = "stopped",
+    ) -> SessionState:
+        return SessionState(session_id=session_id, status=SessionStatus.COMPLETED)
 
     async def submit_user_message(self, session_id, text: str) -> None:
         return None

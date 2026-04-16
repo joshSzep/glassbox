@@ -31,6 +31,8 @@ class SessionRepository(Protocol):
 
     def get_session(self, session_id: SessionId) -> SessionRecord | None: ...
 
+    def get_session_state(self, session_id: SessionId) -> SessionState | None: ...
+
     def list_sessions(
         self,
         *,
@@ -137,6 +139,12 @@ class SessionService(Protocol):
     async def start_session(self, config: SessionConfig) -> SessionState: ...
 
     async def resume_session(self, session_id: SessionId) -> SessionState: ...
+
+    async def stop_session(
+        self,
+        session_id: SessionId,
+        reason: str = "stopped",
+    ) -> SessionState: ...
 
     async def submit_user_message(self, session_id: SessionId, text: str) -> None: ...
 

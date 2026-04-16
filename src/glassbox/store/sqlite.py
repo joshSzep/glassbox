@@ -18,6 +18,7 @@ from glassbox.core.events import (
     ModelToolCallRequested,
     SessionCompleted,
     SessionFailed,
+    SessionResumed,
     SessionStarted,
     ToolExecutionCompleted,
     ToolExecutionStarted,
@@ -27,7 +28,7 @@ from glassbox.core.events import (
     UserMessageReceived,
 )
 from glassbox.core.ids import ApprovalId, MessageId, SessionId, ToolCallId, TurnId
-from glassbox.core.models import SessionConfig, SessionRecord
+from glassbox.core.models import SessionConfig, SessionRecord, SessionState
 from glassbox.core.types import SessionStatus
 
 SCHEMA_VERSION = 2
@@ -324,6 +325,46 @@ def get_session(
     return _session_from_row(row)
 
 
+def get_session_state(
+    connection: sqlite3.Connection,
+    session_id: SessionId,
+) -> SessionState | None:
+    """Fetch the projected runtime-facing state for a session."""
+
+    row = connection.execute(
+        """
+        select
+            session_id,
+            status,
+            current_turn_id,
+            pending_approval_id,
+            last_sequence
+        from session_state
+        where session_id = ?
+        """,
+        (str(session_id),),
+    ).fetchone()
+    if row is None:
+        session = get_session(connection, session_id)
+        if session is None:
+            return None
+        return SessionState(
+            session_id=session.session_id,
+            status=session.status,
+            last_sequence=session.last_sequence,
+        )
+
+    return SessionState.model_validate(
+        {
+            "session_id": row["session_id"],
+            "status": row["status"],
+            "current_turn_id": row["current_turn_id"],
+            "pending_approval_id": row["pending_approval_id"],
+            "last_sequence": row["last_sequence"],
+        }
+    )
+
+
 def list_sessions(
     connection: sqlite3.Connection,
     *,
@@ -577,16 +618,23 @@ def _update_session_row_after_append(
     connection: sqlite3.Connection,
     last_event: EventEnvelope,
 ) -> None:
+    session = get_session(connection, last_event.session_id)
+    current_status = session.status if session is not None else SessionStatus.RUNNING
     update_session(
         connection,
         last_event.session_id,
-        status=_session_status_for_event(last_event),
+        status=_session_status_for_event(last_event, current_status),
         updated_at=last_event.created_at,
         last_sequence=last_event.sequence,
     )
 
 
-def _session_status_for_event(event: EventEnvelope) -> SessionStatus:
+def _session_status_for_event(
+    event: EventEnvelope,
+    current_status: SessionStatus,
+) -> SessionStatus:
+    if isinstance(event.payload, SessionResumed):
+        return current_status
     if isinstance(event.payload, SessionCompleted):
         return SessionStatus.COMPLETED
     if isinstance(event.payload, SessionFailed):

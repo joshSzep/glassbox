@@ -10,12 +10,17 @@ from glassbox.store.artifacts import (
     write_binary_artifact,
     write_text_artifact,
 )
+from glassbox.store.repositories import (
+    FilesystemArtifactRepository,
+    SQLiteSessionRepository,
+)
 from glassbox.store.sqlite import (
     SCHEMA_VERSION,
     append_event,
     append_events,
     create_session,
     get_session,
+    get_session_state,
     initialize_database,
     list_sessions,
     open_database,
@@ -27,13 +32,16 @@ from glassbox.store.sqlite import (
 )
 
 __all__ = [
+    "FilesystemArtifactRepository",
     "SCHEMA_VERSION",
+    "SQLiteSessionRepository",
     "StoredArtifact",
     "append_event",
     "append_events",
     "artifact_relative_path",
     "create_session",
     "get_session",
+    "get_session_state",
     "initialize_database",
     "list_sessions",
     "open_database",

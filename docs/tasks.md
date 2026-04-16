@@ -379,7 +379,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-032: Implement Session Supervisor
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-022`, `GBX-024`, `GBX-030`, `GBX-031`
 - Goal: create the top-level session lifecycle manager
 - Deliverables:

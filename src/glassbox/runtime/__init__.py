@@ -7,6 +7,7 @@ from glassbox.runtime.context import (
     RuntimeRepositories,
     RuntimeServices,
 )
+from glassbox.runtime.supervisor import SessionSupervisor
 
 __all__ = [
     "EventBus",
@@ -16,4 +17,5 @@ __all__ = [
     "RuntimeInfrastructure",
     "RuntimeRepositories",
     "RuntimeServices",
+    "SessionSupervisor",
 ]
