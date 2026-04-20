@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+from pydantic import BaseModel
 
 from glassbox.core import (
     MessagePart,
@@ -22,6 +23,7 @@ from glassbox.runtime import (
     format_tool_schemas_for_prompt,
     format_transcript_for_prompt,
 )
+from glassbox.tools import ToolRegistry, ToolRiskLevel, ToolSpec
 
 
 class FakeSessionRepository:
@@ -188,6 +190,67 @@ def test_turn_context_builder_rejects_unknown_sessions() -> None:
         builder.build(new_session_id())
 
 
+def test_turn_context_builder_can_derive_tools_from_registry() -> None:
+    session_id = new_session_id()
+    repository = FakeSessionRepository(
+        SessionRecord(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            created_at=datetime(2026, 4, 16, 12, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 4, 16, 12, 0, tzinfo=UTC),
+            cwd=Path("/tmp/glassbox"),
+            model_name="openai:gpt-5.4",
+            approval_mode="confirm",
+            last_sequence=1,
+        ),
+        SessionState(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            last_sequence=1,
+        ),
+        [],
+    )
+    builder = TurnContextBuilder(repository)
+    registry = ToolRegistry([ReadFileTool()])
+
+    context = builder.build(session_id, tool_registry=registry)
+
+    assert [tool.name for tool in context.available_tools] == ["read_file"]
+    assert context.available_tools[0].parameters_json_schema["properties"] == {
+        "path": {"title": "Path", "type": "string"}
+    }
+
+
+def test_turn_context_builder_rejects_tool_registry_and_tool_schemas_together() -> None:
+    session_id = new_session_id()
+    repository = FakeSessionRepository(
+        SessionRecord(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            created_at=datetime(2026, 4, 16, 12, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 4, 16, 12, 0, tzinfo=UTC),
+            cwd=Path("/tmp/glassbox"),
+            model_name="openai:gpt-5.4",
+            approval_mode="confirm",
+            last_sequence=1,
+        ),
+        SessionState(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            last_sequence=1,
+        ),
+        [],
+    )
+    builder = TurnContextBuilder(repository)
+
+    with pytest.raises(ValueError, match="either tool_registry or tool_schemas"):
+        builder.build(
+            session_id,
+            tool_schemas=[ToolSchema(name="read_file", description="Read a file")],
+            tool_registry=ToolRegistry([ReadFileTool()]),
+        )
+
+
 def test_prompt_formatters_include_expected_content() -> None:
     transcript = [
         TranscriptMessage(
@@ -225,3 +288,24 @@ def test_tool_schema_formatter_rejects_duplicates() -> None:
                 ToolSchema(name="read_file", description="Read twice"),
             ]
         )
+
+
+class ReadFileArgs(BaseModel):
+    path: str
+
+
+class ReadFileResult(BaseModel):
+    content: str
+
+
+class ReadFileTool:
+    spec = ToolSpec(
+        name="read_file",
+        description="Read a file from the workspace.",
+        input_model=ReadFileArgs,
+        output_model=ReadFileResult,
+        risk_level=ToolRiskLevel.READ_ONLY,
+    )
+
+    async def execute(self, arguments: ReadFileArgs) -> ReadFileResult:
+        return ReadFileResult(content=arguments.path)

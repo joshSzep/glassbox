@@ -553,7 +553,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-060: Implement Tool Specification And Registry
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-011`, `GBX-012`, `GBX-031`
 - Goal: create the typed tool contract and discovery mechanism
 - Deliverables:

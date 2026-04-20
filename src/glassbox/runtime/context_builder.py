@@ -10,16 +10,7 @@ from glassbox.core.ids import ApprovalId, SessionId, TurnId
 from glassbox.core.models import TranscriptMessage
 from glassbox.core.types import SessionStatus
 from glassbox.services import SessionRepository
-
-
-class ToolSchema(BaseModel):
-    """Stable typed description of a tool exposed to the model."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    name: str
-    description: str
-    parameters_json_schema: dict[str, object] = Field(default_factory=dict)
+from glassbox.tools import ToolRegistry, ToolSchema
 
 
 class PolicyContext(BaseModel):
@@ -58,6 +49,7 @@ class TurnContextBuilder:
         session_id: SessionId,
         *,
         tool_schemas: Sequence[ToolSchema] = (),
+        tool_registry: ToolRegistry | None = None,
         repo_context: str | None = None,
         memory_notes: Sequence[str] = (),
     ) -> TurnContext:
@@ -65,12 +57,18 @@ class TurnContextBuilder:
         session_state = self._session_repository.get_session_state(session_id)
         if session is None or session_state is None:
             raise ValueError(f"unknown session_id: {session_id}")
+        if tool_registry is not None and tool_schemas:
+            raise ValueError("pass either tool_registry or tool_schemas, not both")
 
         transcript = sorted(
             self._session_repository.list_transcript_messages(session_id),
             key=lambda message: message.created_at,
         )
-        normalized_tools = normalize_tool_schemas(tool_schemas)
+        normalized_tools = (
+            tool_registry.list_schemas()
+            if tool_registry is not None
+            else normalize_tool_schemas(tool_schemas)
+        )
         return TurnContext(
             session_id=session_id,
             session_status=session_state.status,
