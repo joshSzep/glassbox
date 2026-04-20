@@ -1,0 +1,134 @@
+"""Integration tests for the non-tool turn engine flow."""
+
+import asyncio
+import sqlite3
+from pathlib import Path
+
+from pydantic_ai.messages import (
+    ModelRequest,
+    ModelResponse,
+    SystemPromptPart,
+    TextPart,
+    UserPromptPart,
+)
+from pydantic_ai.models.function import FunctionModel
+
+from glassbox.core import EventEnvelope, SessionConfig, SessionStatus
+from glassbox.llm import (
+    ModelProviderConfig,
+    PydanticAIModelAdapter,
+    PydanticAIModelExecutor,
+)
+from glassbox.runtime import EventBus, SessionSupervisor, TurnContextBuilder, TurnEngine
+from glassbox.store import SQLiteSessionRepository, initialize_database, open_database
+
+
+def _open_initialized_database(tmp_path: Path) -> sqlite3.Connection:
+    connection = open_database(tmp_path / "glassbox.sqlite3")
+    initialize_database(connection)
+    return connection
+
+
+def test_supervisor_drives_turn_engine_and_persists_assistant_response(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = TurnEngine(
+                repository,
+                bus,
+                TurnContextBuilder(repository),
+                lambda _session: PydanticAIModelAdapter(
+                    ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+                ),
+                lambda _session: PydanticAIModelExecutor(
+                    FunctionModel(
+                        function=_function_model_response,
+                        model_name="openai:gpt-5.4",
+                    )
+                ),
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+
+            async with bus.subscribe() as subscription:
+                started_state = await supervisor.start_session(config)
+                await subscription.get()
+                await supervisor.submit_user_message(
+                    started_state.session_id,
+                    "Inspect the repo",
+                )
+
+                events = []
+                while not events or events[-1].event_type != "TurnCompleted":
+                    events.append(await subscription.get())
+
+            persisted_events = repository.read_session_events(started_state.session_id)
+            transcript = repository.list_transcript_messages(started_state.session_id)
+            session_state = repository.get_session_state(started_state.session_id)
+        finally:
+            connection.close()
+
+        assert [event.event_type for event in events] == [
+            "UserMessageReceived",
+            "TurnStarted",
+            "TurnStatusChanged",
+            "TurnStatusChanged",
+            "ModelCallStarted",
+            "ModelCallCompleted",
+            "TurnStatusChanged",
+            "AssistantMessageCompleted",
+            "TurnStatusChanged",
+            "TurnCompleted",
+        ]
+        assert [event.event_type for event in persisted_events] == [
+            "SessionStarted",
+            "UserMessageReceived",
+            "TurnStarted",
+            "TurnStatusChanged",
+            "TurnStatusChanged",
+            "ModelCallStarted",
+            "ModelCallCompleted",
+            "TurnStatusChanged",
+            "AssistantMessageCompleted",
+            "TurnStatusChanged",
+            "TurnCompleted",
+        ]
+        assert transcript[0].role == "user"
+        assert transcript[0].parts[0].text == "Inspect the repo"
+        assert transcript[1].role == "assistant"
+        assert transcript[1].parts[0].text == "Repo inspection complete."
+        assert session_state is not None
+        assert session_state.status == SessionStatus.RUNNING
+        assert session_state.current_turn_id is None
+        assert session_state.last_sequence == 11
+
+    asyncio.run(scenario())
+
+
+def _function_model_response(messages, _agent_info) -> ModelResponse:
+    system_prompt_text = None
+    user_prompt_text = None
+
+    for message in messages:
+        if not isinstance(message, ModelRequest):
+            continue
+        for part in message.parts:
+            if isinstance(part, SystemPromptPart):
+                system_prompt_text = part.content
+            if isinstance(part, UserPromptPart):
+                user_prompt_text = part.content
+
+    assert system_prompt_text is not None
+    assert "You are Glassbox" in system_prompt_text
+    assert "Approval policy:" in system_prompt_text
+    assert user_prompt_text == "Inspect the repo"
+
+    return ModelResponse(parts=[TextPart(content="Repo inspection complete.")])

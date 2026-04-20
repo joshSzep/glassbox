@@ -511,7 +511,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-052: Implement Turn Engine Without Tool Execution
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-032`, `GBX-033`, `GBX-050`, `GBX-051`
 - Goal: create the minimal multi-turn control plane before enabling tools
 - Deliverables:

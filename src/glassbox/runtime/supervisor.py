@@ -15,6 +15,7 @@ from glassbox.core.ids import ApprovalId, SessionId, new_message_id, new_session
 from glassbox.core.models import SessionConfig, SessionState
 from glassbox.core.types import ApprovalDecision, SessionStatus
 from glassbox.runtime.bus import EventBus
+from glassbox.runtime.turn_engine import TurnEngine
 from glassbox.services import SessionRepository, SessionService
 
 
@@ -25,9 +26,11 @@ class SessionSupervisor(SessionService):
         self,
         session_repository: SessionRepository,
         event_bus: EventBus[EventEnvelope],
+        turn_engine: TurnEngine | None = None,
     ) -> None:
         self._session_repository = session_repository
         self._event_bus = event_bus
+        self._turn_engine = turn_engine
 
     async def start_session(self, config: SessionConfig) -> SessionState:
         session_id = new_session_id()
@@ -94,6 +97,8 @@ class SessionSupervisor(SessionService):
             )
         )
         self._event_bus.publish(event)
+        if self._turn_engine is not None:
+            await self._turn_engine.run_for_user_message(event)
 
     async def resolve_approval(
         self,

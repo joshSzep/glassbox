@@ -12,6 +12,12 @@ from glassbox.llm.adapters import (
     PydanticAIModelAdapter,
     PydanticAIStreamTranslator,
 )
+from glassbox.llm.executor import (
+    ModelExecutionResult,
+    ModelExecutor,
+    PydanticAIModelExecutor,
+    build_local_text_model_executor,
+)
 from glassbox.llm.prompts import (
     build_approval_policy_prompt_fragment,
     build_memory_notes_prompt_fragment,
@@ -25,15 +31,19 @@ from glassbox.llm.prompts import (
 __all__ = [
     "ModelAdapter",
     "ModelAdapterStreamEvent",
+    "ModelExecutionResult",
+    "ModelExecutor",
     "ModelFinalResult",
     "ModelProviderConfig",
     "ModelTextDelta",
     "ModelToolCall",
     "ModelToolCallDelta",
+    "PydanticAIModelExecutor",
     "PreparedModelTurn",
     "PydanticAIModelAdapter",
     "PydanticAIStreamTranslator",
     "build_approval_policy_prompt_fragment",
+    "build_local_text_model_executor",
     "build_memory_notes_prompt_fragment",
     "build_output_style_prompt_fragment",
     "build_repo_context_prompt_fragment",

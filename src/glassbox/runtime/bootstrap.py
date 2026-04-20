@@ -7,6 +7,9 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
+from glassbox.core.models import SessionRecord
+from glassbox.llm.adapters import ModelProviderConfig, PydanticAIModelAdapter
+from glassbox.llm.executor import build_local_text_model_executor
 from glassbox.runtime.bus import EventBus
 from glassbox.runtime.context import (
     RuntimeContext,
@@ -14,7 +17,9 @@ from glassbox.runtime.context import (
     RuntimeRepositories,
     RuntimeServices,
 )
+from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.supervisor import SessionSupervisor
+from glassbox.runtime.turn_engine import TurnEngine
 from glassbox.store import (
     FilesystemArtifactRepository,
     SQLiteSessionRepository,
@@ -54,7 +59,18 @@ def _build_runtime_context(
     event_bus = EventBus()
     session_repository = SQLiteSessionRepository(connection)
     artifact_repository = FilesystemArtifactRepository(connection, cwd)
-    session_service = SessionSupervisor(session_repository, event_bus)
+    turn_engine = TurnEngine(
+        session_repository,
+        event_bus,
+        TurnContextBuilder(session_repository),
+        _build_model_adapter,
+        _build_model_executor,
+    )
+    session_service = SessionSupervisor(
+        session_repository,
+        event_bus,
+        turn_engine=turn_engine,
+    )
     return RuntimeContext(
         repositories=RuntimeRepositories(
             sessions=session_repository,
@@ -66,3 +82,21 @@ def _build_runtime_context(
             artifacts_root=cwd,
         ),
     )
+
+
+def _build_model_adapter(session: SessionRecord) -> PydanticAIModelAdapter:
+    provider, model_name = _split_model_name(session.model_name)
+    return PydanticAIModelAdapter(
+        ModelProviderConfig(model_name=model_name, provider=provider)
+    )
+
+
+def _build_model_executor(session: SessionRecord):
+    return build_local_text_model_executor(session.model_name)
+
+
+def _split_model_name(model_name: str) -> tuple[str | None, str]:
+    provider, separator, resolved_model_name = model_name.partition(":")
+    if separator == "":
+        return None, model_name
+    return provider, resolved_model_name

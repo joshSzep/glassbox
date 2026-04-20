@@ -78,8 +78,11 @@ def test_cli_status_prints_human_session_summary(
     assert f"Session {session_id}" in captured.out
     assert "Status: running" in captured.out
     assert "Pending approval: none" in captured.out
-    assert "Transcript messages: 1" in captured.out
-    assert "Latest message: user: Inspect the repository" in captured.out
+    assert "Transcript messages: 2" in captured.out
+    assert (
+        "Latest message: assistant: I received your request: Inspect the repository"
+        in captured.out
+    )
 
 
 def test_cli_approve_resolves_pending_approval(

@@ -27,7 +27,7 @@ from pydantic_ai.models import ModelRequestParameters
 from pydantic_ai.tools import ToolDefinition
 
 from glassbox.core.models import TranscriptMessage
-from glassbox.runtime import ToolSchema, TurnContext
+from glassbox.runtime.context_builder import ToolSchema, TurnContext
 
 
 class ModelProviderConfig(BaseModel):
