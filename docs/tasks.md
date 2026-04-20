@@ -607,7 +607,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-063: Implement Tool Runtime Execution Loop
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-052`, `GBX-060`, `GBX-061`, `GBX-062`
 - Goal: let the turn engine execute model-requested tools and continue the loop
 - Deliverables:

@@ -22,6 +22,7 @@ from pydantic_ai.models.function import FunctionModel
 
 from glassbox.llm.adapters import (
     ModelAdapterStreamEvent,
+    ModelToolCall,
     PreparedModelTurn,
     PydanticAIStreamTranslator,
 )
@@ -29,9 +30,11 @@ from glassbox.llm.adapters import (
 
 @dataclass(frozen=True, slots=True)
 class ModelExecutionResult:
-    """Normalized result from one non-streamed model invocation."""
+    """Normalized result from one model invocation."""
 
     assistant_text: str
+    tool_calls: tuple[ModelToolCall, ...]
+    model_response: ModelResponse
     input_tokens: int | None = None
     output_tokens: int | None = None
 
@@ -134,18 +137,26 @@ def build_local_text_model_executor(model_name: str) -> PydanticAIModelExecutor:
 
 
 def _normalize_model_response(model_response: ModelResponse) -> ModelExecutionResult:
-    if any(isinstance(part, ToolCallPart) for part in model_response.parts):
-        raise ValueError("tool calls are not supported by the turn engine yet")
-
     assistant_text = "".join(
         part.content for part in model_response.parts if isinstance(part, TextPart)
     )
-    if assistant_text == "":
-        raise ValueError("model response did not contain assistant text")
+    tool_calls = tuple(
+        ModelToolCall(
+            tool_name=part.tool_name,
+            arguments=part.args,
+            tool_call_id=part.tool_call_id,
+        )
+        for part in model_response.parts
+        if isinstance(part, ToolCallPart)
+    )
+    if assistant_text == "" and not tool_calls:
+        raise ValueError("model response did not contain assistant text or tool calls")
 
     usage = model_response.usage
     return ModelExecutionResult(
         assistant_text=assistant_text,
+        tool_calls=tool_calls,
+        model_response=model_response,
         input_tokens=usage.input_tokens or None,
         output_tokens=usage.output_tokens or None,
     )

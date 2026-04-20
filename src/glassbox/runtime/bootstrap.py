@@ -26,6 +26,13 @@ from glassbox.store import (
     initialize_database,
     open_database,
 )
+from glassbox.tools import (
+    ApprovalMode,
+    ToolPolicyContext,
+    ToolPolicyEngine,
+    ToolRuntime,
+    build_read_only_tool_registry,
+)
 
 
 def default_database_path(cwd: Path) -> Path:
@@ -65,6 +72,7 @@ def _build_runtime_context(
         TurnContextBuilder(session_repository),
         _build_model_adapter,
         _build_model_executor,
+        _build_tool_runtime,
     )
     session_service = SessionSupervisor(
         session_repository,
@@ -93,6 +101,17 @@ def _build_model_adapter(session: SessionRecord) -> PydanticAIModelAdapter:
 
 def _build_model_executor(session: SessionRecord):
     return build_local_text_model_executor(session.model_name)
+
+
+def _build_tool_runtime(session: SessionRecord) -> ToolRuntime:
+    return ToolRuntime(
+        build_read_only_tool_registry(session.cwd),
+        ToolPolicyEngine(),
+        ToolPolicyContext(
+            workspace_root=session.cwd,
+            approval_mode=ApprovalMode(session.approval_mode),
+        ),
+    )
 
 
 def _split_model_name(model_name: str) -> tuple[str | None, str]:
