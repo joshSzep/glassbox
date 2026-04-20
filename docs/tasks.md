@@ -589,7 +589,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-062: Implement Read-Only File And Directory Tools
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-060`, `GBX-061`
 - Goal: deliver the first useful safe tools
 - Deliverables:
