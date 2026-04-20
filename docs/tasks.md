@@ -530,7 +530,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-053: Implement Streaming Assistant Output Events
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-052`, `GBX-030`
 - Goal: support incremental model output in the runtime, CLI, and projections
 - Deliverables:

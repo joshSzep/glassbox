@@ -47,6 +47,7 @@ def test_supervisor_drives_turn_engine_and_persists_assistant_response(
                 lambda _session: PydanticAIModelExecutor(
                     FunctionModel(
                         function=_function_model_response,
+                        stream_function=_stream_function_model_response,
                         model_name="openai:gpt-5.4",
                     )
                 ),
@@ -82,6 +83,9 @@ def test_supervisor_drives_turn_engine_and_persists_assistant_response(
             "TurnStatusChanged",
             "TurnStatusChanged",
             "ModelCallStarted",
+            "AssistantMessageStarted",
+            "AssistantMessageDelta",
+            "AssistantMessageDelta",
             "ModelCallCompleted",
             "TurnStatusChanged",
             "AssistantMessageCompleted",
@@ -95,6 +99,9 @@ def test_supervisor_drives_turn_engine_and_persists_assistant_response(
             "TurnStatusChanged",
             "TurnStatusChanged",
             "ModelCallStarted",
+            "AssistantMessageStarted",
+            "AssistantMessageDelta",
+            "AssistantMessageDelta",
             "ModelCallCompleted",
             "TurnStatusChanged",
             "AssistantMessageCompleted",
@@ -108,7 +115,7 @@ def test_supervisor_drives_turn_engine_and_persists_assistant_response(
         assert session_state is not None
         assert session_state.status == SessionStatus.RUNNING
         assert session_state.current_turn_id is None
-        assert session_state.last_sequence == 11
+        assert session_state.last_sequence == 14
 
     asyncio.run(scenario())
 
@@ -132,3 +139,9 @@ def _function_model_response(messages, _agent_info) -> ModelResponse:
     assert user_prompt_text == "Inspect the repo"
 
     return ModelResponse(parts=[TextPart(content="Repo inspection complete.")])
+
+
+async def _stream_function_model_response(messages, _agent_info):
+    _ = _function_model_response(messages, _agent_info)
+    yield "Repo inspection "
+    yield "complete."

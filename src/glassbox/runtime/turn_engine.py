@@ -7,6 +7,8 @@ from time import perf_counter
 
 from glassbox.core.events import (
     AssistantMessageCompleted,
+    AssistantMessageDelta,
+    AssistantMessageStarted,
     EventEnvelope,
     ModelCallCompleted,
     ModelCallStarted,
@@ -22,6 +24,9 @@ from glassbox.core.types import TurnStatus
 from glassbox.llm import (
     ModelAdapter,
     ModelExecutor,
+    ModelTextDelta,
+    ModelToolCall,
+    ModelToolCallDelta,
     build_system_prompt,
 )
 from glassbox.runtime.bus import EventBus
@@ -84,6 +89,7 @@ class TurnEngine:
                 turn_context,
                 system_prompt=system_prompt,
             )
+            assistant_message_id = new_message_id()
 
             self._append_and_publish(
                 event.session_id,
@@ -97,11 +103,20 @@ class TurnEngine:
                         provider=model_adapter.config.provider or "local",
                         model_name=model_adapter.config.model_name,
                     ),
+                    AssistantMessageStarted(message_id=assistant_message_id),
                 ],
             )
 
             start = perf_counter()
-            result = await model_executor.execute(prepared_turn)
+            result = await model_executor.execute_stream(
+                prepared_turn,
+                stream_translator=model_adapter.new_stream_translator(),
+                on_event=lambda stream_event: self._handle_stream_event(
+                    event.session_id,
+                    assistant_message_id=assistant_message_id,
+                    stream_event=stream_event,
+                ),
+            )
             duration_ms = max(0, int((perf_counter() - start) * 1000))
             assistant_text = result.assistant_text.strip()
             if assistant_text == "":
@@ -121,7 +136,7 @@ class TurnEngine:
                         status=TurnStatus.ASSEMBLING_RESPONSE,
                     ),
                     AssistantMessageCompleted(
-                        message_id=new_message_id(),
+                        message_id=assistant_message_id,
                         parts=[MessagePart(kind="text", text=assistant_text)],
                     ),
                     TurnStatusChanged(
@@ -152,6 +167,8 @@ class TurnEngine:
             | TurnStatusChanged
             | ModelCallStarted
             | ModelCallCompleted
+            | AssistantMessageStarted
+            | AssistantMessageDelta
             | AssistantMessageCompleted
             | TurnCompleted
             | TurnFailed
@@ -166,3 +183,25 @@ class TurnEngine:
         for stored_event in stored_events:
             self._event_bus.publish(stored_event)
         return stored_events
+
+    def _handle_stream_event(
+        self,
+        session_id,
+        *,
+        assistant_message_id,
+        stream_event,
+    ) -> None:
+        if isinstance(stream_event, ModelTextDelta):
+            self._append_and_publish(
+                session_id,
+                [
+                    AssistantMessageDelta(
+                        message_id=assistant_message_id,
+                        delta=stream_event.text,
+                    )
+                ],
+            )
+            return
+
+        if isinstance(stream_event, ModelToolCallDelta | ModelToolCall):
+            raise ValueError("tool calls are not supported by the turn engine yet")
