@@ -571,7 +571,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-061: Implement Policy Engine
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-060`
 - Goal: separate authorization policy from tool implementation
 - Deliverables:

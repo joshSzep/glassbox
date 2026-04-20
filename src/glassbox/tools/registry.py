@@ -50,12 +50,17 @@ class ToolSpec:
     output_model: type[BaseModel]
     risk_level: ToolRiskLevel
     streaming_mode: ToolStreamingMode = ToolStreamingMode.NONE
+    path_argument_names: tuple[str, ...] = ()
+    command_argument_name: str | None = None
 
     def __post_init__(self) -> None:
         if self.name.strip() == "":
             raise ValueError("tool name must not be blank")
         if self.description.strip() == "":
             raise ValueError("tool description must not be blank")
+        if self.command_argument_name is not None:
+            if self.command_argument_name.strip() == "":
+                raise ValueError("command argument name must not be blank")
 
     def to_schema(self) -> ToolSchema:
         """Export the model-facing schema for this tool."""
