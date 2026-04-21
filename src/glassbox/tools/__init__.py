@@ -35,10 +35,22 @@ from glassbox.tools.runtime import (
     ToolExecutionResult,
     ToolRuntime,
 )
+from glassbox.tools.workflow import (
+    GitStatusArgs,
+    GitStatusResult,
+    GitStatusTool,
+    RunTestsArgs,
+    RunTestsResult,
+    RunTestsTool,
+    build_workflow_tool_registry,
+)
 
 __all__ = [
     "ApprovalMode",
     "DirectoryEntry",
+    "GitStatusArgs",
+    "GitStatusResult",
+    "GitStatusTool",
     "ListDirArgs",
     "ListDirResult",
     "ListDirTool",
@@ -46,6 +58,9 @@ __all__ = [
     "RunCommandArgs",
     "RunCommandResult",
     "RunCommandTool",
+    "RunTestsArgs",
+    "RunTestsResult",
+    "RunTestsTool",
     "StreamingTool",
     "Tool",
     "ToolExecutionResult",
@@ -66,4 +81,5 @@ __all__ = [
     "SearchMatch",
     "build_command_tool_registry",
     "build_read_only_tool_registry",
+    "build_workflow_tool_registry",
 ]

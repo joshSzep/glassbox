@@ -644,7 +644,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-065: Implement Git Status And Test Runner Tools
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-064`
 - Goal: add the first workflow-oriented tools that are still predictable and bounded
 - Deliverables:
