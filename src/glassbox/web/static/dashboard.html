@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Glassbox Dashboard</title>
+  <link rel="stylesheet" href="/static/dashboard.css" />
+</head>
+<body>
+
+<header>
+  <h1>Glassbox</h1>
+  <span id="session-id-display" style="color:var(--text-muted);font-size:12px;"></span>
+  <span id="status-badge">loading&hellip;</span>
+  <span id="sse-indicator">○ connecting</span>
+</header>
+
+<main>
+  <!-- Transcript (left, spans both rows) -->
+  <section class="pane" id="pane-transcript">
+    <div class="pane-title">Transcript</div>
+    <div class="pane-body" id="transcript-list">
+      <p class="empty">Loading&hellip;</p>
+    </div>
+  </section>
+
+  <!-- Pending Approvals (right, top) -->
+  <section class="pane" id="pane-approvals">
+    <div class="pane-title">Pending Approvals</div>
+    <div class="pane-body" id="approvals-list">
+      <p class="empty">No pending approvals.</p>
+    </div>
+  </section>
+
+  <!-- Event Log (right, bottom) -->
+  <section class="pane" id="pane-events">
+    <div class="pane-title">Event Log</div>
+    <div class="pane-body" id="event-log-list"></div>
+  </section>
+</main>
+
+<script src="/static/dashboard.js"></script>
+</body>
+</html>

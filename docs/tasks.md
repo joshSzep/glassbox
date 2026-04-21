@@ -804,7 +804,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-090: Select Frontend Delivery Strategy And Scaffold Dashboard Assets
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-080`
 - Goal: establish how the dashboard frontend is built and served
 - Deliverables:

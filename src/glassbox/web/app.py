@@ -4,11 +4,16 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Request
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from glassbox.runtime.context import RuntimeContext
+
+_STATIC_DIR = Path(__file__).parent / "static"
 
 
 def _get_runtime_context(request: Request) -> RuntimeContext:
@@ -45,5 +50,13 @@ def create_app(runtime_context: RuntimeContext) -> FastAPI:
     app.include_router(sessions_router)
     app.include_router(events_router)
     app.include_router(approvals_router)
+
+    # Dashboard shell — served at the root path.
+    @app.get("/", include_in_schema=False)
+    async def dashboard() -> FileResponse:
+        return FileResponse(_STATIC_DIR / "dashboard.html", media_type="text/html")
+
+    # Static assets (CSS, JS).
+    app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 
     return app
