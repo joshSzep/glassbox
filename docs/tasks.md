@@ -878,7 +878,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-100: Implement Session Resume From Persisted State
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-032`, `GBX-024`, `GBX-042`
 - Goal: resume stopped or restarted sessions safely
 - Deliverables:

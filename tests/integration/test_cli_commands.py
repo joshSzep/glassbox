@@ -6,7 +6,12 @@ from uuid import UUID
 import pytest
 
 from glassbox.cli import main
-from glassbox.core.events import ApprovalRequested, ApprovalResolved, EventEnvelope
+from glassbox.core.events import (
+    ApprovalRequested,
+    ApprovalResolved,
+    EventEnvelope,
+    SessionCompleted,
+)
 from glassbox.core.ids import new_approval_id, new_turn_id
 from glassbox.core.types import ApprovalDecision
 from glassbox.store import SQLiteSessionRepository, open_database
@@ -50,6 +55,118 @@ def test_cli_resume_replays_resume_event(
     assert exit_code == 0
     assert "Resumed session" in captured.out
     assert persisted_events[-1].event_type == "SessionResumed"
+
+
+def test_cli_resume_preserves_awaiting_approval_session_state(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id, approval_id = _seed_pending_approval(tmp_path)
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "resume",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        state = repository.get_session_state(session_id)
+        persisted_events = repository.read_session_events(session_id)
+    finally:
+        connection.close()
+
+    assert exit_code == 0
+    assert approval_id is not None
+    assert "Resumed session" in captured.out
+    assert state is not None
+    assert state.status == "awaiting_approval"
+    assert state.pending_approval_id == approval_id
+    assert persisted_events[-1].event_type == "SessionResumed"
+
+
+def test_cli_resume_preserves_mid_transcript_running_session(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(
+        tmp_path,
+        prompt="Inspect the repository",
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "resume",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        state = repository.get_session_state(session_id)
+        transcript_messages = repository.list_transcript_messages(session_id)
+        persisted_events = repository.read_session_events(session_id)
+    finally:
+        connection.close()
+
+    assert exit_code == 0
+    assert "Resumed session" in captured.out
+    assert state is not None
+    assert state.status == "running"
+    assert len(transcript_messages) == 2
+    assert persisted_events[-1].event_type == "SessionResumed"
+
+
+def test_cli_resume_rejects_completed_session(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=SessionCompleted(reason="done"),
+            )
+        )
+    finally:
+        connection.close()
+
+    _ = capsys.readouterr()
+    exit_code = main(
+        [
+            "resume",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert captured.err.strip() == (
+        f"cannot resume session {session_id} in status completed"
+    )
 
 
 def test_cli_status_prints_human_session_summary(

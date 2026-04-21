@@ -61,6 +61,25 @@ class SessionSupervisor(SessionService):
 
     async def resume_session(self, session_id: SessionId) -> SessionState:
         current_state = self._require_session_state(session_id)
+        if current_state.status in {
+            SessionStatus.COMPLETED,
+            SessionStatus.FAILED,
+            SessionStatus.CANCELLED,
+        }:
+            raise ValueError(
+                f"cannot resume session {session_id} in status {current_state.status}"
+            )
+
+        if (
+            current_state.status == SessionStatus.RUNNING
+            and current_state.current_turn_id is not None
+        ):
+            raise ValueError(
+                f"session {session_id} has an in-flight turn "
+                f"{current_state.current_turn_id}; active turn execution cannot be "
+                "resumed after restart"
+            )
+
         event = self._session_repository.append_event(
             EventEnvelope(
                 session_id=session_id,
