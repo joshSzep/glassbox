@@ -16,7 +16,7 @@
 </header>
 
 <main>
-  <!-- Transcript (left, spans both rows) -->
+  <!-- Transcript (left, primary timeline) -->
   <section class="pane" id="pane-transcript">
     <div class="pane-title">Transcript</div>
     <div class="pane-body" id="transcript-list">
@@ -24,19 +24,40 @@
     </div>
   </section>
 
-  <!-- Pending Approvals (right, top) -->
-  <section class="pane" id="pane-approvals">
-    <div class="pane-title">Pending Approvals</div>
-    <div class="pane-body" id="approvals-list">
-      <p class="empty">No pending approvals.</p>
-    </div>
-  </section>
+  <div id="dashboard-sidebar">
+    <section class="pane" id="pane-turn">
+      <div class="pane-title">Current Turn</div>
+      <div class="pane-body" id="turn-status">
+        <p class="empty">No active turn.</p>
+      </div>
+    </section>
 
-  <!-- Event Log (right, bottom) -->
-  <section class="pane" id="pane-events">
-    <div class="pane-title">Event Log</div>
-    <div class="pane-body" id="event-log-list"></div>
-  </section>
+    <section class="pane" id="pane-tools">
+      <div class="pane-title">Active Tool Calls</div>
+      <div class="pane-body" id="tool-calls-list">
+        <p class="empty">No active tool calls.</p>
+      </div>
+    </section>
+
+    <section class="pane" id="pane-output">
+      <div class="pane-title">Live Command Output</div>
+      <div class="pane-body" id="live-output-list">
+        <p class="empty">No live output yet.</p>
+      </div>
+    </section>
+
+    <section class="pane" id="pane-approvals">
+      <div class="pane-title">Pending Approvals</div>
+      <div class="pane-body" id="approvals-list">
+        <p class="empty">No pending approvals.</p>
+      </div>
+    </section>
+
+    <section class="pane" id="pane-events">
+      <div class="pane-title">Event Log</div>
+      <div class="pane-body" id="event-log-list"></div>
+    </section>
+  </div>
 </main>
 
 <script type="module" src="/static/dashboard.js"></script>

@@ -14,6 +14,10 @@
  */
 
 import { applyEvent, createState, hydrateFromSnapshot } from "./state.js";
+import {
+  renderApprovalsPane,
+  renderDashboardPanes,
+} from "./render.js";
 
 // ---------------------------------------------------------------------------
 // Module-level state
@@ -47,44 +51,27 @@ function renderStatus() {
 
 function renderTranscript() {
   const el = byId("transcript-list");
-  if (state.transcript.length === 0) {
-    el.innerHTML = '<p class="empty">No messages yet.</p>';
-    return;
-  }
-  el.innerHTML = state.transcript.map(msg => {
-    const parts = (msg.parts || []).map(p => escHtml(p.text || "")).join("\n");
-    return `<div class="message">
-      <div class="message-role ${escHtml(msg.role)}">${escHtml(msg.role)}</div>
-      <div class="message-text">${parts}</div>
-    </div>`;
-  }).join("");
+  el.innerHTML = renderDashboardPanes(state).transcript;
+  el.scrollTop = el.scrollHeight;
+}
+
+function renderTurn() {
+  byId("turn-status").innerHTML = renderDashboardPanes(state).turn;
+}
+
+function renderToolCalls() {
+  byId("tool-calls-list").innerHTML = renderDashboardPanes(state).toolCalls;
+}
+
+function renderLiveOutput() {
+  const el = byId("live-output-list");
+  el.innerHTML = renderDashboardPanes(state).liveOutput;
   el.scrollTop = el.scrollHeight;
 }
 
 function renderApprovals() {
   const el = byId("approvals-list");
-  if (state.pendingApprovals.length === 0) {
-    el.innerHTML = '<p class="empty">No pending approvals.</p>';
-    return;
-  }
-  el.innerHTML = state.pendingApprovals.map(a => `
-    <div class="approval-card" id="approval-${escHtml(a.approval_id)}">
-      <div class="approval-subject">${escHtml(a.subject)}</div>
-      <div class="approval-reason">${escHtml(a.reason)}</div>
-      <div class="approval-actions">
-        <button class="btn btn-approve"
-          data-approval-id="${escHtml(a.approval_id)}"
-          data-decision="approved">
-          Approve
-        </button>
-        <button class="btn btn-deny"
-          data-approval-id="${escHtml(a.approval_id)}"
-          data-decision="denied">
-          Deny
-        </button>
-      </div>
-    </div>
-  `).join("");
+  el.innerHTML = renderApprovalsPane(state);
 
   el.querySelectorAll(".btn[data-approval-id]").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -95,19 +82,16 @@ function renderApprovals() {
 
 function renderEventLog() {
   const el = byId("event-log-list");
-  const recent = state.eventLog.slice(-50);
-  el.innerHTML = recent.map(e =>
-    `<div class="event-entry">
-      <span class="event-seq">${e.sequence}</span>
-      <span class="event-type">${escHtml(e.event_type)}</span>
-    </div>`
-  ).join("");
+  el.innerHTML = renderDashboardPanes(state).eventLog;
   el.scrollTop = el.scrollHeight;
 }
 
 function renderAll() {
   renderStatus();
   renderTranscript();
+  renderTurn();
+  renderToolCalls();
+  renderLiveOutput();
   renderApprovals();
   renderEventLog();
 }
@@ -163,8 +147,9 @@ function connectSSE(sessionId, afterSequence) {
     "UserMessageReceived", "AssistantMessageCompleted",
     "ApprovalRequested", "ApprovalResolved",
     "UserQuestionAsked", "UserAnswerProvided",
-    "TurnStarted", "TurnCompleted", "TurnFailed",
+    "TurnStarted", "TurnStatusChanged", "TurnCompleted", "TurnFailed",
     "ToolExecutionStarted", "ToolExecutionCompleted",
+    "ToolOutputChunk",
     "ModelCallStarted", "ModelCallCompleted",
   ].forEach(name => es.addEventListener(name, handleFrame));
 

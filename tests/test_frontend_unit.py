@@ -8,14 +8,19 @@ from pathlib import Path
 
 
 def test_dashboard_state_reducer_unit_tests() -> None:
-    """The browser reducer tests should pass under Node."""
+    """The browser reducer and pane renderer tests should pass under Node."""
 
     node = shutil.which("node")
     assert node is not None, "node is required for frontend unit tests"
 
     repo_root = Path(__file__).resolve().parent.parent
     result = subprocess.run(
-        [node, "--test", "tests/frontend/test_dashboard_state.js"],
+        [
+            node,
+            "--test",
+            "tests/frontend/test_dashboard_state.js",
+            "tests/frontend/test_dashboard_render.js",
+        ],
         cwd=repo_root,
         capture_output=True,
         text=True,

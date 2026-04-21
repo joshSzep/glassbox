@@ -66,6 +66,9 @@ def test_dashboard_html_contains_expected_structure(tmp_path: Path) -> None:
             assert "/static/dashboard.js" in html
             # Key pane landmarks
             assert "pane-transcript" in html
+            assert "pane-turn" in html
+            assert "pane-tools" in html
+            assert "pane-output" in html
             assert "pane-approvals" in html
             assert "pane-events" in html
         finally:

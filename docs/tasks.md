@@ -837,7 +837,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-092: Implement Core Dashboard Panes
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-091`
 - Goal: surface the minimum useful “view into the brain” UI
 - Deliverables:

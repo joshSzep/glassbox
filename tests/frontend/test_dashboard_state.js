@@ -46,10 +46,39 @@ test("hydrateFromSnapshot copies snapshot fields into dashboard state", () => {
   assert.equal(state.sessionId, "session-123");
   assert.equal(state.lastSequence, 17);
   assert.equal(state.modelName, "openai:gpt-5.4");
+  assert.equal(state.currentTurn?.turn_id, "turn-1");
   assert.equal(state.transcript.length, 1);
   assert.equal(state.activeToolCalls.length, 1);
+  assert.deepEqual(state.liveOutput, []);
   assert.equal(state.pendingApprovals.length, 1);
   assert.deepEqual(state.eventLog, []);
+});
+
+test("applyEvent tracks current turn lifecycle and failure details", () => {
+  const started = applyEvent(createState(), {
+    session_id: "session-123",
+    sequence: 1,
+    event_type: "TurnStarted",
+    payload: {
+      turn_id: "turn-1",
+      trigger_message_id: "message-1",
+    },
+  });
+  const failed = applyEvent(started, {
+    session_id: "session-123",
+    sequence: 2,
+    event_type: "TurnFailed",
+    payload: {
+      turn_id: "turn-1",
+      error_message: "tool exploded",
+    },
+  });
+
+  assert.equal(started.currentTurn?.turn_id, "turn-1");
+  assert.equal(started.currentTurn?.status, "running");
+  assert.equal(failed.status, "failed");
+  assert.equal(failed.currentTurn?.status, "failed");
+  assert.equal(failed.currentTurn?.error_message, "tool exploded");
 });
 
 test("applyEvent appends transcript messages deterministically", () => {
@@ -139,6 +168,24 @@ test("applyEvent tracks active tool calls", () => {
   assert.equal(started.activeToolCalls.length, 1);
   assert.equal(started.activeToolCalls[0].tool_name, "read_file");
   assert.equal(completed.activeToolCalls.length, 0);
+});
+
+test("applyEvent buffers live tool output chunks", () => {
+  const withOutput = applyEvent(createState(), {
+    session_id: "session-123",
+    sequence: 9,
+    event_type: "ToolOutputChunk",
+    payload: {
+      turn_id: "turn-1",
+      tool_call_id: "tool-1",
+      stream: "stdout",
+      chunk: "hello\n",
+    },
+  });
+
+  assert.equal(withOutput.liveOutput.length, 1);
+  assert.equal(withOutput.liveOutput[0].stream, "stdout");
+  assert.equal(withOutput.liveOutput[0].chunk, "hello\n");
 });
 
 test("applyEvent preserves event log order and terminal session states", () => {

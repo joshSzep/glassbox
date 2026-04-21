@@ -11,6 +11,8 @@
  * @typedef {{message_id: string, role: string, parts: MessagePart[], created_at?: string}} TranscriptMessage
  * @typedef {{tool_call_id: string, turn_id: string, tool_name: string, status: string, started_at?: string | null}} ActiveToolCall
  * @typedef {{approval_id: string, turn_id?: string, subject: string, reason: string, requested_at?: string}} PendingApproval
+ * @typedef {{turn_id: string, status: string, trigger_message_id?: string, outcome?: string, error_message?: string}} CurrentTurn
+ * @typedef {{turn_id: string, tool_call_id: string, stream: string, chunk: string}} LiveOutputEntry
  * @typedef {{sequence: number, event_type: string}} EventLogEntry
  *
  * @typedef {Object} DashboardState
@@ -22,8 +24,10 @@
  * @property {number} lastSequence
  * @property {string | null} pendingApprovalId
  * @property {string | null} pendingQuestionId
+ * @property {CurrentTurn | null} currentTurn
  * @property {TranscriptMessage[]} transcript
  * @property {ActiveToolCall[]} activeToolCalls
+ * @property {LiveOutputEntry[]} liveOutput
  * @property {PendingApproval[]} pendingApprovals
  * @property {EventLogEntry[]} eventLog
  */
@@ -62,11 +66,37 @@ export function createState() {
     lastSequence: 0,
     pendingApprovalId: null,
     pendingQuestionId: null,
+    currentTurn: null,
     transcript: [],
     activeToolCalls: [],
+    liveOutput: [],
     pendingApprovals: [],
     eventLog: [],
   };
+}
+
+/**
+ * @param {SessionSnapshot} snapshot
+ * @returns {CurrentTurn | null}
+ */
+function inferCurrentTurn(snapshot) {
+  const activeToolCall = snapshot.active_tool_calls?.[0];
+  if (activeToolCall?.turn_id) {
+    return {
+      turn_id: activeToolCall.turn_id,
+      status: "running",
+    };
+  }
+
+  const pendingApproval = snapshot.pending_approvals?.[0];
+  if (pendingApproval?.turn_id) {
+    return {
+      turn_id: pendingApproval.turn_id,
+      status: "awaiting_approval",
+    };
+  }
+
+  return null;
 }
 
 /**
@@ -83,11 +113,23 @@ export function hydrateFromSnapshot(snapshot) {
     lastSequence: snapshot.last_sequence ?? 0,
     pendingApprovalId: snapshot.pending_approval_id ?? null,
     pendingQuestionId: snapshot.pending_question_id ?? null,
+    currentTurn: inferCurrentTurn(snapshot),
     transcript: [...(snapshot.transcript ?? [])],
     activeToolCalls: [...(snapshot.active_tool_calls ?? [])],
+    liveOutput: [],
     pendingApprovals: [...(snapshot.pending_approvals ?? [])],
     eventLog: [],
   };
+}
+
+/**
+ * @param {LiveOutputEntry[]} liveOutput
+ * @param {LiveOutputEntry} entry
+ * @returns {LiveOutputEntry[]}
+ */
+function appendLiveOutput(liveOutput, entry) {
+  const next = [...liveOutput, entry];
+  return next.slice(-200);
 }
 
 /**
@@ -170,6 +212,7 @@ export function applyEvent(state, envelope) {
       return {
         ...next,
         status: "completed",
+        currentTurn: null,
         pendingApprovalId: null,
         pendingQuestionId: null,
       };
@@ -177,6 +220,34 @@ export function applyEvent(state, envelope) {
       return {
         ...next,
         status: "failed",
+        currentTurn: next.currentTurn,
+      };
+    case "TurnStarted":
+      if (typeof payload.turn_id !== "string") {
+        return next;
+      }
+      return {
+        ...next,
+        currentTurn: {
+          turn_id: payload.turn_id,
+          status: "running",
+          trigger_message_id: (
+            typeof payload.trigger_message_id === "string"
+              ? payload.trigger_message_id
+              : undefined
+          ),
+        },
+      };
+    case "TurnStatusChanged":
+      if (typeof payload.turn_id !== "string" || typeof payload.status !== "string") {
+        return next;
+      }
+      return {
+        ...next,
+        currentTurn: {
+          turn_id: payload.turn_id,
+          status: payload.status,
+        },
       };
     case "UserMessageReceived":
       if (typeof payload.message_id !== "string") {
@@ -221,6 +292,10 @@ export function applyEvent(state, envelope) {
         ...next,
         status: "awaiting_approval",
         pendingApprovalId: payload.approval_id,
+        currentTurn: {
+          turn_id: typeof payload.turn_id === "string" ? payload.turn_id : "unknown",
+          status: "awaiting_approval",
+        },
         pendingApprovals: upsertPendingApproval(next.pendingApprovals, approval),
       };
     }
@@ -228,6 +303,12 @@ export function applyEvent(state, envelope) {
       return {
         ...next,
         status: "running",
+        currentTurn: next.currentTurn
+          ? {
+              ...next.currentTurn,
+              status: "running",
+            }
+          : next.currentTurn,
         pendingApprovalId: (
           next.pendingApprovalId === payload.approval_id
             ? null
@@ -241,6 +322,12 @@ export function applyEvent(state, envelope) {
       return {
         ...next,
         status: "awaiting_user_input",
+        currentTurn: next.currentTurn
+          ? {
+              ...next.currentTurn,
+              status: "awaiting_user_input",
+            }
+          : next.currentTurn,
         pendingQuestionId: (
           typeof payload.question_id === "string"
             ? payload.question_id
@@ -251,6 +338,12 @@ export function applyEvent(state, envelope) {
       return {
         ...next,
         status: "running",
+        currentTurn: next.currentTurn
+          ? {
+              ...next.currentTurn,
+              status: "running",
+            }
+          : next.currentTurn,
         pendingQuestionId: (
           next.pendingQuestionId === payload.question_id
             ? null
@@ -258,25 +351,60 @@ export function applyEvent(state, envelope) {
         ),
       };
     case "TurnCompleted":
+      if (typeof payload.turn_id !== "string") {
+        return next;
+      }
       if (payload.outcome === "awaiting_approval") {
         return {
           ...next,
           status: "awaiting_approval",
+          currentTurn: {
+            turn_id: payload.turn_id,
+            status: "awaiting_approval",
+            outcome: payload.outcome,
+          },
         };
       }
       if (payload.outcome === "awaiting_user_input") {
         return {
           ...next,
           status: "awaiting_user_input",
+          currentTurn: {
+            turn_id: payload.turn_id,
+            status: "awaiting_user_input",
+            outcome: payload.outcome,
+          },
         };
       }
       if (payload.outcome === "completed") {
         return {
           ...next,
           status: "running",
+          currentTurn: {
+            turn_id: payload.turn_id,
+            status: "completed",
+            outcome: payload.outcome,
+          },
         };
       }
       return next;
+    case "TurnFailed":
+      if (typeof payload.turn_id !== "string") {
+        return next;
+      }
+      return {
+        ...next,
+        status: "failed",
+        currentTurn: {
+          turn_id: payload.turn_id,
+          status: "failed",
+          error_message: (
+            typeof payload.error_message === "string"
+              ? payload.error_message
+              : undefined
+          ),
+        },
+      };
     case "ToolExecutionStarted": {
       if (
         typeof payload.tool_call_id !== "string"
@@ -297,6 +425,10 @@ export function applyEvent(state, envelope) {
       );
       return {
         ...next,
+        currentTurn: {
+          turn_id: payload.turn_id,
+          status: next.currentTurn?.status ?? "running",
+        },
         activeToolCalls: existing
           ? next.activeToolCalls.map(item =>
               item.tool_call_id === toolCall.tool_call_id ? toolCall : item,
@@ -304,6 +436,24 @@ export function applyEvent(state, envelope) {
           : [...next.activeToolCalls, toolCall],
       };
     }
+    case "ToolOutputChunk":
+      if (
+        typeof payload.turn_id !== "string"
+        || typeof payload.tool_call_id !== "string"
+        || typeof payload.stream !== "string"
+        || typeof payload.chunk !== "string"
+      ) {
+        return next;
+      }
+      return {
+        ...next,
+        liveOutput: appendLiveOutput(next.liveOutput, {
+          turn_id: payload.turn_id,
+          tool_call_id: payload.tool_call_id,
+          stream: payload.stream,
+          chunk: payload.chunk,
+        }),
+      };
     case "ToolExecutionCompleted":
       return {
         ...next,
