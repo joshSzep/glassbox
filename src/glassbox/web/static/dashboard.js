@@ -1,18 +1,25 @@
 /**
- * Glassbox dashboard — browser-side logic.
+ * Glassbox dashboard — browser entry point.
+ *
+ * Handles DOM manipulation, snapshot loading, SSE subscription, and approval
+ * actions.  All state logic lives in ./state.js.
  *
  * On load:
  *   1. Read ?session=<uuid> from the query string.
  *   2. Fetch the snapshot from GET /sessions/<id>.
- *   3. Hydrate the UI from the snapshot.
- *   4. Open an SSE connection to GET /sessions/<id>/events?after=<last_seq>
- *      and apply incremental updates.
- *
- * The event reducer is intentionally minimal for the initial version.
- * GBX-091 will expand it into a full client-state model.
+ *   3. Hydrate the state model from the snapshot.
+ *   4. Render the full UI.
+ *   5. Open an SSE connection to GET /sessions/<id>/events?after=<last_seq>
+ *      and apply incremental updates via the reducer.
  */
 
-"use strict";
+import { applyEvent, createState, hydrateFromSnapshot } from "./state.js";
+
+// ---------------------------------------------------------------------------
+// Module-level state
+// ---------------------------------------------------------------------------
+
+let state = createState();
 
 // ---------------------------------------------------------------------------
 // Utilities
@@ -27,23 +34,6 @@ function escHtml(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
-
-function formatTime(iso) {
-  try { return new Date(iso).toLocaleTimeString(); } catch { return iso; }
-}
-
-// ---------------------------------------------------------------------------
-// State
-// ---------------------------------------------------------------------------
-
-let state = {
-  sessionId: null,
-  lastSequence: 0,
-  status: "unknown",
-  transcript: [],
-  pendingApprovals: [],
-  eventLog: [],   // [{sequence, event_type}]
-};
 
 // ---------------------------------------------------------------------------
 // Render
@@ -83,16 +73,24 @@ function renderApprovals() {
       <div class="approval-reason">${escHtml(a.reason)}</div>
       <div class="approval-actions">
         <button class="btn btn-approve"
-          onclick="resolveApproval('${escHtml(a.approval_id)}','approved')">
+          data-approval-id="${escHtml(a.approval_id)}"
+          data-decision="approved">
           Approve
         </button>
         <button class="btn btn-deny"
-          onclick="resolveApproval('${escHtml(a.approval_id)}','denied')">
+          data-approval-id="${escHtml(a.approval_id)}"
+          data-decision="denied">
           Deny
         </button>
       </div>
     </div>
   `).join("");
+
+  el.querySelectorAll(".btn[data-approval-id]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      resolveApproval(btn.dataset.approvalId, btn.dataset.decision);
+    });
+  });
 }
 
 function renderEventLog() {
@@ -114,8 +112,13 @@ function renderAll() {
   renderEventLog();
 }
 
+function syncState(updater) {
+  state = updater(state);
+  renderAll();
+}
+
 // ---------------------------------------------------------------------------
-// Snapshot hydration
+// Snapshot load
 // ---------------------------------------------------------------------------
 
 async function loadSnapshot(sessionId) {
@@ -125,63 +128,11 @@ async function loadSnapshot(sessionId) {
     return;
   }
   const snap = await resp.json();
-  state.sessionId = sessionId;
-  state.lastSequence = snap.last_sequence ?? 0;
-  state.status = snap.status;
-  state.transcript = snap.transcript ?? [];
-  state.pendingApprovals = snap.pending_approvals ?? [];
+  state = hydrateFromSnapshot(snap);
   document.title = `Glassbox – ${sessionId.slice(0, 8)}`;
-  byId("session-id-display").textContent = sessionId.slice(0, 8) + "…";
+  byId("session-id-display").textContent = sessionId.slice(0, 8) + "\u2026";
   renderAll();
   connectSSE(sessionId, state.lastSequence);
-}
-
-// ---------------------------------------------------------------------------
-// Event reducer — incremental SSE updates
-// ---------------------------------------------------------------------------
-
-function applyEvent(env) {
-  const { event_type, payload, sequence } = env;
-  state.lastSequence = Math.max(state.lastSequence, sequence);
-  state.eventLog.push({ sequence, event_type });
-
-  switch (event_type) {
-    case "SessionStarted":
-    case "SessionResumed":
-      state.status = "running";
-      break;
-    case "SessionCompleted":
-      state.status = "completed";
-      break;
-    case "SessionFailed":
-      state.status = "failed";
-      break;
-    case "UserMessageReceived":
-      // Full transcript reload deferred to next snapshot poll.
-      // For now push a lightweight entry.
-      state.transcript.push({
-        role: "user",
-        parts: [{ text: payload.text ?? "" }],
-      });
-      break;
-    case "ApprovalRequested":
-      state.status = "awaiting_approval";
-      state.pendingApprovals.push({
-        approval_id: payload.approval_id,
-        subject: payload.subject ?? "",
-        reason: payload.reason ?? "",
-      });
-      break;
-    case "ApprovalResolved":
-      state.status = "running";
-      state.pendingApprovals = state.pendingApprovals.filter(
-        a => a.approval_id !== payload.approval_id
-      );
-      break;
-    default:
-      break;
-  }
-  renderAll();
 }
 
 // ---------------------------------------------------------------------------
@@ -194,32 +145,33 @@ function connectSSE(sessionId, afterSequence) {
   const es = new EventSource(url);
 
   es.onopen = () => {
-    indicator.textContent = "● live";
+    indicator.textContent = "\u25cf live";
     indicator.className = "connected";
   };
 
-  es.onmessage = evt => {
-    try { applyEvent(JSON.parse(evt.data)); } catch { /* ignore parse errors */ }
-  };
+  function handleFrame(evt) {
+    try {
+      const envelope = JSON.parse(evt.data);
+      syncState(current => applyEvent(current, envelope));
+    } catch { /* ignore parse errors */ }
+  }
 
-  // Named event frames (event: <EventType>)
-  const knownEvents = [
+  es.onmessage = handleFrame;
+
+  [
     "SessionStarted", "SessionResumed", "SessionCompleted", "SessionFailed",
-    "UserMessageReceived", "ApprovalRequested", "ApprovalResolved",
+    "UserMessageReceived", "AssistantMessageCompleted",
+    "ApprovalRequested", "ApprovalResolved",
+    "UserQuestionAsked", "UserAnswerProvided",
     "TurnStarted", "TurnCompleted", "TurnFailed",
-    "ToolCallStarted", "ToolCallCompleted", "ToolCallFailed",
-  ];
-  knownEvents.forEach(name => {
-    es.addEventListener(name, evt => {
-      try { applyEvent(JSON.parse(evt.data)); } catch { /* ignore */ }
-    });
-  });
+    "ToolExecutionStarted", "ToolExecutionCompleted",
+    "ModelCallStarted", "ModelCallCompleted",
+  ].forEach(name => es.addEventListener(name, handleFrame));
 
   es.onerror = () => {
-    indicator.textContent = "✕ disconnected";
+    indicator.textContent = "\u2715 disconnected";
     indicator.className = "error";
     es.close();
-    // Reconnect after 3 s using the latest known sequence.
     setTimeout(() => connectSSE(sessionId, state.lastSequence), 3000);
   };
 }
@@ -230,15 +182,13 @@ function connectSSE(sessionId, afterSequence) {
 
 async function resolveApproval(approvalId, decision) {
   const card = byId(`approval-${approvalId}`);
-  if (card) {
-    card.querySelectorAll(".btn").forEach(b => { b.disabled = true; });
-  }
+  if (card) card.querySelectorAll(".btn").forEach(b => { b.disabled = true; });
+
   await fetch(`/sessions/${state.sessionId}/approvals/${approvalId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ decision }),
   });
-  // The SSE stream will deliver the ApprovalResolved event and update UI.
 }
 
 // ---------------------------------------------------------------------------
@@ -255,12 +205,12 @@ function setError(msg) {
 // Boot
 // ---------------------------------------------------------------------------
 
-document.addEventListener("DOMContentLoaded", () => {
-  const params = new URLSearchParams(window.location.search);
-  const sessionId = params.get("session");
-  if (!sessionId) {
+const params = new URLSearchParams(window.location.search);
+const sessionId = params.get("session");
+if (!sessionId) {
+  document.addEventListener("DOMContentLoaded", () => {
     setError("No ?session=<id> in URL. Open this page from a Glassbox session.");
-    return;
-  }
-  loadSnapshot(sessionId);
-});
+  });
+} else {
+  document.addEventListener("DOMContentLoaded", () => loadSnapshot(sessionId));
+}

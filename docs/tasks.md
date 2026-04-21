@@ -820,7 +820,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-091: Implement Dashboard State Model And Event Reducer
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-081`, `GBX-082`, `GBX-090`
 - Goal: build the browser-side state model from snapshot plus live event stream
 - Deliverables:
