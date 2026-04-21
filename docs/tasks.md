@@ -784,7 +784,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-083: Implement Approval Resolution HTTP Endpoint
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-070`, `GBX-080`
 - Goal: allow the dashboard to resolve approvals without going through the CLI
 - Deliverables:
