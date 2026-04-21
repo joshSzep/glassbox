@@ -660,7 +660,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-066: Implement Apply Patch Tool
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-061`, `GBX-063`
 - Goal: support controlled file edits through a typed patch mechanism
 - Deliverables:

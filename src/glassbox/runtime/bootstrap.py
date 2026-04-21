@@ -31,7 +31,7 @@ from glassbox.tools import (
     ToolPolicyContext,
     ToolPolicyEngine,
     ToolRuntime,
-    build_workflow_tool_registry,
+    build_patch_tool_registry,
 )
 
 
@@ -105,7 +105,7 @@ def _build_model_executor(session: SessionRecord):
 
 def _build_tool_runtime(session: SessionRecord) -> ToolRuntime:
     return ToolRuntime(
-        build_workflow_tool_registry(session.cwd),
+        build_patch_tool_registry(session.cwd),
         ToolPolicyEngine(),
         ToolPolicyContext(
             workspace_root=session.cwd,

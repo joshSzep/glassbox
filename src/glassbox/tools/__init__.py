@@ -6,6 +6,12 @@ from glassbox.tools.command import (
     RunCommandTool,
     build_command_tool_registry,
 )
+from glassbox.tools.patch import (
+    ApplyPatchArgs,
+    ApplyPatchResult,
+    ApplyPatchTool,
+    build_patch_tool_registry,
+)
 from glassbox.tools.policy import ApprovalMode, ToolPolicyContext, ToolPolicyEngine
 from glassbox.tools.read_only import (
     DirectoryEntry,
@@ -46,6 +52,9 @@ from glassbox.tools.workflow import (
 )
 
 __all__ = [
+    "ApplyPatchArgs",
+    "ApplyPatchResult",
+    "ApplyPatchTool",
     "ApprovalMode",
     "DirectoryEntry",
     "GitStatusArgs",
@@ -80,6 +89,7 @@ __all__ = [
     "SearchFilesTool",
     "SearchMatch",
     "build_command_tool_registry",
+    "build_patch_tool_registry",
     "build_read_only_tool_registry",
     "build_workflow_tool_registry",
 ]
