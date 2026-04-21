@@ -735,7 +735,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-080: Implement Web App Bootstrap
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-032`, `GBX-030`
 - Goal: start an embedded HTTP server alongside the runtime
 - Deliverables:

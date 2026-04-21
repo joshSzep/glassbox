@@ -33,6 +33,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _resolve_approval_command(args, ApprovalDecision.APPROVED)
         if args.command == "deny":
             return _resolve_approval_command(args, ApprovalDecision.DENIED)
+        if args.command == "serve":
+            return _serve_command(args)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 1
@@ -79,6 +81,20 @@ def _build_parser() -> argparse.ArgumentParser:
     deny_parser.add_argument("session_id", type=_parse_uuid)
     deny_parser.add_argument("approval_id", type=_parse_uuid)
     _add_runtime_location_arguments(deny_parser)
+
+    serve_parser = subparsers.add_parser("serve", help="start the web dashboard server")
+    _add_runtime_location_arguments(serve_parser)
+    serve_parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="host address to bind the server to",
+    )
+    serve_parser.add_argument(
+        "--port",
+        type=int,
+        default=8765,
+        help="port to bind the server to",
+    )
 
     return parser
 
@@ -241,4 +257,12 @@ async def _run_with_renderer(
                 with suppress(asyncio.CancelledError):
                     await render_task
 
+    return 0
+
+
+def _serve_command(args: argparse.Namespace) -> int:
+    from glassbox.web import run_server
+
+    cwd, db_path = _resolve_runtime_location(args)
+    run_server(cwd, host=args.host, port=args.port, db_path=db_path)
     return 0
