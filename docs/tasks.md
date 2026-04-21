@@ -768,8 +768,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-082: Implement SSE Event Stream API
 
-- Status: `TODO`
-- Depends on: `GBX-030`, `GBX-080`, `GBX-081`
+- Status: `DONE`
 - Goal: stream live session events to the dashboard
 - Deliverables:
   - `GET /sessions/{session_id}/events`

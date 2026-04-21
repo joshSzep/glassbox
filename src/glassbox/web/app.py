@@ -36,10 +36,12 @@ def create_app(runtime_context: RuntimeContext) -> FastAPI:
     # the ASGI lifespan (e.g. during testing with ASGITransport).
     app.state.runtime_context = runtime_context
 
+    from glassbox.web.routes.events import router as events_router
     from glassbox.web.routes.health import router as health_router
     from glassbox.web.routes.sessions import router as sessions_router
 
     app.include_router(health_router)
     app.include_router(sessions_router)
+    app.include_router(events_router)
 
     return app
