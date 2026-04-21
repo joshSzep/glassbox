@@ -29,13 +29,17 @@ def create_app(runtime_context: RuntimeContext) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-        _app.state.runtime_context = runtime_context
         yield
 
     app = FastAPI(title="Glassbox", lifespan=lifespan)
+    # Attach immediately so the context is available both inside and outside
+    # the ASGI lifespan (e.g. during testing with ASGITransport).
+    app.state.runtime_context = runtime_context
 
     from glassbox.web.routes.health import router as health_router
+    from glassbox.web.routes.sessions import router as sessions_router
 
     app.include_router(health_router)
+    app.include_router(sessions_router)
 
     return app

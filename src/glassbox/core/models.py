@@ -14,7 +14,7 @@ from glassbox.core.ids import (
     ToolCallId,
     TurnId,
 )
-from glassbox.core.types import SessionStatus, ToolExecutionStatus
+from glassbox.core.types import ApprovalStatus, SessionStatus, ToolExecutionStatus
 
 MessagePartKind = Literal["text", "tool_result", "reasoning_summary"]
 MessageRole = Literal["user", "assistant", "system"]
@@ -94,6 +94,21 @@ class ToolCallRecord(BaseModel):
     started_at: datetime | None = None
     completed_at: datetime | None = None
     summary: str | None = None
+
+
+class ApprovalRecord(BaseModel):
+    """A query-friendly view of an approval request."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    approval_id: ApprovalId
+    turn_id: TurnId
+    subject: str
+    reason: str
+    status: ApprovalStatus
+    requested_at: datetime
+    resolved_at: datetime | None = None
+    decided_by: str | None = None
 
 
 class PolicyDecision(BaseModel):

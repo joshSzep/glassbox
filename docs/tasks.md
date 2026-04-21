@@ -752,7 +752,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-081: Implement Session Snapshot API
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-024`, `GBX-080`
 - Goal: provide the dashboard with initial read models before it subscribes to live events
 - Deliverables:

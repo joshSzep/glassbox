@@ -38,13 +38,15 @@ from glassbox.core.ids import (
     TurnId,
 )
 from glassbox.core.models import (
+    ApprovalRecord,
     MessagePart,
     SessionConfig,
     SessionRecord,
     SessionState,
+    ToolCallRecord,
     TranscriptMessage,
 )
-from glassbox.core.types import SessionStatus
+from glassbox.core.types import ApprovalStatus, SessionStatus, ToolExecutionStatus
 
 SCHEMA_VERSION = 2
 
@@ -446,6 +448,90 @@ def list_sessions(
     return [_session_from_row(row) for row in rows]
 
 
+def list_tool_calls(
+    connection: sqlite3.Connection,
+    session_id: SessionId,
+    *,
+    status: ToolExecutionStatus | None = None,
+) -> list[ToolCallRecord]:
+    """Read tool call records for a session, optionally filtered by status."""
+
+    query = """
+        select
+            tool_call_id,
+            turn_id,
+            tool_name,
+            status,
+            started_at,
+            completed_at,
+            summary
+        from tool_calls
+        where session_id = ?
+    """
+    parameters: list[object] = [str(session_id)]
+    if status is not None:
+        query += " and status = ?"
+        parameters.append(status)
+    query += " order by started_at asc"
+
+    rows = connection.execute(query, parameters).fetchall()
+    return [
+        ToolCallRecord(
+            tool_call_id=row["tool_call_id"],
+            turn_id=row["turn_id"],
+            tool_name=row["tool_name"],
+            status=ToolExecutionStatus(row["status"]),
+            started_at=_parse_optional_datetime(row["started_at"]),
+            completed_at=_parse_optional_datetime(row["completed_at"]),
+            summary=row["summary"],
+        )
+        for row in rows
+    ]
+
+
+def list_approvals(
+    connection: sqlite3.Connection,
+    session_id: SessionId,
+    *,
+    status: ApprovalStatus | None = None,
+) -> list[ApprovalRecord]:
+    """Read approval records for a session, optionally filtered by status."""
+
+    query = """
+        select
+            approval_id,
+            turn_id,
+            subject,
+            reason,
+            status,
+            requested_at,
+            resolved_at,
+            decided_by
+        from approvals
+        where session_id = ?
+    """
+    parameters: list[object] = [str(session_id)]
+    if status is not None:
+        query += " and status = ?"
+        parameters.append(status)
+    query += " order by requested_at asc"
+
+    rows = connection.execute(query, parameters).fetchall()
+    return [
+        ApprovalRecord(
+            approval_id=row["approval_id"],
+            turn_id=row["turn_id"],
+            subject=row["subject"],
+            reason=row["reason"],
+            status=ApprovalStatus(row["status"]),
+            requested_at=datetime.fromisoformat(row["requested_at"]),
+            resolved_at=_parse_optional_datetime(row["resolved_at"]),
+            decided_by=row["decided_by"],
+        )
+        for row in rows
+    ]
+
+
 def append_event(
     connection: sqlite3.Connection,
     event: EventEnvelope,
@@ -735,6 +821,12 @@ def _stringify_identifier(value: CorrelationValue | None) -> str | None:
     if value is None:
         return None
     return str(value)
+
+
+def _parse_optional_datetime(value: str | None) -> datetime | None:
+    if value is None:
+        return None
+    return datetime.fromisoformat(value)
 
 
 def _apply_projection_event(

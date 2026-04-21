@@ -17,12 +17,19 @@ from glassbox.core.ids import (
     TurnId,
 )
 from glassbox.core.models import (
+    ApprovalRecord,
     SessionConfig,
     SessionRecord,
     SessionState,
+    ToolCallRecord,
     TranscriptMessage,
 )
-from glassbox.core.types import ApprovalDecision, SessionStatus
+from glassbox.core.types import (
+    ApprovalDecision,
+    ApprovalStatus,
+    SessionStatus,
+    ToolExecutionStatus,
+)
 from glassbox.store.artifacts import StoredArtifact
 
 
@@ -95,6 +102,20 @@ class SessionRepository(Protocol):
     ) -> list[EventEnvelope]: ...
 
     def rebuild_session_projections(self, session_id: SessionId) -> None: ...
+
+    def list_tool_calls(
+        self,
+        session_id: SessionId,
+        *,
+        status: ToolExecutionStatus | None = None,
+    ) -> list[ToolCallRecord]: ...
+
+    def list_approvals(
+        self,
+        session_id: SessionId,
+        *,
+        status: ApprovalStatus | None = None,
+    ) -> list[ApprovalRecord]: ...
 
 
 @runtime_checkable

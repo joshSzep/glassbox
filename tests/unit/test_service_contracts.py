@@ -122,6 +122,12 @@ class FakeSessionRepository:
     def rebuild_session_projections(self, session_id) -> None:
         return None
 
+    def list_tool_calls(self, session_id, *, status=None):
+        return []
+
+    def list_approvals(self, session_id, *, status=None):
+        return []
+
 
 class FakeArtifactRepository:
     def _artifact_event(self, session_id) -> EventEnvelope:

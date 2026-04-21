@@ -12,12 +12,14 @@ import glassbox.store.sqlite as sqlite_store
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import ApprovalId, MessageId, SessionId, ToolCallId, TurnId
 from glassbox.core.models import (
+    ApprovalRecord,
     SessionConfig,
     SessionRecord,
     SessionState,
+    ToolCallRecord,
     TranscriptMessage,
 )
-from glassbox.core.types import SessionStatus
+from glassbox.core.types import ApprovalStatus, SessionStatus, ToolExecutionStatus
 from glassbox.store.artifacts import StoredArtifact
 
 
@@ -136,6 +138,22 @@ class SQLiteSessionRepository:
 
     def rebuild_session_projections(self, session_id: SessionId) -> None:
         sqlite_store.rebuild_session_projections(self._connection, session_id)
+
+    def list_tool_calls(
+        self,
+        session_id: SessionId,
+        *,
+        status: ToolExecutionStatus | None = None,
+    ) -> list[ToolCallRecord]:
+        return sqlite_store.list_tool_calls(self._connection, session_id, status=status)
+
+    def list_approvals(
+        self,
+        session_id: SessionId,
+        *,
+        status: ApprovalStatus | None = None,
+    ) -> list[ApprovalRecord]:
+        return sqlite_store.list_approvals(self._connection, session_id, status=status)
 
 
 class FilesystemArtifactRepository:

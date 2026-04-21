@@ -101,6 +101,12 @@ class FakeSessionRepository:
     def rebuild_session_projections(self, session_id) -> None:
         return None
 
+    def list_tool_calls(self, session_id, *, status=None):
+        return []
+
+    def list_approvals(self, session_id, *, status=None):
+        return []
+
 
 def test_turn_context_builder_orders_transcript_and_includes_policy_and_tools() -> None:
     session_id = new_session_id()
