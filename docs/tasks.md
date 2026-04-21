@@ -715,7 +715,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-071: Integrate Approval Resolution Into CLI And Runtime
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-042`, `GBX-070`
 - Goal: complete the operator-facing approval loop
 - Deliverables:
