@@ -8,7 +8,14 @@ from datetime import UTC, datetime
 from time import perf_counter
 from typing import cast
 
-from pydantic_ai.messages import ModelMessage, ModelRequest, UserPromptPart
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    ToolCallPart,
+    ToolReturnPart,
+    UserPromptPart,
+)
 
 from glassbox.core.events import (
     ApprovalRequested,
@@ -27,9 +34,18 @@ from glassbox.core.events import (
     TurnFailed,
     TurnStarted,
     TurnStatusChanged,
+    UserAnswerProvided,
     UserMessageReceived,
+    UserQuestionAsked,
 )
-from glassbox.core.ids import ToolCallId, new_approval_id, new_message_id, new_turn_id
+from glassbox.core.ids import (
+    MessageId,
+    ToolCallId,
+    new_approval_id,
+    new_message_id,
+    new_question_id,
+    new_turn_id,
+)
 from glassbox.core.models import MessagePart, SessionRecord
 from glassbox.core.types import TurnStatus
 from glassbox.llm import (
@@ -62,6 +78,8 @@ TurnEnginePayload = (
     | ToolExecutionCompleted
     | ToolOutputChunk
     | ApprovalRequested
+    | UserQuestionAsked
+    | UserAnswerProvided
     | TurnCompleted
     | TurnFailed
 )
@@ -132,97 +150,19 @@ class TurnEngine:
                 system_prompt=system_prompt,
             )
             assistant_message_id = new_message_id()
-
             conversation = _request_messages(prepared_turn)
-            continuation_turn = _continuation_turn(prepared_turn, conversation)
-            assistant_started = False
 
-            while True:
-                model_call_events: list[TurnEnginePayload] = [
-                    TurnStatusChanged(
-                        turn_id=turn_id,
-                        status=TurnStatus.CALLING_MODEL,
-                    ),
-                    ModelCallStarted(
-                        turn_id=turn_id,
-                        provider=model_adapter.config.provider or "local",
-                        model_name=model_adapter.config.model_name,
-                    ),
-                ]
-                if not assistant_started:
-                    model_call_events.append(
-                        AssistantMessageStarted(message_id=assistant_message_id)
-                    )
-                    assistant_started = True
-
-                self._append_and_publish(event.session_id, model_call_events)
-
-                start = perf_counter()
-                result = await model_executor.execute_stream(
-                    continuation_turn,
-                    stream_translator=model_adapter.new_stream_translator(),
-                    on_event=lambda stream_event: self._handle_stream_event(
-                        event.session_id,
-                        assistant_message_id=assistant_message_id,
-                        stream_event=stream_event,
-                    ),
-                )
-                duration_ms = max(0, int((perf_counter() - start) * 1000))
-                self._append_and_publish(
-                    event.session_id,
-                    [
-                        ModelCallCompleted(
-                            turn_id=turn_id,
-                            input_tokens=result.input_tokens,
-                            output_tokens=result.output_tokens,
-                            duration_ms=duration_ms,
-                        )
-                    ],
-                )
-
-                if result.tool_calls:
-                    if tool_runtime is None:
-                        raise ValueError(
-                            "tool calls are not supported by the turn engine yet"
-                        )
-
-                    conversation.append(result.model_response)
-                    tool_loop_outcome = await self._execute_tool_calls(
-                        event.session_id,
-                        turn_id=turn_id,
-                        tool_runtime=tool_runtime,
-                        tool_calls=result.tool_calls,
-                        conversation=conversation,
-                    )
-                    if tool_loop_outcome == "awaiting_approval":
-                        return
-
-                    continuation_turn = _continuation_turn(prepared_turn, conversation)
-                    continue
-
-                assistant_text = result.assistant_text.strip()
-                if assistant_text == "":
-                    raise ValueError("assistant response must not be blank")
-
-                self._append_and_publish(
-                    event.session_id,
-                    [
-                        TurnStatusChanged(
-                            turn_id=turn_id,
-                            status=TurnStatus.ASSEMBLING_RESPONSE,
-                        ),
-                        AssistantMessageCompleted(
-                            message_id=assistant_message_id,
-                            parts=[MessagePart(kind="text", text=assistant_text)],
-                        ),
-                        TurnStatusChanged(
-                            turn_id=turn_id,
-                            status=TurnStatus.COMPLETED,
-                        ),
-                        TurnCompleted(turn_id=turn_id, outcome="completed"),
-                    ],
-                )
-                return
+            await self._run_model_loop(
+                event.session_id,
+                turn_id=turn_id,
+                prepared_turn=prepared_turn,
+                conversation=conversation,
+                model_adapter=model_adapter,
+                model_executor=model_executor,
+                tool_runtime=tool_runtime,
+                assistant_message_id=assistant_message_id,
+                assistant_started=False,
+            )
         except Exception as exc:
             self._append_and_publish(
                 event.session_id,
@@ -235,6 +175,207 @@ class TurnEngine:
                 ],
             )
             raise
+
+    async def run_for_user_answer(self, event: EventEnvelope) -> None:
+        """Resume a suspended turn after the operator answers an ask_user question."""
+
+        payload = event.payload
+        if not isinstance(payload, UserAnswerProvided):
+            raise TypeError("run_for_user_answer requires a UserAnswerProvided event")
+
+        session = self._session_repository.get_session(event.session_id)
+        if session is None:
+            raise ValueError(f"unknown session_id: {event.session_id}")
+
+        # Locate the matching UserQuestionAsked event for conversation reconstruction.
+        question_payload: UserQuestionAsked | None = None
+        for ev in self._session_repository.read_session_events(event.session_id):
+            if (
+                isinstance(ev.payload, UserQuestionAsked)
+                and ev.payload.question_id == payload.question_id
+            ):
+                question_payload = ev.payload
+                break
+
+        if question_payload is None:
+            raise ValueError(
+                "no UserQuestionAsked event found for question_id "
+                f"{payload.question_id}"
+            )
+
+        turn_id = question_payload.turn_id
+
+        # Find the AssistantMessageStarted event so we can reuse the same message_id.
+        assistant_message_id: MessageId | None = None
+        for ev in self._session_repository.read_events_by_correlation_id(
+            event.session_id, turn_id=turn_id
+        ):
+            if isinstance(ev.payload, AssistantMessageStarted):
+                assistant_message_id = ev.payload.message_id
+                break
+
+        if assistant_message_id is None:
+            assistant_message_id = new_message_id()
+
+        self._append_and_publish(
+            event.session_id,
+            [TurnStatusChanged(turn_id=turn_id, status=TurnStatus.BUILDING_CONTEXT)],
+        )
+
+        try:
+            tool_runtime = (
+                self._tool_runtime_factory(session)
+                if self._tool_runtime_factory is not None
+                else None
+            )
+            turn_context = self._context_builder.build(
+                event.session_id,
+                tool_registry=(
+                    tool_runtime.tool_registry if tool_runtime is not None else None
+                ),
+            )
+            system_prompt = build_system_prompt(turn_context)
+            model_adapter = self._model_adapter_factory(session)
+            model_executor = self._model_executor_factory(session)
+            prepared_turn = model_adapter.build_turn_request(
+                turn_context,
+                system_prompt=system_prompt,
+            )
+
+            # Reconstruct the conversation up to (and including) the answer.
+            conversation = _request_messages(prepared_turn)
+            conversation.append(_make_ask_user_model_response(question_payload))
+            conversation.append(
+                _make_ask_user_tool_return(question_payload, payload.answer)
+            )
+
+            await self._run_model_loop(
+                event.session_id,
+                turn_id=turn_id,
+                prepared_turn=prepared_turn,
+                conversation=conversation,
+                model_adapter=model_adapter,
+                model_executor=model_executor,
+                tool_runtime=tool_runtime,
+                assistant_message_id=assistant_message_id,
+                assistant_started=True,  # AssistantMessageStarted was emitted earlier
+            )
+        except Exception as exc:
+            self._append_and_publish(
+                event.session_id,
+                [
+                    TurnStatusChanged(
+                        turn_id=turn_id,
+                        status=TurnStatus.FAILED,
+                    ),
+                    TurnFailed(turn_id=turn_id, error_message=str(exc)),
+                ],
+            )
+            raise
+
+    async def _run_model_loop(
+        self,
+        session_id,
+        *,
+        turn_id,
+        prepared_turn: PreparedModelTurn,
+        conversation: list[ModelMessage],
+        model_adapter: ModelAdapter,
+        model_executor: ModelExecutor,
+        tool_runtime: ToolRuntime | None,
+        assistant_message_id: MessageId,
+        assistant_started: bool,
+    ) -> None:
+        """Run the model call + tool execution loop to completion or suspension."""
+
+        continuation_turn = _continuation_turn(prepared_turn, conversation)
+
+        while True:
+            model_call_events: list[TurnEnginePayload] = [
+                TurnStatusChanged(
+                    turn_id=turn_id,
+                    status=TurnStatus.CALLING_MODEL,
+                ),
+                ModelCallStarted(
+                    turn_id=turn_id,
+                    provider=model_adapter.config.provider or "local",
+                    model_name=model_adapter.config.model_name,
+                ),
+            ]
+            if not assistant_started:
+                model_call_events.append(
+                    AssistantMessageStarted(message_id=assistant_message_id)
+                )
+                assistant_started = True
+
+            self._append_and_publish(session_id, model_call_events)
+
+            start = perf_counter()
+            result = await model_executor.execute_stream(
+                continuation_turn,
+                stream_translator=model_adapter.new_stream_translator(),
+                on_event=lambda stream_event: self._handle_stream_event(
+                    session_id,
+                    assistant_message_id=assistant_message_id,
+                    stream_event=stream_event,
+                ),
+            )
+            duration_ms = max(0, int((perf_counter() - start) * 1000))
+            self._append_and_publish(
+                session_id,
+                [
+                    ModelCallCompleted(
+                        turn_id=turn_id,
+                        input_tokens=result.input_tokens,
+                        output_tokens=result.output_tokens,
+                        duration_ms=duration_ms,
+                    )
+                ],
+            )
+
+            if result.tool_calls:
+                if tool_runtime is None:
+                    raise ValueError(
+                        "tool calls are not supported by the turn engine yet"
+                    )
+
+                conversation.append(result.model_response)
+                tool_loop_outcome = await self._execute_tool_calls(
+                    session_id,
+                    turn_id=turn_id,
+                    tool_runtime=tool_runtime,
+                    tool_calls=result.tool_calls,
+                    conversation=conversation,
+                )
+                if tool_loop_outcome is not None:
+                    return
+
+                continuation_turn = _continuation_turn(prepared_turn, conversation)
+                continue
+
+            assistant_text = result.assistant_text.strip()
+            if assistant_text == "":
+                raise ValueError("assistant response must not be blank")
+
+            self._append_and_publish(
+                session_id,
+                [
+                    TurnStatusChanged(
+                        turn_id=turn_id,
+                        status=TurnStatus.ASSEMBLING_RESPONSE,
+                    ),
+                    AssistantMessageCompleted(
+                        message_id=assistant_message_id,
+                        parts=[MessagePart(kind="text", text=assistant_text)],
+                    ),
+                    TurnStatusChanged(
+                        turn_id=turn_id,
+                        status=TurnStatus.COMPLETED,
+                    ),
+                    TurnCompleted(turn_id=turn_id, outcome="completed"),
+                ],
+            )
+            return
 
     def _append_and_publish(
         self,
@@ -312,6 +453,33 @@ class TurnEngine:
                     ],
                 )
                 raise ValueError(prepared_tool_call.policy_decision.reason)
+
+            # Intercept ask_user: suspend the turn and wait for operator input.
+            if prepared_tool_call.tool_name == "ask_user":
+                question_id = new_question_id()
+                question_text = str(
+                    prepared_tool_call.validated_arguments.model_dump().get(
+                        "question", ""
+                    )
+                )
+                self._append_and_publish(
+                    session_id,
+                    [
+                        TurnStatusChanged(
+                            turn_id=turn_id,
+                            status=TurnStatus.AWAITING_USER_INPUT,
+                        ),
+                        UserQuestionAsked(
+                            question_id=question_id,
+                            turn_id=turn_id,
+                            tool_call_id=prepared_tool_call.event_tool_call_id,
+                            provider_tool_call_id=prepared_tool_call.provider_tool_call_id,
+                            question=question_text,
+                        ),
+                        TurnCompleted(turn_id=turn_id, outcome="awaiting_user_input"),
+                    ],
+                )
+                return "awaiting_user_input"
 
             self._append_and_publish(
                 session_id,
@@ -418,4 +586,40 @@ def _continuation_turn(
         user_prompt=None,
         request_parameters=prepared_turn.request_parameters,
         model_settings=prepared_turn.model_settings,
+    )
+
+
+def _make_ask_user_model_response(question_payload: UserQuestionAsked) -> ModelResponse:
+    """Reconstruct the model's side of an ask_user call as a ModelResponse."""
+
+    timestamp = datetime.now(tz=UTC)
+    return ModelResponse(
+        parts=[
+            ToolCallPart(
+                tool_name="ask_user",
+                tool_call_id=question_payload.provider_tool_call_id,
+                args={"question": question_payload.question},
+            )
+        ],
+        timestamp=timestamp,
+    )
+
+
+def _make_ask_user_tool_return(
+    question_payload: UserQuestionAsked,
+    answer: str,
+) -> ModelRequest:
+    """Reconstruct the tool-return message for an ask_user call."""
+
+    timestamp = datetime.now(tz=UTC)
+    return ModelRequest(
+        parts=[
+            ToolReturnPart(
+                tool_name="ask_user",
+                tool_call_id=question_payload.provider_tool_call_id,
+                content={"answer": answer},
+                timestamp=timestamp,
+            )
+        ],
+        timestamp=timestamp,
     )

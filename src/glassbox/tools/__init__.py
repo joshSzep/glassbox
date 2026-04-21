@@ -1,5 +1,11 @@
 """Tooling package for Glassbox."""
 
+from glassbox.tools.ask_user import (
+    AskUserArgs,
+    AskUserResult,
+    AskUserTool,
+    build_ask_user_tool_registry,
+)
 from glassbox.tools.command import (
     RunCommandArgs,
     RunCommandResult,
@@ -56,6 +62,9 @@ __all__ = [
     "ApplyPatchResult",
     "ApplyPatchTool",
     "ApprovalMode",
+    "AskUserArgs",
+    "AskUserResult",
+    "AskUserTool",
     "DirectoryEntry",
     "GitStatusArgs",
     "GitStatusResult",
@@ -88,6 +97,7 @@ __all__ = [
     "SearchFilesResult",
     "SearchFilesTool",
     "SearchMatch",
+    "build_ask_user_tool_registry",
     "build_command_tool_registry",
     "build_patch_tool_registry",
     "build_read_only_tool_registry",

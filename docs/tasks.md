@@ -678,7 +678,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-067: Implement Ask User Tool
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-060`, `GBX-063`
 - Goal: support turn suspension when the model needs clarification or approval-like input
 - Deliverables:

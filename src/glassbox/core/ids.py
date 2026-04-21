@@ -7,6 +7,7 @@ type TurnId = UUID
 type MessageId = UUID
 type ToolCallId = UUID
 type ApprovalId = UUID
+type QuestionId = UUID
 type EventId = UUID
 type ArtifactId = UUID
 
@@ -33,6 +34,11 @@ def new_tool_call_id() -> ToolCallId:
 
 def new_approval_id() -> ApprovalId:
     """Create a new approval identifier."""
+    return uuid4()
+
+
+def new_question_id() -> QuestionId:
+    """Create a new user question identifier."""
     return uuid4()
 
 

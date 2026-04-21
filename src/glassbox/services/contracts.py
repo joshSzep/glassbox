@@ -8,7 +8,14 @@ from pathlib import Path
 from typing import Protocol, runtime_checkable
 
 from glassbox.core.events import EventEnvelope
-from glassbox.core.ids import ApprovalId, MessageId, SessionId, ToolCallId, TurnId
+from glassbox.core.ids import (
+    ApprovalId,
+    MessageId,
+    QuestionId,
+    SessionId,
+    ToolCallId,
+    TurnId,
+)
 from glassbox.core.models import (
     SessionConfig,
     SessionRecord,
@@ -163,4 +170,11 @@ class SessionService(Protocol):
         session_id: SessionId,
         approval_id: ApprovalId,
         decision: ApprovalDecision,
+    ) -> None: ...
+
+    async def provide_user_answer(
+        self,
+        session_id: SessionId,
+        question_id: QuestionId,
+        answer: str,
     ) -> None: ...

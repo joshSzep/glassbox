@@ -209,6 +209,14 @@ class FakeSessionService:
     ) -> None:
         return None
 
+    async def provide_user_answer(
+        self,
+        session_id,
+        question_id,
+        answer: str,
+    ) -> None:
+        return None
+
 
 def test_runtime_contract_fakes_satisfy_protocols() -> None:
     assert isinstance(FakeSessionRepository(), SessionRepository)

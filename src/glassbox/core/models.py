@@ -6,7 +6,14 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from glassbox.core.ids import ApprovalId, MessageId, SessionId, ToolCallId, TurnId
+from glassbox.core.ids import (
+    ApprovalId,
+    MessageId,
+    QuestionId,
+    SessionId,
+    ToolCallId,
+    TurnId,
+)
 from glassbox.core.types import SessionStatus, ToolExecutionStatus
 
 MessagePartKind = Literal["text", "tool_result", "reasoning_summary"]
@@ -37,6 +44,7 @@ class SessionState(BaseModel):
     current_turn_id: TurnId | None = None
     last_sequence: int = Field(default=0, ge=0)
     pending_approval_id: ApprovalId | None = None
+    pending_question_id: QuestionId | None = None
 
 
 class SessionRecord(BaseModel):

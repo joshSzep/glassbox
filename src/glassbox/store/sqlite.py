@@ -25,9 +25,18 @@ from glassbox.core.events import (
     TurnCompleted,
     TurnFailed,
     TurnStarted,
+    UserAnswerProvided,
     UserMessageReceived,
+    UserQuestionAsked,
 )
-from glassbox.core.ids import ApprovalId, MessageId, SessionId, ToolCallId, TurnId
+from glassbox.core.ids import (
+    ApprovalId,
+    MessageId,
+    QuestionId,
+    SessionId,
+    ToolCallId,
+    TurnId,
+)
 from glassbox.core.models import (
     MessagePart,
     SessionConfig,
@@ -39,7 +48,7 @@ from glassbox.core.types import SessionStatus
 
 SCHEMA_VERSION = 2
 
-type CorrelationValue = TurnId | MessageId | ToolCallId | ApprovalId
+type CorrelationValue = TurnId | MessageId | ToolCallId | ApprovalId | QuestionId
 
 BOOTSTRAP_STATEMENTS = (
     """
@@ -113,6 +122,7 @@ BOOTSTRAP_STATEMENTS = (
         status text not null,
         current_turn_id text,
         pending_approval_id text,
+        pending_question_id text,
         last_sequence integer not null,
         updated_at text not null,
         foreign key (session_id) references sessions(session_id)
@@ -344,6 +354,7 @@ def get_session_state(
             status,
             current_turn_id,
             pending_approval_id,
+            pending_question_id,
             last_sequence
         from session_state
         where session_id = ?
@@ -366,6 +377,7 @@ def get_session_state(
             "status": row["status"],
             "current_turn_id": row["current_turn_id"],
             "pending_approval_id": row["pending_approval_id"],
+            "pending_question_id": row["pending_question_id"],
             "last_sequence": row["last_sequence"],
         }
     )
@@ -764,7 +776,7 @@ def _apply_session_state_projection(
 ) -> None:
     existing_row = connection.execute(
         """
-        select status, current_turn_id, pending_approval_id
+        select status, current_turn_id, pending_approval_id, pending_question_id
         from session_state
         where session_id = ?
         """,
@@ -776,6 +788,9 @@ def _apply_session_state_projection(
     pending_approval_id = (
         existing_row["pending_approval_id"] if existing_row is not None else None
     )
+    pending_question_id = (
+        existing_row["pending_question_id"] if existing_row is not None else None
+    )
     status = (
         existing_row["status"] if existing_row is not None else SessionStatus.RUNNING
     )
@@ -786,7 +801,14 @@ def _apply_session_state_projection(
     elif isinstance(payload, TurnStarted):
         current_turn_id = str(payload.turn_id)
         status = SessionStatus.RUNNING
-    elif isinstance(payload, TurnCompleted | TurnFailed):
+    elif isinstance(payload, TurnCompleted):
+        current_turn_id = None
+        # Only reset to RUNNING on a normal completion; suspension outcomes leave
+        # the status managed by the pausing event
+        # (ApprovalRequested / UserQuestionAsked).
+        if payload.outcome == "completed":
+            status = SessionStatus.RUNNING
+    elif isinstance(payload, TurnFailed):
         current_turn_id = None
         status = SessionStatus.RUNNING
     elif isinstance(payload, ApprovalRequested):
@@ -795,13 +817,21 @@ def _apply_session_state_projection(
     elif isinstance(payload, ApprovalResolved):
         pending_approval_id = None
         status = SessionStatus.RUNNING
+    elif isinstance(payload, UserQuestionAsked):
+        pending_question_id = str(payload.question_id)
+        status = SessionStatus.AWAITING_USER_INPUT
+    elif isinstance(payload, UserAnswerProvided):
+        pending_question_id = None
+        status = SessionStatus.RUNNING
     elif isinstance(payload, SessionCompleted):
         current_turn_id = None
         pending_approval_id = None
+        pending_question_id = None
         status = SessionStatus.COMPLETED
     elif isinstance(payload, SessionFailed):
         current_turn_id = None
         pending_approval_id = None
+        pending_question_id = None
         status = SessionStatus.FAILED
 
     connection.execute(
@@ -811,13 +841,15 @@ def _apply_session_state_projection(
             status,
             current_turn_id,
             pending_approval_id,
+            pending_question_id,
             last_sequence,
             updated_at
-        ) values (?, ?, ?, ?, ?, ?)
+        ) values (?, ?, ?, ?, ?, ?, ?)
         on conflict(session_id) do update set
             status = excluded.status,
             current_turn_id = excluded.current_turn_id,
             pending_approval_id = excluded.pending_approval_id,
+            pending_question_id = excluded.pending_question_id,
             last_sequence = excluded.last_sequence,
             updated_at = excluded.updated_at
         """,
@@ -826,6 +858,7 @@ def _apply_session_state_projection(
             status,
             current_turn_id,
             pending_approval_id,
+            pending_question_id,
             event.sequence,
             event.created_at.isoformat(),
         ),

@@ -9,9 +9,17 @@ from glassbox.core.events import (
     SessionCompleted,
     SessionResumed,
     SessionStarted,
+    UserAnswerProvided,
     UserMessageReceived,
+    UserQuestionAsked,
 )
-from glassbox.core.ids import ApprovalId, SessionId, new_message_id, new_session_id
+from glassbox.core.ids import (
+    ApprovalId,
+    QuestionId,
+    SessionId,
+    new_message_id,
+    new_session_id,
+)
 from glassbox.core.models import SessionConfig, SessionState
 from glassbox.core.types import ApprovalDecision, SessionStatus
 from glassbox.runtime.bus import EventBus
@@ -138,6 +146,37 @@ class SessionSupervisor(SessionService):
         )
         self._event_bus.publish(event)
 
+    async def provide_user_answer(
+        self,
+        session_id: SessionId,
+        question_id: QuestionId,
+        answer: str,
+    ) -> None:
+        state = self._require_session_state(session_id)
+        if state.status != SessionStatus.AWAITING_USER_INPUT:
+            raise ValueError(f"session {session_id} is not awaiting user input")
+
+        if not any(
+            isinstance(event.payload, UserQuestionAsked)
+            and event.payload.question_id == question_id
+            for event in self._session_repository.read_session_events(session_id)
+        ):
+            raise ValueError(f"unknown question_id: {question_id}")
+
+        event = self._session_repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=UserAnswerProvided(
+                    question_id=question_id,
+                    answer=answer,
+                ),
+            )
+        )
+        self._event_bus.publish(event)
+        if self._turn_engine is not None:
+            await self._turn_engine.run_for_user_answer(event)
+
     def _require_session_state(self, session_id: SessionId) -> SessionState:
         session_state = self._session_repository.get_session_state(session_id)
         if session_state is None:
@@ -166,6 +205,7 @@ class SessionSupervisor(SessionService):
             SessionStatus.FAILED,
             SessionStatus.CANCELLED,
             SessionStatus.AWAITING_APPROVAL,
+            SessionStatus.AWAITING_USER_INPUT,
         }:
             raise ValueError(
                 "session cannot accept input in its current state: "

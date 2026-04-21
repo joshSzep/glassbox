@@ -12,6 +12,7 @@ from glassbox.core.ids import (
     ArtifactId,
     EventId,
     MessageId,
+    QuestionId,
     SessionId,
     ToolCallId,
     TurnId,
@@ -21,7 +22,7 @@ from glassbox.core.models import MessagePart
 from glassbox.core.types import ApprovalDecision, TurnStatus
 
 ToolOutputStream = Literal["stdout", "stderr", "structured"]
-TurnOutcome = Literal["completed", "awaiting_approval", "failed"]
+TurnOutcome = Literal["completed", "awaiting_approval", "awaiting_user_input", "failed"]
 ErrorScope = Literal["session", "turn", "tool", "web"]
 
 
@@ -173,6 +174,21 @@ class ApprovalResolved(EventPayload):
     decided_by: str
 
 
+class UserQuestionAsked(EventPayload):
+    event_type: Literal["UserQuestionAsked"] = "UserQuestionAsked"
+    question_id: QuestionId
+    turn_id: TurnId
+    tool_call_id: ToolCallId
+    provider_tool_call_id: str
+    question: str
+
+
+class UserAnswerProvided(EventPayload):
+    event_type: Literal["UserAnswerProvided"] = "UserAnswerProvided"
+    question_id: QuestionId
+    answer: str
+
+
 class RuntimeNoteRecorded(EventPayload):
     event_type: Literal["RuntimeNoteRecorded"] = "RuntimeNoteRecorded"
     category: str
@@ -207,6 +223,8 @@ EventPayloadType = Annotated[
     | ToolExecutionCompleted
     | ApprovalRequested
     | ApprovalResolved
+    | UserQuestionAsked
+    | UserAnswerProvided
     | RuntimeNoteRecorded
     | ErrorRecorded,
     Field(discriminator="event_type"),
