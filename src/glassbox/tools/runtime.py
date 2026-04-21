@@ -115,6 +115,31 @@ class ToolRuntime:
         ):
             raise ValueError(prepared.policy_decision.reason)
 
+        return await self._run_tool(prepared, on_output_chunk=on_output_chunk)
+
+    async def execute_approved(
+        self,
+        prepared: PreparedToolExecution,
+        on_output_chunk: Callable[[str, str], None] | None = None,
+    ) -> ToolExecutionResult:
+        """Execute a tool whose approval has been explicitly granted by the operator.
+
+        Bypasses the ``requires_approval`` guard so that a previously suspended
+        tool call can resume after an ``ApprovalResolved(decision=APPROVED)`` event.
+        """
+
+        if not prepared.policy_decision.allowed:
+            raise ValueError(prepared.policy_decision.reason)
+
+        return await self._run_tool(prepared, on_output_chunk=on_output_chunk)
+
+    async def _run_tool(
+        self,
+        prepared: PreparedToolExecution,
+        on_output_chunk: Callable[[str, str], None] | None = None,
+    ) -> ToolExecutionResult:
+        """Execute the tool, handling both streaming and non-streaming tools."""
+
         if isinstance(prepared.tool, StreamingTool):
             chunk_callback = (
                 on_output_chunk if on_output_chunk is not None else _noop_chunk

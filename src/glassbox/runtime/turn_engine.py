@@ -19,6 +19,7 @@ from pydantic_ai.messages import (
 
 from glassbox.core.events import (
     ApprovalRequested,
+    ApprovalResolved,
     AssistantMessageCompleted,
     AssistantMessageDelta,
     AssistantMessageStarted,
@@ -47,7 +48,7 @@ from glassbox.core.ids import (
     new_turn_id,
 )
 from glassbox.core.models import MessagePart, SessionRecord
-from glassbox.core.types import TurnStatus
+from glassbox.core.types import ApprovalDecision, TurnStatus
 from glassbox.llm import (
     ModelAdapter,
     ModelExecutor,
@@ -273,6 +274,188 @@ class TurnEngine:
             )
             raise
 
+    async def run_for_approval_resolution(self, event: EventEnvelope) -> None:
+        """Resume a suspended turn after an operator approves or denies a tool call."""
+
+        payload = event.payload
+        if not isinstance(payload, ApprovalResolved):
+            raise TypeError(
+                "run_for_approval_resolution requires an ApprovalResolved event"
+            )
+
+        session = self._session_repository.get_session(event.session_id)
+        if session is None:
+            raise ValueError(f"unknown session_id: {event.session_id}")
+
+        # Locate the matching ApprovalRequested event.
+        approval_events = self._session_repository.read_events_by_correlation_id(
+            event.session_id,
+            approval_id=payload.approval_id,
+        )
+        approval_requested: ApprovalRequested | None = None
+        for ev in approval_events:
+            if isinstance(ev.payload, ApprovalRequested):
+                approval_requested = ev.payload
+                break
+
+        if approval_requested is None:
+            raise ValueError(
+                "no ApprovalRequested event found for approval_id "
+                f"{payload.approval_id}"
+            )
+        if (
+            approval_requested.tool_call_id is None
+            or approval_requested.provider_tool_call_id is None
+        ):
+            # Approval was created without turn metadata (e.g. legacy or external).
+            # State transition is already persisted; the turn cannot be resumed.
+            return
+
+        turn_id = approval_requested.turn_id
+
+        # Find the AssistantMessageStarted event for this turn.
+        turn_events = self._session_repository.read_events_by_correlation_id(
+            event.session_id,
+            turn_id=turn_id,
+        )
+        assistant_message_id: MessageId | None = None
+        for ev in turn_events:
+            if isinstance(ev.payload, AssistantMessageStarted):
+                assistant_message_id = ev.payload.message_id
+                break
+        if assistant_message_id is None:
+            assistant_message_id = new_message_id()
+
+        self._append_and_publish(
+            event.session_id,
+            [TurnStatusChanged(turn_id=turn_id, status=TurnStatus.BUILDING_CONTEXT)],
+        )
+
+        try:
+            tool_runtime = (
+                self._tool_runtime_factory(session)
+                if self._tool_runtime_factory is not None
+                else None
+            )
+            turn_context = self._context_builder.build(
+                event.session_id,
+                tool_registry=(
+                    tool_runtime.tool_registry if tool_runtime is not None else None
+                ),
+            )
+            system_prompt = build_system_prompt(turn_context)
+            model_adapter = self._model_adapter_factory(session)
+            model_executor = self._model_executor_factory(session)
+            prepared_turn = model_adapter.build_turn_request(
+                turn_context,
+                system_prompt=system_prompt,
+            )
+
+            # Reconstruct conversation: history + the model's ToolCallPart.
+            conversation = _request_messages(prepared_turn)
+            # Read the original tool arguments before branching on the decision so
+            # they are available both for _make_approval_model_response and for
+            # actually executing the approved call.
+            original_tool_arguments = _find_tool_arguments(
+                turn_events, approval_requested.tool_call_id
+            )
+            conversation.append(
+                _make_approval_model_response(
+                    approval_requested, original_tool_arguments
+                )
+            )
+
+            if payload.decision == ApprovalDecision.APPROVED:
+                if tool_runtime is None:
+                    raise ValueError(
+                        "tool runtime is required to execute an approved tool call"
+                    )
+
+                # Re-prepare the tool call (validates args, evaluates policy).
+                tool_call = ModelToolCall(
+                    tool_name=approval_requested.subject,
+                    arguments=original_tool_arguments,
+                    tool_call_id=approval_requested.provider_tool_call_id,
+                )
+                prepared_tool_call = tool_runtime.prepare_tool_call(tool_call)
+
+                self._append_and_publish(
+                    event.session_id,
+                    [
+                        TurnStatusChanged(
+                            turn_id=turn_id,
+                            status=TurnStatus.EXECUTING_TOOL,
+                        ),
+                        ToolExecutionStarted(
+                            turn_id=turn_id,
+                            tool_call_id=prepared_tool_call.event_tool_call_id,
+                            tool_name=prepared_tool_call.tool_name,
+                        ),
+                    ],
+                )
+                tool_call_id_for_chunk = prepared_tool_call.event_tool_call_id
+
+                def _on_output_chunk(
+                    stream: str,
+                    chunk: str,
+                    *,
+                    _tool_call_id: ToolCallId = tool_call_id_for_chunk,
+                ) -> None:
+                    self._append_and_publish(
+                        event.session_id,
+                        [
+                            ToolOutputChunk(
+                                turn_id=turn_id,
+                                tool_call_id=_tool_call_id,
+                                stream=cast(ToolOutputStream, stream),
+                                chunk=chunk,
+                            )
+                        ],
+                    )
+
+                execution_result = await tool_runtime.execute_approved(
+                    prepared_tool_call, on_output_chunk=_on_output_chunk
+                )
+                self._append_and_publish(
+                    event.session_id,
+                    [
+                        ToolExecutionCompleted(
+                            turn_id=turn_id,
+                            tool_call_id=execution_result.event_tool_call_id,
+                            success=True,
+                            summary=execution_result.summary,
+                        )
+                    ],
+                )
+                conversation.append(execution_result.to_model_request())
+            else:
+                # DENIED — inject a denial message as the tool return.
+                conversation.append(_make_denial_tool_return(approval_requested))
+
+            await self._run_model_loop(
+                event.session_id,
+                turn_id=turn_id,
+                prepared_turn=prepared_turn,
+                conversation=conversation,
+                model_adapter=model_adapter,
+                model_executor=model_executor,
+                tool_runtime=tool_runtime,
+                assistant_message_id=assistant_message_id,
+                assistant_started=True,
+            )
+        except Exception as exc:
+            self._append_and_publish(
+                event.session_id,
+                [
+                    TurnStatusChanged(
+                        turn_id=turn_id,
+                        status=TurnStatus.FAILED,
+                    ),
+                    TurnFailed(turn_id=turn_id, error_message=str(exc)),
+                ],
+            )
+            raise
+
     async def _run_model_loop(
         self,
         session_id,
@@ -434,6 +617,8 @@ class TurnEngine:
                             turn_id=turn_id,
                             reason=prepared_tool_call.policy_decision.reason,
                             subject=prepared_tool_call.tool_name,
+                            tool_call_id=prepared_tool_call.event_tool_call_id,
+                            provider_tool_call_id=prepared_tool_call.provider_tool_call_id,
                         ),
                         TurnCompleted(turn_id=turn_id, outcome="awaiting_approval"),
                     ],
@@ -623,3 +808,60 @@ def _make_ask_user_tool_return(
         ],
         timestamp=timestamp,
     )
+
+
+def _make_approval_model_response(
+    approval_requested: ApprovalRequested,
+    arguments: dict[str, object] | None = None,
+) -> ModelResponse:
+    """Reconstruct the model's ToolCallPart for the approved/denied tool call."""
+
+    assert approval_requested.provider_tool_call_id is not None
+    timestamp = datetime.now(tz=UTC)
+    return ModelResponse(
+        parts=[
+            ToolCallPart(
+                tool_name=approval_requested.subject,
+                tool_call_id=approval_requested.provider_tool_call_id,
+                args=arguments or {},
+            )
+        ],
+        timestamp=timestamp,
+    )
+
+
+def _make_denial_tool_return(approval_requested: ApprovalRequested) -> ModelRequest:
+    """Construct a tool-return message communicating that the action was denied."""
+
+    assert approval_requested.provider_tool_call_id is not None
+    timestamp = datetime.now(tz=UTC)
+    return ModelRequest(
+        parts=[
+            ToolReturnPart(
+                tool_name=approval_requested.subject,
+                tool_call_id=approval_requested.provider_tool_call_id,
+                content={
+                    "error": f"Action denied by operator: {approval_requested.reason}"
+                },
+                timestamp=timestamp,
+            )
+        ],
+        timestamp=timestamp,
+    )
+
+
+def _find_tool_arguments(
+    turn_events: list[EventEnvelope],
+    tool_call_id: ToolCallId,
+) -> dict[str, object]:
+    """Extract the original arguments for a tool call from persisted turn events."""
+
+    for ev in turn_events:
+        if (
+            isinstance(ev.payload, ModelToolCallRequested)
+            and ev.payload.tool_call_id == tool_call_id
+        ):
+            raw: object = json.loads(ev.payload.arguments_json)
+            if isinstance(raw, dict):
+                return {str(k): v for k, v in raw.items()}
+    return {}

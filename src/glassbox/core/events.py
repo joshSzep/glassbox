@@ -165,6 +165,10 @@ class ApprovalRequested(EventPayload):
     turn_id: TurnId
     reason: str
     subject: str
+    # Optional fields — set when the approval is linked to a specific tool call so
+    # the turn can be correctly resumed after a decision is made.
+    tool_call_id: ToolCallId | None = None
+    provider_tool_call_id: str | None = None
 
 
 class ApprovalResolved(EventPayload):

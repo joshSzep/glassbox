@@ -145,6 +145,8 @@ class SessionSupervisor(SessionService):
             )
         )
         self._event_bus.publish(event)
+        if self._turn_engine is not None:
+            await self._turn_engine.run_for_approval_resolution(event)
 
     async def provide_user_answer(
         self,

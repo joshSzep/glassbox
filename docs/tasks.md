@@ -698,7 +698,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-070: Implement Approval Domain And Persistence Flow
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-024`, `GBX-061`
 - Goal: make approvals a first-class runtime concept rather than an ad hoc conditional
 - Deliverables:
