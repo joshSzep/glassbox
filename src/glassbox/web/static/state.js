@@ -10,7 +10,7 @@
  * @typedef {{kind: string, text: string}} MessagePart
  * @typedef {{message_id: string, role: string, parts: MessagePart[], created_at?: string}} TranscriptMessage
  * @typedef {{tool_call_id: string, turn_id: string, tool_name: string, status: string, started_at?: string | null}} ActiveToolCall
- * @typedef {{approval_id: string, turn_id?: string, subject: string, reason: string, requested_at?: string}} PendingApproval
+ * @typedef {{approval_id: string, turn_id?: string, subject: string, reason: string, requested_at?: string, resolution_state?: string, resolution_decision?: string | null, resolution_error?: string | null}} PendingApproval
  * @typedef {{turn_id: string, status: string, trigger_message_id?: string, outcome?: string, error_message?: string}} CurrentTurn
  * @typedef {{turn_id: string, tool_call_id: string, stream: string, chunk: string}} LiveOutputEntry
  * @typedef {{sequence: number, event_type: string}} EventLogEntry
@@ -169,6 +169,90 @@ function upsertPendingApproval(approvals, approval) {
 }
 
 /**
+ * @param {PendingApproval[]} approvals
+ * @param {string} approvalId
+ * @param {(approval: PendingApproval) => PendingApproval} updater
+ * @returns {PendingApproval[]}
+ */
+function updatePendingApproval(approvals, approvalId, updater) {
+  let changed = false;
+  const next = approvals.map(approval => {
+    if (approval.approval_id !== approvalId) {
+      return approval;
+    }
+    changed = true;
+    return updater(approval);
+  });
+
+  return changed ? next : approvals;
+}
+
+/**
+ * @param {DashboardState} state
+ * @param {string} approvalId
+ * @param {string} decision
+ * @returns {DashboardState}
+ */
+export function beginApprovalResolution(state, approvalId, decision) {
+  return {
+    ...state,
+    pendingApprovals: updatePendingApproval(
+      state.pendingApprovals,
+      approvalId,
+      approval => ({
+        ...approval,
+        resolution_state: "submitting",
+        resolution_decision: decision,
+        resolution_error: null,
+      }),
+    ),
+  };
+}
+
+/**
+ * @param {DashboardState} state
+ * @param {string} approvalId
+ * @param {string} decision
+ * @returns {DashboardState}
+ */
+export function confirmApprovalResolution(state, approvalId, decision) {
+  return {
+    ...state,
+    pendingApprovals: updatePendingApproval(
+      state.pendingApprovals,
+      approvalId,
+      approval => ({
+        ...approval,
+        resolution_state: "submitted",
+        resolution_decision: decision,
+        resolution_error: null,
+      }),
+    ),
+  };
+}
+
+/**
+ * @param {DashboardState} state
+ * @param {string} approvalId
+ * @param {string} errorMessage
+ * @returns {DashboardState}
+ */
+export function failApprovalResolution(state, approvalId, errorMessage) {
+  return {
+    ...state,
+    pendingApprovals: updatePendingApproval(
+      state.pendingApprovals,
+      approvalId,
+      approval => ({
+        ...approval,
+        resolution_state: "failed",
+        resolution_error: errorMessage,
+      }),
+    ),
+  };
+}
+
+/**
  * @param {DashboardState} state
  * @param {EventEnvelope} envelope
  * @returns {DashboardState}
@@ -287,6 +371,9 @@ export function applyEvent(state, envelope) {
         turn_id: typeof payload.turn_id === "string" ? payload.turn_id : undefined,
         subject: typeof payload.subject === "string" ? payload.subject : "",
         reason: typeof payload.reason === "string" ? payload.reason : "",
+        resolution_state: "idle",
+        resolution_decision: null,
+        resolution_error: null,
       };
       return {
         ...next,

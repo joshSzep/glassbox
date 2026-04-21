@@ -14,6 +14,7 @@
  */
 
 import { applyEvent, createState, hydrateFromSnapshot } from "./state.js";
+import { resolvePendingApproval } from "./approval-actions.js";
 import {
   renderApprovalsPane,
   renderDashboardPanes,
@@ -166,13 +167,12 @@ function connectSSE(sessionId, afterSequence) {
 // ---------------------------------------------------------------------------
 
 async function resolveApproval(approvalId, decision) {
-  const card = byId(`approval-${approvalId}`);
-  if (card) card.querySelectorAll(".btn").forEach(b => { b.disabled = true; });
-
-  await fetch(`/sessions/${state.sessionId}/approvals/${approvalId}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ decision }),
+  await resolvePendingApproval({
+    sessionId: state.sessionId,
+    approvalId,
+    decision,
+    fetchImpl: fetch,
+    syncState,
   });
 }
 

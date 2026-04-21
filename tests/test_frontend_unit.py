@@ -18,6 +18,7 @@ def test_dashboard_state_reducer_unit_tests() -> None:
         [
             node,
             "--test",
+            "tests/frontend/test_approval_actions.js",
             "tests/frontend/test_dashboard_state.js",
             "tests/frontend/test_dashboard_render.js",
         ],

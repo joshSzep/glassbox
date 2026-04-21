@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 
 import {
   applyEvent,
+  beginApprovalResolution,
+  confirmApprovalResolution,
   createState,
+  failApprovalResolution,
   hydrateFromSnapshot,
 } from "../../src/glassbox/web/static/state.js";
 
@@ -140,6 +143,30 @@ test("applyEvent tracks approval request and resolution", () => {
   assert.equal(resolved.status, "running");
   assert.equal(resolved.pendingApprovalId, null);
   assert.equal(resolved.pendingApprovals.length, 0);
+});
+
+test("approval resolution helpers track submitted and failed browser states", () => {
+  const initial = applyEvent(createState(), {
+    session_id: "session-123",
+    sequence: 1,
+    event_type: "ApprovalRequested",
+    payload: {
+      approval_id: "approval-1",
+      turn_id: "turn-1",
+      subject: "apply_patch",
+      reason: "needs sign-off",
+    },
+  });
+
+  const submitting = beginApprovalResolution(initial, "approval-1", "approved");
+  const submitted = confirmApprovalResolution(submitting, "approval-1", "approved");
+  const failed = failApprovalResolution(submitting, "approval-1", "conflict");
+
+  assert.equal(submitting.pendingApprovals[0].resolution_state, "submitting");
+  assert.equal(submitting.pendingApprovals[0].resolution_decision, "approved");
+  assert.equal(submitted.pendingApprovals[0].resolution_state, "submitted");
+  assert.equal(failed.pendingApprovals[0].resolution_state, "failed");
+  assert.equal(failed.pendingApprovals[0].resolution_error, "conflict");
 });
 
 test("applyEvent tracks active tool calls", () => {

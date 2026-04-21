@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { applyEvent, hydrateFromSnapshot } from "../../src/glassbox/web/static/state.js";
 import {
   renderDashboardPanes,
+  renderApprovalsPane,
   renderLiveOutputPane,
   renderToolCallsPane,
   renderTurnPane,
@@ -149,4 +150,32 @@ test("synthetic event stream updates multiple panes together", () => {
   assert.match(panes.liveOutput, /patched file/);
   assert.match(panes.approvals, /needs sign-off|Approve/);
   assert.match(panes.eventLog, /ApprovalRequested|ToolOutputChunk/);
+});
+
+test("renderApprovalsPane shows submitted and failed resolution states", () => {
+  const state = {
+    pendingApprovals: [
+      {
+        approval_id: "approval-1",
+        subject: "apply_patch",
+        reason: "needs sign-off",
+        resolution_state: "submitted",
+        resolution_decision: "approved",
+        resolution_error: null,
+      },
+      {
+        approval_id: "approval-2",
+        subject: "read_file",
+        reason: "conflict",
+        resolution_state: "failed",
+        resolution_decision: "denied",
+        resolution_error: "Request failed (409)",
+      },
+    ],
+  };
+
+  const html = renderApprovalsPane(state);
+  assert.match(html, /Decision sent\. Waiting for session update/);
+  assert.match(html, /Request failed \(409\)/);
+  assert.match(html, /disabled/);
 });

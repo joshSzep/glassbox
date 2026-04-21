@@ -858,7 +858,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-093: Implement Dashboard Approval Actions
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-083`, `GBX-092`
 - Goal: make approvals actionable in the browser
 - Deliverables:

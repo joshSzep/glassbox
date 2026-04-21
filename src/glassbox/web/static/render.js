@@ -113,24 +113,42 @@ export function renderApprovalsPane(state) {
     return renderEmpty("No pending approvals.");
   }
 
-  return state.pendingApprovals.map(approval => `
-    <div class="approval-card" id="approval-${escHtml(approval.approval_id)}">
+  return state.pendingApprovals.map(approval => {
+    const resolutionState = approval.resolution_state ?? "idle";
+    const resolutionDecision = approval.resolution_decision ?? null;
+    const disabled = resolutionState === "submitting" || resolutionState === "submitted";
+    let statusHtml = "";
+
+    if (resolutionState === "submitting") {
+      statusHtml = `<div class="approval-status">Submitting ${escHtml(resolutionDecision ?? "decision")}…</div>`;
+    } else if (resolutionState === "submitted") {
+      statusHtml = `<div class="approval-status">Decision sent. Waiting for session update…</div>`;
+    } else if (resolutionState === "failed") {
+      statusHtml = `<div class="approval-status approval-status-error">${escHtml(approval.resolution_error ?? "Resolution failed")}</div>`;
+    }
+
+    return `
+    <div class="approval-card approval-${escHtml(resolutionState)}" id="approval-${escHtml(approval.approval_id)}">
       <div class="approval-subject">${escHtml(approval.subject)}</div>
       <div class="approval-reason">${escHtml(approval.reason)}</div>
+      ${statusHtml}
       <div class="approval-actions">
         <button class="btn btn-approve"
           data-approval-id="${escHtml(approval.approval_id)}"
-          data-decision="approved">
+          data-decision="approved"
+          ${disabled ? "disabled" : ""}>
           Approve
         </button>
         <button class="btn btn-deny"
           data-approval-id="${escHtml(approval.approval_id)}"
-          data-decision="denied">
+          data-decision="denied"
+          ${disabled ? "disabled" : ""}>
           Deny
         </button>
       </div>
     </div>
-  `).join("");
+  `;
+  }).join("");
 }
 
 export function renderEventLogPane(state) {
