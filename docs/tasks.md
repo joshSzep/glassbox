@@ -626,7 +626,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-064: Implement Command Runner Tool With Streaming Output
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-061`, `GBX-063`, `GBX-025`
 - Goal: support subprocess-based operations with event streaming
 - Deliverables:

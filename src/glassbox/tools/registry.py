@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Protocol, TypeVar
+from typing import Any, Protocol, TypeVar, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -72,6 +72,7 @@ class ToolSpec:
         )
 
 
+@runtime_checkable
 class Tool(Protocol[InputModelT, OutputModelT]):
     """Base interface for explicitly registered tools."""
 
@@ -79,6 +80,20 @@ class Tool(Protocol[InputModelT, OutputModelT]):
 
     async def execute(self, arguments: InputModelT) -> OutputModelT:
         """Execute the tool for one validated argument payload."""
+
+
+@runtime_checkable
+class StreamingTool(Protocol):
+    """Optional extension for tools that stream output chunks during execution."""
+
+    spec: ToolSpec
+
+    async def execute_streaming(
+        self,
+        arguments: BaseModel,
+        on_chunk: Callable[[str, str], None],
+    ) -> BaseModel:
+        """Execute the tool and deliver output lines to on_chunk(stream, text)."""
 
 
 class ToolRegistry:

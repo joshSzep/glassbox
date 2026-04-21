@@ -1,5 +1,11 @@
 """Tooling package for Glassbox."""
 
+from glassbox.tools.command import (
+    RunCommandArgs,
+    RunCommandResult,
+    RunCommandTool,
+    build_command_tool_registry,
+)
 from glassbox.tools.policy import ApprovalMode, ToolPolicyContext, ToolPolicyEngine
 from glassbox.tools.read_only import (
     DirectoryEntry,
@@ -16,6 +22,7 @@ from glassbox.tools.read_only import (
     build_read_only_tool_registry,
 )
 from glassbox.tools.registry import (
+    StreamingTool,
     Tool,
     ToolRegistry,
     ToolRiskLevel,
@@ -36,6 +43,10 @@ __all__ = [
     "ListDirResult",
     "ListDirTool",
     "PreparedToolExecution",
+    "RunCommandArgs",
+    "RunCommandResult",
+    "RunCommandTool",
+    "StreamingTool",
     "Tool",
     "ToolExecutionResult",
     "ToolPolicyContext",
@@ -53,5 +64,6 @@ __all__ = [
     "SearchFilesResult",
     "SearchFilesTool",
     "SearchMatch",
+    "build_command_tool_registry",
     "build_read_only_tool_registry",
 ]

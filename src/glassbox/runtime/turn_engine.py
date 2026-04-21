@@ -6,6 +6,7 @@ import json
 from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
 from time import perf_counter
+from typing import cast
 
 from pydantic_ai.messages import ModelMessage, ModelRequest, UserPromptPart
 
@@ -20,13 +21,15 @@ from glassbox.core.events import (
     ModelToolCallRequested,
     ToolExecutionCompleted,
     ToolExecutionStarted,
+    ToolOutputChunk,
+    ToolOutputStream,
     TurnCompleted,
     TurnFailed,
     TurnStarted,
     TurnStatusChanged,
     UserMessageReceived,
 )
-from glassbox.core.ids import new_approval_id, new_message_id, new_turn_id
+from glassbox.core.ids import ToolCallId, new_approval_id, new_message_id, new_turn_id
 from glassbox.core.models import MessagePart, SessionRecord
 from glassbox.core.types import TurnStatus
 from glassbox.llm import (
@@ -57,6 +60,7 @@ TurnEnginePayload = (
     | ModelToolCallRequested
     | ToolExecutionStarted
     | ToolExecutionCompleted
+    | ToolOutputChunk
     | ApprovalRequested
     | TurnCompleted
     | TurnFailed
@@ -323,7 +327,29 @@ class TurnEngine:
                     ),
                 ],
             )
-            execution_result = await tool_runtime.execute(prepared_tool_call)
+            tool_call_id_for_chunk = prepared_tool_call.event_tool_call_id
+
+            def _on_output_chunk(
+                stream: str,
+                chunk: str,
+                *,
+                _tool_call_id: ToolCallId = tool_call_id_for_chunk,
+            ) -> None:
+                self._append_and_publish(
+                    session_id,
+                    [
+                        ToolOutputChunk(
+                            turn_id=turn_id,
+                            tool_call_id=_tool_call_id,
+                            stream=cast(ToolOutputStream, stream),
+                            chunk=chunk,
+                        )
+                    ],
+                )
+
+            execution_result = await tool_runtime.execute(
+                prepared_tool_call, on_output_chunk=_on_output_chunk
+            )
             self._append_and_publish(
                 session_id,
                 [

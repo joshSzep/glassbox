@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Protocol
@@ -12,7 +13,7 @@ from pydantic_ai.messages import ModelRequest, ToolReturnPart
 
 from glassbox.core import PolicyDecision, ToolCallId, new_tool_call_id
 from glassbox.tools.policy import ToolPolicyContext, ToolPolicyEngine
-from glassbox.tools.registry import Tool, ToolRegistry
+from glassbox.tools.registry import StreamingTool, Tool, ToolRegistry
 
 
 class ToolCallRequest(Protocol):
@@ -101,7 +102,11 @@ class ToolRuntime:
             policy_decision=policy_decision,
         )
 
-    async def execute(self, prepared: PreparedToolExecution) -> ToolExecutionResult:
+    async def execute(
+        self,
+        prepared: PreparedToolExecution,
+        on_output_chunk: Callable[[str, str], None] | None = None,
+    ) -> ToolExecutionResult:
         """Execute one prepared tool call after policy approval."""
 
         if (
@@ -110,7 +115,15 @@ class ToolRuntime:
         ):
             raise ValueError(prepared.policy_decision.reason)
 
-        raw_output = await prepared.tool.execute(prepared.validated_arguments)
+        if isinstance(prepared.tool, StreamingTool):
+            chunk_callback = (
+                on_output_chunk if on_output_chunk is not None else _noop_chunk
+            )
+            raw_output = await prepared.tool.execute_streaming(
+                prepared.validated_arguments, chunk_callback
+            )
+        else:
+            raw_output = await prepared.tool.execute(prepared.validated_arguments)
         validated_output = prepared.tool.spec.output_model.model_validate(
             raw_output.model_dump(mode="python")
             if isinstance(raw_output, BaseModel)
@@ -138,3 +151,7 @@ def _tool_arguments_payload(
     if not isinstance(decoded, dict):
         raise ValueError("tool call arguments must decode to a JSON object")
     return {str(key): value for key, value in decoded.items()}
+
+
+def _noop_chunk(stream: str, chunk: str) -> None:
+    pass
