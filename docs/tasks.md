@@ -1090,6 +1090,113 @@ uv run ty check src/glassbox/path.py
 
 ---
 
+## Phase 14: Real Provider Connectivity
+
+### GBX-140: Add Runtime Provider Config Resolution From Environment And `.env`
+
+- Status: `TODO`
+- Depends on: `GBX-050`, `GBX-120`
+- Goal: resolve provider credentials and runtime-only model settings without persisting secrets into session data
+- Deliverables:
+  - runtime config loader for provider credentials and non-secret provider options
+  - support for process environment variables
+  - support for loading a local `.env` file from the workspace runtime path
+  - explicit precedence rules between process environment and `.env` values
+- Implementation notes:
+  - do not store secrets in `SessionConfig`, `SessionRecord`, events, or projection tables
+  - start with environment variables as the canonical config surface; `.env` is a local convenience layer
+  - document and enforce precedence as: explicit process environment overrides `.env`
+  - keep the loader provider-agnostic, but define initial key names for at least OpenAI and Anthropic
+- Tests and validation included in task:
+  - unit tests for env resolution precedence
+  - tests for missing `.env`, ignored comments, and malformed entries
+  - tests proving secrets are not written into persisted session metadata
+- Done when:
+  - the runtime can resolve provider credentials and options from env / `.env` without changing persistence schema
+
+### GBX-141: Implement Real `pydantic-ai` Provider Executor Factory
+
+- Status: `TODO`
+- Depends on: `GBX-140`
+- Goal: replace the hardcoded local function-model runtime path with a real provider-backed executor path while preserving the deterministic local executor for tests and offline development
+- Deliverables:
+  - executor factory for provider-qualified models such as `openai:gpt-5.4` and `anthropic:claude-sonnet-4`
+  - bootstrap wiring that chooses between local deterministic executor and provider-backed executor
+  - provider/model resolution logic that stays behind the existing adapter / executor boundary
+- Implementation notes:
+  - keep `TurnEngine` unaware of provider-specific initialization details
+  - prefer using `pydantic-ai` model inference or provider model types rather than introducing a separate provider client layer first
+  - support streaming where the provider and `pydantic-ai` model support it, with graceful fallback to non-streaming execution
+  - the initial provider scope should be OpenAI and Anthropic only
+- Tests and validation included in task:
+  - unit tests for provider/model resolution from stored `model_name`
+  - tests for local fallback executor selection
+  - tests proving executor construction stays deterministic under monkeypatched provider factories
+- Done when:
+  - Glassbox can build a real provider-backed model executor without breaking the current local executor path
+
+### GBX-142: Surface Provider Config And Auth Failures Cleanly
+
+- Status: `TODO`
+- Depends on: `GBX-131`, `GBX-140`, `GBX-141`
+- Goal: make missing credentials, unsupported providers, and invalid provider runtime config fail visibly and safely for operators
+- Deliverables:
+  - explicit failure classification for provider auth and config errors
+  - operator-visible CLI and dashboard error surfaces for provider bootstrap failures
+  - `SessionFailed` integration for terminal session-scoped provider failures where appropriate
+- Implementation notes:
+  - distinguish between recoverable turn failures and terminal runtime/config failures
+  - never echo raw secret values in logs, events, CLI output, or dashboard state
+  - unsupported provider names and missing required credentials should fail before any remote request is attempted
+- Tests and validation included in task:
+  - integration tests for missing API key, unsupported provider, and malformed provider config
+  - tests proving secrets are redacted from surfaced error messages
+  - validation that runtime failures land in the expected session or turn failure path
+- Done when:
+  - an operator gets a precise non-secret error when provider config is missing or invalid
+
+### GBX-143: Document Real Provider Setup And Secret Handling
+
+- Status: `TODO`
+- Depends on: `GBX-140`, `GBX-141`, `GBX-142`, `GBX-121`
+- Goal: document how to run Glassbox against real providers using environment variables and `.env` files without implying that secrets are persisted
+- Deliverables:
+  - README setup instructions for supported providers
+  - documentation for required environment variables and `.env` support
+  - explicit note that secrets remain runtime-only and are not stored in SQLite
+  - troubleshooting guidance for auth and config errors
+- Implementation notes:
+  - keep examples aligned with the actual supported provider set
+  - include one documented path for deterministic local execution and one for real provider execution
+  - avoid documenting speculative secret stores before they exist
+- Tests and validation included in task:
+  - manual verification of documented setup steps against the implementation
+  - doc review against runtime config code paths and failure messages
+- Done when:
+  - a developer can configure a real provider from docs alone without guessing where secrets belong
+
+### GBX-144: Add Non-Network Regression Coverage For Provider Mode
+
+- Status: `TODO`
+- Depends on: `GBX-141`, `GBX-142`
+- Goal: protect provider-mode behavior without requiring live provider calls in CI
+- Deliverables:
+  - integration coverage for env / `.env` provider config resolution into runtime bootstrap
+  - tests for provider-mode executor selection under fake or monkeypatched `pydantic-ai` model factories
+  - regression coverage for streamed and non-streamed provider execution paths where feasible
+- Implementation notes:
+  - do not introduce network-coupled tests into the baseline suite
+  - continue using monkeypatched executor builders and deterministic fakes for behavioral coverage
+  - focus on Glassbox wiring and contract behavior, not provider SDK correctness
+- Tests and validation included in task:
+  - integration tests for provider-mode runtime bootstrap
+  - tests for `.env` loading behavior in a temporary workspace
+  - full repo validation after the provider-mode wiring lands
+- Done when:
+  - the real-provider path is regression-tested in CI without depending on external APIs
+
+---
+
 ## Recommended Build Order For The First Usable Vertical Slice
 
 If an agent wants the fastest path to a demonstrable but architecturally correct version, the recommended order is:
