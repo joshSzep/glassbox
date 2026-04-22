@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import sqlite3
 import sys
 from collections.abc import Awaitable, Callable, Sequence
 from contextlib import suppress
@@ -40,6 +41,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "serve":
             return _serve_command(args)
     except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    except sqlite3.Error as exc:
+        print(f"database operation failed: {exc}", file=sys.stderr)
+        return 1
+    except Exception as exc:
         print(str(exc), file=sys.stderr)
         return 1
 
@@ -405,6 +412,9 @@ async def _run_with_renderer(
             )
             try:
                 await action(runtime_context)
+            except Exception:
+                await asyncio.sleep(0)
+                raise
             finally:
                 render_task.cancel()
                 with suppress(asyncio.CancelledError):

@@ -1056,7 +1056,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-131: Harden Error Paths And Failure Recovery
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-130`
 - Goal: ensure the system fails visibly and recoverably under expected local errors
 - Deliverables:

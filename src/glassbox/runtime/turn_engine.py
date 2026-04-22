@@ -466,9 +466,34 @@ class TurnEngine:
                         ],
                     )
 
-                execution_result = await tool_runtime.execute_approved(
-                    prepared_tool_call, on_output_chunk=_on_output_chunk
-                )
+                try:
+                    execution_result = await tool_runtime.execute_approved(
+                        prepared_tool_call, on_output_chunk=_on_output_chunk
+                    )
+                except Exception as exc:
+                    self._append_and_publish(
+                        event.session_id,
+                        [
+                            ToolExecutionCompleted(
+                                turn_id=turn_id,
+                                tool_call_id=prepared_tool_call.event_tool_call_id,
+                                success=False,
+                                summary=str(exc),
+                            )
+                        ],
+                    )
+                    logger.warning(
+                        "tool_execution_completed",
+                        extra=runtime_log_extra(
+                            runtime_event="tool_execution_completed",
+                            session_id=event.session_id,
+                            turn_id=turn_id,
+                            tool_call_id=prepared_tool_call.event_tool_call_id,
+                            tool_name=prepared_tool_call.tool_name,
+                            success=False,
+                        ),
+                    )
+                    raise
                 self._append_and_publish(
                     event.session_id,
                     [
@@ -818,9 +843,34 @@ class TurnEngine:
                     ],
                 )
 
-            execution_result = await tool_runtime.execute(
-                prepared_tool_call, on_output_chunk=_on_output_chunk
-            )
+            try:
+                execution_result = await tool_runtime.execute(
+                    prepared_tool_call, on_output_chunk=_on_output_chunk
+                )
+            except Exception as exc:
+                self._append_and_publish(
+                    session_id,
+                    [
+                        ToolExecutionCompleted(
+                            turn_id=turn_id,
+                            tool_call_id=prepared_tool_call.event_tool_call_id,
+                            success=False,
+                            summary=str(exc),
+                        )
+                    ],
+                )
+                logger.warning(
+                    "tool_execution_completed",
+                    extra=runtime_log_extra(
+                        runtime_event="tool_execution_completed",
+                        session_id=session_id,
+                        turn_id=turn_id,
+                        tool_call_id=prepared_tool_call.event_tool_call_id,
+                        tool_name=prepared_tool_call.tool_name,
+                        success=False,
+                    ),
+                )
+                raise
             self._append_and_publish(
                 session_id,
                 [

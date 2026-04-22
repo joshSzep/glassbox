@@ -23,6 +23,7 @@ from glassbox.core.events import (
     ToolArtifactRecorded,
     ToolExecutionCompleted,
     ToolExecutionStarted,
+    TurnFailed,
     UserMessageReceived,
 )
 from glassbox.core.ids import MessageId, ToolCallId
@@ -58,6 +59,9 @@ def format_event_for_terminal(
 
     if isinstance(payload, SessionFailed):
         return f"Session failed: {payload.error_message}"
+
+    if isinstance(payload, TurnFailed):
+        return f"Turn failed: {payload.error_message}"
 
     if isinstance(payload, UserMessageReceived):
         return f"Queued initial prompt: {payload.text}"
