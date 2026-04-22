@@ -950,7 +950,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-111: Improve CLI Session Status And Inspection Views
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-042`, `GBX-110`
 - Goal: make terminal inspection useful even without the dashboard
 - Deliverables:

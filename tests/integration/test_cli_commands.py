@@ -10,9 +10,18 @@ from glassbox.core.events import (
     ApprovalRequested,
     ApprovalResolved,
     EventEnvelope,
+    ModelCallCompleted,
     SessionCompleted,
+    ToolExecutionCompleted,
+    ToolExecutionStarted,
+    TurnStarted,
 )
-from glassbox.core.ids import new_approval_id, new_turn_id
+from glassbox.core.ids import (
+    new_approval_id,
+    new_message_id,
+    new_tool_call_id,
+    new_turn_id,
+)
 from glassbox.core.types import ApprovalDecision
 from glassbox.store import SQLiteSessionRepository, open_database
 
@@ -195,12 +204,50 @@ def test_cli_status_prints_human_session_summary(
     assert exit_code == 0
     assert f"Session {session_id}" in captured.out
     assert "Status: running" in captured.out
-    assert "Pending approval: none" in captured.out
+    assert "Current turn: none" in captured.out
+    assert "Pending approvals: none" in captured.out
+    assert "Recent tool activity: none" in captured.out
     assert "Transcript messages: 2" in captured.out
     assert (
         "Latest message: assistant: I received your request: Inspect the repository"
         in captured.out
     )
+
+
+def test_cli_status_includes_turn_approvals_tool_activity_and_metrics(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id, turn_id, approval_id = _seed_status_projection_details(
+        tmp_path
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "status",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert f"Current turn: {turn_id} (awaiting_approval)" in captured.out
+    assert "Current turn metrics: turn" in captured.out
+    assert "model 1 call(s), 42 input / 13 output tokens, 600 ms" in captured.out
+    assert "tools 1 call(s)," in captured.out
+    assert "Pending approvals: 1" in captured.out
+    assert (
+        f"{approval_id} for turn {turn_id}: run shell command (needs confirmation)"
+        in captured.out
+    )
+    assert "Recent tool activity:" in captured.out
+    assert "read_file succeeded" in captured.out
+    assert "done" in captured.out
 
 
 def test_cli_approve_resolves_pending_approval(
@@ -350,6 +397,74 @@ def _seed_pending_approval(tmp_path: Path) -> tuple[Path, UUID, UUID]:
         connection.close()
 
     return db_path, session_id, approval_id
+
+
+def _seed_status_projection_details(
+    tmp_path: Path,
+) -> tuple[Path, UUID, UUID, UUID]:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    turn_id = new_turn_id()
+    tool_call_id = new_tool_call_id()
+    approval_id = new_approval_id()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TurnStarted(
+                        turn_id=turn_id,
+                        trigger_message_id=new_message_id(),
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ModelCallCompleted(
+                        turn_id=turn_id,
+                        input_tokens=42,
+                        output_tokens=13,
+                        duration_ms=600,
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ToolExecutionStarted(
+                        turn_id=turn_id,
+                        tool_call_id=tool_call_id,
+                        tool_name="read_file",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ToolExecutionCompleted(
+                        turn_id=turn_id,
+                        tool_call_id=tool_call_id,
+                        success=True,
+                        summary="done",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ApprovalRequested(
+                        approval_id=approval_id,
+                        turn_id=turn_id,
+                        reason="needs confirmation",
+                        subject="run shell command",
+                    ),
+                ),
+            ]
+        )
+    finally:
+        connection.close()
+
+    return db_path, session_id, turn_id, approval_id
 
 
 def _list_sessions(db_path: Path):

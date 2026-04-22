@@ -756,6 +756,10 @@ glassbox approve SESSION_ID APPROVAL_ID
 glassbox deny SESSION_ID APPROVAL_ID
 ```
 
+`glassbox status` should read persisted projections and summarize the current turn,
+pending approvals, recent tool activity, and recent turn metrics without replaying
+raw events ad hoc in the CLI.
+
 ## Concurrency Model
 
 Use structured asyncio throughout.

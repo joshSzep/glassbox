@@ -7,11 +7,13 @@ import asyncio
 import sys
 from collections.abc import Awaitable, Callable, Sequence
 from contextlib import suppress
+from datetime import datetime
 from pathlib import Path
 from uuid import UUID
 
 from glassbox.cli.renderer import CliEventRenderer
 from glassbox.core import SessionConfig, TranscriptMessage
+from glassbox.core.models import ApprovalRecord, ToolCallRecord, TurnMetricsRecord
 from glassbox.core.types import ApprovalDecision
 from glassbox.runtime import RuntimeContext, open_runtime_context
 
@@ -184,22 +186,28 @@ def _status_command(args: argparse.Namespace) -> int:
     cwd, db_path = _resolve_runtime_location(args)
 
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
-        record = runtime_context.repositories.sessions.get_session(args.session_id)
-        state = runtime_context.repositories.sessions.get_session_state(args.session_id)
+        repository = runtime_context.repositories.sessions
+        record = repository.get_session(args.session_id)
+        state = repository.get_session_state(args.session_id)
         if record is None or state is None:
             raise ValueError(f"unknown session_id: {args.session_id}")
 
-        transcript_messages = (
-            runtime_context.repositories.sessions.list_transcript_messages(
-                args.session_id,
-            )
-        )
+        transcript_messages = repository.list_transcript_messages(args.session_id)
+        pending_approvals = repository.list_approvals(args.session_id)
+        tool_calls = repository.list_tool_calls(args.session_id)
+        turn_metrics = repository.list_turn_metrics(args.session_id, limit=5)
+
+    current_turn_id = _current_turn_id(state, pending_approvals)
+    current_turn_metrics = _find_turn_metrics(turn_metrics, current_turn_id)
+    latest_turn_metrics = current_turn_metrics or (
+        turn_metrics[0] if turn_metrics else None
+    )
+    recent_tool_calls = _recent_tool_calls(tool_calls)
 
     print(f"Session {record.session_id}")
     print(f"Status: {state.status}")
     print(f"Last sequence: {state.last_sequence}")
-    print(f"Current turn: {state.current_turn_id or 'none'}")
-    print(f"Pending approval: {state.pending_approval_id or 'none'}")
+    print(_format_current_turn_line(current_turn_id, state.status))
     print(f"Workspace: {record.cwd}")
     print(f"Model: {record.model_name}")
     print(f"Approval mode: {record.approval_mode}")
@@ -208,6 +216,30 @@ def _status_command(args: argparse.Namespace) -> int:
     latest_summary = _latest_message_summary(transcript_messages)
     if latest_summary is not None:
         print(f"Latest message: {latest_summary}")
+
+    if latest_turn_metrics is not None:
+        label = (
+            "Current turn metrics"
+            if current_turn_metrics is not None
+            else "Latest turn metrics"
+        )
+        print(f"{label}: {_format_turn_metrics(latest_turn_metrics)}")
+    else:
+        print("Latest turn metrics: none")
+
+    if pending_approvals:
+        print(f"Pending approvals: {len(pending_approvals)}")
+        for approval in pending_approvals:
+            print(f"  - {_format_approval_summary(approval)}")
+    else:
+        print("Pending approvals: none")
+
+    if recent_tool_calls:
+        print("Recent tool activity:")
+        for tool_call in recent_tool_calls:
+            print(f"  - {_format_tool_call_summary(tool_call)}")
+    else:
+        print("Recent tool activity: none")
 
     return 0
 
@@ -258,6 +290,82 @@ def _latest_message_summary(
     if not text:
         return latest_message.role
     return f"{latest_message.role}: {text}"
+
+
+def _current_turn_id(
+    state,
+    approvals: Sequence[ApprovalRecord],
+) -> UUID | None:
+    if state.current_turn_id is not None:
+        return state.current_turn_id
+    if state.status == "awaiting_approval" and approvals:
+        return approvals[-1].turn_id
+    return None
+
+
+def _find_turn_metrics(
+    turn_metrics: Sequence[TurnMetricsRecord],
+    turn_id: UUID | None,
+) -> TurnMetricsRecord | None:
+    if turn_id is None:
+        return None
+    for metrics in turn_metrics:
+        if metrics.turn_id == turn_id:
+            return metrics
+    return None
+
+
+def _recent_tool_calls(
+    tool_calls: Sequence[ToolCallRecord],
+    *,
+    limit: int = 3,
+) -> list[ToolCallRecord]:
+    def sort_key(tool_call: ToolCallRecord) -> datetime:
+        return tool_call.completed_at or tool_call.started_at or datetime.min
+
+    return sorted(tool_calls, key=sort_key, reverse=True)[:limit]
+
+
+def _format_current_turn_line(turn_id: UUID | None, status: str) -> str:
+    if turn_id is None:
+        return "Current turn: none"
+    return f"Current turn: {turn_id} ({status})"
+
+
+def _format_turn_metrics(metrics: TurnMetricsRecord) -> str:
+    return (
+        f"turn {metrics.turn_id}; "
+        f"model {metrics.model_call_count} call(s), "
+        f"{metrics.model_input_tokens_total} input / "
+        f"{metrics.model_output_tokens_total} output tokens, "
+        f"{metrics.model_duration_ms_total} ms; "
+        f"tools {metrics.tool_call_count} call(s), "
+        f"{metrics.tool_duration_ms_total} ms, "
+        f"{metrics.succeeded_tool_call_count} succeeded / "
+        f"{metrics.failed_tool_call_count} failed; "
+        f"turn duration {_format_duration(metrics.turn_duration_ms)}"
+    )
+
+
+def _format_duration(duration_ms: int | None) -> str:
+    if duration_ms is None:
+        return "n/a"
+    return f"{duration_ms} ms"
+
+
+def _format_approval_summary(approval: ApprovalRecord) -> str:
+    return (
+        f"{approval.approval_id} for turn {approval.turn_id}: "
+        f"{approval.subject} ({approval.reason})"
+    )
+
+
+def _format_tool_call_summary(tool_call: ToolCallRecord) -> str:
+    summary_suffix = f": {tool_call.summary}" if tool_call.summary else ""
+    return (
+        f"{tool_call.tool_name} {tool_call.status} "
+        f"(turn {tool_call.turn_id}){summary_suffix}"
+    )
 
 
 def _resolve_approval_command(
