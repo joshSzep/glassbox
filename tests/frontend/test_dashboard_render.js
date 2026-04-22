@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { applyEvent, hydrateFromSnapshot } from "../../src/glassbox/web/static/state.js";
+import {
+  applyEvent,
+  createState,
+  hydrateFromSnapshot,
+} from "../../src/glassbox/web/static/state.js";
 import {
   renderDashboardPanes,
   renderApprovalsPane,
@@ -245,4 +249,39 @@ test("renderTurnPane shows session failure details when no current turn exists",
 
   assert.match(html, /dashboard wiring failed/);
   assert.match(html, /Retryable: yes/);
+});
+
+test("live SessionFailed event replaces failed turn details with session failure pane", () => {
+  const started = applyEvent(createState(), {
+    session_id: "session-123",
+    sequence: 1,
+    event_type: "TurnStarted",
+    payload: {
+      turn_id: "turn-1",
+      trigger_message_id: "message-1",
+    },
+  });
+  const turnFailed = applyEvent(started, {
+    session_id: "session-123",
+    sequence: 2,
+    event_type: "TurnFailed",
+    payload: {
+      turn_id: "turn-1",
+      error_message: "tool exploded",
+    },
+  });
+  const sessionFailed = applyEvent(turnFailed, {
+    session_id: "session-123",
+    sequence: 3,
+    event_type: "SessionFailed",
+    payload: {
+      error_message: "runtime wiring failed",
+      retryable: false,
+    },
+  });
+
+  const html = renderTurnPane(sessionFailed);
+  assert.doesNotMatch(html, /tool exploded/);
+  assert.match(html, /runtime wiring failed/);
+  assert.match(html, /Status/);
 });

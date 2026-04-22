@@ -395,7 +395,9 @@ export function applyEvent(state, envelope) {
             ? payload.retryable
             : next.sessionFailureRetryable
         ),
-        currentTurn: next.currentTurn,
+        currentTurn: null,
+        pendingApprovalId: null,
+        pendingQuestionId: null,
       };
     case "TurnStarted":
       if (typeof payload.turn_id !== "string") {

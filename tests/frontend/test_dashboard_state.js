@@ -131,7 +131,16 @@ test("applyEvent tracks current turn lifecycle and failure details", () => {
 });
 
 test("applyEvent tracks session-level failure details", () => {
-  const failed = applyEvent(createState(), {
+  const withTurn = applyEvent(createState(), {
+    session_id: "session-123",
+    sequence: 0,
+    event_type: "TurnStarted",
+    payload: {
+      turn_id: "turn-1",
+      trigger_message_id: "message-1",
+    },
+  });
+  const failed = applyEvent(withTurn, {
     session_id: "session-123",
     sequence: 1,
     event_type: "SessionFailed",
@@ -144,6 +153,9 @@ test("applyEvent tracks session-level failure details", () => {
   assert.equal(failed.status, "failed");
   assert.equal(failed.sessionFailureMessage, "runtime wiring failed");
   assert.equal(failed.sessionFailureRetryable, true);
+  assert.equal(failed.currentTurn, null);
+  assert.equal(failed.pendingApprovalId, null);
+  assert.equal(failed.pendingQuestionId, null);
 });
 
 test("applyEvent appends transcript messages deterministically", () => {
