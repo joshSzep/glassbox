@@ -28,6 +28,7 @@ def test_cli_help_lists_session_oriented_commands(
     assert exc_info.value.code == 0
     assert "resume" in captured.out
     assert "status" in captured.out
+    assert "rebuild" in captured.out
     assert "approve" in captured.out
     assert "deny" in captured.out
 

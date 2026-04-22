@@ -33,6 +33,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _resolve_approval_command(args, ApprovalDecision.APPROVED)
         if args.command == "deny":
             return _resolve_approval_command(args, ApprovalDecision.DENIED)
+        if args.command == "rebuild":
+            return _rebuild_command(args)
         if args.command == "serve":
             return _serve_command(args)
     except ValueError as exc:
@@ -81,6 +83,18 @@ def _build_parser() -> argparse.ArgumentParser:
     deny_parser.add_argument("session_id", type=_parse_uuid)
     deny_parser.add_argument("approval_id", type=_parse_uuid)
     _add_runtime_location_arguments(deny_parser)
+
+    rebuild_parser = subparsers.add_parser(
+        "rebuild",
+        help="rebuild projection tables from canonical events",
+    )
+    rebuild_parser.add_argument("session_id", nargs="?", type=_parse_uuid)
+    rebuild_parser.add_argument(
+        "--all",
+        action="store_true",
+        help="rebuild projections for all sessions in the database",
+    )
+    _add_runtime_location_arguments(rebuild_parser)
 
     serve_parser = subparsers.add_parser("serve", help="start the web dashboard server")
     _add_runtime_location_arguments(serve_parser)
@@ -196,6 +210,37 @@ def _status_command(args: argparse.Namespace) -> int:
         print(f"Latest message: {latest_summary}")
 
     return 0
+
+
+def _rebuild_command(args: argparse.Namespace) -> int:
+    cwd, db_path = _resolve_runtime_location(args)
+
+    if args.all == (args.session_id is not None):
+        raise ValueError("specify exactly one of session_id or --all")
+
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        repository = runtime_context.repositories.sessions
+
+        if args.all:
+            sessions = repository.list_sessions()
+            if not sessions:
+                print("No sessions found to rebuild")
+                return 0
+
+            for session in sessions:
+                repository.rebuild_session_projections(session.session_id)
+                print(f"Rebuilt projections for session {session.session_id}")
+            print(f"Rebuilt projections for {len(sessions)} session(s)")
+            return 0
+
+        session_id = args.session_id
+        assert session_id is not None
+        if repository.get_session(session_id) is None:
+            raise ValueError(f"unknown session_id: {session_id}")
+
+        repository.rebuild_session_projections(session_id)
+        print(f"Rebuilt projections for session {session_id}")
+        return 0
 
 
 def _latest_message_summary(

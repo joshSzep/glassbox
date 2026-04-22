@@ -895,7 +895,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-101: Implement Projection Rebuild Command Or Service Path
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-024`, `GBX-100`
 - Goal: recover derived state from the canonical event log on demand
 - Deliverables:
