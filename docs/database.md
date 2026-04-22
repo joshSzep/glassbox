@@ -150,11 +150,18 @@ create table session_state (
     status text not null,
     current_turn_id text,
     pending_approval_id text,
+    pending_question_id text,
     last_sequence integer not null,
     updated_at text not null,
     foreign key (session_id) references sessions(session_id)
 );
 ```
+
+Notes:
+
+- `pending_approval_id` tracks approval-based suspension points
+- `pending_question_id` tracks `ask_user` suspension points
+- both values are cleared when the turn resumes or the session completes/fails
 
 ### Transcript Messages Projection
 

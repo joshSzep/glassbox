@@ -1002,7 +1002,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-121: Keep Architecture And Database Docs In Sync With Code
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: ongoing, starts after `GBX-020`
 - Goal: prevent the docs from drifting away from implementation reality
 - Deliverables:

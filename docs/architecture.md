@@ -315,7 +315,7 @@ class TurnStatusChanged(EventPayload):
 
 class TurnCompleted(EventPayload):
     turn_id: UUID
-    outcome: Literal["completed", "awaiting_approval", "failed"]
+    outcome: Literal["completed", "awaiting_approval", "awaiting_user_input", "failed"]
 
 
 class TurnFailed(EventPayload):
@@ -386,12 +386,27 @@ class ApprovalRequested(EventPayload):
     turn_id: UUID
     reason: str
     subject: str
+    tool_call_id: UUID | None = None
+    provider_tool_call_id: str | None = None
 
 
 class ApprovalResolved(EventPayload):
     approval_id: UUID
     decision: Literal["approved", "denied"]
     decided_by: str
+
+
+class UserQuestionAsked(EventPayload):
+    question_id: UUID
+    turn_id: UUID
+    tool_call_id: UUID
+    provider_tool_call_id: str
+    question: str
+
+
+class UserAnswerProvided(EventPayload):
+    question_id: UUID
+    answer: str
 ```
 
 #### Diagnostic Events
@@ -440,6 +455,8 @@ EventPayloadType = Annotated[
         | ToolExecutionCompleted
         | ApprovalRequested
         | ApprovalResolved
+        | UserQuestionAsked
+        | UserAnswerProvided
         | RuntimeNoteRecorded
         | ErrorRecorded
     ),
@@ -754,11 +771,17 @@ glassbox resume SESSION_ID
 glassbox status SESSION_ID
 glassbox approve SESSION_ID APPROVAL_ID
 glassbox deny SESSION_ID APPROVAL_ID
+glassbox rebuild [SESSION_ID | --all]
+glassbox serve
 ```
 
 `glassbox status` should read persisted projections and summarize the current turn,
 pending approvals, recent tool activity, and recent turn metrics without replaying
 raw events ad hoc in the CLI.
+
+Approval and ask-user pause points are resumable from persisted events. The runtime
+uses `ApprovalRequested` / `ApprovalResolved` and `UserQuestionAsked` /
+`UserAnswerProvided` event pairs to suspend and resume turns explicitly.
 
 ## Concurrency Model
 
