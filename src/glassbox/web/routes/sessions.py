@@ -8,6 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from glassbox.core.events import EventEnvelope, SessionFailed, SessionStarted
 from glassbox.core.types import ApprovalStatus, ToolExecutionStatus
 from glassbox.web.app import RuntimeContextDep
 
@@ -60,14 +61,18 @@ class TurnMetricsResponse(BaseModel):
 class SessionSnapshotResponse(BaseModel):
     session_id: str
     status: str
+    current_turn_id: str | None
     model_name: str
     cwd: str
     approval_mode: str
+    dashboard_url: str | None
     created_at: datetime
     updated_at: datetime
     last_sequence: int
     pending_approval_id: str | None
     pending_question_id: str | None
+    session_failure_message: str | None
+    session_failure_retryable: bool | None
     transcript: list[TranscriptMessageResponse]
     active_tool_calls: list[ActiveToolCallResponse]
     pending_approvals: list[PendingApprovalResponse]
@@ -87,19 +92,26 @@ async def get_session_snapshot(
         raise HTTPException(status_code=404, detail=f"session {session_id} not found")
 
     state = repo.get_session_state(session_id)
+    session_events = repo.read_session_events(session_id)
     transcript = repo.list_transcript_messages(session_id)
     active_tool_calls = repo.list_tool_calls(
         session_id, status=ToolExecutionStatus.RUNNING
     )
     pending_approvals = repo.list_approvals(session_id, status=ApprovalStatus.PENDING)
     turn_metrics = repo.list_turn_metrics(session_id, limit=10)
+    dashboard_url = _dashboard_url_from_events(session_events)
+    latest_session_failure = _latest_session_failure(session_events)
 
     return SessionSnapshotResponse(
         session_id=str(record.session_id),
-        status=record.status,
+        status=state.status if state is not None else record.status,
+        current_turn_id=(
+            str(state.current_turn_id) if state and state.current_turn_id else None
+        ),
         model_name=record.model_name,
         cwd=str(record.cwd),
         approval_mode=record.approval_mode,
+        dashboard_url=dashboard_url,
         created_at=record.created_at,
         updated_at=record.updated_at,
         last_sequence=record.last_sequence,
@@ -111,6 +123,16 @@ async def get_session_snapshot(
         pending_question_id=(
             str(state.pending_question_id)
             if state and state.pending_question_id
+            else None
+        ),
+        session_failure_message=(
+            latest_session_failure.error_message
+            if latest_session_failure is not None
+            else None
+        ),
+        session_failure_retryable=(
+            latest_session_failure.retryable
+            if latest_session_failure is not None
             else None
         ),
         transcript=[
@@ -163,3 +185,17 @@ async def get_session_snapshot(
             for metrics in turn_metrics
         ],
     )
+
+
+def _dashboard_url_from_events(events: list[EventEnvelope]) -> str | None:
+    for event in events:
+        if isinstance(event.payload, SessionStarted):
+            return event.payload.dashboard_url
+    return None
+
+
+def _latest_session_failure(events: list[EventEnvelope]) -> SessionFailed | None:
+    for event in reversed(events):
+        if isinstance(event.payload, SessionFailed):
+            return event.payload
+    return None

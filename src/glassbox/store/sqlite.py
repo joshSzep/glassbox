@@ -793,6 +793,8 @@ def rebuild_session_projections(
         _clear_session_projections(connection, session_id)
         for event in session_events:
             _apply_projection_event(connection, event)
+        if session_events:
+            _update_session_row_after_append(connection, session_events[-1])
 
 
 def _ensure_session_row_for_append(
@@ -831,10 +833,15 @@ def _update_session_row_after_append(
 ) -> None:
     session = get_session(connection, last_event.session_id)
     current_status = session.status if session is not None else SessionStatus.RUNNING
+    session_state = get_session_state(connection, last_event.session_id)
     update_session(
         connection,
         last_event.session_id,
-        status=_session_status_for_event(last_event, current_status),
+        status=(
+            session_state.status
+            if session_state is not None
+            else _session_status_for_event(last_event, current_status)
+        ),
         updated_at=last_event.created_at,
         last_sequence=last_event.sequence,
     )

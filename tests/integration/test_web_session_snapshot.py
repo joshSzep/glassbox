@@ -9,8 +9,20 @@ from pathlib import Path
 import httpx
 
 from glassbox.core import EventEnvelope, SessionConfig
-from glassbox.core.events import ApprovalRequested, ModelCallCompleted, TurnStarted
-from glassbox.core.ids import new_approval_id, new_message_id, new_turn_id
+from glassbox.core.events import (
+    ApprovalRequested,
+    ModelCallCompleted,
+    SessionFailed,
+    TurnStarted,
+    UserQuestionAsked,
+)
+from glassbox.core.ids import (
+    new_approval_id,
+    new_message_id,
+    new_question_id,
+    new_tool_call_id,
+    new_turn_id,
+)
 from glassbox.runtime import EventBus, SessionSupervisor
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.store import (
@@ -83,8 +95,12 @@ def test_get_session_returns_snapshot_after_session_started(tmp_path: Path) -> N
             assert body["model_name"] == "openai:gpt-5.4"
             assert body["approval_mode"] == "confirm"
             assert body["status"] == "running"
+            assert body["current_turn_id"] is None
+            assert body["dashboard_url"] == "http://127.0.0.1:8765"
             assert body["pending_approval_id"] is None
             assert body["pending_question_id"] is None
+            assert body["session_failure_message"] is None
+            assert body["session_failure_retryable"] is None
             assert body["transcript"] == []
             assert body["active_tool_calls"] == []
             assert body["pending_approvals"] == []
@@ -175,11 +191,116 @@ def test_get_session_includes_pending_approvals(tmp_path: Path) -> None:
 
             assert response.status_code == 200
             body = response.json()
+            assert body["status"] == "awaiting_approval"
             pending = body["pending_approvals"]
             assert len(pending) == 1
+            assert body["pending_approval_id"] == str(approval_id)
             assert pending[0]["approval_id"] == str(approval_id)
             assert pending[0]["subject"] == "apply_patch"
             assert pending[0]["reason"] == "needs operator sign-off"
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_get_session_includes_pending_user_question_context(tmp_path: Path) -> None:
+    """Snapshot exposes awaiting-user-input status and the current turn id."""
+
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app, runtime_context = _make_app(tmp_path, connection)
+            repo = SQLiteSessionRepository(connection)
+            bus: EventBus[EventEnvelope] = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(repo, bus)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+            state = await supervisor.start_session(config)
+            turn_id = new_turn_id()
+            question_id = new_question_id()
+            repo.append_event(
+                EventEnvelope(
+                    session_id=state.session_id,
+                    sequence=0,
+                    payload=TurnStarted(
+                        turn_id=turn_id,
+                        trigger_message_id=new_message_id(),
+                    ),
+                )
+            )
+            repo.append_event(
+                EventEnvelope(
+                    session_id=state.session_id,
+                    sequence=0,
+                    payload=UserQuestionAsked(
+                        question_id=question_id,
+                        turn_id=turn_id,
+                        tool_call_id=new_tool_call_id(),
+                        provider_tool_call_id="provider-tool-call-1",
+                        question="Proceed?",
+                    ),
+                )
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get(f"/sessions/{state.session_id}")
+
+            assert response.status_code == 200
+            body = response.json()
+            assert body["status"] == "awaiting_user_input"
+            assert body["current_turn_id"] == str(turn_id)
+            assert body["pending_question_id"] == str(question_id)
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_get_session_includes_latest_session_failure_details(tmp_path: Path) -> None:
+    """Snapshot exposes the latest SessionFailed payload for operator debugging."""
+
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app, runtime_context = _make_app(tmp_path, connection)
+            repo = runtime_context.repositories.sessions
+            bus: EventBus[EventEnvelope] = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(repo, bus)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+            state = await supervisor.start_session(config)
+            repo.append_event(
+                EventEnvelope(
+                    session_id=state.session_id,
+                    sequence=0,
+                    payload=SessionFailed(
+                        error_message="dashboard wiring failed",
+                        retryable=True,
+                    ),
+                )
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get(f"/sessions/{state.session_id}")
+
+            assert response.status_code == 200
+            body = response.json()
+            assert body["status"] == "failed"
+            assert body["session_failure_message"] == "dashboard wiring failed"
+            assert body["session_failure_retryable"] is True
         finally:
             connection.close()
 
@@ -212,14 +333,18 @@ def test_get_session_snapshot_response_schema(tmp_path: Path) -> None:
             expected_keys = {
                 "session_id",
                 "status",
+                "current_turn_id",
                 "model_name",
                 "cwd",
                 "approval_mode",
+                "dashboard_url",
                 "created_at",
                 "updated_at",
                 "last_sequence",
                 "pending_approval_id",
                 "pending_question_id",
+                "session_failure_message",
+                "session_failure_retryable",
                 "transcript",
                 "active_tool_calls",
                 "pending_approvals",

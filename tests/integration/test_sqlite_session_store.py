@@ -4,15 +4,19 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from glassbox.core import (
+    ApprovalRequested,
     EventEnvelope,
     SessionCompleted,
     SessionConfig,
     SessionRecord,
     SessionStarted,
     SessionStatus,
+    TurnStarted,
     UserMessageReceived,
+    new_approval_id,
     new_message_id,
     new_session_id,
+    new_turn_id,
 )
 from glassbox.store import (
     append_events,
@@ -169,3 +173,56 @@ def test_append_events_keeps_session_sequence_and_status_in_sync(
     assert session is not None
     assert session.last_sequence == 3
     assert session.status == SessionStatus.COMPLETED
+
+
+def test_append_events_keep_session_status_projection_accurate(
+    tmp_path: Path,
+) -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    connection = open_database(tmp_path / "glassbox.sqlite3")
+    initialize_database(connection)
+    try:
+        append_events(
+            connection,
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=SessionStarted(
+                        cwd="/tmp/glassbox",
+                        model_name="openai:gpt-5.4",
+                        approval_mode="confirm",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TurnStarted(
+                        turn_id=turn_id,
+                        trigger_message_id=new_message_id(),
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ApprovalRequested(
+                        approval_id=new_approval_id(),
+                        turn_id=turn_id,
+                        reason="needs confirmation",
+                        subject="apply_patch",
+                    ),
+                ),
+            ],
+        )
+        session = get_session(connection, session_id)
+        awaiting_approval_sessions = list_sessions(
+            connection,
+            status=SessionStatus.AWAITING_APPROVAL,
+        )
+    finally:
+        connection.close()
+
+    assert session is not None
+    assert session.status == SessionStatus.AWAITING_APPROVAL
+    assert [item.session_id for item in awaiting_approval_sessions] == [session_id]

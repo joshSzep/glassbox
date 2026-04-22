@@ -12,6 +12,7 @@ from glassbox.core.events import (
     EventEnvelope,
     ModelCallCompleted,
     SessionCompleted,
+    SessionFailed,
     ToolExecutionCompleted,
     ToolExecutionStarted,
     TurnStarted,
@@ -207,11 +208,52 @@ def test_cli_status_prints_human_session_summary(
     assert "Current turn: none" in captured.out
     assert "Pending approvals: none" in captured.out
     assert "Recent tool activity: none" in captured.out
+    assert "Dashboard URL: http://127.0.0.1:8765" in captured.out
     assert "Transcript messages: 2" in captured.out
     assert (
         "Latest message: assistant: I received your request: Inspect the repository"
         in captured.out
     )
+
+
+def test_cli_status_includes_session_failure_details(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=SessionFailed(
+                    error_message="dashboard wiring failed",
+                    retryable=True,
+                ),
+            )
+        )
+    finally:
+        connection.close()
+
+    _ = capsys.readouterr()
+    exit_code = main(
+        [
+            "status",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Status: failed" in captured.out
+    assert "Dashboard URL: http://127.0.0.1:8765" in captured.out
+    assert "Session failure: dashboard wiring failed (retryable)" in captured.out
 
 
 def test_cli_status_includes_turn_approvals_tool_activity_and_metrics(

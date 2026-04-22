@@ -22,9 +22,12 @@
  * @property {string | null} modelName
  * @property {string | null} cwd
  * @property {string | null} approvalMode
+ * @property {string | null} dashboardUrl
  * @property {number} lastSequence
  * @property {string | null} pendingApprovalId
  * @property {string | null} pendingQuestionId
+ * @property {string | null} sessionFailureMessage
+ * @property {boolean | null} sessionFailureRetryable
  * @property {CurrentTurn | null} currentTurn
  * @property {TurnMetrics[]} turnMetrics
  * @property {TranscriptMessage[]} transcript
@@ -38,12 +41,16 @@
  * @typedef {Object} SessionSnapshot
  * @property {string} session_id
  * @property {string} status
+ * @property {string | null} current_turn_id
  * @property {string} model_name
  * @property {string} cwd
  * @property {string} approval_mode
+ * @property {string | null} dashboard_url
  * @property {number} last_sequence
  * @property {string | null} pending_approval_id
  * @property {string | null} pending_question_id
+ * @property {string | null} session_failure_message
+ * @property {boolean | null} session_failure_retryable
  * @property {TranscriptMessage[]} transcript
  * @property {ActiveToolCall[]} active_tool_calls
  * @property {PendingApproval[]} pending_approvals
@@ -66,9 +73,12 @@ export function createState() {
     modelName: null,
     cwd: null,
     approvalMode: null,
+    dashboardUrl: null,
     lastSequence: 0,
     pendingApprovalId: null,
     pendingQuestionId: null,
+    sessionFailureMessage: null,
+    sessionFailureRetryable: null,
     currentTurn: null,
     turnMetrics: [],
     transcript: [],
@@ -100,6 +110,13 @@ function inferCurrentTurn(snapshot) {
     };
   }
 
+  if (typeof snapshot.current_turn_id === "string") {
+    return {
+      turn_id: snapshot.current_turn_id,
+      status: typeof snapshot.status === "string" ? snapshot.status : "running",
+    };
+  }
+
   return null;
 }
 
@@ -114,9 +131,12 @@ export function hydrateFromSnapshot(snapshot) {
     modelName: snapshot.model_name,
     cwd: snapshot.cwd,
     approvalMode: snapshot.approval_mode,
+    dashboardUrl: snapshot.dashboard_url ?? null,
     lastSequence: snapshot.last_sequence ?? 0,
     pendingApprovalId: snapshot.pending_approval_id ?? null,
     pendingQuestionId: snapshot.pending_question_id ?? null,
+    sessionFailureMessage: snapshot.session_failure_message ?? null,
+    sessionFailureRetryable: snapshot.session_failure_retryable ?? null,
     currentTurn: inferCurrentTurn(snapshot),
     turnMetrics: [...(snapshot.turn_metrics ?? [])],
     transcript: [...(snapshot.transcript ?? [])],
@@ -340,6 +360,13 @@ export function applyEvent(state, envelope) {
             ? payload.approval_mode
             : next.approvalMode
         ),
+        dashboardUrl: (
+          typeof payload.dashboard_url === "string"
+            ? payload.dashboard_url
+            : next.dashboardUrl
+        ),
+        sessionFailureMessage: null,
+        sessionFailureRetryable: null,
       };
     case "SessionResumed":
       return {
@@ -358,6 +385,16 @@ export function applyEvent(state, envelope) {
       return {
         ...next,
         status: "failed",
+        sessionFailureMessage: (
+          typeof payload.error_message === "string"
+            ? payload.error_message
+            : next.sessionFailureMessage
+        ),
+        sessionFailureRetryable: (
+          typeof payload.retryable === "boolean"
+            ? payload.retryable
+            : next.sessionFailureRetryable
+        ),
         currentTurn: next.currentTurn,
       };
     case "TurnStarted":

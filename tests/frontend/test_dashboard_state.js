@@ -14,12 +14,16 @@ test("hydrateFromSnapshot copies snapshot fields into dashboard state", () => {
   const state = hydrateFromSnapshot({
     session_id: "session-123",
     status: "running",
+    current_turn_id: null,
     model_name: "openai:gpt-5.4",
     cwd: "/tmp/workspace",
     approval_mode: "confirm",
+    dashboard_url: "http://127.0.0.1:8765",
     last_sequence: 17,
     pending_approval_id: null,
     pending_question_id: null,
+    session_failure_message: null,
+    session_failure_retryable: null,
     turn_metrics: [
       {
         turn_id: "turn-1",
@@ -62,6 +66,7 @@ test("hydrateFromSnapshot copies snapshot fields into dashboard state", () => {
   assert.equal(state.sessionId, "session-123");
   assert.equal(state.lastSequence, 17);
   assert.equal(state.modelName, "openai:gpt-5.4");
+  assert.equal(state.dashboardUrl, "http://127.0.0.1:8765");
   assert.equal(state.currentTurn?.turn_id, "turn-1");
   assert.equal(state.turnMetrics.length, 1);
   assert.equal(state.turnMetrics[0].model_duration_ms_total, 800);
@@ -70,6 +75,32 @@ test("hydrateFromSnapshot copies snapshot fields into dashboard state", () => {
   assert.deepEqual(state.liveOutput, []);
   assert.equal(state.pendingApprovals.length, 1);
   assert.deepEqual(state.eventLog, []);
+});
+
+test("hydrateFromSnapshot reconstructs awaiting-user-input turns", () => {
+  const state = hydrateFromSnapshot({
+    session_id: "session-123",
+    status: "awaiting_user_input",
+    current_turn_id: "turn-ask-1",
+    model_name: "openai:gpt-5.4",
+    cwd: "/tmp/workspace",
+    approval_mode: "confirm",
+    dashboard_url: "http://127.0.0.1:8765",
+    last_sequence: 9,
+    pending_approval_id: null,
+    pending_question_id: "question-1",
+    session_failure_message: null,
+    session_failure_retryable: null,
+    turn_metrics: [],
+    transcript: [],
+    active_tool_calls: [],
+    pending_approvals: [],
+  });
+
+  assert.equal(state.status, "awaiting_user_input");
+  assert.equal(state.pendingQuestionId, "question-1");
+  assert.equal(state.currentTurn?.turn_id, "turn-ask-1");
+  assert.equal(state.currentTurn?.status, "awaiting_user_input");
 });
 
 test("applyEvent tracks current turn lifecycle and failure details", () => {
@@ -97,6 +128,22 @@ test("applyEvent tracks current turn lifecycle and failure details", () => {
   assert.equal(failed.status, "failed");
   assert.equal(failed.currentTurn?.status, "failed");
   assert.equal(failed.currentTurn?.error_message, "tool exploded");
+});
+
+test("applyEvent tracks session-level failure details", () => {
+  const failed = applyEvent(createState(), {
+    session_id: "session-123",
+    sequence: 1,
+    event_type: "SessionFailed",
+    payload: {
+      error_message: "runtime wiring failed",
+      retryable: true,
+    },
+  });
+
+  assert.equal(failed.status, "failed");
+  assert.equal(failed.sessionFailureMessage, "runtime wiring failed");
+  assert.equal(failed.sessionFailureRetryable, true);
 });
 
 test("applyEvent appends transcript messages deterministically", () => {

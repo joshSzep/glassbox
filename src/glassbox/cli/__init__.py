@@ -14,6 +14,7 @@ from uuid import UUID
 
 from glassbox.cli.renderer import CliEventRenderer
 from glassbox.core import SessionConfig, TranscriptMessage
+from glassbox.core.events import EventEnvelope, SessionFailed, SessionStarted
 from glassbox.core.models import ApprovalRecord, ToolCallRecord, TurnMetricsRecord
 from glassbox.core.types import ApprovalDecision
 from glassbox.runtime import RuntimeContext, open_runtime_context
@@ -239,6 +240,7 @@ def _status_command(args: argparse.Namespace) -> int:
         pending_approvals = repository.list_approvals(args.session_id)
         tool_calls = repository.list_tool_calls(args.session_id)
         turn_metrics = repository.list_turn_metrics(args.session_id, limit=5)
+        session_events = repository.read_session_events(args.session_id)
 
     current_turn_id = _current_turn_id(state, pending_approvals)
     current_turn_metrics = _find_turn_metrics(turn_metrics, current_turn_id)
@@ -246,6 +248,8 @@ def _status_command(args: argparse.Namespace) -> int:
         turn_metrics[0] if turn_metrics else None
     )
     recent_tool_calls = _recent_tool_calls(tool_calls)
+    dashboard_url = _dashboard_url_from_events(session_events)
+    latest_session_failure = _latest_session_failure(session_events)
 
     print(f"Session {record.session_id}")
     print(f"Status: {state.status}")
@@ -254,7 +258,12 @@ def _status_command(args: argparse.Namespace) -> int:
     print(f"Workspace: {record.cwd}")
     print(f"Model: {record.model_name}")
     print(f"Approval mode: {record.approval_mode}")
+    if dashboard_url is not None:
+        print(f"Dashboard URL: {dashboard_url}")
     print(f"Transcript messages: {len(transcript_messages)}")
+
+    if latest_session_failure is not None:
+        print(_format_session_failure(latest_session_failure))
 
     latest_summary = _latest_message_summary(transcript_messages)
     if latest_summary is not None:
@@ -401,6 +410,27 @@ def _format_approval_summary(approval: ApprovalRecord) -> str:
         f"{approval.approval_id} for turn {approval.turn_id}: "
         f"{approval.subject} ({approval.reason})"
     )
+
+
+def _dashboard_url_from_events(events: Sequence[EventEnvelope]) -> str | None:
+    for event in events:
+        if isinstance(event.payload, SessionStarted):
+            return event.payload.dashboard_url
+    return None
+
+
+def _latest_session_failure(
+    events: Sequence[EventEnvelope],
+) -> SessionFailed | None:
+    for event in reversed(events):
+        if isinstance(event.payload, SessionFailed):
+            return event.payload
+    return None
+
+
+def _format_session_failure(session_failure: SessionFailed) -> str:
+    retryable_suffix = " (retryable)" if session_failure.retryable else ""
+    return f"Session failure: {session_failure.error_message}{retryable_suffix}"
 
 
 def _format_tool_call_summary(tool_call: ToolCallRecord) -> str:

@@ -53,7 +53,7 @@ That creates three problems:
 
 Use these layers:
 
-- `sessions` for coarse session metadata
+- `sessions` for list-oriented session metadata plus the latest projected status
 - `events` for the canonical append-only event stream
 - projection tables for current and query-heavy views
 - artifact files on disk for large blobs such as full logs and diffs
@@ -62,7 +62,10 @@ Use these layers:
 
 ### Sessions
 
-The sessions table is a coarse entry point for listing and resuming sessions.
+The sessions table is an entry point for listing and resuming sessions. Its
+`status` and `last_sequence` should stay aligned with the latest derived
+session-state projection so list and filter queries can find suspended sessions
+without replaying the event log.
 
 ```sql
 create table sessions (

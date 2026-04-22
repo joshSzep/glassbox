@@ -15,12 +15,16 @@ test("renderTurnPane shows realistic current-turn details", () => {
   const state = hydrateFromSnapshot({
     session_id: "session-123",
     status: "running",
+    current_turn_id: null,
     model_name: "openai:gpt-5.4",
     cwd: "/tmp/workspace",
     approval_mode: "confirm",
+    dashboard_url: "http://127.0.0.1:8765",
     last_sequence: 1,
     pending_approval_id: null,
     pending_question_id: null,
+    session_failure_message: null,
+    session_failure_retryable: null,
     turn_metrics: [
       {
         turn_id: "turn-1",
@@ -54,12 +58,16 @@ test("renderToolCallsPane and renderLiveOutputPane show realistic entries", () =
   const snapshotState = hydrateFromSnapshot({
     session_id: "session-123",
     status: "running",
+    current_turn_id: null,
     model_name: "openai:gpt-5.4",
     cwd: "/tmp/workspace",
     approval_mode: "confirm",
+    dashboard_url: "http://127.0.0.1:8765",
     last_sequence: 5,
     pending_approval_id: null,
     pending_question_id: null,
+    session_failure_message: null,
+    session_failure_retryable: null,
     turn_metrics: [],
     transcript: [],
     active_tool_calls: [
@@ -92,12 +100,16 @@ test("synthetic event stream updates multiple panes together", () => {
   const snapshot = hydrateFromSnapshot({
     session_id: "session-123",
     status: "running",
+    current_turn_id: null,
     model_name: "openai:gpt-5.4",
     cwd: "/tmp/workspace",
     approval_mode: "confirm",
+    dashboard_url: "http://127.0.0.1:8765",
     last_sequence: 0,
     pending_approval_id: null,
     pending_question_id: null,
+    session_failure_message: null,
+    session_failure_retryable: null,
     turn_metrics: [],
     transcript: [],
     active_tool_calls: [],
@@ -220,4 +232,17 @@ test("renderMetricsPane shows aggregated turn metrics", () => {
   assert.match(html, /Model calls|2/);
   assert.match(html, /Input tokens|150/);
   assert.match(html, /Tool runtime|400 ms/);
+});
+
+test("renderTurnPane shows session failure details when no current turn exists", () => {
+  const html = renderTurnPane({
+    status: "failed",
+    currentTurn: null,
+    sessionFailureMessage: "dashboard wiring failed",
+    sessionFailureRetryable: true,
+    activeToolCalls: [],
+  });
+
+  assert.match(html, /dashboard wiring failed/);
+  assert.match(html, /Retryable: yes/);
 });

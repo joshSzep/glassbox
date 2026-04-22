@@ -47,6 +47,19 @@ export function renderTranscriptPane(state) {
 export function renderTurnPane(state) {
   const turn = state.currentTurn;
   if (!turn) {
+    if (state.status === "failed" && state.sessionFailureMessage) {
+      const retryableHtml = state.sessionFailureRetryable
+        ? `<div class="turn-error">Retryable: yes</div>`
+        : "";
+      return `<div class="turn-card status-failed">
+        <div class="detail-row">
+          <span class="detail-label">Status</span>
+          <span class="detail-value">failed</span>
+        </div>
+        <div class="turn-error">${escHtml(state.sessionFailureMessage)}</div>
+        ${retryableHtml}
+      </div>`;
+    }
     return renderEmpty("No active turn.");
   }
 
