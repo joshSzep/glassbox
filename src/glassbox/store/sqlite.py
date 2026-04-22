@@ -15,6 +15,8 @@ from glassbox.core.events import (
     AssistantMessageDelta,
     AssistantMessageStarted,
     EventEnvelope,
+    ModelCallCompleted,
+    ModelCallStarted,
     ModelToolCallRequested,
     SessionCompleted,
     SessionFailed,
@@ -45,10 +47,11 @@ from glassbox.core.models import (
     SessionState,
     ToolCallRecord,
     TranscriptMessage,
+    TurnMetricsRecord,
 )
 from glassbox.core.types import ApprovalStatus, SessionStatus, ToolExecutionStatus
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 type CorrelationValue = TurnId | MessageId | ToolCallId | ApprovalId | QuestionId
 
@@ -186,6 +189,29 @@ BOOTSTRAP_STATEMENTS = (
     """
     create index if not exists idx_approvals_session_status
         on approvals (session_id, status)
+    """,
+    """
+    create table if not exists turn_metrics (
+        session_id text not null,
+        turn_id text not null,
+        started_at text,
+        completed_at text,
+        turn_duration_ms integer,
+        model_call_count integer not null default 0,
+        model_duration_ms_total integer not null default 0,
+        model_input_tokens_total integer not null default 0,
+        model_output_tokens_total integer not null default 0,
+        tool_call_count integer not null default 0,
+        tool_duration_ms_total integer not null default 0,
+        succeeded_tool_call_count integer not null default 0,
+        failed_tool_call_count integer not null default 0,
+        primary key (session_id, turn_id),
+        foreign key (session_id) references sessions(session_id)
+    )
+    """,
+    """
+    create index if not exists idx_turn_metrics_session_started
+        on turn_metrics (session_id, started_at desc)
     """,
 )
 
@@ -532,6 +558,57 @@ def list_approvals(
     ]
 
 
+def list_turn_metrics(
+    connection: sqlite3.Connection,
+    session_id: SessionId,
+    *,
+    limit: int | None = None,
+) -> list[TurnMetricsRecord]:
+    """Read aggregated per-turn runtime metrics for a session."""
+
+    query = """
+        select
+            turn_id,
+            started_at,
+            completed_at,
+            turn_duration_ms,
+            model_call_count,
+            model_duration_ms_total,
+            model_input_tokens_total,
+            model_output_tokens_total,
+            tool_call_count,
+            tool_duration_ms_total,
+            succeeded_tool_call_count,
+            failed_tool_call_count
+        from turn_metrics
+        where session_id = ?
+        order by coalesce(started_at, completed_at) desc, turn_id desc
+    """
+    parameters: list[object] = [str(session_id)]
+    if limit is not None:
+        query += " limit ?"
+        parameters.append(limit)
+
+    rows = connection.execute(query, parameters).fetchall()
+    return [
+        TurnMetricsRecord(
+            turn_id=row["turn_id"],
+            started_at=_parse_optional_datetime(row["started_at"]),
+            completed_at=_parse_optional_datetime(row["completed_at"]),
+            turn_duration_ms=row["turn_duration_ms"],
+            model_call_count=row["model_call_count"],
+            model_duration_ms_total=row["model_duration_ms_total"],
+            model_input_tokens_total=row["model_input_tokens_total"],
+            model_output_tokens_total=row["model_output_tokens_total"],
+            tool_call_count=row["tool_call_count"],
+            tool_duration_ms_total=row["tool_duration_ms_total"],
+            succeeded_tool_call_count=row["succeeded_tool_call_count"],
+            failed_tool_call_count=row["failed_tool_call_count"],
+        )
+        for row in rows
+    ]
+
+
 def append_event(
     connection: sqlite3.Connection,
     event: EventEnvelope,
@@ -837,6 +914,7 @@ def _apply_projection_event(
     _apply_transcript_projection(connection, event)
     _apply_tool_call_projection(connection, event)
     _apply_approval_projection(connection, event)
+    _apply_turn_metrics_projection(connection, event)
 
 
 def _clear_session_projections(
@@ -858,6 +936,10 @@ def _clear_session_projections(
     )
     connection.execute(
         "delete from approvals where session_id = ?",
+        (session_id_value,),
+    )
+    connection.execute(
+        "delete from turn_metrics where session_id = ?",
         (session_id_value,),
     )
 
@@ -1246,5 +1328,172 @@ def _apply_approval_projection(
                 event.created_at.isoformat(),
                 payload.decided_by,
                 str(payload.approval_id),
+            ),
+        )
+
+
+def _ensure_turn_metrics_row(
+    connection: sqlite3.Connection,
+    session_id: SessionId,
+    turn_id: TurnId,
+    *,
+    started_at: datetime | None = None,
+) -> None:
+    connection.execute(
+        """
+        insert into turn_metrics (
+            session_id,
+            turn_id,
+            started_at,
+            completed_at,
+            turn_duration_ms,
+            model_call_count,
+            model_duration_ms_total,
+            model_input_tokens_total,
+            model_output_tokens_total,
+            tool_call_count,
+            tool_duration_ms_total,
+            succeeded_tool_call_count,
+            failed_tool_call_count
+        ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        on conflict(session_id, turn_id) do update set
+            started_at = coalesce(turn_metrics.started_at, excluded.started_at)
+        """,
+        (
+            str(session_id),
+            str(turn_id),
+            started_at.isoformat() if started_at is not None else None,
+            None,
+            None,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+        ),
+    )
+
+
+def _apply_turn_metrics_projection(
+    connection: sqlite3.Connection,
+    event: EventEnvelope,
+) -> None:
+    turn_id = event.turn_id
+    if turn_id is None:
+        return
+
+    payload = event.payload
+
+    if isinstance(payload, TurnStarted):
+        _ensure_turn_metrics_row(
+            connection,
+            event.session_id,
+            turn_id,
+            started_at=event.created_at,
+        )
+        return
+
+    _ensure_turn_metrics_row(connection, event.session_id, turn_id)
+
+    if isinstance(payload, ModelCallStarted):
+        return
+
+    if isinstance(payload, ModelCallCompleted):
+        connection.execute(
+            """
+            update turn_metrics
+            set
+                model_call_count = model_call_count + 1,
+                model_duration_ms_total = model_duration_ms_total + ?,
+                model_input_tokens_total = model_input_tokens_total + ?,
+                model_output_tokens_total = model_output_tokens_total + ?
+            where session_id = ? and turn_id = ?
+            """,
+            (
+                payload.duration_ms,
+                payload.input_tokens or 0,
+                payload.output_tokens or 0,
+                str(event.session_id),
+                str(turn_id),
+            ),
+        )
+        return
+
+    if isinstance(payload, ToolExecutionStarted):
+        connection.execute(
+            """
+            update turn_metrics
+            set tool_call_count = tool_call_count + 1
+            where session_id = ? and turn_id = ?
+            """,
+            (str(event.session_id), str(turn_id)),
+        )
+        return
+
+    if isinstance(payload, ToolExecutionCompleted):
+        started_at_row = connection.execute(
+            """
+            select started_at from tool_calls
+            where session_id = ? and tool_call_id = ?
+            """,
+            (str(event.session_id), str(payload.tool_call_id)),
+        ).fetchone()
+        tool_duration_ms = 0
+        if started_at_row is not None and started_at_row["started_at"] is not None:
+            started_at = datetime.fromisoformat(started_at_row["started_at"])
+            tool_duration_ms = max(
+                int((event.created_at - started_at).total_seconds() * 1000),
+                0,
+            )
+
+        connection.execute(
+            """
+            update turn_metrics
+            set
+                tool_duration_ms_total = tool_duration_ms_total + ?,
+                succeeded_tool_call_count = succeeded_tool_call_count + ?,
+                failed_tool_call_count = failed_tool_call_count + ?
+            where session_id = ? and turn_id = ?
+            """,
+            (
+                tool_duration_ms,
+                1 if payload.success else 0,
+                0 if payload.success else 1,
+                str(event.session_id),
+                str(turn_id),
+            ),
+        )
+        return
+
+    if isinstance(payload, TurnCompleted | TurnFailed):
+        started_at_row = connection.execute(
+            """
+            select started_at from turn_metrics
+            where session_id = ? and turn_id = ?
+            """,
+            (str(event.session_id), str(turn_id)),
+        ).fetchone()
+        turn_duration_ms = None
+        if started_at_row is not None and started_at_row["started_at"] is not None:
+            started_at = datetime.fromisoformat(started_at_row["started_at"])
+            turn_duration_ms = max(
+                int((event.created_at - started_at).total_seconds() * 1000),
+                0,
+            )
+
+        connection.execute(
+            """
+            update turn_metrics
+            set completed_at = ?, turn_duration_ms = ?
+            where session_id = ? and turn_id = ?
+            """,
+            (
+                event.created_at.isoformat(),
+                turn_duration_ms,
+                str(event.session_id),
+                str(turn_id),
             ),
         )

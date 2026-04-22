@@ -9,8 +9,8 @@ from pathlib import Path
 import httpx
 
 from glassbox.core import EventEnvelope, SessionConfig
-from glassbox.core.events import ApprovalRequested
-from glassbox.core.ids import new_approval_id, new_turn_id
+from glassbox.core.events import ApprovalRequested, ModelCallCompleted, TurnStarted
+from glassbox.core.ids import new_approval_id, new_message_id, new_turn_id
 from glassbox.runtime import EventBus, SessionSupervisor
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.store import (
@@ -223,8 +223,69 @@ def test_get_session_snapshot_response_schema(tmp_path: Path) -> None:
                 "transcript",
                 "active_tool_calls",
                 "pending_approvals",
+                "turn_metrics",
             }
             assert expected_keys <= body.keys()
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_get_session_includes_turn_metrics(tmp_path: Path) -> None:
+    """Snapshot exposes aggregated per-turn runtime metrics."""
+
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app, runtime_context = _make_app(tmp_path, connection)
+            repo = runtime_context.repositories.sessions
+            bus: EventBus[EventEnvelope] = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(repo, bus)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+            state = await supervisor.start_session(config)
+            turn_id = new_turn_id()
+            repo.append_event(
+                EventEnvelope(
+                    session_id=state.session_id,
+                    sequence=0,
+                    payload=TurnStarted(
+                        turn_id=turn_id,
+                        trigger_message_id=new_message_id(),
+                    ),
+                )
+            )
+            repo.append_event(
+                EventEnvelope(
+                    session_id=state.session_id,
+                    sequence=0,
+                    payload=ModelCallCompleted(
+                        turn_id=turn_id,
+                        input_tokens=42,
+                        output_tokens=13,
+                        duration_ms=600,
+                    ),
+                )
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get(f"/sessions/{state.session_id}")
+
+            assert response.status_code == 200
+            body = response.json()
+            assert len(body["turn_metrics"]) == 1
+            assert body["turn_metrics"][0]["turn_id"] == str(turn_id)
+            assert body["turn_metrics"][0]["model_call_count"] == 1
+            assert body["turn_metrics"][0]["model_duration_ms_total"] == 600
+            assert body["turn_metrics"][0]["model_input_tokens_total"] == 42
+            assert body["turn_metrics"][0]["model_output_tokens_total"] == 13
         finally:
             connection.close()
 

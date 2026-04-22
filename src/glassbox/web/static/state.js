@@ -12,6 +12,7 @@
  * @typedef {{tool_call_id: string, turn_id: string, tool_name: string, status: string, started_at?: string | null}} ActiveToolCall
  * @typedef {{approval_id: string, turn_id?: string, subject: string, reason: string, requested_at?: string, resolution_state?: string, resolution_decision?: string | null, resolution_error?: string | null}} PendingApproval
  * @typedef {{turn_id: string, status: string, trigger_message_id?: string, outcome?: string, error_message?: string}} CurrentTurn
+ * @typedef {{turn_id: string, started_at?: string | null, completed_at?: string | null, turn_duration_ms?: number | null, model_call_count: number, model_duration_ms_total: number, model_input_tokens_total: number, model_output_tokens_total: number, tool_call_count: number, tool_duration_ms_total: number, succeeded_tool_call_count: number, failed_tool_call_count: number}} TurnMetrics
  * @typedef {{turn_id: string, tool_call_id: string, stream: string, chunk: string}} LiveOutputEntry
  * @typedef {{sequence: number, event_type: string}} EventLogEntry
  *
@@ -25,6 +26,7 @@
  * @property {string | null} pendingApprovalId
  * @property {string | null} pendingQuestionId
  * @property {CurrentTurn | null} currentTurn
+ * @property {TurnMetrics[]} turnMetrics
  * @property {TranscriptMessage[]} transcript
  * @property {ActiveToolCall[]} activeToolCalls
  * @property {LiveOutputEntry[]} liveOutput
@@ -45,6 +47,7 @@
  * @property {TranscriptMessage[]} transcript
  * @property {ActiveToolCall[]} active_tool_calls
  * @property {PendingApproval[]} pending_approvals
+ * @property {TurnMetrics[]} turn_metrics
  */
 
 /**
@@ -67,6 +70,7 @@ export function createState() {
     pendingApprovalId: null,
     pendingQuestionId: null,
     currentTurn: null,
+    turnMetrics: [],
     transcript: [],
     activeToolCalls: [],
     liveOutput: [],
@@ -114,6 +118,7 @@ export function hydrateFromSnapshot(snapshot) {
     pendingApprovalId: snapshot.pending_approval_id ?? null,
     pendingQuestionId: snapshot.pending_question_id ?? null,
     currentTurn: inferCurrentTurn(snapshot),
+    turnMetrics: [...(snapshot.turn_metrics ?? [])],
     transcript: [...(snapshot.transcript ?? [])],
     activeToolCalls: [...(snapshot.active_tool_calls ?? [])],
     liveOutput: [],
@@ -166,6 +171,55 @@ function upsertPendingApproval(approvals, approval) {
   return approvals.map((item, index) =>
     index === existingIndex ? approval : item,
   );
+}
+
+function makeTurnMetrics(turnId, overrides = {}) {
+  return {
+    turn_id: turnId,
+    started_at: null,
+    completed_at: null,
+    turn_duration_ms: null,
+    model_call_count: 0,
+    model_duration_ms_total: 0,
+    model_input_tokens_total: 0,
+    model_output_tokens_total: 0,
+    tool_call_count: 0,
+    tool_duration_ms_total: 0,
+    succeeded_tool_call_count: 0,
+    failed_tool_call_count: 0,
+    ...overrides,
+  };
+}
+
+function upsertTurnMetrics(turnMetrics, metrics) {
+  const existingIndex = turnMetrics.findIndex(item => item.turn_id === metrics.turn_id);
+  if (existingIndex === -1) {
+    return [metrics, ...turnMetrics];
+  }
+
+  return turnMetrics.map((item, index) =>
+    index === existingIndex ? { ...item, ...metrics } : item,
+  );
+}
+
+function updateTurnMetrics(turnMetrics, turnId, updater) {
+  const existing = turnMetrics.find(item => item.turn_id === turnId)
+    ?? makeTurnMetrics(turnId);
+  return upsertTurnMetrics(turnMetrics, updater(existing));
+}
+
+function durationBetween(startedAt, endedAt) {
+  if (!startedAt || !endedAt) {
+    return null;
+  }
+
+  const started = Date.parse(startedAt);
+  const ended = Date.parse(endedAt);
+  if (Number.isNaN(started) || Number.isNaN(ended)) {
+    return null;
+  }
+
+  return Math.max(ended - started, 0);
 }
 
 /**
@@ -321,6 +375,12 @@ export function applyEvent(state, envelope) {
               : undefined
           ),
         },
+          turnMetrics: upsertTurnMetrics(
+            next.turnMetrics,
+            makeTurnMetrics(payload.turn_id, {
+              started_at: typeof envelope.created_at === "string" ? envelope.created_at : null,
+            }),
+          ),
       };
     case "TurnStatusChanged":
       if (typeof payload.turn_id !== "string" || typeof payload.status !== "string") {
@@ -441,10 +501,21 @@ export function applyEvent(state, envelope) {
       if (typeof payload.turn_id !== "string") {
         return next;
       }
+      const completedAt = typeof envelope.created_at === "string" ? envelope.created_at : null;
+      const completedTurnMetrics = updateTurnMetrics(
+        next.turnMetrics,
+        payload.turn_id,
+        metrics => ({
+          ...metrics,
+          completed_at: completedAt,
+          turn_duration_ms: durationBetween(metrics.started_at, completedAt),
+        }),
+      );
       if (payload.outcome === "awaiting_approval") {
         return {
           ...next,
           status: "awaiting_approval",
+          turnMetrics: completedTurnMetrics,
           currentTurn: {
             turn_id: payload.turn_id,
             status: "awaiting_approval",
@@ -456,6 +527,7 @@ export function applyEvent(state, envelope) {
         return {
           ...next,
           status: "awaiting_user_input",
+          turnMetrics: completedTurnMetrics,
           currentTurn: {
             turn_id: payload.turn_id,
             status: "awaiting_user_input",
@@ -467,6 +539,7 @@ export function applyEvent(state, envelope) {
         return {
           ...next,
           status: "running",
+          turnMetrics: completedTurnMetrics,
           currentTurn: {
             turn_id: payload.turn_id,
             status: "completed",
@@ -482,6 +555,14 @@ export function applyEvent(state, envelope) {
       return {
         ...next,
         status: "failed",
+        turnMetrics: updateTurnMetrics(next.turnMetrics, payload.turn_id, metrics => ({
+          ...metrics,
+          completed_at: typeof envelope.created_at === "string" ? envelope.created_at : null,
+          turn_duration_ms: durationBetween(
+            metrics.started_at,
+            typeof envelope.created_at === "string" ? envelope.created_at : null,
+          ),
+        })),
         currentTurn: {
           turn_id: payload.turn_id,
           status: "failed",
@@ -505,13 +586,17 @@ export function applyEvent(state, envelope) {
         turn_id: payload.turn_id,
         tool_name: payload.tool_name,
         status: "running",
-        started_at: undefined,
+        started_at: typeof envelope.created_at === "string" ? envelope.created_at : undefined,
       };
       const existing = next.activeToolCalls.find(
         item => item.tool_call_id === toolCall.tool_call_id,
       );
       return {
         ...next,
+        turnMetrics: updateTurnMetrics(next.turnMetrics, payload.turn_id, metrics => ({
+          ...metrics,
+          tool_call_count: metrics.tool_call_count + 1,
+        })),
         currentTurn: {
           turn_id: payload.turn_id,
           status: next.currentTurn?.status ?? "running",
@@ -544,9 +629,50 @@ export function applyEvent(state, envelope) {
     case "ToolExecutionCompleted":
       return {
         ...next,
+        turnMetrics: updateTurnMetrics(
+          next.turnMetrics,
+          typeof payload.turn_id === "string" ? payload.turn_id : "unknown",
+          metrics => {
+            const activeToolCall = next.activeToolCalls.find(
+              item => item.tool_call_id === payload.tool_call_id,
+            );
+            const toolDuration = durationBetween(
+              activeToolCall?.started_at ?? null,
+              typeof envelope.created_at === "string" ? envelope.created_at : null,
+            ) ?? 0;
+            return {
+              ...metrics,
+              tool_duration_ms_total: metrics.tool_duration_ms_total + toolDuration,
+              succeeded_tool_call_count: metrics.succeeded_tool_call_count + (payload.success ? 1 : 0),
+              failed_tool_call_count: metrics.failed_tool_call_count + (payload.success ? 0 : 1),
+            };
+          },
+        ),
         activeToolCalls: next.activeToolCalls.filter(
           item => item.tool_call_id !== payload.tool_call_id,
         ),
+      };
+    case "ModelCallStarted":
+      if (typeof payload.turn_id !== "string") {
+        return next;
+      }
+      return {
+        ...next,
+        turnMetrics: updateTurnMetrics(next.turnMetrics, payload.turn_id, metrics => metrics),
+      };
+    case "ModelCallCompleted":
+      if (typeof payload.turn_id !== "string") {
+        return next;
+      }
+      return {
+        ...next,
+        turnMetrics: updateTurnMetrics(next.turnMetrics, payload.turn_id, metrics => ({
+          ...metrics,
+          model_call_count: metrics.model_call_count + 1,
+          model_duration_ms_total: metrics.model_duration_ms_total + (payload.duration_ms ?? 0),
+          model_input_tokens_total: metrics.model_input_tokens_total + (payload.input_tokens ?? 0),
+          model_output_tokens_total: metrics.model_output_tokens_total + (payload.output_tokens ?? 0),
+        })),
       };
     default:
       return next;

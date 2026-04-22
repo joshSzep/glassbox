@@ -934,7 +934,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-110: Implement Runtime Metrics Projection
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-024`, `GBX-053`, `GBX-064`
 - Goal: persist useful latency and token metrics for runtime introspection
 - Deliverables:

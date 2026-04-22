@@ -18,6 +18,7 @@ from glassbox.core.models import (
     SessionState,
     ToolCallRecord,
     TranscriptMessage,
+    TurnMetricsRecord,
 )
 from glassbox.core.types import ApprovalStatus, SessionStatus, ToolExecutionStatus
 from glassbox.store.artifacts import StoredArtifact
@@ -154,6 +155,18 @@ class SQLiteSessionRepository:
         status: ApprovalStatus | None = None,
     ) -> list[ApprovalRecord]:
         return sqlite_store.list_approvals(self._connection, session_id, status=status)
+
+    def list_turn_metrics(
+        self,
+        session_id: SessionId,
+        *,
+        limit: int | None = None,
+    ) -> list[TurnMetricsRecord]:
+        return sqlite_store.list_turn_metrics(
+            self._connection,
+            session_id,
+            limit=limit,
+        )
 
 
 class FilesystemArtifactRepository:

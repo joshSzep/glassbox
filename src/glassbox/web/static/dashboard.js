@@ -60,6 +60,10 @@ function renderTurn() {
   byId("turn-status").innerHTML = renderDashboardPanes(state).turn;
 }
 
+function renderMetrics() {
+  byId("metrics-list").innerHTML = renderDashboardPanes(state).metrics;
+}
+
 function renderToolCalls() {
   byId("tool-calls-list").innerHTML = renderDashboardPanes(state).toolCalls;
 }
@@ -91,6 +95,7 @@ function renderAll() {
   renderStatus();
   renderTranscript();
   renderTurn();
+  renderMetrics();
   renderToolCalls();
   renderLiveOutput();
   renderApprovals();

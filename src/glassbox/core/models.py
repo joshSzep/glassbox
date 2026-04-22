@@ -111,6 +111,25 @@ class ApprovalRecord(BaseModel):
     decided_by: str | None = None
 
 
+class TurnMetricsRecord(BaseModel):
+    """Aggregated per-turn runtime metrics derived from persisted events."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    turn_id: TurnId
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    turn_duration_ms: int | None = None
+    model_call_count: int = Field(default=0, ge=0)
+    model_duration_ms_total: int = Field(default=0, ge=0)
+    model_input_tokens_total: int = Field(default=0, ge=0)
+    model_output_tokens_total: int = Field(default=0, ge=0)
+    tool_call_count: int = Field(default=0, ge=0)
+    tool_duration_ms_total: int = Field(default=0, ge=0)
+    succeeded_tool_call_count: int = Field(default=0, ge=0)
+    failed_tool_call_count: int = Field(default=0, ge=0)
+
+
 class PolicyDecision(BaseModel):
     """The result of evaluating whether a tool action is allowed."""
 

@@ -20,6 +20,19 @@ test("hydrateFromSnapshot copies snapshot fields into dashboard state", () => {
     last_sequence: 17,
     pending_approval_id: null,
     pending_question_id: null,
+    turn_metrics: [
+      {
+        turn_id: "turn-1",
+        model_call_count: 1,
+        model_duration_ms_total: 800,
+        model_input_tokens_total: 12,
+        model_output_tokens_total: 7,
+        tool_call_count: 1,
+        tool_duration_ms_total: 20,
+        succeeded_tool_call_count: 1,
+        failed_tool_call_count: 0,
+      },
+    ],
     transcript: [
       {
         message_id: "message-1",
@@ -50,6 +63,8 @@ test("hydrateFromSnapshot copies snapshot fields into dashboard state", () => {
   assert.equal(state.lastSequence, 17);
   assert.equal(state.modelName, "openai:gpt-5.4");
   assert.equal(state.currentTurn?.turn_id, "turn-1");
+  assert.equal(state.turnMetrics.length, 1);
+  assert.equal(state.turnMetrics[0].model_duration_ms_total, 800);
   assert.equal(state.transcript.length, 1);
   assert.equal(state.activeToolCalls.length, 1);
   assert.deepEqual(state.liveOutput, []);
@@ -195,6 +210,39 @@ test("applyEvent tracks active tool calls", () => {
   assert.equal(started.activeToolCalls.length, 1);
   assert.equal(started.activeToolCalls[0].tool_name, "read_file");
   assert.equal(completed.activeToolCalls.length, 0);
+  assert.equal(completed.turnMetrics[0].tool_call_count, 1);
+  assert.equal(completed.turnMetrics[0].succeeded_tool_call_count, 1);
+});
+
+test("applyEvent aggregates model metrics by turn", () => {
+  const started = applyEvent(createState(), {
+    session_id: "session-123",
+    sequence: 1,
+    event_type: "TurnStarted",
+    created_at: "2026-04-21T12:00:01Z",
+    payload: {
+      turn_id: "turn-1",
+      trigger_message_id: "message-1",
+    },
+  });
+  const completed = applyEvent(started, {
+    session_id: "session-123",
+    sequence: 2,
+    event_type: "ModelCallCompleted",
+    created_at: "2026-04-21T12:00:02Z",
+    payload: {
+      turn_id: "turn-1",
+      input_tokens: 40,
+      output_tokens: 18,
+      duration_ms: 950,
+    },
+  });
+
+  assert.equal(completed.turnMetrics.length, 1);
+  assert.equal(completed.turnMetrics[0].model_call_count, 1);
+  assert.equal(completed.turnMetrics[0].model_duration_ms_total, 950);
+  assert.equal(completed.turnMetrics[0].model_input_tokens_total, 40);
+  assert.equal(completed.turnMetrics[0].model_output_tokens_total, 18);
 });
 
 test("applyEvent buffers live tool output chunks", () => {

@@ -80,6 +80,43 @@ export function renderTurnPane(state) {
   </div>`;
 }
 
+function formatMetricValue(value, suffix = "") {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+  return `${escHtml(String(value))}${suffix}`;
+}
+
+export function renderMetricsPane(state) {
+  if ((state.turnMetrics ?? []).length === 0) {
+    return renderEmpty("No runtime metrics yet.");
+  }
+
+  return state.turnMetrics.map(metrics => {
+    const details = [
+      ["Turn", shortId(metrics.turn_id)],
+      ["Turn duration", formatMetricValue(metrics.turn_duration_ms, " ms")],
+      ["Model calls", String(metrics.model_call_count ?? 0)],
+      ["Model latency", formatMetricValue(metrics.model_duration_ms_total, " ms")],
+      ["Input tokens", String(metrics.model_input_tokens_total ?? 0)],
+      ["Output tokens", String(metrics.model_output_tokens_total ?? 0)],
+      ["Tool calls", String(metrics.tool_call_count ?? 0)],
+      ["Tool runtime", formatMetricValue(metrics.tool_duration_ms_total, " ms")],
+    ];
+
+    const detailHtml = details.map(([label, value]) => `
+      <div class="detail-row">
+        <span class="detail-label">${escHtml(label)}</span>
+        <span class="detail-value">${value}</span>
+      </div>
+    `).join("");
+
+    return `<div class="turn-card">
+      ${detailHtml}
+    </div>`;
+  }).join("");
+}
+
 export function renderToolCallsPane(state) {
   if (state.activeToolCalls.length === 0) {
     return renderEmpty("No active tool calls.");
@@ -169,6 +206,7 @@ export function renderDashboardPanes(state) {
   return {
     transcript: renderTranscriptPane(state),
     turn: renderTurnPane(state),
+    metrics: renderMetricsPane(state),
     toolCalls: renderToolCallsPane(state),
     liveOutput: renderLiveOutputPane(state),
     approvals: renderApprovalsPane(state),

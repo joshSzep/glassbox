@@ -42,6 +42,21 @@ class PendingApprovalResponse(BaseModel):
     requested_at: datetime
 
 
+class TurnMetricsResponse(BaseModel):
+    turn_id: str
+    started_at: datetime | None
+    completed_at: datetime | None
+    turn_duration_ms: int | None
+    model_call_count: int
+    model_duration_ms_total: int
+    model_input_tokens_total: int
+    model_output_tokens_total: int
+    tool_call_count: int
+    tool_duration_ms_total: int
+    succeeded_tool_call_count: int
+    failed_tool_call_count: int
+
+
 class SessionSnapshotResponse(BaseModel):
     session_id: str
     status: str
@@ -56,6 +71,7 @@ class SessionSnapshotResponse(BaseModel):
     transcript: list[TranscriptMessageResponse]
     active_tool_calls: list[ActiveToolCallResponse]
     pending_approvals: list[PendingApprovalResponse]
+    turn_metrics: list[TurnMetricsResponse]
 
 
 @router.get("/{session_id}", response_model=SessionSnapshotResponse)
@@ -76,6 +92,7 @@ async def get_session_snapshot(
         session_id, status=ToolExecutionStatus.RUNNING
     )
     pending_approvals = repo.list_approvals(session_id, status=ApprovalStatus.PENDING)
+    turn_metrics = repo.list_turn_metrics(session_id, limit=10)
 
     return SessionSnapshotResponse(
         session_id=str(record.session_id),
@@ -127,5 +144,22 @@ async def get_session_snapshot(
                 requested_at=ap.requested_at,
             )
             for ap in pending_approvals
+        ],
+        turn_metrics=[
+            TurnMetricsResponse(
+                turn_id=str(metrics.turn_id),
+                started_at=metrics.started_at,
+                completed_at=metrics.completed_at,
+                turn_duration_ms=metrics.turn_duration_ms,
+                model_call_count=metrics.model_call_count,
+                model_duration_ms_total=metrics.model_duration_ms_total,
+                model_input_tokens_total=metrics.model_input_tokens_total,
+                model_output_tokens_total=metrics.model_output_tokens_total,
+                tool_call_count=metrics.tool_call_count,
+                tool_duration_ms_total=metrics.tool_duration_ms_total,
+                succeeded_tool_call_count=metrics.succeeded_tool_call_count,
+                failed_tool_call_count=metrics.failed_tool_call_count,
+            )
+            for metrics in turn_metrics
         ],
     )

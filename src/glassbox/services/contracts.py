@@ -23,6 +23,7 @@ from glassbox.core.models import (
     SessionState,
     ToolCallRecord,
     TranscriptMessage,
+    TurnMetricsRecord,
 )
 from glassbox.core.types import (
     ApprovalDecision,
@@ -116,6 +117,13 @@ class SessionRepository(Protocol):
         *,
         status: ApprovalStatus | None = None,
     ) -> list[ApprovalRecord]: ...
+
+    def list_turn_metrics(
+        self,
+        session_id: SessionId,
+        *,
+        limit: int | None = None,
+    ) -> list[TurnMetricsRecord]: ...
 
 
 @runtime_checkable

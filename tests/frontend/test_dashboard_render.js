@@ -6,6 +6,7 @@ import {
   renderDashboardPanes,
   renderApprovalsPane,
   renderLiveOutputPane,
+  renderMetricsPane,
   renderToolCallsPane,
   renderTurnPane,
 } from "../../src/glassbox/web/static/render.js";
@@ -20,6 +21,19 @@ test("renderTurnPane shows realistic current-turn details", () => {
     last_sequence: 1,
     pending_approval_id: null,
     pending_question_id: null,
+    turn_metrics: [
+      {
+        turn_id: "turn-1",
+        model_call_count: 1,
+        model_duration_ms_total: 800,
+        model_input_tokens_total: 15,
+        model_output_tokens_total: 10,
+        tool_call_count: 1,
+        tool_duration_ms_total: 120,
+        succeeded_tool_call_count: 1,
+        failed_tool_call_count: 0,
+      },
+    ],
     transcript: [],
     active_tool_calls: [
       {
@@ -46,6 +60,7 @@ test("renderToolCallsPane and renderLiveOutputPane show realistic entries", () =
     last_sequence: 5,
     pending_approval_id: null,
     pending_question_id: null,
+    turn_metrics: [],
     transcript: [],
     active_tool_calls: [
       {
@@ -83,6 +98,7 @@ test("synthetic event stream updates multiple panes together", () => {
     last_sequence: 0,
     pending_approval_id: null,
     pending_question_id: null,
+    turn_metrics: [],
     transcript: [],
     active_tool_calls: [],
     pending_approvals: [],
@@ -146,6 +162,7 @@ test("synthetic event stream updates multiple panes together", () => {
   const panes = renderDashboardPanes(state);
   assert.match(panes.transcript, /Patch the repo\.|Waiting for approval\./);
   assert.match(panes.turn, /awaiting_approval|turn-1/);
+  assert.match(panes.metrics, /Model latency|Input tokens|Tool runtime/);
   assert.match(panes.toolCalls, /apply_patch/);
   assert.match(panes.liveOutput, /patched file/);
   assert.match(panes.approvals, /needs sign-off|Approve/);
@@ -178,4 +195,29 @@ test("renderApprovalsPane shows submitted and failed resolution states", () => {
   assert.match(html, /Decision sent\. Waiting for session update/);
   assert.match(html, /Request failed \(409\)/);
   assert.match(html, /disabled/);
+});
+
+test("renderMetricsPane shows aggregated turn metrics", () => {
+  const state = {
+    turnMetrics: [
+      {
+        turn_id: "turn-1",
+        turn_duration_ms: 2200,
+        model_call_count: 2,
+        model_duration_ms_total: 1000,
+        model_input_tokens_total: 150,
+        model_output_tokens_total: 60,
+        tool_call_count: 1,
+        tool_duration_ms_total: 400,
+        succeeded_tool_call_count: 1,
+        failed_tool_call_count: 0,
+      },
+    ],
+  };
+
+  const html = renderMetricsPane(state);
+  assert.match(html, /Turn duration|2200 ms/);
+  assert.match(html, /Model calls|2/);
+  assert.match(html, /Input tokens|150/);
+  assert.match(html, /Tool runtime|400 ms/);
 });

@@ -107,6 +107,9 @@ class FakeSessionRepository:
     def list_approvals(self, session_id, *, status=None):
         return []
 
+    def list_turn_metrics(self, session_id, *, limit=None):
+        return []
+
 
 def test_turn_context_builder_orders_transcript_and_includes_policy_and_tools() -> None:
     session_id = new_session_id()

@@ -230,24 +230,39 @@ create index idx_approvals_session_status
     on approvals (session_id, status);
 ```
 
-### Optional Metrics Projection
+### Turn Metrics Projection
 
-This table is useful if token counts and latency metrics are frequently shown in the dashboard.
+This table supports per-turn runtime inspection in the dashboard without replaying
+model and tool events on every page load.
 
 ```sql
 create table turn_metrics (
-    turn_id text primary key,
     session_id text not null,
-    input_tokens integer,
-    output_tokens integer,
-    model_duration_ms integer,
-    tool_duration_ms integer,
+    turn_id text not null,
+    started_at text,
+    completed_at text,
+    turn_duration_ms integer,
+    model_call_count integer not null default 0,
+    model_duration_ms_total integer not null default 0,
+    model_input_tokens_total integer not null default 0,
+    model_output_tokens_total integer not null default 0,
+    tool_call_count integer not null default 0,
+    tool_duration_ms_total integer not null default 0,
+    succeeded_tool_call_count integer not null default 0,
+    failed_tool_call_count integer not null default 0,
+    primary key (session_id, turn_id),
     foreign key (session_id) references sessions(session_id)
 );
 
-create index idx_turn_metrics_session
-    on turn_metrics (session_id);
+create index idx_turn_metrics_session_started
+    on turn_metrics (session_id, started_at desc);
 ```
+
+Notes:
+
+- model tokens and durations are aggregated from `ModelCallCompleted` events
+- tool runtime is derived from `ToolExecutionStarted` and `ToolExecutionCompleted`
+- turn duration is derived from `TurnStarted` and `TurnCompleted` or `TurnFailed`
 
 ## Artifact Storage
 
