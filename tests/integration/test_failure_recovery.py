@@ -12,7 +12,8 @@ from pydantic_ai.messages import ModelRequest, ModelResponse, ToolCallPart
 from pydantic_ai.models.function import FunctionModel
 
 from glassbox.cli import main
-from glassbox.core.events import ToolExecutionCompleted, TurnFailed
+from glassbox.core import SessionConfig, SessionStatus
+from glassbox.core.events import SessionFailed, ToolExecutionCompleted, TurnFailed
 from glassbox.llm import PydanticAIModelExecutor
 from glassbox.runtime import bootstrap as runtime_bootstrap
 from glassbox.store import SQLiteSessionRepository, initialize_database, open_database
@@ -190,6 +191,56 @@ def test_cli_run_surfaces_database_write_failure_without_traceback(
     assert "Started session" in captured.out
     assert captured.err.strip() == "database operation failed: database is locked"
     assert [event.event_type for event in events] == ["SessionStarted"]
+
+
+def test_invalid_persisted_approval_mode_emits_session_failed(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_db(_default_db_path(tmp_path))
+        try:
+            runtime_context = runtime_bootstrap._build_runtime_context(
+                connection,
+                tmp_path,
+            )
+            session_service = runtime_context.services.session_service
+            repository = runtime_context.repositories.sessions
+            state = await session_service.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="invalid-mode",
+                )
+            )
+
+            with pytest.raises(ValueError, match="invalid approval mode persisted"):
+                await session_service.submit_user_message(
+                    state.session_id,
+                    "Inspect the repository",
+                )
+
+            events = repository.read_session_events(state.session_id)
+            session_state = repository.get_session_state(state.session_id)
+        finally:
+            connection.close()
+
+        assert any(isinstance(event.payload, TurnFailed) for event in events)
+        session_failed_events = [
+            event.payload
+            for event in events
+            if isinstance(event.payload, SessionFailed)
+        ]
+        assert len(session_failed_events) == 1
+        assert session_failed_events[0].error_message == (
+            "invalid approval mode persisted for session: invalid-mode"
+        )
+        assert session_failed_events[0].retryable is False
+        assert session_state is not None
+        assert session_state.status == SessionStatus.FAILED
+
+    import asyncio
+
+    asyncio.run(scenario())
 
 
 def test_cli_rebuild_surfaces_projection_failure(

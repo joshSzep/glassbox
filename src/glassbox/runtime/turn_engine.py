@@ -27,6 +27,7 @@ from glassbox.core.events import (
     ModelCallCompleted,
     ModelCallStarted,
     ModelToolCallRequested,
+    SessionFailed,
     ToolExecutionCompleted,
     ToolExecutionStarted,
     ToolOutputChunk,
@@ -60,6 +61,7 @@ from glassbox.llm import (
 )
 from glassbox.runtime.bus import EventBus
 from glassbox.runtime.context_builder import TurnContextBuilder
+from glassbox.runtime.errors import SessionRuntimeFailure
 from glassbox.runtime.logging import get_runtime_logger, runtime_log_extra
 from glassbox.services import SessionRepository
 from glassbox.tools import ToolRuntime
@@ -76,6 +78,7 @@ TurnEnginePayload = (
     | AssistantMessageDelta
     | AssistantMessageCompleted
     | ModelToolCallRequested
+    | SessionFailed
     | ToolExecutionStarted
     | ToolExecutionCompleted
     | ToolOutputChunk
@@ -178,25 +181,11 @@ class TurnEngine:
                 assistant_started=False,
             )
         except Exception as exc:
-            logger.exception(
-                "turn_failed",
-                extra=runtime_log_extra(
-                    runtime_event="turn_failed",
-                    session_id=event.session_id,
-                    turn_id=turn_id,
-                    error_message=str(exc),
-                    trigger="user_message",
-                ),
-            )
-            self._append_and_publish(
+            self._record_failed_turn(
                 event.session_id,
-                [
-                    TurnStatusChanged(
-                        turn_id=turn_id,
-                        status=TurnStatus.FAILED,
-                    ),
-                    TurnFailed(turn_id=turn_id, error_message=str(exc)),
-                ],
+                turn_id=turn_id,
+                error=exc,
+                trigger="user_message",
             )
             raise
 
@@ -294,26 +283,12 @@ class TurnEngine:
                 assistant_started=True,  # AssistantMessageStarted was emitted earlier
             )
         except Exception as exc:
-            logger.exception(
-                "turn_failed",
-                extra=runtime_log_extra(
-                    runtime_event="turn_failed",
-                    session_id=event.session_id,
-                    turn_id=turn_id,
-                    question_id=payload.question_id,
-                    error_message=str(exc),
-                    trigger="user_answer",
-                ),
-            )
-            self._append_and_publish(
+            self._record_failed_turn(
                 event.session_id,
-                [
-                    TurnStatusChanged(
-                        turn_id=turn_id,
-                        status=TurnStatus.FAILED,
-                    ),
-                    TurnFailed(turn_id=turn_id, error_message=str(exc)),
-                ],
+                turn_id=turn_id,
+                error=exc,
+                trigger="user_answer",
+                question_id=payload.question_id,
             )
             raise
 
@@ -522,28 +497,57 @@ class TurnEngine:
                 assistant_started=True,
             )
         except Exception as exc:
-            logger.exception(
-                "turn_failed",
-                extra=runtime_log_extra(
-                    runtime_event="turn_failed",
-                    session_id=event.session_id,
-                    turn_id=turn_id,
-                    approval_id=payload.approval_id,
-                    error_message=str(exc),
-                    trigger="approval_resolution",
-                ),
-            )
-            self._append_and_publish(
+            self._record_failed_turn(
                 event.session_id,
-                [
-                    TurnStatusChanged(
-                        turn_id=turn_id,
-                        status=TurnStatus.FAILED,
-                    ),
-                    TurnFailed(turn_id=turn_id, error_message=str(exc)),
-                ],
+                turn_id=turn_id,
+                error=exc,
+                trigger="approval_resolution",
+                approval_id=payload.approval_id,
             )
             raise
+
+    def _record_failed_turn(
+        self,
+        session_id,
+        *,
+        turn_id,
+        error: Exception,
+        trigger: str,
+        approval_id=None,
+        question_id=None,
+    ) -> None:
+        runtime_event = (
+            "session_failed"
+            if isinstance(error, SessionRuntimeFailure)
+            else "turn_failed"
+        )
+        logger.exception(
+            runtime_event,
+            extra=runtime_log_extra(
+                runtime_event=runtime_event,
+                session_id=session_id,
+                turn_id=turn_id,
+                approval_id=approval_id,
+                question_id=question_id,
+                error_message=str(error),
+                trigger=trigger,
+            ),
+        )
+        failure_events: list[TurnEnginePayload] = [
+            TurnStatusChanged(
+                turn_id=turn_id,
+                status=TurnStatus.FAILED,
+            ),
+            TurnFailed(turn_id=turn_id, error_message=str(error)),
+        ]
+        if isinstance(error, SessionRuntimeFailure):
+            failure_events.append(
+                SessionFailed(
+                    error_message=str(error),
+                    retryable=error.retryable,
+                )
+            )
+        self._append_and_publish(session_id, failure_events)
 
     async def _run_model_loop(
         self,

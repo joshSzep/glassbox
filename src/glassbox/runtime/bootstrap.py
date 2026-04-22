@@ -18,6 +18,7 @@ from glassbox.runtime.context import (
     RuntimeServices,
 )
 from glassbox.runtime.context_builder import TurnContextBuilder
+from glassbox.runtime.errors import SessionRuntimeFailure
 from glassbox.runtime.logging import configure_runtime_logging
 from glassbox.runtime.supervisor import SessionSupervisor
 from glassbox.runtime.turn_engine import TurnEngine
@@ -106,12 +107,20 @@ def _build_model_executor(session: SessionRecord):
 
 
 def _build_tool_runtime(session: SessionRecord) -> ToolRuntime:
+    try:
+        approval_mode = ApprovalMode(session.approval_mode)
+    except ValueError as exc:
+        raise SessionRuntimeFailure(
+            f"invalid approval mode persisted for session: {session.approval_mode}",
+            retryable=False,
+        ) from exc
+
     return ToolRuntime(
         build_ask_user_tool_registry(session.cwd),
         ToolPolicyEngine(),
         ToolPolicyContext(
             workspace_root=session.cwd,
-            approval_mode=ApprovalMode(session.approval_mode),
+            approval_mode=approval_mode,
         ),
     )
 
