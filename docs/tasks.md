@@ -911,7 +911,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-102: Implement Checkpoint Strategy If Needed
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-100`, `GBX-101`
 - Goal: add checkpoints only if replay cost or resume complexity justifies them
 - Deliverables:
@@ -920,6 +920,9 @@ uv run ty check src/glassbox/path.py
 - Implementation notes:
   - this task is conditional, not mandatory for the first usable release
   - do not add checkpoints unless there is a demonstrated need
+  - closed as unnecessary for v1 because projections already cover read-heavy access,
+    SSE reconnect replays only events after a known sequence, and resume behavior does
+    not currently require snapshot restoration
 - Tests and validation included in task:
   - tests for checkpoint creation and replay fallback behavior if checkpoints are used
 - Done when:

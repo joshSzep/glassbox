@@ -627,7 +627,9 @@ The recommended database direction is spelled out in [database.md](./database.md
 - `sessions` table for coarse session metadata
 - `events` table for append-only event envelopes
 - projection tables for transcript, tool state, approvals, and current session state
-- optional `checkpoints` table for fast resume snapshots or rebuild shortcuts
+- optional `checkpoints` table for fast resume snapshots or rebuild shortcuts;
+    deferred for v1 unless replay cost grows beyond what projections and sequence-based
+    reconnects can handle cleanly
 - artifact directory for larger blobs
 
 ### Suggested Schema Shape
