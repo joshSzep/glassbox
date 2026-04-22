@@ -18,6 +18,8 @@ from glassbox.core.models import ApprovalRecord, ToolCallRecord, TurnMetricsReco
 from glassbox.core.types import ApprovalDecision
 from glassbox.runtime import RuntimeContext, open_runtime_context
 
+_APPROVAL_MODE_CHOICES = ("confirm", "review", "on-request", "never")
+
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the Glassbox CLI."""
@@ -55,11 +57,18 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="glassbox")
+    parser = argparse.ArgumentParser(
+        prog="glassbox",
+        description="Run the Glassbox local-first CLI agent and dashboard runtime.",
+    )
     subparsers = parser.add_subparsers(dest="command")
 
-    run_parser = subparsers.add_parser("run", help="start a baseline session")
-    run_parser.add_argument("prompt", nargs="?", help="initial user prompt")
+    run_parser = subparsers.add_parser(
+        "run",
+        help="start a new session",
+        description="Start a new session and optionally submit an initial prompt.",
+    )
+    run_parser.add_argument("prompt", nargs="?", help="optional initial user prompt")
     _add_runtime_location_arguments(run_parser)
     run_parser.add_argument(
         "--model-name",
@@ -69,33 +78,54 @@ def _build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument(
         "--approval-mode",
         default="confirm",
-        help="approval mode recorded in the session metadata",
+        choices=_APPROVAL_MODE_CHOICES,
+        help="approval mode for risky tool actions",
     )
 
-    resume_parser = subparsers.add_parser("resume", help="resume an existing session")
+    resume_parser = subparsers.add_parser(
+        "resume",
+        help="resume an existing session",
+        description="Replay the resume event for an existing session.",
+    )
     resume_parser.add_argument("session_id", type=_parse_uuid)
     _add_runtime_location_arguments(resume_parser)
 
-    status_parser = subparsers.add_parser("status", help="print session status")
+    status_parser = subparsers.add_parser(
+        "status",
+        help="inspect session state",
+        description=(
+            "Print the current session state, approvals, tool activity, "
+            "and recent metrics."
+        ),
+    )
     status_parser.add_argument("session_id", type=_parse_uuid)
     _add_runtime_location_arguments(status_parser)
 
     approve_parser = subparsers.add_parser(
         "approve",
         help="approve a pending action",
+        description="Approve a pending tool action and resume the suspended turn.",
     )
     approve_parser.add_argument("session_id", type=_parse_uuid)
     approve_parser.add_argument("approval_id", type=_parse_uuid)
     _add_runtime_location_arguments(approve_parser)
 
-    deny_parser = subparsers.add_parser("deny", help="deny a pending action")
+    deny_parser = subparsers.add_parser(
+        "deny",
+        help="deny a pending action",
+        description=(
+            "Deny a pending tool action and resume the suspended turn "
+            "without running it."
+        ),
+    )
     deny_parser.add_argument("session_id", type=_parse_uuid)
     deny_parser.add_argument("approval_id", type=_parse_uuid)
     _add_runtime_location_arguments(deny_parser)
 
     rebuild_parser = subparsers.add_parser(
         "rebuild",
-        help="rebuild projection tables from canonical events",
+        help="rebuild derived projections",
+        description="Rebuild projection tables from canonical persisted events.",
     )
     rebuild_parser.add_argument("session_id", nargs="?", type=_parse_uuid)
     rebuild_parser.add_argument(
@@ -105,7 +135,13 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     _add_runtime_location_arguments(rebuild_parser)
 
-    serve_parser = subparsers.add_parser("serve", help="start the web dashboard server")
+    serve_parser = subparsers.add_parser(
+        "serve",
+        help="start the dashboard server",
+        description=(
+            "Start the web dashboard server for the selected workspace database."
+        ),
+    )
     _add_runtime_location_arguments(serve_parser)
     serve_parser.add_argument(
         "--host",
@@ -427,5 +463,13 @@ def _serve_command(args: argparse.Namespace) -> int:
     from glassbox.web import run_server
 
     cwd, db_path = _resolve_runtime_location(args)
+    dashboard_url = _dashboard_root_url(args.host, args.port)
+    print(f"Dashboard available at {dashboard_url}")
+    print("Use ?session=SESSION_ID to open a specific session in the dashboard.")
     run_server(cwd, host=args.host, port=args.port, db_path=db_path)
     return 0
+
+
+def _dashboard_root_url(host: str, port: int) -> str:
+    display_host = "127.0.0.1" if host in {"0.0.0.0", "::"} else host
+    return f"http://{display_host}:{port}/"

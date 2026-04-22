@@ -35,7 +35,6 @@ def test_session_config_round_trip() -> None:
     assert restored == config
     assert restored.dashboard_host == "127.0.0.1"
     assert restored.dashboard_port == 8765
-    assert restored.max_turns_per_input == 12
 
 
 def test_session_state_round_trip() -> None:

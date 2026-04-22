@@ -1072,7 +1072,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-132: Final Packaging And Operator Polish
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-130`, `GBX-131`, `GBX-120`, `GBX-122`
 - Goal: make the project coherent and usable as a first serious release candidate
 - Deliverables:

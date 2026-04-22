@@ -29,6 +29,7 @@ Check that the CLI is available:
 
 ```bash
 uv run glassbox --help
+python -m glassbox --help
 ```
 
 The current command surface is:
@@ -90,6 +91,8 @@ Start the dashboard server:
 ```bash
 uv run glassbox serve --cwd . --host 127.0.0.1 --port 8765
 ```
+
+The command prints the dashboard URL before it blocks on the running server.
 
 Open the dashboard shell in a browser with the target session ID:
 

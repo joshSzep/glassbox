@@ -30,8 +30,6 @@ class SessionConfig(BaseModel):
     approval_mode: str
     dashboard_host: str = "127.0.0.1"
     dashboard_port: int = Field(default=8765, ge=1, le=65535)
-    persist_events: bool = True
-    max_turns_per_input: int = Field(default=12, ge=1)
 
 
 class SessionState(BaseModel):

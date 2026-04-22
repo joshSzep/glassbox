@@ -109,6 +109,52 @@ def test_cli_help_lists_serve_command(capsys: pytest.CaptureFixture[str]) -> Non
     assert "serve" in captured.out
 
 
+def test_serve_command_prints_dashboard_url_and_passes_runtime_args(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from glassbox.cli import main
+
+    recorded: dict[str, object] = {}
+
+    def fake_run_server(
+        cwd: Path, *, host: str, port: int, db_path: Path | None
+    ) -> None:
+        recorded["cwd"] = cwd
+        recorded["host"] = host
+        recorded["port"] = port
+        recorded["db_path"] = db_path
+
+    monkeypatch.setattr("glassbox.web.run_server", fake_run_server)
+
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    exit_code = main(
+        [
+            "serve",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--host",
+            "0.0.0.0",
+            "--port",
+            "9876",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Dashboard available at http://127.0.0.1:9876/" in captured.out
+    assert "Use ?session=SESSION_ID" in captured.out
+    assert recorded == {
+        "cwd": tmp_path.resolve(),
+        "host": "0.0.0.0",
+        "port": 9876,
+        "db_path": db_path.resolve(),
+    }
+
+
 def test_runtime_logging_configuration_does_not_break_startup(tmp_path: Path) -> None:
     connection = _open_initialized_db(tmp_path)
     try:

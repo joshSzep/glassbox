@@ -1,5 +1,7 @@
 """Smoke tests for the minimal Glassbox CLI entrypoint."""
 
+import runpy
+import sys
 from pathlib import Path
 
 import pytest
@@ -16,7 +18,24 @@ def test_cli_help_prints_usage(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert exc_info.value.code == 0
     assert "usage: glassbox" in captured.out
+    assert "Run the Glassbox local-first CLI agent" in captured.out
     assert "run" in captured.out
+
+
+def test_python_module_entrypoint_prints_help(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(sys, "argv", ["glassbox", "--help"])
+
+    with pytest.raises(SystemExit) as exc_info:
+        runpy.run_module("glassbox", run_name="__main__")
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 0
+    assert "usage: glassbox" in captured.out
+    assert "serve" in captured.out
 
 
 def test_cli_run_creates_a_baseline_session_and_initial_prompt(
