@@ -54,3 +54,12 @@ class ApprovalDecision(StrEnum):
 
     APPROVED = "approved"
     DENIED = "denied"
+
+
+class ApprovalMode(StrEnum):
+    """Supported approval modes for session and tool policy configuration."""
+
+    CONFIRM = "confirm"
+    REVIEW = "review"
+    ON_REQUEST = "on-request"
+    NEVER = "never"

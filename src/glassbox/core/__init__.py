@@ -55,6 +55,7 @@ from glassbox.core.models import (
 )
 from glassbox.core.types import (
     ApprovalDecision,
+    ApprovalMode,
     ApprovalStatus,
     SessionStatus,
     ToolExecutionStatus,
@@ -62,6 +63,7 @@ from glassbox.core.types import (
 )
 
 __all__ = [
+    "ApprovalMode",
     "ApprovalDecision",
     "ApprovalId",
     "ApprovalRequested",

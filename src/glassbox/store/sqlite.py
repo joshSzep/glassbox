@@ -49,7 +49,12 @@ from glassbox.core.models import (
     TranscriptMessage,
     TurnMetricsRecord,
 )
-from glassbox.core.types import ApprovalStatus, SessionStatus, ToolExecutionStatus
+from glassbox.core.types import (
+    ApprovalMode,
+    ApprovalStatus,
+    SessionStatus,
+    ToolExecutionStatus,
+)
 
 SCHEMA_VERSION = 3
 
@@ -302,6 +307,11 @@ def update_session(
     session = get_session(connection, session_id)
     if session is None:
         raise ValueError(f"unknown session_id: {session_id}")
+    if approval_mode is not None:
+        try:
+            approval_mode = ApprovalMode(approval_mode)
+        except ValueError as exc:
+            raise ValueError(f"invalid approval mode: {approval_mode}") from exc
 
     changes: dict[str, object] = {
         "status": status or session.status,

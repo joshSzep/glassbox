@@ -33,6 +33,7 @@ def test_session_config_round_trip() -> None:
     restored = SessionConfig.model_validate(config.model_dump(mode="python"))
 
     assert restored == config
+    assert restored.approval_mode == "confirm"
     assert restored.dashboard_host == "127.0.0.1"
     assert restored.dashboard_port == 8765
 
@@ -133,6 +134,15 @@ def test_session_config_rejects_invalid_dashboard_port() -> None:
             cwd=Path("/tmp/glassbox"),
             approval_mode="confirm",
             dashboard_port=0,
+        )
+
+
+def test_session_config_rejects_invalid_approval_mode() -> None:
+    with pytest.raises(ValidationError):
+        SessionConfig(
+            model_name="openai:gpt-5.4",
+            cwd=Path("/tmp/glassbox"),
+            approval_mode="invalid-mode",
         )
 
 

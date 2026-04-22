@@ -209,9 +209,14 @@ def test_invalid_persisted_approval_mode_emits_session_failed(
                 SessionConfig(
                     model_name="openai:gpt-5.4",
                     cwd=tmp_path,
-                    approval_mode="invalid-mode",
+                    approval_mode="confirm",
                 )
             )
+            connection.execute(
+                "update sessions set approval_mode = ? where session_id = ?",
+                ("invalid-mode", str(state.session_id)),
+            )
+            connection.commit()
 
             with pytest.raises(ValueError, match="invalid approval mode persisted"):
                 await session_service.submit_user_message(

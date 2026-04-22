@@ -7,6 +7,7 @@ from pydantic import TypeAdapter, ValidationError
 
 from glassbox.core import (
     ApprovalDecision,
+    ApprovalMode,
     ApprovalStatus,
     SessionStatus,
     ToolExecutionStatus,
@@ -28,6 +29,7 @@ from glassbox.core import (
         (TurnStatus, "building_context", TurnStatus.BUILDING_CONTEXT),
         (ToolExecutionStatus, "authorized", ToolExecutionStatus.AUTHORIZED),
         (ApprovalStatus, "pending", ApprovalStatus.PENDING),
+        (ApprovalMode, "confirm", ApprovalMode.CONFIRM),
         (ApprovalDecision, "approved", ApprovalDecision.APPROVED),
     ],
 )
@@ -49,6 +51,7 @@ def test_state_types_validate_from_strings(
         (TurnStatus, "running"),
         (ToolExecutionStatus, "complete"),
         (ApprovalStatus, "awaiting"),
+        (ApprovalMode, "manual"),
         (ApprovalDecision, "pending"),
     ],
 )

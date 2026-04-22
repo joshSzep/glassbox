@@ -4,22 +4,12 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
-from enum import StrEnum
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
-from glassbox.core import PolicyDecision
+from glassbox.core import ApprovalMode, PolicyDecision
 from glassbox.tools.registry import ToolRegistry, ToolRiskLevel, ToolSpec
-
-
-class ApprovalMode(StrEnum):
-    """Supported approval modes for local policy decisions."""
-
-    CONFIRM = "confirm"
-    REVIEW = "review"
-    ON_REQUEST = "on-request"
-    NEVER = "never"
 
 
 class ToolPolicyContext(BaseModel):

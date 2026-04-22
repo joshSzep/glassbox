@@ -3,6 +3,8 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+
 from glassbox.core import (
     ApprovalRequested,
     EventEnvelope,
@@ -86,6 +88,31 @@ def test_update_session_persists_coarse_metadata(tmp_path: Path) -> None:
     assert updated_session.status == SessionStatus.RUNNING
     assert updated_session.updated_at == updated_at
     assert updated_session.last_sequence == 4
+
+
+def test_update_session_rejects_invalid_approval_mode(tmp_path: Path) -> None:
+    session_id = new_session_id()
+    connection = open_database(tmp_path / "glassbox.sqlite3")
+    initialize_database(connection)
+    try:
+        create_session(
+            connection,
+            session_id,
+            SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=Path("/tmp/glassbox"),
+                approval_mode="confirm",
+            ),
+        )
+
+        with pytest.raises(ValueError, match="invalid approval mode"):
+            update_session(
+                connection,
+                session_id,
+                approval_mode="invalid-mode",
+            )
+    finally:
+        connection.close()
 
 
 def test_list_sessions_supports_status_filter_and_recency_order(

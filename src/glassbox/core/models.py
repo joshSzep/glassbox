@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from glassbox.core.ids import (
     ApprovalId,
@@ -14,7 +14,12 @@ from glassbox.core.ids import (
     ToolCallId,
     TurnId,
 )
-from glassbox.core.types import ApprovalStatus, SessionStatus, ToolExecutionStatus
+from glassbox.core.types import (
+    ApprovalMode,
+    ApprovalStatus,
+    SessionStatus,
+    ToolExecutionStatus,
+)
 
 MessagePartKind = Literal["text", "tool_result", "reasoning_summary"]
 MessageRole = Literal["user", "assistant", "system"]
@@ -30,6 +35,11 @@ class SessionConfig(BaseModel):
     approval_mode: str
     dashboard_host: str = "127.0.0.1"
     dashboard_port: int = Field(default=8765, ge=1, le=65535)
+
+    @field_validator("approval_mode")
+    @classmethod
+    def validate_approval_mode(cls, value: str) -> str:
+        return ApprovalMode(value).value
 
 
 class SessionState(BaseModel):
