@@ -126,4 +126,5 @@ uv run pytest tests/test_import_smoke.py
 
 - Architecture: [docs/architecture.md](docs/architecture.md)
 - Database design: [docs/database.md](docs/database.md)
+- Tool policy and approvals: [docs/tool-policy.md](docs/tool-policy.md)
 - Roadmap and task graph: [docs/tasks.md](docs/tasks.md)

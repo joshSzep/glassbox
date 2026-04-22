@@ -1016,7 +1016,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-122: Document Tool Policy And Approval Semantics
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-061`, `GBX-070`
 - Goal: make operator expectations around safety and approvals explicit
 - Deliverables:
