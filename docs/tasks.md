@@ -1036,7 +1036,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-130: Add End-To-End Scenario Coverage For Core Flows
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-042`, `GBX-063`, `GBX-082`, `GBX-100`
 - Goal: cover the main user journeys across runtime, CLI, persistence, and dashboard backend
 - Deliverables:

@@ -42,7 +42,7 @@ def _serialize_event(event: EventEnvelope) -> str:
             "sequence": event.sequence,
             "event_type": event.event_type,
             "created_at": event.created_at.isoformat(),
-            "payload": event.payload.model_dump(),
+            "payload": event.payload.model_dump(mode="json"),
         }
     )
     return f"id: {event.sequence}\nevent: {event.event_type}\ndata: {data}\n\n"
