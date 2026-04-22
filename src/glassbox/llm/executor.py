@@ -18,7 +18,11 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 from pydantic_ai.models import Model, infer_model
+from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.models.function import FunctionModel
+from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.providers.anthropic import AnthropicProvider
+from pydantic_ai.providers.openai import OpenAIProvider
 
 from glassbox.llm.adapters import (
     ModelAdapterStreamEvent,
@@ -134,6 +138,30 @@ def build_local_text_model_executor(model_name: str) -> PydanticAIModelExecutor:
             model_name=model_name,
         )
     )
+
+
+def build_openai_model_executor(
+    model_name: str,
+    *,
+    api_key: str | None = None,
+    base_url: str | None = None,
+) -> PydanticAIModelExecutor:
+    """Build a real OpenAI-backed executor."""
+
+    provider = OpenAIProvider(api_key=api_key, base_url=base_url)
+    return PydanticAIModelExecutor(OpenAIChatModel(model_name, provider=provider))
+
+
+def build_anthropic_model_executor(
+    model_name: str,
+    *,
+    api_key: str | None = None,
+    base_url: str | None = None,
+) -> PydanticAIModelExecutor:
+    """Build a real Anthropic-backed executor."""
+
+    provider = AnthropicProvider(api_key=api_key, base_url=base_url)
+    return PydanticAIModelExecutor(AnthropicModel(model_name, provider=provider))
 
 
 def _normalize_model_response(model_response: ModelResponse) -> ModelExecutionResult:

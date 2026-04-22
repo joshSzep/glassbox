@@ -10,7 +10,8 @@ from pathlib import Path
 import httpx
 import pytest
 
-from glassbox.core import SessionConfig
+from glassbox.core import SessionConfig, new_session_id
+from glassbox.llm import PydanticAIModelExecutor, build_local_text_model_executor
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.runtime.logging import configure_runtime_logging
 from glassbox.store import initialize_database, open_database
@@ -214,5 +215,54 @@ def test_runtime_context_loads_provider_config_and_keeps_secrets_out_of_sessions
             and "dotenv-anthropic" not in event.model_dump_json()
             for event in events
         )
+    finally:
+        connection.close()
+
+
+def test_runtime_context_uses_provider_executor_when_runtime_config_is_available(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    connection = _open_initialized_db(tmp_path)
+    (tmp_path / ".env").write_text("OPENAI_API_KEY=dotenv-openai\n")
+
+    captured: dict[str, str | None] = {}
+
+    def fake_build_openai_model_executor(
+        model_name: str,
+        *,
+        api_key: str | None = None,
+        base_url: str | None = None,
+    ) -> PydanticAIModelExecutor:
+        captured["model_name"] = model_name
+        captured["api_key"] = api_key
+        captured["base_url"] = base_url
+        return build_local_text_model_executor(f"openai:{model_name}")
+
+    monkeypatch.setattr(
+        "glassbox.runtime.bootstrap.build_openai_model_executor",
+        fake_build_openai_model_executor,
+    )
+
+    try:
+        runtime_context = _make_runtime_context(tmp_path, connection)
+        session_record = runtime_context.repositories.sessions.create_session(
+            session_id=new_session_id(),
+            config=SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            ),
+        )
+        turn_engine = runtime_context.services.session_service._turn_engine
+        build_executor = turn_engine._model_executor_factory
+        executor = build_executor(session_record)
+
+        assert isinstance(executor, PydanticAIModelExecutor)
+        assert captured == {
+            "model_name": "gpt-5.4",
+            "api_key": "dotenv-openai",
+            "base_url": None,
+        }
     finally:
         connection.close()

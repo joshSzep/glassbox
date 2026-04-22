@@ -16,7 +16,9 @@ from glassbox.llm.executor import (
     ModelExecutionResult,
     ModelExecutor,
     PydanticAIModelExecutor,
+    build_anthropic_model_executor,
     build_local_text_model_executor,
+    build_openai_model_executor,
 )
 from glassbox.llm.prompts import (
     build_approval_policy_prompt_fragment,
@@ -43,8 +45,10 @@ __all__ = [
     "PydanticAIModelAdapter",
     "PydanticAIStreamTranslator",
     "build_approval_policy_prompt_fragment",
+    "build_anthropic_model_executor",
     "build_local_text_model_executor",
     "build_memory_notes_prompt_fragment",
+    "build_openai_model_executor",
     "build_output_style_prompt_fragment",
     "build_repo_context_prompt_fragment",
     "build_runtime_prompt_fragment",

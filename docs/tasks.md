@@ -1116,7 +1116,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-141: Implement Real `pydantic-ai` Provider Executor Factory
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-140`
 - Goal: replace the hardcoded local function-model runtime path with a real provider-backed executor path while preserving the deterministic local executor for tests and offline development
 - Deliverables:

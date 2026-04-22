@@ -15,6 +15,12 @@ class ProviderSecretConfig:
     api_key: str | None = None
     base_url: str | None = None
 
+    @property
+    def is_configured(self) -> bool:
+        """Return whether any runtime override is present for this provider."""
+
+        return self.api_key is not None or self.base_url is not None
+
 
 @dataclass(frozen=True, slots=True)
 class RuntimeProviderConfig:

@@ -9,7 +9,11 @@ from pathlib import Path
 
 from glassbox.core.models import SessionRecord
 from glassbox.llm.adapters import ModelProviderConfig, PydanticAIModelAdapter
-from glassbox.llm.executor import build_local_text_model_executor
+from glassbox.llm.executor import (
+    build_anthropic_model_executor,
+    build_local_text_model_executor,
+    build_openai_model_executor,
+)
 from glassbox.runtime.bus import EventBus
 from glassbox.runtime.context import (
     RuntimeContext,
@@ -20,7 +24,10 @@ from glassbox.runtime.context import (
 from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.errors import SessionRuntimeFailure
 from glassbox.runtime.logging import configure_runtime_logging
-from glassbox.runtime.provider_config import load_runtime_provider_config
+from glassbox.runtime.provider_config import (
+    RuntimeProviderConfig,
+    load_runtime_provider_config,
+)
 from glassbox.runtime.supervisor import SessionSupervisor
 from glassbox.runtime.turn_engine import TurnEngine
 from glassbox.store import (
@@ -76,7 +83,7 @@ def _build_runtime_context(
         event_bus,
         TurnContextBuilder(session_repository),
         _build_model_adapter,
-        _build_model_executor,
+        _build_model_executor_factory(provider_config),
         _build_tool_runtime,
     )
     session_service = SessionSupervisor(
@@ -107,6 +114,26 @@ def _build_model_adapter(session: SessionRecord) -> PydanticAIModelAdapter:
 
 def _build_model_executor(session: SessionRecord):
     return build_local_text_model_executor(session.model_name)
+
+
+def _build_model_executor_factory(provider_config: RuntimeProviderConfig):
+    def build_model_executor(session: SessionRecord):
+        provider, model_name = _split_model_name(session.model_name)
+        if provider == "openai" and provider_config.openai.is_configured:
+            return build_openai_model_executor(
+                model_name,
+                api_key=provider_config.openai.api_key,
+                base_url=provider_config.openai.base_url,
+            )
+        if provider == "anthropic" and provider_config.anthropic.is_configured:
+            return build_anthropic_model_executor(
+                model_name,
+                api_key=provider_config.anthropic.api_key,
+                base_url=provider_config.anthropic.base_url,
+            )
+        return _build_model_executor(session)
+
+    return build_model_executor
 
 
 def _build_tool_runtime(session: SessionRecord) -> ToolRuntime:
