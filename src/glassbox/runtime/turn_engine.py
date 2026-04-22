@@ -60,6 +60,7 @@ from glassbox.llm import (
 )
 from glassbox.runtime.bus import EventBus
 from glassbox.runtime.context_builder import TurnContextBuilder
+from glassbox.runtime.logging import get_runtime_logger, runtime_log_extra
 from glassbox.services import SessionRepository
 from glassbox.tools import ToolRuntime
 
@@ -84,6 +85,8 @@ TurnEnginePayload = (
     | TurnCompleted
     | TurnFailed
 )
+
+logger = get_runtime_logger("turn_engine")
 
 
 class TurnEngine:
@@ -117,6 +120,16 @@ class TurnEngine:
             raise ValueError(f"unknown session_id: {event.session_id}")
 
         turn_id = new_turn_id()
+        logger.info(
+            "turn_started",
+            extra=runtime_log_extra(
+                runtime_event="turn_started",
+                session_id=event.session_id,
+                turn_id=turn_id,
+                trigger_message_id=payload.message_id,
+                trigger="user_message",
+            ),
+        )
         self._append_and_publish(
             event.session_id,
             [
@@ -165,6 +178,16 @@ class TurnEngine:
                 assistant_started=False,
             )
         except Exception as exc:
+            logger.exception(
+                "turn_failed",
+                extra=runtime_log_extra(
+                    runtime_event="turn_failed",
+                    session_id=event.session_id,
+                    turn_id=turn_id,
+                    error_message=str(exc),
+                    trigger="user_message",
+                ),
+            )
             self._append_and_publish(
                 event.session_id,
                 [
@@ -205,6 +228,15 @@ class TurnEngine:
             )
 
         turn_id = question_payload.turn_id
+        logger.info(
+            "turn_resumed_from_user_answer",
+            extra=runtime_log_extra(
+                runtime_event="turn_resumed_from_user_answer",
+                session_id=event.session_id,
+                turn_id=turn_id,
+                question_id=payload.question_id,
+            ),
+        )
 
         # Find the AssistantMessageStarted event so we can reuse the same message_id.
         assistant_message_id: MessageId | None = None
@@ -262,6 +294,17 @@ class TurnEngine:
                 assistant_started=True,  # AssistantMessageStarted was emitted earlier
             )
         except Exception as exc:
+            logger.exception(
+                "turn_failed",
+                extra=runtime_log_extra(
+                    runtime_event="turn_failed",
+                    session_id=event.session_id,
+                    turn_id=turn_id,
+                    question_id=payload.question_id,
+                    error_message=str(exc),
+                    trigger="user_answer",
+                ),
+            )
             self._append_and_publish(
                 event.session_id,
                 [
@@ -312,6 +355,16 @@ class TurnEngine:
             return
 
         turn_id = approval_requested.turn_id
+        logger.info(
+            "turn_resumed_from_approval",
+            extra=runtime_log_extra(
+                runtime_event="turn_resumed_from_approval",
+                session_id=event.session_id,
+                turn_id=turn_id,
+                approval_id=payload.approval_id,
+                decision=payload.decision,
+            ),
+        )
 
         # Find the AssistantMessageStarted event for this turn.
         turn_events = self._session_repository.read_events_by_correlation_id(
@@ -444,6 +497,17 @@ class TurnEngine:
                 assistant_started=True,
             )
         except Exception as exc:
+            logger.exception(
+                "turn_failed",
+                extra=runtime_log_extra(
+                    runtime_event="turn_failed",
+                    session_id=event.session_id,
+                    turn_id=turn_id,
+                    approval_id=payload.approval_id,
+                    error_message=str(exc),
+                    trigger="approval_resolution",
+                ),
+            )
             self._append_and_publish(
                 event.session_id,
                 [
@@ -515,6 +579,19 @@ class TurnEngine:
                     )
                 ],
             )
+            logger.info(
+                "model_call_completed",
+                extra=runtime_log_extra(
+                    runtime_event="model_call_completed",
+                    session_id=session_id,
+                    turn_id=turn_id,
+                    provider=model_adapter.config.provider or "local",
+                    model_name=model_adapter.config.model_name,
+                    duration_ms=duration_ms,
+                    input_tokens=result.input_tokens,
+                    output_tokens=result.output_tokens,
+                ),
+            )
 
             if result.tool_calls:
                 if tool_runtime is None:
@@ -557,6 +634,15 @@ class TurnEngine:
                     ),
                     TurnCompleted(turn_id=turn_id, outcome="completed"),
                 ],
+            )
+            logger.info(
+                "turn_completed",
+                extra=runtime_log_extra(
+                    runtime_event="turn_completed",
+                    session_id=session_id,
+                    turn_id=turn_id,
+                    outcome="completed",
+                ),
             )
             return
 
@@ -605,6 +691,17 @@ class TurnEngine:
 
             if prepared_tool_call.policy_decision.requires_approval:
                 approval_id = new_approval_id()
+                logger.info(
+                    "approval_requested",
+                    extra=runtime_log_extra(
+                        runtime_event="approval_requested",
+                        session_id=session_id,
+                        turn_id=turn_id,
+                        tool_call_id=prepared_tool_call.event_tool_call_id,
+                        approval_id=approval_id,
+                        tool_name=prepared_tool_call.tool_name,
+                    ),
+                )
                 self._append_and_publish(
                     session_id,
                     [
@@ -626,6 +723,17 @@ class TurnEngine:
                 return "awaiting_approval"
 
             if not prepared_tool_call.policy_decision.allowed:
+                logger.warning(
+                    "tool_execution_blocked",
+                    extra=runtime_log_extra(
+                        runtime_event="tool_execution_blocked",
+                        session_id=session_id,
+                        turn_id=turn_id,
+                        tool_call_id=prepared_tool_call.event_tool_call_id,
+                        tool_name=prepared_tool_call.tool_name,
+                        reason=prepared_tool_call.policy_decision.reason,
+                    ),
+                )
                 self._append_and_publish(
                     session_id,
                     [
@@ -646,6 +754,16 @@ class TurnEngine:
                     prepared_tool_call.validated_arguments.model_dump().get(
                         "question", ""
                     )
+                )
+                logger.info(
+                    "user_question_asked",
+                    extra=runtime_log_extra(
+                        runtime_event="user_question_asked",
+                        session_id=session_id,
+                        turn_id=turn_id,
+                        question_id=question_id,
+                        tool_call_id=prepared_tool_call.event_tool_call_id,
+                    ),
                 )
                 self._append_and_publish(
                     session_id,
@@ -713,6 +831,17 @@ class TurnEngine:
                         summary=execution_result.summary,
                     )
                 ],
+            )
+            logger.info(
+                "tool_execution_completed",
+                extra=runtime_log_extra(
+                    runtime_event="tool_execution_completed",
+                    session_id=session_id,
+                    turn_id=turn_id,
+                    tool_call_id=execution_result.event_tool_call_id,
+                    tool_name=prepared_tool_call.tool_name,
+                    success=True,
+                ),
             )
             conversation.append(execution_result.to_model_request())
 

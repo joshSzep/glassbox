@@ -1,6 +1,7 @@
 """Integration tests for the session supervisor lifecycle service."""
 
 import asyncio
+import logging
 import sqlite3
 from pathlib import Path
 
@@ -97,6 +98,49 @@ def test_session_supervisor_submits_user_message_and_stops_session(
         assert stopped_state.last_sequence == 3
 
     asyncio.run(scenario())
+
+
+def test_session_supervisor_emits_structured_runtime_logs(
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            bus: EventBus[EventEnvelope] = EventBus()
+            supervisor = SessionSupervisor(repository, bus)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+
+            with caplog.at_level(logging.INFO, logger="glassbox.runtime"):
+                started_state = await supervisor.start_session(config)
+                await supervisor.submit_user_message(
+                    started_state.session_id,
+                    "Inspect the repo",
+                )
+                await supervisor.stop_session(started_state.session_id)
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+    events = {
+        str(record.__dict__["runtime_event"]): record for record in caplog.records
+    }
+    assert "session_started" in events
+    assert events["session_started"].__dict__["session_id"]
+    assert events["session_started"].__dict__["model_name"] == "openai:gpt-5.4"
+    assert events["session_started"].__dict__["approval_mode"] == "confirm"
+    assert "user_message_submitted" in events
+    assert events["user_message_submitted"].__dict__["text_length"] == len(
+        "Inspect the repo"
+    )
+    assert "session_stopped" in events
+    assert events["session_stopped"].__dict__["reason"] == "stopped"
 
 
 def test_session_supervisor_resumes_awaiting_approval_session(

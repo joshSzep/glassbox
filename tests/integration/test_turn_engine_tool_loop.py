@@ -1,6 +1,7 @@
 """Integration tests for the turn engine tool execution loop."""
 
 import asyncio
+import logging
 import sqlite3
 from pathlib import Path
 
@@ -122,6 +123,70 @@ def test_turn_engine_executes_read_only_tool_and_completes_response(
         assert transcript[-1].parts[0].text == "README says: Glassbox tool loop"
 
     asyncio.run(scenario())
+
+
+def test_turn_engine_logs_tool_execution_with_correlation(
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    (tmp_path / "README.md").write_text("Glassbox tool loop\n", encoding="utf-8")
+
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = TurnEngine(
+                repository,
+                bus,
+                TurnContextBuilder(repository),
+                lambda _session: PydanticAIModelAdapter(
+                    ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+                ),
+                lambda _session: PydanticAIModelExecutor(
+                    FunctionModel(
+                        function=_tool_then_text_response,
+                        model_name="openai:gpt-5.4",
+                    )
+                ),
+                lambda session: ToolRuntime(
+                    build_read_only_tool_registry(session.cwd),
+                    ToolPolicyEngine(),
+                    ToolPolicyContext(
+                        workspace_root=session.cwd,
+                        approval_mode=ApprovalMode.CONFIRM,
+                    ),
+                ),
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+
+            with caplog.at_level(logging.INFO, logger="glassbox.runtime"):
+                started_state = await supervisor.start_session(config)
+                await supervisor.submit_user_message(
+                    started_state.session_id,
+                    "Inspect the repo",
+                )
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+    tool_completed = next(
+        record
+        for record in caplog.records
+        if record.__dict__.get("runtime_event") == "tool_execution_completed"
+    )
+
+    assert tool_completed.__dict__["session_id"]
+    assert tool_completed.__dict__["turn_id"]
+    assert tool_completed.__dict__["tool_call_id"]
+    assert tool_completed.__dict__["tool_name"] == "read_file"
+    assert tool_completed.__dict__["success"] is True
 
 
 def test_turn_engine_fails_when_tool_request_is_blocked(tmp_path: Path) -> None:

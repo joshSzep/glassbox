@@ -1,9 +1,11 @@
 """Integration tests for the non-tool turn engine flow."""
 
 import asyncio
+import logging
 import sqlite3
 from pathlib import Path
 
+import pytest
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
@@ -118,6 +120,73 @@ def test_supervisor_drives_turn_engine_and_persists_assistant_response(
         assert session_state.last_sequence == 14
 
     asyncio.run(scenario())
+
+
+def test_turn_engine_emits_correlated_runtime_logs(
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = TurnEngine(
+                repository,
+                bus,
+                TurnContextBuilder(repository),
+                lambda _session: PydanticAIModelAdapter(
+                    ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+                ),
+                lambda _session: PydanticAIModelExecutor(
+                    FunctionModel(
+                        function=_function_model_response,
+                        stream_function=_stream_function_model_response,
+                        model_name="openai:gpt-5.4",
+                    )
+                ),
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+
+            with caplog.at_level(logging.INFO, logger="glassbox.runtime"):
+                started_state = await supervisor.start_session(config)
+                await supervisor.submit_user_message(
+                    started_state.session_id,
+                    "Inspect the repo",
+                )
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+    turn_started = next(
+        record
+        for record in caplog.records
+        if record.__dict__.get("runtime_event") == "turn_started"
+    )
+    model_completed = next(
+        record
+        for record in caplog.records
+        if record.__dict__.get("runtime_event") == "model_call_completed"
+    )
+    turn_completed = next(
+        record
+        for record in caplog.records
+        if record.__dict__.get("runtime_event") == "turn_completed"
+    )
+
+    assert turn_started.__dict__["session_id"] == model_completed.__dict__["session_id"]
+    assert turn_started.__dict__["turn_id"] == model_completed.__dict__["turn_id"]
+    assert model_completed.__dict__["turn_id"] == turn_completed.__dict__["turn_id"]
+    assert model_completed.__dict__["provider"] == "openai"
+    assert model_completed.__dict__["model_name"] == "gpt-5.4"
+    assert model_completed.__dict__["duration_ms"] >= 0
+    assert turn_completed.__dict__["outcome"] == "completed"
 
 
 def _function_model_response(messages, _agent_info) -> ModelResponse:

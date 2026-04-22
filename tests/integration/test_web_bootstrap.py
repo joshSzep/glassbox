@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import sqlite3
 from pathlib import Path
 
@@ -10,6 +11,7 @@ import httpx
 import pytest
 
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
+from glassbox.runtime.logging import configure_runtime_logging
 from glassbox.store import initialize_database, open_database
 from glassbox.web import create_app
 
@@ -105,3 +107,20 @@ def test_cli_help_lists_serve_command(capsys: pytest.CaptureFixture[str]) -> Non
 
     assert exc_info.value.code == 0
     assert "serve" in captured.out
+
+
+def test_runtime_logging_configuration_does_not_break_startup(tmp_path: Path) -> None:
+    connection = _open_initialized_db(tmp_path)
+    try:
+        runtime_logger = configure_runtime_logging()
+        runtime_context = _make_runtime_context(tmp_path, connection)
+        app = create_app(runtime_context)
+
+        assert app.state.runtime_context is runtime_context
+        assert runtime_logger.name == "glassbox.runtime"
+        assert any(
+            isinstance(handler, logging.NullHandler)
+            for handler in runtime_logger.handlers
+        )
+    finally:
+        connection.close()

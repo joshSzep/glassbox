@@ -871,6 +871,10 @@ class SessionService(Protocol):
 
 Errors should not disappear into logs.
 
+Runtime logs are still useful for terse operational context around session, turn,
+tool, approval, and question flows, but they complement persisted events rather
+than replacing them as the authoritative debugging record.
+
 Every operationally relevant error should result in an event. Differentiate between:
 
 - model errors

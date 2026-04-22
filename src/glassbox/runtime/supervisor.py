@@ -23,8 +23,11 @@ from glassbox.core.ids import (
 from glassbox.core.models import SessionConfig, SessionState
 from glassbox.core.types import ApprovalDecision, SessionStatus
 from glassbox.runtime.bus import EventBus
+from glassbox.runtime.logging import get_runtime_logger, runtime_log_extra
 from glassbox.runtime.turn_engine import TurnEngine
 from glassbox.services import SessionRepository, SessionService
+
+logger = get_runtime_logger("supervisor")
 
 
 class SessionSupervisor(SessionService):
@@ -57,6 +60,17 @@ class SessionSupervisor(SessionService):
             )
         )
         self._event_bus.publish(event)
+        logger.info(
+            "session_started",
+            extra=runtime_log_extra(
+                runtime_event="session_started",
+                session_id=session_id,
+                event_sequence=event.sequence,
+                model_name=config.model_name,
+                cwd=config.cwd,
+                approval_mode=config.approval_mode,
+            ),
+        )
         return self._require_session_state(session_id)
 
     async def resume_session(self, session_id: SessionId) -> SessionState:
@@ -88,6 +102,15 @@ class SessionSupervisor(SessionService):
             )
         )
         self._event_bus.publish(event)
+        logger.info(
+            "session_resumed",
+            extra=runtime_log_extra(
+                runtime_event="session_resumed",
+                session_id=session_id,
+                event_sequence=event.sequence,
+                from_sequence=current_state.last_sequence,
+            ),
+        )
         return self._require_session_state(session_id)
 
     async def stop_session(
@@ -105,6 +128,15 @@ class SessionSupervisor(SessionService):
             )
         )
         self._event_bus.publish(event)
+        logger.info(
+            "session_stopped",
+            extra=runtime_log_extra(
+                runtime_event="session_stopped",
+                session_id=session_id,
+                event_sequence=event.sequence,
+                reason=reason,
+            ),
+        )
         return self._require_session_state(session_id)
 
     async def submit_user_message(self, session_id: SessionId, text: str) -> None:
@@ -124,6 +156,16 @@ class SessionSupervisor(SessionService):
             )
         )
         self._event_bus.publish(event)
+        logger.info(
+            "user_message_submitted",
+            extra=runtime_log_extra(
+                runtime_event="user_message_submitted",
+                session_id=session_id,
+                message_id=event.message_id,
+                event_sequence=event.sequence,
+                text_length=len(text.strip()),
+            ),
+        )
         if self._turn_engine is not None:
             await self._turn_engine.run_for_user_message(event)
 
@@ -164,6 +206,16 @@ class SessionSupervisor(SessionService):
             )
         )
         self._event_bus.publish(event)
+        logger.info(
+            "approval_resolved",
+            extra=runtime_log_extra(
+                runtime_event="approval_resolved",
+                session_id=session_id,
+                approval_id=approval_id,
+                event_sequence=event.sequence,
+                decision=decision,
+            ),
+        )
         if self._turn_engine is not None:
             await self._turn_engine.run_for_approval_resolution(event)
 
@@ -195,6 +247,16 @@ class SessionSupervisor(SessionService):
             )
         )
         self._event_bus.publish(event)
+        logger.info(
+            "user_answer_provided",
+            extra=runtime_log_extra(
+                runtime_event="user_answer_provided",
+                session_id=session_id,
+                question_id=question_id,
+                event_sequence=event.sequence,
+                answer_length=len(answer),
+            ),
+        )
         if self._turn_engine is not None:
             await self._turn_engine.run_for_user_answer(event)
 

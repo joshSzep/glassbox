@@ -965,7 +965,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-112: Implement Structured Runtime Logging For Debugging
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-032`, `GBX-080`
 - Goal: provide internal logs for debugging without turning logs into the primary product interface
 - Deliverables:
