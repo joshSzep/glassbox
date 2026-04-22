@@ -986,7 +986,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-120: Write Getting Started Documentation
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-002`, `GBX-040`
 - Goal: document how to install, run, and validate the project locally
 - Deliverables:
