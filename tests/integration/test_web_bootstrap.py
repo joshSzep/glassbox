@@ -10,6 +10,7 @@ from pathlib import Path
 import httpx
 import pytest
 
+from glassbox.core import SessionConfig
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.runtime.logging import configure_runtime_logging
 from glassbox.store import initialize_database, open_database
@@ -167,6 +168,51 @@ def test_runtime_logging_configuration_does_not_break_startup(tmp_path: Path) ->
         assert any(
             isinstance(handler, logging.NullHandler)
             for handler in runtime_logger.handlers
+        )
+    finally:
+        connection.close()
+
+
+def test_runtime_context_loads_provider_config_and_keeps_secrets_out_of_sessions(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    connection = _open_initialized_db(tmp_path)
+    dotenv_path = tmp_path / ".env"
+    dotenv_path.write_text(
+        "OPENAI_API_KEY=dotenv-openai\nANTHROPIC_API_KEY=dotenv-anthropic\n"
+    )
+    monkeypatch.setenv("OPENAI_API_KEY", "env-openai")
+    try:
+        runtime_context = _make_runtime_context(tmp_path, connection)
+        repository = runtime_context.repositories.sessions
+        session_state = asyncio.run(
+            runtime_context.services.session_service.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+        )
+        session_record = repository.get_session(session_state.session_id)
+        events = repository.read_session_events(session_state.session_id)
+
+        assert (
+            runtime_context.infrastructure.provider_config.openai.api_key
+            == "env-openai"
+        )
+        assert (
+            runtime_context.infrastructure.provider_config.anthropic.api_key
+            == "dotenv-anthropic"
+        )
+        assert session_record is not None
+        assert "env-openai" not in session_record.model_dump_json()
+        assert "dotenv-anthropic" not in session_record.model_dump_json()
+        assert all(
+            "env-openai" not in event.model_dump_json()
+            and "dotenv-anthropic" not in event.model_dump_json()
+            for event in events
         )
     finally:
         connection.close()

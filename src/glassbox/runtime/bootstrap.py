@@ -20,6 +20,7 @@ from glassbox.runtime.context import (
 from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.errors import SessionRuntimeFailure
 from glassbox.runtime.logging import configure_runtime_logging
+from glassbox.runtime.provider_config import load_runtime_provider_config
 from glassbox.runtime.supervisor import SessionSupervisor
 from glassbox.runtime.turn_engine import TurnEngine
 from glassbox.store import (
@@ -67,6 +68,7 @@ def _build_runtime_context(
 ) -> RuntimeContext:
     configure_runtime_logging()
     event_bus = EventBus()
+    provider_config = load_runtime_provider_config(cwd)
     session_repository = SQLiteSessionRepository(connection)
     artifact_repository = FilesystemArtifactRepository(connection, cwd)
     turn_engine = TurnEngine(
@@ -91,6 +93,7 @@ def _build_runtime_context(
         infrastructure=RuntimeInfrastructure(
             event_bus=event_bus,
             artifacts_root=cwd,
+            provider_config=provider_config,
         ),
     )
 

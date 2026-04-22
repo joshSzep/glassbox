@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from glassbox.core.events import EventEnvelope
 from glassbox.runtime.bus import EventBus
+from glassbox.runtime.provider_config import RuntimeProviderConfig
 from glassbox.services import ArtifactRepository, SessionRepository, SessionService
 
 
@@ -31,6 +32,9 @@ class RuntimeInfrastructure:
 
     event_bus: EventBus[EventEnvelope]
     artifacts_root: Path
+    provider_config: RuntimeProviderConfig = field(
+        default_factory=RuntimeProviderConfig
+    )
 
 
 @dataclass(frozen=True, slots=True)

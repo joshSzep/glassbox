@@ -24,6 +24,7 @@ from glassbox.runtime import (
     EventBus,
     RuntimeContext,
     RuntimeInfrastructure,
+    RuntimeProviderConfig,
     RuntimeRepositories,
     RuntimeServices,
 )
@@ -256,6 +257,7 @@ def test_runtime_context_groups_services_and_dependencies() -> None:
     assert context.services.session_service is session_service
     assert context.infrastructure.event_bus is bus
     assert context.infrastructure.artifacts_root == Path("/tmp/glassbox-artifacts")
+    assert context.infrastructure.provider_config == RuntimeProviderConfig()
 
 
 def test_runtime_context_is_frozen() -> None:

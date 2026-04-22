@@ -1094,7 +1094,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-140: Add Runtime Provider Config Resolution From Environment And `.env`
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-050`, `GBX-120`
 - Goal: resolve provider credentials and runtime-only model settings without persisting secrets into session data
 - Deliverables:

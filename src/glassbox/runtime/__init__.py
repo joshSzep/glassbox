@@ -20,6 +20,11 @@ from glassbox.runtime.context_builder import (
     format_transcript_for_prompt,
     normalize_tool_schemas,
 )
+from glassbox.runtime.provider_config import (
+    ProviderSecretConfig,
+    RuntimeProviderConfig,
+    load_runtime_provider_config,
+)
 
 if TYPE_CHECKING:
     from glassbox.runtime.supervisor import SessionSupervisor
@@ -49,8 +54,10 @@ __all__ = [
     "EventBusSubscription",
     "open_runtime_context",
     "PolicyContext",
+    "ProviderSecretConfig",
     "RuntimeContext",
     "RuntimeInfrastructure",
+    "RuntimeProviderConfig",
     "RuntimeRepositories",
     "RuntimeServices",
     "SessionSupervisor",
@@ -60,5 +67,6 @@ __all__ = [
     "TurnContextBuilder",
     "format_tool_schemas_for_prompt",
     "format_transcript_for_prompt",
+    "load_runtime_provider_config",
     "normalize_tool_schemas",
 ]
