@@ -167,6 +167,7 @@ At the session level:
 - `idle`
 - `running`
 - `awaiting_approval`
+- `awaiting_user_input`
 - `completed`
 - `failed`
 - `cancelled`
@@ -270,6 +271,10 @@ class SessionFailed(EventPayload):
     retryable: bool = False
 ```
 
+`SessionFailed` is reserved for session-scoped runtime failures that leave the
+session unable to continue safely. It should not be used for normal model,
+tool, or policy errors that only fail the current turn.
+
 #### Message Events
 
 ```python
@@ -322,6 +327,42 @@ class TurnFailed(EventPayload):
     turn_id: UUID
     error_message: str
 ```
+
+`TurnFailed` is the recoverable failure path for a single turn. A session may
+remain `running` after a `TurnFailed` event so the operator can inspect the
+result, resume work, or submit a new message.
+
+## Failure Semantics
+
+Glassbox distinguishes between turn-scoped failures and session-scoped
+failures.
+
+- `TurnFailed` means the active turn could not finish, but the session itself
+    is still structurally valid.
+- `SessionFailed` means the runtime encountered a session-level problem that
+    makes further progress unsafe without repair or reconfiguration.
+
+Examples of `TurnFailed` conditions:
+
+- model execution errors
+- tool execution errors
+- policy-blocked tool requests
+
+Examples of `SessionFailed` conditions:
+
+- corrupted persisted session configuration
+- runtime bootstrap failures that prevent future turns from being constructed
+
+This distinction matters for operators and projections:
+
+- `TurnFailed` updates turn state and leaves the session available for further
+    work unless another event changes session status.
+- `SessionFailed` clears any pending suspended-turn pointers and moves the
+    session into terminal `failed` state.
+
+Persisted session configuration should be validated before it is written.
+Runtime-side `SessionFailed` emission remains a defensive fallback for rows that
+become invalid through external corruption or manual database edits.
 
 #### Model Events
 

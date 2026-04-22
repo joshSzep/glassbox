@@ -35,6 +35,10 @@ Glassbox currently accepts these approval modes:
 - `on-request`
 - `never`
 
+These values are validated before session configuration is persisted. Invalid
+approval modes are rejected at config or metadata update boundaries rather than
+being silently written.
+
 In the current implementation, `confirm`, `review`, and `on-request` all behave
 the same at the policy gate: risky actions are allowed only after an explicit
 approval step. The mode value is still persisted and surfaced so operators can
@@ -42,6 +46,10 @@ see which mode was chosen for the session.
 
 `never` is stricter: actions that would normally require approval are blocked
 instead of being suspended for approval.
+
+If a persisted session row is later corrupted to contain an invalid approval
+mode, runtime bootstrap treats that as a terminal session-scoped failure rather
+than attempting to continue with ambiguous policy behavior.
 
 ## Decision Rules
 
@@ -101,6 +109,10 @@ These are rejected immediately and do not enter the approval queue:
 
 Blocked tool requests fail the turn with a policy reason rather than pausing for
 operator input.
+
+That is intentionally a turn-scoped failure path. Policy rejections should
+surface as `TurnFailed`, not `SessionFailed`, because the session remains
+otherwise usable.
 
 ## Approval Lifecycle
 
