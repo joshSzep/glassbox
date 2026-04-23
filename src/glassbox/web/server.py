@@ -33,6 +33,11 @@ class WebServerConfig:
     host: str = "127.0.0.1"
     port: int = 8765
 
+    @property
+    def dashboard_url(self) -> str:
+        display_host = "127.0.0.1" if self.host in {"0.0.0.0", "::"} else self.host
+        return f"http://{display_host}:{self.port}/"
+
 
 class GlassboxWebServer:
     """Lifecycle wrapper for a FastAPI app served by Uvicorn."""

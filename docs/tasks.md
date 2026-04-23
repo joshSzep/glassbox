@@ -1487,7 +1487,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-172: Make Session Dashboard Metadata Truthful And Configurable
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-032`, `GBX-170`, `GBX-171`
 - Goal: ensure session metadata only advertises a dashboard URL when a live server is actually available for that session
 - Deliverables:

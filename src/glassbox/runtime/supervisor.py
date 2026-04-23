@@ -51,9 +51,7 @@ class SessionSupervisor(SessionService):
                 sequence=0,
                 payload=SessionStarted(
                     cwd=str(config.cwd),
-                    dashboard_url=(
-                        f"http://{config.dashboard_host}:{config.dashboard_port}"
-                    ),
+                    dashboard_url=config.dashboard_url,
                     model_name=config.model_name,
                     approval_mode=config.approval_mode,
                 ),

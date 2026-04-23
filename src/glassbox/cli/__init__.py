@@ -1074,16 +1074,11 @@ async def _run_with_renderer(
 
 
 def _serve_command(args: argparse.Namespace) -> int:
-    from glassbox.web import run_server
+    from glassbox.web import WebServerConfig, run_server
 
     cwd, db_path = _resolve_runtime_location(args)
-    dashboard_url = _dashboard_root_url(args.host, args.port)
+    dashboard_url = WebServerConfig(host=args.host, port=args.port).dashboard_url
     print(f"Dashboard available at {dashboard_url}")
     print("Use ?session=SESSION_ID to open a specific session in the dashboard.")
     run_server(cwd, host=args.host, port=args.port, db_path=db_path)
     return 0
-
-
-def _dashboard_root_url(host: str, port: int) -> str:
-    display_host = "127.0.0.1" if host in {"0.0.0.0", "::"} else host
-    return f"http://{display_host}:{port}/"

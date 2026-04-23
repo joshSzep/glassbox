@@ -96,7 +96,7 @@ def test_get_session_returns_snapshot_after_session_started(tmp_path: Path) -> N
             assert body["approval_mode"] == "confirm"
             assert body["status"] == "running"
             assert body["current_turn_id"] is None
-            assert body["dashboard_url"] == "http://127.0.0.1:8765"
+            assert body["dashboard_url"] is None
             assert body["pending_approval_id"] is None
             assert body["pending_question_id"] is None
             assert body["pending_question_text"] is None
@@ -105,6 +105,38 @@ def test_get_session_returns_snapshot_after_session_started(tmp_path: Path) -> N
             assert body["transcript"] == []
             assert body["active_tool_calls"] == []
             assert body["pending_approvals"] == []
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_get_session_includes_dashboard_url_when_live_dashboard_is_configured(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app, runtime_context = _make_app(tmp_path, connection)
+            bus: EventBus[EventEnvelope] = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(runtime_context.repositories.sessions, bus)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+                dashboard_url="http://127.0.0.1:8765/",
+            )
+            state = await supervisor.start_session(config)
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get(f"/sessions/{state.session_id}")
+
+            assert response.status_code == 200
+            body = response.json()
+            assert body["dashboard_url"] == "http://127.0.0.1:8765/"
         finally:
             connection.close()
 

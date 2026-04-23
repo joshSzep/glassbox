@@ -34,8 +34,21 @@ def test_session_config_round_trip() -> None:
 
     assert restored == config
     assert restored.approval_mode == "confirm"
-    assert restored.dashboard_host == "127.0.0.1"
-    assert restored.dashboard_port == 8765
+    assert restored.dashboard_url is None
+
+
+def test_session_config_round_trip_preserves_dashboard_url() -> None:
+    config = SessionConfig(
+        model_name="openai:gpt-5.4",
+        cwd=Path("/tmp/glassbox"),
+        approval_mode="confirm",
+        dashboard_url="http://127.0.0.1:8765/",
+    )
+
+    restored = SessionConfig.model_validate(config.model_dump(mode="python"))
+
+    assert restored == config
+    assert restored.dashboard_url == "http://127.0.0.1:8765/"
 
 
 def test_session_state_round_trip() -> None:
@@ -124,16 +137,6 @@ def test_transcript_message_rejects_invalid_role() -> None:
                 "parts": [{"kind": "text", "text": "hello"}],
                 "created_at": datetime(2026, 4, 16, tzinfo=UTC),
             }
-        )
-
-
-def test_session_config_rejects_invalid_dashboard_port() -> None:
-    with pytest.raises(ValidationError):
-        SessionConfig(
-            model_name="openai:gpt-5.4",
-            cwd=Path("/tmp/glassbox"),
-            approval_mode="confirm",
-            dashboard_port=0,
         )
 
 

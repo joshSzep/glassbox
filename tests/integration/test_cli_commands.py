@@ -1059,7 +1059,7 @@ def test_cli_status_prints_human_session_summary(
     assert "Current turn: none" in captured.out
     assert "Pending approvals: none" in captured.out
     assert "Recent tool activity: none" in captured.out
-    assert "Dashboard URL: http://127.0.0.1:8765" in captured.out
+    assert "Dashboard URL:" not in captured.out
     assert "Transcript messages: 2" in captured.out
     assert "Next action: submit a new prompt with 'glassbox message " in captured.out
     assert (
@@ -1104,7 +1104,7 @@ def test_cli_status_includes_session_failure_details(
 
     assert exit_code == 0
     assert "Status: failed" in captured.out
-    assert "Dashboard URL: http://127.0.0.1:8765" in captured.out
+    assert "Dashboard URL:" not in captured.out
     assert "Session failure: dashboard wiring failed (retryable)" in captured.out
     assert (
         "Next action: inspect the retryable failure details above, or start a "

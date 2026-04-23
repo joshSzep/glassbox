@@ -33,8 +33,7 @@ class SessionConfig(BaseModel):
     model_name: str
     cwd: Path
     approval_mode: str
-    dashboard_host: str = "127.0.0.1"
-    dashboard_port: int = Field(default=8765, ge=1, le=65535)
+    dashboard_url: str | None = None
 
     @field_validator("approval_mode")
     @classmethod
