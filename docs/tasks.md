@@ -1177,7 +1177,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-144: Add Non-Network Regression Coverage For Provider Mode
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-141`, `GBX-142`
 - Goal: protect provider-mode behavior without requiring live provider calls in CI
 - Deliverables:
