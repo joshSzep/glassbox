@@ -1239,7 +1239,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-152: Add HTTP Endpoints For Session Messages And User Answers
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-080`, `GBX-081`, `GBX-083`, `GBX-150`, `GBX-151`
 - Goal: expose the same multi-turn interaction surfaces to the dashboard backend that the CLI now supports
 - Deliverables:

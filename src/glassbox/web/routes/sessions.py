@@ -58,6 +58,18 @@ class TurnMetricsResponse(BaseModel):
     failed_tool_call_count: int
 
 
+class SubmitSessionMessageRequest(BaseModel):
+    text: str
+
+
+class SubmitSessionAnswerRequest(BaseModel):
+    answer: str
+
+
+class ActionAcceptedResponse(BaseModel):
+    status: str
+
+
 class SessionSnapshotResponse(BaseModel):
     session_id: str
     status: str
@@ -77,6 +89,62 @@ class SessionSnapshotResponse(BaseModel):
     active_tool_calls: list[ActiveToolCallResponse]
     pending_approvals: list[PendingApprovalResponse]
     turn_metrics: list[TurnMetricsResponse]
+
+
+@router.post(
+    "/{session_id}/messages",
+    response_model=ActionAcceptedResponse,
+    status_code=200,
+)
+async def submit_session_message(
+    session_id: UUID,
+    body: SubmitSessionMessageRequest,
+    context: RuntimeContextDep,
+) -> ActionAcceptedResponse:
+    """Submit a new user message into an existing session."""
+
+    repo = context.repositories.sessions
+    if repo.get_session(session_id) is None:
+        raise HTTPException(status_code=404, detail=f"session {session_id} not found")
+
+    try:
+        await context.services.session_service.submit_user_message(
+            session_id,
+            body.text,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    return ActionAcceptedResponse(status="ok")
+
+
+@router.post(
+    "/{session_id}/questions/{question_id}",
+    response_model=ActionAcceptedResponse,
+    status_code=200,
+)
+async def submit_session_answer(
+    session_id: UUID,
+    question_id: UUID,
+    body: SubmitSessionAnswerRequest,
+    context: RuntimeContextDep,
+) -> ActionAcceptedResponse:
+    """Submit an answer for a pending ask_user question."""
+
+    repo = context.repositories.sessions
+    if repo.get_session(session_id) is None:
+        raise HTTPException(status_code=404, detail=f"session {session_id} not found")
+
+    try:
+        await context.services.session_service.provide_user_answer(
+            session_id,
+            question_id,
+            body.answer,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    return ActionAcceptedResponse(status="ok")
 
 
 @router.get("/{session_id}", response_model=SessionSnapshotResponse)
