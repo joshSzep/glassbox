@@ -1,6 +1,7 @@
 """Integration tests for session-oriented CLI commands."""
 
 import asyncio
+import json
 import sqlite3
 from contextlib import nullcontext
 from pathlib import Path
@@ -23,6 +24,7 @@ from glassbox.core.events import (
     ApprovalResolved,
     EventEnvelope,
     ModelCallCompleted,
+    ReplayArtifactRecorded,
     SessionCompleted,
     SessionFailed,
     SessionStarted,
@@ -105,6 +107,7 @@ def test_cli_help_lists_session_oriented_commands(
     assert "resume" in captured.out
     assert "status" in captured.out
     assert "rebuild" in captured.out
+    assert "replay" in captured.out
     assert "approve" in captured.out
     assert "deny" in captured.out
 
@@ -252,6 +255,170 @@ def test_cli_answer_rejects_session_not_awaiting_user_input(
 
     assert exit_code == 1
     assert captured.err.strip() == f"session {session_id} is not awaiting user input"
+
+
+def test_cli_replay_reports_exact_match_without_mutating_source_session(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(
+        tmp_path,
+        prompt="Inspect the repository",
+    )
+    _ = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        before_events = repository.read_session_events(session_id)
+        before_paths = [
+            event.payload.path
+            for event in before_events
+            if isinstance(event.payload, ReplayArtifactRecorded)
+        ]
+        before_state = repository.get_session_state(session_id)
+        assert before_state is not None
+        before_last_sequence = before_state.last_sequence
+    finally:
+        connection.close()
+
+    exit_code = main(
+        [
+            "replay",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        after_events = repository.read_session_events(session_id)
+        after_paths = [
+            event.payload.path
+            for event in after_events
+            if isinstance(event.payload, ReplayArtifactRecorded)
+        ]
+        after_state = repository.get_session_state(session_id)
+        assert after_state is not None
+        after_last_sequence = after_state.last_sequence
+    finally:
+        connection.close()
+
+    assert exit_code == 0
+    assert f"Replay session {session_id}" in captured.out
+    assert "Outcome: exact match" in captured.out
+    assert before_last_sequence == after_last_sequence
+    assert len(before_events) == len(after_events)
+    assert before_paths == after_paths
+
+
+def test_cli_replay_reports_behavioral_drift_and_exit_code(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(
+        tmp_path,
+        prompt="Inspect the repository",
+    )
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=SessionCompleted(reason="forced complete for replay drift"),
+            )
+        )
+    finally:
+        connection.close()
+
+    _ = capsys.readouterr()
+    exit_code = main(
+        [
+            "replay",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 10
+    assert f"Replay session {session_id}" in captured.out
+    assert "Outcome: behavioral drift" in captured.out
+    assert "Mismatches:" in captured.out
+    assert "final_state drift" in captured.out
+
+
+def test_cli_replay_reports_manifest_drift_and_exit_code(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(
+        tmp_path,
+        prompt="Inspect the repository",
+    )
+    _ = capsys.readouterr()
+
+    artifact_path = _first_replay_artifact_path(db_path, session_id)
+    artifact_payload = json.loads(artifact_path.read_text(encoding="utf-8"))
+    artifact_payload["prepared_turn"]["user_prompt"] = "Unexpected prompt"
+    artifact_path.write_text(json.dumps(artifact_payload, indent=2), encoding="utf-8")
+
+    exit_code = main(
+        [
+            "replay",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 11
+    assert "Outcome: manifest drift" in captured.out
+    assert "Summary:" in captured.out
+
+
+def test_cli_replay_json_output_contains_structured_report(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(
+        tmp_path,
+        prompt="Inspect the repository",
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "replay",
+            str(session_id),
+            "--json",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["outcome"] == "exact_match"
+    assert payload["source_session_id"] == str(session_id)
+    assert payload["exit_code"] == 0
+    assert payload["baseline"] == payload["replay"]
 
 
 def test_cli_message_submits_new_user_turn_to_existing_session(
@@ -1674,6 +1841,15 @@ def _read_session_events(db_path: Path, session_id: UUID) -> list[EventEnvelope]
         return repository.read_session_events(session_id)
     finally:
         connection.close()
+
+
+def _first_replay_artifact_path(db_path: Path, session_id: UUID) -> Path:
+    for event in _read_session_events(db_path, session_id):
+        if not isinstance(event.payload, ReplayArtifactRecorded):
+            continue
+        assert event.payload.path is not None
+        return db_path.parent.parent / event.payload.path
+    raise AssertionError("expected replay artifact")
 
 
 def _ask_user_then_text_response(

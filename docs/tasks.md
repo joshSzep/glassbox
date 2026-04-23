@@ -1758,7 +1758,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-193: Add Replay Diff Reporting And `glassbox replay`
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-111`, `GBX-192`
 - Goal: give operators a practical command for replaying a session and understanding where current behavior diverges from the recorded baseline
 - Deliverables:

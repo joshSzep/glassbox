@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import sqlite3
 import sys
 from collections.abc import Awaitable, Callable, Sequence
@@ -27,10 +28,22 @@ from glassbox.core.models import (
     TurnMetricsRecord,
 )
 from glassbox.core.types import ApprovalDecision, SessionStatus
-from glassbox.runtime import RuntimeContext, open_runtime_context
+from glassbox.runtime import (
+    ReplayResult,
+    ReplayRunner,
+    RuntimeContext,
+    open_runtime_context,
+)
 from glassbox.web import GlassboxWebServer, WebServerConfig, build_web_server
 
 _APPROVAL_MODE_CHOICES = ("confirm", "review", "on-request", "never")
+_REPLAY_EXIT_CODES = {
+    "exact_match": 0,
+    "behavioral_drift": 10,
+    "manifest_drift": 11,
+    "unsupported_session": 12,
+    "replay_failure": 13,
+}
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -52,6 +65,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _resume_command(args)
         if args.command == "status":
             return _status_command(args)
+        if args.command == "replay":
+            return _replay_command(args)
         if args.command == "answer":
             return _answer_command(args)
         if args.command == "approve":
@@ -200,6 +215,22 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     status_parser.add_argument("session_id", type=_parse_uuid)
     _add_runtime_location_arguments(status_parser)
+
+    replay_parser = subparsers.add_parser(
+        "replay",
+        help="replay a recorded session offline",
+        description=(
+            "Replay a recorded session offline against the current codebase and "
+            "report whether behavior still matches the recorded baseline."
+        ),
+    )
+    replay_parser.add_argument("session_id", type=_parse_uuid)
+    replay_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the structured replay report as JSON",
+    )
+    _add_runtime_location_arguments(replay_parser)
 
     approve_parser = subparsers.add_parser(
         "approve",
@@ -470,6 +501,27 @@ def _status_command(args: argparse.Namespace) -> int:
         _print_session_status(runtime_context.repositories.sessions, args.session_id)
 
     return 0
+
+
+def _replay_command(args: argparse.Namespace) -> int:
+    return asyncio.run(_replay_command_async(args))
+
+
+async def _replay_command_async(args: argparse.Namespace) -> int:
+    cwd, db_path = _resolve_runtime_location(args)
+
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        result = await ReplayRunner(
+            runtime_context.repositories.sessions,
+            runtime_context.repositories.artifacts,
+        ).replay_session(args.session_id)
+
+    if args.json:
+        print(json.dumps(_replay_result_payload(result), indent=2, sort_keys=True))
+    else:
+        _print_replay_report(result)
+
+    return _replay_exit_code(result)
 
 
 async def _interactive_session_loop(
@@ -923,6 +975,90 @@ def _print_session_status(repository, session_id: UUID) -> None:
             print(f"  - {_format_tool_call_summary(tool_call)}")
     else:
         print("Recent tool activity: none")
+
+
+def _print_replay_report(result: ReplayResult) -> None:
+    session_id = result.source_session_id
+    if session_id is not None:
+        print(f"Replay session {session_id}")
+    print(f"Outcome: {_format_replay_outcome(result.outcome)}")
+
+    if result.message:
+        print(f"Summary: {result.message}")
+
+    if result.outcome == "exact_match":
+        print(
+            "Matched: transcript, tool calls, approval flow, question flow, "
+            "event families, and final state"
+        )
+        return
+
+    if result.mismatches:
+        print("Mismatches:")
+        for mismatch in result.mismatches:
+            print(f"  - {mismatch}")
+
+    for detail_line in _replay_detail_lines(result):
+        print(detail_line)
+
+
+def _replay_detail_lines(result: ReplayResult) -> list[str]:
+    if result.baseline is None or result.replay is None:
+        return []
+
+    detail_lines: list[str] = []
+    mismatch_set = set(result.mismatches)
+    if "transcript drift" in mismatch_set:
+        detail_lines.append(
+            "Transcript: baseline "
+            f"{len(result.baseline.transcript)} message(s), replay "
+            f"{len(result.replay.transcript)} message(s)"
+        )
+    if "tool_calls drift" in mismatch_set:
+        detail_lines.append(
+            "Tool calls: baseline "
+            f"{len(result.baseline.tool_calls)} call(s), replay "
+            f"{len(result.replay.tool_calls)} call(s)"
+        )
+    if "approvals drift" in mismatch_set:
+        detail_lines.append(
+            "Approvals: baseline "
+            f"{len(result.baseline.approvals)} item(s), replay "
+            f"{len(result.replay.approvals)} item(s)"
+        )
+    if "questions drift" in mismatch_set:
+        detail_lines.append(
+            "Questions: baseline "
+            f"{len(result.baseline.questions)} item(s), replay "
+            f"{len(result.replay.questions)} item(s)"
+        )
+    if "event_families drift" in mismatch_set:
+        detail_lines.append(
+            "Event families: baseline "
+            f"{len(result.baseline.event_families)} event(s), replay "
+            f"{len(result.replay.event_families)} event(s)"
+        )
+    if "final_state drift" in mismatch_set:
+        detail_lines.append(
+            "Final state: baseline "
+            f"{result.baseline.final_state.status}, replay "
+            f"{result.replay.final_state.status}"
+        )
+    return detail_lines
+
+
+def _replay_result_payload(result: ReplayResult) -> dict[str, object]:
+    payload = result.model_dump(mode="json")
+    payload["exit_code"] = _replay_exit_code(result)
+    return payload
+
+
+def _replay_exit_code(result: ReplayResult) -> int:
+    return _REPLAY_EXIT_CODES[result.outcome]
+
+
+def _format_replay_outcome(outcome: str) -> str:
+    return outcome.replace("_", " ")
 
 
 def _format_current_turn_line(turn_id: UUID | None, status: str) -> str:

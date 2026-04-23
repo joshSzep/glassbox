@@ -966,22 +966,24 @@ an interactive terminal mode exists. They are important for scripts, debugging,
 recovery workflows, and any case where the operator wants exact control over IDs
 and state transitions.
 
-### Planned Replay And Eval Commands
+### Replay And Eval Commands
 
 Deterministic replay and evals add a second operator loop that sits alongside
 the normal runtime commands.
 
-Planned command surface:
+Current command surface:
 
 ```text
-glassbox replay SESSION_ID
+glassbox replay SESSION_ID [--json]
 glassbox replay-export SESSION_ID [OUTPUT]
 glassbox eval run [CASE_ID ...]
 ```
 
 The semantics should stay narrow:
 
-- `glassbox replay` compares the current codebase against a recorded session baseline offline and reports exact match, manifest drift, behavioral drift, unsupported session, or replay failure
+- `glassbox replay` compares the current codebase against a recorded session baseline offline, returns concise human output by default, supports machine-readable JSON output, and reports exact match, manifest drift, behavioral drift, unsupported session, or replay failure
+- `glassbox replay` uses stable exit codes so scripts can distinguish exact match from drift and replay errors without scraping terminal text
+- `glassbox replay` does not mutate the source session metadata or recorded replay artifacts; replay runs against an isolated temporary session store
 - replay export turns a replayable session into a portable baseline bundle that can move across branches, repositories, or CI machines without the original SQLite database
 - `glassbox eval run` executes curated replay cases in batch and returns a CI-friendly summary without requiring live provider credentials for deterministic cases
 
