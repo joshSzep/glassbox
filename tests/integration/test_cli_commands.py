@@ -77,6 +77,7 @@ def test_cli_help_lists_session_oriented_commands(
 
     assert exc_info.value.code == 0
     assert "answer" in captured.out
+    assert "attach" in captured.out
     assert "chat" in captured.out
     assert "message" in captured.out
     assert "resume" in captured.out
@@ -349,6 +350,250 @@ def test_cli_chat_keeps_session_open_for_multiple_prompts(
     assert transcript[2].parts[0].text == "Now summarize the tests."
     assert transcript[3].parts[0].text == (
         "I received your request: Now summarize the tests."
+    )
+
+
+def test_cli_attach_keeps_existing_idle_session_open_for_new_prompts(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    interactive_inputs = iter(["Now summarize the tests.", "/exit"])
+
+    monkeypatch.setattr(
+        "glassbox.cli._read_interactive_input",
+        lambda prompt: next(interactive_inputs),
+    )
+
+    _ = capsys.readouterr()
+    exit_code = main(
+        [
+            "attach",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        transcript = repository.list_transcript_messages(session_id)
+        state = repository.get_session_state(session_id)
+    finally:
+        connection.close()
+
+    assert exit_code == 0
+    assert f"Attached to session {session_id}" in captured.out
+    assert "Queued user message: Now summarize the tests." in captured.out
+    assert (
+        "Assistant: I received your request: Now summarize the tests." in captured.out
+    )
+    assert "Leaving interactive session" in captured.out
+    assert state is not None
+    assert state.status == "running"
+    assert state.current_turn_id is None
+    assert transcript[-2].role == "user"
+    assert transcript[-2].parts[0].text == "Now summarize the tests."
+    assert transcript[-1].role == "assistant"
+    assert transcript[-1].parts[0].text == (
+        "I received your request: Now summarize the tests."
+    )
+
+
+def test_cli_attach_answers_pending_question_for_existing_session(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    runtime_context, connection = _make_ask_user_runtime_context(tmp_path)
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    interactive_inputs = iter(["blue", "/exit"])
+
+    monkeypatch.setattr(
+        "glassbox.cli.open_runtime_context",
+        lambda cwd, db_path=None: nullcontext(runtime_context),
+    )
+    monkeypatch.setattr(
+        "glassbox.cli._read_interactive_input",
+        lambda prompt: next(interactive_inputs),
+    )
+
+    try:
+        exit_code = main(
+            [
+                "run",
+                "Pick a colour.",
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+            ]
+        )
+        _ = capsys.readouterr()
+
+        repository = runtime_context.repositories.sessions
+        session_id = repository.list_sessions()[0].session_id
+
+        assert exit_code == 0
+
+        exit_code = main(
+            [
+                "attach",
+                str(session_id),
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+            ]
+        )
+        captured = capsys.readouterr()
+
+        transcript = repository.list_transcript_messages(session_id)
+        state = repository.get_session_state(session_id)
+    finally:
+        connection.close()
+
+    assert exit_code == 0
+    assert f"Attached to session {session_id}" in captured.out
+    assert "Pending question:" in captured.out
+    assert "What colour should I use?" in captured.out
+    assert "Answer submitted for question" in captured.out
+    assert "Assistant: I will use: blue" in captured.out
+    assert "Leaving interactive session" in captured.out
+    assert state is not None
+    assert state.status == "running"
+    assert state.pending_question_id is None
+    assert transcript[-1].role == "assistant"
+    assert transcript[-1].parts[0].text == "I will use: blue"
+
+
+def test_cli_attach_rejects_unknown_session_id(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    unknown_session_id = UUID("00000000-0000-0000-0000-000000000001")
+
+    exit_code = main(
+        [
+            "attach",
+            str(unknown_session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert captured.err.strip() == f"unknown session_id: {unknown_session_id}"
+
+
+def test_cli_attach_rejects_completed_session(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=SessionCompleted(reason="done"),
+            )
+        )
+    finally:
+        connection.close()
+
+    _ = capsys.readouterr()
+    exit_code = main(
+        [
+            "attach",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert captured.err.strip() == (
+        f"cannot attach session {session_id} in status completed"
+    )
+
+
+def test_cli_attach_rejects_failed_session(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=SessionFailed(
+                    error_message="model backend unavailable",
+                    retryable=True,
+                ),
+            )
+        )
+    finally:
+        connection.close()
+
+    _ = capsys.readouterr()
+    exit_code = main(
+        [
+            "attach",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert captured.err.strip() == (
+        f"cannot attach session {session_id} in status failed"
+    )
+
+
+def test_cli_attach_rejects_session_awaiting_approval(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id, _approval_id = _seed_pending_approval(tmp_path)
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "attach",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert captured.err.strip() == (
+        f"cannot attach session {session_id} while awaiting approval resolution"
     )
 
 

@@ -1342,7 +1342,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-162: Add `glassbox attach SESSION_ID` For Interactive Control Of Existing Sessions
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-160`, `GBX-161`
 - Goal: let an operator attach an interactive terminal UI to an existing actionable session instead of using one-shot `message` or `answer` commands
 - Deliverables:

@@ -43,6 +43,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _run_command(args)
         if args.command == "chat":
             return _chat_command(args)
+        if args.command == "attach":
+            return _attach_command(args)
         if args.command == "message":
             return _message_command(args)
         if args.command == "resume":
@@ -120,6 +122,17 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=_APPROVAL_MODE_CHOICES,
         help="approval mode for risky tool actions",
     )
+
+    attach_parser = subparsers.add_parser(
+        "attach",
+        help="attach to an existing interactive session",
+        description=(
+            "Open an interactive terminal workflow for an existing session. "
+            "Type /exit to leave the attached session."
+        ),
+    )
+    attach_parser.add_argument("session_id", type=_parse_uuid)
+    _add_runtime_location_arguments(attach_parser)
 
     message_parser = subparsers.add_parser(
         "message",
@@ -304,7 +317,36 @@ async def _chat_command_async(args: argparse.Namespace) -> int:
                 args.prompt,
             )
             await asyncio.sleep(0)
-        await _interactive_chat_loop(runtime_context, session_state.session_id)
+        print(f"Attached to session {session_state.session_id}")
+        await _interactive_session_loop(
+            runtime_context,
+            session_state.session_id,
+            allow_answers=False,
+        )
+
+    return await _run_with_renderer(cwd, db_path, action)
+
+
+def _attach_command(args: argparse.Namespace) -> int:
+    return asyncio.run(_attach_command_async(args))
+
+
+async def _attach_command_async(args: argparse.Namespace) -> int:
+    cwd, db_path = _resolve_runtime_location(args)
+
+    async def action(runtime_context: RuntimeContext) -> None:
+        repository = runtime_context.repositories.sessions
+        state = repository.get_session_state(args.session_id)
+        if state is None:
+            raise ValueError(f"unknown session_id: {args.session_id}")
+
+        _ensure_session_can_attach(args.session_id, state)
+        print(f"Attached to session {args.session_id}")
+        await _interactive_session_loop(
+            runtime_context,
+            args.session_id,
+            allow_answers=True,
+        )
 
     return await _run_with_renderer(cwd, db_path, action)
 
@@ -449,9 +491,11 @@ def _status_command(args: argparse.Namespace) -> int:
     return 0
 
 
-async def _interactive_chat_loop(
+async def _interactive_session_loop(
     runtime_context: RuntimeContext,
     session_id: UUID,
+    *,
+    allow_answers: bool,
 ) -> None:
     repository = runtime_context.repositories.sessions
 
@@ -468,19 +512,61 @@ async def _interactive_chat_loop(
                 print(f"Leaving interactive session {session_id}")
                 return
 
-            trimmed = user_input.strip()
-            if not trimmed:
+            action_state, action_value = _normalize_interactive_input(
+                user_input,
+                session_id,
+            )
+            if action_state == "continue":
                 continue
-            if trimmed == "/exit":
-                print(f"Leaving interactive session {session_id}")
+            if action_state == "exit":
                 return
-            if trimmed.startswith("/"):
-                print("Unknown interactive command. Type /exit to leave the session.")
-                continue
 
             await runtime_context.services.session_service.submit_user_message(
                 session_id,
-                user_input,
+                action_value,
+            )
+            await asyncio.sleep(0)
+            continue
+
+        if allow_answers and _can_accept_interactive_answer(state):
+            question_id = state.pending_question_id
+            if question_id is None:
+                print(
+                    _format_interactive_chat_pause_line(
+                        repository,
+                        session_id,
+                        state,
+                    )
+                )
+                return
+
+            session_events = repository.read_session_events(session_id)
+            question_text = _pending_question_text_from_events(
+                session_events,
+                question_id,
+            )
+            print(_format_pending_question_line(question_id, question_text))
+
+            try:
+                answer = _read_interactive_input("answer> ")
+            except EOFError, KeyboardInterrupt:
+                print()
+                print(f"Leaving interactive session {session_id}")
+                return
+
+            answer_state, answer_value = _normalize_interactive_input(
+                answer,
+                session_id,
+            )
+            if answer_state == "continue":
+                continue
+            if answer_state == "exit":
+                return
+
+            await runtime_context.services.session_service.provide_user_answer(
+                session_id,
+                question_id,
+                answer_value,
             )
             await asyncio.sleep(0)
             continue
@@ -575,8 +661,51 @@ def _can_accept_interactive_chat_prompt(state: SessionState) -> bool:
     return state.status == SessionStatus.RUNNING and state.current_turn_id is None
 
 
+def _can_accept_interactive_answer(state: SessionState) -> bool:
+    return (
+        state.status == SessionStatus.AWAITING_USER_INPUT
+        and state.pending_question_id is not None
+    )
+
+
 def _read_interactive_input(prompt: str) -> str:
     return input(prompt)
+
+
+def _normalize_interactive_input(
+    user_input: str,
+    session_id: UUID,
+) -> tuple[str, str]:
+    trimmed = user_input.strip()
+    if not trimmed:
+        return "continue", ""
+    if trimmed == "/exit":
+        print(f"Leaving interactive session {session_id}")
+        return "exit", ""
+    if trimmed.startswith("/"):
+        print("Unknown interactive command. Type /exit to leave the session.")
+        return "continue", ""
+    return "submit", user_input
+
+
+def _ensure_session_can_attach(session_id: UUID, state: SessionState) -> None:
+    if state.status in {
+        SessionStatus.COMPLETED,
+        SessionStatus.FAILED,
+        SessionStatus.CANCELLED,
+    }:
+        raise ValueError(f"cannot attach session {session_id} in status {state.status}")
+
+    if state.status == SessionStatus.AWAITING_APPROVAL:
+        raise ValueError(
+            f"cannot attach session {session_id} while awaiting approval resolution"
+        )
+
+    if state.status == SessionStatus.RUNNING and state.current_turn_id is not None:
+        raise ValueError(
+            f"cannot attach session {session_id} while turn "
+            f"{state.current_turn_id} is still active"
+        )
 
 
 def _format_interactive_chat_pause_line(
