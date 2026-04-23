@@ -151,6 +151,146 @@ class ReplayTurnOutputManifest(BaseModel):
     details: dict[str, Any] = Field(default_factory=dict)
 
 
+type ReplayManifest = (
+    ReplayModelCallManifest
+    | ReplayToolRequestManifest
+    | ReplayToolResultManifest
+    | ReplayTurnOutputManifest
+)
+
+
+def build_replay_runtime_config_snapshot(
+    prepared_turn: PreparedModelTurn,
+    *,
+    tool_names: Sequence[str],
+) -> ReplayRuntimeConfigSnapshot:
+    redacted_model_settings = _redact_json(prepared_turn.model_settings)
+    runtime_config = {
+        "model_name": prepared_turn.model_name,
+        "model_settings": redacted_model_settings,
+        "allow_text_output": prepared_turn.request_parameters.allow_text_output,
+        "allow_image_output": prepared_turn.request_parameters.allow_image_output,
+        "tool_names": list(tool_names),
+    }
+    runtime_config["fingerprint"] = _fingerprint_payload(runtime_config)
+    return ReplayRuntimeConfigSnapshot.model_validate(runtime_config)
+
+
+def build_replay_prepared_turn_snapshot(
+    prepared_turn: PreparedModelTurn,
+    *,
+    tool_names: Sequence[str],
+) -> ReplayPreparedTurnSnapshot:
+    return ReplayPreparedTurnSnapshot(
+        model_name=prepared_turn.model_name,
+        user_prompt=prepared_turn.user_prompt,
+        message_history=[
+            _snapshot_model_message(message)
+            for message in prepared_turn.message_history
+        ],
+        request_parameters={
+            "allow_text_output": prepared_turn.request_parameters.allow_text_output,
+            "allow_image_output": prepared_turn.request_parameters.allow_image_output,
+            "tool_names": list(tool_names),
+        },
+        model_settings=_redact_json(prepared_turn.model_settings),
+    )
+
+
+def build_replay_model_call_manifest(
+    *,
+    call_index: int,
+    turn_context: TurnContext,
+    prepared_turn: PreparedModelTurn,
+) -> ReplayModelCallManifest:
+    return ReplayModelCallManifest(
+        call_index=call_index,
+        turn_context=_redact_json(turn_context.model_dump(mode="json")),
+        runtime_config=build_replay_runtime_config_snapshot(
+            prepared_turn,
+            tool_names=[tool.name for tool in turn_context.available_tools],
+        ),
+        prepared_turn=build_replay_prepared_turn_snapshot(
+            prepared_turn,
+            tool_names=[tool.name for tool in turn_context.available_tools],
+        ),
+    )
+
+
+def build_replay_tool_request_manifest(
+    prepared_tool_call: PreparedToolExecution,
+) -> ReplayToolRequestManifest:
+    return ReplayToolRequestManifest(
+        tool_call_id=prepared_tool_call.event_tool_call_id,
+        provider_tool_call_id=prepared_tool_call.provider_tool_call_id,
+        tool_name=prepared_tool_call.tool_name,
+        validated_arguments=_redact_json(
+            prepared_tool_call.validated_arguments.model_dump(mode="json")
+        ),
+        policy_decision=_redact_json(
+            prepared_tool_call.policy_decision.model_dump(mode="json")
+        ),
+    )
+
+
+def build_replay_tool_result_manifest(
+    *,
+    tool_call_id: ToolCallId,
+    provider_tool_call_id: str,
+    tool_name: str,
+    success: bool,
+    summary: str,
+    output_payload: dict[str, Any] | None = None,
+    error_message: str | None = None,
+) -> ReplayToolResultManifest:
+    return ReplayToolResultManifest(
+        tool_call_id=tool_call_id,
+        provider_tool_call_id=provider_tool_call_id,
+        tool_name=tool_name,
+        success=success,
+        output_payload=(
+            _redact_json(output_payload) if output_payload is not None else None
+        ),
+        summary=summary,
+        error_message=error_message,
+    )
+
+
+def build_replay_turn_output_manifest(
+    *,
+    outcome: Literal[
+        "completed",
+        "awaiting_approval",
+        "awaiting_user_input",
+        "failed",
+    ],
+    assistant_text: str | None = None,
+    details: dict[str, Any] | None = None,
+) -> ReplayTurnOutputManifest:
+    return ReplayTurnOutputManifest(
+        outcome=outcome,
+        assistant_text=assistant_text,
+        details=_redact_json(details or {}),
+    )
+
+
+def load_replay_manifest(raw_text: str) -> ReplayManifest:
+    manifest_data = json.loads(raw_text)
+    if not isinstance(manifest_data, dict):
+        raise ValueError("replay artifact must decode to a JSON object")
+
+    artifact_kind = manifest_data.get("artifact_kind")
+    if artifact_kind == REPLAY_MODEL_CALL_ARTIFACT:
+        return ReplayModelCallManifest.model_validate(manifest_data)
+    if artifact_kind == REPLAY_TOOL_REQUEST_ARTIFACT:
+        return ReplayToolRequestManifest.model_validate(manifest_data)
+    if artifact_kind == REPLAY_TOOL_RESULT_ARTIFACT:
+        return ReplayToolResultManifest.model_validate(manifest_data)
+    if artifact_kind == REPLAY_TURN_OUTPUT_ARTIFACT:
+        return ReplayTurnOutputManifest.model_validate(manifest_data)
+    raise ValueError(f"unsupported replay artifact kind: {artifact_kind!r}")
+
+
 class ReplayArtifactRecorder:
     """Persist replay manifests as artifact files linked from session events."""
 
@@ -171,37 +311,10 @@ class ReplayArtifactRecorder:
         turn_context: TurnContext,
         prepared_turn: PreparedModelTurn,
     ) -> EventEnvelope:
-        redacted_model_settings = _redact_json(prepared_turn.model_settings)
-        runtime_config = {
-            "model_name": prepared_turn.model_name,
-            "model_settings": redacted_model_settings,
-            "allow_text_output": prepared_turn.request_parameters.allow_text_output,
-            "allow_image_output": prepared_turn.request_parameters.allow_image_output,
-            "tool_names": [tool.name for tool in turn_context.available_tools],
-        }
-        runtime_config["fingerprint"] = _fingerprint_payload(runtime_config)
-        manifest = ReplayModelCallManifest(
+        manifest = build_replay_model_call_manifest(
             call_index=call_index,
-            turn_context=_redact_json(turn_context.model_dump(mode="json")),
-            runtime_config=ReplayRuntimeConfigSnapshot.model_validate(runtime_config),
-            prepared_turn=ReplayPreparedTurnSnapshot(
-                model_name=prepared_turn.model_name,
-                user_prompt=prepared_turn.user_prompt,
-                message_history=[
-                    _snapshot_model_message(message)
-                    for message in prepared_turn.message_history
-                ],
-                request_parameters={
-                    "allow_text_output": (
-                        prepared_turn.request_parameters.allow_text_output
-                    ),
-                    "allow_image_output": (
-                        prepared_turn.request_parameters.allow_image_output
-                    ),
-                    "tool_names": [tool.name for tool in turn_context.available_tools],
-                },
-                model_settings=redacted_model_settings,
-            ),
+            turn_context=turn_context,
+            prepared_turn=prepared_turn,
         )
         return self._record_manifest(session_id, turn_id, manifest)
 
@@ -211,17 +324,7 @@ class ReplayArtifactRecorder:
         turn_id: TurnId,
         prepared_tool_call: PreparedToolExecution,
     ) -> EventEnvelope:
-        manifest = ReplayToolRequestManifest(
-            tool_call_id=prepared_tool_call.event_tool_call_id,
-            provider_tool_call_id=prepared_tool_call.provider_tool_call_id,
-            tool_name=prepared_tool_call.tool_name,
-            validated_arguments=_redact_json(
-                prepared_tool_call.validated_arguments.model_dump(mode="json")
-            ),
-            policy_decision=_redact_json(
-                prepared_tool_call.policy_decision.model_dump(mode="json")
-            ),
-        )
+        manifest = build_replay_tool_request_manifest(prepared_tool_call)
         return self._record_manifest(
             session_id,
             turn_id,
@@ -242,15 +345,13 @@ class ReplayArtifactRecorder:
         output_payload: dict[str, Any] | None = None,
         error_message: str | None = None,
     ) -> EventEnvelope:
-        manifest = ReplayToolResultManifest(
+        manifest = build_replay_tool_result_manifest(
             tool_call_id=tool_call_id,
             provider_tool_call_id=provider_tool_call_id,
             tool_name=tool_name,
             success=success,
-            output_payload=(
-                _redact_json(output_payload) if output_payload is not None else None
-            ),
             summary=summary,
+            output_payload=output_payload,
             error_message=error_message,
         )
         return self._record_manifest(
@@ -291,10 +392,10 @@ class ReplayArtifactRecorder:
         assistant_text: str | None = None,
         details: dict[str, Any] | None = None,
     ) -> EventEnvelope:
-        manifest = ReplayTurnOutputManifest(
+        manifest = build_replay_turn_output_manifest(
             outcome=outcome,
             assistant_text=assistant_text,
-            details=_redact_json(details or {}),
+            details=details,
         )
         return self._record_manifest(session_id, turn_id, manifest)
 
@@ -302,10 +403,7 @@ class ReplayArtifactRecorder:
         self,
         session_id: SessionId,
         turn_id: TurnId,
-        manifest: ReplayModelCallManifest
-        | ReplayToolRequestManifest
-        | ReplayToolResultManifest
-        | ReplayTurnOutputManifest,
+        manifest: ReplayManifest,
         *,
         tool_call_id: ToolCallId | None = None,
     ) -> EventEnvelope:

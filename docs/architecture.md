@@ -849,6 +849,21 @@ Deterministic replay should report outcomes using a small, stable taxonomy.
 This taxonomy matters because prompt/context regressions should not be collapsed
 into the same bucket as downstream tool or transcript regressions.
 
+### Replay Runner Execution Strategy
+
+The implemented v1 replay runner loads recorded replay manifests from the source
+session, builds a replay bundle, then replays the same user-message,
+approval-resolution, and ask-user answer sequence through a fresh isolated
+session database.
+
+To keep replay offline while still exercising the current control plane, the
+runner:
+
+- uses the real session supervisor, context builder, turn engine, and policy evaluation path
+- swaps in replay-backed model execution that validates the current prepared turn against the recorded manifest before serving recorded outputs
+- swaps in replay-backed tool execution that validates the current prepared tool request against the recorded manifest before serving recorded tool results
+- compares normalized transcript output, tool-call projections, approval and question flow, emitted event families, and final projected session state against the recorded baseline
+
 ### Operator Workflow
 
 The operator workflow should remain explicit and reviewable:

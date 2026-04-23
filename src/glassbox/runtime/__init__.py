@@ -27,6 +27,7 @@ from glassbox.runtime.provider_config import (
 )
 
 if TYPE_CHECKING:
+    from glassbox.runtime.replay import ReplayBundle, ReplayResult, ReplayRunner
     from glassbox.runtime.supervisor import SessionSupervisor
     from glassbox.runtime.turn_engine import TurnEngine
 
@@ -40,6 +41,10 @@ def __getattr__(name: str) -> Any:
         from glassbox.runtime.supervisor import SessionSupervisor as _SessionSupervisor
 
         return _SessionSupervisor
+    if name in {"ReplayBundle", "ReplayResult", "ReplayRunner"}:
+        from glassbox.runtime import replay as _replay
+
+        return getattr(_replay, name)
     if name == "TurnEngine":
         from glassbox.runtime.turn_engine import TurnEngine as _TurnEngine
 
@@ -55,6 +60,9 @@ __all__ = [
     "open_runtime_context",
     "PolicyContext",
     "ProviderSecretConfig",
+    "ReplayBundle",
+    "ReplayResult",
+    "ReplayRunner",
     "RuntimeContext",
     "RuntimeInfrastructure",
     "RuntimeProviderConfig",

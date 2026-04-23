@@ -1736,7 +1736,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-192: Implement Offline Deterministic Replay Runner
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-050`, `GBX-063`, `GBX-100`, `GBX-141`, `GBX-191`
 - Goal: re-execute a persisted session offline against recorded manifests and stubbed model/tool outputs so Glassbox can verify control-flow and projection determinism under the current codebase
 - Deliverables:
