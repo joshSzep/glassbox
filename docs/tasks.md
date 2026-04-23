@@ -1404,7 +1404,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-165: Document Interactive Terminal Workflows And CLI Positioning
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-160`, `GBX-161`, `GBX-162`, `GBX-163`, `GBX-164`, `GBX-121`
 - Goal: explain the new interactive CLI clearly and position the existing one-shot commands as complementary primitives instead of the primary conversational UX
 - Deliverables:

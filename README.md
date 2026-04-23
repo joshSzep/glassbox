@@ -36,6 +36,8 @@ The current command surface is:
 
 ```text
 glassbox run [PROMPT]
+glassbox chat [PROMPT]
+glassbox attach SESSION_ID
 glassbox message SESSION_ID PROMPT
 glassbox answer SESSION_ID QUESTION_ID ANSWER
 glassbox resume SESSION_ID
@@ -46,7 +48,81 @@ glassbox rebuild [SESSION_ID | --all]
 glassbox serve
 ```
 
-## Basic CLI Usage
+## Interactive Terminal Workflow
+
+Use `glassbox chat` as the default conversational entrypoint. It starts a new
+session, keeps a live event subscription open in the terminal, and lets you keep
+working in the same shell instead of restarting the CLI for every turn.
+
+```bash
+uv run glassbox chat --cwd .
+```
+
+Or start with an initial prompt:
+
+```bash
+uv run glassbox chat "Inspect the repository" --cwd .
+```
+
+Inside an interactive session:
+
+- freeform text sends the next prompt while the session is idle and running
+- freeform text answers the pending `ask_user` question when the session is awaiting user input
+- `/approve` and `/deny` resolve a pending approval without requiring the approval ID
+- `/status`, `/help`, and `/exit` remain available as explicit control commands
+
+The prompt context changes with the session state, so the terminal will tell you
+whether it expects a new prompt, an `ask_user` answer, or an approval decision.
+
+### Example: Start And Continue In One Terminal
+
+```bash
+uv run glassbox chat "Inspect the repository" --cwd .
+```
+
+Then continue in the same terminal session:
+
+```text
+prompt> Now summarize the tests.
+prompt> /status
+prompt> /exit
+```
+
+### Example: Reopen An Actionable Session
+
+Use `glassbox attach` when you already have a persisted session ID and want to
+continue the operator workflow in a terminal.
+
+```bash
+uv run glassbox attach SESSION_ID --cwd .
+```
+
+`attach` is for sessions that are actionable from the operator side:
+
+- idle running sessions waiting for the next prompt
+- sessions awaiting `ask_user` input
+- sessions awaiting approval resolution
+
+Typical attach flow for a paused session:
+
+```bash
+uv run glassbox status SESSION_ID --cwd .
+uv run glassbox attach SESSION_ID --cwd .
+```
+
+If the session is waiting on `ask_user`, the next freeform entry is treated as
+the answer. If the session is waiting on approval, freeform text is blocked and
+you must use `/approve` or `/deny`.
+
+### Scope Boundary
+
+The interactive terminal UX is intentionally process-local in v1. `chat` owns
+the live in-process event stream for the session it started, and `attach` can
+reopen a persisted actionable session later, but Glassbox does not yet claim to
+stream live terminal output from another already-running process or a daemon-
+backed resident agent. For cross-process observation, use the dashboard.
+
+## CLI Primitives
 
 Start a session in the current workspace:
 
@@ -54,25 +130,8 @@ Start a session in the current workspace:
 uv run glassbox run "Inspect the repository" --cwd .
 ```
 
-Start an interactive session that stays open for follow-up prompts:
-
-```bash
-uv run glassbox chat --cwd .
-```
-
-While the session is idle and running, each prompt you enter is submitted as the
-next user turn. Type `/exit` to leave the interactive terminal session.
-
-Attach to an existing idle or pending-question session interactively:
-
-```bash
-uv run glassbox attach SESSION_ID --cwd .
-```
-
-When the attached session is awaiting `ask_user` input, Glassbox shows the pending
-question and treats the next interactive entry as the answer. Sessions waiting on
-approval now stay in the interactive shell and require `/approve` or `/deny`
-instead of freeform text.
+Use the one-shot commands when you want scripting, recovery, or explicit state-
+driven control instead of a long-lived conversational shell.
 
 Glassbox persists runtime state under `.glassbox/` in the selected workspace by default.
 The SQLite database lives at `.glassbox/glassbox.sqlite3` unless you override it with `--db-path`.
@@ -124,10 +183,14 @@ uv run glassbox rebuild --all --cwd .
 
 ## Multi-Turn Workflow
 
+Prefer `glassbox chat` and `glassbox attach` for human-driven multi-turn work.
+Use the lower-level commands below when you need to drive a specific session
+state explicitly from scripts, recovery flows, or precise operator steps.
+
 Use the command that matches the session's current actionable state:
 
 - `glassbox chat [PROMPT]` starts a new long-lived terminal session for follow-up prompts without restarting the CLI each turn.
-- `glassbox attach SESSION_ID` reopens an idle or pending-question session in the interactive terminal workflow.
+- `glassbox attach SESSION_ID` reopens an actionable persisted session in the interactive terminal workflow.
 - `glassbox resume SESSION_ID` replays a persisted session after restart. It does not send a new prompt.
 - `glassbox message SESSION_ID PROMPT` sends a fresh user prompt when the session is running and idle.
 - `glassbox answer SESSION_ID QUESTION_ID ANSWER` answers a pending `ask_user` question when the session is awaiting user input.
@@ -146,6 +209,11 @@ In the dashboard, the same workflow is split by pane:
 - The `Next Action` pane sends a new prompt for an idle running session.
 - The `Next Action` pane switches into answer mode when the model is waiting on `ask_user` input.
 - The `Pending Approvals` pane remains the only place to resolve approval-gated tool actions.
+
+`resume`, `message`, `answer`, `approve`, and `deny` remain important even with
+interactive mode available. They are the low-level primitives for scripting,
+recovery after process restart, explicit operator control, and workflows where a
+long-lived terminal session is not the right interface.
 
 ## Real Provider Setup
 
