@@ -1864,6 +1864,140 @@ uv run ty check src/glassbox/path.py
 - Done when:
   - a developer can adopt replay and eval workflows from the docs alone without reading implementation code or guessing at baseline semantics
 
+## Phase 20: Local-First Replay And Eval Regression Gates
+
+### GBX-200: Define Local-First Verification Policy For Direct-To-`main` Development
+
+- Status: `TODO`
+- Depends on: `GBX-196`, `GBX-197`, `GBX-121`
+- Goal: define how replay and eval verification should protect a workflow that commits directly to `main` and pushes to `origin` without relying on pull-request gates
+- Deliverables:
+  - documented verification policy that distinguishes:
+    - commit-time local gates
+    - push-time confirmation after `origin` receives new commits
+    - optional broader non-blocking scheduled verification later
+  - explicit statement that pre-commit is the primary early-regression barrier for curated smoke evals in this workflow
+  - policy for which eval tags are blocking locally, which are only advisory after push, and how those sets are expected to evolve
+  - operator guidance for how replay/eval failures should be interpreted when they happen before commit versus after push
+- Implementation notes:
+  - do not assume branch protection, required PR checks, or merge queues; the workflow must make sense when `git commit` and `git push origin main` are the normal path
+  - bias toward catching regressions as early as possible, but be explicit about which checks are still too expensive or too artifact-heavy for every commit
+  - keep the policy grounded in the existing hook stack in `.pre-commit-config.yaml` and the current replay/eval command surface rather than inventing a new verification framework
+  - treat post-push automation as confirmation, artifact retention, and visibility, not as the first line of defense
+- Tests and validation included in task:
+  - doc review against the current local hook configuration, replay/eval CLI semantics, and direct-to-`main` workflow assumptions before implementation begins
+  - manual validation that the proposed ordering remains practical when running the existing `ruff`, `ty`, `pytest`, and smoke-eval checks from a normal local commit loop
+- Done when:
+  - the repo has a clear, code-aligned contract for where replay/eval verification runs first, where it runs again after push, and what is or is not expected to block local commits
+
+### GBX-201: Add Commit-Time Smoke Eval Verification To Pre-Commit
+
+- Status: `TODO`
+- Depends on: `GBX-196`, `GBX-200`
+- Goal: fail local commits when curated replay smoke cases drift, so replay/eval protection fires before code lands on `main`
+- Deliverables:
+  - pre-commit hook entry that runs `glassbox eval run` against a blocking smoke tag set such as `smoke`
+  - local artifact path strategy for commit-time eval runs, including a stable output directory that does not create noisy tracked-file churn
+  - hook behavior that preserves current exit-code semantics so behavioral drift, manifest drift, unsupported sessions, and replay failures all stop the commit clearly
+  - operator-visible error messaging or docs that make it obvious where to inspect the emitted eval artifacts after a failed commit-time run
+- Implementation notes:
+  - assume the user prefers earlier failure over shorter commit latency for curated smoke cases; optimize correctness first, then iteration cost only if commit friction becomes unacceptable
+  - keep the initial blocking suite intentionally small and deterministic; do not make every eval case part of the commit path by default
+  - ensure emitted artifacts land under an ignored local path such as `.glassbox/evals/pre-commit/` or equivalent so failed hooks do not dirty the index with review noise
+  - do not weaken the smoke suite just to keep hook runtime low; if needed later, split broader suites into separate non-blocking tags rather than silently shrinking the blocking contract
+- Tests and validation included in task:
+  - manual validation that a matching smoke suite allows commit to proceed and a drifting smoke suite blocks commit with actionable artifact output
+  - regression tests or fixture-driven checks for the chosen output-directory and cleanup semantics if the implementation adds helper logic around eval execution
+  - doc review against the local verification policy from `GBX-200`
+- Done when:
+  - a direct local commit is blocked whenever the blocking replay smoke suite detects a regression
+
+### GBX-202: Make Local Eval Hook Artifacts Stable, Inspectable, And Low-Churn
+
+- Status: `TODO`
+- Depends on: `GBX-201`, `GBX-025`
+- Goal: make commit-time replay/eval failures debuggable without turning local hook artifacts into workspace clutter or accidental source-control noise
+- Deliverables:
+  - stable local artifact lifecycle for pre-commit eval runs, such as overwrite-or-refresh behavior for `.glassbox/evals/pre-commit/`
+  - explicit ignore or storage rules ensuring hook-generated `summary.json` and per-case artifacts never appear as files the operator is expected to review or commit by default
+  - clear retention semantics for the most recent failed run so developers can inspect mismatches after a blocked commit without rerunning immediately
+  - any helper or wrapper logic needed to keep the pre-commit command ergonomic while still exposing artifact paths and replay details reliably
+- Implementation notes:
+  - optimize for the failure path: the important case is that a blocked commit leaves behind exactly enough artifact state to inspect the regression quickly
+  - avoid unbounded accumulation of timestamped hook outputs in normal local development loops; commit-time verification should reuse or refresh a known location unless there is a strong reason not to
+  - preserve the existing structured eval artifact format so local and post-push verification produce comparable outputs
+  - if cleanup behavior is added, ensure it cannot delete curated `evals/` baselines or any source-controlled replay bundles accidentally
+- Tests and validation included in task:
+  - manual validation that repeated hook runs refresh the expected local artifact directory without polluting the working tree
+  - regression tests for any new helper that manages output directories, stale artifacts, or failure-summary retention
+  - validation that a failed commit leaves actionable artifact paths and content behind for inspection
+- Done when:
+  - commit-time eval verification leaves behind a predictable, inspectable local artifact set without creating recurring source-control churn
+
+### GBX-203: Add Push-To-`origin` Replay/Eval Confirmation Workflow
+
+- Status: `TODO`
+- Depends on: `GBX-200`, `GBX-201`, `GBX-202`
+- Goal: re-run the curated replay smoke suite after commits are pushed to `origin` so the shared remote record keeps structured verification artifacts even in a direct-to-`main` workflow
+- Deliverables:
+  - automation workflow triggered by pushes to the main development branch or equivalent origin push path, rather than by pull requests
+  - workflow step that runs the same blocking smoke eval tag set used locally, or an explicitly documented superset if the remote environment justifies it
+  - artifact publication for `summary.json` and per-case replay outputs so push-time failures remain inspectable after the local machine is gone
+  - clear repository guidance for how post-push failures should be noticed and triaged when the local pre-commit gate already passed
+- Implementation notes:
+  - this workflow is not a PR gate; design it as post-push confirmation and shared artifact retention for direct-to-`main` development
+  - keep the push-triggered environment deterministic and offline-friendly; it should not depend on live provider credentials for the curated replay smoke suite
+  - preserve the same exit-code semantics and outcome taxonomy used locally so push-time failures do not invent a second interpretation model
+  - do not duplicate large numbers of broad eval cases into the first push workflow unless they materially improve confidence beyond the local smoke gate
+- Tests and validation included in task:
+  - manual validation of the push-triggered automation against a branch or repository configuration that mirrors the direct-to-`main` workflow
+  - doc review against the local-first verification policy so the relationship between local blocking checks and post-push confirmation stays explicit
+  - verification that emitted remote artifacts include both the suite summary and per-case outputs for failed smoke runs
+- Done when:
+  - every push to the main development branch re-runs the curated replay smoke suite remotely and retains inspectable artifacts without depending on PR-only workflows
+
+### GBX-204: Surface Push-Time Replay/Eval Results For Fast Triage
+
+- Status: `TODO`
+- Depends on: `GBX-203`, `GBX-111`
+- Goal: make remote replay/eval confirmation failures easy to understand quickly instead of forcing developers to download raw artifacts before they know which case drifted
+- Deliverables:
+  - compact machine-readable and human-readable push-time summary surfaced in the automation UI, including selected case count, pass/fail counts, and replay outcome totals
+  - links or paths from the remote summary back to the retained `summary.json` and per-case artifact outputs
+  - explicit treatment of replay outcome severity so `manifest_drift`, `behavioral_drift`, `unsupported_session`, and `replay_failure` are distinguishable at a glance
+  - operator guidance for the first debugging move when a post-push smoke eval fails after a local commit passed
+- Implementation notes:
+  - optimize for scan speed; the first remote summary should answer which case failed, how it failed, and where the detailed artifact lives
+  - reuse the existing suite summary model and outcome vocabulary from `glassbox eval run` instead of creating a second reporting schema just for automation
+  - keep any remote summary generation straightforward enough that it can evolve with the eval runner without constant maintenance burden
+  - this should improve triage, not replace retained artifacts; detailed replay diffs still belong in emitted case JSON outputs
+- Tests and validation included in task:
+  - manual review of the rendered automation summary against representative mixed-outcome smoke suites
+  - validation that artifact links or paths in the summary actually correspond to retained replay/eval outputs
+  - doc review against the current outcome taxonomy and batch eval report format
+- Done when:
+  - a developer can inspect a push-time replay/eval failure summary and know which case drifted, what class of failure occurred, and where to find the detailed artifacts within seconds
+
+### GBX-205: Document Local Commit Gates And Push-Time Confirmation For Replay/Evals
+
+- Status: `TODO`
+- Depends on: `GBX-200`, `GBX-201`, `GBX-202`, `GBX-203`, `GBX-204`, `GBX-121`
+- Goal: explain the final local-first verification workflow clearly enough that a developer using direct commits to `main` understands what runs before commit, what runs after push, and how to respond when one of those layers fails
+- Deliverables:
+  - README and workflow documentation updates describing the commit-time smoke eval gate and where its local artifacts live
+  - documentation for the push-to-`origin` replay/eval confirmation workflow, retained artifacts, and expected follow-up when remote confirmation fails
+  - guidance for choosing and maintaining the blocking smoke tag set versus broader non-blocking eval tags
+  - troubleshooting guidance for common local-first failure modes, such as commit blocked by smoke drift, post-push remote drift after local success, and intentional baseline refreshes
+- Implementation notes:
+  - keep the docs explicit that local pre-commit is the primary protection layer in this workflow; push-time automation is the second line, not the first gate
+  - show at least one realistic flow that goes from local commit failure to artifact inspection to successful rerun, and one flow for post-push remote confirmation failure
+  - align examples with the actual pre-commit hook entries, output directories, and push automation introduced in this phase
+- Tests and validation included in task:
+  - doc review against the implemented pre-commit configuration, push-triggered workflow, and replay/eval artifact paths
+  - manual verification that a developer can follow the documented local-first regression workflow without guessing which command, hook, or artifact to inspect next
+- Done when:
+  - a developer committing directly to `main` can understand and successfully use the repo’s replay/eval regression gates from the docs alone
+
 ---
 
 ## Recommended Build Order For The First Usable Vertical Slice
