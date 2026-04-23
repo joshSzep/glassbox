@@ -1780,7 +1780,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-194: Implement Replay Bundle Export And Import For Portable Baselines
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-191`, `GBX-193`
 - Goal: make replayable sessions portable so deterministic baselines can live outside a local SQLite file and be reused across repos, branches, and CI runs
 - Deliverables:

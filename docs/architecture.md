@@ -975,6 +975,7 @@ Current command surface:
 
 ```text
 glassbox replay SESSION_ID [--json]
+glassbox replay --bundle BUNDLE_PATH [--json]
 glassbox replay-export SESSION_ID [OUTPUT]
 glassbox eval run [CASE_ID ...]
 ```
@@ -982,10 +983,18 @@ glassbox eval run [CASE_ID ...]
 The semantics should stay narrow:
 
 - `glassbox replay` compares the current codebase against a recorded session baseline offline, returns concise human output by default, supports machine-readable JSON output, and reports exact match, manifest drift, behavioral drift, unsupported session, or replay failure
+- `glassbox replay --bundle` consumes a portable replay bundle directly, so exported baselines can be replayed without the original session database and can run against the current workspace root instead of the source machine path
 - `glassbox replay` uses stable exit codes so scripts can distinguish exact match from drift and replay errors without scraping terminal text
 - `glassbox replay` does not mutate the source session metadata or recorded replay artifacts; replay runs against an isolated temporary session store
 - replay export turns a replayable session into a portable baseline bundle that can move across branches, repositories, or CI machines without the original SQLite database
 - `glassbox eval run` executes curated replay cases in batch and returns a CI-friendly summary without requiring live provider credentials for deterministic cases
+
+Portable replay bundles are a stable, versioned JSON envelope around the normalized
+replay baseline:
+
+- they embed the recorded replay manifests and normalized comparison baseline rather than referencing the original artifact files indirectly
+- they preserve replay-capture redaction, so provider secrets and other sensitive model settings stay scrubbed when the bundle is checked into a repository or moved to CI
+- they intentionally retain source workspace context metadata while avoiding unrelated local artifact-path leakage, and bundle-version mismatches fail clearly before replay runs
 
 These commands should stay complementary to `pytest` rather than replacing it.
 The purpose is replay-backed behavioral regression coverage, not a second

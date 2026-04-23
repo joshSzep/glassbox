@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -76,6 +77,9 @@ type ReplayOutcome = Literal[
     "unsupported_session",
     "replay_failure",
 ]
+
+REPLAY_BUNDLE_KIND = "glassbox_replay_bundle"
+REPLAY_BUNDLE_VERSION = 1
 
 
 class ReplayAction(BaseModel):
@@ -189,6 +193,8 @@ class ReplayBundle(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    bundle_kind: Literal["glassbox_replay_bundle"] = REPLAY_BUNDLE_KIND
+    bundle_version: int = REPLAY_BUNDLE_VERSION
     source_session_id: SessionId
     session_config: SessionConfig
     actions: list[ReplayAction]
@@ -217,18 +223,20 @@ class ReplayRunner:
 
     def __init__(
         self,
-        session_repository: SessionRepository,
-        artifact_repository: ArtifactRepository,
+        session_repository: SessionRepository | None = None,
+        artifact_repository: ArtifactRepository | None = None,
     ) -> None:
         self._session_repository = session_repository
         self._artifact_repository = artifact_repository
 
     def load_session_bundle(self, session_id: SessionId) -> ReplayBundle:
-        source_session = self._session_repository.get_session(session_id)
+        session_repository, _artifact_repository = self._require_recorded_repositories()
+
+        source_session = session_repository.get_session(session_id)
         if source_session is None:
             raise ValueError(f"unknown session_id: {session_id}")
 
-        source_events = self._session_repository.read_session_events(session_id)
+        source_events = session_repository.read_session_events(session_id)
         replay_payloads = [
             event.payload
             for event in source_events
@@ -279,10 +287,48 @@ class ReplayRunner:
             turn_outputs=turn_outputs,
             baseline=_normalize_session(
                 session_id,
-                self._session_repository,
+                session_repository,
                 source_events,
             ),
         )
+
+    def export_session_bundle(
+        self,
+        session_id: SessionId,
+        output_path: Path,
+    ) -> Path:
+        bundle = self.load_session_bundle(session_id)
+        resolved_output = output_path.resolve()
+        resolved_output.parent.mkdir(parents=True, exist_ok=True)
+        serialized_bundle = json.dumps(
+            bundle.model_dump(mode="json", exclude_none=True),
+            indent=2,
+            sort_keys=True,
+        )
+        resolved_output.write_text(f"{serialized_bundle}\n", encoding="utf-8")
+        return resolved_output
+
+    def load_bundle_file(self, bundle_path: Path) -> ReplayBundle:
+        resolved_path = bundle_path.resolve()
+        try:
+            raw_bundle = resolved_path.read_text(encoding="utf-8")
+        except FileNotFoundError as exc:
+            raise _ReplayFailure(
+                f"missing replay bundle file: {resolved_path}"
+            ) from exc
+
+        try:
+            bundle = ReplayBundle.model_validate_json(raw_bundle)
+        except ValueError as exc:
+            raise _ReplayFailure(
+                f"invalid replay bundle file {resolved_path}: {exc}"
+            ) from exc
+
+        if bundle.bundle_version != REPLAY_BUNDLE_VERSION:
+            raise _ReplayUnsupportedSession(
+                f"unsupported replay bundle version: {bundle.bundle_version}"
+            )
+        return bundle
 
     async def replay_session(self, session_id: SessionId) -> ReplayResult:
         try:
@@ -307,9 +353,40 @@ class ReplayRunner:
                 message=str(exc),
             )
 
-    async def replay_bundle(self, bundle: ReplayBundle) -> ReplayResult:
+    async def replay_bundle_file(
+        self,
+        bundle_path: Path,
+        *,
+        workspace_root: Path | None = None,
+    ) -> ReplayResult:
         try:
-            replay_session = await self._run_bundle(bundle)
+            bundle = self.load_bundle_file(bundle_path)
+        except _ReplayUnsupportedSession as exc:
+            return ReplayResult(
+                outcome="unsupported_session",
+                source_session_id=None,
+                message=str(exc),
+            )
+        except _ReplayFailure as exc:
+            return ReplayResult(
+                outcome="replay_failure",
+                source_session_id=None,
+                message=str(exc),
+            )
+
+        return await self.replay_bundle(bundle, workspace_root=workspace_root)
+
+    async def replay_bundle(
+        self,
+        bundle: ReplayBundle,
+        *,
+        workspace_root: Path | None = None,
+    ) -> ReplayResult:
+        try:
+            replay_session = await self._run_bundle(
+                bundle,
+                workspace_root=workspace_root,
+            )
         except _ReplayManifestDrift as exc:
             return ReplayResult(
                 outcome="manifest_drift",
@@ -343,13 +420,13 @@ class ReplayRunner:
         )
 
     def _load_manifest(self, payload: ReplayArtifactRecorded):
+        _, artifact_repository = self._require_recorded_repositories()
+
         if payload.path is None:
             raise _ReplayFailure("replay artifact event is missing its path")
 
         try:
-            raw_manifest = self._artifact_repository.read_text_artifact(
-                Path(payload.path)
-            )
+            raw_manifest = artifact_repository.read_text_artifact(Path(payload.path))
         except FileNotFoundError as exc:
             raise _ReplayFailure(
                 f"missing replay artifact for path: {payload.path}"
@@ -369,12 +446,34 @@ class ReplayRunner:
             )
         return manifest
 
-    async def _run_bundle(self, bundle: ReplayBundle) -> ReplayNormalizedSession:
+    def _require_recorded_repositories(
+        self,
+    ) -> tuple[SessionRepository, ArtifactRepository]:
+        if self._session_repository is None or self._artifact_repository is None:
+            raise ValueError(
+                "session and artifact repositories are required for session-based "
+                "replay operations"
+            )
+        return self._session_repository, self._artifact_repository
+
+    async def _run_bundle(
+        self,
+        bundle: ReplayBundle,
+        *,
+        workspace_root: Path | None = None,
+    ) -> ReplayNormalizedSession:
         if not bundle.model_calls:
             raise _ReplayFailure("replay bundle does not contain model calls")
 
+        replay_session_config = _build_replay_session_config(
+            bundle,
+            workspace_root=workspace_root,
+        )
         model_executor = _ReplayModelExecutor(bundle.model_calls)
-        tool_runtime = _build_replay_tool_runtime(bundle)
+        tool_runtime = _build_replay_tool_runtime(
+            bundle,
+            workspace_root=workspace_root,
+        )
 
         with TemporaryDirectory(prefix="glassbox-replay-") as replay_dir:
             replay_root = Path(replay_dir)
@@ -396,7 +495,7 @@ class ReplayRunner:
                     ),
                 )
                 supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
-                replay_state = await supervisor.start_session(bundle.session_config)
+                replay_state = await supervisor.start_session(replay_session_config)
 
                 for action in bundle.actions:
                     if action.action_type == "user_message":
@@ -768,7 +867,22 @@ def _build_replay_model_adapter(bundle: ReplayBundle) -> PydanticAIModelAdapter:
     )
 
 
-def _build_replay_tool_runtime(bundle: ReplayBundle) -> _ReplayToolRuntime | None:
+def _build_replay_session_config(
+    bundle: ReplayBundle,
+    *,
+    workspace_root: Path | None = None,
+) -> SessionConfig:
+    replay_cwd = bundle.session_config.cwd
+    if workspace_root is not None:
+        replay_cwd = workspace_root.resolve()
+    return bundle.session_config.model_copy(update={"cwd": replay_cwd})
+
+
+def _build_replay_tool_runtime(
+    bundle: ReplayBundle,
+    *,
+    workspace_root: Path | None = None,
+) -> _ReplayToolRuntime | None:
     recorded_tool_names = sorted(
         {
             tool_name
@@ -780,15 +894,20 @@ def _build_replay_tool_runtime(bundle: ReplayBundle) -> _ReplayToolRuntime | Non
     if not recorded_tool_names:
         return None
 
+    replay_session_config = _build_replay_session_config(
+        bundle,
+        workspace_root=workspace_root,
+    )
+
     try:
-        approval_mode = ApprovalMode(bundle.session_config.approval_mode)
+        approval_mode = ApprovalMode(replay_session_config.approval_mode)
     except ValueError as exc:
         raise _ReplayFailure(
             "invalid approval mode persisted for replay bundle: "
-            f"{bundle.session_config.approval_mode}"
+            f"{replay_session_config.approval_mode}"
         ) from exc
 
-    full_registry = build_ask_user_tool_registry(bundle.session_config.cwd)
+    full_registry = build_ask_user_tool_registry(replay_session_config.cwd)
     registered_tools = {tool.spec.name: tool for tool in full_registry.list_tools()}
     missing_tools = [
         tool_name
@@ -808,7 +927,7 @@ def _build_replay_tool_runtime(bundle: ReplayBundle) -> _ReplayToolRuntime | Non
         filtered_registry,
         ToolPolicyEngine(),
         ToolPolicyContext(
-            workspace_root=bundle.session_config.cwd,
+            workspace_root=replay_session_config.cwd,
             approval_mode=approval_mode,
         ),
         tool_requests=bundle.tool_requests,

@@ -108,6 +108,7 @@ def test_cli_help_lists_session_oriented_commands(
     assert "status" in captured.out
     assert "rebuild" in captured.out
     assert "replay" in captured.out
+    assert "replay-export" in captured.out
     assert "approve" in captured.out
     assert "deny" in captured.out
 
@@ -419,6 +420,80 @@ def test_cli_replay_json_output_contains_structured_report(
     assert payload["source_session_id"] == str(session_id)
     assert payload["exit_code"] == 0
     assert payload["baseline"] == payload["replay"]
+
+
+def test_cli_replay_export_writes_bundle_and_bundle_replay_succeeds(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(
+        tmp_path,
+        prompt="Inspect the repository",
+    )
+    bundle_path = tmp_path / "exports" / "baseline.json"
+    portable_root = tmp_path / "portable-workspace"
+    portable_root.mkdir()
+    _ = capsys.readouterr()
+
+    export_exit_code = main(
+        [
+            "replay-export",
+            str(session_id),
+            str(bundle_path),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    export_capture = capsys.readouterr()
+
+    replay_exit_code = main(
+        [
+            "replay",
+            "--bundle",
+            str(bundle_path),
+            "--cwd",
+            str(portable_root),
+        ]
+    )
+    replay_capture = capsys.readouterr()
+
+    assert export_exit_code == 0
+    assert bundle_path.exists()
+    assert (
+        f"Exported replay bundle for session {session_id}: {bundle_path.resolve()}"
+        in export_capture.out
+    )
+    assert replay_exit_code == 0
+    assert f"Replay session {session_id}" in replay_capture.out
+    assert "Outcome: exact match" in replay_capture.out
+
+
+def test_cli_replay_requires_exactly_one_session_or_bundle_input(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    bundle_path = tmp_path / "baseline.json"
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "replay",
+            str(session_id),
+            "--bundle",
+            str(bundle_path),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert captured.err.strip() == "specify exactly one of session_id or --bundle"
 
 
 def test_cli_message_submits_new_user_turn_to_existing_session(

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import shutil
 import sqlite3
 from collections.abc import Callable
 from pathlib import Path
@@ -67,6 +68,7 @@ def _build_turn_engine(
     bus: EventBus[EventEnvelope],
     *,
     model_fn: Callable[..., ModelResponse],
+    model_settings: dict[str, Any] | None = None,
     tool_runtime_factory: Callable[[Any], ToolRuntime] | None = None,
 ) -> TurnEngine:
     return TurnEngine(
@@ -74,7 +76,11 @@ def _build_turn_engine(
         bus,
         TurnContextBuilder(repository),
         lambda _session: PydanticAIModelAdapter(
-            ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+            ModelProviderConfig(
+                provider="openai",
+                model_name="gpt-5.4",
+                model_settings=model_settings or {},
+            )
         ),
         lambda _session: PydanticAIModelExecutor(
             FunctionModel(function=model_fn, model_name="openai:gpt-5.4")
@@ -558,3 +564,173 @@ def test_replay_runner_reports_corrupt_artifact_payload(tmp_path: Path) -> None:
         assert result.message is not None
 
     asyncio.run(scenario())
+
+
+def test_replay_runner_exports_bundle_and_replays_without_source_database(
+    tmp_path: Path,
+) -> None:
+    source_root = tmp_path / "source-workspace"
+    source_root.mkdir()
+    (source_root / "README.md").write_text("Glassbox tool loop\n", encoding="utf-8")
+    portable_root = tmp_path / "portable-workspace"
+    portable_root.mkdir()
+    bundle_path = tmp_path / "bundles" / "read-file-session.json"
+
+    async def scenario() -> None:
+        connection = _open_initialized_database(source_root)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, source_root)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = _build_turn_engine(
+                repository,
+                artifact_repository,
+                bus,
+                model_fn=_read_file_then_text_response,
+                tool_runtime_factory=lambda session: ToolRuntime(
+                    build_read_only_tool_registry(session.cwd),
+                    ToolPolicyEngine(),
+                    ToolPolicyContext(
+                        workspace_root=session.cwd,
+                        approval_mode=ApprovalMode.CONFIRM,
+                    ),
+                ),
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+
+            state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=source_root,
+                    approval_mode="confirm",
+                )
+            )
+            await supervisor.submit_user_message(state.session_id, "Inspect the repo")
+
+            runner = ReplayRunner(repository, artifact_repository)
+            exported_path = runner.export_session_bundle(state.session_id, bundle_path)
+            result = await ReplayRunner().replay_bundle_file(
+                exported_path,
+                workspace_root=portable_root,
+            )
+        finally:
+            connection.close()
+
+        shutil.rmtree(source_root)
+
+        assert exported_path == bundle_path.resolve()
+        assert result.outcome == "exact_match"
+        assert result.source_session_id == state.session_id
+        assert result.replay == result.baseline
+
+    asyncio.run(scenario())
+
+
+def test_replay_runner_reports_missing_bundle_file(tmp_path: Path) -> None:
+    result = asyncio.run(
+        ReplayRunner().replay_bundle_file(
+            tmp_path / "missing-replay-bundle.json",
+            workspace_root=tmp_path,
+        )
+    )
+
+    assert result.outcome == "replay_failure"
+    assert result.message is not None
+    assert "missing replay bundle file" in result.message
+
+
+def test_replay_runner_reports_unsupported_bundle_version(tmp_path: Path) -> None:
+    bundle_path = tmp_path / "bundle.json"
+
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = _build_turn_engine(
+                repository,
+                artifact_repository,
+                bus,
+                model_fn=_text_only_response,
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+
+            state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+            await supervisor.submit_user_message(state.session_id, "Inspect the repo")
+
+            ReplayRunner(repository, artifact_repository).export_session_bundle(
+                state.session_id,
+                bundle_path,
+            )
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+    payload = json.loads(bundle_path.read_text(encoding="utf-8"))
+    payload["bundle_version"] = 2
+    bundle_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    result = asyncio.run(
+        ReplayRunner().replay_bundle_file(bundle_path, workspace_root=tmp_path)
+    )
+
+    assert result.outcome == "unsupported_session"
+    assert result.message == "unsupported replay bundle version: 2"
+
+
+def test_replay_runner_exported_bundles_preserve_redaction_and_omit_artifact_paths(
+    tmp_path: Path,
+) -> None:
+    bundle_path = tmp_path / "bundle.json"
+
+    async def scenario() -> Path:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = _build_turn_engine(
+                repository,
+                artifact_repository,
+                bus,
+                model_fn=_text_only_response,
+                model_settings={
+                    "api_key": "super-secret-token",
+                    "temperature": 0.2,
+                },
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+
+            state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+            await supervisor.submit_user_message(state.session_id, "Inspect the repo")
+
+            artifact_path = _first_replay_artifact_path(repository, state.session_id)
+            ReplayRunner(repository, artifact_repository).export_session_bundle(
+                state.session_id,
+                bundle_path,
+            )
+            return artifact_path
+        finally:
+            connection.close()
+
+    artifact_path = asyncio.run(scenario())
+    bundle_text = bundle_path.read_text(encoding="utf-8")
+
+    assert "super-secret-token" not in bundle_text
+    assert "[REDACTED]" in bundle_text
+    assert str(artifact_path) not in bundle_text
+    assert str((tmp_path / artifact_path).resolve()) not in bundle_text

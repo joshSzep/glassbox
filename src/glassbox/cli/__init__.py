@@ -67,6 +67,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _status_command(args)
         if args.command == "replay":
             return _replay_command(args)
+        if args.command == "replay-export":
+            return _replay_export_command(args)
         if args.command == "answer":
             return _answer_command(args)
         if args.command == "approve":
@@ -224,13 +226,34 @@ def _build_parser() -> argparse.ArgumentParser:
             "report whether behavior still matches the recorded baseline."
         ),
     )
-    replay_parser.add_argument("session_id", type=_parse_uuid)
+    replay_parser.add_argument("session_id", nargs="?", type=_parse_uuid)
+    replay_parser.add_argument(
+        "--bundle",
+        default=None,
+        help="path to a portable replay bundle exported with replay-export",
+    )
     replay_parser.add_argument(
         "--json",
         action="store_true",
         help="print the structured replay report as JSON",
     )
     _add_runtime_location_arguments(replay_parser)
+
+    replay_export_parser = subparsers.add_parser(
+        "replay-export",
+        help="export a portable replay bundle",
+        description=(
+            "Export a recorded session into a portable replay bundle that can be "
+            "checked in or replayed without the source SQLite session database."
+        ),
+    )
+    replay_export_parser.add_argument("session_id", type=_parse_uuid)
+    replay_export_parser.add_argument(
+        "output",
+        nargs="?",
+        help="optional output path for the exported replay bundle",
+    )
+    _add_runtime_location_arguments(replay_export_parser)
 
     approve_parser = subparsers.add_parser(
         "approve",
@@ -323,6 +346,21 @@ def _resolve_runtime_location(args: argparse.Namespace) -> tuple[Path, Path | No
     cwd = Path(args.cwd).resolve()
     db_path = Path(args.db_path).resolve() if args.db_path is not None else None
     return cwd, db_path
+
+
+def _resolve_optional_output_path(
+    cwd: Path,
+    output: str | None,
+    *,
+    default_name: str,
+) -> Path:
+    if output is None:
+        return (cwd / default_name).resolve()
+
+    output_path = Path(output).expanduser()
+    if not output_path.is_absolute():
+        output_path = cwd / output_path
+    return output_path.resolve()
 
 
 def _run_command(args: argparse.Namespace) -> int:
@@ -510,11 +548,23 @@ def _replay_command(args: argparse.Namespace) -> int:
 async def _replay_command_async(args: argparse.Namespace) -> int:
     cwd, db_path = _resolve_runtime_location(args)
 
-    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
-        result = await ReplayRunner(
-            runtime_context.repositories.sessions,
-            runtime_context.repositories.artifacts,
-        ).replay_session(args.session_id)
+    if (args.session_id is None) == (args.bundle is None):
+        raise ValueError("specify exactly one of session_id or --bundle")
+
+    if args.bundle is not None:
+        result = await ReplayRunner().replay_bundle_file(
+            Path(args.bundle),
+            workspace_root=cwd,
+        )
+    else:
+        session_id = args.session_id
+        assert session_id is not None
+
+        with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+            result = await ReplayRunner(
+                runtime_context.repositories.sessions,
+                runtime_context.repositories.artifacts,
+            ).replay_session(session_id)
 
     if args.json:
         print(json.dumps(_replay_result_payload(result), indent=2, sort_keys=True))
@@ -522,6 +572,24 @@ async def _replay_command_async(args: argparse.Namespace) -> int:
         _print_replay_report(result)
 
     return _replay_exit_code(result)
+
+
+def _replay_export_command(args: argparse.Namespace) -> int:
+    cwd, db_path = _resolve_runtime_location(args)
+    output_path = _resolve_optional_output_path(
+        cwd,
+        args.output,
+        default_name=f"glassbox-replay-{args.session_id}.json",
+    )
+
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        exported_path = ReplayRunner(
+            runtime_context.repositories.sessions,
+            runtime_context.repositories.artifacts,
+        ).export_session_bundle(args.session_id, output_path)
+
+    print(f"Exported replay bundle for session {args.session_id}: {exported_path}")
+    return 0
 
 
 async def _interactive_session_loop(
