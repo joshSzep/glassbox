@@ -1295,6 +1295,153 @@ uv run ty check src/glassbox/path.py
 
 ---
 
+## Phase 16: Interactive Terminal Session UX
+
+### GBX-160: Define Interactive CLI Session Architecture And Operator Semantics
+
+- Status: `TODO`
+- Depends on: `GBX-041`, `GBX-100`, `GBX-154`, `GBX-121`
+- Goal: define the first-class interactive terminal workflow so Glassbox can behave like a persistent conversational agent without breaking the current event-sourced architecture
+- Deliverables:
+  - architecture and operator-workflow updates covering an interactive terminal mode for new and existing sessions
+  - explicit command surface proposal for `glassbox chat` and `glassbox attach SESSION_ID`
+  - documented semantics for how interactive input maps onto existing session actions such as new prompt submission, `ask_user` answers, and approval resolution
+  - explicit scope boundary for v1 interactive mode versus later cross-process or daemon-backed attach behavior
+- Implementation notes:
+  - keep the session service and event model authoritative; the interactive CLI should be a long-lived client over existing runtime services, not a second runtime stack
+  - preserve the current non-interactive commands as scriptable primitives even after the interactive mode exists
+  - document that the first version keeps the runtime and event bus in-process, so live interactive streaming only exists while the owning CLI process is alive
+  - update `architecture.md` if any lifecycle or operator workflow descriptions currently imply a batch-only CLI model
+- Tests and validation included in task:
+  - doc review against the implemented CLI and runtime boundaries before coding starts
+  - manual verification that the planned command semantics do not contradict current `message`, `answer`, `approve`, `deny`, `resume`, and dashboard behavior
+- Done when:
+  - the repo has a clear, code-aligned design for interactive terminal sessions and an explicit v1/v2 scope boundary
+
+### GBX-161: Add Persistent `glassbox chat` Command For New Interactive Sessions
+
+- Status: `TODO`
+- Depends on: `GBX-160`
+- Goal: let an operator start a session and stay inside a long-lived terminal conversation instead of restarting the CLI for each turn
+- Deliverables:
+  - `glassbox chat [PROMPT]` command or equivalent interactive entrypoint for new sessions
+  - persistent terminal loop that keeps the renderer subscription alive across multiple turns
+  - prompt/read-eval loop that accepts operator input after the session becomes actionable again
+  - exit path that leaves session state persisted and resumable
+- Implementation notes:
+  - reuse the existing renderer and session service rather than inventing a second terminal output path
+  - keep the first interactive prompt model simple: when the session is idle and running, freeform user input should submit a new user message
+  - avoid requiring a second terminal or manual session ID copying during the normal interactive flow
+  - do not remove or overload `glassbox run`; `chat` should be the interactive UX layer, while `run` remains a simple non-interactive primitive
+- Tests and validation included in task:
+  - CLI integration tests for starting a new interactive session, submitting multiple prompts, and exiting cleanly
+  - tests that assistant output, tool progress, and terminal prompts remain readable together
+  - negative-path tests for immediate failure states during interactive startup
+- Done when:
+  - a user can start Glassbox once and continue a multi-turn session from the same terminal process without re-running the CLI for each prompt
+
+### GBX-162: Add `glassbox attach SESSION_ID` For Interactive Control Of Existing Sessions
+
+- Status: `TODO`
+- Depends on: `GBX-160`, `GBX-161`
+- Goal: let an operator attach an interactive terminal UI to an existing actionable session instead of using one-shot `message` or `answer` commands
+- Deliverables:
+  - `glassbox attach SESSION_ID` command for interactive control of an existing session
+  - attach-time session inspection so the terminal loop knows whether the next operator input should be treated as a new prompt, an `ask_user` answer, or a blocked action
+  - clear terminal messaging for sessions that are completed, failed, cancelled, or otherwise not attachable
+- Implementation notes:
+  - use persisted projections and current service-layer state rules to determine attachability; do not infer state ad hoc in the CLI loop
+  - in v1, support attaching to paused or idle sessions that can be controlled from the current process; do not claim cross-process live turn streaming if the process-local event bus cannot provide it yet
+  - keep `resume` distinct from `attach`; `resume` remains a lifecycle primitive after restart, while `attach` is the conversational operator UX
+- Tests and validation included in task:
+  - CLI integration tests for attaching to idle running sessions and awaiting-user-input sessions
+  - negative-path tests for completed, failed, unknown, and currently non-attachable sessions
+  - tests that attach mode reuses the same operator-visible semantics as `status` and the dashboard snapshot
+- Done when:
+  - an operator can reopen a persisted session in an interactive terminal workflow without manually dispatching low-level follow-up commands
+
+### GBX-163: Unify Interactive Input Handling For Prompts, `ask_user` Answers, And Approval Commands
+
+- Status: `TODO`
+- Depends on: `GBX-161`, `GBX-162`, `GBX-154`
+- Goal: make the interactive terminal prompt behave like a conversational interface that routes input to the correct existing session action automatically
+- Deliverables:
+  - interactive input router that sends freeform input as either a new user prompt or a pending-question answer based on current session state
+  - slash-command surface for exceptional operator actions such as `/approve`, `/deny`, `/status`, `/help`, and `/exit`
+  - terminal affordances that make the current expected input mode explicit before the operator types
+  - hidden handling of pending `question_id` and `approval_id` details so the operator does not have to copy IDs during the normal interactive flow
+- Implementation notes:
+  - freeform text should map to exactly one valid action for the current state; if the state is ambiguous or blocked, the terminal must say so explicitly rather than guessing
+  - keep approval resolution explicit through slash commands or an equivalent interactive confirmation flow; do not treat arbitrary freeform text as approval input
+  - preserve the existing non-interactive commands as the source of truth for low-level behavior and recovery workflows
+  - ensure the interactive prompt updates immediately after event-driven state changes such as approvals resolving, questions being asked, or turns completing
+- Tests and validation included in task:
+  - CLI integration tests for automatic routing of idle-session prompts and awaiting-user-input answers
+  - tests for slash-command approval resolution, status inspection, and graceful exit
+  - tests for blocked-state messaging when the session cannot currently accept freeform operator input
+- Done when:
+  - the interactive CLI feels conversational for normal turns while still exposing explicit control paths for approval and inspection actions
+
+### GBX-164: Improve Terminal Rendering And Prompt Coordination For Long-Lived Interactive Sessions
+
+- Status: `TODO`
+- Depends on: `GBX-161`, `GBX-162`, `GBX-163`
+- Goal: keep streamed runtime events and operator input readable together during a long-lived terminal session
+- Deliverables:
+  - terminal rendering coordination that avoids corrupting the active prompt while assistant deltas, tool output, approvals, or questions arrive
+  - stable prompt-state summaries showing whether the operator is entering a new prompt, answering a pending question, or choosing an approval action
+  - prompt redraw or equivalent behavior after streamed runtime output
+- Implementation notes:
+  - keep this compatible with the current event renderer rather than forking a completely separate rendering model
+  - prioritize correctness and legibility over heavy terminal UI frameworks unless a framework clearly reduces complexity materially
+  - ensure long-running tool output still remains observable without making operator input unusable
+- Tests and validation included in task:
+  - renderer and CLI integration tests for interleaved streamed output and prompt redraw behavior
+  - tests for approval and `ask_user` events arriving while the interactive prompt is active
+  - manual validation in a representative real-provider session with streamed output enabled
+- Done when:
+  - long-lived interactive use remains readable and operational even while runtime events are arriving continuously
+
+### GBX-165: Document Interactive Terminal Workflows And CLI Positioning
+
+- Status: `TODO`
+- Depends on: `GBX-160`, `GBX-161`, `GBX-162`, `GBX-163`, `GBX-164`, `GBX-121`
+- Goal: explain the new interactive CLI clearly and position the existing one-shot commands as complementary primitives instead of the primary conversational UX
+- Deliverables:
+  - README updates covering `glassbox chat` and `glassbox attach SESSION_ID`
+  - operator guidance for when to use interactive mode versus `run`, `message`, `answer`, `approve`, `deny`, and `resume`
+  - explicit documentation for slash commands and interactive approval / pending-question flows
+  - notes describing the v1 limitation that interactive streaming is process-local rather than a daemon-backed cross-process attach mechanism
+- Implementation notes:
+  - keep docs aligned with the real implemented interaction model, especially around session ownership and attach semantics
+  - show at least one example flow for starting a new session and one for attaching to an existing paused session
+- Tests and validation included in task:
+  - doc review against implemented command help and observed terminal behavior
+  - manual verification of documented example flows against the actual CLI
+- Done when:
+  - a user can discover and use the interactive CLI workflow from docs alone without falling back to source inspection
+
+### GBX-166: Evaluate And Scope Cross-Process Attach Or Daemon-Backed Interactive Sessions
+
+- Status: `TODO`
+- Depends on: `GBX-160`, `GBX-162`, `GBX-164`, `GBX-121`
+- Goal: decide whether Glassbox should support a stronger attach model that can stream live session output across process boundaries like a terminal-native resident agent
+- Deliverables:
+  - architecture decision covering whether to keep interactive mode process-local or introduce a background runtime / attach protocol
+  - explicit tradeoff analysis for using the existing HTTP snapshot and SSE surfaces versus adding a daemon or brokered runtime process
+  - follow-up implementation tasks only if the stronger attach model is justified
+- Implementation notes:
+  - this is an evaluation and scoping task, not a commitment to daemonization in the same phase
+  - treat the current in-process event bus design as a real constraint, not something to hand-wave away in docs or CLI help
+  - avoid starting a daemon architecture unless the operator value materially exceeds the added complexity
+- Tests and validation included in task:
+  - architecture and doc review against current runtime boundaries and observed interactive UX gaps
+  - if follow-up tasks are proposed, ensure they describe concrete executable slices rather than speculative platform work
+- Done when:
+  - the project has a deliberate, documented stance on whether true cross-process interactive attach is in scope and what concrete work would follow
+
+---
+
 ## Recommended Build Order For The First Usable Vertical Slice
 
 If an agent wants the fastest path to a demonstrable but architecturally correct version, the recommended order is:
