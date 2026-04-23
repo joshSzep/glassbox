@@ -1320,7 +1320,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-161: Add Persistent `glassbox chat` Command For New Interactive Sessions
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-160`
 - Goal: let an operator start a session and stay inside a long-lived terminal conversation instead of restarting the CLI for each turn
 - Deliverables:

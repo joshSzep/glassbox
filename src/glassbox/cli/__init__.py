@@ -20,8 +20,13 @@ from glassbox.core.events import (
     SessionStarted,
     UserQuestionAsked,
 )
-from glassbox.core.models import ApprovalRecord, ToolCallRecord, TurnMetricsRecord
-from glassbox.core.types import ApprovalDecision
+from glassbox.core.models import (
+    ApprovalRecord,
+    SessionState,
+    ToolCallRecord,
+    TurnMetricsRecord,
+)
+from glassbox.core.types import ApprovalDecision, SessionStatus
 from glassbox.runtime import RuntimeContext, open_runtime_context
 
 _APPROVAL_MODE_CHOICES = ("confirm", "review", "on-request", "never")
@@ -36,6 +41,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if args.command == "run":
             return _run_command(args)
+        if args.command == "chat":
+            return _chat_command(args)
         if args.command == "message":
             return _message_command(args)
         if args.command == "resume":
@@ -86,6 +93,28 @@ def _build_parser() -> argparse.ArgumentParser:
         help="model identifier recorded in the session metadata",
     )
     run_parser.add_argument(
+        "--approval-mode",
+        default="confirm",
+        choices=_APPROVAL_MODE_CHOICES,
+        help="approval mode for risky tool actions",
+    )
+
+    chat_parser = subparsers.add_parser(
+        "chat",
+        help="start a new interactive session",
+        description=(
+            "Start a new session and keep the terminal open for follow-up "
+            "prompts. Type /exit to leave the interactive session."
+        ),
+    )
+    chat_parser.add_argument("prompt", nargs="?", help="optional initial user prompt")
+    _add_runtime_location_arguments(chat_parser)
+    chat_parser.add_argument(
+        "--model-name",
+        default="openai:gpt-5.4",
+        help="model identifier recorded in the session metadata",
+    )
+    chat_parser.add_argument(
         "--approval-mode",
         default="confirm",
         choices=_APPROVAL_MODE_CHOICES,
@@ -252,6 +281,34 @@ async def _run_command_async(args: argparse.Namespace) -> int:
     return await _run_with_renderer(cwd, db_path, action)
 
 
+def _chat_command(args: argparse.Namespace) -> int:
+    return asyncio.run(_chat_command_async(args))
+
+
+async def _chat_command_async(args: argparse.Namespace) -> int:
+    cwd, db_path = _resolve_runtime_location(args)
+    config = SessionConfig(
+        model_name=args.model_name,
+        cwd=cwd,
+        approval_mode=args.approval_mode,
+    )
+
+    async def action(runtime_context: RuntimeContext) -> None:
+        session_state = await runtime_context.services.session_service.start_session(
+            config
+        )
+        await asyncio.sleep(0)
+        if args.prompt:
+            await runtime_context.services.session_service.submit_user_message(
+                session_state.session_id,
+                args.prompt,
+            )
+            await asyncio.sleep(0)
+        await _interactive_chat_loop(runtime_context, session_state.session_id)
+
+    return await _run_with_renderer(cwd, db_path, action)
+
+
 def _resume_command(args: argparse.Namespace) -> int:
     return asyncio.run(_resume_command_async(args))
 
@@ -392,6 +449,46 @@ def _status_command(args: argparse.Namespace) -> int:
     return 0
 
 
+async def _interactive_chat_loop(
+    runtime_context: RuntimeContext,
+    session_id: UUID,
+) -> None:
+    repository = runtime_context.repositories.sessions
+
+    while True:
+        state = repository.get_session_state(session_id)
+        if state is None:
+            raise ValueError(f"unknown session_id: {session_id}")
+
+        if _can_accept_interactive_chat_prompt(state):
+            try:
+                user_input = _read_interactive_input("glassbox> ")
+            except EOFError, KeyboardInterrupt:
+                print()
+                print(f"Leaving interactive session {session_id}")
+                return
+
+            trimmed = user_input.strip()
+            if not trimmed:
+                continue
+            if trimmed == "/exit":
+                print(f"Leaving interactive session {session_id}")
+                return
+            if trimmed.startswith("/"):
+                print("Unknown interactive command. Type /exit to leave the session.")
+                continue
+
+            await runtime_context.services.session_service.submit_user_message(
+                session_id,
+                user_input,
+            )
+            await asyncio.sleep(0)
+            continue
+
+        print(_format_interactive_chat_pause_line(repository, session_id, state))
+        return
+
+
 def _rebuild_command(args: argparse.Namespace) -> int:
     cwd, db_path = _resolve_runtime_location(args)
 
@@ -472,6 +569,34 @@ def _recent_tool_calls(
         return tool_call.completed_at or tool_call.started_at or datetime.min
 
     return sorted(tool_calls, key=sort_key, reverse=True)[:limit]
+
+
+def _can_accept_interactive_chat_prompt(state: SessionState) -> bool:
+    return state.status == SessionStatus.RUNNING and state.current_turn_id is None
+
+
+def _read_interactive_input(prompt: str) -> str:
+    return input(prompt)
+
+
+def _format_interactive_chat_pause_line(
+    repository,
+    session_id: UUID,
+    state: SessionState,
+) -> str:
+    session_events = repository.read_session_events(session_id)
+    pending_approvals = repository.list_approvals(session_id)
+    latest_session_failure = _latest_session_failure(session_events)
+    current_turn_id = _current_turn_id(state, pending_approvals)
+    next_action = _format_next_action_line(
+        session_id,
+        state.status,
+        current_turn_id,
+        state.pending_approval_id,
+        state.pending_question_id,
+        latest_session_failure,
+    )
+    return f"Interactive chat paused. {next_action}"
 
 
 def _format_current_turn_line(turn_id: UUID | None, status: str) -> str:

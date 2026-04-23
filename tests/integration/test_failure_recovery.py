@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
-from typing import Any
+from typing import Any, Never
 from uuid import UUID
 
 import pytest
@@ -284,6 +284,55 @@ def test_cli_run_with_partial_provider_config_emits_session_failed(
         "missing OpenAI API key for configured provider runtime"
     )
     assert session_failed_events[0].retryable is False
+    assert state is not None
+    assert state.status == SessionStatus.FAILED
+
+
+def test_cli_chat_with_unsupported_provider_emits_session_failed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def fail_if_prompted(prompt: str) -> Never:
+        raise AssertionError(f"interactive prompt should not be reached: {prompt}")
+
+    monkeypatch.setattr(
+        "glassbox.cli._read_interactive_input",
+        fail_if_prompted,
+    )
+
+    exit_code, db_path = _run_cli(
+        tmp_path,
+        ["chat", "Inspect the repository", "--model-name", "other:model"],
+    )
+    captured = capsys.readouterr()
+    session_id = _only_session_id(db_path)
+
+    connection = _open_db(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        events = repository.read_session_events(session_id)
+        state = repository.get_session_state(session_id)
+    finally:
+        connection.close()
+
+    session_failed_events = [
+        event.payload for event in events if isinstance(event.payload, SessionFailed)
+    ]
+
+    assert exit_code == 1
+    assert (
+        "Session failed: unsupported model provider configured for session: other"
+        in captured.out
+    )
+    assert (
+        captured.err.strip()
+        == "unsupported model provider configured for session: other"
+    )
+    assert len(session_failed_events) == 1
+    assert session_failed_events[0].error_message == (
+        "unsupported model provider configured for session: other"
+    )
     assert state is not None
     assert state.status == SessionStatus.FAILED
 

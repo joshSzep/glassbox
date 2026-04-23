@@ -54,6 +54,15 @@ Start a session in the current workspace:
 uv run glassbox run "Inspect the repository" --cwd .
 ```
 
+Start an interactive session that stays open for follow-up prompts:
+
+```bash
+uv run glassbox chat --cwd .
+```
+
+While the session is idle and running, each prompt you enter is submitted as the
+next user turn. Type `/exit` to leave the interactive terminal session.
+
 Glassbox persists runtime state under `.glassbox/` in the selected workspace by default.
 The SQLite database lives at `.glassbox/glassbox.sqlite3` unless you override it with `--db-path`.
 
@@ -106,6 +115,7 @@ uv run glassbox rebuild --all --cwd .
 
 Use the command that matches the session's current actionable state:
 
+- `glassbox chat [PROMPT]` starts a new long-lived terminal session for follow-up prompts without restarting the CLI each turn.
 - `glassbox resume SESSION_ID` replays a persisted session after restart. It does not send a new prompt.
 - `glassbox message SESSION_ID PROMPT` sends a fresh user prompt when the session is running and idle.
 - `glassbox answer SESSION_ID QUESTION_ID ANSWER` answers a pending `ask_user` question when the session is awaiting user input.

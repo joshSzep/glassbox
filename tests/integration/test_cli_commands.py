@@ -77,6 +77,7 @@ def test_cli_help_lists_session_oriented_commands(
 
     assert exc_info.value.code == 0
     assert "answer" in captured.out
+    assert "chat" in captured.out
     assert "message" in captured.out
     assert "resume" in captured.out
     assert "status" in captured.out
@@ -280,6 +281,75 @@ def test_cli_message_submits_new_user_turn_to_existing_session(
         "ModelCallCompleted",
         "TurnStatusChanged",
     ] or persisted_events[-1].event_type == "TurnCompleted"
+
+
+def test_cli_chat_keeps_session_open_for_multiple_prompts(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    interactive_inputs = iter(
+        [
+            "Inspect the repository",
+            "Now summarize the tests.",
+            "/exit",
+        ]
+    )
+
+    monkeypatch.setattr(
+        "glassbox.cli._read_interactive_input",
+        lambda prompt: next(interactive_inputs),
+    )
+
+    exit_code = main(
+        [
+            "chat",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        sessions = repository.list_sessions()
+        assert len(sessions) == 1
+        session_id = sessions[0].session_id
+        transcript = repository.list_transcript_messages(session_id)
+        state = repository.get_session_state(session_id)
+    finally:
+        connection.close()
+
+    assert exit_code == 0
+    assert "Started session" in captured.out
+    assert "Queued user message: Inspect the repository" in captured.out
+    assert "Assistant: I received your request: Inspect the repository" in captured.out
+    assert "Queued user message: Now summarize the tests." in captured.out
+    assert (
+        "Assistant: I received your request: Now summarize the tests." in captured.out
+    )
+    assert "Leaving interactive session" in captured.out
+    assert state is not None
+    assert state.status == "running"
+    assert state.current_turn_id is None
+    assert [message.role for message in transcript] == [
+        "user",
+        "assistant",
+        "user",
+        "assistant",
+    ]
+    assert transcript[0].parts[0].text == "Inspect the repository"
+    assert transcript[1].parts[0].text == (
+        "I received your request: Inspect the repository"
+    )
+    assert transcript[2].parts[0].text == "Now summarize the tests."
+    assert transcript[3].parts[0].text == (
+        "I received your request: Now summarize the tests."
+    )
 
 
 def test_cli_message_rejects_unknown_session_id(
