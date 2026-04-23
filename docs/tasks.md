@@ -1362,7 +1362,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-163: Unify Interactive Input Handling For Prompts, `ask_user` Answers, And Approval Commands
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-161`, `GBX-162`, `GBX-154`
 - Goal: make the interactive terminal prompt behave like a conversational interface that routes input to the correct existing session action automatically
 - Deliverables:

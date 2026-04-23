@@ -318,11 +318,7 @@ async def _chat_command_async(args: argparse.Namespace) -> int:
             )
             await asyncio.sleep(0)
         print(f"Attached to session {session_state.session_id}")
-        await _interactive_session_loop(
-            runtime_context,
-            session_state.session_id,
-            allow_answers=False,
-        )
+        await _interactive_session_loop(runtime_context, session_state.session_id)
 
     return await _run_with_renderer(cwd, db_path, action)
 
@@ -342,11 +338,7 @@ async def _attach_command_async(args: argparse.Namespace) -> int:
 
         _ensure_session_can_attach(args.session_id, state)
         print(f"Attached to session {args.session_id}")
-        await _interactive_session_loop(
-            runtime_context,
-            args.session_id,
-            allow_answers=True,
-        )
+        await _interactive_session_loop(runtime_context, args.session_id)
 
     return await _run_with_renderer(cwd, db_path, action)
 
@@ -404,89 +396,7 @@ def _status_command(args: argparse.Namespace) -> int:
     cwd, db_path = _resolve_runtime_location(args)
 
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
-        repository = runtime_context.repositories.sessions
-        record = repository.get_session(args.session_id)
-        state = repository.get_session_state(args.session_id)
-        if record is None or state is None:
-            raise ValueError(f"unknown session_id: {args.session_id}")
-
-        transcript_messages = repository.list_transcript_messages(args.session_id)
-        pending_approvals = repository.list_approvals(args.session_id)
-        tool_calls = repository.list_tool_calls(args.session_id)
-        turn_metrics = repository.list_turn_metrics(args.session_id, limit=5)
-        session_events = repository.read_session_events(args.session_id)
-
-    current_turn_id = _current_turn_id(state, pending_approvals)
-    current_turn_metrics = _find_turn_metrics(turn_metrics, current_turn_id)
-    latest_turn_metrics = current_turn_metrics or (
-        turn_metrics[0] if turn_metrics else None
-    )
-    recent_tool_calls = _recent_tool_calls(tool_calls)
-    dashboard_url = _dashboard_url_from_events(session_events)
-    latest_session_failure = _latest_session_failure(session_events)
-    pending_question_text = _pending_question_text_from_events(
-        session_events,
-        state.pending_question_id,
-    )
-
-    print(f"Session {record.session_id}")
-    print(f"Status: {state.status}")
-    print(f"Last sequence: {state.last_sequence}")
-    print(_format_current_turn_line(current_turn_id, state.status))
-    print(f"Workspace: {record.cwd}")
-    print(f"Model: {record.model_name}")
-    print(f"Approval mode: {record.approval_mode}")
-    if dashboard_url is not None:
-        print(f"Dashboard URL: {dashboard_url}")
-    print(f"Transcript messages: {len(transcript_messages)}")
-
-    if latest_session_failure is not None:
-        print(_format_session_failure(latest_session_failure))
-
-    latest_summary = _latest_message_summary(transcript_messages)
-    if latest_summary is not None:
-        print(f"Latest message: {latest_summary}")
-    if state.pending_question_id is not None:
-        print(
-            _format_pending_question_line(
-                state.pending_question_id,
-                pending_question_text,
-            )
-        )
-    print(
-        _format_next_action_line(
-            record.session_id,
-            state.status,
-            current_turn_id,
-            state.pending_approval_id,
-            state.pending_question_id,
-            latest_session_failure,
-        )
-    )
-
-    if latest_turn_metrics is not None:
-        label = (
-            "Current turn metrics"
-            if current_turn_metrics is not None
-            else "Latest turn metrics"
-        )
-        print(f"{label}: {_format_turn_metrics(latest_turn_metrics)}")
-    else:
-        print("Latest turn metrics: none")
-
-    if pending_approvals:
-        print(f"Pending approvals: {len(pending_approvals)}")
-        for approval in pending_approvals:
-            print(f"  - {_format_approval_summary(approval)}")
-    else:
-        print("Pending approvals: none")
-
-    if recent_tool_calls:
-        print("Recent tool activity:")
-        for tool_call in recent_tool_calls:
-            print(f"  - {_format_tool_call_summary(tool_call)}")
-    else:
-        print("Recent tool activity: none")
+        _print_session_status(runtime_context.repositories.sessions, args.session_id)
 
     return 0
 
@@ -494,8 +404,6 @@ def _status_command(args: argparse.Namespace) -> int:
 async def _interactive_session_loop(
     runtime_context: RuntimeContext,
     session_id: UUID,
-    *,
-    allow_answers: bool,
 ) -> None:
     repository = runtime_context.repositories.sessions
 
@@ -504,75 +412,83 @@ async def _interactive_session_loop(
         if state is None:
             raise ValueError(f"unknown session_id: {session_id}")
 
-        if _can_accept_interactive_chat_prompt(state):
-            try:
-                user_input = _read_interactive_input("glassbox> ")
-            except EOFError, KeyboardInterrupt:
-                print()
-                print(f"Leaving interactive session {session_id}")
-                return
+        mode = _interactive_mode(state)
+        _render_interactive_prompt_context(repository, session_id, state, mode)
 
-            action_state, action_value = _normalize_interactive_input(
-                user_input,
-                session_id,
-            )
-            if action_state == "continue":
+        if mode == "paused":
+            return
+
+        try:
+            user_input = _read_interactive_input(_interactive_prompt_label(mode))
+        except EOFError, KeyboardInterrupt:
+            print()
+            print(f"Leaving interactive session {session_id}")
+            return
+
+        action_kind, action_value = _parse_interactive_input(user_input)
+        if action_kind == "continue":
+            continue
+        if action_kind == "exit":
+            print(f"Leaving interactive session {session_id}")
+            return
+        if action_kind == "help":
+            print(_interactive_help_text(mode))
+            continue
+        if action_kind == "status":
+            _print_session_status(repository, session_id)
+            continue
+        if action_kind == "approve":
+            if state.status != SessionStatus.AWAITING_APPROVAL:
+                print(_interactive_blocked_input_message(state, session_id))
                 continue
-            if action_state == "exit":
-                return
-
-            await runtime_context.services.session_service.submit_user_message(
+            approval_id = state.pending_approval_id
+            if approval_id is None:
+                print(_interactive_blocked_input_message(state, session_id))
+                continue
+            await runtime_context.services.session_service.resolve_approval(
                 session_id,
-                action_value,
+                approval_id,
+                ApprovalDecision.APPROVED,
             )
             await asyncio.sleep(0)
             continue
-
-        if allow_answers and _can_accept_interactive_answer(state):
-            question_id = state.pending_question_id
-            if question_id is None:
-                print(
-                    _format_interactive_chat_pause_line(
-                        repository,
-                        session_id,
-                        state,
-                    )
+        if action_kind == "deny":
+            if state.status != SessionStatus.AWAITING_APPROVAL:
+                print(_interactive_blocked_input_message(state, session_id))
+                continue
+            approval_id = state.pending_approval_id
+            if approval_id is None:
+                print(_interactive_blocked_input_message(state, session_id))
+                continue
+            await runtime_context.services.session_service.resolve_approval(
+                session_id,
+                approval_id,
+                ApprovalDecision.DENIED,
+            )
+            await asyncio.sleep(0)
+            continue
+        if action_kind == "submit":
+            if mode == "prompt":
+                await runtime_context.services.session_service.submit_user_message(
+                    session_id,
+                    action_value,
                 )
-                return
-
-            session_events = repository.read_session_events(session_id)
-            question_text = _pending_question_text_from_events(
-                session_events,
-                question_id,
-            )
-            print(_format_pending_question_line(question_id, question_text))
-
-            try:
-                answer = _read_interactive_input("answer> ")
-            except EOFError, KeyboardInterrupt:
-                print()
-                print(f"Leaving interactive session {session_id}")
-                return
-
-            answer_state, answer_value = _normalize_interactive_input(
-                answer,
-                session_id,
-            )
-            if answer_state == "continue":
+                await asyncio.sleep(0)
                 continue
-            if answer_state == "exit":
-                return
-
-            await runtime_context.services.session_service.provide_user_answer(
-                session_id,
-                question_id,
-                answer_value,
-            )
-            await asyncio.sleep(0)
+            if mode == "answer":
+                question_id = state.pending_question_id
+                if question_id is None:
+                    print(_interactive_blocked_input_message(state, session_id))
+                    continue
+                await runtime_context.services.session_service.provide_user_answer(
+                    session_id,
+                    question_id,
+                    action_value,
+                )
+                await asyncio.sleep(0)
+                continue
+            print(_interactive_blocked_input_message(state, session_id))
             continue
-
-        print(_format_interactive_chat_pause_line(repository, session_id, state))
-        return
 
 
 def _rebuild_command(args: argparse.Namespace) -> int:
@@ -668,22 +584,36 @@ def _can_accept_interactive_answer(state: SessionState) -> bool:
     )
 
 
+def _interactive_mode(state: SessionState) -> str:
+    if _can_accept_interactive_chat_prompt(state):
+        return "prompt"
+    if _can_accept_interactive_answer(state):
+        return "answer"
+    if state.status == SessionStatus.AWAITING_APPROVAL:
+        return "approval"
+    return "paused"
+
+
 def _read_interactive_input(prompt: str) -> str:
     return input(prompt)
 
 
-def _normalize_interactive_input(
-    user_input: str,
-    session_id: UUID,
-) -> tuple[str, str]:
+def _parse_interactive_input(user_input: str) -> tuple[str, str]:
     trimmed = user_input.strip()
     if not trimmed:
         return "continue", ""
     if trimmed == "/exit":
-        print(f"Leaving interactive session {session_id}")
         return "exit", ""
+    if trimmed == "/help":
+        return "help", ""
+    if trimmed == "/status":
+        return "status", ""
+    if trimmed == "/approve":
+        return "approve", ""
+    if trimmed == "/deny":
+        return "deny", ""
     if trimmed.startswith("/"):
-        print("Unknown interactive command. Type /exit to leave the session.")
+        print("Unknown interactive command. Use /help for available commands.")
         return "continue", ""
     return "submit", user_input
 
@@ -695,11 +625,6 @@ def _ensure_session_can_attach(session_id: UUID, state: SessionState) -> None:
         SessionStatus.CANCELLED,
     }:
         raise ValueError(f"cannot attach session {session_id} in status {state.status}")
-
-    if state.status == SessionStatus.AWAITING_APPROVAL:
-        raise ValueError(
-            f"cannot attach session {session_id} while awaiting approval resolution"
-        )
 
     if state.status == SessionStatus.RUNNING and state.current_turn_id is not None:
         raise ValueError(
@@ -726,6 +651,182 @@ def _format_interactive_chat_pause_line(
         latest_session_failure,
     )
     return f"Interactive chat paused. {next_action}"
+
+
+def _interactive_prompt_label(mode: str) -> str:
+    if mode == "prompt":
+        return "prompt> "
+    if mode == "answer":
+        return "answer> "
+    if mode == "approval":
+        return "approval> "
+    return "session> "
+
+
+def _render_interactive_prompt_context(
+    repository,
+    session_id: UUID,
+    state: SessionState,
+    mode: str,
+) -> None:
+    if mode == "answer":
+        session_events = repository.read_session_events(session_id)
+        question_text = _pending_question_text_from_events(
+            session_events,
+            state.pending_question_id,
+        )
+        print(
+            _format_pending_question_line(
+                state.pending_question_id,
+                question_text,
+            )
+        )
+        print(
+            "Interactive mode: answer the pending question, or use /status, "
+            "/help, or /exit."
+        )
+        return
+    if mode == "approval":
+        print(_interactive_blocked_input_message(state, session_id))
+        print("Interactive mode: use /approve, /deny, /status, /help, or /exit.")
+        return
+    if mode == "prompt":
+        print(
+            "Interactive mode: type the next prompt, or use /status, /help, or /exit."
+        )
+        return
+    print(_format_interactive_chat_pause_line(repository, session_id, state))
+
+
+def _interactive_blocked_input_message(state: SessionState, session_id: UUID) -> str:
+    if state.status == SessionStatus.AWAITING_APPROVAL:
+        approval_id = state.pending_approval_id
+        if approval_id is None:
+            return (
+                "This session is awaiting approval resolution. Use /status or "
+                "/help for more detail."
+            )
+        return (
+            "This session is awaiting approval resolution for "
+            f"{approval_id}. Freeform text is disabled until you use /approve "
+            "or /deny."
+        )
+
+    next_action = _format_next_action_line(
+        session_id,
+        state.status,
+        state.current_turn_id,
+        state.pending_approval_id,
+        state.pending_question_id,
+        None,
+    )
+    return (
+        "This session cannot accept freeform interactive input right now. "
+        f"{next_action}"
+    )
+
+
+def _interactive_help_text(mode: str) -> str:
+    lines = [
+        "Interactive commands:",
+        "  /status  show the full session status",
+        "  /help    show interactive command help",
+        "  /exit    leave the interactive session",
+        "  /approve approve the pending action when awaiting approval",
+        "  /deny    deny the pending action when awaiting approval",
+    ]
+    if mode == "prompt":
+        lines.append("Freeform input sends the next user prompt.")
+    elif mode == "answer":
+        lines.append("Freeform input answers the pending ask_user question.")
+    elif mode == "approval":
+        lines.append("Freeform input is disabled while the session awaits approval.")
+    return "\n".join(lines)
+
+
+def _print_session_status(repository, session_id: UUID) -> None:
+    record = repository.get_session(session_id)
+    state = repository.get_session_state(session_id)
+    if record is None or state is None:
+        raise ValueError(f"unknown session_id: {session_id}")
+
+    transcript_messages = repository.list_transcript_messages(session_id)
+    pending_approvals = repository.list_approvals(session_id)
+    tool_calls = repository.list_tool_calls(session_id)
+    turn_metrics = repository.list_turn_metrics(session_id, limit=5)
+    session_events = repository.read_session_events(session_id)
+
+    current_turn_id = _current_turn_id(state, pending_approvals)
+    current_turn_metrics = _find_turn_metrics(turn_metrics, current_turn_id)
+    latest_turn_metrics = current_turn_metrics or (
+        turn_metrics[0] if turn_metrics else None
+    )
+    recent_tool_calls = _recent_tool_calls(tool_calls)
+    dashboard_url = _dashboard_url_from_events(session_events)
+    latest_session_failure = _latest_session_failure(session_events)
+    pending_question_text = _pending_question_text_from_events(
+        session_events,
+        state.pending_question_id,
+    )
+
+    print(f"Session {record.session_id}")
+    print(f"Status: {state.status}")
+    print(f"Last sequence: {state.last_sequence}")
+    print(_format_current_turn_line(current_turn_id, state.status))
+    print(f"Workspace: {record.cwd}")
+    print(f"Model: {record.model_name}")
+    print(f"Approval mode: {record.approval_mode}")
+    if dashboard_url is not None:
+        print(f"Dashboard URL: {dashboard_url}")
+    print(f"Transcript messages: {len(transcript_messages)}")
+
+    if latest_session_failure is not None:
+        print(_format_session_failure(latest_session_failure))
+
+    latest_summary = _latest_message_summary(transcript_messages)
+    if latest_summary is not None:
+        print(f"Latest message: {latest_summary}")
+    if state.pending_question_id is not None:
+        print(
+            _format_pending_question_line(
+                state.pending_question_id,
+                pending_question_text,
+            )
+        )
+    print(
+        _format_next_action_line(
+            record.session_id,
+            state.status,
+            current_turn_id,
+            state.pending_approval_id,
+            state.pending_question_id,
+            latest_session_failure,
+        )
+    )
+
+    if latest_turn_metrics is not None:
+        label = (
+            "Current turn metrics"
+            if current_turn_metrics is not None
+            else "Latest turn metrics"
+        )
+        print(f"{label}: {_format_turn_metrics(latest_turn_metrics)}")
+    else:
+        print("Latest turn metrics: none")
+
+    if pending_approvals:
+        print(f"Pending approvals: {len(pending_approvals)}")
+        for approval in pending_approvals:
+            print(f"  - {_format_approval_summary(approval)}")
+    else:
+        print("Pending approvals: none")
+
+    if recent_tool_calls:
+        print("Recent tool activity:")
+        for tool_call in recent_tool_calls:
+            print(f"  - {_format_tool_call_summary(tool_call)}")
+    else:
+        print("Recent tool activity: none")
 
 
 def _format_current_turn_line(turn_id: UUID | None, status: str) -> str:

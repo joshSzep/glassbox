@@ -71,7 +71,8 @@ uv run glassbox attach SESSION_ID --cwd .
 
 When the attached session is awaiting `ask_user` input, Glassbox shows the pending
 question and treats the next interactive entry as the answer. Sessions waiting on
-approval still need `glassbox approve` / `glassbox deny` in this phase.
+approval now stay in the interactive shell and require `/approve` or `/deny`
+instead of freeform text.
 
 Glassbox persists runtime state under `.glassbox/` in the selected workspace by default.
 The SQLite database lives at `.glassbox/glassbox.sqlite3` unless you override it with `--db-path`.
@@ -132,6 +133,13 @@ Use the command that matches the session's current actionable state:
 - `glassbox answer SESSION_ID QUESTION_ID ANSWER` answers a pending `ask_user` question when the session is awaiting user input.
 - `glassbox approve SESSION_ID APPROVAL_ID` or `glassbox deny SESSION_ID APPROVAL_ID` resolves a pending approval when the session is awaiting approval.
 - `glassbox status SESSION_ID` prints the current session state, any pending approval or question identifiers, and a `Next action:` line that tells you which of the commands above is valid now.
+
+Inside interactive `chat` and `attach` sessions:
+
+- freeform text sends the next prompt when the session is idle and running
+- freeform text answers the pending `ask_user` question when the session is awaiting user input
+- `/approve` and `/deny` resolve a pending approval without requiring the approval ID
+- `/status`, `/help`, and `/exit` remain available as explicit control commands
 
 In the dashboard, the same workflow is split by pane:
 

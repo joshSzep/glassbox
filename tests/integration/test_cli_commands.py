@@ -472,6 +472,128 @@ def test_cli_attach_answers_pending_question_for_existing_session(
     assert transcript[-1].parts[0].text == "I will use: blue"
 
 
+def test_cli_chat_routes_pending_question_answers_without_question_id(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    runtime_context, connection = _make_ask_user_runtime_context(tmp_path)
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    interactive_inputs = iter(["Pick a colour.", "blue", "/exit"])
+
+    monkeypatch.setattr(
+        "glassbox.cli.open_runtime_context",
+        lambda cwd, db_path=None: nullcontext(runtime_context),
+    )
+    monkeypatch.setattr(
+        "glassbox.cli._read_interactive_input",
+        lambda prompt: next(interactive_inputs),
+    )
+
+    try:
+        exit_code = main(
+            [
+                "chat",
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+            ]
+        )
+        captured = capsys.readouterr()
+
+        repository = runtime_context.repositories.sessions
+        session_id = repository.list_sessions()[0].session_id
+        transcript = repository.list_transcript_messages(session_id)
+        state = repository.get_session_state(session_id)
+    finally:
+        connection.close()
+
+    assert exit_code == 0
+    assert "Interactive mode: type the next prompt" in captured.out
+    assert "Question asked" in captured.out
+    assert "Pending question:" in captured.out
+    assert "Interactive mode: answer the pending question" in captured.out
+    assert "Answer submitted for question" in captured.out
+    assert "Assistant: I will use: blue" in captured.out
+    assert "Leaving interactive session" in captured.out
+    assert state is not None
+    assert state.status == "running"
+    assert state.pending_question_id is None
+    assert transcript[-1].parts[0].text == "I will use: blue"
+
+
+def test_cli_attach_approval_mode_requires_slash_commands_and_supports_status_help(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id, approval_id = _seed_pending_approval(tmp_path)
+    interactive_inputs = iter(["hello", "/status", "/help", "/approve", "/exit"])
+
+    monkeypatch.setattr(
+        "glassbox.cli._read_interactive_input",
+        lambda prompt: next(interactive_inputs),
+    )
+
+    _ = capsys.readouterr()
+    exit_code = main(
+        [
+            "attach",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    persisted_events = _read_session_events(db_path, session_id)
+
+    assert exit_code == 0
+    assert f"Attached to session {session_id}" in captured.out
+    assert f"{approval_id}" in captured.out
+    assert "Freeform text is disabled until you use /approve or /deny." in captured.out
+    assert f"Session {session_id}" in captured.out
+    assert "Interactive commands:" in captured.out
+    assert "Approval resolved: approved by user" in captured.out
+    assert persisted_events[-1].event_type == "ApprovalResolved"
+
+
+def test_cli_attach_supports_deny_slash_command(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id, _approval_id = _seed_pending_approval(tmp_path)
+    interactive_inputs = iter(["/deny", "/exit"])
+
+    monkeypatch.setattr(
+        "glassbox.cli._read_interactive_input",
+        lambda prompt: next(interactive_inputs),
+    )
+
+    _ = capsys.readouterr()
+    exit_code = main(
+        [
+            "attach",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    persisted_events = _read_session_events(db_path, session_id)
+
+    assert exit_code == 0
+    assert "Approval resolved: denied by user" in captured.out
+    assert persisted_events[-1].event_type == "ApprovalResolved"
+    assert isinstance(persisted_events[-1].payload, ApprovalResolved)
+    assert persisted_events[-1].payload.decision == ApprovalDecision.DENIED
+
+
 def test_cli_attach_rejects_unknown_session_id(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -569,31 +691,6 @@ def test_cli_attach_rejects_failed_session(
     assert exit_code == 1
     assert captured.err.strip() == (
         f"cannot attach session {session_id} in status failed"
-    )
-
-
-def test_cli_attach_rejects_session_awaiting_approval(
-    tmp_path: Path,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    db_path, session_id, _approval_id = _seed_pending_approval(tmp_path)
-    _ = capsys.readouterr()
-
-    exit_code = main(
-        [
-            "attach",
-            str(session_id),
-            "--cwd",
-            str(tmp_path),
-            "--db-path",
-            str(db_path),
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 1
-    assert captured.err.strip() == (
-        f"cannot attach session {session_id} while awaiting approval resolution"
     )
 
 
