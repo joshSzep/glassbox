@@ -1197,6 +1197,104 @@ uv run ty check src/glassbox/path.py
 
 ---
 
+## Phase 15: Multi-Turn User Interaction UX
+
+### GBX-150: Add CLI Command For Submitting A New User Turn To An Existing Session
+
+- Status: `TODO`
+- Depends on: `GBX-042`, `GBX-032`
+- Goal: let an operator send another user prompt into a running session without dropping to an ad hoc Python snippet
+- Deliverables:
+  - a dedicated CLI command for submitting a new user message to an existing session
+  - argument and help text covering `session_id`, prompt text, and runtime location flags
+  - clear operator-visible errors for completed, failed, or otherwise non-interactive sessions
+- Implementation notes:
+  - wire the command through `session_service.submit_user_message(...)`
+  - keep command naming explicit and session-oriented rather than overloading `resume`
+  - preserve the event-rendered CLI experience during the resulting turn
+- Tests and validation included in task:
+  - CLI integration tests for happy-path message submission into an existing running session
+  - negative-path tests for unknown session IDs and non-interactive session states
+- Done when:
+  - an operator can advance an existing session with a new user prompt entirely through the CLI
+
+### GBX-151: Add CLI Command For Answering Pending `ask_user` Questions
+
+- Status: `TODO`
+- Depends on: `GBX-067`, `GBX-150`
+- Goal: make suspended `ask_user` turns resumable from the terminal without custom scripts or direct service calls
+- Deliverables:
+  - a CLI command for submitting an answer to a pending question in a session
+  - command help text describing required identifiers and expected operator workflow
+  - operator-visible conflict and missing-question errors
+- Implementation notes:
+  - wire the command through `session_service.provide_user_answer(...)`
+  - keep answer submission distinct from approval resolution, even if the surface feels similar
+  - make the CLI output clear about whether the answer resumed the suspended turn successfully
+- Tests and validation included in task:
+  - CLI integration tests for answering a pending `ask_user` question and resuming the turn
+  - negative-path tests for invalid question IDs or sessions that are not awaiting user input
+- Done when:
+  - the full `ask_user` pause/resume loop is operable from the CLI alone
+
+### GBX-152: Add HTTP Endpoints For Session Messages And User Answers
+
+- Status: `TODO`
+- Depends on: `GBX-080`, `GBX-081`, `GBX-083`, `GBX-150`, `GBX-151`
+- Goal: expose the same multi-turn interaction surfaces to the dashboard backend that the CLI now supports
+- Deliverables:
+  - `POST /sessions/{session_id}/messages`
+  - `POST /sessions/{session_id}/questions/{question_id}` or equivalent answer-submission endpoint
+  - request and response schemas for prompt submission and question answers
+- Implementation notes:
+  - share service-layer logic with the CLI paths; do not fork state transition rules in the route handlers
+  - keep HTTP conflict semantics explicit for sessions that are not currently actionable
+  - use the existing snapshot and SSE endpoints for follow-on state observation rather than inventing a second live-update mechanism
+- Tests and validation included in task:
+  - HTTP integration tests for successful message submission and question-answer submission
+  - HTTP negative-path tests for unknown sessions, missing questions, and invalid session state transitions
+- Done when:
+  - browser-facing clients can advance a session or answer a pending question through stable backend endpoints
+
+### GBX-153: Implement Dashboard Composer And Pending-Question UX
+
+- Status: `TODO`
+- Depends on: `GBX-091`, `GBX-092`, `GBX-152`
+- Goal: let an operator continue a session directly from the dashboard with clear affordances for both new prompts and `ask_user` answers
+- Deliverables:
+  - dashboard input composer for submitting a new user turn
+  - pending-question UI for answering `ask_user` prompts
+  - loading, disabled, and post-submit states aligned with live session status
+- Implementation notes:
+  - distinguish clearly between “send a new prompt”, “answer the model’s question”, and approval actions
+  - keep the reducer and snapshot hydration logic authoritative for when each control should be enabled
+  - ensure the UI remains usable when the session is running, awaiting approval, awaiting user input, completed, or failed
+- Tests and validation included in task:
+  - frontend reducer and component tests for actionable-state transitions
+  - integration tests for dashboard submission flows backed by mocked HTTP endpoints and SSE updates
+- Done when:
+  - an operator can continue a session end-to-end from the dashboard without switching to the terminal
+
+### GBX-154: Improve Interaction Status Surfaces And Documentation For Multi-Turn Workflows
+
+- Status: `TODO`
+- Depends on: `GBX-150`, `GBX-151`, `GBX-152`, `GBX-153`, `GBX-121`
+- Goal: make the available next action obvious in both terminal and dashboard workflows, and document the supported interaction model clearly
+- Deliverables:
+  - richer `glassbox status` output for actionable next steps such as pending approvals, pending questions, or ready-for-next-prompt sessions
+  - dashboard copy or affordance refinements where state is currently implicit
+  - docs covering the multi-turn operator workflow across CLI and dashboard
+- Implementation notes:
+  - keep status messaging tightly aligned with actual actionable state, not heuristic guesses
+  - document the distinction between resuming a session, submitting a new prompt, answering a pending question, and resolving an approval
+- Tests and validation included in task:
+  - CLI integration tests for the updated status messaging
+  - doc review against the implemented command surface and HTTP/UI flows
+- Done when:
+  - an operator can tell what the next valid action is for any paused or running session without reading source code
+
+---
+
 ## Recommended Build Order For The First Usable Vertical Slice
 
 If an agent wants the fastest path to a demonstrable but architecturally correct version, the recommended order is:
