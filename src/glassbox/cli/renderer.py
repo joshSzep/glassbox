@@ -64,7 +64,7 @@ def format_event_for_terminal(
         return f"Turn failed: {payload.error_message}"
 
     if isinstance(payload, UserMessageReceived):
-        return f"Queued initial prompt: {payload.text}"
+        return f"Queued user message: {payload.text}"
 
     if isinstance(payload, AssistantMessageStarted):
         state.assistant_chunks[payload.message_id] = []

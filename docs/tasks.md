@@ -1201,7 +1201,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-150: Add CLI Command For Submitting A New User Turn To An Existing Session
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-042`, `GBX-032`
 - Goal: let an operator send another user prompt into a running session without dropping to an ad hoc Python snippet
 - Deliverables:

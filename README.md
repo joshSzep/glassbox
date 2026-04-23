@@ -36,6 +36,7 @@ The current command surface is:
 
 ```text
 glassbox run [PROMPT]
+glassbox message SESSION_ID PROMPT
 glassbox resume SESSION_ID
 glassbox status SESSION_ID
 glassbox approve SESSION_ID APPROVAL_ID
@@ -68,6 +69,12 @@ Resume a persisted session:
 
 ```bash
 uv run glassbox resume SESSION_ID --cwd .
+```
+
+Submit another user prompt into an existing running session:
+
+```bash
+uv run glassbox message SESSION_ID "Continue with the next step" --cwd .
 ```
 
 Resolve a pending approval:

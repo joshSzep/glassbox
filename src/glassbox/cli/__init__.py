@@ -31,6 +31,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if args.command == "run":
             return _run_command(args)
+        if args.command == "message":
+            return _message_command(args)
         if args.command == "resume":
             return _resume_command(args)
         if args.command == "status":
@@ -82,6 +84,15 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=_APPROVAL_MODE_CHOICES,
         help="approval mode for risky tool actions",
     )
+
+    message_parser = subparsers.add_parser(
+        "message",
+        help="submit a new prompt to an existing session",
+        description="Submit a new user message into an existing session.",
+    )
+    message_parser.add_argument("session_id", type=_parse_uuid)
+    message_parser.add_argument("prompt", help="user prompt to submit")
+    _add_runtime_location_arguments(message_parser)
 
     resume_parser = subparsers.add_parser(
         "resume",
@@ -221,6 +232,23 @@ async def _resume_command_async(args: argparse.Namespace) -> int:
 
     async def action(runtime_context: RuntimeContext) -> None:
         await runtime_context.services.session_service.resume_session(args.session_id)
+        await asyncio.sleep(0)
+
+    return await _run_with_renderer(cwd, db_path, action)
+
+
+def _message_command(args: argparse.Namespace) -> int:
+    return asyncio.run(_message_command_async(args))
+
+
+async def _message_command_async(args: argparse.Namespace) -> int:
+    cwd, db_path = _resolve_runtime_location(args)
+
+    async def action(runtime_context: RuntimeContext) -> None:
+        await runtime_context.services.session_service.submit_user_message(
+            args.session_id,
+            args.prompt,
+        )
         await asyncio.sleep(0)
 
     return await _run_with_renderer(cwd, db_path, action)

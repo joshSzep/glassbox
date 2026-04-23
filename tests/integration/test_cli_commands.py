@@ -36,11 +36,126 @@ def test_cli_help_lists_session_oriented_commands(
     captured = capsys.readouterr()
 
     assert exc_info.value.code == 0
+    assert "message" in captured.out
     assert "resume" in captured.out
     assert "status" in captured.out
     assert "rebuild" in captured.out
     assert "approve" in captured.out
     assert "deny" in captured.out
+
+
+def test_cli_message_submits_new_user_turn_to_existing_session(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(
+        tmp_path,
+        prompt="Inspect the repository",
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "message",
+            str(session_id),
+            "Now summarize the tests.",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        transcript = repository.list_transcript_messages(session_id)
+        persisted_events = repository.read_session_events(session_id)
+    finally:
+        connection.close()
+
+    assert exit_code == 0
+    assert "Queued user message: Now summarize the tests." in captured.out
+    assert (
+        "Assistant: I received your request: Now summarize the tests." in captured.out
+    )
+    assert transcript[-2].role == "user"
+    assert transcript[-2].parts[0].text == "Now summarize the tests."
+    assert transcript[-1].role == "assistant"
+    assert transcript[-1].parts[0].text == (
+        "I received your request: Now summarize the tests."
+    )
+    assert [event.event_type for event in persisted_events[-6:]] == [
+        "UserMessageReceived",
+        "TurnStarted",
+        "TurnStatusChanged",
+        "ModelCallStarted",
+        "ModelCallCompleted",
+        "TurnStatusChanged",
+    ] or persisted_events[-1].event_type == "TurnCompleted"
+
+
+def test_cli_message_rejects_unknown_session_id(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    unknown_session_id = UUID("00000000-0000-0000-0000-000000000001")
+
+    exit_code = main(
+        [
+            "message",
+            str(unknown_session_id),
+            "Hello",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert captured.err.strip() == f"unknown session_id: {unknown_session_id}"
+
+
+def test_cli_message_rejects_non_interactive_session_state(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=SessionCompleted(reason="done"),
+            )
+        )
+    finally:
+        connection.close()
+
+    _ = capsys.readouterr()
+    exit_code = main(
+        [
+            "message",
+            str(session_id),
+            "Hello again",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert captured.err.strip() == (
+        "session cannot accept input in its current state: completed"
+    )
 
 
 def test_cli_resume_replays_resume_event(

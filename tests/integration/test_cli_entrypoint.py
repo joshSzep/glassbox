@@ -67,7 +67,7 @@ def test_cli_run_creates_a_baseline_session_and_initial_prompt(
 
     assert exit_code == 0
     assert "Started session" in captured.out
-    assert "Queued initial prompt: Inspect the repository" in captured.out
+    assert "Queued user message: Inspect the repository" in captured.out
     assert "Assistant: I received your request: Inspect the repository" in captured.out
     assert [event.event_type for event in persisted_events] == [
         "SessionStarted",
