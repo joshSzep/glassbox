@@ -3,14 +3,20 @@ import assert from "node:assert/strict";
 
 import {
   applyEvent,
+  beginSessionIndexLoad,
+  beginSessionSelection,
   beginApprovalResolution,
   beginInteractionSubmission,
+  clearSessionSelection,
   confirmApprovalResolution,
   confirmInteractionSubmission,
   createState,
+  failSessionIndexLoad,
+  failSessionSelection,
   failApprovalResolution,
   failInteractionSubmission,
   hydrateFromSnapshot,
+  hydrateSessionIndex,
 } from "../../src/glassbox/web/static/state.js";
 
 test("hydrateFromSnapshot copies snapshot fields into dashboard state", () => {
@@ -163,6 +169,78 @@ test("applyEvent tracks session-level failure details", () => {
   assert.equal(failed.currentTurn, null);
   assert.equal(failed.pendingApprovalId, null);
   assert.equal(failed.pendingQuestionId, null);
+});
+
+test("session index helpers track landing-mode hydration and selection", () => {
+  const loading = beginSessionIndexLoad(createState());
+  const withIndex = hydrateSessionIndex(loading, [
+    {
+      session_id: "session-123",
+      status: "running",
+      model_name: "openai:gpt-5.4",
+      cwd: "/tmp/workspace",
+      approval_mode: "confirm",
+      dashboard_url: null,
+      created_at: "2026-04-23T00:00:00Z",
+      updated_at: "2026-04-23T00:00:01Z",
+      last_sequence: 5,
+      pending_approval_id: null,
+      pending_question_id: null,
+      pending_question_text: null,
+      session_failure_message: null,
+      session_failure_retryable: null,
+      latest_message_summary: "user: Inspect the repository",
+      next_action_summary: "Send the next prompt",
+    },
+  ]);
+  const selecting = beginSessionSelection(withIndex, "session-123");
+  const cleared = clearSessionSelection(selecting);
+
+  assert.equal(loading.sessionIndexState, "loading");
+  assert.equal(withIndex.sessionIndexState, "loaded");
+  assert.equal(withIndex.sessionIndex.length, 1);
+  assert.equal(selecting.selectedSessionId, "session-123");
+  assert.equal(selecting.sessionLoadState, "loading");
+  assert.equal(cleared.sessionId, null);
+  assert.equal(cleared.selectedSessionId, null);
+  assert.equal(cleared.sessionIndex.length, 1);
+  assert.equal(cleared.sessionIndexState, "loaded");
+});
+
+test("session selection failures preserve session browser state for recovery", () => {
+  const hydrated = hydrateSessionIndex(createState(), [
+    {
+      session_id: "session-123",
+      status: "failed",
+      model_name: "openai:gpt-5.4",
+      cwd: "/tmp/workspace",
+      approval_mode: "confirm",
+      dashboard_url: null,
+      created_at: "2026-04-23T00:00:00Z",
+      updated_at: "2026-04-23T00:00:01Z",
+      last_sequence: 9,
+      pending_approval_id: null,
+      pending_question_id: null,
+      pending_question_text: null,
+      session_failure_message: "provider bootstrap failed",
+      session_failure_retryable: false,
+      latest_message_summary: null,
+      next_action_summary: "Review failure: provider bootstrap failed",
+    },
+  ]);
+  const failedIndexLoad = failSessionIndexLoad(hydrated, "backend unavailable");
+  const failedSelection = failSessionSelection(
+    beginSessionSelection(hydrated, "missing-session"),
+    "Session not found (404)",
+  );
+
+  assert.equal(failedIndexLoad.sessionIndexState, "failed");
+  assert.equal(failedIndexLoad.sessionIndexError, "backend unavailable");
+  assert.equal(failedSelection.sessionLoadState, "failed");
+  assert.equal(failedSelection.sessionLoadError, "Session not found (404)");
+  assert.equal(failedSelection.sessionIndex.length, 1);
+  assert.equal(failedSelection.transcript.length, 0);
+  assert.equal(failedSelection.currentTurn, null);
 });
 
 test("applyEvent appends transcript messages deterministically", () => {

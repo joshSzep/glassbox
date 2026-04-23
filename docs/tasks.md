@@ -1610,7 +1610,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-182: Implement Standalone Dashboard Landing Page And Session Browser
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-090`, `GBX-091`, `GBX-180`, `GBX-181`
 - Goal: make the standalone dashboard usable even when the operator starts at `/` with no session query parameter
 - Deliverables:

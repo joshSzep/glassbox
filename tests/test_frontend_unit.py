@@ -22,6 +22,7 @@ def test_dashboard_state_reducer_unit_tests() -> None:
             "tests/frontend/test_interaction_actions.js",
             "tests/frontend/test_dashboard_state.js",
             "tests/frontend/test_dashboard_render.js",
+            "tests/frontend/test_dashboard_app.js",
         ],
         cwd=repo_root,
         capture_output=True,

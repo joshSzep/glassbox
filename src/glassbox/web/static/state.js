@@ -16,6 +16,7 @@
  * @typedef {{turn_id: string, tool_call_id: string, stream: string, chunk: string}} LiveOutputEntry
  * @typedef {{sequence: number, event_type: string}} EventLogEntry
  * @typedef {{kind: "message" | "answer" | null, state: "idle" | "submitting" | "submitted" | "failed", error: string | null}} InteractionSubmission
+ * @typedef {{session_id: string, status: string, model_name: string, cwd: string, approval_mode: string, dashboard_url: string | null, created_at: string, updated_at: string, last_sequence: number, pending_approval_id: string | null, pending_question_id: string | null, pending_question_text: string | null, session_failure_message: string | null, session_failure_retryable: boolean | null, latest_message_summary: string | null, next_action_summary: string}} SessionSummary
  *
  * @typedef {Object} DashboardState
  * @property {string | null} sessionId
@@ -38,6 +39,12 @@
  * @property {PendingApproval[]} pendingApprovals
  * @property {EventLogEntry[]} eventLog
  * @property {InteractionSubmission} interactionSubmission
+ * @property {SessionSummary[]} sessionIndex
+ * @property {"idle" | "loading" | "loaded" | "failed"} sessionIndexState
+ * @property {string | null} sessionIndexError
+ * @property {string | null} selectedSessionId
+ * @property {"idle" | "loading" | "loaded" | "failed"} sessionLoadState
+ * @property {string | null} sessionLoadError
  */
 
 /**
@@ -96,6 +103,12 @@ export function createState() {
       state: "idle",
       error: null,
     },
+    sessionIndex: [],
+    sessionIndexState: "idle",
+    sessionIndexError: null,
+    selectedSessionId: null,
+    sessionLoadState: "idle",
+    sessionLoadError: null,
   };
 }
 
@@ -144,7 +157,9 @@ function inferCurrentTurn(snapshot) {
  */
 export function hydrateFromSnapshot(snapshot) {
   return {
+    ...createState(),
     sessionId: snapshot.session_id,
+    selectedSessionId: snapshot.session_id,
     status: snapshot.status,
     modelName: snapshot.model_name,
     cwd: snapshot.cwd,
@@ -164,6 +179,74 @@ export function hydrateFromSnapshot(snapshot) {
     pendingApprovals: [...(snapshot.pending_approvals ?? [])],
     eventLog: [],
     interactionSubmission: createIdleInteractionSubmission(),
+    sessionLoadState: "loaded",
+  };
+}
+
+export function beginSessionIndexLoad(state) {
+  return {
+    ...state,
+    sessionIndexState: "loading",
+    sessionIndexError: null,
+  };
+}
+
+export function hydrateSessionIndex(state, sessionIndex) {
+  return {
+    ...state,
+    sessionIndex: [...sessionIndex],
+    sessionIndexState: "loaded",
+    sessionIndexError: null,
+  };
+}
+
+export function failSessionIndexLoad(state, errorMessage) {
+  return {
+    ...state,
+    sessionIndexState: "failed",
+    sessionIndexError: errorMessage,
+  };
+}
+
+export function beginSessionSelection(state, sessionId) {
+  return {
+    ...state,
+    selectedSessionId: sessionId,
+    sessionLoadState: sessionId ? "loading" : "idle",
+    sessionLoadError: null,
+    sessionId: sessionId ? state.sessionId : null,
+  };
+}
+
+export function clearSessionSelection(state) {
+  return {
+    ...createState(),
+    sessionIndex: [...state.sessionIndex],
+    sessionIndexState: state.sessionIndexState,
+    sessionIndexError: state.sessionIndexError,
+  };
+}
+
+export function failSessionSelection(state, errorMessage) {
+  return {
+    ...state,
+    sessionId: null,
+    status: "unknown",
+    currentTurn: null,
+    pendingApprovalId: null,
+    pendingQuestionId: null,
+    pendingQuestionText: null,
+    sessionFailureMessage: null,
+    sessionFailureRetryable: null,
+    turnMetrics: [],
+    transcript: [],
+    activeToolCalls: [],
+    liveOutput: [],
+    pendingApprovals: [],
+    eventLog: [],
+    interactionSubmission: createIdleInteractionSubmission(),
+    sessionLoadState: "failed",
+    sessionLoadError: errorMessage,
   };
 }
 

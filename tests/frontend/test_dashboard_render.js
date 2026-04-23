@@ -10,8 +10,10 @@ import {
   renderDashboardPanes,
   renderApprovalsPane,
   renderComposerPane,
+  renderLandingPane,
   renderLiveOutputPane,
   renderMetricsPane,
+  renderSessionBrowserPane,
   renderToolCallsPane,
   renderTurnPane,
 } from "../../src/glassbox/web/static/render.js";
@@ -297,6 +299,60 @@ test("renderTurnPane shows session failure details when no current turn exists",
 
   assert.match(html, /dashboard wiring failed/);
   assert.match(html, /Retryable: yes/);
+});
+
+test("renderSessionBrowserPane shows recent sessions and selected status chips", () => {
+  const html = renderSessionBrowserPane({
+    sessionId: null,
+    selectedSessionId: "session-123",
+    sessionIndexState: "loaded",
+    sessionIndex: [
+      {
+        session_id: "session-123",
+        status: "awaiting_user_input",
+        model_name: "openai:gpt-5.4",
+        cwd: "/tmp/workspace",
+        approval_mode: "confirm",
+        latest_message_summary: "assistant: Which branch should I inspect?",
+        pending_question_text: "Which branch should I inspect?",
+        next_action_summary: "Answer pending question: Which branch should I inspect?",
+      },
+    ],
+  });
+
+  assert.match(html, /session-card selected/);
+  assert.match(html, /awaiting user input/);
+  assert.match(html, /Which branch should I inspect\?/);
+  assert.match(html, /openai:gpt-5\.4/);
+});
+
+test("renderLandingPane shows no-session, loading, and failed selection states", () => {
+  const noSessionHtml = renderLandingPane({
+    sessionId: null,
+    selectedSessionId: null,
+    sessionLoadState: "idle",
+    sessionLoadError: null,
+    sessionIndex: [],
+  });
+  const loadingHtml = renderLandingPane({
+    sessionId: null,
+    selectedSessionId: "session-123",
+    sessionLoadState: "loading",
+    sessionLoadError: null,
+    sessionIndex: [],
+  });
+  const failedHtml = renderLandingPane({
+    sessionId: null,
+    selectedSessionId: "missing-session",
+    sessionLoadState: "failed",
+    sessionLoadError: "Session not found (404)",
+    sessionIndex: [],
+  });
+
+  assert.match(noSessionHtml, /Choose a recent session/);
+  assert.match(loadingHtml, /Opening session-/);
+  assert.match(failedHtml, /Session unavailable/);
+  assert.match(failedHtml, /Session not found \(404\)/);
 });
 
 test("live SessionFailed event replaces failed turn details with session failure pane", () => {

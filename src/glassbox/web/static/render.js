@@ -25,6 +25,18 @@ function renderEmpty(message) {
   return `<p class="empty">${escHtml(message)}</p>`;
 }
 
+function renderStatusChip(status) {
+  const statusText = status ? String(status) : "unknown";
+  return `<span class="status-chip status-chip-${escHtml(statusText)}">${escHtml(statusText.replaceAll("_", " "))}</span>`;
+}
+
+function activeSessionSummary(state) {
+  const selectedSessionId = state.selectedSessionId ?? state.sessionId;
+  return (state.sessionIndex ?? []).find(
+    summary => summary.session_id === selectedSessionId,
+  ) ?? null;
+}
+
 function interactionMode(state) {
   if (state.status === "awaiting_user_input" && state.pendingQuestionId) {
     return "answer";
@@ -52,6 +64,88 @@ export function renderTranscriptPane(state) {
       <div class="message-text">${parts}</div>
     </div>`;
   }).join("");
+}
+
+export function renderSessionBrowserPane(state) {
+  if (state.sessionIndexState === "loading") {
+    return renderEmpty("Loading recent sessions…");
+  }
+
+  if (state.sessionIndexState === "failed") {
+    return `<div class="session-browser-empty">
+      <div class="session-browser-title">Unable to load recent sessions</div>
+      <div class="session-browser-help">${escHtml(state.sessionIndexError ?? "Unknown error")}</div>
+    </div>`;
+  }
+
+  if ((state.sessionIndex ?? []).length === 0) {
+    return `<div class="session-browser-empty">
+      <div class="session-browser-title">No recent sessions</div>
+      <div class="session-browser-help">Start a Glassbox chat session, then return here to inspect it from the browser.</div>
+    </div>`;
+  }
+
+  const selectedSessionId = state.selectedSessionId ?? state.sessionId;
+  return state.sessionIndex.map(summary => {
+    const isSelected = summary.session_id === selectedSessionId;
+    const latestSummary = summary.latest_message_summary ?? "No transcript yet";
+    const pendingSummary = summary.pending_question_text
+      ? `Question: ${summary.pending_question_text}`
+      : summary.next_action_summary;
+
+    return `<button
+      type="button"
+      class="session-card${isSelected ? " selected" : ""}"
+      data-session-id="${escHtml(summary.session_id)}"
+    >
+      <div class="session-card-head">
+        <span class="session-card-id">${escHtml(summary.session_id.slice(0, 8))}</span>
+        ${renderStatusChip(summary.status)}
+      </div>
+      <div class="session-card-meta">${escHtml(summary.model_name)} · ${escHtml(summary.approval_mode)}</div>
+      <div class="session-card-path">${escHtml(summary.cwd)}</div>
+      <div class="session-card-summary">${escHtml(latestSummary)}</div>
+      <div class="session-card-next">${escHtml(pendingSummary)}</div>
+    </button>`;
+  }).join("");
+}
+
+export function renderLandingPane(state) {
+  const selectedSummary = activeSessionSummary(state);
+
+  if (state.sessionLoadState === "loading" && state.selectedSessionId) {
+    return `<div class="landing-state">
+      <div class="landing-eyebrow">Loading session</div>
+      <h2>Opening ${escHtml(state.selectedSessionId.slice(0, 8))}…</h2>
+      <p class="landing-copy">Fetching the latest snapshot and connecting the dashboard stream.</p>
+    </div>`;
+  }
+
+  if (state.sessionLoadState === "failed") {
+    return `<div class="landing-state landing-state-error">
+      <div class="landing-eyebrow">Session unavailable</div>
+      <h2>Choose another recent session</h2>
+      <p class="landing-copy">${escHtml(state.sessionLoadError ?? "The selected session could not be loaded.")}</p>
+    </div>`;
+  }
+
+  if (selectedSummary) {
+    return `<div class="landing-state">
+      <div class="landing-eyebrow">Session selected</div>
+      <h2>Open ${escHtml(selectedSummary.session_id.slice(0, 8))} from the browser</h2>
+      <p class="landing-copy">The dashboard will load the transcript, live events, approvals, and next action controls for the selected session.</p>
+      <div class="landing-summary-row">
+        ${renderStatusChip(selectedSummary.status)}
+        <span class="landing-summary-text">${escHtml(selectedSummary.next_action_summary)}</span>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="landing-state">
+    <div class="landing-eyebrow">Standalone dashboard</div>
+    <h2>Choose a recent session</h2>
+    <p class="landing-copy">Open any recent Glassbox session from the browser without copying a session ID into the URL first.</p>
+  </div>`;
 }
 
 export function renderTurnPane(state) {
@@ -297,6 +391,8 @@ export function renderEventLogPane(state) {
 export function renderDashboardPanes(state) {
   return {
     composer: renderComposerPane(state),
+    landing: renderLandingPane(state),
+    sessionBrowser: renderSessionBrowserPane(state),
     transcript: renderTranscriptPane(state),
     turn: renderTurnPane(state),
     metrics: renderMetricsPane(state),
