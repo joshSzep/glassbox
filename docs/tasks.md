@@ -1442,6 +1442,131 @@ uv run ty check src/glassbox/path.py
 
 ---
 
+## Phase 17: Co-Hosted Dashboard During Interactive Chat
+
+### GBX-170: Define Co-Hosted Dashboard Semantics For `glassbox chat`
+
+- Status: `TODO`
+- Depends on: `GBX-080`, `GBX-161`, `GBX-166`, `GBX-121`
+- Goal: define how an interactive chat session can expose the dashboard from the same owning process without contradicting the current process-local runtime model
+- Deliverables:
+  - architecture and operator-workflow updates describing a co-hosted dashboard for `glassbox chat`
+  - explicit semantics for whether dashboard startup is default, opt-in, or suppressible from the CLI
+  - command-surface proposal for dashboard-related `chat` flags such as host, port, or `--no-dashboard` if justified
+  - explicit positioning of co-hosted dashboard behavior versus the existing standalone `glassbox serve` command
+- Implementation notes:
+  - keep this inside the current single-process architecture; do not introduce a second runtime or daemon-backed owner process
+  - treat the embedded dashboard as a sidecar over the same runtime context and event bus that `chat` already owns
+  - make it explicit that this does not change the GBX-166 decision about true cross-process interactive attach
+  - define expected behavior for port conflicts, startup failures, and clean shutdown when the interactive session exits
+- Tests and validation included in task:
+  - doc review against current `chat`, `serve`, snapshot, and SSE behavior before coding starts
+  - manual verification that the proposed semantics do not imply a second independent runtime stack
+- Done when:
+  - the repo has a clear, code-aligned design for chat-hosted dashboard lifecycle and operator expectations
+
+### GBX-171: Refactor Web Server Bootstrap Into A Reusable Embedded Lifecycle
+
+- Status: `TODO`
+- Depends on: `GBX-080`, `GBX-170`
+- Goal: make the existing web server startable and stoppable from inside an already-running CLI process without duplicating runtime bootstrap
+- Deliverables:
+  - reusable web server lifecycle abstraction for start, readiness, and shutdown
+  - shared startup path that can be used by both `glassbox serve` and an embedded `chat` sidecar
+  - server configuration model or equivalent typed inputs for host, port, and runtime context reuse
+- Implementation notes:
+  - do not open a second `RuntimeContext` when embedding the dashboard into `chat`
+  - preserve the standalone `serve` command by routing it through the same lifecycle abstraction where practical
+  - ensure embedded startup failures surface clear operator-visible errors instead of hanging the interactive loop
+  - keep shutdown deterministic so the server does not outlive the owning interactive process
+- Tests and validation included in task:
+  - integration tests for server startup, readiness, and shutdown using the reusable lifecycle path
+  - regression tests proving `glassbox serve` still starts the dashboard correctly after the refactor
+- Done when:
+  - the web server can be hosted either standalone or as an embedded component without duplicating runtime ownership
+
+### GBX-172: Make Session Dashboard Metadata Truthful And Configurable
+
+- Status: `TODO`
+- Depends on: `GBX-032`, `GBX-170`, `GBX-171`
+- Goal: ensure session metadata only advertises a dashboard URL when a live server is actually available for that session
+- Deliverables:
+  - runtime wiring so `SessionStarted.dashboard_url` reflects actual server availability rather than a hardcoded default
+  - configuration path for dashboard host and port values used by co-hosted and standalone sessions
+  - consistent session-status and snapshot behavior when no live dashboard is present
+- Implementation notes:
+  - avoid claiming a live dashboard URL for `chat` or `run` sessions unless the server has actually bound successfully
+  - preserve compatibility with persisted sessions that may already contain historical `dashboard_url` values
+  - keep the event contract stable unless a schema change is genuinely required
+- Tests and validation included in task:
+  - integration tests for sessions started with and without a live dashboard server
+  - tests for status and snapshot behavior when the dashboard is unavailable or explicitly disabled
+- Done when:
+  - session metadata, CLI status output, and dashboard snapshot fields agree about whether a dashboard is live
+
+### GBX-173: Start The Dashboard Automatically During `glassbox chat`
+
+- Status: `TODO`
+- Depends on: `GBX-161`, `GBX-164`, `GBX-170`, `GBX-171`, `GBX-172`
+- Goal: make the web dashboard available while an interactive chat session is in progress without requiring a second terminal command
+- Deliverables:
+  - `glassbox chat` startup path that launches the dashboard sidecar in the owning process
+  - operator-visible dashboard URL output during interactive startup
+  - support for the dashboard control flags defined in `GBX-170`
+  - shutdown wiring that stops the co-hosted server when the interactive chat session exits
+- Implementation notes:
+  - start the dashboard early enough that the operator can open it during the active session, but do not block the terminal loop on manual browser interaction
+  - keep renderer output and dashboard-startup messaging readable together with the existing interactive prompt coordination
+  - if dashboard startup is optional or can fail softly, define the exact fallback behavior and keep it explicit in terminal output
+  - do not make `attach` implicitly claim the same behavior unless a later task adds it deliberately
+- Tests and validation included in task:
+  - CLI integration tests for `glassbox chat` with successful dashboard startup and clean shutdown
+  - negative-path tests for port conflicts, startup failure, or dashboard-disabled modes
+  - tests that interactive prompt routing still works while the sidecar server is running
+- Done when:
+  - a user can start `glassbox chat` once and immediately open the dashboard for that same live session
+
+### GBX-174: Validate Snapshot And SSE Behavior Against An Active Chat-Owned Dashboard
+
+- Status: `TODO`
+- Depends on: `GBX-081`, `GBX-082`, `GBX-173`
+- Goal: prove that the co-hosted dashboard exposes the same live session state that the interactive terminal is currently driving
+- Deliverables:
+  - integration coverage for snapshot access to the active chat session while the interactive loop is running
+  - integration coverage for SSE event delivery during a live chat-owned session
+  - regression coverage that browser observation does not interfere with terminal interaction semantics
+- Implementation notes:
+  - test the actual shared-runtime path rather than a synthetic second-runtime approximation
+  - cover at least one multi-turn interaction while snapshot and SSE clients are connected
+  - ensure approval and `ask_user` pause states remain visible and actionable from the browser view during chat
+- Tests and validation included in task:
+  - HTTP integration tests for session snapshot and SSE delivery against a chat-owned runtime
+  - end-to-end style tests for a live chat session observed concurrently by the dashboard backend
+- Done when:
+  - the co-hosted dashboard is regression-tested as a faithful live view over an active interactive chat session
+
+### GBX-175: Document Co-Hosted Dashboard Workflow And Standalone `serve` Positioning
+
+- Status: `TODO`
+- Depends on: `GBX-173`, `GBX-174`, `GBX-121`, `GBX-165`
+- Goal: document how the dashboard fits into the interactive chat workflow without confusing it with daemon-backed attach or standalone dashboard use
+- Deliverables:
+  - README updates covering dashboard availability during `glassbox chat`
+  - operator guidance for when to rely on chat-hosted dashboard behavior versus `glassbox serve`
+  - troubleshooting notes for dashboard-disabled mode, port conflicts, and session shutdown behavior
+  - explicit reminder that co-hosting the dashboard does not make interactive attach cross-process or daemon-backed
+- Implementation notes:
+  - keep examples aligned with the actual `chat` flags and startup output
+  - explain how to open the current session directly in the browser, including any `?session=SESSION_ID` behavior that remains relevant
+  - keep the docs honest about what survives process exit and what still requires standalone observation paths
+- Tests and validation included in task:
+  - doc review against implemented `chat` help text, startup messaging, and HTTP behavior
+  - manual verification of the documented chat-plus-dashboard workflow against the actual CLI
+- Done when:
+  - an operator can discover and use the co-hosted dashboard workflow from the docs alone without guessing how it relates to `serve`
+
+---
+
 ## Recommended Build Order For The First Usable Vertical Slice
 
 If an agent wants the fastest path to a demonstrable but architecturally correct version, the recommended order is:
