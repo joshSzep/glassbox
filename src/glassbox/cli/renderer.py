@@ -40,6 +40,22 @@ class CliRenderState:
     tool_names: dict[ToolCallId, str] = field(default_factory=dict)
 
 
+@dataclass(slots=True)
+class InteractivePromptState:
+    """Current interactive prompt state while the CLI awaits operator input."""
+
+    prompt_label: str | None = None
+    context_lines: tuple[str, ...] = ()
+
+    def activate(self, prompt_label: str, context_lines: Iterable[str]) -> None:
+        self.prompt_label = prompt_label
+        self.context_lines = tuple(context_lines)
+
+    def clear(self) -> None:
+        self.prompt_label = None
+        self.context_lines = ()
+
+
 def format_event_for_terminal(
     event: EventEnvelope,
     state: CliRenderState,
@@ -125,15 +141,28 @@ def format_event_for_terminal(
 class CliEventRenderer:
     """Render event envelopes into a text stream for the CLI."""
 
-    def __init__(self, stream: TextIO) -> None:
+    def __init__(
+        self,
+        stream: TextIO,
+        prompt_state: InteractivePromptState | None = None,
+    ) -> None:
         self._stream = stream
         self._state = CliRenderState()
+        self._prompt_state = prompt_state
 
     def render_event(self, event: EventEnvelope) -> None:
         line = format_event_for_terminal(event, self._state)
         if line is None:
             return
-        self._stream.write(f"{line}\n")
+        prompt_state = self._prompt_state
+        if prompt_state is not None and prompt_state.prompt_label is not None:
+            self._stream.write("\n")
+            self._stream.write(f"{line}\n")
+            for context_line in prompt_state.context_lines:
+                self._stream.write(f"{context_line}\n")
+            self._stream.write(prompt_state.prompt_label)
+        else:
+            self._stream.write(f"{line}\n")
         self._stream.flush()
 
     def render_events(self, events: Iterable[EventEnvelope]) -> None:

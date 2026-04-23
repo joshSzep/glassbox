@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from uuid import UUID
 
-from glassbox.cli.renderer import CliEventRenderer
+from glassbox.cli.renderer import CliEventRenderer, InteractivePromptState
 from glassbox.core import SessionConfig, TranscriptMessage
 from glassbox.core.events import (
     EventEnvelope,
@@ -279,7 +279,10 @@ async def _run_command_async(args: argparse.Namespace) -> int:
         approval_mode=args.approval_mode,
     )
 
-    async def action(runtime_context: RuntimeContext) -> None:
+    async def action(
+        runtime_context: RuntimeContext,
+        _prompt_state: InteractivePromptState,
+    ) -> None:
         session_state = await runtime_context.services.session_service.start_session(
             config
         )
@@ -306,7 +309,10 @@ async def _chat_command_async(args: argparse.Namespace) -> int:
         approval_mode=args.approval_mode,
     )
 
-    async def action(runtime_context: RuntimeContext) -> None:
+    async def action(
+        runtime_context: RuntimeContext,
+        prompt_state: InteractivePromptState,
+    ) -> None:
         session_state = await runtime_context.services.session_service.start_session(
             config
         )
@@ -318,7 +324,11 @@ async def _chat_command_async(args: argparse.Namespace) -> int:
             )
             await asyncio.sleep(0)
         print(f"Attached to session {session_state.session_id}")
-        await _interactive_session_loop(runtime_context, session_state.session_id)
+        await _interactive_session_loop(
+            runtime_context,
+            session_state.session_id,
+            prompt_state,
+        )
 
     return await _run_with_renderer(cwd, db_path, action)
 
@@ -330,7 +340,10 @@ def _attach_command(args: argparse.Namespace) -> int:
 async def _attach_command_async(args: argparse.Namespace) -> int:
     cwd, db_path = _resolve_runtime_location(args)
 
-    async def action(runtime_context: RuntimeContext) -> None:
+    async def action(
+        runtime_context: RuntimeContext,
+        prompt_state: InteractivePromptState,
+    ) -> None:
         repository = runtime_context.repositories.sessions
         state = repository.get_session_state(args.session_id)
         if state is None:
@@ -338,7 +351,11 @@ async def _attach_command_async(args: argparse.Namespace) -> int:
 
         _ensure_session_can_attach(args.session_id, state)
         print(f"Attached to session {args.session_id}")
-        await _interactive_session_loop(runtime_context, args.session_id)
+        await _interactive_session_loop(
+            runtime_context,
+            args.session_id,
+            prompt_state,
+        )
 
     return await _run_with_renderer(cwd, db_path, action)
 
@@ -350,7 +367,10 @@ def _resume_command(args: argparse.Namespace) -> int:
 async def _resume_command_async(args: argparse.Namespace) -> int:
     cwd, db_path = _resolve_runtime_location(args)
 
-    async def action(runtime_context: RuntimeContext) -> None:
+    async def action(
+        runtime_context: RuntimeContext,
+        _prompt_state: InteractivePromptState,
+    ) -> None:
         await runtime_context.services.session_service.resume_session(args.session_id)
         await asyncio.sleep(0)
 
@@ -364,7 +384,10 @@ def _message_command(args: argparse.Namespace) -> int:
 async def _message_command_async(args: argparse.Namespace) -> int:
     cwd, db_path = _resolve_runtime_location(args)
 
-    async def action(runtime_context: RuntimeContext) -> None:
+    async def action(
+        runtime_context: RuntimeContext,
+        _prompt_state: InteractivePromptState,
+    ) -> None:
         await runtime_context.services.session_service.submit_user_message(
             args.session_id,
             args.prompt,
@@ -381,7 +404,10 @@ def _answer_command(args: argparse.Namespace) -> int:
 async def _answer_command_async(args: argparse.Namespace) -> int:
     cwd, db_path = _resolve_runtime_location(args)
 
-    async def action(runtime_context: RuntimeContext) -> None:
+    async def action(
+        runtime_context: RuntimeContext,
+        _prompt_state: InteractivePromptState,
+    ) -> None:
         await runtime_context.services.session_service.provide_user_answer(
             args.session_id,
             args.question_id,
@@ -404,8 +430,10 @@ def _status_command(args: argparse.Namespace) -> int:
 async def _interactive_session_loop(
     runtime_context: RuntimeContext,
     session_id: UUID,
+    prompt_state: InteractivePromptState,
 ) -> None:
     repository = runtime_context.repositories.sessions
+    prompt_state.clear()
 
     while True:
         state = repository.get_session_state(session_id)
@@ -413,17 +441,34 @@ async def _interactive_session_loop(
             raise ValueError(f"unknown session_id: {session_id}")
 
         mode = _interactive_mode(state)
-        _render_interactive_prompt_context(repository, session_id, state, mode)
+        prompt_context_lines = _interactive_prompt_context_lines(
+            repository,
+            session_id,
+            state,
+            mode,
+        )
+        _render_interactive_prompt_context(prompt_context_lines)
 
         if mode == "paused":
+            prompt_state.clear()
             return
 
+        prompt_label = _interactive_prompt_label(mode)
+        prompt_state.activate(prompt_label, prompt_context_lines)
         try:
-            user_input = _read_interactive_input(_interactive_prompt_label(mode))
+            user_input = await _read_interactive_input_async(prompt_label)
         except EOFError, KeyboardInterrupt:
+            prompt_state.clear()
             print()
             print(f"Leaving interactive session {session_id}")
             return
+        finally:
+            prompt_state.clear()
+
+        state = repository.get_session_state(session_id)
+        if state is None:
+            raise ValueError(f"unknown session_id: {session_id}")
+        mode = _interactive_mode(state)
 
         action_kind, action_value = _parse_interactive_input(user_input)
         if action_kind == "continue":
@@ -598,6 +643,10 @@ def _read_interactive_input(prompt: str) -> str:
     return input(prompt)
 
 
+async def _read_interactive_input_async(prompt: str) -> str:
+    return await asyncio.to_thread(_read_interactive_input, prompt)
+
+
 def _parse_interactive_input(user_input: str) -> tuple[str, str]:
     trimmed = user_input.strip()
     if not trimmed:
@@ -663,39 +712,41 @@ def _interactive_prompt_label(mode: str) -> str:
     return "session> "
 
 
-def _render_interactive_prompt_context(
+def _interactive_prompt_context_lines(
     repository,
     session_id: UUID,
     state: SessionState,
     mode: str,
-) -> None:
+) -> list[str]:
     if mode == "answer":
         session_events = repository.read_session_events(session_id)
         question_text = _pending_question_text_from_events(
             session_events,
             state.pending_question_id,
         )
-        print(
+        return [
             _format_pending_question_line(
                 state.pending_question_id,
                 question_text,
-            )
-        )
-        print(
+            ),
             "Interactive mode: answer the pending question, or use /status, "
-            "/help, or /exit."
-        )
-        return
+            "/help, or /exit.",
+        ]
     if mode == "approval":
-        print(_interactive_blocked_input_message(state, session_id))
-        print("Interactive mode: use /approve, /deny, /status, /help, or /exit.")
-        return
+        return [
+            _interactive_blocked_input_message(state, session_id),
+            "Interactive mode: use /approve, /deny, /status, /help, or /exit.",
+        ]
     if mode == "prompt":
-        print(
+        return [
             "Interactive mode: type the next prompt, or use /status, /help, or /exit."
-        )
-        return
-    print(_format_interactive_chat_pause_line(repository, session_id, state))
+        ]
+    return [_format_interactive_chat_pause_line(repository, session_id, state)]
+
+
+def _render_interactive_prompt_context(context_lines: Sequence[str]) -> None:
+    for context_line in context_lines:
+        print(context_line)
 
 
 def _interactive_blocked_input_message(state: SessionState, session_id: UUID) -> str:
@@ -982,7 +1033,10 @@ async def _resolve_approval_command_async(
 ) -> int:
     cwd, db_path = _resolve_runtime_location(args)
 
-    async def action(runtime_context: RuntimeContext) -> None:
+    async def action(
+        runtime_context: RuntimeContext,
+        _prompt_state: InteractivePromptState,
+    ) -> None:
         await runtime_context.services.session_service.resolve_approval(
             args.session_id,
             args.approval_id,
@@ -996,20 +1050,22 @@ async def _resolve_approval_command_async(
 async def _run_with_renderer(
     cwd: Path,
     db_path: Path | None,
-    action: Callable[[RuntimeContext], Awaitable[None]],
+    action: Callable[[RuntimeContext, InteractivePromptState], Awaitable[None]],
 ) -> int:
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
-        renderer = CliEventRenderer(sys.stdout)
+        prompt_state = InteractivePromptState()
+        renderer = CliEventRenderer(sys.stdout, prompt_state=prompt_state)
         async with runtime_context.infrastructure.event_bus.subscribe() as subscription:
             render_task = asyncio.create_task(
                 renderer.render_subscription(subscription)
             )
             try:
-                await action(runtime_context)
+                await action(runtime_context, prompt_state)
             except Exception:
                 await asyncio.sleep(0)
                 raise
             finally:
+                prompt_state.clear()
                 render_task.cancel()
                 with suppress(asyncio.CancelledError):
                     await render_task

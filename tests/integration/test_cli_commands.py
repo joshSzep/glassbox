@@ -1,5 +1,6 @@
 """Integration tests for session-oriented CLI commands."""
 
+import asyncio
 import sqlite3
 from contextlib import nullcontext
 from pathlib import Path
@@ -64,6 +65,7 @@ from glassbox.tools import (
     ToolPolicyEngine,
     ToolRuntime,
     build_ask_user_tool_registry,
+    build_patch_tool_registry,
 )
 
 
@@ -592,6 +594,142 @@ def test_cli_attach_supports_deny_slash_command(
     assert persisted_events[-1].event_type == "ApprovalResolved"
     assert isinstance(persisted_events[-1].payload, ApprovalResolved)
     assert persisted_events[-1].payload.decision == ApprovalDecision.DENIED
+
+
+def test_cli_chat_redraws_prompt_and_routes_answer_after_question_arrives_mid_prompt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    runtime_context, connection = _make_ask_user_runtime_context(tmp_path)
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    read_count = 0
+
+    async def fake_read_interactive_input(prompt: str) -> str:
+        nonlocal read_count
+        read_count += 1
+        if read_count == 1:
+            session_id = runtime_context.repositories.sessions.list_sessions()[
+                0
+            ].session_id
+            await runtime_context.services.session_service.submit_user_message(
+                session_id,
+                "Pick a colour.",
+            )
+            await asyncio.sleep(0)
+            return "blue"
+        return "/exit"
+
+    monkeypatch.setattr(
+        "glassbox.cli.open_runtime_context",
+        lambda cwd, db_path=None: nullcontext(runtime_context),
+    )
+    monkeypatch.setattr(
+        "glassbox.cli._read_interactive_input_async",
+        fake_read_interactive_input,
+    )
+
+    try:
+        exit_code = main(
+            [
+                "chat",
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+            ]
+        )
+        captured = capsys.readouterr()
+
+        session_id = runtime_context.repositories.sessions.list_sessions()[0].session_id
+        state = runtime_context.repositories.sessions.get_session_state(session_id)
+        transcript = runtime_context.repositories.sessions.list_transcript_messages(
+            session_id
+        )
+    finally:
+        connection.close()
+
+    assert exit_code == 0
+    assert "Question asked (" in captured.out
+    assert (
+        "Interactive mode: type the next prompt, or use /status, /help, or /exit.\n"
+        "prompt> "
+    ) in captured.out
+    assert "Answer submitted for question" in captured.out
+    assert "Assistant: I will use: blue" in captured.out
+    assert state is not None
+    assert state.status == "running"
+    assert state.pending_question_id is None
+    assert transcript[-1].parts[0].text == "I will use: blue"
+
+
+def test_cli_chat_redraws_prompt_and_routes_approval_after_request_arrives_mid_prompt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    runtime_context, connection = _make_approval_runtime_context(tmp_path)
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    read_count = 0
+
+    async def fake_read_interactive_input(prompt: str) -> str:
+        nonlocal read_count
+        read_count += 1
+        if read_count == 1:
+            session_id = runtime_context.repositories.sessions.list_sessions()[
+                0
+            ].session_id
+            await runtime_context.services.session_service.submit_user_message(
+                session_id,
+                "Apply the patch.",
+            )
+            await asyncio.sleep(0)
+            return "/approve"
+        return "/exit"
+
+    monkeypatch.setattr(
+        "glassbox.cli.open_runtime_context",
+        lambda cwd, db_path=None: nullcontext(runtime_context),
+    )
+    monkeypatch.setattr(
+        "glassbox.cli._read_interactive_input_async",
+        fake_read_interactive_input,
+    )
+
+    try:
+        exit_code = main(
+            [
+                "chat",
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+            ]
+        )
+        captured = capsys.readouterr()
+
+        session_id = runtime_context.repositories.sessions.list_sessions()[0].session_id
+        state = runtime_context.repositories.sessions.get_session_state(session_id)
+        persisted_events = runtime_context.repositories.sessions.read_session_events(
+            session_id
+        )
+    finally:
+        connection.close()
+
+    assert exit_code == 0
+    assert "Approval requested: apply_patch (approval required:" in captured.out
+    assert (
+        "Interactive mode: type the next prompt, or use /status, /help, or /exit.\n"
+        "prompt> "
+    ) in captured.out
+    assert "Approval resolved: approved by user" in captured.out
+    assert "Assistant: Patch applied." in captured.out
+    assert state is not None
+    assert state.status == "running"
+    assert state.pending_approval_id is None
+    assert any(
+        isinstance(event.payload, ApprovalResolved) for event in persisted_events
+    )
 
 
 def test_cli_attach_rejects_unknown_session_id(
@@ -1345,6 +1483,36 @@ def _ask_user_then_text_response(
     return ModelResponse(parts=[TextPart(content=f"I will use: {answer}")])
 
 
+def _patch_then_text_response(
+    messages: list,
+    _agent_info: Any,
+) -> ModelResponse:
+    saw_tool_return = False
+
+    for message in messages:
+        if isinstance(message, ModelRequest):
+            for part in message.parts:
+                if isinstance(part, ToolReturnPart) and part.tool_name == "apply_patch":
+                    saw_tool_return = True
+
+    if not saw_tool_return:
+        return ModelResponse(
+            parts=[
+                ToolCallPart(
+                    tool_name="apply_patch",
+                    args={
+                        "path": "hello.txt",
+                        "old_text": "",
+                        "new_text": "Hello from CLI chat!\n",
+                    },
+                    tool_call_id="provider-call-cli-chat-patch-1",
+                )
+            ]
+        )
+
+    return ModelResponse(parts=[TextPart(content="Patch applied.")])
+
+
 def _make_ask_user_runtime_context(
     tmp_path: Path,
 ) -> tuple[RuntimeContext, sqlite3.Connection]:
@@ -1375,6 +1543,54 @@ def _make_ask_user_runtime_context(
             ToolPolicyContext(
                 workspace_root=session.cwd,
                 approval_mode=ApprovalMode.NEVER,
+            ),
+        ),
+    )
+    supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+    runtime_context = RuntimeContext(
+        repositories=RuntimeRepositories(
+            sessions=repository,
+            artifacts=artifact_repository,
+        ),
+        services=RuntimeServices(session_service=supervisor),
+        infrastructure=RuntimeInfrastructure(
+            event_bus=bus,
+            artifacts_root=artifacts_root,
+        ),
+    )
+    return runtime_context, connection
+
+
+def _make_approval_runtime_context(
+    tmp_path: Path,
+) -> tuple[RuntimeContext, sqlite3.Connection]:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    connection = open_database(db_path)
+    initialize_database(connection)
+
+    repository = SQLiteSessionRepository(connection)
+    artifacts_root = tmp_path / ".glassbox" / "artifacts"
+    artifact_repository = FilesystemArtifactRepository(connection, artifacts_root)
+    bus: EventBus[EventEnvelope] = EventBus()
+    turn_engine = TurnEngine(
+        repository,
+        bus,
+        TurnContextBuilder(repository),
+        lambda _session: PydanticAIModelAdapter(
+            ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+        ),
+        lambda _session: PydanticAIModelExecutor(
+            FunctionModel(
+                function=_patch_then_text_response,
+                model_name="openai:gpt-5.4",
+            )
+        ),
+        lambda session: ToolRuntime(
+            build_patch_tool_registry(session.cwd),
+            ToolPolicyEngine(),
+            ToolPolicyContext(
+                workspace_root=session.cwd,
+                approval_mode=ApprovalMode.CONFIRM,
             ),
         ),
     )

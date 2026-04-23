@@ -1,9 +1,10 @@
 """Integration tests for rendering a fake event stream into terminal output."""
 
 import asyncio
+from contextlib import suppress
 from io import StringIO
 
-from glassbox.cli.renderer import CliEventRenderer
+from glassbox.cli.renderer import CliEventRenderer, InteractivePromptState
 from glassbox.core import EventEnvelope, MessagePart
 from glassbox.core.events import (
     ApprovalRequested,
@@ -13,6 +14,7 @@ from glassbox.core.events import (
     SessionStarted,
     ToolExecutionCompleted,
     ToolExecutionStarted,
+    UserQuestionAsked,
 )
 from glassbox.core.ids import (
     new_approval_id,
@@ -32,6 +34,16 @@ def test_renderer_renders_representative_fake_event_stream() -> None:
     assert "Tool completed: search succeeded: found 3 results (exit code 0)" in output
     assert "Approval requested: run shell command (needs confirmation)" in output
     assert "Assistant: Here is the answer." in output
+
+
+def test_renderer_redraws_prompt_context_when_events_arrive_mid_prompt() -> None:
+    output = asyncio.run(_render_fake_stream_with_active_prompt())
+
+    assert "Question asked (" in output
+    assert (
+        "Interactive mode: type the next prompt, or use /status, /help, or /exit.\n"
+        "prompt> "
+    ) in output
 
 
 async def _render_fake_stream() -> str:
@@ -118,6 +130,47 @@ async def _render_fake_stream() -> str:
                     payload=AssistantMessageCompleted(
                         message_id=message_id,
                         parts=[MessagePart(kind="text", text="Here is the answer.")],
+                    ),
+                )
+            )
+            await asyncio.sleep(0)
+        finally:
+            render_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await render_task
+
+    return stream.getvalue()
+
+
+async def _render_fake_stream_with_active_prompt() -> str:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    stream = StringIO()
+    prompt_state = InteractivePromptState()
+    renderer = CliEventRenderer(stream, prompt_state=prompt_state)
+    bus: EventBus[EventEnvelope] = EventBus()
+
+    prompt_state.activate(
+        "prompt> ",
+        [
+            "Interactive mode: type the next prompt, or use /status, /help, or /exit.",
+        ],
+    )
+    stream.write("prompt> ")
+
+    async with bus.subscribe() as subscription:
+        render_task = asyncio.create_task(renderer.render_subscription(subscription))
+        try:
+            bus.publish(
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=1,
+                    payload=UserQuestionAsked(
+                        question_id=new_session_id(),
+                        turn_id=turn_id,
+                        tool_call_id=new_tool_call_id(),
+                        provider_tool_call_id="provider-ask-1",
+                        question="What colour should I use?",
                     ),
                 )
             )

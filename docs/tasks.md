@@ -1384,7 +1384,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-164: Improve Terminal Rendering And Prompt Coordination For Long-Lived Interactive Sessions
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-161`, `GBX-162`, `GBX-163`
 - Goal: keep streamed runtime events and operator input readable together during a long-lived terminal session
 - Deliverables:

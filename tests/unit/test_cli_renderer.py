@@ -5,6 +5,7 @@ from io import StringIO
 from glassbox.cli.renderer import (
     CliEventRenderer,
     CliRenderState,
+    InteractivePromptState,
     format_event_for_terminal,
 )
 from glassbox.core import EventEnvelope, MessagePart
@@ -201,3 +202,42 @@ def test_renderer_writes_only_visible_lines() -> None:
     )
 
     assert stream.getvalue() == "Assistant: Hello\n"
+
+
+def test_renderer_redraws_active_interactive_prompt_after_visible_event() -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    tool_call_id = new_tool_call_id()
+    question_id = new_session_id()
+    stream = StringIO()
+    prompt_state = InteractivePromptState()
+    renderer = CliEventRenderer(stream, prompt_state=prompt_state)
+
+    prompt_state.activate(
+        "prompt> ",
+        [
+            "Interactive mode: type the next prompt, or use /status, /help, or /exit.",
+        ],
+    )
+    stream.write("prompt> ")
+
+    renderer.render_event(
+        EventEnvelope(
+            session_id=session_id,
+            sequence=1,
+            payload=UserQuestionAsked(
+                question_id=question_id,
+                turn_id=turn_id,
+                tool_call_id=tool_call_id,
+                provider_tool_call_id="provider-ask-1",
+                question="What colour should I use?",
+            ),
+        )
+    )
+
+    assert stream.getvalue() == (
+        "prompt> \n"
+        f"Question asked ({question_id}): What colour should I use?\n"
+        "Interactive mode: type the next prompt, or use /status, /help, or /exit.\n"
+        "prompt> "
+    )
