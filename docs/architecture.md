@@ -420,6 +420,14 @@ class ToolArtifactRecorded(EventPayload):
     path: str | None = None
 
 
+class ReplayArtifactRecorded(EventPayload):
+    turn_id: UUID
+    artifact_id: UUID
+    artifact_kind: str
+    path: str | None = None
+    tool_call_id: UUID | None = None
+
+
 class ToolExecutionCompleted(EventPayload):
     turn_id: UUID
     tool_call_id: UUID
@@ -502,6 +510,7 @@ EventPayloadType = Annotated[
         | ToolExecutionStarted
         | ToolOutputChunk
         | ToolArtifactRecorded
+        | ReplayArtifactRecorded
         | ToolExecutionCompleted
         | ApprovalRequested
         | ApprovalResolved

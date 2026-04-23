@@ -89,6 +89,7 @@ def _build_runtime_context(
         _build_model_adapter,
         _build_model_executor_factory(provider_config),
         _build_tool_runtime,
+        artifact_repository=artifact_repository,
     )
     session_service = SessionSupervisor(
         session_repository,

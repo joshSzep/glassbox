@@ -282,6 +282,11 @@ def test_cli_message_submits_new_user_turn_to_existing_session(
         repository = SQLiteSessionRepository(connection)
         transcript = repository.list_transcript_messages(session_id)
         persisted_events = repository.read_session_events(session_id)
+        primary_events = [
+            event.event_type
+            for event in persisted_events
+            if event.event_type != "ReplayArtifactRecorded"
+        ]
     finally:
         connection.close()
 
@@ -296,14 +301,18 @@ def test_cli_message_submits_new_user_turn_to_existing_session(
     assert transcript[-1].parts[0].text == (
         "I received your request: Now summarize the tests."
     )
-    assert [event.event_type for event in persisted_events[-6:]] == [
-        "UserMessageReceived",
-        "TurnStarted",
-        "TurnStatusChanged",
-        "ModelCallStarted",
-        "ModelCallCompleted",
-        "TurnStatusChanged",
-    ] or persisted_events[-1].event_type == "TurnCompleted"
+    assert (
+        primary_events[-6:]
+        == [
+            "UserMessageReceived",
+            "TurnStarted",
+            "TurnStatusChanged",
+            "ModelCallStarted",
+            "ModelCallCompleted",
+            "TurnStatusChanged",
+        ]
+        or primary_events[-1] == "TurnCompleted"
+    )
 
 
 def test_cli_chat_keeps_session_open_for_multiple_prompts(

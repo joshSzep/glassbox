@@ -150,6 +150,15 @@ class ToolArtifactRecorded(EventPayload):
     path: str | None = None
 
 
+class ReplayArtifactRecorded(EventPayload):
+    event_type: Literal["ReplayArtifactRecorded"] = "ReplayArtifactRecorded"
+    turn_id: TurnId
+    artifact_id: ArtifactId
+    artifact_kind: str
+    path: str | None = None
+    tool_call_id: ToolCallId | None = None
+
+
 class ToolExecutionCompleted(EventPayload):
     event_type: Literal["ToolExecutionCompleted"] = "ToolExecutionCompleted"
     turn_id: TurnId
@@ -224,6 +233,7 @@ EventPayloadType = Annotated[
     | ToolExecutionStarted
     | ToolOutputChunk
     | ToolArtifactRecorded
+    | ReplayArtifactRecorded
     | ToolExecutionCompleted
     | ApprovalRequested
     | ApprovalResolved

@@ -62,6 +62,11 @@ def test_cli_run_creates_a_baseline_session_and_initial_prompt(
         sessions = repository.list_sessions()
         assert len(sessions) == 1
         persisted_events = repository.read_session_events(sessions[0].session_id)
+        primary_events = [
+            event.event_type
+            for event in persisted_events
+            if event.event_type != "ReplayArtifactRecorded"
+        ]
     finally:
         connection.close()
 
@@ -69,7 +74,7 @@ def test_cli_run_creates_a_baseline_session_and_initial_prompt(
     assert "Started session" in captured.out
     assert "Queued user message: Inspect the repository" in captured.out
     assert "Assistant: I received your request: Inspect the repository" in captured.out
-    assert [event.event_type for event in persisted_events] == [
+    assert primary_events == [
         "SessionStarted",
         "UserMessageReceived",
         "TurnStarted",

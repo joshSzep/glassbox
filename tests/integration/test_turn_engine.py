@@ -1,6 +1,7 @@
 """Integration tests for the non-tool turn engine flow."""
 
 import asyncio
+import json
 import logging
 import sqlite3
 from pathlib import Path
@@ -16,13 +17,19 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import FunctionModel
 
 from glassbox.core import EventEnvelope, SessionConfig, SessionStatus
+from glassbox.core.events import ReplayArtifactRecorded
 from glassbox.llm import (
     ModelProviderConfig,
     PydanticAIModelAdapter,
     PydanticAIModelExecutor,
 )
 from glassbox.runtime import EventBus, SessionSupervisor, TurnContextBuilder, TurnEngine
-from glassbox.store import SQLiteSessionRepository, initialize_database, open_database
+from glassbox.store import (
+    FilesystemArtifactRepository,
+    SQLiteSessionRepository,
+    initialize_database,
+    open_database,
+)
 
 
 def _open_initialized_database(tmp_path: Path) -> sqlite3.Connection:
@@ -187,6 +194,90 @@ def test_turn_engine_emits_correlated_runtime_logs(
     assert model_completed.__dict__["model_name"] == "gpt-5.4"
     assert model_completed.__dict__["duration_ms"] >= 0
     assert turn_completed.__dict__["outcome"] == "completed"
+
+
+def test_turn_engine_records_replay_manifests_for_text_only_turn(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = TurnEngine(
+                repository,
+                bus,
+                TurnContextBuilder(repository),
+                lambda _session: PydanticAIModelAdapter(
+                    ModelProviderConfig(
+                        provider="openai",
+                        model_name="gpt-5.4",
+                        model_settings={
+                            "temperature": 0.2,
+                            "api_key": "super-secret",
+                        },
+                    )
+                ),
+                lambda _session: PydanticAIModelExecutor(
+                    FunctionModel(
+                        function=_function_model_response,
+                        stream_function=_stream_function_model_response,
+                        model_name="openai:gpt-5.4",
+                    )
+                ),
+                artifact_repository=artifact_repository,
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+
+            state = await supervisor.start_session(config)
+            await supervisor.submit_user_message(state.session_id, "Inspect the repo")
+
+            replay_events = [
+                event.payload
+                for event in repository.read_session_events(state.session_id)
+                if isinstance(event.payload, ReplayArtifactRecorded)
+            ]
+            replay_artifacts = {
+                payload.artifact_kind: json.loads(
+                    artifact_repository.read_text_artifact(Path(payload.path))
+                )
+                for payload in replay_events
+                if payload.path is not None
+            }
+        finally:
+            connection.close()
+
+        assert [payload.artifact_kind for payload in replay_events] == [
+            "replay_model_call",
+            "replay_turn_output",
+        ]
+        model_call_manifest = replay_artifacts["replay_model_call"]
+        turn_output_manifest = replay_artifacts["replay_turn_output"]
+        assert (
+            model_call_manifest["runtime_config"]["model_settings"]["api_key"]
+            == "[REDACTED]"
+        )
+        assert (
+            model_call_manifest["runtime_config"]["model_settings"]["temperature"]
+            == 0.2
+        )
+        assert model_call_manifest["prepared_turn"]["user_prompt"] is None
+        assert (
+            model_call_manifest["prepared_turn"]["message_history"][-1]["parts"][0][
+                "content"
+            ]
+            == "Inspect the repo"
+        )
+        assert turn_output_manifest["outcome"] == "completed"
+        assert turn_output_manifest["assistant_text"] == "Repo inspection complete."
+
+    asyncio.run(scenario())
 
 
 def _function_model_response(messages, _agent_info) -> ModelResponse:

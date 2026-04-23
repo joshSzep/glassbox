@@ -1,6 +1,7 @@
 """Integration tests for the ask_user tool: suspension and resume cycle."""
 
 import asyncio
+import json
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -17,7 +18,11 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import FunctionModel
 
 from glassbox.core import EventEnvelope, SessionConfig
-from glassbox.core.events import TurnCompleted, UserQuestionAsked
+from glassbox.core.events import (
+    ReplayArtifactRecorded,
+    TurnCompleted,
+    UserQuestionAsked,
+)
 from glassbox.core.types import SessionStatus
 from glassbox.llm import (
     ModelProviderConfig,
@@ -25,7 +30,12 @@ from glassbox.llm import (
     PydanticAIModelExecutor,
 )
 from glassbox.runtime import EventBus, SessionSupervisor, TurnContextBuilder, TurnEngine
-from glassbox.store import SQLiteSessionRepository, initialize_database, open_database
+from glassbox.store import (
+    FilesystemArtifactRepository,
+    SQLiteSessionRepository,
+    initialize_database,
+    open_database,
+)
 from glassbox.tools import (
     ApprovalMode,
     AskUserArgs,
@@ -248,6 +258,89 @@ def test_provide_user_answer_resumes_turn(tmp_path: Path) -> None:
         # Assistant message must mention the answer
         assert transcript[-1].role == "assistant"
         assert "blue" in transcript[-1].parts[0].text
+
+    asyncio.run(scenario())
+
+
+def test_ask_user_workflow_records_replay_artifacts_across_suspend_and_resume(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = TurnEngine(
+                repository,
+                bus,
+                TurnContextBuilder(repository),
+                lambda _session: PydanticAIModelAdapter(
+                    ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+                ),
+                lambda _session: PydanticAIModelExecutor(
+                    FunctionModel(
+                        function=_ask_user_then_text_response,
+                        model_name="openai:gpt-5.4",
+                    )
+                ),
+                lambda session: ToolRuntime(
+                    build_ask_user_tool_registry(session.cwd),
+                    ToolPolicyEngine(),
+                    ToolPolicyContext(
+                        workspace_root=session.cwd,
+                        approval_mode=ApprovalMode.NEVER,
+                    ),
+                ),
+                artifact_repository=artifact_repository,
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="never",
+            )
+
+            state = await supervisor.start_session(config)
+            await supervisor.submit_user_message(state.session_id, "Pick a colour.")
+            question_payload = next(
+                ev.payload
+                for ev in repository.read_session_events(state.session_id)
+                if isinstance(ev.payload, UserQuestionAsked)
+            )
+            await supervisor.provide_user_answer(
+                state.session_id,
+                question_payload.question_id,
+                "blue",
+            )
+
+            replay_artifacts = [
+                json.loads(
+                    artifact_repository.read_text_artifact(Path(event.payload.path))
+                )
+                for event in repository.read_session_events(state.session_id)
+                if isinstance(event.payload, ReplayArtifactRecorded)
+                and event.payload.path is not None
+            ]
+        finally:
+            connection.close()
+
+        output_outcomes = [
+            artifact["outcome"]
+            for artifact in replay_artifacts
+            if artifact["artifact_kind"] == "replay_turn_output"
+        ]
+        assert output_outcomes == ["awaiting_user_input", "completed"]
+        assert any(
+            artifact["artifact_kind"] == "replay_tool_request"
+            and artifact["tool_name"] == "ask_user"
+            for artifact in replay_artifacts
+        )
+        assert any(
+            artifact["artifact_kind"] == "replay_model_call"
+            and artifact["call_index"] == 2
+            for artifact in replay_artifacts
+        )
 
     asyncio.run(scenario())
 

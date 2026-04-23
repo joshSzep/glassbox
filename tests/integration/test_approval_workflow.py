@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import sqlite3
 from pathlib import Path
 
@@ -19,6 +20,7 @@ from glassbox.core import EventEnvelope, SessionConfig
 from glassbox.core.events import (
     ApprovalRequested,
     ApprovalResolved,
+    ReplayArtifactRecorded,
     TurnCompleted,
 )
 from glassbox.core.types import ApprovalDecision, SessionStatus
@@ -28,7 +30,12 @@ from glassbox.llm import (
     PydanticAIModelExecutor,
 )
 from glassbox.runtime import EventBus, SessionSupervisor, TurnContextBuilder, TurnEngine
-from glassbox.store import SQLiteSessionRepository, initialize_database, open_database
+from glassbox.store import (
+    FilesystemArtifactRepository,
+    SQLiteSessionRepository,
+    initialize_database,
+    open_database,
+)
 from glassbox.tools import (
     ApprovalMode,
     ToolPolicyContext,
@@ -306,6 +313,90 @@ def test_approval_deny_resumes_turn_with_denial_message(tmp_path: Path) -> None:
             isinstance(ev.payload, ApprovalResolved)
             and ev.payload.decision == ApprovalDecision.DENIED
             for ev in all_events
+        )
+
+    asyncio.run(scenario())
+
+
+def test_approval_workflow_records_replay_artifacts_across_suspend_and_resume(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = TurnEngine(
+                repository,
+                bus,
+                TurnContextBuilder(repository),
+                lambda _session: PydanticAIModelAdapter(
+                    ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+                ),
+                lambda _session: PydanticAIModelExecutor(
+                    FunctionModel(
+                        function=_patch_then_text,
+                        model_name="openai:gpt-5.4",
+                    )
+                ),
+                lambda session: ToolRuntime(
+                    build_patch_tool_registry(session.cwd),
+                    ToolPolicyEngine(),
+                    ToolPolicyContext(
+                        workspace_root=session.cwd,
+                        approval_mode=ApprovalMode.CONFIRM,
+                    ),
+                ),
+                artifact_repository=artifact_repository,
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+
+            state = await supervisor.start_session(config)
+            await supervisor.submit_user_message(state.session_id, "Patch the repo.")
+            approval_payload = next(
+                ev.payload
+                for ev in repository.read_session_events(state.session_id)
+                if isinstance(ev.payload, ApprovalRequested)
+            )
+            await supervisor.resolve_approval(
+                state.session_id,
+                approval_payload.approval_id,
+                ApprovalDecision.APPROVED,
+            )
+
+            replay_artifacts = [
+                json.loads(
+                    artifact_repository.read_text_artifact(Path(event.payload.path))
+                )
+                for event in repository.read_session_events(state.session_id)
+                if isinstance(event.payload, ReplayArtifactRecorded)
+                and event.payload.path is not None
+            ]
+        finally:
+            connection.close()
+
+        output_outcomes = [
+            artifact["outcome"]
+            for artifact in replay_artifacts
+            if artifact["artifact_kind"] == "replay_turn_output"
+        ]
+        assert output_outcomes == ["awaiting_approval", "completed"]
+        assert any(
+            artifact["artifact_kind"] == "replay_tool_request"
+            and artifact["tool_name"] == "apply_patch"
+            for artifact in replay_artifacts
+        )
+        assert any(
+            artifact["artifact_kind"] == "replay_tool_result"
+            and artifact["tool_name"] == "apply_patch"
+            and artifact["success"] is True
+            for artifact in replay_artifacts
         )
 
     asyncio.run(scenario())

@@ -1714,7 +1714,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-191: Capture Replay Manifests And Redacted Turn Artifacts During Live Execution
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-025`, `GBX-053`, `GBX-063`, `GBX-144`, `GBX-190`
 - Goal: persist the exact structured inputs and outputs needed to replay completed turns offline without consulting live providers or re-running side-effecting tools
 - Deliverables:

@@ -348,6 +348,18 @@ read recorded manifests and referenced artifacts alongside the canonical event
 stream so the system can compare normalized behavior without reissuing live
 network calls or rerunning side-effecting tools.
 
+### Find Replay Artifacts For A Turn
+
+```sql
+select sequence, event_type, payload_json
+from events
+where session_id = ? and turn_id = ? and event_type = 'ReplayArtifactRecorded'
+order by sequence asc;
+```
+
+This query gives the replay runner a stable event-linked path to the JSON
+artifacts captured for one turn without scanning the artifact directory ad hoc.
+
 ### Find All Events For A Tool Call
 
 ```sql

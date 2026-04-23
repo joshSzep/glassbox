@@ -27,6 +27,7 @@ from glassbox.core.events import (
     ModelCallCompleted,
     ModelCallStarted,
     ModelToolCallRequested,
+    ReplayArtifactRecorded,
     SessionFailed,
     ToolExecutionCompleted,
     ToolExecutionStarted,
@@ -63,7 +64,8 @@ from glassbox.runtime.bus import EventBus
 from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.errors import SessionRuntimeFailure
 from glassbox.runtime.logging import get_runtime_logger, runtime_log_extra
-from glassbox.services import SessionRepository
+from glassbox.runtime.replay_capture import ReplayArtifactRecorder
+from glassbox.services import ArtifactRepository, SessionRepository
 from glassbox.tools import ToolRuntime
 
 ModelAdapterFactory = Callable[[SessionRecord], ModelAdapter]
@@ -78,6 +80,7 @@ TurnEnginePayload = (
     | AssistantMessageDelta
     | AssistantMessageCompleted
     | ModelToolCallRequested
+    | ReplayArtifactRecorded
     | SessionFailed
     | ToolExecutionStarted
     | ToolExecutionCompleted
@@ -103,6 +106,7 @@ class TurnEngine:
         model_adapter_factory: ModelAdapterFactory,
         model_executor_factory: ModelExecutorFactory,
         tool_runtime_factory: ToolRuntimeFactory | None = None,
+        artifact_repository: ArtifactRepository | None = None,
     ) -> None:
         self._session_repository = session_repository
         self._event_bus = event_bus
@@ -110,6 +114,11 @@ class TurnEngine:
         self._model_adapter_factory = model_adapter_factory
         self._model_executor_factory = model_executor_factory
         self._tool_runtime_factory = tool_runtime_factory
+        self._replay_recorder = (
+            ReplayArtifactRecorder(session_repository, artifact_repository)
+            if artifact_repository is not None
+            else None
+        )
 
     async def run_for_user_message(self, event: EventEnvelope) -> None:
         """Process one persisted user message through the turn execution flow."""
@@ -172,6 +181,7 @@ class TurnEngine:
             await self._run_model_loop(
                 event.session_id,
                 turn_id=turn_id,
+                turn_context=turn_context,
                 prepared_turn=prepared_turn,
                 conversation=conversation,
                 model_adapter=model_adapter,
@@ -179,6 +189,7 @@ class TurnEngine:
                 tool_runtime=tool_runtime,
                 assistant_message_id=assistant_message_id,
                 assistant_started=False,
+                starting_model_call_index=0,
             )
         except Exception as exc:
             self._record_failed_turn(
@@ -274,6 +285,7 @@ class TurnEngine:
             await self._run_model_loop(
                 event.session_id,
                 turn_id=turn_id,
+                turn_context=turn_context,
                 prepared_turn=prepared_turn,
                 conversation=conversation,
                 model_adapter=model_adapter,
@@ -281,6 +293,10 @@ class TurnEngine:
                 tool_runtime=tool_runtime,
                 assistant_message_id=assistant_message_id,
                 assistant_started=True,  # AssistantMessageStarted was emitted earlier
+                starting_model_call_index=self._count_model_calls(
+                    event.session_id,
+                    turn_id=turn_id,
+                ),
             )
         except Exception as exc:
             self._record_failed_turn(
@@ -468,6 +484,16 @@ class TurnEngine:
                             success=False,
                         ),
                     )
+                    self._record_replay_tool_result(
+                        event.session_id,
+                        turn_id=turn_id,
+                        tool_call_id=prepared_tool_call.event_tool_call_id,
+                        provider_tool_call_id=prepared_tool_call.provider_tool_call_id,
+                        tool_name=prepared_tool_call.tool_name,
+                        success=False,
+                        summary=str(exc),
+                        error_message=str(exc),
+                    )
                     raise
                 self._append_and_publish(
                     event.session_id,
@@ -480,6 +506,11 @@ class TurnEngine:
                         )
                     ],
                 )
+                self._record_replay_tool_execution_result(
+                    event.session_id,
+                    turn_id=turn_id,
+                    execution_result=execution_result,
+                )
                 conversation.append(execution_result.to_model_request())
             else:
                 # DENIED — inject a denial message as the tool return.
@@ -488,6 +519,7 @@ class TurnEngine:
             await self._run_model_loop(
                 event.session_id,
                 turn_id=turn_id,
+                turn_context=turn_context,
                 prepared_turn=prepared_turn,
                 conversation=conversation,
                 model_adapter=model_adapter,
@@ -495,6 +527,10 @@ class TurnEngine:
                 tool_runtime=tool_runtime,
                 assistant_message_id=assistant_message_id,
                 assistant_started=True,
+                starting_model_call_index=self._count_model_calls(
+                    event.session_id,
+                    turn_id=turn_id,
+                ),
             )
         except Exception as exc:
             self._record_failed_turn(
@@ -548,12 +584,24 @@ class TurnEngine:
                 )
             )
         self._append_and_publish(session_id, failure_events)
+        self._record_replay_turn_output(
+            session_id,
+            turn_id=turn_id,
+            outcome="failed",
+            details={
+                "error_message": str(error),
+                "trigger": trigger,
+                "approval_id": str(approval_id) if approval_id is not None else None,
+                "question_id": str(question_id) if question_id is not None else None,
+            },
+        )
 
     async def _run_model_loop(
         self,
         session_id,
         *,
         turn_id,
+        turn_context,
         prepared_turn: PreparedModelTurn,
         conversation: list[ModelMessage],
         model_adapter: ModelAdapter,
@@ -561,12 +609,15 @@ class TurnEngine:
         tool_runtime: ToolRuntime | None,
         assistant_message_id: MessageId,
         assistant_started: bool,
+        starting_model_call_index: int,
     ) -> None:
         """Run the model call + tool execution loop to completion or suspension."""
 
         continuation_turn = _continuation_turn(prepared_turn, conversation)
+        model_call_index = starting_model_call_index
 
         while True:
+            model_call_index += 1
             model_call_events: list[TurnEnginePayload] = [
                 TurnStatusChanged(
                     turn_id=turn_id,
@@ -585,6 +636,13 @@ class TurnEngine:
                 assistant_started = True
 
             self._append_and_publish(session_id, model_call_events)
+            self._record_replay_model_call(
+                session_id,
+                turn_id=turn_id,
+                turn_context=turn_context,
+                prepared_turn=continuation_turn,
+                call_index=model_call_index,
+            )
 
             start = perf_counter()
             result = await model_executor.execute_stream(
@@ -673,6 +731,12 @@ class TurnEngine:
                     outcome="completed",
                 ),
             )
+            self._record_replay_turn_output(
+                session_id,
+                turn_id=turn_id,
+                outcome="completed",
+                assistant_text=assistant_text,
+            )
             return
 
     def _append_and_publish(
@@ -717,6 +781,11 @@ class TurnEngine:
                     )
                 ],
             )
+            self._record_replay_tool_request(
+                session_id,
+                turn_id=turn_id,
+                prepared_tool_call=prepared_tool_call,
+            )
 
             if prepared_tool_call.policy_decision.requires_approval:
                 approval_id = new_approval_id()
@@ -749,6 +818,17 @@ class TurnEngine:
                         TurnCompleted(turn_id=turn_id, outcome="awaiting_approval"),
                     ],
                 )
+                self._record_replay_turn_output(
+                    session_id,
+                    turn_id=turn_id,
+                    outcome="awaiting_approval",
+                    details={
+                        "approval_id": str(approval_id),
+                        "tool_call_id": str(prepared_tool_call.event_tool_call_id),
+                        "tool_name": prepared_tool_call.tool_name,
+                        "reason": prepared_tool_call.policy_decision.reason,
+                    },
+                )
                 return "awaiting_approval"
 
             if not prepared_tool_call.policy_decision.allowed:
@@ -773,6 +853,16 @@ class TurnEngine:
                             summary=prepared_tool_call.policy_decision.reason,
                         )
                     ],
+                )
+                self._record_replay_tool_result(
+                    session_id,
+                    turn_id=turn_id,
+                    tool_call_id=prepared_tool_call.event_tool_call_id,
+                    provider_tool_call_id=prepared_tool_call.provider_tool_call_id,
+                    tool_name=prepared_tool_call.tool_name,
+                    success=False,
+                    summary=prepared_tool_call.policy_decision.reason,
+                    error_message=prepared_tool_call.policy_decision.reason,
                 )
                 raise ValueError(prepared_tool_call.policy_decision.reason)
 
@@ -810,6 +900,16 @@ class TurnEngine:
                         ),
                         TurnCompleted(turn_id=turn_id, outcome="awaiting_user_input"),
                     ],
+                )
+                self._record_replay_turn_output(
+                    session_id,
+                    turn_id=turn_id,
+                    outcome="awaiting_user_input",
+                    details={
+                        "question_id": str(question_id),
+                        "tool_call_id": str(prepared_tool_call.event_tool_call_id),
+                        "question": question_text,
+                    },
                 )
                 return "awaiting_user_input"
 
@@ -874,6 +974,16 @@ class TurnEngine:
                         success=False,
                     ),
                 )
+                self._record_replay_tool_result(
+                    session_id,
+                    turn_id=turn_id,
+                    tool_call_id=prepared_tool_call.event_tool_call_id,
+                    provider_tool_call_id=prepared_tool_call.provider_tool_call_id,
+                    tool_name=prepared_tool_call.tool_name,
+                    success=False,
+                    summary=str(exc),
+                    error_message=str(exc),
+                )
                 raise
             self._append_and_publish(
                 session_id,
@@ -885,6 +995,11 @@ class TurnEngine:
                         summary=execution_result.summary,
                     )
                 ],
+            )
+            self._record_replay_tool_execution_result(
+                session_id,
+                turn_id=turn_id,
+                execution_result=execution_result,
             )
             logger.info(
                 "tool_execution_completed",
@@ -900,6 +1015,109 @@ class TurnEngine:
             conversation.append(execution_result.to_model_request())
 
         return None
+
+    def _count_model_calls(self, session_id, *, turn_id) -> int:
+        return sum(
+            1
+            for event in self._session_repository.read_events_by_correlation_id(
+                session_id,
+                turn_id=turn_id,
+            )
+            if isinstance(event.payload, ModelCallStarted)
+        )
+
+    def _record_replay_model_call(
+        self,
+        session_id,
+        *,
+        turn_id,
+        turn_context,
+        prepared_turn: PreparedModelTurn,
+        call_index: int,
+    ) -> None:
+        if self._replay_recorder is None:
+            return
+        self._replay_recorder.record_model_call(
+            session_id,
+            turn_id,
+            call_index=call_index,
+            turn_context=turn_context,
+            prepared_turn=prepared_turn,
+        )
+
+    def _record_replay_tool_request(
+        self,
+        session_id,
+        *,
+        turn_id,
+        prepared_tool_call,
+    ) -> None:
+        if self._replay_recorder is None:
+            return
+        self._replay_recorder.record_tool_request(
+            session_id,
+            turn_id,
+            prepared_tool_call,
+        )
+
+    def _record_replay_tool_execution_result(
+        self,
+        session_id,
+        *,
+        turn_id,
+        execution_result,
+    ) -> None:
+        if self._replay_recorder is None:
+            return
+        self._replay_recorder.record_tool_execution_result(
+            session_id,
+            turn_id,
+            execution_result,
+        )
+
+    def _record_replay_tool_result(
+        self,
+        session_id,
+        *,
+        turn_id,
+        tool_call_id,
+        provider_tool_call_id: str,
+        tool_name: str,
+        success: bool,
+        summary: str,
+        error_message: str | None = None,
+    ) -> None:
+        if self._replay_recorder is None:
+            return
+        self._replay_recorder.record_tool_result(
+            session_id,
+            turn_id,
+            tool_call_id=tool_call_id,
+            provider_tool_call_id=provider_tool_call_id,
+            tool_name=tool_name,
+            success=success,
+            summary=summary,
+            error_message=error_message,
+        )
+
+    def _record_replay_turn_output(
+        self,
+        session_id,
+        *,
+        turn_id,
+        outcome,
+        assistant_text: str | None = None,
+        details: dict[str, object] | None = None,
+    ) -> None:
+        if self._replay_recorder is None:
+            return
+        self._replay_recorder.record_turn_output(
+            session_id,
+            turn_id,
+            outcome=outcome,
+            assistant_text=assistant_text,
+            details=details,
+        )
 
     def _handle_stream_event(
         self,
