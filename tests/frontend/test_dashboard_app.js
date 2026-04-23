@@ -53,6 +53,16 @@ function makeSnapshot(sessionId) {
   };
 }
 
+function makeHistoricalSnapshot(sessionId, overrides = {}) {
+  return {
+    ...makeSnapshot(sessionId),
+    status: "completed",
+    session_failure_message: null,
+    session_failure_retryable: null,
+    ...overrides,
+  };
+}
+
 function makeElement(id) {
   return {
     id,
@@ -134,7 +144,10 @@ function createHarness({ search = "", responses }) {
   const windowImpl = {
     location,
     history,
-    setTimeout() {},
+    timeouts: [],
+    setTimeout(callback) {
+      this.timeouts.push(callback);
+    },
     addEventListener() {},
   };
 
@@ -160,6 +173,14 @@ function createHarness({ search = "", responses }) {
     close() {
       this.closed = true;
     }
+
+    emitOpen() {
+      this.onopen?.();
+    }
+
+    emitError() {
+      this.onerror?.();
+    }
   }
 
   return {
@@ -174,6 +195,12 @@ function createHarness({ search = "", responses }) {
     windowImpl,
     eventSources,
     detailPanes,
+    flushTimeout() {
+      const callback = windowImpl.timeouts.shift();
+      if (callback) {
+        callback();
+      }
+    },
   };
 }
 
@@ -249,4 +276,84 @@ test("dashboard app preserves deep-link navigation on init", async () => {
   assert.equal(harness.app.getState().sessionId, "session-456");
   assert.equal(harness.windowImpl.location.search, "?session=session-456");
   assert.equal(harness.elements.get("primary-pane-title").textContent, "Transcript");
+});
+
+test("dashboard app retries a disconnected live stream before marking it unavailable", async () => {
+  const harness = createHarness({
+    responses: {
+      "/sessions": okJson([makeSummary("session-123")]),
+      "/sessions/session-123": okJson(makeSnapshot("session-123")),
+    },
+  });
+
+  await harness.app.init();
+  await harness.app.openSession("session-123");
+
+  harness.eventSources[0].emitOpen();
+  assert.equal(harness.elements.get("sse-indicator").textContent, "● live");
+
+  harness.eventSources[0].emitError();
+  assert.equal(harness.elements.get("sse-indicator").textContent, "○ reconnecting");
+
+  harness.flushTimeout();
+  assert.equal(harness.eventSources.length, 2);
+
+  harness.eventSources[1].emitError();
+  harness.flushTimeout();
+  assert.equal(harness.eventSources.length, 3);
+
+  harness.eventSources[2].emitError();
+  assert.equal(harness.elements.get("sse-indicator").textContent, "✕ live unavailable");
+  assert.match(
+    harness.elements.get("transcript-list").innerHTML,
+    /persisted snapshot only/,
+  );
+});
+
+test("dashboard app treats completed sessions as historical snapshots", async () => {
+  const harness = createHarness({
+    responses: {
+      "/sessions": okJson([
+        makeSummary("session-789", {
+          status: "completed",
+          next_action_summary: "Inspect completed session",
+        }),
+      ]),
+      "/sessions/session-789": okJson(makeHistoricalSnapshot("session-789")),
+    },
+  });
+
+  await harness.app.init();
+  await harness.app.openSession("session-789");
+
+  assert.equal(harness.eventSources.length, 0);
+  assert.equal(harness.elements.get("sse-indicator").textContent, "◌ historical snapshot");
+  assert.match(
+    harness.elements.get("transcript-list").innerHTML,
+    /Historical snapshot/,
+  );
+});
+
+test("dashboard app clears stale deep links back to the session index", async () => {
+  const harness = createHarness({
+    search: "?session=missing-session",
+    responses: {
+      "/sessions": okJson([makeSummary("session-123")]),
+      "/sessions/missing-session": {
+        ok: false,
+        status: 404,
+        async json() {
+          return { detail: "not found" };
+        },
+      },
+    },
+  });
+
+  await harness.app.init();
+
+  assert.equal(harness.windowImpl.location.search, "");
+  assert.equal(harness.app.getState().sessionLoadState, "failed");
+  assert.equal(harness.elements.get("sse-indicator").textContent, "○ index mode");
+  assert.match(harness.elements.get("transcript-list").innerHTML, /Session unavailable/);
+  assert.match(harness.elements.get("transcript-list").innerHTML, /recovered to the session index/);
 });

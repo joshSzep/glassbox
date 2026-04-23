@@ -204,6 +204,11 @@ main {
   color: var(--text-muted);
 }
 
+.guidance-chip-warning {
+  border-color: rgba(251, 191, 36, 0.3);
+  color: var(--yellow);
+}
+
 #pane-sessions .pane-body {
   display: grid;
   gap: 10px;
@@ -332,6 +337,18 @@ main {
 .selected-session-copy {
   color: var(--text-muted);
   line-height: 1.6;
+}
+
+.selected-session-stream-state {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.selected-session-stream-detail {
+  color: var(--text-muted);
+  line-height: 1.5;
 }
 
 .selected-session-grid {
@@ -595,6 +612,8 @@ main {
   color: var(--text-muted);
 }
 #sse-indicator.connected { color: var(--green); }
+#sse-indicator.warning   { color: var(--yellow); }
+#sse-indicator.historical { color: var(--text-muted); }
 #sse-indicator.error     { color: var(--red); }
 
 @media (max-width: 960px) {

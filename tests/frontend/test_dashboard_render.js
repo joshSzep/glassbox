@@ -346,6 +346,9 @@ test("renderSelectedSessionSummary explains actionable and historical states", (
       },
     ],
     sessionFailureMessage: null,
+    streamState: "live",
+    streamRetryCount: 0,
+    streamError: null,
   });
   const awaitingApprovalHtml = renderSelectedSessionSummary({
     sessionId: "session-234",
@@ -368,6 +371,9 @@ test("renderSelectedSessionSummary explains actionable and historical states", (
       },
     ],
     sessionFailureMessage: null,
+    streamState: "reconnecting",
+    streamRetryCount: 1,
+    streamError: "Snapshot still available while the dashboard retries the live stream.",
   });
   const failedHtml = renderSelectedSessionSummary({
     sessionId: "session-456",
@@ -384,6 +390,9 @@ test("renderSelectedSessionSummary explains actionable and historical states", (
       },
     ],
     sessionFailureMessage: "provider bootstrap failed",
+    streamState: "unavailable",
+    streamRetryCount: 2,
+    streamError: "Showing the last persisted snapshot only. The live stream could not be re-established.",
   });
   const completedHtml = renderSelectedSessionSummary({
     sessionId: "session-789",
@@ -394,23 +403,30 @@ test("renderSelectedSessionSummary explains actionable and historical states", (
     currentTurn: null,
     transcript: [],
     sessionFailureMessage: null,
+    streamState: "historical",
+    streamRetryCount: 0,
+    streamError: null,
   });
 
   assert.match(awaitingUserInputHtml, /Selected session/);
   assert.match(awaitingUserInputHtml, /Answer pending question: Which branch should I inspect\?/);
   assert.match(awaitingUserInputHtml, /Browser action available/);
+  assert.match(awaitingUserInputHtml, /Live stream connected/);
   assert.match(awaitingUserInputHtml, /assistant: Which branch should I inspect\?/);
 
   assert.match(awaitingApprovalHtml, /Resolve pending approval/);
   assert.match(awaitingApprovalHtml, /Waiting on approval for apply_patch/);
   assert.match(awaitingApprovalHtml, /Browser action available/);
+  assert.match(awaitingApprovalHtml, /Reconnecting live stream/);
 
   assert.match(failedHtml, /Review failure: provider bootstrap failed/);
   assert.match(failedHtml, /Historical inspection only/);
-  assert.match(failedHtml, /The session failed: provider bootstrap failed/);
+  assert.match(failedHtml, /Live stream unavailable/);
+  assert.match(failedHtml, /persisted snapshot only/);
 
   assert.match(completedHtml, /Inspect completed session/);
   assert.match(completedHtml, /Historical inspection only/);
+  assert.match(completedHtml, /Historical snapshot/);
 });
 
 test("renderLandingPane shows no-session, loading, and failed selection states", () => {
@@ -440,6 +456,7 @@ test("renderLandingPane shows no-session, loading, and failed selection states",
   assert.match(loadingHtml, /Opening session-/);
   assert.match(failedHtml, /Session unavailable/);
   assert.match(failedHtml, /Session not found \(404\)/);
+  assert.match(failedHtml, /recovered to the session index/);
 });
 
 test("live SessionFailed event replaces failed turn details with session failure pane", () => {

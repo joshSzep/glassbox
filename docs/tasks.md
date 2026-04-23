@@ -1648,7 +1648,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-184: Improve Standalone Live-State, Reconnect, And Historical-Session UX
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-082`, `GBX-174`, `GBX-182`, `GBX-183`
 - Goal: make standalone dashboard behavior understandable when a session is live, no longer live, or only historically inspectable
 - Deliverables:

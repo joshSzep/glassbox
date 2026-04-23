@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   applyEvent,
   beginSessionIndexLoad,
+  beginLiveStreamConnection,
   beginSessionSelection,
   beginApprovalResolution,
   beginInteractionSubmission,
@@ -17,6 +18,10 @@ import {
   failInteractionSubmission,
   hydrateFromSnapshot,
   hydrateSessionIndex,
+  markHistoricalSnapshot,
+  markLiveStreamConnected,
+  markLiveStreamReconnecting,
+  markLiveStreamUnavailable,
 } from "../../src/glassbox/web/static/state.js";
 
 test("hydrateFromSnapshot copies snapshot fields into dashboard state", () => {
@@ -241,6 +246,31 @@ test("session selection failures preserve session browser state for recovery", (
   assert.equal(failedSelection.sessionIndex.length, 1);
   assert.equal(failedSelection.transcript.length, 0);
   assert.equal(failedSelection.currentTurn, null);
+});
+
+test("stream helpers distinguish live, reconnecting, unavailable, and historical states", () => {
+  const selected = beginSessionSelection(createState(), "session-123");
+  const connecting = beginLiveStreamConnection(selected);
+  const live = markLiveStreamConnected(connecting);
+  const reconnecting = markLiveStreamReconnecting(
+    live,
+    "Snapshot still available while the dashboard retries the live stream.",
+  );
+  const unavailable = markLiveStreamUnavailable(
+    reconnecting,
+    "Showing the last persisted snapshot only. The live stream could not be re-established.",
+  );
+  const historical = markHistoricalSnapshot(live);
+
+  assert.equal(connecting.streamState, "connecting");
+  assert.equal(live.streamState, "live");
+  assert.equal(live.streamRetryCount, 0);
+  assert.equal(reconnecting.streamState, "reconnecting");
+  assert.equal(reconnecting.streamRetryCount, 1);
+  assert.equal(unavailable.streamState, "unavailable");
+  assert.match(unavailable.streamError, /persisted snapshot/i);
+  assert.equal(historical.streamState, "historical");
+  assert.equal(historical.streamRetryCount, 0);
 });
 
 test("applyEvent appends transcript messages deterministically", () => {

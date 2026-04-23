@@ -34,6 +34,65 @@ function renderGuidanceChip(tone, label) {
   return `<span class="guidance-chip guidance-chip-${escHtml(tone)}">${escHtml(label)}</span>`;
 }
 
+function streamSummaryFromState(state) {
+  if (state.streamState === "connecting") {
+    return {
+      tone: "live",
+      label: "Connecting live stream",
+      detail: "Snapshot loaded. Connecting to incremental live events for this session.",
+    };
+  }
+
+  if (state.streamState === "live") {
+    return {
+      tone: "live",
+      label: "Live stream connected",
+      detail: "Streaming incremental events from the session runtime.",
+    };
+  }
+
+  if (state.streamState === "reconnecting") {
+    return {
+      tone: "warning",
+      label: "Reconnecting live stream",
+      detail: state.streamRetryCount > 0
+        ? `Snapshot still available. Retrying the live stream connection (attempt ${state.streamRetryCount}).`
+        : "Snapshot still available. Retrying the live stream connection.",
+    };
+  }
+
+  if (state.streamState === "unavailable") {
+    return {
+      tone: "warning",
+      label: "Live stream unavailable",
+      detail: state.streamError
+        ?? "Showing the last persisted snapshot only. The owning runtime may no longer be active.",
+    };
+  }
+
+  if (state.streamState === "historical") {
+    return {
+      tone: "historical",
+      label: "Historical snapshot",
+      detail: "This session is no longer expected to emit live events. You are viewing persisted history.",
+    };
+  }
+
+  if (state.streamState === "loading") {
+    return {
+      tone: "neutral",
+      label: "Loading snapshot",
+      detail: "Fetching the latest persisted snapshot for this session.",
+    };
+  }
+
+  return {
+    tone: "neutral",
+    label: "Stream state unknown",
+    detail: "Snapshot access is available, but the live stream state is not established yet.",
+  };
+}
+
 function activeSessionSummary(state) {
   const selectedSessionId = state.selectedSessionId ?? state.sessionId;
   return (state.sessionIndex ?? []).find(
@@ -291,6 +350,7 @@ export function renderSessionBrowserPane(state) {
 
 export function renderSelectedSessionSummary(state) {
   const availability = availabilitySummaryFromState(state);
+  const stream = streamSummaryFromState(state);
 
   return `<div class="selected-session-summary">
     <div class="selected-session-head">
@@ -301,6 +361,10 @@ export function renderSelectedSessionSummary(state) {
       ${renderStatusChip(state.status)}
     </div>
     <p class="selected-session-copy">${escHtml(availability.detail)}</p>
+    <div class="selected-session-stream-state">
+      ${renderGuidanceChip(stream.tone, stream.label)}
+      <span class="selected-session-stream-detail">${escHtml(stream.detail)}</span>
+    </div>
     <div class="selected-session-grid">
       <div class="selected-session-item">
         <div class="selected-session-label">Next action</div>
@@ -309,6 +373,10 @@ export function renderSelectedSessionSummary(state) {
       <div class="selected-session-item">
         <div class="selected-session-label">Availability</div>
         <div class="selected-session-value">${renderGuidanceChip(availability.tone, availability.label)}</div>
+      </div>
+      <div class="selected-session-item">
+        <div class="selected-session-label">Live state</div>
+        <div class="selected-session-value">${renderGuidanceChip(stream.tone, stream.label)}</div>
       </div>
       <div class="selected-session-item">
         <div class="selected-session-label">Last activity</div>
@@ -338,6 +406,7 @@ export function renderLandingPane(state) {
       <div class="landing-eyebrow">Session unavailable</div>
       <h2>Choose another recent session</h2>
       <p class="landing-copy">${escHtml(state.sessionLoadError ?? "The selected session could not be loaded.")}</p>
+      <p class="landing-copy">The dashboard has recovered to the session index so you can choose another session without editing the URL.</p>
     </div>`;
   }
 

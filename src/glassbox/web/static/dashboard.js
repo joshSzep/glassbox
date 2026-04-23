@@ -17,6 +17,7 @@
 import {
   applyEvent,
   beginSessionIndexLoad,
+  beginLiveStreamConnection,
   beginSessionSelection,
   clearSessionSelection,
   createState,
@@ -24,6 +25,10 @@ import {
   failSessionSelection,
   hydrateFromSnapshot,
   hydrateSessionIndex,
+  markHistoricalSnapshot,
+  markLiveStreamConnected,
+  markLiveStreamReconnecting,
+  markLiveStreamUnavailable,
 } from "./state.js";
 import { resolvePendingApproval } from "./approval-actions.js";
 import {
@@ -79,10 +84,43 @@ export function createDashboardApp({
     return Boolean(state.sessionId);
   }
 
-  function setIndicator(text, className = "") {
+  function indicatorPresentation() {
+    if (state.streamState === "loading") {
+      return { text: "○ loading", className: "" };
+    }
+
+    if (state.streamState === "connecting") {
+      return { text: "○ connecting", className: "" };
+    }
+
+    if (state.streamState === "live") {
+      return { text: "● live", className: "connected" };
+    }
+
+    if (state.streamState === "reconnecting") {
+      return { text: "○ reconnecting", className: "warning" };
+    }
+
+    if (state.streamState === "unavailable") {
+      return { text: "✕ live unavailable", className: "error" };
+    }
+
+    if (state.streamState === "historical") {
+      return { text: "◌ historical snapshot", className: "historical" };
+    }
+
+    if (state.streamState === "index") {
+      return { text: "○ index mode", className: "" };
+    }
+
+    return { text: "○ waiting", className: "" };
+  }
+
+  function renderIndicator() {
     const indicator = byId("sse-indicator");
-    indicator.textContent = text;
-    indicator.className = className;
+    const presentation = indicatorPresentation();
+    indicator.textContent = presentation.text;
+    indicator.className = presentation.className;
   }
 
   function closeSSE() {
@@ -224,6 +262,7 @@ export function createDashboardApp({
   function renderAll() {
     renderHeader();
     renderStatus();
+    renderIndicator();
     renderPrimaryPane();
     renderSessionBrowser();
     renderSessionVisibility();
@@ -241,16 +280,22 @@ export function createDashboardApp({
     renderAll();
   }
 
-  function connectSSE(sessionId, afterSequence) {
+  function shouldOpenLiveStream() {
+    return ["running", "awaiting_user_input", "awaiting_approval"].includes(
+      state.status,
+    );
+  }
+
+  function connectSSE(sessionId, afterSequence, { reconnecting = false } = {}) {
     closeSSE();
-    setIndicator("○ connecting");
+    syncState(current => beginLiveStreamConnection(current, { reconnecting }));
 
     const url = `/sessions/${sessionId}/events?after=${afterSequence}`;
     const es = new EventSourceImpl(url);
     eventSource = es;
 
     es.onopen = () => {
-      setIndicator("\u25cf live", "connected");
+      syncState(current => markLiveStreamConnected(current));
     };
 
     function handleFrame(evt) {
@@ -276,11 +321,29 @@ export function createDashboardApp({
     ].forEach(name => es.addEventListener(name, handleFrame));
 
     es.onerror = () => {
-      setIndicator("\u2715 disconnected", "error");
       es.close();
-      if (state.sessionId === sessionId) {
-        windowImpl.setTimeout(() => connectSSE(sessionId, state.lastSequence), 3000);
+      eventSource = null;
+
+      if (state.sessionId !== sessionId) {
+        return;
       }
+
+      if (state.streamRetryCount >= 2) {
+        syncState(current => markLiveStreamUnavailable(
+          current,
+          "Showing the last persisted snapshot only. The live stream could not be re-established.",
+        ));
+        return;
+      }
+
+      syncState(current => markLiveStreamReconnecting(
+        current,
+        "Snapshot still available while the dashboard retries the live stream.",
+      ));
+      windowImpl.setTimeout(
+        () => connectSSE(sessionId, state.lastSequence, { reconnecting: true }),
+        3000,
+      );
     };
   }
 
@@ -303,7 +366,6 @@ export function createDashboardApp({
   async function loadSnapshot(sessionId) {
     syncState(current => beginSessionSelection(current, sessionId));
     closeSSE();
-    setIndicator("○ loading");
 
     const resp = await fetchImpl(`/sessions/${sessionId}`);
     if (!resp.ok) {
@@ -311,13 +373,19 @@ export function createDashboardApp({
         current,
         `Session not found (${resp.status})`,
       ));
-      setIndicator("○ index mode");
       return false;
     }
 
     const snap = await resp.json();
     applySelectedSnapshot(snap);
     renderAll();
+
+    if (!shouldOpenLiveStream()) {
+      state = markHistoricalSnapshot(state);
+      renderAll();
+      return true;
+    }
+
     connectSSE(sessionId, state.lastSequence);
     return true;
   }
@@ -335,14 +403,20 @@ export function createDashboardApp({
       closeSSE();
       state = clearSessionSelection(state);
       renderAll();
-      setIndicator("○ index mode");
       if (replaceHistory) {
         windowImpl.history.replaceState({}, "", nextDashboardUrl(windowImpl.location, null));
       }
       return;
     }
 
-    await openSession(requestedSessionId, { replaceHistory });
+    const loaded = await loadSnapshot(requestedSessionId);
+    if (!loaded && replaceHistory) {
+      windowImpl.history.replaceState(
+        {},
+        "",
+        nextDashboardUrl(windowImpl.location, null),
+      );
+    }
   }
 
   async function resolveApproval(approvalId, decision) {
@@ -385,8 +459,8 @@ export function createDashboardApp({
   }
 
   async function init() {
+    state = clearSessionSelection(state);
     renderAll();
-    setIndicator("○ index mode");
     await loadSessionIndex();
     await syncFromLocation({ replaceHistory: true });
   }
