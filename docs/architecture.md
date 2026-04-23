@@ -533,8 +533,7 @@ class SessionConfig(BaseModel):
     model_name: str
     cwd: Path
     approval_mode: str
-    dashboard_host: str = "127.0.0.1"
-    dashboard_port: int = 8765
+    dashboard_url: str | None = None
     persist_events: bool = True
     max_turns_per_input: int = 12
 
@@ -910,6 +909,12 @@ operator wants a browser view outside an active `chat` session, wants to inspect
 persisted sessions from another process, or needs explicit control over the
 server lifecycle. `attach` should not automatically start the dashboard in v1;
 it remains an interactive terminal re-entry path over existing persisted state.
+
+For operator docs, the key positioning should stay explicit:
+
+- the co-hosted dashboard is a convenience surface for the same live `chat` process and should shut down with that process
+- `glassbox serve` is the durable observation path for persisted sessions and for browser access that should survive beyond a single `chat` invocation
+- the printed `chat` URL can point directly at the active session with `?session=SESSION_ID`, while `serve` continues to rely on the operator supplying the target session ID
 
 ### Interactive Operator Semantics
 

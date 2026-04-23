@@ -58,6 +58,11 @@ By default, `chat` also starts a co-hosted dashboard in the same process. Use
 `--no-dashboard` to keep the session terminal-only, or `--dashboard-host` and
 `--dashboard-port` to override the dashboard bind target.
 
+When the co-hosted dashboard starts successfully, `chat` prints a session-
+specific browser URL like `http://127.0.0.1:8765/?session=SESSION_ID`. Open
+that URL while the interactive session is still running to watch the same live
+session state that the terminal is driving.
+
 ```bash
 uv run glassbox chat --cwd .
 ```
@@ -77,6 +82,11 @@ Inside an interactive session:
 
 The prompt context changes with the session state, so the terminal will tell you
 whether it expects a new prompt, an `ask_user` answer, or an approval decision.
+
+If default dashboard startup fails, `chat` keeps the terminal workflow running
+and prints a warning that the dashboard is unavailable for that session. If you
+explicitly set `--dashboard-host` or `--dashboard-port` and startup fails,
+`chat` exits with an error instead of pretending a live dashboard exists.
 
 ### Example: Start And Continue In One Terminal
 
@@ -117,6 +127,10 @@ uv run glassbox attach SESSION_ID --cwd .
 If the session is waiting on `ask_user`, the next freeform entry is treated as
 the answer. If the session is waiting on approval, freeform text is blocked and
 you must use `/approve` or `/deny`.
+
+`attach` does not automatically start the dashboard. If you want browser-based
+observation while re-entering a persisted session from another terminal or after
+the original `chat` process has exited, run `glassbox serve` separately.
 
 ### Scope Boundary
 
@@ -214,6 +228,11 @@ In the dashboard, the same workflow is split by pane:
 - The `Next Action` pane switches into answer mode when the model is waiting on `ask_user` input.
 - The `Pending Approvals` pane remains the only place to resolve approval-gated tool actions.
 
+Choose the dashboard mode that matches the operator workflow:
+
+- Use the co-hosted dashboard from `glassbox chat` when you want a browser view over the same live process that owns the interactive terminal session.
+- Use `glassbox serve` when you want dashboard access without an active `chat` session, want to inspect persisted sessions from another process, or want explicit control over the dashboard server lifecycle.
+
 `resume`, `message`, `answer`, `approve`, and `deny` remain important even with
 interactive mode available. They are the low-level primitives for scripting,
 recovery after process restart, explicit operator control, and workflows where a
@@ -261,6 +280,11 @@ More detail, including all supported variables and troubleshooting, is in
 
 ## Dashboard
 
+There are two ways to reach the dashboard:
+
+- `glassbox chat` starts a co-hosted dashboard by default and prints a URL that already includes `?session=SESSION_ID` for the live session it just started.
+- `glassbox serve` starts a standalone dashboard server for the workspace database and is the right choice when no active `chat` process is owning the browser view.
+
 Start the dashboard server:
 
 ```bash
@@ -268,6 +292,11 @@ uv run glassbox serve --cwd . --host 127.0.0.1 --port 8765
 ```
 
 The command prints the dashboard URL before it blocks on the running server.
+
+Use `serve` when you want browser access that outlives a particular `chat`
+process, when you deliberately started `chat --no-dashboard`, or when the
+co-hosted dashboard was unavailable and you still want to inspect persisted
+session state afterward.
 
 Open the dashboard shell in a browser with the target session ID:
 
@@ -277,6 +306,13 @@ http://127.0.0.1:8765/?session=SESSION_ID
 
 The dashboard reads a session snapshot from `GET /sessions/{session_id}` and then
 subscribes to the live SSE stream at `GET /sessions/{session_id}/events`.
+
+### Dashboard Troubleshooting
+
+- If `glassbox chat --no-dashboard` was used, no dashboard URL is advertised for that session. Start `glassbox serve` and open `/?session=SESSION_ID` if you want browser access later.
+- If plain `glassbox chat` warns that the dashboard is unavailable, the chat session is still running normally; the warning only means no live dashboard was started for that process.
+- If `glassbox chat --dashboard-host ...` or `--dashboard-port ...` fails, fix the bind target or port conflict and rerun the command.
+- The co-hosted dashboard stops when the owning `glassbox chat` process exits. Use `glassbox serve` for post-session inspection or for browser access from a separate long-lived process.
 
 ## Local Validation
 

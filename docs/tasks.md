@@ -1547,7 +1547,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-175: Document Co-Hosted Dashboard Workflow And Standalone `serve` Positioning
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-173`, `GBX-174`, `GBX-121`, `GBX-165`
 - Goal: document how the dashboard fits into the interactive chat workflow without confusing it with daemon-backed attach or standalone dashboard use
 - Deliverables:
