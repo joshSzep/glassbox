@@ -62,6 +62,15 @@ That process hosts:
 
 This avoids premature service decomposition. A single-process design is easier to build, test, and reason about while preserving the same core abstractions needed for a future split-process architecture.
 
+For interactive terminal UX, this means the first-class conversational experience
+should also live inside that same process. A long-lived CLI session can keep an
+event subscription open, render runtime activity continuously, and submit
+follow-up operator input through the existing session service. In v1, that
+interactive experience is intentionally process-local rather than daemon-backed.
+An attached terminal can reopen and continue a persisted paused or idle session,
+but it should not claim to stream live events from another already-running
+process until the runtime grows an explicit cross-process attach mechanism.
+
 ## Top-Level Subsystems
 
 ### Session Supervisor
@@ -796,18 +805,28 @@ The CLI is the primary operator interface.
 It should support:
 
 - starting a new session
+- starting a new interactive session
+- attaching to an existing session interactively
 - resuming a session
 - sending a prompt
+- answering a pending ask-user question
 - approving or denying actions
 - opening the dashboard URL
 - printing session status
 
 The CLI renderer should subscribe to runtime events and produce a concise terminal view rather than printing directly from internal subsystems.
 
-### Initial Command Surface
+The CLI should expose two complementary layers:
+
+- interactive commands for the normal conversational workflow
+- non-interactive commands for scripting, recovery, and explicit low-level control
+
+### Scriptable Command Surface
 
 ```text
 glassbox run [PROMPT]
+glassbox message SESSION_ID PROMPT
+glassbox answer SESSION_ID QUESTION_ID ANSWER
 glassbox resume SESSION_ID
 glassbox status SESSION_ID
 glassbox approve SESSION_ID APPROVAL_ID
@@ -823,6 +842,68 @@ raw events ad hoc in the CLI.
 Approval and ask-user pause points are resumable from persisted events. The runtime
 uses `ApprovalRequested` / `ApprovalResolved` and `UserQuestionAsked` /
 `UserAnswerProvided` event pairs to suspend and resume turns explicitly.
+
+These commands remain the source of truth for explicit session actions even after
+an interactive terminal mode exists. They are important for scripts, debugging,
+recovery workflows, and any case where the operator wants exact control over IDs
+and state transitions.
+
+### Interactive Command Surface
+
+The primary conversational UX should move toward a persistent terminal session
+rather than repeated one-shot command invocations.
+
+```text
+glassbox chat [PROMPT]
+glassbox attach SESSION_ID
+```
+
+`glassbox chat` starts a new session and keeps the operator inside a long-lived
+terminal loop. `glassbox attach` opens that same interactive terminal workflow
+for an existing persisted session.
+
+In v1, `attach` should support reopening sessions that are actionable from the
+current process, such as idle running sessions, awaiting-user-input sessions,
+and other paused states that can be continued from persisted projections. It
+should not promise live streaming from another already-running process, because
+the current event bus is in-process only.
+
+### Interactive Operator Semantics
+
+Inside an interactive terminal session:
+
+- the renderer stays subscribed to runtime events for the lifetime of the terminal session
+- freeform user input is routed from current session state, not from ad hoc CLI guesses
+- when the session is running and idle, freeform input becomes `submit_user_message(...)`
+- when the session is awaiting user input, freeform input becomes `provide_user_answer(...)`
+- pending `question_id` details should be discovered from persisted session state rather than copied manually during the normal flow
+- approval resolution remains explicit through slash commands or equivalent structured controls instead of overloading arbitrary freeform text
+- `resume` remains a lifecycle primitive after process restart, distinct from `attach`, which is the operator-facing conversational shell
+
+The interactive prompt must always make the current expected input mode visible.
+If the session is blocked or ambiguous, the terminal should say so explicitly
+instead of inferring an action heuristically.
+
+### Interactive Scope Boundary
+
+The intended scope is deliberately split into two phases.
+
+Phase 1:
+
+- a process-local interactive CLI loop for new and existing sessions
+- prompt routing for new prompts and pending-question answers
+- explicit slash-command handling for approvals, status, help, and exit
+- continuous terminal rendering while the owning CLI process remains alive
+
+Phase 2, if justified later:
+
+- true cross-process attach
+- daemon-backed or brokered session ownership
+- live terminal streaming into a client that did not start the runtime process
+
+That boundary keeps the current architecture honest. Glassbox can become
+terminal-native and conversational now without pretending it already has a
+resident background runtime.
 
 ## Concurrency Model
 

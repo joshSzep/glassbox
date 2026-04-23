@@ -1299,7 +1299,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-160: Define Interactive CLI Session Architecture And Operator Semantics
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-041`, `GBX-100`, `GBX-154`, `GBX-121`
 - Goal: define the first-class interactive terminal workflow so Glassbox can behave like a persistent conversational agent without breaking the current event-sourced architecture
 - Deliverables:
