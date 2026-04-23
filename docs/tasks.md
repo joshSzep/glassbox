@@ -1846,7 +1846,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-197: Document Replay And Eval Workflows
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-190`, `GBX-191`, `GBX-192`, `GBX-193`, `GBX-194`, `GBX-195`, `GBX-196`, `GBX-121`
 - Goal: explain how to capture replayable sessions, export baselines, run targeted replays, and use eval suites without guessing at unsupported cases or hidden caveats
 - Deliverables:

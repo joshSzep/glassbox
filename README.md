@@ -9,7 +9,8 @@ Glassbox currently provides:
 - a persisted event-sourced runtime backed by SQLite
 - a terminal-first CLI for running, resuming, inspecting, and recovering sessions
 - a FastAPI dashboard with session snapshot and event stream endpoints
-- approval, resume, replay, and projection rebuild workflows
+- approval, resume, replay, replay-export, and projection rebuild workflows
+- replay-backed eval suites for portable behavioral regression baselines
 
 ## Requirements
 
@@ -42,6 +43,10 @@ glassbox message SESSION_ID PROMPT
 glassbox answer SESSION_ID QUESTION_ID ANSWER
 glassbox resume SESSION_ID
 glassbox status SESSION_ID
+glassbox replay SESSION_ID [--json]
+glassbox replay --bundle BUNDLE_PATH [--json]
+glassbox replay-export SESSION_ID [OUTPUT]
+glassbox eval run [CASE_ID ...] [--tag TAG] [--json] [--output-dir DIR]
 glassbox approve SESSION_ID APPROVAL_ID
 glassbox deny SESSION_ID APPROVAL_ID
 glassbox rebuild [SESSION_ID | --all]
@@ -239,6 +244,99 @@ interactive mode available. They are the low-level primitives for scripting,
 recovery after process restart, explicit operator control, and workflows where a
 long-lived terminal session is not the right interface.
 
+## Replay And Eval Workflows
+
+Replay and eval commands answer a different question from the live session CLI:
+not "what should this session do next?" but "does the current codebase still
+reproduce the recorded behavior I care about?"
+
+Use the workflow that matches the problem you are solving:
+
+- Use `glassbox status`, `attach`, `answer`, `approve`, and `message` when you are operating a live or paused session.
+- Use `glassbox replay SESSION_ID` when you want to re-check one historical session stored in the local SQLite database.
+- Use `glassbox replay-export SESSION_ID` when you want a portable baseline that can move across branches, repositories, or CI machines.
+- Use `glassbox eval run` when you want a curated regression suite from checked-in replay bundles under `evals/`.
+
+### Replay Result Categories
+
+Single-session replay and batch eval cases use the same outcome vocabulary:
+
+- `exact match`: the current codebase reproduced the recorded transcript, tool calls, approval flow, question flow, event families, and final state.
+- `behavioral drift`: replay ran successfully but the normalized behavior changed.
+- `manifest drift`: the recorded prompt/context/tool manifest no longer matches current preparation, so replay stops before pretending the drift is only downstream behavior.
+- `unsupported session`: the replay artifacts or exported bundle use an unsupported schema version.
+- `replay failure`: the baseline could not be replayed at all, for example because a bundle file or replay artifact is missing or corrupted.
+
+These results compare against recorded baselines. They do not make live provider
+calls deterministic, and they should not be read as a guarantee about provider
+behavior outside the captured baseline.
+
+### End-To-End Baseline Flow
+
+The typical promotion flow is:
+
+1. Capture or identify a replayable session.
+2. Export its portable bundle.
+3. Add an eval case manifest that declares the expected invariants.
+4. Run the eval suite locally before checking in the baseline.
+
+Export a portable baseline from a recorded session:
+
+```bash
+uv run glassbox replay-export SESSION_ID evals/bundles/tooling.readme.json --cwd .
+```
+
+Add the matching eval case manifest:
+
+```json
+{
+	"manifest_version": 1,
+	"case_id": "tooling.readme",
+	"title": "README inspection stays stable",
+	"bundle_path": "../bundles/tooling.readme.json",
+	"tags": ["smoke", "tooling"],
+	"expectation": {
+		"mode": "exact_match"
+	}
+}
+```
+
+Run the case directly:
+
+```bash
+uv run glassbox eval run tooling.readme --cwd .
+```
+
+Or run a tagged suite and emit machine-readable output:
+
+```bash
+uv run glassbox eval run --tag smoke --json --cwd .
+```
+
+Each `glassbox eval run` invocation writes one JSON artifact per executed case
+plus `summary.json`. If you omit `--output-dir`, Glassbox creates a timestamped
+directory under `.glassbox/evals/`.
+
+### Targeted Expectations And Baseline Refresh
+
+The default expectation is strict `exact_match`. Use a narrower
+`selected_invariants` expectation only when the repository intentionally cares
+about a smaller contract, such as `final_state` or `transcript` only.
+
+That is a reviewable statement about what the case is meant to protect. It is
+not a mechanism for silently tolerating arbitrary drift. When prompts, tool
+schemas, or runtime context intentionally change, refresh the exported bundle and
+review the bundle diff together with the case manifest change.
+
+### Replay And Eval Troubleshooting
+
+- If replay reports `manifest drift`, inspect the current prompt/context/tool preparation before refreshing the baseline. This usually means the runtime contract changed before any tool execution or transcript comparison happened.
+- If replay reports `behavioral drift`, read the mismatch list and the per-case artifact JSON to see which normalized dimensions changed.
+- If replay reports `unsupported session`, refresh or migrate the baseline instead of trusting a partial replay from an older manifest or bundle version.
+- If replay reports `replay failure`, check for missing or corrupted replay artifacts, a missing bundle file, or a damaged checked-in baseline.
+- If a provider-backed baseline drifts unexpectedly, remember that Glassbox is replaying the recorded manifests and outputs offline. The replay signal says the current code no longer matches that recorded baseline, not that the live provider has become deterministic.
+- If you only need one historical check, use `glassbox replay`. Promote to `evals/` only when the scenario should become a curated regression contract for the repository.
+
 ## Real Provider Setup
 
 Glassbox can run against real OpenAI and Anthropic providers when provider
@@ -367,12 +465,15 @@ uv run pytest tests/integration/test_web_session_snapshot.py
 uv run ruff check src/glassbox/cli/__init__.py tests/integration/test_cli_commands.py
 uv run ty check src/glassbox/cli/__init__.py
 uv run pytest tests/test_import_smoke.py
+uv run glassbox replay SESSION_ID --cwd .
+uv run glassbox eval run --tag smoke --cwd .
 ```
 
 ## Reference Docs
 
 - Architecture: [docs/architecture.md](docs/architecture.md)
 - Database design: [docs/database.md](docs/database.md)
+- Eval suite layout: [evals/README.md](evals/README.md)
 - Provider setup and secrets: [docs/providers.md](docs/providers.md)
 - Tool policy and approvals: [docs/tool-policy.md](docs/tool-policy.md)
 - Roadmap and task graph: [docs/tasks.md](docs/tasks.md)

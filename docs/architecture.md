@@ -1002,8 +1002,8 @@ replay baseline:
 ### Eval Case Layout
 
 Replay-backed eval suites are repository-local manifests rooted under `evals/`.
-The batch runner lands in the next slice, but the case format and discovery rules
-are now fixed so baselines can be curated and reviewed deliberately.
+The batch runner now consumes that layout directly, so baselines can be curated,
+reviewed, and executed without custom repository glue.
 
 Default repository layout:
 
