@@ -778,6 +778,7 @@ SSE is a better first fit than WebSockets because the dominant direction is serv
 The first server surface should include:
 
 - `GET /healthz`
+- `GET /sessions` for recent-session discovery in the standalone dashboard
 - `GET /sessions/{session_id}` for a snapshot view
 - `GET /sessions/{session_id}/events` as an SSE stream
 - `POST /sessions/{session_id}/approvals/{approval_id}` to resolve approvals

@@ -1591,7 +1591,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-181: Add Session Index API For Standalone Dashboard Discovery
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-022`, `GBX-024`, `GBX-080`, `GBX-111`, `GBX-180`
 - Goal: let the standalone dashboard discover useful sessions directly from the backend instead of requiring a manually supplied `session_id`
 - Deliverables:

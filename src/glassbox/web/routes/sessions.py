@@ -14,6 +14,7 @@ from glassbox.core.events import (
     SessionStarted,
     UserQuestionAsked,
 )
+from glassbox.core.models import TranscriptMessage
 from glassbox.core.types import ApprovalStatus, ToolExecutionStatus
 from glassbox.web.app import RuntimeContextDep
 
@@ -75,6 +76,25 @@ class ActionAcceptedResponse(BaseModel):
     status: str
 
 
+class SessionSummaryResponse(BaseModel):
+    session_id: str
+    status: str
+    model_name: str
+    cwd: str
+    approval_mode: str
+    dashboard_url: str | None
+    created_at: datetime
+    updated_at: datetime
+    last_sequence: int
+    pending_approval_id: str | None
+    pending_question_id: str | None
+    pending_question_text: str | None
+    session_failure_message: str | None
+    session_failure_retryable: bool | None
+    latest_message_summary: str | None
+    next_action_summary: str
+
+
 class SessionSnapshotResponse(BaseModel):
     session_id: str
     status: str
@@ -95,6 +115,75 @@ class SessionSnapshotResponse(BaseModel):
     active_tool_calls: list[ActiveToolCallResponse]
     pending_approvals: list[PendingApprovalResponse]
     turn_metrics: list[TurnMetricsResponse]
+
+
+@router.get("", response_model=list[SessionSummaryResponse])
+async def list_session_summaries(
+    context: RuntimeContextDep,
+) -> list[SessionSummaryResponse]:
+    """Return recent session summaries for standalone dashboard discovery."""
+
+    repo = context.repositories.sessions
+    records = repo.list_sessions()
+    summaries: list[SessionSummaryResponse] = []
+
+    for record in records:
+        state = repo.get_session_state(record.session_id)
+        session_events = repo.read_session_events(record.session_id)
+        transcript = repo.list_transcript_messages(record.session_id)
+        dashboard_url = _dashboard_url_from_events(session_events)
+        latest_session_failure = _latest_session_failure(session_events)
+        pending_question_id = state.pending_question_id if state is not None else None
+        pending_question_text = _pending_question_text_from_events(
+            session_events,
+            pending_question_id,
+        )
+
+        summaries.append(
+            SessionSummaryResponse(
+                session_id=str(record.session_id),
+                status=state.status if state is not None else record.status,
+                model_name=record.model_name,
+                cwd=str(record.cwd),
+                approval_mode=record.approval_mode,
+                dashboard_url=dashboard_url,
+                created_at=record.created_at,
+                updated_at=record.updated_at,
+                last_sequence=record.last_sequence,
+                pending_approval_id=(
+                    str(state.pending_approval_id)
+                    if state is not None and state.pending_approval_id is not None
+                    else None
+                ),
+                pending_question_id=(
+                    str(pending_question_id)
+                    if pending_question_id is not None
+                    else None
+                ),
+                pending_question_text=pending_question_text,
+                session_failure_message=(
+                    latest_session_failure.error_message
+                    if latest_session_failure is not None
+                    else None
+                ),
+                session_failure_retryable=(
+                    latest_session_failure.retryable
+                    if latest_session_failure is not None
+                    else None
+                ),
+                latest_message_summary=_latest_message_summary(transcript),
+                next_action_summary=_next_action_summary(
+                    state.status if state is not None else record.status,
+                    pending_question_text=pending_question_text,
+                    session_failure=latest_session_failure,
+                    current_turn_id=(
+                        state.current_turn_id if state is not None else None
+                    ),
+                ),
+            )
+        )
+
+    return summaries
 
 
 @router.post(
@@ -295,3 +384,56 @@ def _pending_question_text_from_events(
             continue
         return event.payload.question
     return None
+
+
+def _latest_message_summary(transcript: list[TranscriptMessage]) -> str | None:
+    if not transcript:
+        return None
+
+    latest_message = transcript[-1]
+    parts = getattr(latest_message, "parts", [])
+    role = getattr(latest_message, "role", None)
+    text = " ".join(
+        part.text.strip().replace("\n", " ")
+        for part in parts
+        if getattr(part, "text", "").strip()
+    ).strip()
+    if not text:
+        return role
+    return f"{role}: {text}"
+
+
+def _next_action_summary(
+    status,
+    *,
+    pending_question_text: str | None,
+    session_failure: SessionFailed | None,
+    current_turn_id,
+) -> str:
+    status_text = str(status)
+
+    if status_text == "awaiting_user_input":
+        if pending_question_text is not None:
+            return f"Answer pending question: {pending_question_text}"
+        return "Answer pending question"
+
+    if status_text == "awaiting_approval":
+        return "Resolve pending approval"
+
+    if status_text == "running":
+        if current_turn_id is not None:
+            return "Wait for the current turn to finish"
+        return "Send the next prompt"
+
+    if status_text == "failed":
+        if session_failure is not None:
+            return f"Review failure: {session_failure.error_message}"
+        return "Review failed session"
+
+    if status_text == "completed":
+        return "Inspect completed session"
+
+    if status_text == "cancelled":
+        return "Inspect cancelled session"
+
+    return "Inspect session"
