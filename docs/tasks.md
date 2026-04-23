@@ -1629,7 +1629,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-183: Improve Standalone Session Summaries And Next-Action Guidance
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-081`, `GBX-111`, `GBX-154`, `GBX-181`, `GBX-182`
 - Goal: make it immediately clear what a selected session is waiting on and what the operator can do next from the standalone dashboard
 - Deliverables:

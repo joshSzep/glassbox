@@ -220,6 +220,14 @@ test("dashboard app openSession selects a recent session and updates the URL", a
   assert.deepEqual(harness.fetchCalls, ["/sessions", "/sessions/session-123"]);
   assert.equal(harness.windowImpl.location.search, "?session=session-123");
   assert.equal(harness.elements.get("primary-pane-title").textContent, "Transcript");
+  assert.match(
+    harness.elements.get("transcript-list").innerHTML,
+    /Selected session/,
+  );
+  assert.match(
+    harness.elements.get("transcript-list").innerHTML,
+    /Send the next prompt/,
+  );
   assert.match(harness.elements.get("transcript-list").innerHTML, /Inspect the repository/);
   assert.equal(harness.app.getState().sessionId, "session-123");
   assert.equal(harness.eventSources.length, 1);

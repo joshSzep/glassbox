@@ -13,6 +13,7 @@ import {
   renderLandingPane,
   renderLiveOutputPane,
   renderMetricsPane,
+  renderSelectedSessionSummary,
   renderSessionBrowserPane,
   renderToolCallsPane,
   renderTurnPane,
@@ -321,9 +322,95 @@ test("renderSessionBrowserPane shows recent sessions and selected status chips",
   });
 
   assert.match(html, /session-card selected/);
+  assert.match(html, /Next action/);
+  assert.match(html, /Last activity/);
   assert.match(html, /awaiting user input/);
   assert.match(html, /Which branch should I inspect\?/);
+  assert.match(html, /Browser action available/);
   assert.match(html, /openai:gpt-5\.4/);
+});
+
+test("renderSelectedSessionSummary explains actionable and historical states", () => {
+  const awaitingUserInputHtml = renderSelectedSessionSummary({
+    sessionId: "session-123",
+    status: "awaiting_user_input",
+    approvalMode: "confirm",
+    pendingQuestionText: "Which branch should I inspect?",
+    pendingApprovals: [],
+    currentTurn: { turn_id: "turn-1", status: "awaiting_user_input" },
+    transcript: [
+      {
+        message_id: "message-1",
+        role: "assistant",
+        parts: [{ kind: "text", text: "Which branch should I inspect?" }],
+      },
+    ],
+    sessionFailureMessage: null,
+  });
+  const awaitingApprovalHtml = renderSelectedSessionSummary({
+    sessionId: "session-234",
+    status: "awaiting_approval",
+    approvalMode: "confirm",
+    pendingQuestionText: null,
+    pendingApprovals: [
+      {
+        approval_id: "approval-1",
+        subject: "apply_patch",
+        reason: "needs sign-off",
+      },
+    ],
+    currentTurn: { turn_id: "turn-2", status: "awaiting_approval" },
+    transcript: [
+      {
+        message_id: "message-1",
+        role: "assistant",
+        parts: [{ kind: "text", text: "Waiting for approval." }],
+      },
+    ],
+    sessionFailureMessage: null,
+  });
+  const failedHtml = renderSelectedSessionSummary({
+    sessionId: "session-456",
+    status: "failed",
+    approvalMode: "confirm",
+    pendingQuestionText: null,
+    pendingApprovals: [],
+    currentTurn: null,
+    transcript: [
+      {
+        message_id: "message-2",
+        role: "user",
+        parts: [{ kind: "text", text: "Inspect the repository" }],
+      },
+    ],
+    sessionFailureMessage: "provider bootstrap failed",
+  });
+  const completedHtml = renderSelectedSessionSummary({
+    sessionId: "session-789",
+    status: "completed",
+    approvalMode: "confirm",
+    pendingQuestionText: null,
+    pendingApprovals: [],
+    currentTurn: null,
+    transcript: [],
+    sessionFailureMessage: null,
+  });
+
+  assert.match(awaitingUserInputHtml, /Selected session/);
+  assert.match(awaitingUserInputHtml, /Answer pending question: Which branch should I inspect\?/);
+  assert.match(awaitingUserInputHtml, /Browser action available/);
+  assert.match(awaitingUserInputHtml, /assistant: Which branch should I inspect\?/);
+
+  assert.match(awaitingApprovalHtml, /Resolve pending approval/);
+  assert.match(awaitingApprovalHtml, /Waiting on approval for apply_patch/);
+  assert.match(awaitingApprovalHtml, /Browser action available/);
+
+  assert.match(failedHtml, /Review failure: provider bootstrap failed/);
+  assert.match(failedHtml, /Historical inspection only/);
+  assert.match(failedHtml, /The session failed: provider bootstrap failed/);
+
+  assert.match(completedHtml, /Inspect completed session/);
+  assert.match(completedHtml, /Historical inspection only/);
 });
 
 test("renderLandingPane shows no-session, loading, and failed selection states", () => {

@@ -136,7 +136,7 @@ export function createDashboardApp({
 
     if (hasActiveSession()) {
       title.textContent = "Transcript";
-      el.innerHTML = panes.transcript;
+      el.innerHTML = `${panes.selectedSessionSummary}${panes.transcript}`;
       el.scrollTop = el.scrollHeight;
       return;
     }

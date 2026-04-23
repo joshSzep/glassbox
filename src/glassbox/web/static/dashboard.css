@@ -172,6 +172,38 @@ main {
 .status-chip-cancelled,
 .status-chip-unknown { color: var(--text-muted); }
 
+.guidance-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.guidance-chip-actionable {
+  border-color: rgba(52, 211, 153, 0.35);
+  color: var(--green);
+}
+
+.guidance-chip-live {
+  border-color: rgba(108, 140, 245, 0.35);
+  color: var(--accent);
+}
+
+.guidance-chip-historical {
+  border-color: rgba(248, 113, 113, 0.25);
+  color: var(--text-muted);
+}
+
+.guidance-chip-neutral {
+  color: var(--text-muted);
+}
+
 #pane-sessions .pane-body {
   display: grid;
   gap: 10px;
@@ -247,6 +279,86 @@ main {
 
 .session-card-next {
   color: var(--accent);
+}
+
+.session-card-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.session-card-footer {
+  display: grid;
+  gap: 8px;
+}
+
+.session-card-detail {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.selected-session-summary {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #141721;
+}
+
+.selected-session-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.selected-session-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.selected-session-head h2 {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.selected-session-copy {
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.selected-session-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.selected-session-item {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.selected-session-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.selected-session-value {
+  line-height: 1.5;
 }
 
 /* Composer */
@@ -498,5 +610,9 @@ main {
 
   #pane-transcript {
     min-height: 320px;
+  }
+
+  .selected-session-grid {
+    grid-template-columns: 1fr;
   }
 }

@@ -30,6 +30,10 @@ function renderStatusChip(status) {
   return `<span class="status-chip status-chip-${escHtml(statusText)}">${escHtml(statusText.replaceAll("_", " "))}</span>`;
 }
 
+function renderGuidanceChip(tone, label) {
+  return `<span class="guidance-chip guidance-chip-${escHtml(tone)}">${escHtml(label)}</span>`;
+}
+
 function activeSessionSummary(state) {
   const selectedSessionId = state.selectedSessionId ?? state.sessionId;
   return (state.sessionIndex ?? []).find(
@@ -45,6 +49,177 @@ function interactionMode(state) {
     return "message";
   }
   return "blocked";
+}
+
+function latestActivitySummaryFromState(state) {
+  const latestMessage = state.transcript?.[state.transcript.length - 1] ?? null;
+  if (!latestMessage) {
+    return "No transcript yet.";
+  }
+
+  const text = (latestMessage.parts ?? [])
+    .map(part => part.text ?? "")
+    .join(" ")
+    .trim()
+    .replace(/\s+/g, " ");
+  if (!text) {
+    return latestMessage.role ?? "activity recorded";
+  }
+
+  return `${latestMessage.role}: ${text}`;
+}
+
+function nextActionSummaryFromState(state) {
+  if (state.status === "awaiting_user_input") {
+    if (state.pendingQuestionText) {
+      return `Answer pending question: ${state.pendingQuestionText}`;
+    }
+    return "Answer pending question";
+  }
+
+  if (state.status === "awaiting_approval") {
+    return "Resolve pending approval";
+  }
+
+  if (state.status === "running") {
+    if (state.currentTurn?.turn_id) {
+      return "Wait for the current turn to finish";
+    }
+    return "Send the next prompt";
+  }
+
+  if (state.status === "failed") {
+    if (state.sessionFailureMessage) {
+      return `Review failure: ${state.sessionFailureMessage}`;
+    }
+    return "Review failed session";
+  }
+
+  if (state.status === "completed") {
+    return "Inspect completed session";
+  }
+
+  if (state.status === "cancelled") {
+    return "Inspect cancelled session";
+  }
+
+  return "Inspect session";
+}
+
+function availabilitySummaryFromState(state) {
+  if (state.status === "awaiting_user_input") {
+    return {
+      tone: "actionable",
+      label: "Browser action available",
+      detail: state.pendingQuestionText
+        ? `Waiting on an ask_user answer: ${state.pendingQuestionText}`
+        : "Waiting on an ask_user answer from the operator.",
+    };
+  }
+
+  if (state.status === "awaiting_approval") {
+    const pendingSubject = state.pendingApprovals?.[0]?.subject ?? null;
+    return {
+      tone: "actionable",
+      label: "Browser action available",
+      detail: pendingSubject
+        ? `Waiting on approval for ${pendingSubject}.`
+        : "Waiting on an approval decision from the operator.",
+    };
+  }
+
+  if (state.status === "running") {
+    if (state.currentTurn?.turn_id) {
+      return {
+        tone: "live",
+        label: "Live session",
+        detail: `Turn ${shortId(state.currentTurn.turn_id)} is still running. Wait before sending the next prompt.`,
+      };
+    }
+    return {
+      tone: "actionable",
+      label: "Browser action available",
+      detail: "The session is idle and ready for the next prompt from the browser.",
+    };
+  }
+
+  if (state.status === "failed") {
+    return {
+      tone: "historical",
+      label: "Historical inspection only",
+      detail: state.sessionFailureMessage
+        ? `The session failed: ${state.sessionFailureMessage}`
+        : "This session failed and is no longer actionable from the browser.",
+    };
+  }
+
+  if (state.status === "completed") {
+    return {
+      tone: "historical",
+      label: "Historical inspection only",
+      detail: "This session is complete and can only be inspected from the dashboard.",
+    };
+  }
+
+  if (state.status === "cancelled") {
+    return {
+      tone: "historical",
+      label: "Historical inspection only",
+      detail: "This session was cancelled and can only be inspected from the dashboard.",
+    };
+  }
+
+  return {
+    tone: "neutral",
+    label: "Inspect session",
+    detail: "Open the session details to understand its current state.",
+  };
+}
+
+function availabilitySummaryFromSessionSummary(summary) {
+  if (summary.status === "awaiting_user_input") {
+    return {
+      tone: "actionable",
+      label: "Browser action available",
+      detail: summary.pending_question_text
+        ? `Waiting on an ask_user answer: ${summary.pending_question_text}`
+        : "Waiting on an ask_user answer from the operator.",
+    };
+  }
+
+  if (summary.status === "awaiting_approval") {
+    return {
+      tone: "actionable",
+      label: "Browser action available",
+      detail: "Waiting on an approval decision from the operator.",
+    };
+  }
+
+  if (summary.status === "running") {
+    return {
+      tone: summary.last_sequence > 0 ? "live" : "actionable",
+      label: summary.next_action_summary === "Send the next prompt"
+        ? "Browser action available"
+        : "Live session",
+      detail: summary.next_action_summary,
+    };
+  }
+
+  if (["completed", "cancelled", "failed"].includes(summary.status)) {
+    return {
+      tone: "historical",
+      label: "Historical inspection only",
+      detail: summary.session_failure_message
+        ? `Failure: ${summary.session_failure_message}`
+        : summary.next_action_summary,
+    };
+  }
+
+  return {
+    tone: "neutral",
+    label: "Inspect session",
+    detail: summary.next_action_summary,
+  };
 }
 
 export function renderTranscriptPane(state) {
@@ -89,9 +264,7 @@ export function renderSessionBrowserPane(state) {
   return state.sessionIndex.map(summary => {
     const isSelected = summary.session_id === selectedSessionId;
     const latestSummary = summary.latest_message_summary ?? "No transcript yet";
-    const pendingSummary = summary.pending_question_text
-      ? `Question: ${summary.pending_question_text}`
-      : summary.next_action_summary;
+    const availability = availabilitySummaryFromSessionSummary(summary);
 
     return `<button
       type="button"
@@ -104,10 +277,49 @@ export function renderSessionBrowserPane(state) {
       </div>
       <div class="session-card-meta">${escHtml(summary.model_name)} · ${escHtml(summary.approval_mode)}</div>
       <div class="session-card-path">${escHtml(summary.cwd)}</div>
+      <div class="session-card-section-label">Next action</div>
+      <div class="session-card-next">${escHtml(summary.next_action_summary)}</div>
+      <div class="session-card-section-label">Last activity</div>
       <div class="session-card-summary">${escHtml(latestSummary)}</div>
-      <div class="session-card-next">${escHtml(pendingSummary)}</div>
+      <div class="session-card-footer">
+        ${renderGuidanceChip(availability.tone, availability.label)}
+        <span class="session-card-detail">${escHtml(availability.detail)}</span>
+      </div>
     </button>`;
   }).join("");
+}
+
+export function renderSelectedSessionSummary(state) {
+  const availability = availabilitySummaryFromState(state);
+
+  return `<div class="selected-session-summary">
+    <div class="selected-session-head">
+      <div>
+        <div class="selected-session-eyebrow">Selected session</div>
+        <h2>${escHtml(shortId(state.sessionId))}</h2>
+      </div>
+      ${renderStatusChip(state.status)}
+    </div>
+    <p class="selected-session-copy">${escHtml(availability.detail)}</p>
+    <div class="selected-session-grid">
+      <div class="selected-session-item">
+        <div class="selected-session-label">Next action</div>
+        <div class="selected-session-value">${escHtml(nextActionSummaryFromState(state))}</div>
+      </div>
+      <div class="selected-session-item">
+        <div class="selected-session-label">Availability</div>
+        <div class="selected-session-value">${renderGuidanceChip(availability.tone, availability.label)}</div>
+      </div>
+      <div class="selected-session-item">
+        <div class="selected-session-label">Last activity</div>
+        <div class="selected-session-value">${escHtml(latestActivitySummaryFromState(state))}</div>
+      </div>
+      <div class="selected-session-item">
+        <div class="selected-session-label">Session mode</div>
+        <div class="selected-session-value">${escHtml(state.approvalMode ?? "unknown")}</div>
+      </div>
+    </div>
+  </div>`;
 }
 
 export function renderLandingPane(state) {
@@ -392,6 +604,7 @@ export function renderDashboardPanes(state) {
   return {
     composer: renderComposerPane(state),
     landing: renderLandingPane(state),
+    selectedSessionSummary: renderSelectedSessionSummary(state),
     sessionBrowser: renderSessionBrowserPane(state),
     transcript: renderTranscriptPane(state),
     turn: renderTurnPane(state),
