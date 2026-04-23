@@ -1868,7 +1868,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-200: Define Local-First Verification Policy For Direct-To-`main` Development
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-196`, `GBX-197`, `GBX-121`
 - Goal: define how replay and eval verification should protect a workflow that commits directly to `main` and pushes to `origin` without relying on pull-request gates
 - Deliverables:

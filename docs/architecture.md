@@ -1047,6 +1047,46 @@ These commands should stay complementary to `pytest` rather than replacing it.
 The purpose is replay-backed behavioral regression coverage, not a second
 general-purpose unit-test framework.
 
+### Local-First Verification Policy
+
+Glassbox assumes a local-first development loop where `git commit` and
+`git push origin main` are the normal path. Replay and eval verification should
+therefore be ordered around the earliest useful local barrier rather than around
+pull-request gates or branch protection.
+
+The verification contract is:
+
+1. commit-time local gates block bad changes before they enter history
+2. push-time confirmation reruns broader replay or eval coverage after `origin`
+   receives the new commit and retains artifacts for review
+3. optional scheduled suites may run later for wider advisory coverage, but they
+   do not replace the local barrier
+
+For this repository, `pre-commit` is the primary early-regression barrier. The
+existing blocking hook stack already runs formatting, lint, type-check, and
+`pytest` locally. Curated replay-backed smoke evals should join that same
+commit-time path instead of being deferred to CI or a post-push bot.
+
+The intended tag policy is:
+
+- `smoke`: blocking at commit time because these cases should stay small,
+  stable, and representative of the highest-value replay contracts
+- broader tags such as `tooling`, `approval`, or future provider-oriented
+  buckets: allowed to run after push as confirmation when they are too slow,
+  too artifact-heavy, or too numerous for every commit
+- later scheduled suites: advisory only, useful for trend detection and wider
+  drift discovery, but not the first place regressions should surface
+
+Operator expectations should stay explicit:
+
+- a commit-time replay or eval failure means the change should be investigated before creating history, because the local barrier has already found a drift against a curated regression contract
+- a post-push failure means a broader confirmation suite found drift that was intentionally outside the blocking local smoke set; it still matters, but it indicates the smoke barrier was incomplete rather than absent
+
+This policy keeps replay and eval aligned with the rest of the repository's
+local enforcement model: catch the cheapest high-value regressions before
+commit, then use post-push automation for confirmation, artifact retention, and
+visibility rather than as the first line of defense.
+
 ### Interactive Command Surface
 
 The primary conversational UX should move toward a persistent terminal session

@@ -317,6 +317,39 @@ Each `glassbox eval run` invocation writes one JSON artifact per executed case
 plus `summary.json`. If you omit `--output-dir`, Glassbox creates a timestamped
 directory under `.glassbox/evals/`.
 
+### Local-First Verification Policy
+
+Glassbox assumes a direct-to-`main` workflow where the important regression
+barrier happens before `git commit`, not in a pull-request gate that may never
+exist.
+
+Use replay and eval verification in three layers:
+
+1. Commit time: blocking local hooks. The existing `pre-commit` stack already
+   blocks on format, lint, type-check, and `pytest`. Phase 20 extends that same
+   path with curated `smoke` eval cases so the cheapest high-value replay
+   regressions fail before the commit is created.
+2. Push time: broader confirmation after `git push origin main`. This is where
+   larger or more artifact-heavy replay/eval suites can rerun and retain output
+   for inspection without slowing every commit loop.
+3. Later scheduled coverage: optional non-blocking suites for wider advisory
+   drift detection.
+
+The expected tag split is:
+
+- `smoke` tags are the commit-time blocking set.
+- Broader tags stay non-blocking until they are small and stable enough to earn
+  promotion into the smoke barrier.
+
+Interpret failures based on where they happen:
+
+- A commit-time replay/eval failure means the local regression barrier already
+  found drift in a curated contract. Fix or intentionally refresh the baseline
+  before committing.
+- A post-push replay/eval failure means the broader confirmation suite caught
+  drift outside the current smoke set. Treat that as a signal to investigate the
+  change and possibly promote that case or tag into the commit-time barrier.
+
 ### Targeted Expectations And Baseline Refresh
 
 The default expectation is strict `exact_match`. Use a narrower
