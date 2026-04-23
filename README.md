@@ -328,7 +328,8 @@ Use replay and eval verification in three layers:
 1. Commit time: blocking local hooks. The existing `pre-commit` stack already
    blocks on format, lint, type-check, and `pytest`. Phase 20 extends that same
    path with curated `smoke` eval cases so the cheapest high-value replay
-   regressions fail before the commit is created.
+  regressions fail before the commit is created. The smoke hook writes
+  per-case artifacts plus `summary.json` under `.glassbox/evals/pre-commit/`.
 2. Push time: broader confirmation after `git push origin main`. This is where
    larger or more artifact-heavy replay/eval suites can rerun and retain output
    for inspection without slowing every commit loop.
@@ -490,6 +491,9 @@ uv run pytest
 uv run pre-commit run --all-files
 ```
 
+When the commit-time smoke eval hook fails, inspect the emitted suite summary
+and per-case JSON under `.glassbox/evals/pre-commit/`.
+
 During incremental work, prefer narrower checks for the slice you touched. Examples:
 
 ```bash
@@ -500,6 +504,7 @@ uv run ty check src/glassbox/cli/__init__.py
 uv run pytest tests/test_import_smoke.py
 uv run glassbox replay SESSION_ID --cwd .
 uv run glassbox eval run --tag smoke --cwd .
+uv run pre-commit run eval-smoke --all-files
 ```
 
 ## Reference Docs

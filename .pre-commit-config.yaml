@@ -38,3 +38,10 @@ repos:
         always_run: true
         pass_filenames: false
         types_or: [python, pyi]
+
+      - id: eval-smoke
+        name: glassbox eval run --tag smoke
+        entry: uv run glassbox eval run --tag smoke --output-dir .glassbox/evals/pre-commit --cwd .
+        language: unsupported
+        always_run: true
+        pass_filenames: false

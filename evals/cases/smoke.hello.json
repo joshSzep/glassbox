@@ -1,0 +1,11 @@
+{
+  "manifest_version": 1,
+  "case_id": "smoke.hello",
+  "title": "Greeting prompt stays stable",
+  "bundle_path": "../bundles/smoke.hello.json",
+  "tags": ["smoke"],
+  "notes": "Captured from a deterministic no-tool local session for the commit-time smoke suite.",
+  "expectation": {
+    "mode": "exact_match"
+  }
+}

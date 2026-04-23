@@ -1892,7 +1892,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-201: Add Commit-Time Smoke Eval Verification To Pre-Commit
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-196`, `GBX-200`
 - Goal: fail local commits when curated replay smoke cases drift, so replay/eval protection fires before code lands on `main`
 - Deliverables:

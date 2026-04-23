@@ -29,6 +29,14 @@ glassbox eval run --tag smoke --json
 glassbox eval run --output-dir .glassbox/evals/manual
 ```
 
+The commit-time smoke hook uses the same tagged suite with a stable local output
+directory:
+
+```text
+pre-commit run eval-smoke --all-files
+glassbox eval run --tag smoke --output-dir .glassbox/evals/pre-commit
+```
+
 Each run writes one JSON artifact per case plus `summary.json` into the selected
 output directory. If `--output-dir` is omitted, Glassbox creates a timestamped
 directory under `.glassbox/evals/`.
