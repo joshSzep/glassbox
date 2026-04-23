@@ -111,6 +111,24 @@ def test_cli_help_lists_serve_command(capsys: pytest.CaptureFixture[str]) -> Non
     assert "serve" in captured.out
 
 
+def test_cli_help_lists_chat_dashboard_flags(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    import pytest
+
+    from glassbox.cli import main
+
+    with pytest.raises(SystemExit) as exc_info:
+        main(["chat", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 0
+    assert "--dashboard-host" in captured.out
+    assert "--dashboard-port" in captured.out
+    assert "--no-dashboard" in captured.out
+
+
 def test_serve_command_prints_dashboard_url_and_passes_runtime_args(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

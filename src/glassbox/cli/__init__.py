@@ -28,6 +28,7 @@ from glassbox.core.models import (
 )
 from glassbox.core.types import ApprovalDecision, SessionStatus
 from glassbox.runtime import RuntimeContext, open_runtime_context
+from glassbox.web import GlassboxWebServer, WebServerConfig, build_web_server
 
 _APPROVAL_MODE_CHOICES = ("confirm", "review", "on-request", "never")
 
@@ -121,6 +122,22 @@ def _build_parser() -> argparse.ArgumentParser:
         default="confirm",
         choices=_APPROVAL_MODE_CHOICES,
         help="approval mode for risky tool actions",
+    )
+    chat_parser.add_argument(
+        "--dashboard-host",
+        default=None,
+        help="host address for the co-hosted dashboard server",
+    )
+    chat_parser.add_argument(
+        "--dashboard-port",
+        type=_parse_port,
+        default=None,
+        help="port for the co-hosted dashboard server",
+    )
+    chat_parser.add_argument(
+        "--no-dashboard",
+        action="store_true",
+        help="disable the co-hosted dashboard during interactive chat",
     )
 
     attach_parser = subparsers.add_parser(
@@ -233,7 +250,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     serve_parser.add_argument(
         "--port",
-        type=int,
+        type=_parse_port,
         default=8765,
         help="port to bind the server to",
     )
@@ -259,6 +276,16 @@ def _parse_uuid(value: str) -> UUID:
         return UUID(value)
     except ValueError as exc:
         raise argparse.ArgumentTypeError(f"invalid UUID: {value}") from exc
+
+
+def _parse_port(value: str) -> int:
+    try:
+        port = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(f"invalid port: {value}") from exc
+    if port < 1 or port > 65535:
+        raise argparse.ArgumentTypeError(f"invalid port: {value}")
+    return port
 
 
 def _resolve_runtime_location(args: argparse.Namespace) -> tuple[Path, Path | None]:
@@ -303,7 +330,7 @@ def _chat_command(args: argparse.Namespace) -> int:
 
 async def _chat_command_async(args: argparse.Namespace) -> int:
     cwd, db_path = _resolve_runtime_location(args)
-    config = SessionConfig(
+    base_config = SessionConfig(
         model_name=args.model_name,
         cwd=cwd,
         approval_mode=args.approval_mode,
@@ -313,22 +340,40 @@ async def _chat_command_async(args: argparse.Namespace) -> int:
         runtime_context: RuntimeContext,
         prompt_state: InteractivePromptState,
     ) -> None:
-        session_state = await runtime_context.services.session_service.start_session(
-            config
-        )
-        await asyncio.sleep(0)
-        if args.prompt:
-            await runtime_context.services.session_service.submit_user_message(
-                session_state.session_id,
-                args.prompt,
+        dashboard_server: GlassboxWebServer | None = None
+        dashboard_url: str | None = None
+        try:
+            dashboard_server, dashboard_url = await _start_chat_dashboard(
+                runtime_context,
+                args,
             )
             await asyncio.sleep(0)
-        print(f"Attached to session {session_state.session_id}")
-        await _interactive_session_loop(
-            runtime_context,
-            session_state.session_id,
-            prompt_state,
-        )
+
+            config = base_config.model_copy(update={"dashboard_url": dashboard_url})
+            session_state = (
+                await runtime_context.services.session_service.start_session(config)
+            )
+            await asyncio.sleep(0)
+            if args.prompt:
+                await runtime_context.services.session_service.submit_user_message(
+                    session_state.session_id,
+                    args.prompt,
+                )
+                await asyncio.sleep(0)
+            print(f"Attached to session {session_state.session_id}")
+            if dashboard_url is not None:
+                print(
+                    "Dashboard available at "
+                    f"{_dashboard_session_url(dashboard_url, session_state.session_id)}"
+                )
+            await _interactive_session_loop(
+                runtime_context,
+                session_state.session_id,
+                prompt_state,
+            )
+        finally:
+            if dashboard_server is not None:
+                await dashboard_server.stop()
 
     return await _run_with_renderer(cwd, db_path, action)
 
@@ -1082,3 +1127,63 @@ def _serve_command(args: argparse.Namespace) -> int:
     print("Use ?session=SESSION_ID to open a specific session in the dashboard.")
     run_server(cwd, host=args.host, port=args.port, db_path=db_path)
     return 0
+
+
+def _dashboard_session_url(dashboard_url: str, session_id: UUID) -> str:
+    return f"{dashboard_url}?session={session_id}"
+
+
+def _chat_dashboard_config(
+    args: argparse.Namespace,
+) -> tuple[WebServerConfig | None, bool]:
+    dashboard_host = getattr(args, "dashboard_host", None)
+    dashboard_port = getattr(args, "dashboard_port", None)
+
+    if args.no_dashboard:
+        if dashboard_host is not None or dashboard_port is not None:
+            raise ValueError(
+                "cannot combine --no-dashboard with --dashboard-host "
+                "or --dashboard-port"
+            )
+        return None, False
+
+    explicit_dashboard_request = (
+        dashboard_host is not None or dashboard_port is not None
+    )
+    return (
+        WebServerConfig(
+            host=dashboard_host or "127.0.0.1",
+            port=dashboard_port or 8765,
+        ),
+        explicit_dashboard_request,
+    )
+
+
+async def _start_chat_dashboard(
+    runtime_context: RuntimeContext,
+    args: argparse.Namespace,
+) -> tuple[GlassboxWebServer | None, str | None]:
+    dashboard_config, explicit_dashboard_request = _chat_dashboard_config(args)
+    if dashboard_config is None:
+        return None, None
+
+    dashboard_server = build_web_server(
+        runtime_context,
+        host=dashboard_config.host,
+        port=dashboard_config.port,
+    )
+    try:
+        await dashboard_server.start()
+    except RuntimeError as exc:
+        if explicit_dashboard_request:
+            raise RuntimeError(
+                f"dashboard startup failed at {dashboard_config.dashboard_url}: {exc}"
+            ) from exc
+        print(
+            "Warning: dashboard unavailable at "
+            f"{dashboard_config.dashboard_url}: {exc}",
+            file=sys.stderr,
+        )
+        return None, None
+
+    return dashboard_server, dashboard_server.config.dashboard_url

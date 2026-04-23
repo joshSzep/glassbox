@@ -54,6 +54,10 @@ Use `glassbox chat` as the default conversational entrypoint. It starts a new
 session, keeps a live event subscription open in the terminal, and lets you keep
 working in the same shell instead of restarting the CLI for every turn.
 
+By default, `chat` also starts a co-hosted dashboard in the same process. Use
+`--no-dashboard` to keep the session terminal-only, or `--dashboard-host` and
+`--dashboard-port` to override the dashboard bind target.
+
 ```bash
 uv run glassbox chat --cwd .
 ```

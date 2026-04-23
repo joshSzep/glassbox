@@ -1506,7 +1506,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-173: Start The Dashboard Automatically During `glassbox chat`
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-161`, `GBX-164`, `GBX-170`, `GBX-171`, `GBX-172`
 - Goal: make the web dashboard available while an interactive chat session is in progress without requiring a second terminal command
 - Deliverables:

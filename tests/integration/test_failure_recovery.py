@@ -303,7 +303,13 @@ def test_cli_chat_with_unsupported_provider_emits_session_failed(
 
     exit_code, db_path = _run_cli(
         tmp_path,
-        ["chat", "Inspect the repository", "--model-name", "other:model"],
+        [
+            "chat",
+            "Inspect the repository",
+            "--model-name",
+            "other:model",
+            "--no-dashboard",
+        ],
     )
     captured = capsys.readouterr()
     session_id = _only_session_id(db_path)

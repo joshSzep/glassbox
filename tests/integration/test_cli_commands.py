@@ -25,6 +25,7 @@ from glassbox.core.events import (
     ModelCallCompleted,
     SessionCompleted,
     SessionFailed,
+    SessionStarted,
     ToolExecutionCompleted,
     ToolExecutionStarted,
     TurnStarted,
@@ -67,6 +68,25 @@ from glassbox.tools import (
     build_ask_user_tool_registry,
     build_patch_tool_registry,
 )
+from glassbox.web import WebServerConfig
+
+
+class FakeChatDashboardServer:
+    def __init__(self, *, host: str, port: int) -> None:
+        self.config = WebServerConfig(host=host, port=port)
+        self.started = False
+        self.stopped = False
+
+    async def start(self) -> None:
+        self.started = True
+
+    async def stop(self) -> None:
+        self.stopped = True
+
+
+class FailingChatDashboardServer(FakeChatDashboardServer):
+    async def start(self) -> None:
+        raise RuntimeError("web server failed to start")
 
 
 def test_cli_help_lists_session_oriented_commands(
@@ -308,6 +328,7 @@ def test_cli_chat_keeps_session_open_for_multiple_prompts(
     exit_code = main(
         [
             "chat",
+            "--no-dashboard",
             "--cwd",
             str(tmp_path),
             "--db-path",
@@ -496,6 +517,7 @@ def test_cli_chat_routes_pending_question_answers_without_question_id(
         exit_code = main(
             [
                 "chat",
+                "--no-dashboard",
                 "--cwd",
                 str(tmp_path),
                 "--db-path",
@@ -633,6 +655,7 @@ def test_cli_chat_redraws_prompt_and_routes_answer_after_question_arrives_mid_pr
         exit_code = main(
             [
                 "chat",
+                "--no-dashboard",
                 "--cwd",
                 str(tmp_path),
                 "--db-path",
@@ -700,6 +723,7 @@ def test_cli_chat_redraws_prompt_and_routes_approval_after_request_arrives_mid_p
         exit_code = main(
             [
                 "chat",
+                "--no-dashboard",
                 "--cwd",
                 str(tmp_path),
                 "--db-path",
@@ -730,6 +754,196 @@ def test_cli_chat_redraws_prompt_and_routes_approval_after_request_arrives_mid_p
     assert any(
         isinstance(event.payload, ApprovalResolved) for event in persisted_events
     )
+
+
+def test_cli_chat_starts_dashboard_sidecar_and_records_live_dashboard_url(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    built_servers: list[FakeChatDashboardServer] = []
+
+    def fake_build_web_server(runtime_context, *, host: str, port: int):
+        server = FakeChatDashboardServer(host=host, port=port)
+        built_servers.append(server)
+        return server
+
+    monkeypatch.setattr(
+        "glassbox.cli.build_web_server",
+        fake_build_web_server,
+    )
+    monkeypatch.setattr("glassbox.cli._read_interactive_input", lambda prompt: "/exit")
+
+    exit_code = main(
+        [
+            "chat",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        sessions = repository.list_sessions()
+        assert len(sessions) == 1
+        session_id = sessions[0].session_id
+        started_event = next(
+            event.payload
+            for event in repository.read_session_events(session_id)
+            if isinstance(event.payload, SessionStarted)
+        )
+    finally:
+        connection.close()
+
+    assert exit_code == 0
+    assert len(built_servers) == 1
+    assert built_servers[0].started is True
+    assert built_servers[0].stopped is True
+    assert (
+        "Dashboard available at "
+        f"http://127.0.0.1:8765/?session={session_id}" in captured.out
+    )
+    assert started_event.dashboard_url == "http://127.0.0.1:8765/"
+
+
+def test_cli_chat_continues_without_dashboard_when_default_startup_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+
+    def fake_build_web_server(runtime_context, *, host: str, port: int):
+        return FailingChatDashboardServer(host=host, port=port)
+
+    monkeypatch.setattr(
+        "glassbox.cli.build_web_server",
+        fake_build_web_server,
+    )
+    monkeypatch.setattr("glassbox.cli._read_interactive_input", lambda prompt: "/exit")
+
+    exit_code = main(
+        [
+            "chat",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        sessions = repository.list_sessions()
+        assert len(sessions) == 1
+        session_id = sessions[0].session_id
+        started_event = next(
+            event.payload
+            for event in repository.read_session_events(session_id)
+            if isinstance(event.payload, SessionStarted)
+        )
+    finally:
+        connection.close()
+
+    assert exit_code == 0
+    assert "Warning: dashboard unavailable at http://127.0.0.1:8765/" in captured.err
+    assert "Dashboard available at " not in captured.out
+    assert started_event.dashboard_url is None
+
+
+def test_cli_chat_fails_when_explicit_dashboard_binding_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+
+    def fail_if_prompted(prompt: str) -> Any:
+        raise AssertionError(f"interactive prompt should not be reached: {prompt}")
+
+    def fake_build_web_server(runtime_context, *, host: str, port: int):
+        return FailingChatDashboardServer(host=host, port=port)
+
+    monkeypatch.setattr(
+        "glassbox.cli.build_web_server",
+        fake_build_web_server,
+    )
+    monkeypatch.setattr("glassbox.cli._read_interactive_input", fail_if_prompted)
+
+    exit_code = main(
+        [
+            "chat",
+            "--dashboard-port",
+            "9876",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        sessions = SQLiteSessionRepository(connection).list_sessions()
+    finally:
+        connection.close()
+
+    assert exit_code == 1
+    assert (
+        "dashboard startup failed at http://127.0.0.1:9876/: web server failed to start"
+        == captured.err.strip()
+    )
+    assert sessions == []
+
+
+def test_cli_chat_can_disable_dashboard_sidecar(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+
+    def fail_if_built(*args, **kwargs):
+        raise AssertionError("dashboard sidecar should not be built")
+
+    monkeypatch.setattr("glassbox.cli.build_web_server", fail_if_built)
+    monkeypatch.setattr("glassbox.cli._read_interactive_input", lambda prompt: "/exit")
+
+    exit_code = main(
+        [
+            "chat",
+            "--no-dashboard",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        session_id = repository.list_sessions()[0].session_id
+        started_event = next(
+            event.payload
+            for event in repository.read_session_events(session_id)
+            if isinstance(event.payload, SessionStarted)
+        )
+    finally:
+        connection.close()
+
+    assert exit_code == 0
+    assert "Dashboard available at " not in captured.out
+    assert started_event.dashboard_url is None
 
 
 def test_cli_attach_rejects_unknown_session_id(
