@@ -1446,7 +1446,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-170: Define Co-Hosted Dashboard Semantics For `glassbox chat`
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-080`, `GBX-161`, `GBX-166`, `GBX-121`
 - Goal: define how an interactive chat session can expose the dashboard from the same owning process without contradicting the current process-local runtime model
 - Deliverables:

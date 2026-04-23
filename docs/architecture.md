@@ -868,6 +868,49 @@ and other paused states that can be continued from persisted projections. It
 should not promise live streaming from another already-running process, because
 the current event bus is in-process only.
 
+### Co-Hosted Dashboard During `chat`
+
+The interactive `chat` workflow should also be able to expose the dashboard from
+the same owning process.
+
+This should be treated as a co-hosted sidecar over the existing runtime context,
+not as a second runtime stack. The same process should continue to own:
+
+- the interactive terminal loop
+- the runtime services
+- the event bus
+- the persisted event stream
+- the embedded dashboard server
+
+The intended command surface is:
+
+```text
+glassbox chat [PROMPT] [--dashboard-host HOST] [--dashboard-port PORT] [--no-dashboard]
+```
+
+Semantics:
+
+- `glassbox chat` should attempt to start a dashboard by default so the browser view is available while the interactive session is in progress
+- `--no-dashboard` should suppress the co-hosted dashboard when the operator wants a terminal-only session
+- `--dashboard-host` and `--dashboard-port` should configure the bind target for the co-hosted dashboard
+- a successfully started co-hosted dashboard should print its URL during chat startup and make that URL available through session metadata
+
+Failure behavior should preserve the conversational path as the primary UX:
+
+- if default dashboard startup fails, `chat` should continue with an explicit warning that the dashboard is unavailable for this session
+- if the operator explicitly requested dashboard configuration and startup fails, the CLI should surface a precise error rather than silently pretending the dashboard is live
+- in either case, session metadata must not advertise a live dashboard URL unless the server actually started
+
+This does not change the attach boundary from `GBX-166`. A co-hosted dashboard
+for `chat` improves same-process visibility only; it does not create true
+cross-process terminal attach or a daemon-backed resident runtime.
+
+`glassbox serve` remains the standalone dashboard path for cases where the
+operator wants a browser view outside an active `chat` session, wants to inspect
+persisted sessions from another process, or needs explicit control over the
+server lifecycle. `attach` should not automatically start the dashboard in v1;
+it remains an interactive terminal re-entry path over existing persisted state.
+
 ### Interactive Operator Semantics
 
 Inside an interactive terminal session:
