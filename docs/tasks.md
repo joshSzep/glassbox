@@ -1567,6 +1567,125 @@ uv run ty check src/glassbox/path.py
 
 ---
 
+## Phase 18: Standalone Dashboard And Operator Ergonomics
+
+### GBX-180: Define Standalone Dashboard Operator Model And Scope Boundary
+
+- Status: `TODO`
+- Depends on: `GBX-081`, `GBX-083`, `GBX-093`, `GBX-100`, `GBX-166`, `GBX-175`, `GBX-121`
+- Goal: define what the standalone dashboard should optimize for once the co-hosted `chat` dashboard flow is complete
+- Deliverables:
+  - architecture and operator-workflow updates positioning `glassbox serve` as the persisted-session browser console rather than a low-level transport surface
+  - explicit semantics for browsing recent sessions without already knowing a session ID
+  - explicit scope boundary for browser-based recovery and observation versus unsupported browser-based terminal attach or daemon-backed runtime control
+  - clear operator semantics for live, paused, completed, failed, and historical-only sessions when viewed through the standalone dashboard
+- Implementation notes:
+  - keep the browser workflow grounded in persisted projections and existing HTTP actions rather than inventing a second runtime control plane
+  - preserve the `chat`-hosted dashboard as the best path for same-process live observation while making `serve` the durable cross-process inspection path
+  - define what “actionable from the dashboard” means in standalone mode using existing prompt, answer, and approval semantics
+- Tests and validation included in task:
+  - architecture and doc review against the existing `chat`, `attach`, `serve`, snapshot, and SSE behavior before implementation starts
+  - manual verification that the proposed standalone workflow does not contradict the GBX-166 scope decision
+- Done when:
+  - the repo has a clear, code-aligned design for standalone dashboard operator flows and their boundary relative to terminal-owned interactive sessions
+
+### GBX-181: Add Session Index API For Standalone Dashboard Discovery
+
+- Status: `TODO`
+- Depends on: `GBX-022`, `GBX-024`, `GBX-080`, `GBX-111`, `GBX-180`
+- Goal: let the standalone dashboard discover useful sessions directly from the backend instead of requiring a manually supplied `session_id`
+- Deliverables:
+  - `GET /sessions` or equivalent session-index endpoint for dashboard use
+  - response schema for recent-session summaries including session ID, status, model name, cwd, update recency, and latest actionable summary
+  - support for practical filtering or ordering such as recency and session status where justified
+- Implementation notes:
+  - build the index from persisted session metadata and projections, not from in-memory runtime ownership assumptions
+  - return enough data for the browser to answer “which session should I open next?” without fetching every full snapshot first
+  - avoid over-designing a search API before the initial operator workflow proves the need
+- Tests and validation included in task:
+  - HTTP integration tests for empty, mixed-status, and multi-session index responses
+  - tests for ordering and summary-field correctness against seeded projection data
+- Done when:
+  - the standalone dashboard can load a useful recent-session list from a stable backend endpoint
+
+### GBX-182: Implement Standalone Dashboard Landing Page And Session Browser
+
+- Status: `TODO`
+- Depends on: `GBX-090`, `GBX-091`, `GBX-180`, `GBX-181`
+- Goal: make the standalone dashboard usable even when the operator starts at `/` with no session query parameter
+- Deliverables:
+  - landing-page experience that lists recent sessions and lets the operator open one without manually editing the URL
+  - browser-side state and routing updates that support both “no session selected yet” and “session selected” modes cleanly
+  - status chips or equivalent affordances showing whether sessions are running, awaiting input, awaiting approval, failed, completed, or otherwise inactive
+- Implementation notes:
+  - preserve the existing `?session=SESSION_ID` deep-link flow for direct opens from `chat` and docs
+  - do not regress the current single-session dashboard path while adding the landing/index experience
+  - favor a simple operator-first layout over a generic application shell
+- Tests and validation included in task:
+  - frontend reducer and component tests for index hydration, session selection, and no-session states
+  - integration tests for loading the landing page, selecting a session, and preserving deep-link navigation
+- Done when:
+  - an operator can start `glassbox serve`, open the root dashboard URL, and navigate to a useful session without copying a session ID first
+
+### GBX-183: Improve Standalone Session Summaries And Next-Action Guidance
+
+- Status: `TODO`
+- Depends on: `GBX-081`, `GBX-111`, `GBX-154`, `GBX-181`, `GBX-182`
+- Goal: make it immediately clear what a selected session is waiting on and what the operator can do next from the standalone dashboard
+- Deliverables:
+  - operator-facing next-action summary for standalone session cards and/or the selected-session header
+  - clearer presentation of pending `ask_user` input, pending approvals, failure context, and last assistant/user activity
+  - snapshot or frontend summary wiring that distinguishes actionable sessions from historical-only inspection states
+- Implementation notes:
+  - reuse existing session-state semantics rather than inventing new browser-only notions of readiness
+  - make the guidance explicit enough that an operator does not need to inspect raw event logs to choose the next step
+  - keep CLI and dashboard action semantics aligned where the same session state is represented in both places
+- Tests and validation included in task:
+  - HTTP and/or frontend tests for summary rendering across running, awaiting-user-input, awaiting-approval, failed, completed, and idle states
+  - regression tests that next-action guidance stays consistent with the underlying session snapshot state
+- Done when:
+  - the standalone dashboard can tell the operator what a session is waiting on and whether action is possible from the browser without guesswork
+
+### GBX-184: Improve Standalone Live-State, Reconnect, And Historical-Session UX
+
+- Status: `TODO`
+- Depends on: `GBX-082`, `GBX-174`, `GBX-182`, `GBX-183`
+- Goal: make standalone dashboard behavior understandable when a session is live, no longer live, or only historically inspectable
+- Deliverables:
+  - clearer browser UX for SSE connected, reconnecting, unavailable, and historical-only states
+  - session-view messaging that distinguishes an unavailable live stream from a valid historical snapshot
+  - route or state handling improvements for invalid, missing, or stale session selections in the standalone dashboard
+- Implementation notes:
+  - do not imply that standalone `serve` can recreate terminal-native attach semantics when the owning process is gone
+  - treat snapshot access and live SSE state as separate operator signals and surface them independently
+  - prefer explicit stale-state messaging over silent empty panes or ambiguous disconnected indicators
+- Tests and validation included in task:
+  - frontend integration tests for SSE disconnect, reconnect, and historical-session viewing states
+  - HTTP or frontend regression tests for invalid session selection and recovery back to the session index
+- Done when:
+  - the standalone dashboard remains legible and trustworthy whether the selected session is actively streaming or only available as persisted history
+
+### GBX-185: Document Standalone Dashboard Recovery And Session-Browsing Workflows
+
+- Status: `TODO`
+- Depends on: `GBX-180`, `GBX-181`, `GBX-182`, `GBX-183`, `GBX-184`, `GBX-121`
+- Goal: document the standalone dashboard as the durable operator console for persisted sessions and recovery flows
+- Deliverables:
+  - README updates covering how to use `glassbox serve` when no active `chat` process is owning the dashboard
+  - operator guidance for browsing recent sessions, reopening actionable sessions in the browser, and distinguishing live versus historical inspection
+  - troubleshooting notes for invalid session IDs, disconnected SSE state, and post-`chat` session inspection
+- Implementation notes:
+  - keep docs explicit that standalone browser ergonomics improve discovery and recovery, but do not introduce daemon-backed terminal attach
+  - show at least one example flow that begins from `glassbox serve` with no preselected session ID
+  - align examples with the actual landing page, routing, and session-summary behavior implemented in this phase
+- Tests and validation included in task:
+  - doc review against the implemented standalone dashboard routes, index behavior, and browser affordances
+  - manual verification of the documented standalone recovery flow against the actual UI and HTTP behavior
+- Done when:
+  - an operator can discover, inspect, and recover the right session from the standalone dashboard docs alone without guessing which URL or state transition to use
+
+---
+
 ## Recommended Build Order For The First Usable Vertical Slice
 
 If an agent wants the fastest path to a demonstrable but architecturally correct version, the recommended order is:
