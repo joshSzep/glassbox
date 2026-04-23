@@ -996,6 +996,46 @@ replay baseline:
 - they preserve replay-capture redaction, so provider secrets and other sensitive model settings stay scrubbed when the bundle is checked into a repository or moved to CI
 - they intentionally retain source workspace context metadata while avoiding unrelated local artifact-path leakage, and bundle-version mismatches fail clearly before replay runs
 
+### Eval Case Layout
+
+Replay-backed eval suites are repository-local manifests rooted under `evals/`.
+The batch runner lands in the next slice, but the case format and discovery rules
+are now fixed so baselines can be curated and reviewed deliberately.
+
+Default repository layout:
+
+```text
+evals/
+    README.md
+    bundles/
+        CASE_ID.json
+    cases/
+        CASE_ID.json
+```
+
+Each case manifest is a versioned JSON document with:
+
+- `case_id`: stable lowercase identifier used for selection and reporting
+- `title`: human-readable scenario name for summaries and reviews
+- `bundle_path`: relative path to the exported replay bundle, typically under `evals/bundles/`
+- `tags`: optional scope labels such as `smoke`, `tooling`, `approval`, or `provider-mode`
+- `notes`: optional reviewer context about capture intent or known caveats
+- `expectation`: comparison contract, defaulting to `exact_match` but allowing explicit `selected_invariants` cases like `final_state` only
+
+Case manifests must keep `bundle_path` relative and inside the repository root.
+That keeps checked-in baselines portable, reviewable, and free of accidental
+references to arbitrary machine-local paths.
+
+The baseline-promotion workflow is intentionally explicit:
+
+1. capture or identify a replayable session
+2. export its portable baseline into `evals/bundles/CASE_ID.json`
+3. add `evals/cases/CASE_ID.json` that points at the bundle and declares tags and expectations
+4. review bundle and case changes together when promoting or refreshing a baseline
+
+That separation keeps the bundle as recorded evidence and the case manifest as
+the repository-owned regression contract.
+
 These commands should stay complementary to `pytest` rather than replacing it.
 The purpose is replay-backed behavioral regression coverage, not a second
 general-purpose unit-test framework.

@@ -27,6 +27,14 @@ from glassbox.runtime.provider_config import (
 )
 
 if TYPE_CHECKING:
+    from glassbox.runtime.evals import (
+        EvalCase,
+        EvalCaseExpectation,
+        EvalCaseManifest,
+        discover_eval_case_files,
+        load_eval_case,
+        load_eval_suite,
+    )
     from glassbox.runtime.replay import ReplayBundle, ReplayResult, ReplayRunner
     from glassbox.runtime.supervisor import SessionSupervisor
     from glassbox.runtime.turn_engine import TurnEngine
@@ -41,6 +49,17 @@ def __getattr__(name: str) -> Any:
         from glassbox.runtime.supervisor import SessionSupervisor as _SessionSupervisor
 
         return _SessionSupervisor
+    if name in {
+        "EvalCase",
+        "EvalCaseExpectation",
+        "EvalCaseManifest",
+        "discover_eval_case_files",
+        "load_eval_case",
+        "load_eval_suite",
+    }:
+        from glassbox.runtime import evals as _evals
+
+        return getattr(_evals, name)
     if name in {"ReplayBundle", "ReplayResult", "ReplayRunner"}:
         from glassbox.runtime import replay as _replay
 
@@ -54,9 +73,15 @@ def __getattr__(name: str) -> Any:
 
 __all__ = [
     "default_database_path",
+    "discover_eval_case_files",
+    "EvalCase",
+    "EvalCaseExpectation",
+    "EvalCaseManifest",
     "EventBus",
     "EventBusStats",
     "EventBusSubscription",
+    "load_eval_case",
+    "load_eval_suite",
     "open_runtime_context",
     "PolicyContext",
     "ProviderSecretConfig",

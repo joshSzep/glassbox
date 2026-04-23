@@ -1802,7 +1802,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-195: Define Eval Case Format And Baseline Selection Workflow
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-190`, `GBX-194`, `GBX-121`
 - Goal: turn replay from a one-off debugging command into a stable regression-spec workflow that repositories can curate deliberately
 - Deliverables:
