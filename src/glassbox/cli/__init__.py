@@ -295,6 +295,14 @@ def _build_parser() -> argparse.ArgumentParser:
         help="directory for suite summary and per-case replay artifacts",
     )
     eval_run_parser.add_argument(
+        "--refresh-output-dir",
+        action="store_true",
+        help=(
+            "clear prior generated JSON artifacts in a managed .glassbox/evals/ "
+            "output directory before writing the new suite result"
+        ),
+    )
+    eval_run_parser.add_argument(
         "--json",
         action="store_true",
         help="print the structured eval suite report as JSON",
@@ -663,6 +671,7 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
         case_ids=list(args.case_ids) or None,
         tags=list(args.tags) or None,
         output_dir=_resolve_optional_explicit_path(cwd, args.output_dir),
+        refresh_output_dir=args.refresh_output_dir,
     )
 
     if args.json:

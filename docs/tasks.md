@@ -1914,7 +1914,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-202: Make Local Eval Hook Artifacts Stable, Inspectable, And Low-Churn
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-201`, `GBX-025`
 - Goal: make commit-time replay/eval failures debuggable without turning local hook artifacts into workspace clutter or accidental source-control noise
 - Deliverables:

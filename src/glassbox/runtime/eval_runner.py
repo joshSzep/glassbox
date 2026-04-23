@@ -69,6 +69,7 @@ class EvalRunner:
         case_ids: list[str] | None = None,
         tags: list[str] | None = None,
         output_dir: Path | None = None,
+        refresh_output_dir: bool = False,
     ) -> EvalSuiteResult:
         resolved_workspace_root = workspace_root.resolve()
         eval_cases = load_eval_suite(
@@ -83,6 +84,11 @@ class EvalRunner:
             resolved_workspace_root,
             output_dir=output_dir,
         )
+        if refresh_output_dir:
+            _refresh_output_dir(
+                resolved_workspace_root,
+                output_dir=resolved_output_dir,
+            )
         resolved_output_dir.mkdir(parents=True, exist_ok=True)
 
         case_results = [
@@ -167,6 +173,19 @@ def _resolve_output_dir(workspace_root: Path, *, output_dir: Path | None) -> Pat
         return output_dir.resolve()
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     return (workspace_root / ".glassbox" / "evals" / timestamp).resolve()
+
+
+def _refresh_output_dir(workspace_root: Path, *, output_dir: Path) -> None:
+    managed_root = (workspace_root / ".glassbox" / "evals").resolve()
+    if not output_dir.is_relative_to(managed_root):
+        raise ValueError(
+            "--refresh-output-dir requires an output directory under .glassbox/evals"
+        )
+    if not output_dir.exists():
+        return
+    for child in output_dir.iterdir():
+        if child.is_file() and child.suffix == ".json":
+            child.unlink()
 
 
 def _partition_mismatches(

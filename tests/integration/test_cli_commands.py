@@ -659,6 +659,109 @@ def test_cli_eval_run_allows_selected_invariants_to_ignore_behavioral_drift(
     assert summary["cases"][0]["ignored_mismatches"] == ["final_state drift"]
 
 
+def test_cli_eval_run_refreshes_managed_output_dir_for_repeated_runs(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    bundle_path, _session_id = _export_eval_bundle(tmp_path, "smoke.readme")
+    approval_bundle_path = tmp_path / "evals" / "bundles" / "approval.patch.json"
+    shutil.copyfile(bundle_path, approval_bundle_path)
+
+    _write_eval_case(
+        tmp_path,
+        case_id="smoke.readme",
+        title="README smoke",
+        bundle_name=bundle_path.name,
+        tags=["smoke", "tooling"],
+    )
+    _write_eval_case(
+        tmp_path,
+        case_id="approval.patch",
+        title="Patch approval",
+        bundle_name=approval_bundle_path.name,
+        tags=["approval"],
+    )
+    output_dir = tmp_path / ".glassbox" / "evals" / "pre-commit"
+
+    first_exit_code = main(
+        [
+            "eval",
+            "run",
+            "--cwd",
+            str(tmp_path),
+            "--output-dir",
+            str(output_dir),
+            "--refresh-output-dir",
+        ]
+    )
+
+    stale_file = output_dir / "stale.json"
+    stale_file.write_text("{}\n", encoding="utf-8")
+    _ = capsys.readouterr()
+
+    second_exit_code = main(
+        [
+            "eval",
+            "run",
+            "--tag",
+            "smoke",
+            "--cwd",
+            str(tmp_path),
+            "--output-dir",
+            str(output_dir),
+            "--refresh-output-dir",
+        ]
+    )
+    captured = capsys.readouterr()
+    summary = json.loads((output_dir / "summary.json").read_text(encoding="utf-8"))
+
+    assert first_exit_code == 0
+    assert second_exit_code == 0
+    assert "Artifacts: " + str(output_dir.resolve()) in captured.out
+    assert (output_dir / "smoke.readme.json").is_file()
+    assert not (output_dir / "approval.patch.json").exists()
+    assert not stale_file.exists()
+    assert summary["selected_case_count"] == 1
+    assert summary["cases"][0]["case_id"] == "smoke.readme"
+
+
+def test_cli_eval_run_rejects_refresh_outside_managed_output_tree(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    bundle_path, _session_id = _export_eval_bundle(tmp_path, "smoke.readme")
+    _write_eval_case(
+        tmp_path,
+        case_id="smoke.readme",
+        title="README smoke",
+        bundle_name=bundle_path.name,
+        tags=["smoke"],
+    )
+    output_dir = tmp_path / "manual-output"
+
+    exit_code = main(
+        [
+            "eval",
+            "run",
+            "--tag",
+            "smoke",
+            "--cwd",
+            str(tmp_path),
+            "--output-dir",
+            str(output_dir),
+            "--refresh-output-dir",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert (
+        "--refresh-output-dir requires an output directory under .glassbox/evals"
+        in captured.err
+    )
+    assert not output_dir.exists()
+
+
 def test_cli_message_submits_new_user_turn_to_existing_session(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

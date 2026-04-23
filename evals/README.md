@@ -34,8 +34,12 @@ directory:
 
 ```text
 pre-commit run eval-smoke --all-files
-glassbox eval run --tag smoke --output-dir .glassbox/evals/pre-commit
+glassbox eval run --tag smoke --output-dir .glassbox/evals/pre-commit --refresh-output-dir
 ```
+
+That managed output directory is refreshed in place on each hook run so the
+latest blocked commit leaves behind one stable `summary.json` plus the current
+per-case artifacts without accumulating stale JSON from earlier runs.
 
 Each run writes one JSON artifact per case plus `summary.json` into the selected
 output directory. If `--output-dir` is omitted, Glassbox creates a timestamped
