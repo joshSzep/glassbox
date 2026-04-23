@@ -977,7 +977,7 @@ Current command surface:
 glassbox replay SESSION_ID [--json]
 glassbox replay --bundle BUNDLE_PATH [--json]
 glassbox replay-export SESSION_ID [OUTPUT]
-glassbox eval run [CASE_ID ...]
+glassbox eval run [CASE_ID ...] [--tag TAG] [--json] [--output-dir DIR]
 ```
 
 The semantics should stay narrow:
@@ -987,7 +987,10 @@ The semantics should stay narrow:
 - `glassbox replay` uses stable exit codes so scripts can distinguish exact match from drift and replay errors without scraping terminal text
 - `glassbox replay` does not mutate the source session metadata or recorded replay artifacts; replay runs against an isolated temporary session store
 - replay export turns a replayable session into a portable baseline bundle that can move across branches, repositories, or CI machines without the original SQLite database
-- `glassbox eval run` executes curated replay cases in batch and returns a CI-friendly summary without requiring live provider credentials for deterministic cases
+- `glassbox eval run` executes curated replay cases serially from the repository-local `evals/` layout, returns a CI-friendly suite summary, and does not require live provider credentials for deterministic cases
+- `glassbox eval run --tag ...` narrows the suite to tagged cases, while explicit `CASE_ID` arguments preserve an operator-controlled selection order for focused validation
+- `glassbox eval run --json` emits a machine-readable suite report including per-case outcomes, expectation-aware pass/fail state, and artifact paths
+- `glassbox eval run` writes one JSON artifact per executed case plus `summary.json` under the selected output directory so batch failures stay debuggable after CI or local runs
 
 Portable replay bundles are a stable, versioned JSON envelope around the normalized
 replay baseline:
@@ -1032,6 +1035,10 @@ The baseline-promotion workflow is intentionally explicit:
 2. export its portable baseline into `evals/bundles/CASE_ID.json`
 3. add `evals/cases/CASE_ID.json` that points at the bundle and declares tags and expectations
 4. review bundle and case changes together when promoting or refreshing a baseline
+
+Batch eval execution consumes those manifests directly. Each case still replays in
+isolation against the current workspace root, so one failing or drifting case does
+not contaminate later ones or mutate any source session database.
 
 That separation keeps the bundle as recorded evidence and the case manifest as
 the repository-owned regression contract.

@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import shutil
 import sqlite3
 from contextlib import nullcontext
 from pathlib import Path
@@ -48,6 +49,7 @@ from glassbox.llm import (
 )
 from glassbox.runtime import (
     EventBus,
+    ReplayRunner,
     RuntimeContext,
     RuntimeInfrastructure,
     RuntimeRepositories,
@@ -109,6 +111,7 @@ def test_cli_help_lists_session_oriented_commands(
     assert "rebuild" in captured.out
     assert "replay" in captured.out
     assert "replay-export" in captured.out
+    assert "eval" in captured.out
     assert "approve" in captured.out
     assert "deny" in captured.out
 
@@ -494,6 +497,166 @@ def test_cli_replay_requires_exactly_one_session_or_bundle_input(
 
     assert exit_code == 1
     assert captured.err.strip() == "specify exactly one of session_id or --bundle"
+
+
+def test_cli_eval_run_reports_mixed_outcomes_and_writes_artifacts(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    bundle_path, _session_id = _export_eval_bundle(tmp_path, "smoke.readme")
+    manifest_bundle_path = tmp_path / "evals" / "bundles" / "drift.manifest.json"
+    manifest_payload = json.loads(bundle_path.read_text(encoding="utf-8"))
+    manifest_payload["model_calls"][0]["manifest"]["prepared_turn"]["user_prompt"] = (
+        "Unexpected prompt"
+    )
+    manifest_bundle_path.write_text(
+        json.dumps(manifest_payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    _write_eval_case(
+        tmp_path,
+        case_id="smoke.readme",
+        title="README smoke",
+        bundle_name=bundle_path.name,
+        tags=["smoke", "tooling"],
+    )
+    _write_eval_case(
+        tmp_path,
+        case_id="drift.manifest",
+        title="Manifest drift",
+        bundle_name=manifest_bundle_path.name,
+        tags=["smoke", "provider-mode"],
+    )
+    output_dir = tmp_path / "eval-output"
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "run",
+            "--cwd",
+            str(tmp_path),
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+    captured = capsys.readouterr()
+    summary = json.loads((output_dir / "summary.json").read_text(encoding="utf-8"))
+
+    assert exit_code == 11
+    assert "Selected cases: 2" in captured.out
+    assert "Passed: 1" in captured.out
+    assert "Failed: 1" in captured.out
+    assert "drift.manifest: manifest drift (failed)" in captured.out
+    assert str(output_dir.resolve()) in captured.out
+    assert summary["selected_case_count"] == 2
+    assert summary["passed_case_count"] == 1
+    assert summary["failed_case_count"] == 1
+    assert summary["exit_code"] == 11
+    assert summary["outcome_counts"]["exact_match"] == 1
+    assert summary["outcome_counts"]["manifest_drift"] == 1
+    for case_payload in summary["cases"]:
+        assert Path(case_payload["artifact_path"]).is_file()
+
+
+def test_cli_eval_run_supports_tag_filter_and_json_output(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    bundle_path, _session_id = _export_eval_bundle(tmp_path, "smoke.readme")
+    approval_bundle_path = tmp_path / "evals" / "bundles" / "approval.patch.json"
+    shutil.copyfile(bundle_path, approval_bundle_path)
+
+    _write_eval_case(
+        tmp_path,
+        case_id="smoke.readme",
+        title="README smoke",
+        bundle_name=bundle_path.name,
+        tags=["smoke", "tooling"],
+    )
+    _write_eval_case(
+        tmp_path,
+        case_id="approval.patch",
+        title="Patch approval",
+        bundle_name=approval_bundle_path.name,
+        tags=["approval", "tooling"],
+    )
+    output_dir = tmp_path / "tagged-eval-output"
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "run",
+            "--tag",
+            "approval",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["selected_case_count"] == 1
+    assert payload["passed_case_count"] == 1
+    assert payload["failed_case_count"] == 0
+    assert payload["cases"][0]["case_id"] == "approval.patch"
+    assert payload["cases"][0]["passed"] is True
+    assert Path(payload["summary_path"]).is_file()
+
+
+def test_cli_eval_run_allows_selected_invariants_to_ignore_behavioral_drift(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    bundle_path, _session_id = _export_eval_bundle(tmp_path, "transcript.only")
+    final_state_bundle_path = tmp_path / "evals" / "bundles" / "final-state.json"
+    final_state_payload = json.loads(bundle_path.read_text(encoding="utf-8"))
+    final_state_payload["baseline"]["final_state"]["status"] = "completed"
+    final_state_bundle_path.write_text(
+        json.dumps(final_state_payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    _write_eval_case(
+        tmp_path,
+        case_id="transcript.only",
+        title="Transcript-only expectation",
+        bundle_name=final_state_bundle_path.name,
+        tags=["smoke"],
+        expectation={
+            "mode": "selected_invariants",
+            "invariants": ["transcript"],
+        },
+    )
+    output_dir = tmp_path / "selected-invariants-output"
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "run",
+            "transcript.only",
+            "--cwd",
+            str(tmp_path),
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+    captured = capsys.readouterr()
+    summary = json.loads((output_dir / "summary.json").read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert "transcript.only: behavioral drift (passed)" in captured.out
+    assert "Ignored mismatches: final_state drift" in captured.out
+    assert summary["cases"][0]["replay_outcome"] == "behavioral_drift"
+    assert summary["cases"][0]["passed"] is True
+    assert summary["cases"][0]["ignored_mismatches"] == ["final_state drift"]
 
 
 def test_cli_message_submits_new_user_turn_to_existing_session(
@@ -1925,6 +2088,51 @@ def _first_replay_artifact_path(db_path: Path, session_id: UUID) -> Path:
         assert event.payload.path is not None
         return db_path.parent.parent / event.payload.path
     raise AssertionError("expected replay artifact")
+
+
+def _export_eval_bundle(tmp_path: Path, case_id: str) -> tuple[Path, UUID]:
+    db_path, session_id = _run_baseline_session(
+        tmp_path,
+        prompt="Inspect the repository",
+    )
+    bundle_path = tmp_path / "evals" / "bundles" / f"{case_id}.json"
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+        exported_path = ReplayRunner(
+            repository,
+            artifact_repository,
+        ).export_session_bundle(session_id, bundle_path)
+    finally:
+        connection.close()
+
+    return exported_path, session_id
+
+
+def _write_eval_case(
+    tmp_path: Path,
+    *,
+    case_id: str,
+    title: str,
+    bundle_name: str,
+    tags: list[str],
+    expectation: dict[str, object] | None = None,
+) -> Path:
+    case_path = tmp_path / "evals" / "cases" / f"{case_id}.json"
+    case_path.parent.mkdir(parents=True, exist_ok=True)
+    payload: dict[str, object] = {
+        "manifest_version": 1,
+        "case_id": case_id,
+        "title": title,
+        "bundle_path": f"../bundles/{bundle_name}",
+        "tags": tags,
+    }
+    if expectation is not None:
+        payload["expectation"] = expectation
+    case_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return case_path
 
 
 def _ask_user_then_text_response(

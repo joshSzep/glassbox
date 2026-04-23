@@ -27,6 +27,7 @@ from glassbox.runtime.provider_config import (
 )
 
 if TYPE_CHECKING:
+    from glassbox.runtime.eval_runner import EvalCaseResult, EvalRunner, EvalSuiteResult
     from glassbox.runtime.evals import (
         EvalCase,
         EvalCaseExpectation,
@@ -50,6 +51,9 @@ def __getattr__(name: str) -> Any:
 
         return _SessionSupervisor
     if name in {
+        "EvalCaseResult",
+        "EvalRunner",
+        "EvalSuiteResult",
         "EvalCase",
         "EvalCaseExpectation",
         "EvalCaseManifest",
@@ -57,6 +61,10 @@ def __getattr__(name: str) -> Any:
         "load_eval_case",
         "load_eval_suite",
     }:
+        if name in {"EvalCaseResult", "EvalRunner", "EvalSuiteResult"}:
+            from glassbox.runtime import eval_runner as _eval_runner
+
+            return getattr(_eval_runner, name)
         from glassbox.runtime import evals as _evals
 
         return getattr(_evals, name)
@@ -77,6 +85,9 @@ __all__ = [
     "EvalCase",
     "EvalCaseExpectation",
     "EvalCaseManifest",
+    "EvalCaseResult",
+    "EvalRunner",
+    "EvalSuiteResult",
     "EventBus",
     "EventBusStats",
     "EventBusSubscription",

@@ -20,6 +20,19 @@ Promotion workflow:
 2. Add `evals/cases/CASE_ID.json` with the stable case metadata and expected invariants.
 3. Review bundle and case updates together whenever a baseline is intentionally refreshed.
 
+Run the resulting suite with:
+
+```text
+glassbox eval run
+glassbox eval run CASE_ID
+glassbox eval run --tag smoke --json
+glassbox eval run --output-dir .glassbox/evals/manual
+```
+
+Each run writes one JSON artifact per case plus `summary.json` into the selected
+output directory. If `--output-dir` is omitted, Glassbox creates a timestamped
+directory under `.glassbox/evals/`.
+
 Case manifest shape:
 
 ```json

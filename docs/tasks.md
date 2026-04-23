@@ -1824,7 +1824,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-196: Implement Batch Eval Runner And Summary Reporting
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-144`, `GBX-193`, `GBX-194`, `GBX-195`
 - Goal: let developers and CI run curated replay-based regression suites and get actionable pass/fail output instead of ad hoc one-session checks
 - Deliverables:

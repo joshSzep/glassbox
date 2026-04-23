@@ -29,6 +29,8 @@ from glassbox.core.models import (
 )
 from glassbox.core.types import ApprovalDecision, SessionStatus
 from glassbox.runtime import (
+    EvalRunner,
+    EvalSuiteResult,
     ReplayResult,
     ReplayRunner,
     RuntimeContext,
@@ -69,6 +71,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _replay_command(args)
         if args.command == "replay-export":
             return _replay_export_command(args)
+        if args.command == "eval":
+            return _eval_command(args)
         if args.command == "answer":
             return _answer_command(args)
         if args.command == "approve":
@@ -255,6 +259,48 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     _add_runtime_location_arguments(replay_export_parser)
 
+    eval_parser = subparsers.add_parser(
+        "eval",
+        help="run replay-backed eval suites",
+        description=(
+            "Run repository-local replay-backed eval cases and report a suite "
+            "summary suitable for local validation or CI."
+        ),
+    )
+    eval_subparsers = eval_parser.add_subparsers(dest="eval_command")
+
+    eval_run_parser = eval_subparsers.add_parser(
+        "run",
+        help="run one or more eval cases",
+        description=(
+            "Run discovered eval cases from the repository-local evals/ layout. "
+            "Case IDs and tags narrow the selected suite."
+        ),
+    )
+    eval_run_parser.add_argument(
+        "case_ids",
+        nargs="*",
+        help="optional eval case IDs to run; defaults to all discovered cases",
+    )
+    eval_run_parser.add_argument(
+        "--tag",
+        dest="tags",
+        action="append",
+        default=[],
+        help="require a tag on selected eval cases; repeat to require multiple tags",
+    )
+    eval_run_parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="directory for suite summary and per-case replay artifacts",
+    )
+    eval_run_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the structured eval suite report as JSON",
+    )
+    _add_runtime_location_arguments(eval_run_parser)
+
     approve_parser = subparsers.add_parser(
         "approve",
         help="approve a pending action",
@@ -356,6 +402,16 @@ def _resolve_optional_output_path(
 ) -> Path:
     if output is None:
         return (cwd / default_name).resolve()
+
+    output_path = Path(output).expanduser()
+    if not output_path.is_absolute():
+        output_path = cwd / output_path
+    return output_path.resolve()
+
+
+def _resolve_optional_explicit_path(cwd: Path, output: str | None) -> Path | None:
+    if output is None:
+        return None
 
     output_path = Path(output).expanduser()
     if not output_path.is_absolute():
@@ -590,6 +646,37 @@ def _replay_export_command(args: argparse.Namespace) -> int:
 
     print(f"Exported replay bundle for session {args.session_id}: {exported_path}")
     return 0
+
+
+def _eval_command(args: argparse.Namespace) -> int:
+    return asyncio.run(_eval_command_async(args))
+
+
+async def _eval_command_async(args: argparse.Namespace) -> int:
+    if args.eval_command != "run":
+        raise ValueError("specify an eval subcommand")
+
+    cwd, _db_path = _resolve_runtime_location(args)
+    del _db_path
+    suite_result = await EvalRunner().run_suite(
+        cwd,
+        case_ids=list(args.case_ids) or None,
+        tags=list(args.tags) or None,
+        output_dir=_resolve_optional_explicit_path(cwd, args.output_dir),
+    )
+
+    if args.json:
+        print(
+            json.dumps(
+                suite_result.model_dump(mode="json"),
+                indent=2,
+                sort_keys=True,
+            )
+        )
+    else:
+        _print_eval_suite_report(suite_result)
+
+    return suite_result.exit_code
 
 
 async def _interactive_session_loop(
@@ -1068,6 +1155,35 @@ def _print_replay_report(result: ReplayResult) -> None:
 
     for detail_line in _replay_detail_lines(result):
         print(detail_line)
+
+
+def _print_eval_suite_report(result: EvalSuiteResult) -> None:
+    print(f"Eval workspace {result.workspace_root}")
+    print(f"Selected cases: {result.selected_case_count}")
+    print(f"Passed: {result.passed_case_count}")
+    print(f"Failed: {result.failed_case_count}")
+    print("Outcomes:")
+    for outcome, count in result.outcome_counts.items():
+        print(f"  - {_format_replay_outcome(outcome)}: {count}")
+    print(f"Artifacts: {result.output_dir}")
+    print("Cases:")
+    for case_result in result.cases:
+        status = "passed" if case_result.passed else "failed"
+        print(
+            f"  - {case_result.case_id}: "
+            f"{_format_replay_outcome(case_result.replay_outcome)} ({status})"
+        )
+        if case_result.message:
+            print(f"    Summary: {case_result.message}")
+        if case_result.relevant_mismatches:
+            print(
+                "    Relevant mismatches: " + ", ".join(case_result.relevant_mismatches)
+            )
+        if case_result.ignored_mismatches:
+            print(
+                "    Ignored mismatches: " + ", ".join(case_result.ignored_mismatches)
+            )
+        print(f"    Artifact: {case_result.artifact_path}")
 
 
 def _replay_detail_lines(result: ReplayResult) -> list[str]:
