@@ -41,6 +41,11 @@ That managed output directory is refreshed in place on each hook run so the
 latest blocked commit leaves behind one stable `summary.json` plus the current
 per-case artifacts without accumulating stale JSON from earlier runs.
 
+Push confirmation uses the same `smoke` tag set from
+`.github/workflows/push-smoke-evals.yml` and uploads the remote run output from
+`.glassbox/evals/push-smoke/` as a GitHub Actions artifact named
+`push-smoke-evals-SHA`.
+
 Each run writes one JSON artifact per case plus `summary.json` into the selected
 output directory. If `--output-dir` is omitted, Glassbox creates a timestamped
 directory under `.glassbox/evals/`.

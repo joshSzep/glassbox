@@ -1936,7 +1936,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-203: Add Push-To-`origin` Replay/Eval Confirmation Workflow
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-200`, `GBX-201`, `GBX-202`
 - Goal: re-run the curated replay smoke suite after commits are pushed to `origin` so the shared remote record keeps structured verification artifacts even in a direct-to-`main` workflow
 - Deliverables:

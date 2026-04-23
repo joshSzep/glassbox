@@ -333,7 +333,10 @@ Use replay and eval verification in three layers:
   artifacts plus `summary.json` there.
 2. Push time: broader confirmation after `git push origin main`. This is where
    larger or more artifact-heavy replay/eval suites can rerun and retain output
-   for inspection without slowing every commit loop.
+  for inspection without slowing every commit loop. The repository ships a
+  push-triggered GitHub Actions workflow in `.github/workflows/push-smoke-evals.yml`
+  that reruns the same `smoke` tag set and uploads `.glassbox/evals/push-smoke/`
+  as a remote artifact bundle.
 3. Later scheduled coverage: optional non-blocking suites for wider advisory
    drift detection.
 
@@ -351,6 +354,9 @@ Interpret failures based on where they happen:
 - A post-push replay/eval failure means the broader confirmation suite caught
   drift outside the current smoke set. Treat that as a signal to investigate the
   change and possibly promote that case or tag into the commit-time barrier.
+  First check the failed `Push Smoke Evals` run for the pushed commit, then
+  download the `push-smoke-evals-SHA` artifact and inspect `summary.json` plus
+  the per-case JSON files.
 
 ### Targeted Expectations And Baseline Refresh
 
