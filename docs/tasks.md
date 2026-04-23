@@ -1157,7 +1157,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-143: Document Real Provider Setup And Secret Handling
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-140`, `GBX-141`, `GBX-142`, `GBX-121`
 - Goal: document how to run Glassbox against real providers using environment variables and `.env` files without implying that secrets are persisted
 - Deliverables:

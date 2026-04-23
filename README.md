@@ -84,6 +84,46 @@ uv run glassbox rebuild SESSION_ID --cwd .
 uv run glassbox rebuild --all --cwd .
 ```
 
+## Real Provider Setup
+
+Glassbox can run against real OpenAI and Anthropic providers when provider
+credentials are available in the runtime environment.
+
+Supported provider-qualified model names for real provider execution are:
+
+- `openai:...`
+- `anthropic:...`
+
+If no provider runtime config is present, Glassbox keeps using the deterministic
+local executor path for offline development and tests.
+
+Set credentials in your shell environment:
+
+```bash
+export OPENAI_API_KEY="..."
+uv run glassbox run "Inspect the repository" --cwd . --model-name openai:gpt-5.4
+```
+
+Or use Anthropic:
+
+```bash
+export ANTHROPIC_API_KEY="..."
+uv run glassbox run "Inspect the repository" --cwd . --model-name anthropic:claude-sonnet-4
+```
+
+Glassbox also reads an optional `.env` file from the selected runtime workspace
+root, which is the path you pass through `--cwd`.
+
+```dotenv
+OPENAI_API_KEY=...
+OPENAI_BASE_URL=https://api.openai.com/v1
+```
+
+Process environment variables override values from `.env`.
+
+More detail, including all supported variables and troubleshooting, is in
+[docs/providers.md](docs/providers.md).
+
 ## Dashboard
 
 Start the dashboard server:
@@ -129,5 +169,6 @@ uv run pytest tests/test_import_smoke.py
 
 - Architecture: [docs/architecture.md](docs/architecture.md)
 - Database design: [docs/database.md](docs/database.md)
+- Provider setup and secrets: [docs/providers.md](docs/providers.md)
 - Tool policy and approvals: [docs/tool-policy.md](docs/tool-policy.md)
 - Roadmap and task graph: [docs/tasks.md](docs/tasks.md)
