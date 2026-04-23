@@ -1528,7 +1528,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-174: Validate Snapshot And SSE Behavior Against An Active Chat-Owned Dashboard
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-081`, `GBX-082`, `GBX-173`
 - Goal: prove that the co-hosted dashboard exposes the same live session state that the interactive terminal is currently driving
 - Deliverables:
