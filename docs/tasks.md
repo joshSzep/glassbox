@@ -1686,6 +1686,186 @@ uv run ty check src/glassbox/path.py
 
 ---
 
+## Phase 19: Deterministic Replay And Eval
+
+### GBX-190: Define Deterministic Replay And Eval Operator Model
+
+- Status: `TODO`
+- Depends on: `GBX-024`, `GBX-025`, `GBX-100`, `GBX-144`, `GBX-121`
+- Goal: define what Glassbox means by deterministic replay and local evals so the implementation stays faithful to the event-sourced architecture rather than drifting into an ad hoc test harness
+- Deliverables:
+  - architecture and operator-workflow updates defining replay, baseline capture, and eval semantics
+  - explicit distinction between:
+    - historical event inspection
+    - offline deterministic replay using recorded manifests and stubbed outputs
+    - optional future live-provider comparison runs that are not part of the deterministic baseline
+  - documented scope boundary for v1 replay coverage across transcript output, tool lifecycles, approvals, pending-question flows, and final projected state
+  - replay result taxonomy such as exact match, manifest drift, behavioral drift, unsupported session, and replay failure
+- Implementation notes:
+  - deterministic replay in v1 should not issue live network calls, spawn real subprocesses, or mutate the workspace; it should run from persisted events plus recorded replay artifacts
+  - be explicit about which fields participate in equivalence checks and which are normalized away, such as timestamps, UUIDs, and other runtime-generated identifiers
+  - define how provider-backed sessions remain replayable without persisting secrets or depending on provider determinism
+  - keep the initial operator story local-first and CI-friendly; do not introduce remote eval infrastructure or distributed runners in this phase
+- Tests and validation included in task:
+  - architecture and doc review against the current event model, artifact storage, provider config rules, and resume semantics before implementation begins
+  - manual validation that the proposed replay model can cover representative sessions with tools, approvals, and `ask_user` pauses without contradicting existing runtime boundaries
+- Done when:
+  - the repo has a clear, code-aligned contract for what replay and eval mean, what they compare, and what is intentionally out of scope for the first implementation
+
+### GBX-191: Capture Replay Manifests And Redacted Turn Artifacts During Live Execution
+
+- Status: `TODO`
+- Depends on: `GBX-025`, `GBX-053`, `GBX-063`, `GBX-144`, `GBX-190`
+- Goal: persist the exact structured inputs and outputs needed to replay completed turns offline without consulting live providers or re-running side-effecting tools
+- Deliverables:
+  - replay manifest schema and storage path for turn-scoped inputs such as assembled model context, tool schemas, policy snapshot, runtime config fingerprint, and expected turn-level outputs
+  - artifact capture for replay-relevant tool requests, normalized tool results, and any large blobs needed to reconstruct deterministic tool responses
+  - event or service-layer linkage that lets the system discover replay artifacts for a session or turn without scanning raw files ad hoc
+  - secret-redaction rules ensuring provider credentials and other runtime-only sensitive values never land in replay artifacts
+- Implementation notes:
+  - use the existing artifact storage layer for large manifests or replay payloads rather than bloating the canonical event rows
+  - capture enough detail to compare current prompt/context assembly against the original run, not just the final assistant text
+  - prefer stable, typed manifest content over opaque serialized runtime objects so replay failures are debuggable
+  - fail explicitly for session elements that cannot yet be replayed deterministically rather than silently omitting them
+- Tests and validation included in task:
+  - integration tests proving a representative completed session writes retrievable replay manifests and artifact references
+  - tests covering tool-assisted turns, approval pauses, and pending-question flows where replay capture must survive suspension and resume boundaries
+  - tests proving secrets and transient runtime-only values are redacted or excluded from stored replay artifacts
+- Done when:
+  - a finished session contains enough structured replay data for offline comparison without hitting external systems
+
+### GBX-192: Implement Offline Deterministic Replay Runner
+
+- Status: `TODO`
+- Depends on: `GBX-050`, `GBX-063`, `GBX-100`, `GBX-141`, `GBX-191`
+- Goal: re-execute a persisted session offline against recorded manifests and stubbed model/tool outputs so Glassbox can verify control-flow and projection determinism under the current codebase
+- Deliverables:
+  - replay runner service that loads a replayable session or exported replay bundle and executes it through a deterministic runtime path
+  - replay-specific model and tool executors that serve recorded outputs instead of making live provider requests or performing real side effects
+  - normalized replay result model covering transcript messages, tool call timeline, approval and question state transitions, emitted event families, and final projected session state
+  - replay failure reporting for missing artifacts, unsupported event versions, incompatible manifests, or drift detected before playback can continue
+- Implementation notes:
+  - drive as much of the real runtime orchestration as possible so replay exercises the current control plane rather than a separate toy interpreter
+  - compare normalized behavior rather than raw event envelopes; timestamps, sequence allocation, and fresh identifiers should not create false drift
+  - if current context building or policy evaluation no longer reproduces the recorded manifest shape, report that as manifest drift before injecting recorded outputs
+  - keep replay isolated from live session ownership and event-bus side effects so running a replay cannot mutate the source session
+- Tests and validation included in task:
+  - integration tests replaying representative sessions that include pure assistant turns, tool-assisted turns, approval gating, and `ask_user` suspension/resume behavior
+  - regression tests that replayed projected state matches the original normalized projected state for supported sessions
+  - negative-path tests for missing artifacts, unsupported schemas, and intentionally corrupted replay bundles
+- Done when:
+  - Glassbox can replay a supported session offline and determine whether current runtime behavior is equivalent to the recorded baseline
+
+### GBX-193: Add Replay Diff Reporting And `glassbox replay`
+
+- Status: `TODO`
+- Depends on: `GBX-111`, `GBX-192`
+- Goal: give operators a practical command for replaying a session and understanding where current behavior diverges from the recorded baseline
+- Deliverables:
+  - `glassbox replay SESSION_ID` command or equivalent CLI surface for deterministic replay of a persisted session
+  - structured replay diff report covering at least transcript output, tool calls, approval / question flow, and final session-state differences
+  - machine-readable replay result output such as JSON for downstream automation, plus concise human-readable terminal rendering
+  - meaningful exit-code semantics for match, drift, unsupported session, and replay failure outcomes
+- Implementation notes:
+  - keep the default report concise and operator-oriented, with drill-down detail available when exact differences need inspection
+  - distinguish manifest drift from downstream behavioral drift so prompt/context regressions are not collapsed into generic transcript mismatches
+  - capture replay reports as artifacts when they are too large for terminal output or when they need later auditability
+  - preserve the existing CLI style for error messaging and local workflows; do not require the dashboard for replay usability
+- Tests and validation included in task:
+  - CLI integration tests for matching and drifting replays, including exit-code assertions
+  - tests for JSON output shape and report content against representative replay scenarios
+  - regression tests proving replay does not mutate source session metadata or artifacts
+- Done when:
+  - an operator can run one command and see whether a historical session still reproduces under the current codebase, plus where it drifted if it does not
+
+### GBX-194: Implement Replay Bundle Export And Import For Portable Baselines
+
+- Status: `TODO`
+- Depends on: `GBX-191`, `GBX-193`
+- Goal: make replayable sessions portable so deterministic baselines can live outside a local SQLite file and be reused across repos, branches, and CI runs
+- Deliverables:
+  - export path that materializes a replay bundle containing manifest metadata, referenced artifacts, and baseline comparison data in a stable versioned format
+  - import or fixture-loading path that allows replay bundles to be consumed without requiring the original local runtime database layout
+  - bundle versioning and validation rules so future schema changes fail clearly rather than producing silent partial replays
+  - operator-visible command surface or service entrypoint for exporting a session into a reusable replay baseline
+- Implementation notes:
+  - keep exported bundles self-describing and intentionally minimal; they should include what replay needs, not a blind copy of the entire database
+  - preserve redaction guarantees from live-session artifact capture during export and import
+  - design the format so repository-checked-in baselines remain diffable and reviewable where practical
+  - avoid forcing eval users to keep opaque machine-generated blobs in source control if a smaller normalized representation is sufficient
+- Tests and validation included in task:
+  - integration tests exporting a replayable session and replaying it successfully from the exported bundle alone
+  - tests for bundle validation, version mismatch handling, and missing-file failures
+  - tests proving exported baselines remain free of secrets and irrelevant local-path leakage beyond the intentionally recorded workspace context
+- Done when:
+  - a replay baseline can be generated once and reused elsewhere without the original live session database
+
+### GBX-195: Define Eval Case Format And Baseline Selection Workflow
+
+- Status: `TODO`
+- Depends on: `GBX-190`, `GBX-194`, `GBX-121`
+- Goal: turn replay from a one-off debugging command into a stable regression-spec workflow that repositories can curate deliberately
+- Deliverables:
+  - eval case schema describing case identity, source replay bundle, tags, scenario notes, and the invariants that must match or may drift
+  - repository-local eval suite layout such as an `evals/` directory or equivalent manifest convention
+  - baseline-selection workflow describing how to promote a replay bundle into a tracked eval case and how to refresh that baseline intentionally
+  - support for marking cases by scope such as smoke, tooling, approval, provider-mode, or known-unstable comparison dimensions
+- Implementation notes:
+  - keep eval cases declarative and reviewable; avoid requiring handwritten Python glue for ordinary scenario definitions
+  - allow cases to express targeted expectations, such as exact transcript match or final-state-only match, without weakening the default strictness silently
+  - make baseline updates explicit and reviewable so the eval system does not become a rubber stamp for regressions
+  - align naming and metadata with how operators already think about sessions and workflows, not just with internal event terminology
+- Tests and validation included in task:
+  - schema-validation tests for valid and invalid eval case definitions
+  - tests for case discovery, tag filtering, and invariant parsing against small fixture suites
+  - doc review against the implemented replay bundle format and CLI workflows while defining the case model
+- Done when:
+  - the repo can declare named replay-based regression cases in a stable format without custom code per scenario
+
+### GBX-196: Implement Batch Eval Runner And Summary Reporting
+
+- Status: `TODO`
+- Depends on: `GBX-144`, `GBX-193`, `GBX-194`, `GBX-195`
+- Goal: let developers and CI run curated replay-based regression suites and get actionable pass/fail output instead of ad hoc one-session checks
+- Deliverables:
+  - `glassbox eval run` command or equivalent batch runner for executing one or more eval cases
+  - suite summary output reporting counts and case-level outcomes such as match, manifest drift, behavioral drift, unsupported, and replay failure
+  - machine-readable suite output suitable for CI consumption, plus artifact capture for detailed per-case diffs
+  - filtering or selection controls for tags, case IDs, or suite scopes so narrow validation remains practical during iteration
+- Implementation notes:
+  - run cases in isolation so one broken replay does not contaminate later results or mutate shared state
+  - keep the initial runner local and serial unless parallel execution clearly pays for itself without complicating artifact and output handling
+  - ensure failures remain debuggable by linking batch summaries back to the per-case replay report artifacts
+  - do not turn eval into a second general-purpose test framework; it should complement `pytest` with replay-backed behavioral regression coverage
+- Tests and validation included in task:
+  - CLI integration tests for mixed pass/fail suites, tag filtering, and CI-oriented exit-code behavior
+  - tests for machine-readable summary output and per-case artifact emission
+  - regression tests proving batch eval execution works without network access or live provider credentials for deterministic cases
+- Done when:
+  - an operator can run a curated set of replay cases and get a reliable local or CI signal about behavioral regressions
+
+### GBX-197: Document Replay And Eval Workflows
+
+- Status: `TODO`
+- Depends on: `GBX-190`, `GBX-191`, `GBX-192`, `GBX-193`, `GBX-194`, `GBX-195`, `GBX-196`, `GBX-121`
+- Goal: explain how to capture replayable sessions, export baselines, run targeted replays, and use eval suites without guessing at unsupported cases or hidden caveats
+- Deliverables:
+  - README updates covering replay and eval commands, expected inputs, and local validation workflows
+  - operator guidance for choosing between raw session inspection, single-session replay, exported replay bundles, and batch eval suites
+  - documentation for replay result categories, baseline refresh workflow, and the limits of deterministic comparison for provider-backed sessions
+  - troubleshooting guidance for unsupported sessions, drift caused by intentional prompt or schema changes, and missing replay artifacts
+- Implementation notes:
+  - keep docs explicit that replay compares current behavior against recorded baselines; it does not magically make live provider calls deterministic
+  - show at least one end-to-end flow that captures a session, exports a bundle, promotes it into an eval case, and runs the resulting suite locally
+  - align examples with the actual command surface and artifact locations introduced in this phase
+- Tests and validation included in task:
+  - doc review against implemented replay and eval commands, output categories, and artifact formats
+  - manual verification of the documented baseline-capture and batch-eval flow against the actual CLI behavior
+- Done when:
+  - a developer can adopt replay and eval workflows from the docs alone without reading implementation code or guessing at baseline semantics
+
+---
+
 ## Recommended Build Order For The First Usable Vertical Slice
 
 If an agent wants the fastest path to a demonstrable but architecturally correct version, the recommended order is:
