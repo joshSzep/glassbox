@@ -4,9 +4,12 @@ import assert from "node:assert/strict";
 import {
   applyEvent,
   beginApprovalResolution,
+  beginInteractionSubmission,
   confirmApprovalResolution,
+  confirmInteractionSubmission,
   createState,
   failApprovalResolution,
+  failInteractionSubmission,
   hydrateFromSnapshot,
 } from "../../src/glassbox/web/static/state.js";
 
@@ -22,6 +25,7 @@ test("hydrateFromSnapshot copies snapshot fields into dashboard state", () => {
     last_sequence: 17,
     pending_approval_id: null,
     pending_question_id: null,
+    pending_question_text: null,
     session_failure_message: null,
     session_failure_retryable: null,
     turn_metrics: [
@@ -67,6 +71,7 @@ test("hydrateFromSnapshot copies snapshot fields into dashboard state", () => {
   assert.equal(state.lastSequence, 17);
   assert.equal(state.modelName, "openai:gpt-5.4");
   assert.equal(state.dashboardUrl, "http://127.0.0.1:8765");
+  assert.equal(state.pendingQuestionText, null);
   assert.equal(state.currentTurn?.turn_id, "turn-1");
   assert.equal(state.turnMetrics.length, 1);
   assert.equal(state.turnMetrics[0].model_duration_ms_total, 800);
@@ -89,6 +94,7 @@ test("hydrateFromSnapshot reconstructs awaiting-user-input turns", () => {
     last_sequence: 9,
     pending_approval_id: null,
     pending_question_id: "question-1",
+    pending_question_text: "Which branch should I inspect?",
     session_failure_message: null,
     session_failure_retryable: null,
     turn_metrics: [],
@@ -99,6 +105,7 @@ test("hydrateFromSnapshot reconstructs awaiting-user-input turns", () => {
 
   assert.equal(state.status, "awaiting_user_input");
   assert.equal(state.pendingQuestionId, "question-1");
+  assert.equal(state.pendingQuestionText, "Which branch should I inspect?");
   assert.equal(state.currentTurn?.turn_id, "turn-ask-1");
   assert.equal(state.currentTurn?.status, "awaiting_user_input");
 });
@@ -241,6 +248,47 @@ test("approval resolution helpers track submitted and failed browser states", ()
   assert.equal(submitted.pendingApprovals[0].resolution_state, "submitted");
   assert.equal(failed.pendingApprovals[0].resolution_state, "failed");
   assert.equal(failed.pendingApprovals[0].resolution_error, "conflict");
+});
+
+test("interaction submission helpers track submitted and failed browser states", () => {
+  const initial = createState();
+
+  const submitting = beginInteractionSubmission(initial, "message");
+  const submitted = confirmInteractionSubmission(submitting, "message");
+  const failed = failInteractionSubmission(submitting, "answer", "conflict");
+
+  assert.equal(submitting.interactionSubmission.kind, "message");
+  assert.equal(submitting.interactionSubmission.state, "submitting");
+  assert.equal(submitted.interactionSubmission.state, "submitted");
+  assert.equal(failed.interactionSubmission.kind, "answer");
+  assert.equal(failed.interactionSubmission.state, "failed");
+  assert.equal(failed.interactionSubmission.error, "conflict");
+});
+
+test("applyEvent tracks pending question text and clears it on answer", () => {
+  const asked = applyEvent(createState(), {
+    session_id: "session-123",
+    sequence: 1,
+    event_type: "UserQuestionAsked",
+    payload: {
+      question_id: "question-1",
+      question: "What colour should I use?",
+    },
+  });
+  const answered = applyEvent(asked, {
+    session_id: "session-123",
+    sequence: 2,
+    event_type: "UserAnswerProvided",
+    payload: {
+      question_id: "question-1",
+      answer: "blue",
+    },
+  });
+
+  assert.equal(asked.pendingQuestionId, "question-1");
+  assert.equal(asked.pendingQuestionText, "What colour should I use?");
+  assert.equal(answered.pendingQuestionId, null);
+  assert.equal(answered.pendingQuestionText, null);
 });
 
 test("applyEvent tracks active tool calls", () => {

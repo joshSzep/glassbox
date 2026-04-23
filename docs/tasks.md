@@ -1258,7 +1258,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-153: Implement Dashboard Composer And Pending-Question UX
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-091`, `GBX-092`, `GBX-152`
 - Goal: let an operator continue a session directly from the dashboard with clear affordances for both new prompts and `ask_user` answers
 - Deliverables:

@@ -15,6 +15,7 @@
  * @typedef {{turn_id: string, started_at?: string | null, completed_at?: string | null, turn_duration_ms?: number | null, model_call_count: number, model_duration_ms_total: number, model_input_tokens_total: number, model_output_tokens_total: number, tool_call_count: number, tool_duration_ms_total: number, succeeded_tool_call_count: number, failed_tool_call_count: number}} TurnMetrics
  * @typedef {{turn_id: string, tool_call_id: string, stream: string, chunk: string}} LiveOutputEntry
  * @typedef {{sequence: number, event_type: string}} EventLogEntry
+ * @typedef {{kind: "message" | "answer" | null, state: "idle" | "submitting" | "submitted" | "failed", error: string | null}} InteractionSubmission
  *
  * @typedef {Object} DashboardState
  * @property {string | null} sessionId
@@ -26,6 +27,7 @@
  * @property {number} lastSequence
  * @property {string | null} pendingApprovalId
  * @property {string | null} pendingQuestionId
+ * @property {string | null} pendingQuestionText
  * @property {string | null} sessionFailureMessage
  * @property {boolean | null} sessionFailureRetryable
  * @property {CurrentTurn | null} currentTurn
@@ -35,6 +37,7 @@
  * @property {LiveOutputEntry[]} liveOutput
  * @property {PendingApproval[]} pendingApprovals
  * @property {EventLogEntry[]} eventLog
+ * @property {InteractionSubmission} interactionSubmission
  */
 
 /**
@@ -49,6 +52,7 @@
  * @property {number} last_sequence
  * @property {string | null} pending_approval_id
  * @property {string | null} pending_question_id
+ * @property {string | null} pending_question_text
  * @property {string | null} session_failure_message
  * @property {boolean | null} session_failure_retryable
  * @property {TranscriptMessage[]} transcript
@@ -77,6 +81,7 @@ export function createState() {
     lastSequence: 0,
     pendingApprovalId: null,
     pendingQuestionId: null,
+    pendingQuestionText: null,
     sessionFailureMessage: null,
     sessionFailureRetryable: null,
     currentTurn: null,
@@ -86,6 +91,19 @@ export function createState() {
     liveOutput: [],
     pendingApprovals: [],
     eventLog: [],
+    interactionSubmission: {
+      kind: null,
+      state: "idle",
+      error: null,
+    },
+  };
+}
+
+function createIdleInteractionSubmission() {
+  return {
+    kind: null,
+    state: "idle",
+    error: null,
   };
 }
 
@@ -135,6 +153,7 @@ export function hydrateFromSnapshot(snapshot) {
     lastSequence: snapshot.last_sequence ?? 0,
     pendingApprovalId: snapshot.pending_approval_id ?? null,
     pendingQuestionId: snapshot.pending_question_id ?? null,
+    pendingQuestionText: snapshot.pending_question_text ?? null,
     sessionFailureMessage: snapshot.session_failure_message ?? null,
     sessionFailureRetryable: snapshot.session_failure_retryable ?? null,
     currentTurn: inferCurrentTurn(snapshot),
@@ -144,6 +163,7 @@ export function hydrateFromSnapshot(snapshot) {
     liveOutput: [],
     pendingApprovals: [...(snapshot.pending_approvals ?? [])],
     eventLog: [],
+    interactionSubmission: createIdleInteractionSubmission(),
   };
 }
 
@@ -326,6 +346,39 @@ export function failApprovalResolution(state, approvalId, errorMessage) {
   };
 }
 
+export function beginInteractionSubmission(state, kind) {
+  return {
+    ...state,
+    interactionSubmission: {
+      kind,
+      state: "submitting",
+      error: null,
+    },
+  };
+}
+
+export function confirmInteractionSubmission(state, kind) {
+  return {
+    ...state,
+    interactionSubmission: {
+      kind,
+      state: "submitted",
+      error: null,
+    },
+  };
+}
+
+export function failInteractionSubmission(state, kind, errorMessage) {
+  return {
+    ...state,
+    interactionSubmission: {
+      kind,
+      state: "failed",
+      error: errorMessage,
+    },
+  };
+}
+
 /**
  * @param {DashboardState} state
  * @param {EventEnvelope} envelope
@@ -351,6 +404,7 @@ export function applyEvent(state, envelope) {
       return {
         ...next,
         status: "running",
+        interactionSubmission: createIdleInteractionSubmission(),
         cwd: typeof payload.cwd === "string" ? payload.cwd : next.cwd,
         modelName: (
           typeof payload.model_name === "string" ? payload.model_name : next.modelName
@@ -372,6 +426,7 @@ export function applyEvent(state, envelope) {
       return {
         ...next,
         status: "running",
+        interactionSubmission: createIdleInteractionSubmission(),
       };
     case "SessionCompleted":
       return {
@@ -380,6 +435,8 @@ export function applyEvent(state, envelope) {
         currentTurn: null,
         pendingApprovalId: null,
         pendingQuestionId: null,
+        pendingQuestionText: null,
+        interactionSubmission: createIdleInteractionSubmission(),
       };
     case "SessionFailed":
       return {
@@ -398,6 +455,8 @@ export function applyEvent(state, envelope) {
         currentTurn: null,
         pendingApprovalId: null,
         pendingQuestionId: null,
+        pendingQuestionText: null,
+        interactionSubmission: createIdleInteractionSubmission(),
       };
     case "TurnStarted":
       if (typeof payload.turn_id !== "string") {
@@ -405,6 +464,7 @@ export function applyEvent(state, envelope) {
       }
       return {
         ...next,
+        interactionSubmission: createIdleInteractionSubmission(),
         currentTurn: {
           turn_id: payload.turn_id,
           status: "running",
@@ -427,6 +487,7 @@ export function applyEvent(state, envelope) {
       }
       return {
         ...next,
+        interactionSubmission: createIdleInteractionSubmission(),
         currentTurn: {
           turn_id: payload.turn_id,
           status: payload.status,
@@ -438,6 +499,7 @@ export function applyEvent(state, envelope) {
       }
       return {
         ...next,
+        interactionSubmission: createIdleInteractionSubmission(),
         transcript: upsertTranscriptMessage(next.transcript, {
           message_id: payload.message_id,
           role: "user",
@@ -455,6 +517,7 @@ export function applyEvent(state, envelope) {
       }
       return {
         ...next,
+        interactionSubmission: createIdleInteractionSubmission(),
         transcript: upsertTranscriptMessage(next.transcript, {
           message_id: payload.message_id,
           role: "assistant",
@@ -489,6 +552,7 @@ export function applyEvent(state, envelope) {
       return {
         ...next,
         status: "running",
+        interactionSubmission: createIdleInteractionSubmission(),
         currentTurn: next.currentTurn
           ? {
               ...next.currentTurn,
@@ -508,6 +572,7 @@ export function applyEvent(state, envelope) {
       return {
         ...next,
         status: "awaiting_user_input",
+        interactionSubmission: createIdleInteractionSubmission(),
         currentTurn: next.currentTurn
           ? {
               ...next.currentTurn,
@@ -519,11 +584,17 @@ export function applyEvent(state, envelope) {
             ? payload.question_id
             : next.pendingQuestionId
         ),
+        pendingQuestionText: (
+          typeof payload.question === "string"
+            ? payload.question
+            : next.pendingQuestionText
+        ),
       };
     case "UserAnswerProvided":
       return {
         ...next,
         status: "running",
+        interactionSubmission: createIdleInteractionSubmission(),
         currentTurn: next.currentTurn
           ? {
               ...next.currentTurn,
@@ -534,6 +605,11 @@ export function applyEvent(state, envelope) {
           next.pendingQuestionId === payload.question_id
             ? null
             : next.pendingQuestionId
+        ),
+        pendingQuestionText: (
+          next.pendingQuestionId === payload.question_id
+            ? null
+            : next.pendingQuestionText
         ),
       };
     case "TurnCompleted":
@@ -554,6 +630,7 @@ export function applyEvent(state, envelope) {
         return {
           ...next,
           status: "awaiting_approval",
+          interactionSubmission: createIdleInteractionSubmission(),
           turnMetrics: completedTurnMetrics,
           currentTurn: {
             turn_id: payload.turn_id,
@@ -566,6 +643,7 @@ export function applyEvent(state, envelope) {
         return {
           ...next,
           status: "awaiting_user_input",
+          interactionSubmission: createIdleInteractionSubmission(),
           turnMetrics: completedTurnMetrics,
           currentTurn: {
             turn_id: payload.turn_id,
@@ -578,6 +656,7 @@ export function applyEvent(state, envelope) {
         return {
           ...next,
           status: "running",
+          interactionSubmission: createIdleInteractionSubmission(),
           turnMetrics: completedTurnMetrics,
           currentTurn: {
             turn_id: payload.turn_id,
@@ -594,6 +673,7 @@ export function applyEvent(state, envelope) {
       return {
         ...next,
         status: "failed",
+        interactionSubmission: createIdleInteractionSubmission(),
         turnMetrics: updateTurnMetrics(next.turnMetrics, payload.turn_id, metrics => ({
           ...metrics,
           completed_at: typeof envelope.created_at === "string" ? envelope.created_at : null,

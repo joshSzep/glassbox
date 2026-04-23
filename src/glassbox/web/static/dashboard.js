@@ -16,6 +16,10 @@
 import { applyEvent, createState, hydrateFromSnapshot } from "./state.js";
 import { resolvePendingApproval } from "./approval-actions.js";
 import {
+  submitPendingQuestionAnswer,
+  submitSessionMessage,
+} from "./interaction-actions.js";
+import {
   renderApprovalsPane,
   renderDashboardPanes,
 } from "./render.js";
@@ -25,6 +29,10 @@ import {
 // ---------------------------------------------------------------------------
 
 let state = createState();
+const drafts = {
+  message: "",
+  answer: "",
+};
 
 // ---------------------------------------------------------------------------
 // Utilities
@@ -85,6 +93,30 @@ function renderApprovals() {
   });
 }
 
+function renderComposer() {
+  const el = byId("composer-pane-body");
+  el.innerHTML = renderDashboardPanes(state).composer;
+
+  const form = byId("interaction-form");
+  const input = byId("interaction-input");
+  if (!form || !input) {
+    return;
+  }
+
+  const mode = form.dataset.mode;
+  if (mode === "message" || mode === "answer") {
+    input.value = drafts[mode] ?? "";
+    input.addEventListener("input", () => {
+      drafts[mode] = input.value;
+    });
+  }
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    await submitComposer(form.dataset.mode, input.value);
+  });
+}
+
 function renderEventLog() {
   const el = byId("event-log-list");
   el.innerHTML = renderDashboardPanes(state).eventLog;
@@ -94,6 +126,7 @@ function renderEventLog() {
 function renderAll() {
   renderStatus();
   renderTranscript();
+  renderComposer();
   renderTurn();
   renderMetrics();
   renderToolCalls();
@@ -179,6 +212,35 @@ async function resolveApproval(approvalId, decision) {
     fetchImpl: fetch,
     syncState,
   });
+}
+
+async function submitComposer(mode, value) {
+  if (!state.sessionId) {
+    return;
+  }
+
+  let result = null;
+  if (mode === "message") {
+    result = await submitSessionMessage({
+      sessionId: state.sessionId,
+      text: value,
+      fetchImpl: fetch,
+      syncState,
+    });
+  } else if (mode === "answer" && state.pendingQuestionId) {
+    result = await submitPendingQuestionAnswer({
+      sessionId: state.sessionId,
+      questionId: state.pendingQuestionId,
+      answer: value,
+      fetchImpl: fetch,
+      syncState,
+    });
+  }
+
+  if (result?.ok) {
+    drafts[mode] = "";
+    renderComposer();
+  }
 }
 
 // ---------------------------------------------------------------------------

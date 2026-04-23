@@ -8,7 +8,12 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from glassbox.core.events import EventEnvelope, SessionFailed, SessionStarted
+from glassbox.core.events import (
+    EventEnvelope,
+    SessionFailed,
+    SessionStarted,
+    UserQuestionAsked,
+)
 from glassbox.core.types import ApprovalStatus, ToolExecutionStatus
 from glassbox.web.app import RuntimeContextDep
 
@@ -83,6 +88,7 @@ class SessionSnapshotResponse(BaseModel):
     last_sequence: int
     pending_approval_id: str | None
     pending_question_id: str | None
+    pending_question_text: str | None
     session_failure_message: str | None
     session_failure_retryable: bool | None
     transcript: list[TranscriptMessageResponse]
@@ -169,6 +175,10 @@ async def get_session_snapshot(
     turn_metrics = repo.list_turn_metrics(session_id, limit=10)
     dashboard_url = _dashboard_url_from_events(session_events)
     latest_session_failure = _latest_session_failure(session_events)
+    pending_question_text = _pending_question_text_from_events(
+        session_events,
+        state.pending_question_id if state is not None else None,
+    )
 
     return SessionSnapshotResponse(
         session_id=str(record.session_id),
@@ -193,6 +203,7 @@ async def get_session_snapshot(
             if state and state.pending_question_id
             else None
         ),
+        pending_question_text=pending_question_text,
         session_failure_message=(
             latest_session_failure.error_message
             if latest_session_failure is not None
@@ -266,4 +277,21 @@ def _latest_session_failure(events: list[EventEnvelope]) -> SessionFailed | None
     for event in reversed(events):
         if isinstance(event.payload, SessionFailed):
             return event.payload
+    return None
+
+
+def _pending_question_text_from_events(
+    events: list[EventEnvelope],
+    pending_question_id,
+) -> str | None:
+    if pending_question_id is None:
+        return None
+
+    pending_question_id_text = str(pending_question_id)
+    for event in reversed(events):
+        if not isinstance(event.payload, UserQuestionAsked):
+            continue
+        if str(event.payload.question_id) != pending_question_id_text:
+            continue
+        return event.payload.question
     return None

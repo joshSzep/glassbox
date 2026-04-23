@@ -99,6 +99,7 @@ def test_get_session_returns_snapshot_after_session_started(tmp_path: Path) -> N
             assert body["dashboard_url"] == "http://127.0.0.1:8765"
             assert body["pending_approval_id"] is None
             assert body["pending_question_id"] is None
+            assert body["pending_question_text"] is None
             assert body["session_failure_message"] is None
             assert body["session_failure_retryable"] is None
             assert body["transcript"] == []
@@ -257,6 +258,7 @@ def test_get_session_includes_pending_user_question_context(tmp_path: Path) -> N
             assert body["status"] == "awaiting_user_input"
             assert body["current_turn_id"] == str(turn_id)
             assert body["pending_question_id"] == str(question_id)
+            assert body["pending_question_text"] == "Proceed?"
         finally:
             connection.close()
 
@@ -343,6 +345,7 @@ def test_get_session_snapshot_response_schema(tmp_path: Path) -> None:
                 "last_sequence",
                 "pending_approval_id",
                 "pending_question_id",
+                "pending_question_text",
                 "session_failure_message",
                 "session_failure_retryable",
                 "transcript",

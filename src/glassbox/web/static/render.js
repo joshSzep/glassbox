@@ -25,6 +25,16 @@ function renderEmpty(message) {
   return `<p class="empty">${escHtml(message)}</p>`;
 }
 
+function interactionMode(state) {
+  if (state.status === "awaiting_user_input" && state.pendingQuestionId) {
+    return "answer";
+  }
+  if (state.status === "running") {
+    return "message";
+  }
+  return "blocked";
+}
+
 export function renderTranscriptPane(state) {
   if (state.transcript.length === 0) {
     return renderEmpty("No messages yet.");
@@ -158,6 +168,71 @@ export function renderLiveOutputPane(state) {
   `).join("");
 }
 
+export function renderComposerPane(state) {
+  const mode = interactionMode(state);
+  const interaction = state.interactionSubmission ?? {
+    kind: null,
+    state: "idle",
+    error: null,
+  };
+  const isBusy = interaction.state === "submitting" || interaction.state === "submitted";
+
+  if (mode === "blocked") {
+    let reason = "Session actions are currently unavailable.";
+    if (state.status === "awaiting_approval") {
+      reason = "Resolve the pending approval before sending another prompt.";
+    } else if (state.status === "completed") {
+      reason = "This session is complete and cannot accept new input.";
+    } else if (state.status === "failed") {
+      reason = "This session failed. Start a new session or inspect the failure details.";
+    }
+
+    return `<div class="composer-card composer-blocked">
+      <div class="composer-label">Next Action Unavailable</div>
+      <div class="composer-help">${escHtml(reason)}</div>
+    </div>`;
+  }
+
+  const questionDetails = mode === "answer"
+    ? `<div class="composer-question">${escHtml(state.pendingQuestionText ?? "Answer the pending model question.")}</div>
+       <div class="composer-help">Question ID ${escHtml(state.pendingQuestionId ?? "unknown")}</div>`
+    : `<div class="composer-help">Submit a new user turn to continue this session.</div>`;
+  const buttonLabel = mode === "answer" ? "Send Answer" : "Send Prompt";
+  const heading = mode === "answer" ? "Answer Pending Question" : "Continue Session";
+  let statusHtml = "";
+
+  if (interaction.state === "submitting") {
+    statusHtml = `<div class="composer-status">Sending ${escHtml(interaction.kind ?? mode)}…</div>`;
+  } else if (interaction.state === "submitted") {
+    statusHtml = `<div class="composer-status">Request sent. Waiting for session update…</div>`;
+  } else if (interaction.state === "failed" && interaction.error) {
+    statusHtml = `<div class="composer-status composer-status-error">${escHtml(interaction.error)}</div>`;
+  }
+
+  return `<div class="composer-card composer-${escHtml(mode)}">
+    <div class="composer-label">${escHtml(heading)}</div>
+    ${questionDetails}
+    ${statusHtml}
+    <form id="interaction-form" class="composer-form" data-mode="${escHtml(mode)}">
+      <textarea
+        id="interaction-input"
+        class="composer-input"
+        rows="4"
+        placeholder="${escHtml(mode === "answer" ? "Type your answer" : "Type the next prompt")}"
+        ${isBusy ? "disabled" : ""}
+      ></textarea>
+      <div class="composer-actions">
+        <button
+          id="interaction-submit"
+          class="btn btn-submit"
+          type="submit"
+          ${isBusy ? "disabled" : ""}
+        >${escHtml(buttonLabel)}</button>
+      </div>
+    </form>
+  </div>`;
+}
+
 export function renderApprovalsPane(state) {
   if (state.pendingApprovals.length === 0) {
     return renderEmpty("No pending approvals.");
@@ -217,6 +292,7 @@ export function renderEventLogPane(state) {
 
 export function renderDashboardPanes(state) {
   return {
+    composer: renderComposerPane(state),
     transcript: renderTranscriptPane(state),
     turn: renderTurnPane(state),
     metrics: renderMetricsPane(state),

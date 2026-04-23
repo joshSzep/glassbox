@@ -9,6 +9,7 @@ import {
 import {
   renderDashboardPanes,
   renderApprovalsPane,
+  renderComposerPane,
   renderLiveOutputPane,
   renderMetricsPane,
   renderToolCallsPane,
@@ -211,6 +212,50 @@ test("renderApprovalsPane shows submitted and failed resolution states", () => {
   assert.match(html, /Decision sent\. Waiting for session update/);
   assert.match(html, /Request failed \(409\)/);
   assert.match(html, /disabled/);
+});
+
+test("renderComposerPane shows next-prompt composer while session is running", () => {
+  const html = renderComposerPane({
+    status: "running",
+    pendingQuestionId: null,
+    pendingQuestionText: null,
+    interactionSubmission: { kind: null, state: "idle", error: null },
+  });
+
+  assert.match(html, /Continue Session/);
+  assert.match(html, /Send Prompt/);
+  assert.match(html, /Type the next prompt/);
+});
+
+test("renderComposerPane shows pending-question answer state and errors", () => {
+  const html = renderComposerPane({
+    status: "awaiting_user_input",
+    pendingQuestionId: "question-1",
+    pendingQuestionText: "What colour should I use?",
+    interactionSubmission: {
+      kind: "answer",
+      state: "failed",
+      error: "unknown question_id: question-1",
+    },
+  });
+
+  assert.match(html, /Answer Pending Question/);
+  assert.match(html, /What colour should I use\?/);
+  assert.match(html, /question-1/);
+  assert.match(html, /unknown question_id/);
+  assert.match(html, /Send Answer/);
+});
+
+test("renderComposerPane blocks actions while awaiting approval", () => {
+  const html = renderComposerPane({
+    status: "awaiting_approval",
+    pendingQuestionId: null,
+    pendingQuestionText: null,
+    interactionSubmission: { kind: null, state: "idle", error: null },
+  });
+
+  assert.match(html, /Next Action Unavailable/);
+  assert.match(html, /Resolve the pending approval/);
 });
 
 test("renderMetricsPane shows aggregated turn metrics", () => {
