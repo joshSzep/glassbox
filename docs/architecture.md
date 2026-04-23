@@ -733,6 +733,10 @@ create table events (
 The event log remains authoritative. The extra identifier columns exist only to make common queries practical without forcing every dashboard or runtime lookup through JSON extraction.
 
 Artifacts such as command logs and diffs should live on disk under a session-scoped artifact directory. Their metadata should be referenced by events.
+Replay manifests and exported replay bundles should follow the same rule: keep
+large or structured baseline payloads in session-scoped artifacts and reference
+them from stable typed metadata rather than copying them blindly into event
+rows.
 
 ## Projection Design
 
@@ -759,6 +763,96 @@ Each projection should be:
 The dashboard and CLI should depend on projections, not on mutable runtime internals.
 
 The detailed projection-table direction lives in [database.md](./database.md), but the important architectural rule is simple: projections are read models, not a second source of truth.
+
+## Deterministic Replay And Eval Model
+
+Deterministic replay is a separate operator workflow from raw history
+inspection. Glassbox should support three distinct modes of looking at prior
+work:
+
+- historical inspection of persisted events, projections, and artifacts
+- offline deterministic replay against recorded manifests and stubbed outputs
+- optional future live-provider comparison runs that are useful for research but are not part of the deterministic baseline contract
+
+These modes answer different questions.
+
+- historical inspection asks what happened during the original session
+- deterministic replay asks whether the current Glassbox codebase still produces equivalent behavior against a recorded baseline
+- future live comparison asks how current providers behave now, which is valuable later but is intentionally outside the v1 deterministic contract
+
+### Replay Baseline Capture
+
+Replay should be grounded in recorded turn manifests rather than inferred after
+the fact from raw event envelopes alone.
+
+For each replayable turn, Glassbox should capture enough structured baseline
+data to reconstruct the control path offline, including:
+
+- the assembled model context or a normalized equivalent
+- tool schema and policy snapshot relevant to the turn
+- provider and model fingerprint information that is safe to persist
+- normalized tool requests and deterministic tool result payloads
+- references to larger replay artifacts stored on disk when the payload is too large for normal event rows
+
+Replay manifests should be:
+
+- typed and versioned
+- redacted so secrets and runtime-only credentials never land in replay artifacts
+- linked from session or turn metadata rather than discovered through ad hoc filesystem scans
+- suitable for later export into portable replay bundles
+
+### Replay Scope And Equivalence Rules
+
+The first deterministic replay implementation should stay local-first and
+offline. It must not issue live network calls, spawn real subprocesses, or
+mutate the workspace just to compare current behavior against a baseline.
+
+The v1 comparison scope should cover:
+
+- transcript output and final message content
+- tool lifecycle transitions and normalized tool results
+- approval request and resolution flow
+- `ask_user` question and answer suspension flow
+- final projected session state after replay completes
+
+The default comparison should normalize away fields that are not stable enough
+to be meaningful deterministic invariants, such as:
+
+- timestamps
+- sequence numbers allocated by the replay run itself
+- fresh UUIDs and other runtime-generated identifiers
+- duration and token metrics unless a later eval case opts into checking them explicitly
+
+If a session depends on behavior that cannot yet be replayed under those rules,
+Glassbox should surface that explicitly as unsupported rather than silently
+downgrading the comparison.
+
+### Replay Result Taxonomy
+
+Deterministic replay should report outcomes using a small, stable taxonomy.
+
+- exact match: current normalized behavior matches the recorded baseline
+- manifest drift: current context assembly, tool schema, or policy state no longer reproduces the recorded replay manifest before playback meaningfully begins
+- behavioral drift: replay can proceed, but transcript output, tool results, suspension flow, or final projected state diverges from the baseline
+- unsupported session: the recorded session includes unsupported providers, tools, artifacts, or schema versions for deterministic replay
+- replay failure: the replay machinery itself cannot complete because of corruption, missing artifacts, or an implementation defect
+
+This taxonomy matters because prompt/context regressions should not be collapsed
+into the same bucket as downstream tool or transcript regressions.
+
+### Operator Workflow
+
+The operator workflow should remain explicit and reviewable:
+
+1. run a normal session and retain replay manifests plus redacted replay artifacts as part of the persisted session record
+2. run an offline single-session replay against the recorded baseline to check for exact match or drift
+3. export a portable replay bundle when a session should become a durable baseline outside the original local database
+4. promote selected bundles into curated eval cases that can be run locally or in CI
+
+This workflow complements rather than replaces the existing inspection
+commands. Raw history inspection still explains what happened in a session.
+Replay and evals exist to detect whether Glassbox still behaves equivalently
+under the current codebase.
 
 ## Dashboard Design
 
@@ -847,6 +941,29 @@ These commands remain the source of truth for explicit session actions even afte
 an interactive terminal mode exists. They are important for scripts, debugging,
 recovery workflows, and any case where the operator wants exact control over IDs
 and state transitions.
+
+### Planned Replay And Eval Commands
+
+Deterministic replay and evals add a second operator loop that sits alongside
+the normal runtime commands.
+
+Planned command surface:
+
+```text
+glassbox replay SESSION_ID
+glassbox replay-export SESSION_ID [OUTPUT]
+glassbox eval run [CASE_ID ...]
+```
+
+The semantics should stay narrow:
+
+- `glassbox replay` compares the current codebase against a recorded session baseline offline and reports exact match, manifest drift, behavioral drift, unsupported session, or replay failure
+- replay export turns a replayable session into a portable baseline bundle that can move across branches, repositories, or CI machines without the original SQLite database
+- `glassbox eval run` executes curated replay cases in batch and returns a CI-friendly summary without requiring live provider credentials for deterministic cases
+
+These commands should stay complementary to `pytest` rather than replacing it.
+The purpose is replay-backed behavioral regression coverage, not a second
+general-purpose unit-test framework.
 
 ### Interactive Command Surface
 
@@ -1293,6 +1410,13 @@ Do not let the model directly invoke arbitrary Python functions without going th
 - session resume CLI
 - richer dashboard inspection
 
+### Milestone 6: Deterministic Replay And Eval
+
+- replay manifest capture and redaction
+- offline single-session replay
+- portable replay bundle export
+- declarative replay-backed eval suites
+
 ## Recommended Initial Non-Goals
 
 Avoid these in the first implementation:
@@ -1303,6 +1427,7 @@ Avoid these in the first implementation:
 - browser-based code editing
 - autonomous background daemons
 - fine-grained permission sandboxes beyond simple workspace policy
+- remote eval infrastructure or live-provider benchmark services
 
 These are legitimate later directions, but they will slow down learning the core harness shape.
 

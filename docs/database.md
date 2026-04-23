@@ -284,8 +284,13 @@ Good artifact candidates for filesystem storage:
 - patch artifacts
 - diff snapshots
 - exported transcripts
+- replay manifests containing normalized turn baselines and tool-result fixtures
+- exported replay bundles used for portable eval cases
 
 The event log should reference those artifacts by path or artifact ID.
+Replay manifests and bundles should remain redacted, versioned, and portable
+enough that deterministic replay can run offline without live provider
+credentials or ad hoc filesystem reconstruction.
 
 Recommended layout:
 
@@ -336,6 +341,12 @@ from events
 where session_id = ?
 order by sequence asc;
 ```
+
+Raw event replay is useful for debugging and projection rebuilds, but it is not
+the same thing as deterministic behavioral replay. Deterministic replay should
+read recorded manifests and referenced artifacts alongside the canonical event
+stream so the system can compare normalized behavior without reissuing live
+network calls or rerunning side-effecting tools.
 
 ### Find All Events For A Tool Call
 

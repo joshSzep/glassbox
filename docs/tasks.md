@@ -1690,7 +1690,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-190: Define Deterministic Replay And Eval Operator Model
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-024`, `GBX-025`, `GBX-100`, `GBX-144`, `GBX-121`
 - Goal: define what Glassbox means by deterministic replay and local evals so the implementation stays faithful to the event-sourced architecture rather than drifting into an ad hoc test harness
 - Deliverables:
