@@ -915,7 +915,7 @@ For operator docs, the key positioning should stay explicit:
 
 - the co-hosted dashboard is a convenience surface for the same live `chat` process and should shut down with that process
 - `glassbox serve` is the durable observation path for persisted sessions and for browser access that should survive beyond a single `chat` invocation
-- the printed `chat` URL can point directly at the active session with `?session=SESSION_ID`, while `serve` continues to rely on the operator supplying the target session ID
+- the printed `chat` URL can point directly at the active session with `?session=SESSION_ID`, while `serve` should start at the root session browser and keep `?session=SESSION_ID` as a direct-open path
 
 ### Standalone Dashboard Operator Model
 
@@ -942,6 +942,7 @@ This operator model also needs an explicit state boundary:
 - running or paused sessions may still be actionable through existing HTTP prompt, answer, and approval paths when the underlying session state allows it
 - completed and failed sessions should remain inspectable as persisted history even when there is no live stream to attach to
 - a disconnected or unavailable SSE stream should not invalidate an otherwise useful snapshot view of persisted state
+- standalone browser UX should surface `connecting`, `live`, `reconnecting`, `live unavailable`, and `historical snapshot` as distinct operator signals rather than a single ambiguous disconnected state
 - browser interaction in standalone mode must not imply terminal-native attach, daemon-backed runtime ownership, or cross-process prompt streaming beyond the existing HTTP and SSE surfaces
 
 For follow-on implementation work, `glassbox serve` should optimize for session

@@ -1667,7 +1667,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-185: Document Standalone Dashboard Recovery And Session-Browsing Workflows
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-180`, `GBX-181`, `GBX-182`, `GBX-183`, `GBX-184`, `GBX-121`
 - Goal: document the standalone dashboard as the durable operator console for persisted sessions and recovery flows
 - Deliverables:

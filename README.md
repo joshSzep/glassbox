@@ -130,7 +130,8 @@ you must use `/approve` or `/deny`.
 
 `attach` does not automatically start the dashboard. If you want browser-based
 observation while re-entering a persisted session from another terminal or after
-the original `chat` process has exited, run `glassbox serve` separately.
+the original `chat` process has exited, run `glassbox serve` separately and
+start from the root dashboard URL to browse recent sessions.
 
 ### Scope Boundary
 
@@ -303,33 +304,48 @@ process, when you deliberately started `chat --no-dashboard`, or when the
 co-hosted dashboard was unavailable and you still want to inspect persisted
 session state afterward.
 
-Open the dashboard shell in a browser with the target session ID:
+Open the standalone dashboard root in a browser:
 
 ```text
-http://127.0.0.1:8765/?session=SESSION_ID
+http://127.0.0.1:8765/
 ```
 
-Today, the standalone dashboard still opens a specific session through the
-`?session=SESSION_ID` query parameter. That direct-open path is the stable way
-to inspect a persisted session from `serve`.
+The root view is the recent-session browser. It lets you:
+
+- discover the right persisted session without copying a `session_id` first
+- open a selected session from the browser and keep using the direct `?session=SESSION_ID` deep-link when you already know the target
+- recover from stale or invalid deep links by returning to the session index instead of leaving the browser on a dead session URL
 
 The dashboard reads a session snapshot from `GET /sessions/{session_id}` and then
 subscribes to the live SSE stream at `GET /sessions/{session_id}/events`.
 
+Use the standalone dashboard as a durable operator console, not as terminal
+reattach. A useful recovery flow now looks like this:
+
+1. start `glassbox serve`
+2. open `http://127.0.0.1:8765/`
+3. browse the recent-session list and choose the session with the right next-action summary
+4. use the selected-session summary to decide whether the browser can act now or whether the session is historical-only
+
 When reading the standalone dashboard, interpret the browser state this way:
 
-- snapshot data remains useful even if there is no active live stream for the selected session
+- `connecting` means the snapshot is loaded and the dashboard is trying to attach the live SSE tail
+- `live` means the dashboard is receiving incremental events from an active runtime
+- `reconnecting` means the snapshot is still valid while the browser retries the live stream
+- `live unavailable` means the persisted snapshot is still readable, but the live stream could not be re-established and the owning runtime may be gone
+- `historical snapshot` means the selected session is completed, cancelled, failed, or otherwise not expected to emit more live events
 - pending `ask_user` questions and pending approvals still reflect actionable session state and can be resolved through the browser when the session allows it
-- completed and failed sessions are historical inspection surfaces, not live conversational shells
 - standalone browser access does not replace terminal-native `chat` ownership or create cross-process interactive attach semantics
 
 ### Dashboard Troubleshooting
 
-- If `glassbox chat --no-dashboard` was used, no dashboard URL is advertised for that session. Start `glassbox serve` and open `/?session=SESSION_ID` if you want browser access later.
+- If `glassbox chat --no-dashboard` was used, no dashboard URL is advertised for that session. Start `glassbox serve`, open `/`, and choose the session from the recent-session browser. You can still deep-link with `/?session=SESSION_ID` if you already have the ID.
 - If plain `glassbox chat` warns that the dashboard is unavailable, the chat session is still running normally; the warning only means no live dashboard was started for that process.
 - If `glassbox chat --dashboard-host ...` or `--dashboard-port ...` fails, fix the bind target or port conflict and rerun the command.
 - The co-hosted dashboard stops when the owning `glassbox chat` process exits. Use `glassbox serve` for post-session inspection or for browser access from a separate long-lived process.
-- If a standalone dashboard view still shows useful snapshot data but no live SSE activity, treat the session as persisted history unless another active process is known to be driving it.
+- If a standalone dashboard view still shows useful snapshot data but reports `live unavailable`, keep using the snapshot as persisted history unless another active process is known to be driving it.
+- If a direct `?session=...` URL points at a deleted, stale, or invalid session, the dashboard returns to the session index and shows a `Session unavailable` recovery message instead of leaving the browser stuck on an unusable selection.
+- If you need to reopen actionable work after a `chat` process exits, use the recent-session browser and the selected-session summary to determine whether to answer a pending question, resolve an approval, or switch back to CLI primitives such as `attach`, `answer`, `approve`, or `message`.
 
 ## Local Validation
 
