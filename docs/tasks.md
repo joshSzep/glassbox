@@ -1467,7 +1467,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-171: Refactor Web Server Bootstrap Into A Reusable Embedded Lifecycle
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-080`, `GBX-170`
 - Goal: make the existing web server startable and stoppable from inside an already-running CLI process without duplicating runtime bootstrap
 - Deliverables:

@@ -15,7 +15,7 @@ from glassbox.llm import PydanticAIModelExecutor, build_local_text_model_executo
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.runtime.logging import configure_runtime_logging
 from glassbox.store import initialize_database, open_database
-from glassbox.web import create_app
+from glassbox.web import build_web_server, create_app, run_server
 
 
 def _make_runtime_context(tmp_path: Path, connection: sqlite3.Connection):
@@ -172,6 +172,111 @@ def test_runtime_logging_configuration_does_not_break_startup(tmp_path: Path) ->
         )
     finally:
         connection.close()
+
+
+def test_build_web_server_embedded_lifecycle_starts_and_stops(tmp_path: Path) -> None:
+    class FakeServer:
+        def __init__(self, config) -> None:
+            self.config = config
+            self.started = False
+            self.should_exit = False
+            self.run_called = False
+
+        async def serve(self) -> None:
+            self.started = True
+            while not self.should_exit:
+                await asyncio.sleep(0)
+
+        def run(self) -> None:
+            self.run_called = True
+
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            runtime_context = _make_runtime_context(tmp_path, connection)
+            server = build_web_server(
+                runtime_context,
+                host="0.0.0.0",
+                port=9876,
+                server_factory=FakeServer,
+            )
+
+            assert server.config.host == "0.0.0.0"
+            assert server.config.port == 9876
+            assert server.app.state.runtime_context is runtime_context
+
+            await server.start()
+
+            assert isinstance(server._server, FakeServer)  # noqa: SLF001
+            assert server._server.started is True  # noqa: SLF001
+
+            await server.stop()
+
+            assert server._server.should_exit is True  # noqa: SLF001
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_run_server_opens_runtime_context_and_uses_shared_server_path(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    recorded: dict[str, object] = {}
+
+    class FakeRuntimeContext:
+        pass
+
+    runtime_context = FakeRuntimeContext()
+
+    class FakeContextManager:
+        def __enter__(self):
+            recorded["entered"] = True
+            return runtime_context
+
+        def __exit__(self, exc_type, exc, tb):
+            recorded["exited"] = True
+            return False
+
+    class FakeServer:
+        def __init__(self) -> None:
+            self.serve_blocking_called = False
+
+        def serve_blocking(self) -> None:
+            self.serve_blocking_called = True
+            recorded["serve_blocking_called"] = True
+
+    def fake_open_runtime_context(cwd: Path, *, db_path: Path | None = None):
+        recorded["cwd"] = cwd
+        recorded["db_path"] = db_path
+        return FakeContextManager()
+
+    def fake_build_web_server(runtime_context_arg, *, host: str, port: int):
+        recorded["runtime_context"] = runtime_context_arg
+        recorded["host"] = host
+        recorded["port"] = port
+        return FakeServer()
+
+    monkeypatch.setattr(
+        "glassbox.web.server.open_runtime_context",
+        fake_open_runtime_context,
+    )
+    monkeypatch.setattr("glassbox.web.server.build_web_server", fake_build_web_server)
+
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    run_server(tmp_path, host="0.0.0.0", port=9876, db_path=db_path)
+
+    assert recorded == {
+        "cwd": tmp_path,
+        "db_path": db_path,
+        "entered": True,
+        "runtime_context": runtime_context,
+        "host": "0.0.0.0",
+        "port": 9876,
+        "serve_blocking_called": True,
+        "exited": True,
+    }
 
 
 def test_runtime_context_loads_provider_config_and_keeps_secrets_out_of_sessions(
