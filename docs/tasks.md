@@ -1571,7 +1571,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-180: Define Standalone Dashboard Operator Model And Scope Boundary
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-081`, `GBX-083`, `GBX-093`, `GBX-100`, `GBX-166`, `GBX-175`, `GBX-121`
 - Goal: define what the standalone dashboard should optimize for once the co-hosted `chat` dashboard flow is complete
 - Deliverables:

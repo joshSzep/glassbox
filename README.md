@@ -285,6 +285,11 @@ There are two ways to reach the dashboard:
 - `glassbox chat` starts a co-hosted dashboard by default and prints a URL that already includes `?session=SESSION_ID` for the live session it just started.
 - `glassbox serve` starts a standalone dashboard server for the workspace database and is the right choice when no active `chat` process is owning the browser view.
 
+Treat `serve` as the standalone browser console for persisted sessions. It is
+the right path when you want to inspect or recover work after the original
+interactive terminal session is gone, or when the browser should outlive any
+single `chat` process.
+
 Start the dashboard server:
 
 ```bash
@@ -304,8 +309,19 @@ Open the dashboard shell in a browser with the target session ID:
 http://127.0.0.1:8765/?session=SESSION_ID
 ```
 
+Today, the standalone dashboard still opens a specific session through the
+`?session=SESSION_ID` query parameter. That direct-open path is the stable way
+to inspect a persisted session from `serve`.
+
 The dashboard reads a session snapshot from `GET /sessions/{session_id}` and then
 subscribes to the live SSE stream at `GET /sessions/{session_id}/events`.
+
+When reading the standalone dashboard, interpret the browser state this way:
+
+- snapshot data remains useful even if there is no active live stream for the selected session
+- pending `ask_user` questions and pending approvals still reflect actionable session state and can be resolved through the browser when the session allows it
+- completed and failed sessions are historical inspection surfaces, not live conversational shells
+- standalone browser access does not replace terminal-native `chat` ownership or create cross-process interactive attach semantics
 
 ### Dashboard Troubleshooting
 
@@ -313,6 +329,7 @@ subscribes to the live SSE stream at `GET /sessions/{session_id}/events`.
 - If plain `glassbox chat` warns that the dashboard is unavailable, the chat session is still running normally; the warning only means no live dashboard was started for that process.
 - If `glassbox chat --dashboard-host ...` or `--dashboard-port ...` fails, fix the bind target or port conflict and rerun the command.
 - The co-hosted dashboard stops when the owning `glassbox chat` process exits. Use `glassbox serve` for post-session inspection or for browser access from a separate long-lived process.
+- If a standalone dashboard view still shows useful snapshot data but no live SSE activity, treat the session as persisted history unless another active process is known to be driving it.
 
 ## Local Validation
 

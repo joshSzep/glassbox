@@ -916,6 +916,38 @@ For operator docs, the key positioning should stay explicit:
 - `glassbox serve` is the durable observation path for persisted sessions and for browser access that should survive beyond a single `chat` invocation
 - the printed `chat` URL can point directly at the active session with `?session=SESSION_ID`, while `serve` continues to rely on the operator supplying the target session ID
 
+### Standalone Dashboard Operator Model
+
+The standalone dashboard should be treated as the persisted-session browser
+console for Glassbox, not as a low-level transport demo and not as a browser
+version of terminal attach.
+
+Its primary operator jobs are:
+
+- discover the right persisted session to inspect or recover
+- show whether that session is live, paused, completed, failed, or only historically inspectable
+- surface the next meaningful operator action using the same underlying prompt, answer, and approval semantics as the CLI
+- remain useful even when no `chat` process is still alive to own a live in-process terminal session
+
+The intended standalone browser flow should start from the dashboard root,
+support recent-session discovery, and only then move into a selected session
+view. The operator should not have to memorize or manually preserve a
+`session_id` just to begin browsing persisted work. The current `?session=`
+deep-link remains valid and important, but it should become the direct-open path
+rather than the only practical entrypoint.
+
+This operator model also needs an explicit state boundary:
+
+- running or paused sessions may still be actionable through existing HTTP prompt, answer, and approval paths when the underlying session state allows it
+- completed and failed sessions should remain inspectable as persisted history even when there is no live stream to attach to
+- a disconnected or unavailable SSE stream should not invalidate an otherwise useful snapshot view of persisted state
+- browser interaction in standalone mode must not imply terminal-native attach, daemon-backed runtime ownership, or cross-process prompt streaming beyond the existing HTTP and SSE surfaces
+
+For follow-on implementation work, `glassbox serve` should optimize for session
+discovery, recovery, and inspection. It should not compete with `chat` for the
+same-process conversational UX; it should complement `chat` by becoming the
+durable cross-process operator console over persisted sessions.
+
 ### Interactive Operator Semantics
 
 Inside an interactive terminal session:
