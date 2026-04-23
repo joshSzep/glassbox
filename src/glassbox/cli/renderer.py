@@ -24,7 +24,9 @@ from glassbox.core.events import (
     ToolExecutionCompleted,
     ToolExecutionStarted,
     TurnFailed,
+    UserAnswerProvided,
     UserMessageReceived,
+    UserQuestionAsked,
 )
 from glassbox.core.ids import MessageId, ToolCallId
 from glassbox.runtime import EventBusSubscription
@@ -65,6 +67,12 @@ def format_event_for_terminal(
 
     if isinstance(payload, UserMessageReceived):
         return f"Queued user message: {payload.text}"
+
+    if isinstance(payload, UserQuestionAsked):
+        return f"Question asked ({payload.question_id}): {payload.question}"
+
+    if isinstance(payload, UserAnswerProvided):
+        return f"Answer submitted for question {payload.question_id}: {payload.answer}"
 
     if isinstance(payload, AssistantMessageStarted):
         state.assistant_chunks[payload.message_id] = []

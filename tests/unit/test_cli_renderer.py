@@ -15,6 +15,8 @@ from glassbox.core.events import (
     AssistantMessageStarted,
     ToolExecutionCompleted,
     ToolExecutionStarted,
+    UserAnswerProvided,
+    UserQuestionAsked,
 )
 from glassbox.core.ids import (
     new_approval_id,
@@ -128,6 +130,45 @@ def test_renderer_outputs_approval_prompt_line() -> None:
     )
 
     assert rendered == "Approval requested: run shell command (needs confirmation)"
+
+
+def test_renderer_outputs_question_and_answer_lines() -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    tool_call_id = new_tool_call_id()
+    question_id = new_session_id()
+    state = CliRenderState()
+
+    question_line = format_event_for_terminal(
+        EventEnvelope(
+            session_id=session_id,
+            sequence=1,
+            payload=UserQuestionAsked(
+                question_id=question_id,
+                turn_id=turn_id,
+                tool_call_id=tool_call_id,
+                provider_tool_call_id="provider-ask-1",
+                question="What colour should I use?",
+            ),
+        ),
+        state,
+    )
+    answer_line = format_event_for_terminal(
+        EventEnvelope(
+            session_id=session_id,
+            sequence=2,
+            payload=UserAnswerProvided(
+                question_id=question_id,
+                answer="blue",
+            ),
+        ),
+        state,
+    )
+
+    assert question_line == (
+        f"Question asked ({question_id}): What colour should I use?"
+    )
+    assert answer_line == f"Answer submitted for question {question_id}: blue"
 
 
 def test_renderer_writes_only_visible_lines() -> None:

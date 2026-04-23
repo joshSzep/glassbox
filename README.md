@@ -37,6 +37,7 @@ The current command surface is:
 ```text
 glassbox run [PROMPT]
 glassbox message SESSION_ID PROMPT
+glassbox answer SESSION_ID QUESTION_ID ANSWER
 glassbox resume SESSION_ID
 glassbox status SESSION_ID
 glassbox approve SESSION_ID APPROVAL_ID
@@ -76,6 +77,15 @@ Submit another user prompt into an existing running session:
 ```bash
 uv run glassbox message SESSION_ID "Continue with the next step" --cwd .
 ```
+
+Answer a pending `ask_user` question for a suspended session:
+
+```bash
+uv run glassbox answer SESSION_ID QUESTION_ID "blue" --cwd .
+```
+
+When a session pauses for input, the CLI prints a `Question asked (...)` line with
+the `QUESTION_ID` you need for the `answer` command.
 
 Resolve a pending approval:
 

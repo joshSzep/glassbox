@@ -1220,7 +1220,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-151: Add CLI Command For Answering Pending `ask_user` Questions
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-067`, `GBX-150`
 - Goal: make suspended `ask_user` turns resumable from the terminal without custom scripts or direct service calls
 - Deliverables:

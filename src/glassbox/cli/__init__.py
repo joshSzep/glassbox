@@ -37,6 +37,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _resume_command(args)
         if args.command == "status":
             return _status_command(args)
+        if args.command == "answer":
+            return _answer_command(args)
         if args.command == "approve":
             return _resolve_approval_command(args, ApprovalDecision.APPROVED)
         if args.command == "deny":
@@ -93,6 +95,28 @@ def _build_parser() -> argparse.ArgumentParser:
     message_parser.add_argument("session_id", type=_parse_uuid)
     message_parser.add_argument("prompt", help="user prompt to submit")
     _add_runtime_location_arguments(message_parser)
+
+    answer_parser = subparsers.add_parser(
+        "answer",
+        help="answer a pending ask_user question",
+        description=(
+            "Submit an answer to a pending ask_user question in an existing "
+            "session. Use the question_id from the earlier 'Question asked' "
+            "CLI output line."
+        ),
+    )
+    answer_parser.add_argument(
+        "session_id",
+        type=_parse_uuid,
+        help="session identifier that is awaiting user input",
+    )
+    answer_parser.add_argument(
+        "question_id",
+        type=_parse_uuid,
+        help="question identifier shown when the session asked for input",
+    )
+    answer_parser.add_argument("answer", help="answer text to provide")
+    _add_runtime_location_arguments(answer_parser)
 
     resume_parser = subparsers.add_parser(
         "resume",
@@ -248,6 +272,24 @@ async def _message_command_async(args: argparse.Namespace) -> int:
         await runtime_context.services.session_service.submit_user_message(
             args.session_id,
             args.prompt,
+        )
+        await asyncio.sleep(0)
+
+    return await _run_with_renderer(cwd, db_path, action)
+
+
+def _answer_command(args: argparse.Namespace) -> int:
+    return asyncio.run(_answer_command_async(args))
+
+
+async def _answer_command_async(args: argparse.Namespace) -> int:
+    cwd, db_path = _resolve_runtime_location(args)
+
+    async def action(runtime_context: RuntimeContext) -> None:
+        await runtime_context.services.session_service.provide_user_answer(
+            args.session_id,
+            args.question_id,
+            args.answer,
         )
         await asyncio.sleep(0)
 
