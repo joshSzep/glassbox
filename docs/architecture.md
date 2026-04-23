@@ -905,6 +905,86 @@ That boundary keeps the current architecture honest. Glassbox can become
 terminal-native and conversational now without pretending it already has a
 resident background runtime.
 
+### Cross-Process Attach Decision
+
+Decision: keep the interactive terminal UX process-local for the current
+architecture. Do not introduce a daemon-backed runtime or a cross-process
+terminal attach protocol in the current roadmap phase.
+
+This is the current stance because the existing surfaces already cover most of
+the operator value at materially lower complexity:
+
+- `glassbox chat` provides the primary conversational workflow inside the owning CLI process
+- `glassbox attach` can reopen persisted sessions that are actionable from projections
+- `GET /sessions/{session_id}` already provides cross-process snapshot recovery
+- `GET /sessions/{session_id}/events` already provides cross-process live event streaming to the dashboard
+- approval and question flows are already resumable from persisted events rather than process-local memory
+
+The remaining gap is specifically terminal-native live attach to a runtime that
+is still owned by another process. That is real operator value, but it is not
+large enough yet to justify the additional platform and protocol cost.
+
+#### Tradeoff Analysis
+
+Option 1: keep the current process-local terminal model and lean on the
+existing HTTP plus SSE surfaces for cross-process observation and recovery.
+
+Benefits:
+
+- preserves the current single-process ownership model
+- reuses the existing event store, projections, snapshot endpoint, and SSE feed
+- keeps `chat` and `attach` semantics honest instead of implying capabilities the runtime does not have
+- avoids introducing daemon lifecycle, background process supervision, or client attachment coordination
+- keeps approval, question, and replay behavior grounded in persisted events
+
+Costs:
+
+- no true terminal reattachment to a still-running owner process
+- terminal-native streaming remains tied to the process that started the interactive session
+- cross-process observation is dashboard-first rather than terminal-first
+
+Option 2: introduce a daemon-backed or brokered runtime with explicit
+cross-process attach semantics.
+
+Benefits:
+
+- terminal clients could reconnect to a long-lived background runtime
+- live output could survive terminal restarts and process handoff
+- session ownership would become explicit rather than incidental to one CLI invocation
+
+Costs:
+
+- background runtime lifecycle management across platforms
+- explicit session ownership, locking, and multi-client arbitration rules
+- attach protocol design for prompt state, redraw, backlog replay, and live stream delivery
+- health checks, cleanup, orphaned runtime handling, and upgrade behavior
+- new failure modes around daemon drift, stale sockets, and split-brain ownership
+- a more complex local security story once commands can target a resident process
+
+Decision outcome: stay with Option 1 for now. Use the dashboard snapshot and
+SSE surfaces for cross-process visibility, and reserve daemon-backed attach for
+later only if observed operator pain clearly exceeds the added complexity.
+
+#### Revisit Criteria
+
+Reopen this decision only if at least one of the following becomes a repeated
+operator need rather than a hypothetical capability:
+
+- users frequently lose useful long-running terminal sessions because the owning CLI process exits
+- dashboard observation proves insufficient because operators specifically need terminal-native reattachment rather than browser-based live visibility
+- multiple local entrypoints need to coordinate a single active runtime instead of reopening persisted state after the fact
+
+If this decision is revisited later, the first executable slices should be:
+
+1. define runtime ownership and attach semantics explicitly, including single-client versus multi-client rules
+2. introduce a supervised background runtime process with health and shutdown behavior
+3. expose an attach transport that can replay prompt context and then stream live events to a terminal client
+4. add terminal rehydration rules for prompt mode, pending approvals, and pending questions after reconnect
+
+Those slices are intentionally not on the roadmap yet. They become valid only if
+the current process-local plus dashboard model is shown to be insufficient in
+practice.
+
 ## Concurrency Model
 
 Use structured asyncio throughout.

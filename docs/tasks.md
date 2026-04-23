@@ -1423,7 +1423,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-166: Evaluate And Scope Cross-Process Attach Or Daemon-Backed Interactive Sessions
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-160`, `GBX-162`, `GBX-164`, `GBX-121`
 - Goal: decide whether Glassbox should support a stronger attach model that can stream live session output across process boundaries like a terminal-native resident agent
 - Deliverables:
