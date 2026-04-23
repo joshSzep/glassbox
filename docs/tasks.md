@@ -1137,7 +1137,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-142: Surface Provider Config And Auth Failures Cleanly
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-131`, `GBX-140`, `GBX-141`
 - Goal: make missing credentials, unsupported providers, and invalid provider runtime config fail visibly and safely for operators
 - Deliverables:

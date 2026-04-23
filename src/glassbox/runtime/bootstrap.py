@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
+from urllib.parse import urlparse
 
 from glassbox.core.models import SessionRecord
 from glassbox.llm.adapters import ModelProviderConfig, PydanticAIModelAdapter
@@ -22,7 +23,10 @@ from glassbox.runtime.context import (
     RuntimeServices,
 )
 from glassbox.runtime.context_builder import TurnContextBuilder
-from glassbox.runtime.errors import SessionRuntimeFailure
+from glassbox.runtime.errors import (
+    ProviderRuntimeConfigFailure,
+    SessionRuntimeFailure,
+)
 from glassbox.runtime.logging import configure_runtime_logging
 from glassbox.runtime.provider_config import (
     RuntimeProviderConfig,
@@ -119,21 +123,77 @@ def _build_model_executor(session: SessionRecord):
 def _build_model_executor_factory(provider_config: RuntimeProviderConfig):
     def build_model_executor(session: SessionRecord):
         provider, model_name = _split_model_name(session.model_name)
-        if provider == "openai" and provider_config.openai.is_configured:
-            return build_openai_model_executor(
-                model_name,
-                api_key=provider_config.openai.api_key,
-                base_url=provider_config.openai.base_url,
+        if provider is None:
+            return _build_model_executor(session)
+        if provider == "openai":
+            return _build_provider_executor(
+                session,
+                provider_name="OpenAI",
+                model_name=model_name,
+                provider_secret_config=provider_config.openai,
+                executor_builder=build_openai_model_executor,
             )
-        if provider == "anthropic" and provider_config.anthropic.is_configured:
-            return build_anthropic_model_executor(
-                model_name,
-                api_key=provider_config.anthropic.api_key,
-                base_url=provider_config.anthropic.base_url,
+        if provider == "anthropic":
+            return _build_provider_executor(
+                session,
+                provider_name="Anthropic",
+                model_name=model_name,
+                provider_secret_config=provider_config.anthropic,
+                executor_builder=build_anthropic_model_executor,
             )
-        return _build_model_executor(session)
+        raise ProviderRuntimeConfigFailure(
+            f"unsupported model provider configured for session: {provider}",
+            retryable=False,
+        )
 
     return build_model_executor
+
+
+def _build_provider_executor(
+    session: SessionRecord,
+    *,
+    provider_name: str,
+    model_name: str,
+    provider_secret_config,
+    executor_builder: Callable[..., object],
+):
+    if not provider_secret_config.is_configured:
+        return _build_model_executor(session)
+
+    if provider_secret_config.api_key is None:
+        raise ProviderRuntimeConfigFailure(
+            f"missing {provider_name} API key for configured provider runtime",
+            retryable=False,
+        )
+
+    if provider_secret_config.base_url is not None:
+        _validate_provider_base_url(
+            provider_name,
+            provider_secret_config.base_url,
+        )
+
+    try:
+        return executor_builder(
+            model_name,
+            api_key=provider_secret_config.api_key,
+            base_url=provider_secret_config.base_url,
+        )
+    except SessionRuntimeFailure:
+        raise
+    except Exception as exc:
+        raise ProviderRuntimeConfigFailure(
+            f"invalid {provider_name} provider runtime config",
+            retryable=False,
+        ) from exc
+
+
+def _validate_provider_base_url(provider_name: str, base_url: str) -> None:
+    parsed_url = urlparse(base_url)
+    if parsed_url.scheme not in {"http", "https"} or parsed_url.netloc == "":
+        raise ProviderRuntimeConfigFailure(
+            f"invalid {provider_name} base URL runtime config",
+            retryable=False,
+        )
 
 
 def _build_tool_runtime(session: SessionRecord) -> ToolRuntime:

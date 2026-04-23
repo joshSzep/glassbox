@@ -248,6 +248,125 @@ def test_invalid_persisted_approval_mode_emits_session_failed(
     asyncio.run(scenario())
 
 
+def test_cli_run_with_partial_provider_config_emits_session_failed(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    (tmp_path / ".env").write_text("OPENAI_BASE_URL=https://api.openai.example/v1\n")
+
+    exit_code, db_path = _run_cli(tmp_path, ["run", "Inspect the repository"])
+    captured = capsys.readouterr()
+    session_id = _only_session_id(db_path)
+
+    connection = _open_db(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        events = repository.read_session_events(session_id)
+        state = repository.get_session_state(session_id)
+    finally:
+        connection.close()
+
+    session_failed_events = [
+        event.payload for event in events if isinstance(event.payload, SessionFailed)
+    ]
+
+    assert exit_code == 1
+    assert (
+        "Session failed: missing OpenAI API key for configured provider runtime"
+        in captured.out
+    )
+    assert (
+        captured.err.strip() == "missing OpenAI API key for configured provider runtime"
+    )
+    assert any(isinstance(event.payload, TurnFailed) for event in events)
+    assert len(session_failed_events) == 1
+    assert session_failed_events[0].error_message == (
+        "missing OpenAI API key for configured provider runtime"
+    )
+    assert session_failed_events[0].retryable is False
+    assert state is not None
+    assert state.status == SessionStatus.FAILED
+
+
+def test_cli_run_with_unsupported_provider_emits_session_failed(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code, db_path = _run_cli(
+        tmp_path,
+        ["run", "Inspect the repository", "--model-name", "other:model"],
+    )
+    captured = capsys.readouterr()
+    session_id = _only_session_id(db_path)
+
+    connection = _open_db(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        events = repository.read_session_events(session_id)
+        state = repository.get_session_state(session_id)
+    finally:
+        connection.close()
+
+    session_failed_events = [
+        event.payload for event in events if isinstance(event.payload, SessionFailed)
+    ]
+
+    assert exit_code == 1
+    assert (
+        "Session failed: unsupported model provider configured for session: other"
+        in captured.out
+    )
+    assert (
+        captured.err.strip()
+        == "unsupported model provider configured for session: other"
+    )
+    assert len(session_failed_events) == 1
+    assert session_failed_events[0].error_message == (
+        "unsupported model provider configured for session: other"
+    )
+    assert state is not None
+    assert state.status == SessionStatus.FAILED
+
+
+def test_cli_run_redacts_provider_secrets_from_surfaced_config_errors(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    secret = "super-secret-openai-key"
+    (tmp_path / ".env").write_text(
+        f"OPENAI_API_KEY={secret}\nOPENAI_BASE_URL=not-a-url\n"
+    )
+
+    exit_code, db_path = _run_cli(tmp_path, ["run", "Inspect the repository"])
+    captured = capsys.readouterr()
+    session_id = _only_session_id(db_path)
+
+    connection = _open_db(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        events = repository.read_session_events(session_id)
+        state = repository.get_session_state(session_id)
+    finally:
+        connection.close()
+
+    session_failed_events = [
+        event.payload for event in events if isinstance(event.payload, SessionFailed)
+    ]
+
+    assert exit_code == 1
+    assert "Session failed: invalid OpenAI base URL runtime config" in captured.out
+    assert captured.err.strip() == "invalid OpenAI base URL runtime config"
+    assert len(session_failed_events) == 1
+    assert session_failed_events[0].error_message == (
+        "invalid OpenAI base URL runtime config"
+    )
+    assert secret not in captured.out
+    assert secret not in captured.err
+    assert all(secret not in event.model_dump_json() for event in events)
+    assert state is not None
+    assert state.status == SessionStatus.FAILED
+
+
 def test_cli_rebuild_surfaces_projection_failure(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
