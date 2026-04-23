@@ -14,7 +14,12 @@ from uuid import UUID
 
 from glassbox.cli.renderer import CliEventRenderer
 from glassbox.core import SessionConfig, TranscriptMessage
-from glassbox.core.events import EventEnvelope, SessionFailed, SessionStarted
+from glassbox.core.events import (
+    EventEnvelope,
+    SessionFailed,
+    SessionStarted,
+    UserQuestionAsked,
+)
 from glassbox.core.models import ApprovalRecord, ToolCallRecord, TurnMetricsRecord
 from glassbox.core.types import ApprovalDecision
 from glassbox.runtime import RuntimeContext, open_runtime_context
@@ -320,6 +325,10 @@ def _status_command(args: argparse.Namespace) -> int:
     recent_tool_calls = _recent_tool_calls(tool_calls)
     dashboard_url = _dashboard_url_from_events(session_events)
     latest_session_failure = _latest_session_failure(session_events)
+    pending_question_text = _pending_question_text_from_events(
+        session_events,
+        state.pending_question_id,
+    )
 
     print(f"Session {record.session_id}")
     print(f"Status: {state.status}")
@@ -338,6 +347,23 @@ def _status_command(args: argparse.Namespace) -> int:
     latest_summary = _latest_message_summary(transcript_messages)
     if latest_summary is not None:
         print(f"Latest message: {latest_summary}")
+    if state.pending_question_id is not None:
+        print(
+            _format_pending_question_line(
+                state.pending_question_id,
+                pending_question_text,
+            )
+        )
+    print(
+        _format_next_action_line(
+            record.session_id,
+            state.status,
+            current_turn_id,
+            state.pending_approval_id,
+            state.pending_question_id,
+            latest_session_failure,
+        )
+    )
 
     if latest_turn_metrics is not None:
         label = (
@@ -509,6 +535,83 @@ def _format_tool_call_summary(tool_call: ToolCallRecord) -> str:
         f"{tool_call.tool_name} {tool_call.status} "
         f"(turn {tool_call.turn_id}){summary_suffix}"
     )
+
+
+def _pending_question_text_from_events(
+    events: Sequence[EventEnvelope],
+    pending_question_id,
+) -> str | None:
+    if pending_question_id is None:
+        return None
+
+    pending_question_id_text = str(pending_question_id)
+    for event in reversed(events):
+        if not isinstance(event.payload, UserQuestionAsked):
+            continue
+        if str(event.payload.question_id) != pending_question_id_text:
+            continue
+        return event.payload.question
+    return None
+
+
+def _format_pending_question_line(question_id, question_text: str | None) -> str:
+    if question_text:
+        return f"Pending question: {question_id}: {question_text}"
+    return f"Pending question: {question_id}"
+
+
+def _format_next_action_line(
+    session_id,
+    status: str,
+    current_turn_id,
+    pending_approval_id,
+    pending_question_id,
+    latest_session_failure: SessionFailed | None,
+) -> str:
+    if status == "awaiting_approval" and pending_approval_id is not None:
+        return (
+            "Next action: resolve approval "
+            f"{pending_approval_id} with 'glassbox approve {session_id} "
+            f"{pending_approval_id}' or 'glassbox deny {session_id} "
+            f"{pending_approval_id}', or use the dashboard approvals pane"
+        )
+
+    if status == "awaiting_user_input" and pending_question_id is not None:
+        return (
+            "Next action: answer question "
+            f"{pending_question_id} with 'glassbox answer {session_id} "
+            f"{pending_question_id} ANSWER', or use the dashboard Next Action "
+            "pane"
+        )
+
+    if status == "running" and current_turn_id is None:
+        return (
+            "Next action: submit a new prompt with 'glassbox message "
+            f"{session_id} PROMPT', or use the dashboard Next Action pane"
+        )
+
+    if status == "running":
+        return (
+            "Next action: wait for the active turn to finish before sending "
+            "another prompt"
+        )
+
+    if status == "completed":
+        return (
+            "Next action: this session is complete; start a new session with "
+            "'glassbox run PROMPT'"
+        )
+
+    if status == "failed":
+        failure_guidance = "inspect the failure details above"
+        if latest_session_failure is not None and latest_session_failure.retryable:
+            failure_guidance = "inspect the retryable failure details above"
+        return (
+            "Next action: "
+            f"{failure_guidance}, or start a new session with 'glassbox run PROMPT'"
+        )
+
+    return "Next action: inspect the session details above before taking another step"
 
 
 def _resolve_approval_command(

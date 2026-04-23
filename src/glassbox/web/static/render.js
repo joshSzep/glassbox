@@ -180,7 +180,10 @@ export function renderComposerPane(state) {
   if (mode === "blocked") {
     let reason = "Session actions are currently unavailable.";
     if (state.status === "awaiting_approval") {
-      reason = "Resolve the pending approval before sending another prompt.";
+      reason = [
+        "Resolve the pending approval below before sending a new prompt or ",
+        "answering the model's question.",
+      ].join("");
     } else if (state.status === "completed") {
       reason = "This session is complete and cannot accept new input.";
     } else if (state.status === "failed") {
@@ -194,9 +197,10 @@ export function renderComposerPane(state) {
   }
 
   const questionDetails = mode === "answer"
-    ? `<div class="composer-question">${escHtml(state.pendingQuestionText ?? "Answer the pending model question.")}</div>
-       <div class="composer-help">Question ID ${escHtml(state.pendingQuestionId ?? "unknown")}</div>`
-    : `<div class="composer-help">Submit a new user turn to continue this session.</div>`;
+     ? `<div class="composer-question">${escHtml(state.pendingQuestionText ?? "Answer the pending model question.")}</div>
+       <div class="composer-help">Question ID ${escHtml(state.pendingQuestionId ?? "unknown")}</div>
+       <div class="composer-help">This sends an answer to the model's pending ask_user question. It does not start a new prompt.</div>`
+     : `<div class="composer-help">Send a fresh user prompt after the previous turn has completed. Use this instead of answering a pending question or resolving an approval.</div>`;
   const buttonLabel = mode === "answer" ? "Send Answer" : "Send Prompt";
   const heading = mode === "answer" ? "Answer Pending Question" : "Continue Session";
   let statusHtml = "";

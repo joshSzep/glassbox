@@ -64,7 +64,8 @@ uv run glassbox status SESSION_ID --cwd .
 ```
 
 The status view summarizes the current turn, pending approvals, recent tool activity,
-recent turn metrics, transcript count, and the latest transcript message.
+recent turn metrics, transcript count, the latest transcript message, and the
+next valid operator action for the session's current state.
 
 Resume a persisted session:
 
@@ -100,6 +101,22 @@ Rebuild derived projections from canonical events:
 uv run glassbox rebuild SESSION_ID --cwd .
 uv run glassbox rebuild --all --cwd .
 ```
+
+## Multi-Turn Workflow
+
+Use the command that matches the session's current actionable state:
+
+- `glassbox resume SESSION_ID` replays a persisted session after restart. It does not send a new prompt.
+- `glassbox message SESSION_ID PROMPT` sends a fresh user prompt when the session is running and idle.
+- `glassbox answer SESSION_ID QUESTION_ID ANSWER` answers a pending `ask_user` question when the session is awaiting user input.
+- `glassbox approve SESSION_ID APPROVAL_ID` or `glassbox deny SESSION_ID APPROVAL_ID` resolves a pending approval when the session is awaiting approval.
+- `glassbox status SESSION_ID` prints the current session state, any pending approval or question identifiers, and a `Next action:` line that tells you which of the commands above is valid now.
+
+In the dashboard, the same workflow is split by pane:
+
+- The `Next Action` pane sends a new prompt for an idle running session.
+- The `Next Action` pane switches into answer mode when the model is waiting on `ask_user` input.
+- The `Pending Approvals` pane remains the only place to resolve approval-gated tool actions.
 
 ## Real Provider Setup
 

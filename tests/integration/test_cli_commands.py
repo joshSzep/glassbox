@@ -32,6 +32,7 @@ from glassbox.core.events import (
 from glassbox.core.ids import (
     new_approval_id,
     new_message_id,
+    new_question_id,
     new_tool_call_id,
     new_turn_id,
 )
@@ -510,6 +511,7 @@ def test_cli_status_prints_human_session_summary(
     assert "Recent tool activity: none" in captured.out
     assert "Dashboard URL: http://127.0.0.1:8765" in captured.out
     assert "Transcript messages: 2" in captured.out
+    assert "Next action: submit a new prompt with 'glassbox message " in captured.out
     assert (
         "Latest message: assistant: I received your request: Inspect the repository"
         in captured.out
@@ -554,6 +556,10 @@ def test_cli_status_includes_session_failure_details(
     assert "Status: failed" in captured.out
     assert "Dashboard URL: http://127.0.0.1:8765" in captured.out
     assert "Session failure: dashboard wiring failed (retryable)" in captured.out
+    assert (
+        "Next action: inspect the retryable failure details above, or start a "
+        "new session with 'glassbox run PROMPT'" in captured.out
+    )
 
 
 def test_cli_status_includes_turn_approvals_tool_activity_and_metrics(
@@ -587,9 +593,43 @@ def test_cli_status_includes_turn_approvals_tool_activity_and_metrics(
         f"{approval_id} for turn {turn_id}: run shell command (needs confirmation)"
         in captured.out
     )
+    assert (
+        f"Next action: resolve approval {approval_id} with 'glassbox approve "
+        f"{session_id} {approval_id}' or 'glassbox deny {session_id} "
+        f"{approval_id}', or use the dashboard approvals pane" in captured.out
+    )
     assert "Recent tool activity:" in captured.out
     assert "read_file succeeded" in captured.out
     assert "done" in captured.out
+
+
+def test_cli_status_includes_pending_question_and_answer_next_action(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id, question_id = _seed_pending_question_status(tmp_path)
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "status",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Status: awaiting_user_input" in captured.out
+    assert f"Pending question: {question_id}: What colour should I use?" in captured.out
+    assert (
+        f"Next action: answer question {question_id} with 'glassbox answer "
+        f"{session_id} {question_id} ANSWER', or use the dashboard Next Action pane"
+        in captured.out
+    )
 
 
 def test_cli_approve_resolves_pending_approval(
@@ -807,6 +847,43 @@ def _seed_status_projection_details(
         connection.close()
 
     return db_path, session_id, turn_id, approval_id
+
+
+def _seed_pending_question_status(tmp_path: Path) -> tuple[Path, UUID, UUID]:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    turn_id = new_turn_id()
+    question_id = new_question_id()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TurnStarted(
+                        turn_id=turn_id,
+                        trigger_message_id=new_message_id(),
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=UserQuestionAsked(
+                        question_id=question_id,
+                        turn_id=turn_id,
+                        tool_call_id=new_tool_call_id(),
+                        provider_tool_call_id="provider-ask-1",
+                        question="What colour should I use?",
+                    ),
+                ),
+            ]
+        )
+    finally:
+        connection.close()
+
+    return db_path, session_id, question_id
 
 
 def _list_sessions(db_path: Path):

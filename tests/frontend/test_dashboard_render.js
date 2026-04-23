@@ -225,6 +225,7 @@ test("renderComposerPane shows next-prompt composer while session is running", (
   assert.match(html, /Continue Session/);
   assert.match(html, /Send Prompt/);
   assert.match(html, /Type the next prompt/);
+  assert.match(html, /Use this instead of answering a pending question/);
 });
 
 test("renderComposerPane shows pending-question answer state and errors", () => {
@@ -242,6 +243,7 @@ test("renderComposerPane shows pending-question answer state and errors", () => 
   assert.match(html, /Answer Pending Question/);
   assert.match(html, /What colour should I use\?/);
   assert.match(html, /question-1/);
+  assert.match(html, /It does not start a new prompt/);
   assert.match(html, /unknown question_id/);
   assert.match(html, /Send Answer/);
 });
@@ -255,7 +257,8 @@ test("renderComposerPane blocks actions while awaiting approval", () => {
   });
 
   assert.match(html, /Next Action Unavailable/);
-  assert.match(html, /Resolve the pending approval/);
+  assert.match(html, /Resolve the pending approval below/);
+  assert.match(html, /before sending a new prompt or answering the model's question/);
 });
 
 test("renderMetricsPane shows aggregated turn metrics", () => {

@@ -1277,7 +1277,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-154: Improve Interaction Status Surfaces And Documentation For Multi-Turn Workflows
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-150`, `GBX-151`, `GBX-152`, `GBX-153`, `GBX-121`
 - Goal: make the available next action obvious in both terminal and dashboard workflows, and document the supported interaction model clearly
 - Deliverables:
