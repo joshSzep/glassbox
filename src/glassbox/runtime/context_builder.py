@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterable, Sequence
+from datetime import UTC, datetime
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -84,6 +85,9 @@ class RuntimeContextSnapshot(BaseModel):
     repository_context: RepositoryContextSnapshot
     runtime_notes: list[RuntimeContextNoteSnapshot] = Field(default_factory=list)
     additional_runtime_note_count: int = Field(default=0, ge=0)
+    working_set: WorkingSetSnapshot = Field(
+        default_factory=lambda: WorkingSetSnapshot()
+    )
 
 
 class WorkingSetItemSnapshot(BaseModel):
@@ -131,6 +135,7 @@ class TurnContext(BaseModel):
     policy: PolicyContext
     repo_context: str | None = None
     memory_notes: list[str] = Field(default_factory=list)
+    working_set: WorkingSetSnapshot | None = None
 
 
 class TurnContextBuilder:
@@ -147,6 +152,7 @@ class TurnContextBuilder:
         tool_registry: ToolRegistry | None = None,
         repo_context: str | None = None,
         memory_notes: Sequence[str] = (),
+        working_set: WorkingSetSnapshot | None = None,
     ) -> TurnContext:
         session = self._session_repository.get_session(session_id)
         session_state = self._session_repository.get_session_state(session_id)
@@ -177,6 +183,7 @@ class TurnContextBuilder:
             ),
             repo_context=repo_context,
             memory_notes=list(memory_notes),
+            working_set=working_set,
         )
 
 
@@ -253,6 +260,7 @@ def build_runtime_context_snapshot(
     runtime_notes: Sequence[RuntimeNoteRecord],
     *,
     note_limit: int = _DEFAULT_RUNTIME_NOTE_LIMIT,
+    working_set: WorkingSetSnapshot | None = None,
 ) -> RuntimeContextSnapshot:
     """Return a bounded operator-facing summary of the current runtime context."""
 
@@ -269,6 +277,7 @@ def build_runtime_context_snapshot(
             for note in limited_notes
         ],
         additional_runtime_note_count=max(len(runtime_notes) - len(limited_notes), 0),
+        working_set=working_set or WorkingSetSnapshot(),
     )
 
 
@@ -602,4 +611,5 @@ def _lineage_reason(session: SessionRecord) -> str:
 
 
 def _tool_call_sort_key(tool_call: ToolCallRecord):
-    return tool_call.completed_at or tool_call.started_at
+    timestamp = tool_call.completed_at or tool_call.started_at
+    return (timestamp is not None, timestamp or datetime.min.replace(tzinfo=UTC))

@@ -457,6 +457,7 @@ def fingerprint_replay_enriched_context_payload(
         {
             "repo_context": turn_context_payload.get("repo_context"),
             "memory_notes": list(turn_context_payload.get("memory_notes") or []),
+            "working_set": turn_context_payload.get("working_set"),
         }
     )
 
@@ -554,6 +555,7 @@ def _normalize_system_prompt_content(content: str) -> str:
         if section != ""
         and not section.startswith("Repository context:")
         and not section.startswith("Memory notes:")
+        and not section.startswith("Working set:")
     ]
     return "\n\n".join(filtered_sections)
 

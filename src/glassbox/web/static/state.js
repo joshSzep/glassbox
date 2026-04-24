@@ -17,7 +17,9 @@
  * @typedef {{sequence: number, event_type: string}} EventLogEntry
  * @typedef {{workspace_name: string, high_signal_paths: string[], top_level_directories: string[], additional_directory_count: number, top_level_files: string[], additional_file_count: number, project_markers: string[]}} RepositoryContextSummary
  * @typedef {{category: string, message: string, inherited: boolean, source_session_id?: string | null}} RuntimeContextNote
- * @typedef {{repository_context: RepositoryContextSummary, runtime_notes: RuntimeContextNote[], additional_runtime_note_count: number}} RuntimeContextSummary
+ * @typedef {{subject_kind: string, subject: string, summary: string, reasons: string[], signal_types: string[], inherited: boolean}} WorkingSetItem
+ * @typedef {{items: WorkingSetItem[], additional_item_count: number}} WorkingSetSummary
+ * @typedef {{repository_context: RepositoryContextSummary, runtime_notes: RuntimeContextNote[], additional_runtime_note_count: number, working_set: WorkingSetSummary}} RuntimeContextSummary
  * @typedef {{kind: "message" | "answer" | null, state: "idle" | "submitting" | "submitted" | "failed", error: string | null}} InteractionSubmission
  * @typedef {{state: "idle" | "submitting" | "failed", error: string | null}} ForkSubmission
  * @typedef {{session_id: string, status: string, branch_label: string | null, updated_at: string, latest_message_summary: string | null}} ChildSessionSummary
@@ -308,6 +310,23 @@ function normalizeRuntimeContext(snapshotRuntimeContext) {
     additional_runtime_note_count: Number.isFinite(snapshotRuntimeContext.additional_runtime_note_count)
       ? snapshotRuntimeContext.additional_runtime_note_count
       : 0,
+    working_set: {
+      items: Array.isArray(snapshotRuntimeContext.working_set?.items)
+        ? snapshotRuntimeContext.working_set.items
+          .filter(item => item && typeof item.subject_kind === "string" && typeof item.subject === "string")
+          .map(item => ({
+            subject_kind: item.subject_kind,
+            subject: item.subject,
+            summary: typeof item.summary === "string" ? item.summary : "",
+            reasons: Array.isArray(item.reasons) ? item.reasons.filter(reason => typeof reason === "string") : [],
+            signal_types: Array.isArray(item.signal_types) ? item.signal_types.filter(signalType => typeof signalType === "string") : [],
+            inherited: Boolean(item.inherited),
+          }))
+        : [],
+      additional_item_count: Number.isFinite(snapshotRuntimeContext.working_set?.additional_item_count)
+        ? snapshotRuntimeContext.working_set.additional_item_count
+        : 0,
+    },
   };
 }
 

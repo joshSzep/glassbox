@@ -2351,7 +2351,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-232: Inject Working-Set Context Into Turn Assembly, Status, And Snapshot Flows
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-223`, `GBX-225`, `GBX-231`
 - Goal: make the working set part of normal live turn preparation and operator inspection instead of an internal-only helper
 - Deliverables:

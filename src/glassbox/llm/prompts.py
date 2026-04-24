@@ -30,6 +30,8 @@ def build_system_prompt(turn_context: TurnContext) -> str:
         sections.append(build_repo_context_prompt_fragment(turn_context.repo_context))
     if turn_context.memory_notes:
         sections.append(build_memory_notes_prompt_fragment(turn_context.memory_notes))
+    if turn_context.working_set is not None and turn_context.working_set.items:
+        sections.append(build_working_set_prompt_fragment(turn_context.working_set))
 
     return "\n\n".join(section for section in sections if section != "")
 
@@ -131,4 +133,19 @@ def build_memory_notes_prompt_fragment(memory_notes: Sequence[str]) -> str:
     lines = ["Memory notes:"]
     for note in memory_notes:
         lines.append(f"- {note}")
+    return "\n".join(lines)
+
+
+def build_working_set_prompt_fragment(working_set) -> str:
+    """Return the bounded working-set summary for the current turn."""
+
+    lines = ["Working set:"]
+    for item in working_set.items:
+        reason_text = "; ".join(item.reasons[:2])
+        lines.append(
+            f"- [{item.subject_kind}] {item.subject}: {item.summary}"
+            + (f" ({reason_text})" if reason_text else "")
+        )
+    if working_set.additional_item_count:
+        lines.append(f"- +{working_set.additional_item_count} more working-set item(s)")
     return "\n".join(lines)

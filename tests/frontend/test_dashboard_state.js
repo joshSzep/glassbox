@@ -72,6 +72,19 @@ test("hydrateFromSnapshot copies snapshot fields into dashboard state", () => {
         },
       ],
       additional_runtime_note_count: 0,
+      working_set: {
+        items: [
+          {
+            subject_kind: "file",
+            subject: "src/glassbox/runtime/context_builder.py",
+            summary: "recently targeted workspace path",
+            reasons: ["apply_patch targeted src/glassbox/runtime/context_builder.py"],
+            signal_types: ["tool_request_path"],
+            inherited: false,
+          },
+        ],
+        additional_item_count: 0,
+      },
     },
     turn_metrics: [
       {
@@ -119,6 +132,7 @@ test("hydrateFromSnapshot copies snapshot fields into dashboard state", () => {
   assert.equal(state.pendingQuestionText, null);
   assert.equal(state.runtimeContext?.repository_context.workspace_name, "workspace");
   assert.equal(state.runtimeContext?.runtime_notes[0].message, "README is the primary entrypoint");
+  assert.equal(state.runtimeContext?.working_set.items[0].subject, "src/glassbox/runtime/context_builder.py");
   assert.equal(state.currentTurn?.turn_id, "turn-1");
   assert.equal(state.turnMetrics.length, 1);
   assert.equal(state.turnMetrics[0].model_duration_ms_total, 800);
@@ -259,6 +273,10 @@ test("applyEvent updates runtime context note summaries", () => {
       },
       runtime_notes: [],
       additional_runtime_note_count: 0,
+      working_set: {
+        items: [],
+        additional_item_count: 0,
+      },
     },
     turn_metrics: [],
     transcript: [],
@@ -279,6 +297,7 @@ test("applyEvent updates runtime context note summaries", () => {
 
   assert.equal(updated.runtimeContext?.runtime_notes.length, 1);
   assert.equal(updated.runtimeContext?.runtime_notes[0].message, "README changed recently");
+  assert.deepEqual(updated.runtimeContext?.working_set, { items: [], additional_item_count: 0 });
 });
 
 test("hydrateFromSnapshot records lineage and default fork selection", () => {

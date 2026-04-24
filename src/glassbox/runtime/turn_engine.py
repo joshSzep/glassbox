@@ -65,6 +65,7 @@ from glassbox.runtime.context_builder import (
     TurnContext,
     TurnContextBuilder,
     build_repository_context_snapshot,
+    build_working_set_snapshot,
     format_repository_context_for_prompt,
 )
 from glassbox.runtime.errors import SessionRuntimeFailure
@@ -564,6 +565,10 @@ class TurnEngine:
             memory_notes=[
                 _format_runtime_note_for_prompt(note) for note in runtime_notes
             ],
+            working_set=build_working_set_snapshot(
+                self._session_repository,
+                session_id,
+            ),
         )
 
     def _record_failed_turn(

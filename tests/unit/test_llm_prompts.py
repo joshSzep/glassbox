@@ -6,7 +6,13 @@ from uuid import uuid4
 
 from glassbox.core.types import SessionStatus
 from glassbox.llm import build_system_prompt, build_tool_usage_prompt_fragment
-from glassbox.runtime import PolicyContext, ToolSchema, TurnContext
+from glassbox.runtime import (
+    PolicyContext,
+    ToolSchema,
+    TurnContext,
+    WorkingSetItemSnapshot,
+    WorkingSetSnapshot,
+)
 
 
 def test_build_system_prompt_includes_policy_tools_repo_and_memory() -> None:
@@ -43,6 +49,19 @@ def test_build_system_prompt_includes_policy_tools_repo_and_memory() -> None:
             "Prefer targeted validation.",
             "Avoid claiming unseen file changes.",
         ],
+        working_set=WorkingSetSnapshot(
+            items=[
+                WorkingSetItemSnapshot(
+                    subject_kind="file",
+                    subject="src/glassbox/runtime/context_builder.py",
+                    summary="recently targeted workspace path",
+                    reasons=[
+                        "apply_patch targeted src/glassbox/runtime/context_builder.py"
+                    ],
+                    signal_types=["tool_request_path"],
+                )
+            ]
+        ),
     )
 
     prompt = build_system_prompt(turn_context)
@@ -56,6 +75,8 @@ def test_build_system_prompt_includes_policy_tools_repo_and_memory() -> None:
     assert "Memory notes:" in prompt
     assert "Prefer targeted validation." in prompt
     assert "Avoid claiming unseen file changes." in prompt
+    assert "Working set:" in prompt
+    assert "[file] src/glassbox/runtime/context_builder.py" in prompt
     assert prompt.index("read_file: Read a file from disk.") < prompt.index(
         "shell: Run a shell command."
     )
@@ -78,6 +99,7 @@ def test_build_system_prompt_handles_missing_optional_context() -> None:
     assert "No approval request is currently pending." in prompt
     assert "Repository context:" not in prompt
     assert "Memory notes:" not in prompt
+    assert "Working set:" not in prompt
 
 
 def test_tool_usage_fragment_is_stable_and_includes_schema() -> None:

@@ -239,6 +239,19 @@ test("renderSelectedSessionSummary includes runtime context summary", () => {
         },
       ],
       additional_runtime_note_count: 0,
+      working_set: {
+        items: [
+          {
+            subject_kind: "file",
+            subject: "src/glassbox/runtime/context_builder.py",
+            summary: "recently targeted workspace path",
+            reasons: ["apply_patch targeted src/glassbox/runtime/context_builder.py"],
+            signal_types: ["tool_request_path"],
+            inherited: false,
+          },
+        ],
+        additional_item_count: 1,
+      },
     },
     turn_metrics: [],
     transcript: [],
@@ -249,6 +262,9 @@ test("renderSelectedSessionSummary includes runtime context summary", () => {
   assert.match(html, /Runtime context/);
   assert.match(html, /High-signal paths/);
   assert.match(html, /README is the operator entrypoint/);
+  assert.match(html, /Working set/);
+  assert.match(html, /src\/glassbox\/runtime\/context_builder\.py/);
+  assert.match(html, /\+1 more working-set item/);
   assert.match(html, /inherited from session-/);
 });
 

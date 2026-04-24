@@ -19,8 +19,16 @@ from glassbox.core.events import (
 )
 from glassbox.core.models import TranscriptMessage
 from glassbox.core.types import ApprovalStatus, ToolExecutionStatus
-from glassbox.runtime import RuntimeContextNoteSnapshot, RuntimeContextSnapshot
-from glassbox.runtime.context_builder import build_runtime_context_snapshot
+from glassbox.runtime import (
+    RuntimeContextNoteSnapshot,
+    RuntimeContextSnapshot,
+    WorkingSetItemSnapshot,
+    WorkingSetSnapshot,
+)
+from glassbox.runtime.context_builder import (
+    build_runtime_context_snapshot,
+    build_working_set_snapshot,
+)
 from glassbox.web.app import RuntimeContextDep
 
 router = APIRouter(prefix="/sessions")
@@ -397,7 +405,12 @@ async def get_session_snapshot(
         latest_fork_point_sequence,
         fork_blocked_reason,
     ) = _fork_capability(repo, session_id)
-    runtime_context = build_runtime_context_snapshot(record.cwd, runtime_notes)
+    working_set = build_working_set_snapshot(repo, session_id)
+    runtime_context = build_runtime_context_snapshot(
+        record.cwd,
+        runtime_notes,
+        working_set=working_set,
+    )
 
     return SessionSnapshotResponse(
         session_id=str(record.session_id),
@@ -518,6 +531,20 @@ async def get_session_snapshot(
                 for note in runtime_context.runtime_notes
             ],
             additional_runtime_note_count=runtime_context.additional_runtime_note_count,
+            working_set=WorkingSetSnapshot(
+                items=[
+                    WorkingSetItemSnapshot(
+                        subject_kind=item.subject_kind,
+                        subject=item.subject,
+                        summary=item.summary,
+                        reasons=list(item.reasons),
+                        signal_types=list(item.signal_types),
+                        inherited=item.inherited,
+                    )
+                    for item in runtime_context.working_set.items
+                ],
+                additional_item_count=runtime_context.working_set.additional_item_count,
+            ),
         ),
     )
 

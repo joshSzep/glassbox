@@ -92,11 +92,28 @@ function renderRuntimeContextSummary(state) {
         <div class="selected-session-value">none</div>
       </div>`;
 
+  const workingSetHtml = runtimeContext.working_set?.items?.length > 0
+    ? `<div class="selected-session-item selected-session-item-wide">
+        <div class="selected-session-label">Working set</div>
+        <div class="selected-session-value">${runtimeContext.working_set.items.map(item => {
+          const inheritedSuffix = item.inherited ? " (inherited)" : "";
+          const reasonSuffix = item.reasons.length > 0 ? `: ${item.reasons.slice(0, 2).join("; ")}` : "";
+          return `<div>${escHtml(`[${item.subject_kind}] ${item.subject}${inheritedSuffix} - ${item.summary}${reasonSuffix}`)}</div>`;
+        }).join("")}${runtimeContext.working_set.additional_item_count > 0
+          ? `<div>${escHtml(`+${runtimeContext.working_set.additional_item_count} more working-set item(s)`)}</div>`
+          : ""}</div>
+      </div>`
+    : `<div class="selected-session-item selected-session-item-wide">
+        <div class="selected-session-label">Working set</div>
+        <div class="selected-session-value">none</div>
+      </div>`;
+
   return `<div class="selected-session-runtime-context">
     <div class="selected-session-label">Runtime context</div>
     <div class="selected-session-grid">
       ${repositoryHtml}
       ${runtimeNotesHtml}
+      ${workingSetHtml}
     </div>
   </div>`;
 }

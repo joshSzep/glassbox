@@ -406,6 +406,8 @@ def test_cli_status_includes_runtime_context_summary(
     assert "High-signal paths:" in captured.out
     assert "Runtime notes: 1 visible" in captured.out
     assert "[repo] README.md is the primary entrypoint" in captured.out
+    assert "Working set:" in captured.out
+    assert "[note] [repo] README.md is the primary entrypoint" in captured.out
 
 
 def test_cli_replay_reports_manifest_drift_and_exit_code(

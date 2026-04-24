@@ -35,6 +35,7 @@ from glassbox.runtime import (
     ReplayRunner,
     RuntimeContext,
     build_runtime_context_snapshot,
+    build_working_set_snapshot,
     open_runtime_context,
 )
 from glassbox.web import GlassboxWebServer, WebServerConfig, build_web_server
@@ -1151,6 +1152,7 @@ def _print_session_status(repository, session_id: UUID) -> None:
     runtime_context = build_runtime_context_snapshot(
         record.cwd,
         repository.list_runtime_notes(session_id),
+        working_set=build_working_set_snapshot(repository, session_id),
     )
     dashboard_url = _dashboard_url_from_events(session_events)
     latest_session_failure = _latest_session_failure(session_events)
@@ -1260,6 +1262,26 @@ def _print_runtime_context_summary(runtime_context) -> None:
             )
     else:
         print("  Runtime notes: none")
+
+    if runtime_context.working_set.items:
+        print(f"  Working set: {len(runtime_context.working_set.items)} visible")
+        for item in runtime_context.working_set.items:
+            reason_text = "; ".join(item.reasons[:2])
+            inherited_suffix = " (inherited)" if item.inherited else ""
+            detail_suffix = f": {reason_text}" if reason_text else ""
+            print(
+                f"    - [{item.subject_kind}] {item.subject}"
+                f"{inherited_suffix}"
+                f" - {item.summary}{detail_suffix}"
+            )
+        if runtime_context.working_set.additional_item_count:
+            print(
+                "    - "
+                f"+{runtime_context.working_set.additional_item_count} "
+                "more working-set item(s)"
+            )
+    else:
+        print("  Working set: none")
 
 
 def _print_replay_report(result: ReplayResult) -> None:

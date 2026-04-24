@@ -28,6 +28,7 @@ from glassbox.llm.prompts import (
     build_runtime_prompt_fragment,
     build_system_prompt,
     build_tool_usage_prompt_fragment,
+    build_working_set_prompt_fragment,
 )
 
 __all__ = [
@@ -54,4 +55,5 @@ __all__ = [
     "build_runtime_prompt_fragment",
     "build_system_prompt",
     "build_tool_usage_prompt_fragment",
+    "build_working_set_prompt_fragment",
 ]

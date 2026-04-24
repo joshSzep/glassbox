@@ -167,6 +167,10 @@ def test_get_session_returns_snapshot_after_session_started(tmp_path: Path) -> N
             )
             assert body["runtime_context"]["runtime_notes"] == []
             assert body["runtime_context"]["additional_runtime_note_count"] == 0
+            assert body["runtime_context"]["working_set"] == {
+                "items": [],
+                "additional_item_count": 0,
+            }
         finally:
             connection.close()
 
@@ -350,6 +354,26 @@ def test_get_session_includes_runtime_context_runtime_notes(tmp_path: Path) -> N
                 }
             ]
             assert runtime_context_body["additional_runtime_note_count"] == 0
+            assert runtime_context_body["working_set"] == {
+                "items": [
+                    {
+                        "subject_kind": "note",
+                        "subject": (
+                            "[repo] README.md is the primary operator entrypoint"
+                        ),
+                        "summary": "runtime note",
+                        "reasons": [
+                            (
+                                "runtime note [repo] README.md is the primary "
+                                "operator entrypoint"
+                            )
+                        ],
+                        "signal_types": ["runtime_note"],
+                        "inherited": False,
+                    }
+                ],
+                "additional_item_count": 0,
+            }
         finally:
             connection.close()
 

@@ -37,6 +37,7 @@ from glassbox.runtime import (
     ToolSchema,
     TurnContextBuilder,
     WorkingSetItemSnapshot,
+    WorkingSetSnapshot,
     build_repository_context_snapshot,
     build_runtime_context_snapshot,
     build_working_set_snapshot,
@@ -535,6 +536,44 @@ def test_runtime_context_snapshot_is_bounded_and_preserves_note_provenance(
             )
         ],
         additional_runtime_note_count=1,
+        working_set=WorkingSetSnapshot(),
+    )
+
+
+def test_runtime_context_snapshot_includes_working_set_summary(tmp_path: Path) -> None:
+    runtime_context = build_runtime_context_snapshot(
+        tmp_path,
+        [],
+        working_set=WorkingSetSnapshot(
+            items=[
+                WorkingSetItemSnapshot(
+                    subject_kind="file",
+                    subject="src/glassbox/runtime/context_builder.py",
+                    summary="recently targeted workspace path",
+                    reasons=[
+                        ("apply_patch targeted src/glassbox/runtime/context_builder.py")
+                    ],
+                    signal_types=["tool_request_path"],
+                )
+            ],
+            additional_item_count=1,
+        ),
+    )
+
+    assert runtime_context.working_set == WorkingSetSnapshot(
+        items=[
+            WorkingSetItemSnapshot(
+                subject_kind="file",
+                subject="src/glassbox/runtime/context_builder.py",
+                summary="recently targeted workspace path",
+                reasons=[
+                    ("apply_patch targeted src/glassbox/runtime/context_builder.py")
+                ],
+                signal_types=["tool_request_path"],
+                inherited=False,
+            )
+        ],
+        additional_item_count=1,
     )
 
 
