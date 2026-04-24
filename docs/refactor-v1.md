@@ -273,7 +273,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R112: Split Replay Capture Into Manifest Models, Fingerprinting, And Recorder Layers
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R101`, `GBX-R103`
 - Goal: separate replay manifest data structures and fingerprinting logic from the live-turn artifact recorder
 - Deliverables:

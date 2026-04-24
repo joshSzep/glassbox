@@ -1,8 +1,14 @@
 """Unit tests for replay enriched-context manifests."""
 
-from glassbox.runtime.replay_capture import (
+import pytest
+
+from glassbox.runtime.replay_fingerprints import (
     build_replay_enriched_context_sources,
     fingerprint_replay_enriched_context_sources,
+)
+from glassbox.runtime.replay_manifests import (
+    build_replay_turn_output_manifest,
+    load_replay_manifest,
 )
 
 
@@ -249,3 +255,19 @@ def test_enriched_context_source_fingerprint_catches_meaningful_source_change() 
     assert baseline_sources[-2].fingerprint != changed_sources[-2].fingerprint
     assert baseline_sources[-1].source_name == "pytest_failure_digest"
     assert baseline_sources[-1].fingerprint != changed_sources[-1].fingerprint
+
+
+def test_load_replay_manifest_round_trips_turn_output_manifest() -> None:
+    manifest = build_replay_turn_output_manifest(
+        outcome="failed",
+        details={"error_message": "boom"},
+    )
+
+    loaded = load_replay_manifest(manifest.model_dump_json())
+
+    assert loaded == manifest
+
+
+def test_load_replay_manifest_rejects_unknown_artifact_kind() -> None:
+    with pytest.raises(ValueError, match="unsupported replay artifact kind"):
+        load_replay_manifest('{"artifact_kind": "unexpected"}')
