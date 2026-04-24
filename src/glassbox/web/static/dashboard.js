@@ -29,10 +29,12 @@ import {
   markLiveStreamConnected,
   markLiveStreamReconnecting,
   markLiveStreamUnavailable,
+  selectForkTurn,
 } from "./state.js";
 import { resolvePendingApproval } from "./approval-actions.js";
 import {
   submitPendingQuestionAnswer,
+  submitSessionFork,
   submitSessionMessage,
 } from "./interaction-actions.js";
 import {
@@ -74,6 +76,7 @@ export function createDashboardApp({
   const drafts = {
     message: "",
     answer: "",
+    forkBranchLabel: "",
   };
 
   function byId(id) {
@@ -137,6 +140,9 @@ export function createDashboardApp({
       sessionIndexState: state.sessionIndexState,
       sessionIndexError: state.sessionIndexError,
     };
+    drafts.message = "";
+    drafts.answer = "";
+    drafts.forkBranchLabel = "";
   }
 
   function renderStatus() {
@@ -175,6 +181,11 @@ export function createDashboardApp({
     if (hasActiveSession()) {
       title.textContent = "Transcript";
       el.innerHTML = `${panes.selectedSessionSummary}${panes.transcript}`;
+      el.querySelectorAll("[data-open-session-id]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          void openSession(btn.dataset.openSessionId);
+        });
+      });
       el.scrollTop = el.scrollHeight;
       return;
     }
@@ -230,6 +241,30 @@ export function createDashboardApp({
     const form = byId("interaction-form");
     const input = byId("interaction-input");
     if (!form || !input) {
+      const forkForm = byId("fork-form");
+      const forkTurnSelect = byId("fork-turn-select");
+      const forkBranchLabel = byId("fork-branch-label");
+      if (forkTurnSelect) {
+        forkTurnSelect.value = state.selectedForkTurnId ?? "";
+        forkTurnSelect.addEventListener("change", () => {
+          syncState(current => selectForkTurn(current, forkTurnSelect.value));
+        });
+      }
+      if (forkBranchLabel) {
+        forkBranchLabel.value = drafts.forkBranchLabel;
+        forkBranchLabel.addEventListener("input", () => {
+          drafts.forkBranchLabel = forkBranchLabel.value;
+        });
+      }
+      if (forkForm) {
+        forkForm.addEventListener("submit", async event => {
+          event.preventDefault();
+          await forkCurrentSession({
+            turnId: forkTurnSelect?.value ?? state.selectedForkTurnId,
+            branchLabel: forkBranchLabel?.value ?? drafts.forkBranchLabel,
+          });
+        });
+      }
       return;
     }
 
@@ -245,6 +280,31 @@ export function createDashboardApp({
       event.preventDefault();
       await submitComposer(form.dataset.mode, input.value);
     });
+
+    const forkForm = byId("fork-form");
+    const forkTurnSelect = byId("fork-turn-select");
+    const forkBranchLabel = byId("fork-branch-label");
+    if (forkTurnSelect) {
+      forkTurnSelect.value = state.selectedForkTurnId ?? "";
+      forkTurnSelect.addEventListener("change", () => {
+        syncState(current => selectForkTurn(current, forkTurnSelect.value));
+      });
+    }
+    if (forkBranchLabel) {
+      forkBranchLabel.value = drafts.forkBranchLabel;
+      forkBranchLabel.addEventListener("input", () => {
+        drafts.forkBranchLabel = forkBranchLabel.value;
+      });
+    }
+    if (forkForm) {
+      forkForm.addEventListener("submit", async event => {
+        event.preventDefault();
+        await forkCurrentSession({
+          turnId: forkTurnSelect?.value ?? state.selectedForkTurnId,
+          branchLabel: forkBranchLabel?.value ?? drafts.forkBranchLabel,
+        });
+      });
+    }
   }
 
   function renderEventLog() {
@@ -458,6 +518,29 @@ export function createDashboardApp({
     }
   }
 
+  async function forkCurrentSession({ turnId, branchLabel } = {}) {
+    if (!state.sessionId) {
+      return { ok: false, error: "No session selected" };
+    }
+
+    const result = await submitSessionFork({
+      sessionId: state.sessionId,
+      turnId,
+      branchLabel,
+      fetchImpl,
+      syncState,
+    });
+    if (!result.ok) {
+      renderComposer();
+      return result;
+    }
+
+    drafts.forkBranchLabel = "";
+    await loadSessionIndex();
+    await openSession(result.data.child_session_id);
+    return result;
+  }
+
   async function init() {
     state = clearSessionSelection(state);
     renderAll();
@@ -468,6 +551,7 @@ export function createDashboardApp({
   return {
     init,
     openSession,
+    forkCurrentSession,
     syncFromLocation,
     getState: () => state,
     destroy: () => closeSSE(),

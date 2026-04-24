@@ -2103,7 +2103,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-215: Implement Dashboard History Browser And Fork UX
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-184`, `GBX-214`
 - Goal: let an operator inspect a session’s historical branch points and create a child session from the dashboard without leaving the existing session browser workflow
 - Deliverables:

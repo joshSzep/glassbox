@@ -12,6 +12,9 @@ from glassbox.core.events import (
     EventEnvelope,
     SessionFailed,
     SessionStarted,
+    TurnCompleted,
+    TurnStarted,
+    UserMessageReceived,
     UserQuestionAsked,
 )
 from glassbox.core.models import TranscriptMessage
@@ -70,6 +73,13 @@ class ChildSessionSummaryResponse(BaseModel):
     branch_label: str | None
     updated_at: datetime
     latest_message_summary: str | None
+
+
+class BranchableTurnResponse(BaseModel):
+    turn_id: str
+    sequence: int
+    created_at: datetime
+    label: str
 
 
 class ForkSessionRequest(BaseModel):
@@ -139,6 +149,7 @@ class SessionSnapshotResponse(BaseModel):
     forked_from_sequence: int | None
     branch_label: str | None
     child_sessions: list[ChildSessionSummaryResponse]
+    branchable_turns: list[BranchableTurnResponse]
     can_fork: bool
     latest_fork_point_turn_id: str | None
     latest_fork_point_sequence: int | None
@@ -405,6 +416,9 @@ async def get_session_snapshot(
         forked_from_sequence=record.forked_from_sequence,
         branch_label=record.branch_label,
         child_sessions=_child_session_summaries(repo, session_id),
+        branchable_turns=(
+            _branchable_turns_from_events(session_events) if can_fork else []
+        ),
         can_fork=can_fork,
         latest_fork_point_turn_id=(
             str(latest_fork_point_turn_id)
@@ -530,6 +544,47 @@ def _child_session_summaries(
         )
         for record in child_records
     ]
+
+
+def _branchable_turns_from_events(
+    events: list[EventEnvelope],
+) -> list[BranchableTurnResponse]:
+    user_messages_by_id: dict[str, str] = {}
+    trigger_message_ids_by_turn: dict[str, str] = {}
+    branchable_turns: list[BranchableTurnResponse] = []
+
+    for event in events:
+        if isinstance(event.payload, UserMessageReceived):
+            user_messages_by_id[str(event.payload.message_id)] = event.payload.text
+            continue
+
+        if isinstance(event.payload, TurnStarted):
+            trigger_message_ids_by_turn[str(event.payload.turn_id)] = str(
+                event.payload.trigger_message_id
+            )
+            continue
+
+        if not isinstance(event.payload, TurnCompleted):
+            continue
+        if event.payload.outcome != "completed":
+            continue
+
+        turn_id = str(event.payload.turn_id)
+        trigger_message_id = trigger_message_ids_by_turn.get(turn_id)
+        label = (
+            user_messages_by_id.get(trigger_message_id or "") or f"Turn {turn_id[:8]}"
+        )
+        branchable_turns.append(
+            BranchableTurnResponse(
+                turn_id=turn_id,
+                sequence=event.sequence,
+                created_at=event.created_at,
+                label=label,
+            )
+        )
+
+    branchable_turns.sort(key=lambda turn: turn.sequence, reverse=True)
+    return branchable_turns
 
 
 def _fork_capability(

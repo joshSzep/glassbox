@@ -100,6 +100,101 @@ function activeSessionSummary(state) {
   ) ?? null;
 }
 
+function lineageSummaryFromSessionSummary(summary) {
+  if (summary.parent_session_id && summary.branch_label) {
+    return `branch ${summary.branch_label} from ${shortId(summary.parent_session_id)}`;
+  }
+  if (summary.parent_session_id) {
+    return `child of ${shortId(summary.parent_session_id)}`;
+  }
+  if (summary.child_session_count > 0) {
+    return `${summary.child_session_count} child session${summary.child_session_count === 1 ? "" : "s"}`;
+  }
+  return "root session";
+}
+
+function renderLineageNavigator(state) {
+  const parentHtml = state.parentSessionId
+    ? `<button type="button" class="session-link-button" data-open-session-id="${escHtml(state.parentSessionId)}">Open ${escHtml(shortId(state.parentSessionId))}</button>`
+    : `<span class="lineage-empty">Root session</span>`;
+
+  const childHtml = (state.childSessions ?? []).length > 0
+    ? `<div class="lineage-list">${state.childSessions.map(child => `
+        <button type="button" class="session-link-button session-link-child" data-open-session-id="${escHtml(child.session_id)}">
+          <span>${escHtml(shortId(child.session_id))}</span>
+          <span>${escHtml(child.branch_label ?? child.status)}</span>
+        </button>
+      `).join("")}</div>`
+    : `<span class="lineage-empty">No child sessions yet</span>`;
+
+  const sourceHtml = state.forkedFromTurnId
+    ? `<div class="selected-session-lineage-copy">Forked from turn ${escHtml(shortId(state.forkedFromTurnId))} at sequence ${escHtml(String(state.forkedFromSequence ?? "unknown"))}${state.branchLabel ? ` as ${escHtml(state.branchLabel)}` : ""}.</div>`
+    : `<div class="selected-session-lineage-copy">This session has no parent branch.</div>`;
+
+  return `<div class="selected-session-lineage">
+    <div class="selected-session-item">
+      <div class="selected-session-label">Parent session</div>
+      <div class="selected-session-value">${parentHtml}</div>
+    </div>
+    <div class="selected-session-item">
+      <div class="selected-session-label">Child sessions</div>
+      <div class="selected-session-value">${childHtml}</div>
+    </div>
+    <div class="selected-session-item selected-session-item-wide">
+      <div class="selected-session-label">Branch source</div>
+      <div class="selected-session-value">${sourceHtml}</div>
+    </div>
+  </div>`;
+}
+
+function renderForkCard(state) {
+  const forkSubmission = state.forkSubmission ?? {
+    state: "idle",
+    error: null,
+  };
+  const isBusy = forkSubmission.state === "submitting";
+  let statusHtml = "";
+
+  if (forkSubmission.state === "submitting") {
+    statusHtml = `<div class="composer-status">Creating child session…</div>`;
+  } else if (forkSubmission.state === "failed" && forkSubmission.error) {
+    statusHtml = `<div class="composer-status composer-status-error">${escHtml(forkSubmission.error)}</div>`;
+  }
+
+  if (!state.canFork || (state.branchableTurns ?? []).length === 0) {
+    return `<div class="composer-card composer-blocked composer-fork-card">
+      <div class="composer-label">Fork Unavailable</div>
+      <div class="composer-help">${escHtml(state.forkBlockedReason ?? "This session is inspect-only right now.")}</div>
+      ${statusHtml}
+    </div>`;
+  }
+
+  const selectedForkTurnId = state.selectedForkTurnId ?? state.branchableTurns[0]?.turn_id ?? "";
+  const optionsHtml = state.branchableTurns.map(turn => {
+    const label = turn.turn_id === state.latestForkPointTurnId
+      ? `${turn.label} (latest stable)`
+      : turn.label;
+    return `<option value="${escHtml(turn.turn_id)}"${turn.turn_id === selectedForkTurnId ? " selected" : ""}>${escHtml(label)}</option>`;
+  }).join("");
+
+  return `<div class="composer-card composer-fork-card">
+    <div class="composer-label">Create Forked Session</div>
+    <div class="composer-help">Choose a stable completed turn boundary, create a child session, then open it immediately in the dashboard.</div>
+    ${statusHtml}
+    <form id="fork-form" class="composer-form">
+      <label class="composer-help" for="fork-turn-select">Fork point</label>
+      <select id="fork-turn-select" class="composer-select" ${isBusy ? "disabled" : ""}>
+        ${optionsHtml}
+      </select>
+      <label class="composer-help" for="fork-branch-label">Branch label (optional)</label>
+      <input id="fork-branch-label" class="composer-input composer-input-singleline" type="text" maxlength="120" placeholder="alt-path" ${isBusy ? "disabled" : ""} />
+      <div class="composer-actions">
+        <button id="fork-submit" class="btn btn-submit" type="submit" ${isBusy ? "disabled" : ""}>Create Fork</button>
+      </div>
+    </form>
+  </div>`;
+}
+
 function interactionMode(state) {
   if (state.status === "awaiting_user_input" && state.pendingQuestionId) {
     return "answer";
@@ -336,6 +431,7 @@ export function renderSessionBrowserPane(state) {
       </div>
       <div class="session-card-meta">${escHtml(summary.model_name)} · ${escHtml(summary.approval_mode)}</div>
       <div class="session-card-path">${escHtml(summary.cwd)}</div>
+      <div class="session-card-lineage">${escHtml(lineageSummaryFromSessionSummary(summary))}</div>
       <div class="session-card-section-label">Next action</div>
       <div class="session-card-next">${escHtml(summary.next_action_summary)}</div>
       <div class="session-card-section-label">Last activity</div>
@@ -387,6 +483,7 @@ export function renderSelectedSessionSummary(state) {
         <div class="selected-session-value">${escHtml(state.approvalMode ?? "unknown")}</div>
       </div>
     </div>
+    ${renderLineageNavigator(state)}
   </div>`;
 }
 
@@ -552,6 +649,7 @@ export function renderComposerPane(state) {
   };
   const isBusy = interaction.state === "submitting" || interaction.state === "submitted";
 
+  let primaryCard = "";
   if (mode === "blocked") {
     let reason = "Session actions are currently unavailable.";
     if (state.status === "awaiting_approval") {
@@ -565,51 +663,53 @@ export function renderComposerPane(state) {
       reason = "This session failed. Start a new session or inspect the failure details.";
     }
 
-    return `<div class="composer-card composer-blocked">
+    primaryCard = `<div class="composer-card composer-blocked">
       <div class="composer-label">Next Action Unavailable</div>
       <div class="composer-help">${escHtml(reason)}</div>
     </div>`;
-  }
+  } else {
+    const questionDetails = mode === "answer"
+       ? `<div class="composer-question">${escHtml(state.pendingQuestionText ?? "Answer the pending model question.")}</div>
+         <div class="composer-help">Question ID ${escHtml(state.pendingQuestionId ?? "unknown")}</div>
+         <div class="composer-help">This sends an answer to the model's pending ask_user question. It does not start a new prompt.</div>`
+       : `<div class="composer-help">Send a fresh user prompt after the previous turn has completed. Use this instead of answering a pending question or resolving an approval.</div>`;
+    const buttonLabel = mode === "answer" ? "Send Answer" : "Send Prompt";
+    const heading = mode === "answer" ? "Answer Pending Question" : "Continue Session";
+    let statusHtml = "";
 
-  const questionDetails = mode === "answer"
-     ? `<div class="composer-question">${escHtml(state.pendingQuestionText ?? "Answer the pending model question.")}</div>
-       <div class="composer-help">Question ID ${escHtml(state.pendingQuestionId ?? "unknown")}</div>
-       <div class="composer-help">This sends an answer to the model's pending ask_user question. It does not start a new prompt.</div>`
-     : `<div class="composer-help">Send a fresh user prompt after the previous turn has completed. Use this instead of answering a pending question or resolving an approval.</div>`;
-  const buttonLabel = mode === "answer" ? "Send Answer" : "Send Prompt";
-  const heading = mode === "answer" ? "Answer Pending Question" : "Continue Session";
-  let statusHtml = "";
+    if (interaction.state === "submitting") {
+      statusHtml = `<div class="composer-status">Sending ${escHtml(interaction.kind ?? mode)}…</div>`;
+    } else if (interaction.state === "submitted") {
+      statusHtml = `<div class="composer-status">Request sent. Waiting for session update…</div>`;
+    } else if (interaction.state === "failed" && interaction.error) {
+      statusHtml = `<div class="composer-status composer-status-error">${escHtml(interaction.error)}</div>`;
+    }
 
-  if (interaction.state === "submitting") {
-    statusHtml = `<div class="composer-status">Sending ${escHtml(interaction.kind ?? mode)}…</div>`;
-  } else if (interaction.state === "submitted") {
-    statusHtml = `<div class="composer-status">Request sent. Waiting for session update…</div>`;
-  } else if (interaction.state === "failed" && interaction.error) {
-    statusHtml = `<div class="composer-status composer-status-error">${escHtml(interaction.error)}</div>`;
-  }
-
-  return `<div class="composer-card composer-${escHtml(mode)}">
-    <div class="composer-label">${escHtml(heading)}</div>
-    ${questionDetails}
-    ${statusHtml}
-    <form id="interaction-form" class="composer-form" data-mode="${escHtml(mode)}">
-      <textarea
-        id="interaction-input"
-        class="composer-input"
-        rows="4"
-        placeholder="${escHtml(mode === "answer" ? "Type your answer" : "Type the next prompt")}"
-        ${isBusy ? "disabled" : ""}
-      ></textarea>
-      <div class="composer-actions">
-        <button
-          id="interaction-submit"
-          class="btn btn-submit"
-          type="submit"
+    primaryCard = `<div class="composer-card composer-${escHtml(mode)}">
+      <div class="composer-label">${escHtml(heading)}</div>
+      ${questionDetails}
+      ${statusHtml}
+      <form id="interaction-form" class="composer-form" data-mode="${escHtml(mode)}">
+        <textarea
+          id="interaction-input"
+          class="composer-input"
+          rows="4"
+          placeholder="${escHtml(mode === "answer" ? "Type your answer" : "Type the next prompt")}"
           ${isBusy ? "disabled" : ""}
-        >${escHtml(buttonLabel)}</button>
-      </div>
-    </form>
-  </div>`;
+        ></textarea>
+        <div class="composer-actions">
+          <button
+            id="interaction-submit"
+            class="btn btn-submit"
+            type="submit"
+            ${isBusy ? "disabled" : ""}
+          >${escHtml(buttonLabel)}</button>
+        </div>
+      </form>
+    </div>`;
+  }
+
+  return `${primaryCard}${renderForkCard(state)}`;
 }
 
 export function renderApprovalsPane(state) {

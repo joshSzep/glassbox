@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   submitPendingQuestionAnswer,
+  submitSessionFork,
   submitSessionMessage,
 } from "../../src/glassbox/web/static/interaction-actions.js";
 import { applyEvent, createState } from "../../src/glassbox/web/static/state.js";
@@ -128,4 +129,69 @@ test("submitPendingQuestionAnswer keeps answer state submitted until SSE confirm
 
   assert.equal(state.interactionSubmission.state, "idle");
   assert.equal(state.pendingQuestionId, null);
+});
+
+test("submitSessionFork sends the selected turn and branch label", async () => {
+  let state = createState();
+
+  const result = await submitSessionFork({
+    sessionId: "session-123",
+    turnId: "turn-2",
+    branchLabel: "alt-path",
+    fetchImpl: async (url, init) => {
+      assert.equal(url, "/sessions/session-123/fork");
+      assert.equal(init.method, "POST");
+      assert.equal(
+        init.body,
+        JSON.stringify({ turn_id: "turn-2", branch_label: "alt-path" }),
+      );
+      return {
+        ok: true,
+        status: 201,
+        headers: { get: () => "application/json" },
+        json: async () => ({
+          child_session_id: "session-child",
+          parent_session_id: "session-123",
+        }),
+      };
+    },
+    syncState: updater => {
+      state = updater(state);
+    },
+  });
+
+  assert.deepEqual(result, {
+    ok: true,
+    data: {
+      child_session_id: "session-child",
+      parent_session_id: "session-123",
+    },
+  });
+  assert.equal(state.forkSubmission.state, "idle");
+});
+
+test("submitSessionFork surfaces conflicts for retry", async () => {
+  let state = createState();
+
+  const result = await submitSessionFork({
+    sessionId: "session-123",
+    turnId: "turn-2",
+    branchLabel: "alt-path",
+    fetchImpl: async () => ({
+      ok: false,
+      status: 409,
+      headers: { get: () => "application/json" },
+      json: async () => ({ detail: "session session-123 is awaiting approval" }),
+    }),
+    syncState: updater => {
+      state = updater(state);
+    },
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    error: "session session-123 is awaiting approval",
+  });
+  assert.equal(state.forkSubmission.state, "failed");
+  assert.equal(state.forkSubmission.error, "session session-123 is awaiting approval");
 });

@@ -267,6 +267,7 @@ main {
 
 .session-card-meta,
 .session-card-path,
+.session-card-lineage,
 .session-card-summary,
 .session-card-next {
   font-size: 12px;
@@ -274,7 +275,8 @@ main {
 }
 
 .session-card-meta,
-.session-card-path {
+.session-card-path,
+.session-card-lineage {
   color: var(--text-muted);
 }
 
@@ -357,6 +359,12 @@ main {
   gap: 12px;
 }
 
+.selected-session-lineage {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .selected-session-item {
   display: grid;
   gap: 6px;
@@ -364,6 +372,10 @@ main {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.02);
+}
+
+.selected-session-item-wide {
+  grid-column: 1 / -1;
 }
 
 .selected-session-label {
@@ -378,10 +390,48 @@ main {
   line-height: 1.5;
 }
 
+.selected-session-lineage-copy {
+  color: var(--text-muted);
+}
+
+.lineage-list {
+  display: grid;
+  gap: 8px;
+}
+
+.lineage-empty {
+  color: var(--text-muted);
+}
+
+.session-link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #10141f;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+}
+
+.session-link-button:hover {
+  border-color: rgba(108, 140, 245, 0.45);
+}
+
 /* Composer */
 .composer-card {
   display: grid;
   gap: 10px;
+}
+
+.composer-fork-card {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
 }
 
 .composer-label {
@@ -432,6 +482,22 @@ main {
 
 .composer-input:disabled {
   opacity: 0.6;
+}
+
+.composer-input-singleline,
+.composer-select {
+  min-height: 40px;
+  resize: none;
+}
+
+.composer-select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #141721;
+  color: var(--text);
+  padding: 10px 12px;
+  font: inherit;
 }
 
 .composer-actions {

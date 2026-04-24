@@ -317,6 +317,9 @@ test("renderSessionBrowserPane shows recent sessions and selected status chips",
         latest_message_summary: "assistant: Which branch should I inspect?",
         pending_question_text: "Which branch should I inspect?",
         next_action_summary: "Answer pending question: Which branch should I inspect?",
+        parent_session_id: null,
+        branch_label: null,
+        child_session_count: 2,
       },
     ],
   });
@@ -327,7 +330,42 @@ test("renderSessionBrowserPane shows recent sessions and selected status chips",
   assert.match(html, /awaiting user input/);
   assert.match(html, /Which branch should I inspect\?/);
   assert.match(html, /Browser action available/);
+  assert.match(html, /2 child sessions/);
   assert.match(html, /openai:gpt-5\.4/);
+});
+
+test("renderComposerPane shows fork controls for branchable sessions", () => {
+  const html = renderComposerPane({
+    status: "completed",
+    pendingQuestionId: null,
+    pendingQuestionText: null,
+    interactionSubmission: { kind: null, state: "idle", error: null },
+    canFork: true,
+    forkBlockedReason: null,
+    latestForkPointTurnId: "turn-2",
+    selectedForkTurnId: "turn-2",
+    branchableTurns: [
+      {
+        turn_id: "turn-2",
+        sequence: 8,
+        created_at: "2026-04-23T00:00:02Z",
+        label: "Inspect the repository",
+      },
+      {
+        turn_id: "turn-1",
+        sequence: 4,
+        created_at: "2026-04-23T00:00:01Z",
+        label: "Open the README",
+      },
+    ],
+    forkSubmission: { state: "idle", error: null },
+  });
+
+  assert.match(html, /Next Action Unavailable/);
+  assert.match(html, /Create Forked Session/);
+  assert.match(html, /Inspect the repository \(latest stable\)/);
+  assert.match(html, /Open the README/);
+  assert.match(html, /Branch label/);
 });
 
 test("renderSelectedSessionSummary explains actionable and historical states", () => {
@@ -398,6 +436,19 @@ test("renderSelectedSessionSummary explains actionable and historical states", (
     sessionId: "session-789",
     status: "completed",
     approvalMode: "confirm",
+    parentSessionId: "session-123",
+    forkedFromTurnId: "turn-2",
+    forkedFromSequence: 8,
+    branchLabel: "alt-path",
+    childSessions: [
+      {
+        session_id: "session-999",
+        status: "completed",
+        branch_label: "deeper",
+        updated_at: "2026-04-23T00:00:03Z",
+        latest_message_summary: "assistant: ready",
+      },
+    ],
     pendingQuestionText: null,
     pendingApprovals: [],
     currentTurn: null,
@@ -427,6 +478,10 @@ test("renderSelectedSessionSummary explains actionable and historical states", (
   assert.match(completedHtml, /Inspect completed session/);
   assert.match(completedHtml, /Historical inspection only/);
   assert.match(completedHtml, /Historical snapshot/);
+  assert.match(completedHtml, /Parent session/);
+  assert.match(completedHtml, /Open session-/);
+  assert.match(completedHtml, /Child sessions/);
+  assert.match(completedHtml, /Forked from turn turn-2/);
 });
 
 test("renderLandingPane shows no-session, loading, and failed selection states", () => {

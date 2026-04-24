@@ -7,14 +7,17 @@ import {
   beginLiveStreamConnection,
   beginSessionSelection,
   beginApprovalResolution,
+  beginForkSubmission,
   beginInteractionSubmission,
   clearSessionSelection,
   confirmApprovalResolution,
+  confirmForkSubmission,
   confirmInteractionSubmission,
   createState,
   failSessionIndexLoad,
   failSessionSelection,
   failApprovalResolution,
+  failForkSubmission,
   failInteractionSubmission,
   hydrateFromSnapshot,
   hydrateSessionIndex,
@@ -22,6 +25,7 @@ import {
   markLiveStreamConnected,
   markLiveStreamReconnecting,
   markLiveStreamUnavailable,
+  selectForkTurn,
 } from "../../src/glassbox/web/static/state.js";
 
 test("hydrateFromSnapshot copies snapshot fields into dashboard state", () => {
@@ -32,6 +36,16 @@ test("hydrateFromSnapshot copies snapshot fields into dashboard state", () => {
     model_name: "openai:gpt-5.4",
     cwd: "/tmp/workspace",
     approval_mode: "confirm",
+    parent_session_id: null,
+    forked_from_turn_id: null,
+    forked_from_sequence: null,
+    branch_label: null,
+    child_sessions: [],
+    branchable_turns: [],
+    can_fork: false,
+    latest_fork_point_turn_id: null,
+    latest_fork_point_sequence: null,
+    fork_blocked_reason: "This session has no completed fork point.",
     dashboard_url: "http://127.0.0.1:8765",
     last_sequence: 17,
     pending_approval_id: null,
@@ -101,6 +115,16 @@ test("hydrateFromSnapshot reconstructs awaiting-user-input turns", () => {
     model_name: "openai:gpt-5.4",
     cwd: "/tmp/workspace",
     approval_mode: "confirm",
+    parent_session_id: null,
+    forked_from_turn_id: null,
+    forked_from_sequence: null,
+    branch_label: null,
+    child_sessions: [],
+    branchable_turns: [],
+    can_fork: false,
+    latest_fork_point_turn_id: null,
+    latest_fork_point_sequence: null,
+    fork_blocked_reason: "Answer the pending question before creating a fork.",
     dashboard_url: "http://127.0.0.1:8765",
     last_sequence: 9,
     pending_approval_id: null,
@@ -174,6 +198,67 @@ test("applyEvent tracks session-level failure details", () => {
   assert.equal(failed.currentTurn, null);
   assert.equal(failed.pendingApprovalId, null);
   assert.equal(failed.pendingQuestionId, null);
+});
+
+test("hydrateFromSnapshot records lineage and default fork selection", () => {
+  const state = hydrateFromSnapshot({
+    session_id: "session-child",
+    status: "completed",
+    current_turn_id: null,
+    model_name: "openai:gpt-5.4",
+    cwd: "/tmp/workspace",
+    approval_mode: "confirm",
+    parent_session_id: "session-parent",
+    forked_from_turn_id: "turn-2",
+    forked_from_sequence: 8,
+    branch_label: "alt-path",
+    child_sessions: [
+      {
+        session_id: "session-grandchild",
+        status: "completed",
+        branch_label: "deeper",
+        updated_at: "2026-04-23T00:00:03Z",
+        latest_message_summary: "assistant: ready",
+      },
+    ],
+    branchable_turns: [
+      {
+        turn_id: "turn-2",
+        sequence: 8,
+        created_at: "2026-04-23T00:00:02Z",
+        label: "Inspect the repository",
+      },
+      {
+        turn_id: "turn-1",
+        sequence: 4,
+        created_at: "2026-04-23T00:00:01Z",
+        label: "Open the README",
+      },
+    ],
+    can_fork: true,
+    latest_fork_point_turn_id: "turn-2",
+    latest_fork_point_sequence: 8,
+    fork_blocked_reason: null,
+    dashboard_url: null,
+    last_sequence: 9,
+    pending_approval_id: null,
+    pending_question_id: null,
+    pending_question_text: null,
+    session_failure_message: null,
+    session_failure_retryable: null,
+    transcript: [],
+    active_tool_calls: [],
+    pending_approvals: [],
+    turn_metrics: [],
+  });
+
+  assert.equal(state.parentSessionId, "session-parent");
+  assert.equal(state.forkedFromTurnId, "turn-2");
+  assert.equal(state.branchLabel, "alt-path");
+  assert.equal(state.childSessions.length, 1);
+  assert.equal(state.branchableTurns.length, 2);
+  assert.equal(state.selectedForkTurnId, "turn-2");
+  assert.equal(state.canFork, true);
 });
 
 test("session index helpers track landing-mode hydration and selection", () => {
@@ -271,6 +356,100 @@ test("stream helpers distinguish live, reconnecting, unavailable, and historical
   assert.match(unavailable.streamError, /persisted snapshot/i);
   assert.equal(historical.streamState, "historical");
   assert.equal(historical.streamRetryCount, 0);
+});
+
+test("fork helpers track selection and submission errors", () => {
+  const hydrated = hydrateFromSnapshot({
+    session_id: "session-123",
+    status: "completed",
+    current_turn_id: null,
+    model_name: "openai:gpt-5.4",
+    cwd: "/tmp/workspace",
+    approval_mode: "confirm",
+    parent_session_id: null,
+    forked_from_turn_id: null,
+    forked_from_sequence: null,
+    branch_label: null,
+    child_sessions: [],
+    branchable_turns: [
+      {
+        turn_id: "turn-2",
+        sequence: 8,
+        created_at: "2026-04-23T00:00:02Z",
+        label: "Inspect the repository",
+      },
+      {
+        turn_id: "turn-1",
+        sequence: 4,
+        created_at: "2026-04-23T00:00:01Z",
+        label: "Open the README",
+      },
+    ],
+    can_fork: true,
+    latest_fork_point_turn_id: "turn-2",
+    latest_fork_point_sequence: 8,
+    fork_blocked_reason: null,
+    dashboard_url: null,
+    last_sequence: 9,
+    pending_approval_id: null,
+    pending_question_id: null,
+    pending_question_text: null,
+    session_failure_message: null,
+    session_failure_retryable: null,
+    transcript: [],
+    active_tool_calls: [],
+    pending_approvals: [],
+    turn_metrics: [],
+  });
+
+  const selected = selectForkTurn(hydrated, "turn-1");
+  const submitting = beginForkSubmission(selected);
+  const failed = failForkSubmission(submitting, "session is awaiting approval");
+  const confirmed = confirmForkSubmission(submitting);
+
+  assert.equal(selected.selectedForkTurnId, "turn-1");
+  assert.equal(submitting.forkSubmission.state, "submitting");
+  assert.equal(failed.forkSubmission.state, "failed");
+  assert.equal(failed.forkSubmission.error, "session is awaiting approval");
+  assert.equal(confirmed.forkSubmission.state, "idle");
+});
+
+test("applyEvent marks completed turns as branchable fork points", () => {
+  const started = applyEvent(createState(), {
+    session_id: "session-123",
+    sequence: 1,
+    event_type: "TurnStarted",
+    payload: {
+      turn_id: "turn-1",
+      trigger_message_id: "message-1",
+    },
+  });
+  const withMessage = applyEvent(started, {
+    session_id: "session-123",
+    sequence: 2,
+    event_type: "UserMessageReceived",
+    payload: {
+      message_id: "message-1",
+      text: "Inspect the repository",
+    },
+  });
+  const completed = applyEvent(withMessage, {
+    session_id: "session-123",
+    sequence: 3,
+    created_at: "2026-04-23T00:00:03Z",
+    event_type: "TurnCompleted",
+    payload: {
+      turn_id: "turn-1",
+      outcome: "completed",
+    },
+  });
+
+  assert.equal(started.canFork, false);
+  assert.equal(completed.canFork, true);
+  assert.equal(completed.latestForkPointTurnId, "turn-1");
+  assert.equal(completed.selectedForkTurnId, "turn-1");
+  assert.equal(completed.branchableTurns.length, 1);
+  assert.equal(completed.branchableTurns[0].label, "Inspect the repository");
 });
 
 test("applyEvent appends transcript messages deterministically", () => {

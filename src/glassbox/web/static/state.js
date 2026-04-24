@@ -16,7 +16,10 @@
  * @typedef {{turn_id: string, tool_call_id: string, stream: string, chunk: string}} LiveOutputEntry
  * @typedef {{sequence: number, event_type: string}} EventLogEntry
  * @typedef {{kind: "message" | "answer" | null, state: "idle" | "submitting" | "submitted" | "failed", error: string | null}} InteractionSubmission
- * @typedef {{session_id: string, status: string, model_name: string, cwd: string, approval_mode: string, dashboard_url: string | null, created_at: string, updated_at: string, last_sequence: number, pending_approval_id: string | null, pending_question_id: string | null, pending_question_text: string | null, session_failure_message: string | null, session_failure_retryable: boolean | null, latest_message_summary: string | null, next_action_summary: string}} SessionSummary
+ * @typedef {{state: "idle" | "submitting" | "failed", error: string | null}} ForkSubmission
+ * @typedef {{session_id: string, status: string, branch_label: string | null, updated_at: string, latest_message_summary: string | null}} ChildSessionSummary
+ * @typedef {{turn_id: string, sequence: number, created_at: string, label: string}} BranchableTurn
+ * @typedef {{session_id: string, status: string, model_name: string, cwd: string, approval_mode: string, parent_session_id: string | null, forked_from_turn_id: string | null, forked_from_sequence: number | null, branch_label: string | null, child_session_count: number, can_fork: boolean, latest_fork_point_turn_id: string | null, latest_fork_point_sequence: number | null, fork_blocked_reason: string | null, dashboard_url: string | null, created_at: string, updated_at: string, last_sequence: number, pending_approval_id: string | null, pending_question_id: string | null, pending_question_text: string | null, session_failure_message: string | null, session_failure_retryable: boolean | null, latest_message_summary: string | null, next_action_summary: string}} SessionSummary
  *
  * @typedef {Object} DashboardState
  * @property {string | null} sessionId
@@ -24,6 +27,17 @@
  * @property {string | null} modelName
  * @property {string | null} cwd
  * @property {string | null} approvalMode
+ * @property {string | null} parentSessionId
+ * @property {string | null} forkedFromTurnId
+ * @property {number | null} forkedFromSequence
+ * @property {string | null} branchLabel
+ * @property {ChildSessionSummary[]} childSessions
+ * @property {BranchableTurn[]} branchableTurns
+ * @property {boolean} canFork
+ * @property {string | null} latestForkPointTurnId
+ * @property {number | null} latestForkPointSequence
+ * @property {string | null} forkBlockedReason
+ * @property {string | null} selectedForkTurnId
  * @property {string | null} dashboardUrl
  * @property {number} lastSequence
  * @property {string | null} pendingApprovalId
@@ -39,6 +53,7 @@
  * @property {PendingApproval[]} pendingApprovals
  * @property {EventLogEntry[]} eventLog
  * @property {InteractionSubmission} interactionSubmission
+ * @property {ForkSubmission} forkSubmission
  * @property {SessionSummary[]} sessionIndex
  * @property {"idle" | "loading" | "loaded" | "failed"} sessionIndexState
  * @property {string | null} sessionIndexError
@@ -58,6 +73,16 @@
  * @property {string} model_name
  * @property {string} cwd
  * @property {string} approval_mode
+ * @property {string | null} parent_session_id
+ * @property {string | null} forked_from_turn_id
+ * @property {number | null} forked_from_sequence
+ * @property {string | null} branch_label
+ * @property {ChildSessionSummary[]} child_sessions
+ * @property {BranchableTurn[]} branchable_turns
+ * @property {boolean} can_fork
+ * @property {string | null} latest_fork_point_turn_id
+ * @property {number | null} latest_fork_point_sequence
+ * @property {string | null} fork_blocked_reason
  * @property {string | null} dashboard_url
  * @property {number} last_sequence
  * @property {string | null} pending_approval_id
@@ -87,6 +112,17 @@ export function createState() {
     modelName: null,
     cwd: null,
     approvalMode: null,
+    parentSessionId: null,
+    forkedFromTurnId: null,
+    forkedFromSequence: null,
+    branchLabel: null,
+    childSessions: [],
+    branchableTurns: [],
+    canFork: false,
+    latestForkPointTurnId: null,
+    latestForkPointSequence: null,
+    forkBlockedReason: null,
+    selectedForkTurnId: null,
     dashboardUrl: null,
     lastSequence: 0,
     pendingApprovalId: null,
@@ -103,6 +139,10 @@ export function createState() {
     eventLog: [],
     interactionSubmission: {
       kind: null,
+      state: "idle",
+      error: null,
+    },
+    forkSubmission: {
       state: "idle",
       error: null,
     },
@@ -124,6 +164,66 @@ function createIdleInteractionSubmission() {
     state: "idle",
     error: null,
   };
+}
+
+function createIdleForkSubmission() {
+  return {
+    state: "idle",
+    error: null,
+  };
+}
+
+function normalizeBranchableTurns(branchableTurns) {
+  if (!Array.isArray(branchableTurns)) {
+    return [];
+  }
+
+  return branchableTurns
+    .filter(turn => turn && typeof turn.turn_id === "string")
+    .map(turn => ({
+      turn_id: turn.turn_id,
+      sequence: Number.isFinite(turn.sequence) ? turn.sequence : 0,
+      created_at: typeof turn.created_at === "string" ? turn.created_at : "",
+      label: typeof turn.label === "string" ? turn.label : `Turn ${turn.turn_id.slice(0, 8)}`,
+    }));
+}
+
+function defaultSelectedForkTurnId(snapshot) {
+  const branchableTurns = normalizeBranchableTurns(snapshot.branchable_turns);
+  if (typeof snapshot.latest_fork_point_turn_id === "string") {
+    const latestTurn = branchableTurns.find(
+      turn => turn.turn_id === snapshot.latest_fork_point_turn_id,
+    );
+    if (latestTurn) {
+      return latestTurn.turn_id;
+    }
+  }
+
+  return branchableTurns[0]?.turn_id ?? null;
+}
+
+function upsertBranchableTurn(branchableTurns, branchableTurn) {
+  const next = [
+    branchableTurn,
+    ...branchableTurns.filter(turn => turn.turn_id !== branchableTurn.turn_id),
+  ];
+  return next.sort((left, right) => right.sequence - left.sequence);
+}
+
+function currentTurnLabel(state) {
+  const currentTurnId = state.currentTurn?.turn_id ?? null;
+  const triggerMessageId = state.currentTurn?.trigger_message_id ?? null;
+  const transcriptMessage = triggerMessageId
+    ? state.transcript.find(message => message.message_id === triggerMessageId)
+    : null;
+  const text = transcriptMessage?.parts?.map(part => part.text ?? "").join(" ").trim();
+  if (text) {
+    return text;
+  }
+  if (currentTurnId) {
+    return `Turn ${currentTurnId.slice(0, 8)}`;
+  }
+  return "Completed turn";
 }
 
 /**
@@ -162,6 +262,7 @@ function inferCurrentTurn(snapshot) {
  * @returns {DashboardState}
  */
 export function hydrateFromSnapshot(snapshot) {
+  const branchableTurns = normalizeBranchableTurns(snapshot.branchable_turns);
   return {
     ...createState(),
     sessionId: snapshot.session_id,
@@ -170,6 +271,17 @@ export function hydrateFromSnapshot(snapshot) {
     modelName: snapshot.model_name,
     cwd: snapshot.cwd,
     approvalMode: snapshot.approval_mode,
+    parentSessionId: snapshot.parent_session_id ?? null,
+    forkedFromTurnId: snapshot.forked_from_turn_id ?? null,
+    forkedFromSequence: snapshot.forked_from_sequence ?? null,
+    branchLabel: snapshot.branch_label ?? null,
+    childSessions: [...(snapshot.child_sessions ?? [])],
+    branchableTurns,
+    canFork: Boolean(snapshot.can_fork),
+    latestForkPointTurnId: snapshot.latest_fork_point_turn_id ?? null,
+    latestForkPointSequence: snapshot.latest_fork_point_sequence ?? null,
+    forkBlockedReason: snapshot.fork_blocked_reason ?? null,
+    selectedForkTurnId: defaultSelectedForkTurnId(snapshot),
     dashboardUrl: snapshot.dashboard_url ?? null,
     lastSequence: snapshot.last_sequence ?? 0,
     pendingApprovalId: snapshot.pending_approval_id ?? null,
@@ -185,7 +297,16 @@ export function hydrateFromSnapshot(snapshot) {
     pendingApprovals: [...(snapshot.pending_approvals ?? [])],
     eventLog: [],
     interactionSubmission: createIdleInteractionSubmission(),
+    forkSubmission: createIdleForkSubmission(),
     sessionLoadState: "loaded",
+  };
+}
+
+export function selectForkTurn(state, turnId) {
+  const selectedTurn = state.branchableTurns.find(turn => turn.turn_id === turnId);
+  return {
+    ...state,
+    selectedForkTurnId: selectedTurn?.turn_id ?? state.selectedForkTurnId,
   };
 }
 
@@ -520,6 +641,36 @@ export function failInteractionSubmission(state, kind, errorMessage) {
   };
 }
 
+export function beginForkSubmission(state) {
+  return {
+    ...state,
+    forkSubmission: {
+      state: "submitting",
+      error: null,
+    },
+  };
+}
+
+export function confirmForkSubmission(state) {
+  return {
+    ...state,
+    forkSubmission: {
+      state: "idle",
+      error: null,
+    },
+  };
+}
+
+export function failForkSubmission(state, errorMessage) {
+  return {
+    ...state,
+    forkSubmission: {
+      state: "failed",
+      error: errorMessage,
+    },
+  };
+}
+
 /**
  * @param {DashboardState} state
  * @param {EventEnvelope} envelope
@@ -546,6 +697,7 @@ export function applyEvent(state, envelope) {
         ...next,
         status: "running",
         interactionSubmission: createIdleInteractionSubmission(),
+        forkSubmission: createIdleForkSubmission(),
         cwd: typeof payload.cwd === "string" ? payload.cwd : next.cwd,
         modelName: (
           typeof payload.model_name === "string" ? payload.model_name : next.modelName
@@ -560,6 +712,26 @@ export function applyEvent(state, envelope) {
             ? payload.dashboard_url
             : next.dashboardUrl
         ),
+        parentSessionId: (
+          typeof payload.parent_session_id === "string"
+            ? payload.parent_session_id
+            : next.parentSessionId
+        ),
+        forkedFromTurnId: (
+          typeof payload.forked_from_turn_id === "string"
+            ? payload.forked_from_turn_id
+            : next.forkedFromTurnId
+        ),
+        forkedFromSequence: Number.isFinite(payload.forked_from_sequence)
+          ? payload.forked_from_sequence
+          : next.forkedFromSequence,
+        branchLabel: (
+          typeof payload.branch_label === "string"
+            ? payload.branch_label
+            : next.branchLabel
+        ),
+        canFork: false,
+        forkBlockedReason: "Wait for the current turn to finish before creating a fork.",
         sessionFailureMessage: null,
         sessionFailureRetryable: null,
       };
@@ -568,6 +740,8 @@ export function applyEvent(state, envelope) {
         ...next,
         status: "running",
         interactionSubmission: createIdleInteractionSubmission(),
+        canFork: false,
+        forkBlockedReason: "Wait for the current turn to finish before creating a fork.",
       };
     case "SessionCompleted":
       return {
@@ -578,6 +752,10 @@ export function applyEvent(state, envelope) {
         pendingQuestionId: null,
         pendingQuestionText: null,
         interactionSubmission: createIdleInteractionSubmission(),
+        canFork: next.branchableTurns.length > 0,
+        forkBlockedReason: next.branchableTurns.length > 0
+          ? null
+          : "This session has no completed fork point.",
       };
     case "SessionFailed":
       return {
@@ -598,6 +776,9 @@ export function applyEvent(state, envelope) {
         pendingQuestionId: null,
         pendingQuestionText: null,
         interactionSubmission: createIdleInteractionSubmission(),
+        forkBlockedReason: next.canFork
+          ? null
+          : next.forkBlockedReason,
       };
     case "TurnStarted":
       if (typeof payload.turn_id !== "string") {
@@ -606,6 +787,8 @@ export function applyEvent(state, envelope) {
       return {
         ...next,
         interactionSubmission: createIdleInteractionSubmission(),
+        canFork: false,
+        forkBlockedReason: `Wait for turn ${payload.turn_id.slice(0, 8)} to finish before creating a fork.`,
         currentTurn: {
           turn_id: payload.turn_id,
           status: "running",
@@ -629,6 +812,8 @@ export function applyEvent(state, envelope) {
       return {
         ...next,
         interactionSubmission: createIdleInteractionSubmission(),
+        canFork: false,
+        forkBlockedReason: "Wait for the current turn to finish before creating a fork.",
         currentTurn: {
           turn_id: payload.turn_id,
           status: payload.status,
@@ -682,6 +867,8 @@ export function applyEvent(state, envelope) {
         ...next,
         status: "awaiting_approval",
         pendingApprovalId: payload.approval_id,
+        canFork: false,
+        forkBlockedReason: "Resolve the pending approval before creating a fork.",
         currentTurn: {
           turn_id: typeof payload.turn_id === "string" ? payload.turn_id : "unknown",
           status: "awaiting_approval",
@@ -694,6 +881,8 @@ export function applyEvent(state, envelope) {
         ...next,
         status: "running",
         interactionSubmission: createIdleInteractionSubmission(),
+        canFork: false,
+        forkBlockedReason: "Wait for the current turn to finish before creating a fork.",
         currentTurn: next.currentTurn
           ? {
               ...next.currentTurn,
@@ -714,6 +903,8 @@ export function applyEvent(state, envelope) {
         ...next,
         status: "awaiting_user_input",
         interactionSubmission: createIdleInteractionSubmission(),
+        canFork: false,
+        forkBlockedReason: "Answer the pending question before creating a fork.",
         currentTurn: next.currentTurn
           ? {
               ...next.currentTurn,
@@ -736,6 +927,8 @@ export function applyEvent(state, envelope) {
         ...next,
         status: "running",
         interactionSubmission: createIdleInteractionSubmission(),
+        canFork: false,
+        forkBlockedReason: "Wait for the current turn to finish before creating a fork.",
         currentTurn: next.currentTurn
           ? {
               ...next.currentTurn,
@@ -794,11 +987,31 @@ export function applyEvent(state, envelope) {
         };
       }
       if (payload.outcome === "completed") {
+        const nextLatestForkPointTurnId = payload.turn_id;
+        const nextLatestForkPointSequence = envelope.sequence ?? 0;
+        const branchableTurn = {
+          turn_id: payload.turn_id,
+          sequence: nextLatestForkPointSequence,
+          created_at: typeof envelope.created_at === "string" ? envelope.created_at : "",
+          label: currentTurnLabel(next),
+        };
+        const selectedForkTurnId = (
+          !state.selectedForkTurnId
+          || state.selectedForkTurnId === state.latestForkPointTurnId
+        )
+          ? nextLatestForkPointTurnId
+          : state.selectedForkTurnId;
         return {
           ...next,
           status: "running",
           interactionSubmission: createIdleInteractionSubmission(),
           turnMetrics: completedTurnMetrics,
+          branchableTurns: upsertBranchableTurn(next.branchableTurns, branchableTurn),
+          canFork: true,
+          latestForkPointTurnId: nextLatestForkPointTurnId,
+          latestForkPointSequence: nextLatestForkPointSequence,
+          forkBlockedReason: null,
+          selectedForkTurnId,
           currentTurn: {
             turn_id: payload.turn_id,
             status: "completed",
@@ -815,6 +1028,10 @@ export function applyEvent(state, envelope) {
         ...next,
         status: "failed",
         interactionSubmission: createIdleInteractionSubmission(),
+        canFork: false,
+        forkBlockedReason: next.branchableTurns.length > 0
+          ? next.forkBlockedReason
+          : "This session has no completed fork point.",
         turnMetrics: updateTurnMetrics(next.turnMetrics, payload.turn_id, metrics => ({
           ...metrics,
           completed_at: typeof envelope.created_at === "string" ? envelope.created_at : null,

@@ -432,6 +432,7 @@ def test_get_session_snapshot_response_schema(tmp_path: Path) -> None:
                 "forked_from_sequence",
                 "branch_label",
                 "child_sessions",
+                "branchable_turns",
                 "can_fork",
                 "latest_fork_point_turn_id",
                 "latest_fork_point_sequence",
@@ -474,7 +475,7 @@ def test_get_session_includes_lineage_and_child_session_summaries(
                     approval_mode="confirm",
                 )
             )
-            _append_completed_turn(
+            turn_id = _append_completed_turn(
                 repo,
                 parent_state.session_id,
                 user_text="Inspect the repository",
@@ -507,6 +508,11 @@ def test_get_session_includes_lineage_and_child_session_summaries(
             assert parent_body["latest_fork_point_turn_id"] is not None
             assert parent_body["fork_blocked_reason"] is None
             assert len(parent_body["child_sessions"]) == 1
+            assert len(parent_body["branchable_turns"]) == 1
+            assert parent_body["branchable_turns"][0]["turn_id"] == str(turn_id)
+            assert (
+                parent_body["branchable_turns"][0]["label"] == "Inspect the repository"
+            )
             assert parent_body["child_sessions"][0]["session_id"] == str(
                 forked_session.child_session_id
             )
@@ -522,6 +528,7 @@ def test_get_session_includes_lineage_and_child_session_summaries(
             )
             assert child_body["branch_label"] == "alt-path"
             assert child_body["child_sessions"] == []
+            assert child_body["branchable_turns"] == []
             assert child_body["can_fork"] is False
             assert child_body["latest_fork_point_turn_id"] is None
             assert child_body["latest_fork_point_sequence"] is None

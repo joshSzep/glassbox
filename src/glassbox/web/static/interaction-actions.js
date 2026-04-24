@@ -7,8 +7,11 @@
  */
 
 import {
+  beginForkSubmission,
   beginInteractionSubmission,
+  confirmForkSubmission,
   confirmInteractionSubmission,
+  failForkSubmission,
   failInteractionSubmission,
 } from "./state.js";
 
@@ -30,6 +33,25 @@ export function buildSubmitSessionAnswerRequest(sessionId, questionId, answer) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ answer }),
+    },
+  };
+}
+
+export function buildSubmitSessionForkRequest(sessionId, turnId, branchLabel) {
+  const payload = {};
+  if (typeof turnId === "string" && turnId.trim()) {
+    payload.turn_id = turnId;
+  }
+  if (typeof branchLabel === "string" && branchLabel.trim()) {
+    payload.branch_label = branchLabel.trim();
+  }
+
+  return {
+    url: `/sessions/${sessionId}/fork`,
+    init: {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     },
   };
 }
@@ -110,4 +132,31 @@ export async function submitPendingQuestionAnswer(params) {
     fetchImpl,
     syncState,
   });
+}
+
+export async function submitSessionFork(params) {
+  const { sessionId, turnId, branchLabel, fetchImpl, syncState } = params;
+  syncState(current => beginForkSubmission(current));
+
+  let response;
+  try {
+    response = await fetchImpl(
+      buildSubmitSessionForkRequest(sessionId, turnId, branchLabel).url,
+      buildSubmitSessionForkRequest(sessionId, turnId, branchLabel).init,
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Network error";
+    syncState(current => failForkSubmission(current, message));
+    return { ok: false, error: message };
+  }
+
+  if (!response.ok) {
+    const message = await readInteractionError(response);
+    syncState(current => failForkSubmission(current, message));
+    return { ok: false, error: message };
+  }
+
+  const data = await response.json();
+  syncState(current => confirmForkSubmission(current));
+  return { ok: true, data };
 }

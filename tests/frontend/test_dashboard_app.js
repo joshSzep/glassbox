@@ -10,6 +10,15 @@ function makeSummary(sessionId, overrides = {}) {
     model_name: "openai:gpt-5.4",
     cwd: `/tmp/${sessionId}`,
     approval_mode: "confirm",
+    parent_session_id: null,
+    forked_from_turn_id: null,
+    forked_from_sequence: null,
+    branch_label: null,
+    child_session_count: 0,
+    can_fork: false,
+    latest_fork_point_turn_id: null,
+    latest_fork_point_sequence: null,
+    fork_blocked_reason: "This session has no completed fork point.",
     dashboard_url: null,
     created_at: "2026-04-23T00:00:00Z",
     updated_at: "2026-04-23T00:00:01Z",
@@ -33,6 +42,16 @@ function makeSnapshot(sessionId) {
     model_name: "openai:gpt-5.4",
     cwd: `/tmp/${sessionId}`,
     approval_mode: "confirm",
+    parent_session_id: null,
+    forked_from_turn_id: null,
+    forked_from_sequence: null,
+    branch_label: null,
+    child_sessions: [],
+    branchable_turns: [],
+    can_fork: false,
+    latest_fork_point_turn_id: null,
+    latest_fork_point_sequence: null,
+    fork_blocked_reason: "This session has no completed fork point.",
     dashboard_url: null,
     last_sequence: 4,
     pending_approval_id: null,
@@ -155,6 +174,14 @@ function createHarness({ search = "", responses }) {
   async function fetchImpl(url) {
     fetchCalls.push(url);
     assert.ok(url in responses, `unexpected fetch: ${url}`);
+    if (Array.isArray(responses[url])) {
+      const next = responses[url].shift();
+      assert.ok(next, `no remaining responses for ${url}`);
+      return next;
+    }
+    if (typeof responses[url] === "function") {
+      return responses[url](url);
+    }
     return responses[url];
   }
 
@@ -356,4 +383,89 @@ test("dashboard app clears stale deep links back to the session index", async ()
   assert.equal(harness.elements.get("sse-indicator").textContent, "○ index mode");
   assert.match(harness.elements.get("transcript-list").innerHTML, /Session unavailable/);
   assert.match(harness.elements.get("transcript-list").innerHTML, /recovered to the session index/);
+});
+
+test("dashboard app creates a fork and opens the child session", async () => {
+  const harness = createHarness({
+    responses: {
+      "/sessions": [
+        okJson([makeSummary("session-parent")]),
+        okJson([
+          makeSummary("session-child", {
+            parent_session_id: "session-parent",
+            forked_from_turn_id: "turn-2",
+            forked_from_sequence: 8,
+            branch_label: "alt-path",
+          }),
+          makeSummary("session-parent", {
+            can_fork: true,
+            latest_fork_point_turn_id: "turn-2",
+            latest_fork_point_sequence: 8,
+          }),
+        ]),
+      ],
+      "/sessions/session-parent": okJson({
+        ...makeHistoricalSnapshot("session-parent"),
+        can_fork: true,
+        latest_fork_point_turn_id: "turn-2",
+        latest_fork_point_sequence: 8,
+        branchable_turns: [
+          {
+            turn_id: "turn-2",
+            sequence: 8,
+            created_at: "2026-04-23T00:00:02Z",
+            label: "Inspect the repository",
+          },
+        ],
+      }),
+      "/sessions/session-parent/fork": okJson({
+        child_session_id: "session-child",
+        parent_session_id: "session-parent",
+        forked_from_turn_id: "turn-2",
+        forked_from_sequence: 8,
+        branch_label: "alt-path",
+        inherited_message_count: 2,
+        last_sequence: 3,
+      }),
+      "/sessions/session-child": okJson({
+        ...makeSnapshot("session-child"),
+        status: "completed",
+        parent_session_id: "session-parent",
+        forked_from_turn_id: "turn-2",
+        forked_from_sequence: 8,
+        branch_label: "alt-path",
+      }),
+    },
+  });
+
+  await harness.app.init();
+  await harness.app.openSession("session-parent");
+  const result = await harness.app.forkCurrentSession({
+    turnId: "turn-2",
+    branchLabel: "alt-path",
+  });
+
+  assert.deepEqual(result, {
+    ok: true,
+    data: {
+      child_session_id: "session-child",
+      parent_session_id: "session-parent",
+      forked_from_turn_id: "turn-2",
+      forked_from_sequence: 8,
+      branch_label: "alt-path",
+      inherited_message_count: 2,
+      last_sequence: 3,
+    },
+  });
+  assert.deepEqual(harness.fetchCalls, [
+    "/sessions",
+    "/sessions/session-parent",
+    "/sessions/session-parent/fork",
+    "/sessions",
+    "/sessions/session-child",
+  ]);
+  assert.equal(harness.windowImpl.location.search, "?session=session-child");
+  assert.equal(harness.app.getState().sessionId, "session-child");
+  assert.equal(harness.app.getState().parentSessionId, "session-parent");
+  assert.equal(harness.app.getState().branchLabel, "alt-path");
 });

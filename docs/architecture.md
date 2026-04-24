@@ -1000,7 +1000,7 @@ The first server surface should include:
 
 - `GET /healthz`
 - `GET /sessions` for recent-session discovery in the standalone dashboard, including parent lineage metadata and lightweight branchability state
-- `GET /sessions/{session_id}` for a snapshot view, including parent metadata, child-session summaries, and branchability details for the selected session
+- `GET /sessions/{session_id}` for a snapshot view, including parent metadata, child-session summaries, and explicit branchable-turn choices for the selected session
 - `POST /sessions/{session_id}/fork` to create a child session from the latest or explicitly selected stable historical turn boundary
 - `GET /sessions/{session_id}/events` as an SSE stream
 - `POST /sessions/{session_id}/approvals/{approval_id}` to resolve approvals
@@ -1010,6 +1010,8 @@ The first server surface should include:
 The first UI should show:
 
 - transcript timeline
+- selected-session lineage with parent and child navigation affordances
+- explicit fork controls over branchable completed turns, with child-session navigation after creation
 - current turn status
 - active tool calls
 - live command output
