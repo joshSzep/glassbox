@@ -85,11 +85,8 @@ PYTHON_FACADE_RULES: tuple[
         (
             "glassbox.core.ids",
             "pathlib",
-            "glassbox.runtime.replay_bundle_io",
-            "glassbox.runtime.replay_compare",
-            "glassbox.runtime.replay_execution",
-            "glassbox.runtime.replay_failures",
             "glassbox.runtime.replay_models",
+            "glassbox.runtime.replay_orchestrator",
             "glassbox.runtime.replay_triage",
             "glassbox.services",
         ),

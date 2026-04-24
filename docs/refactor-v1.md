@@ -687,7 +687,7 @@ These follow-on tasks stay within the same behavior-preserving contract as the o
 
 ### GBX-R180: Introduce One Replay Orchestrator Over Bundle I/O, Execution, Compare, And Triage
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R140`, `GBX-R160`, `GBX-R171`
 - Goal: make the replay flow easier to trace by moving high-level replay control decisions behind one explicit orchestration boundary while keeping [replay.py](./../src/glassbox/runtime/replay.py) as the stable public facade
 - Deliverables:
