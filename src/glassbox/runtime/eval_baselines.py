@@ -1,7 +1,5 @@
 """Guided promotion and refresh workflows for replay-backed eval baselines."""
 
-from __future__ import annotations
-
 import json
 from datetime import UTC
 from datetime import datetime

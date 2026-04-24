@@ -1,7 +1,5 @@
 """Read-only session query models and service for CLI and web consumers."""
 
-from __future__ import annotations
-
 from collections.abc import Sequence
 from datetime import datetime
 

@@ -1,7 +1,5 @@
 """Unit tests for the pydantic-ai executor layer."""
 
-from __future__ import annotations
-
 import asyncio
 
 from pydantic_ai.messages import FinalResultEvent

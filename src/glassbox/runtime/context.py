@@ -1,7 +1,5 @@
 """Typed runtime dependency containers for Glassbox."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from dataclasses import field
 from pathlib import Path

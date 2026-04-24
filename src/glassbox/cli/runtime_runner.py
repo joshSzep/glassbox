@@ -1,7 +1,5 @@
 """Shared CLI helpers for runtime-backed command execution."""
 
-from __future__ import annotations
-
 import argparse
 import asyncio
 import sys

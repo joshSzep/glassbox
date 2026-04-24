@@ -1,7 +1,5 @@
 """Canonical event-log reads, writes, and rebuild helpers for SQLite."""
 
-from __future__ import annotations
-
 import sqlite3
 from collections.abc import Sequence
 from pathlib import Path

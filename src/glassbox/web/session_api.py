@@ -1,7 +1,5 @@
 """HTTP transport models and serializers for the session API."""
 
-from __future__ import annotations
-
 from collections.abc import Sequence
 from datetime import datetime
 from uuid import UUID

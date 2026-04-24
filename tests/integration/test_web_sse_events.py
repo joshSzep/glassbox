@@ -7,8 +7,6 @@ headers) are tested by inspecting the StreamingResponse returned by the
 route handler.
 """
 
-from __future__ import annotations
-
 import asyncio
 import json
 import sqlite3

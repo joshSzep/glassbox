@@ -1,7 +1,5 @@
 """Integration tests for the apply_patch tool."""
 
-from __future__ import annotations
-
 import asyncio
 from pathlib import Path
 

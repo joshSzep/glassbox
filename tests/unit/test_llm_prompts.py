@@ -1,7 +1,5 @@
 """Unit tests for Glassbox system prompt composition."""
 
-from __future__ import annotations
-
 from uuid import uuid4
 
 from glassbox.core.types import SessionStatus

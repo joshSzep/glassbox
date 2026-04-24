@@ -1,7 +1,5 @@
 """Helpers for recording replay manifests during live turn execution."""
 
-from __future__ import annotations
-
 from typing import Any
 from typing import Literal
 

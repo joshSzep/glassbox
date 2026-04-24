@@ -1,7 +1,5 @@
 """Command execution tool with subprocess streaming for Glassbox sessions."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Callable
 from pathlib import Path

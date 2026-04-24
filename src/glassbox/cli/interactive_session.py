@@ -1,7 +1,5 @@
 """Interactive terminal session control and prompt-routing helpers."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Sequence
 from uuid import UUID

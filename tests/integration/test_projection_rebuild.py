@@ -1,7 +1,5 @@
 """Integration tests for projection rebuild from canonical events (GBX-101)."""
 
-from __future__ import annotations
-
 from pathlib import Path
 from uuid import UUID
 

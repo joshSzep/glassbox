@@ -1,7 +1,5 @@
 """Capability coverage manifests and audits for replay-backed eval suites."""
 
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Literal
 

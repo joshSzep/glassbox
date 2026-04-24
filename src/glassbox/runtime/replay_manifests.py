@@ -1,7 +1,5 @@
 """Replay manifest models, builders, and loader helpers."""
 
-from __future__ import annotations
-
 import json
 from collections.abc import Sequence
 from datetime import datetime

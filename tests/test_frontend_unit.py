@@ -1,7 +1,5 @@
 """Run frontend unit tests through Node's built-in test runner."""
 
-from __future__ import annotations
-
 import shutil
 import subprocess
 from pathlib import Path

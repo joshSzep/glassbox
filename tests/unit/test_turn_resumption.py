@@ -1,7 +1,5 @@
 """Focused unit tests for suspended turn resumption helpers."""
 
-from __future__ import annotations
-
 import json
 
 from pydantic_ai.messages import ModelRequest

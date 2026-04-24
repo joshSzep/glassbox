@@ -1,7 +1,5 @@
 """Integration tests for dashboard asset serving (GBX-090)."""
 
-from __future__ import annotations
-
 import asyncio
 import sqlite3
 from pathlib import Path

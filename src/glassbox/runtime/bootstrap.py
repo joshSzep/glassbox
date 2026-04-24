@@ -1,7 +1,5 @@
 """Runtime wiring bootstrap for local Glassbox entrypoints."""
 
-from __future__ import annotations
-
 import sqlite3
 from collections.abc import Callable
 from collections.abc import Iterator

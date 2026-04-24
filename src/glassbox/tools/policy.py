@@ -1,7 +1,5 @@
 """Local policy evaluation for tool execution requests."""
 
-from __future__ import annotations
-
 import re
 from collections.abc import Mapping
 from pathlib import Path

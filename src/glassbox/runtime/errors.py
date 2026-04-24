@@ -1,7 +1,5 @@
 """Runtime-specific exceptions for failure classification."""
 
-from __future__ import annotations
-
 
 class SessionRuntimeFailure(ValueError):
     """Raised when a persisted session cannot continue without reconfiguration."""

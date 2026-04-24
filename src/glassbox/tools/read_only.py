@@ -1,7 +1,5 @@
 """Read-only filesystem tools scoped to a workspace root."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from pydantic import BaseModel

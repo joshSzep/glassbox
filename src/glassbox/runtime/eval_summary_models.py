@@ -1,7 +1,5 @@
 """Shared models for eval suite summaries and release sign-off reporting."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path

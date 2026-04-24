@@ -1,7 +1,5 @@
 """Session status and runtime-context formatting helpers for the CLI."""
 
-from __future__ import annotations
-
 from collections.abc import Sequence
 from uuid import UUID
 

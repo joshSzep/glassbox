@@ -1,7 +1,5 @@
 """Characterization coverage for CLI status and replay formatters."""
 
-from __future__ import annotations
-
 from uuid import UUID
 
 from glassbox.cli.replay_eval_formatters import _print_replay_report

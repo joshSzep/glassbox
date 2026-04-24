@@ -1,7 +1,5 @@
 """Typed tool contracts and explicit registration for Glassbox tools."""
 
-from __future__ import annotations
-
 from collections.abc import Callable
 from collections.abc import Sequence
 from dataclasses import dataclass

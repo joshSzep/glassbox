@@ -1,7 +1,5 @@
 """Apply patch tool: controlled, workspace-scoped file edits for Glassbox sessions."""
 
-from __future__ import annotations
-
 import difflib
 from pathlib import Path
 

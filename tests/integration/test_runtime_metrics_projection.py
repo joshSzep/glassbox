@@ -1,7 +1,5 @@
 """Integration tests for the turn metrics projection (GBX-110)."""
 
-from __future__ import annotations
-
 from datetime import UTC
 from datetime import datetime
 from pathlib import Path

@@ -1,7 +1,5 @@
 """Shared model-loop control flow for live turns and replay-backed execution."""
 
-from __future__ import annotations
-
 from collections.abc import Awaitable
 from collections.abc import Callable
 from dataclasses import dataclass

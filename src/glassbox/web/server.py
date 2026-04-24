@@ -1,7 +1,5 @@
 """Uvicorn-based server entry point and lifecycle helpers for Glassbox."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass

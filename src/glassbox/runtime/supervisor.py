@@ -1,7 +1,5 @@
 """Session supervisor implementation for top-level runtime lifecycle."""
 
-from __future__ import annotations
-
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import EventEnvelope

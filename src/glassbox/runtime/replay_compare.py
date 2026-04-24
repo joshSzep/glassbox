@@ -1,7 +1,5 @@
 """Normalization and mismatch comparison helpers for deterministic replay."""
 
-from __future__ import annotations
-
 from collections.abc import Sequence
 from typing import Any
 

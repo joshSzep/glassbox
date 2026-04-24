@@ -1,7 +1,5 @@
 """End-to-end scenario coverage for core operator flows (GBX-130)."""
 
-from __future__ import annotations
-
 import asyncio
 import json
 import sqlite3

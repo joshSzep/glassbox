@@ -1,7 +1,5 @@
 """Integration tests for the approval pause/resume workflow (GBX-070)."""
 
-from __future__ import annotations
-
 import asyncio
 import json
 import sqlite3

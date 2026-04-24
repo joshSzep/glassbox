@@ -1,7 +1,5 @@
 """HTTP integration tests for the session index API (GBX-181)."""
 
-from __future__ import annotations
-
 import asyncio
 import sqlite3
 from pathlib import Path

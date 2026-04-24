@@ -8,8 +8,6 @@ These tests use a two-phase approach:
      database to complete the workflow and verify rendered output.
 """
 
-from __future__ import annotations
-
 import asyncio
 import sqlite3
 from pathlib import Path

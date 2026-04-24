@@ -1,7 +1,5 @@
 """Event envelope and payload models for the Glassbox event log."""
 
-from __future__ import annotations
-
 from datetime import UTC
 from datetime import datetime
 from typing import Annotated

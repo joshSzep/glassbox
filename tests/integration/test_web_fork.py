@@ -1,7 +1,5 @@
 """HTTP integration tests for session fork creation and lineage contracts."""
 
-from __future__ import annotations
-
 import asyncio
 import sqlite3
 from pathlib import Path

@@ -1,7 +1,5 @@
 """Shared typed models for runtime context assembly."""
 
-from __future__ import annotations
-
 from typing import Literal
 
 from pydantic import BaseModel

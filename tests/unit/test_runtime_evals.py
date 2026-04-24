@@ -1,7 +1,5 @@
 """Unit tests for replay-backed eval case schema and discovery."""
 
-from __future__ import annotations
-
 import json
 from pathlib import Path
 

@@ -1,7 +1,5 @@
 """Turn engine for assistant responses with optional tool execution."""
 
-from __future__ import annotations
-
 import json
 from collections.abc import Callable
 from collections.abc import Sequence

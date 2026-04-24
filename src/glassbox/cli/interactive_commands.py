@@ -1,7 +1,5 @@
 """CLI command handlers for interactive and session workflow commands."""
 
-from __future__ import annotations
-
 import argparse
 import asyncio
 

@@ -1,7 +1,5 @@
 """Argument parser construction for the Glassbox CLI."""
 
-from __future__ import annotations
-
 import argparse
 from uuid import UUID
 

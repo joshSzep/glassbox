@@ -1,7 +1,5 @@
 """Typed context assembly facade for model turns."""
 
-from __future__ import annotations
-
 from collections.abc import Sequence
 
 from glassbox.core.ids import SessionId

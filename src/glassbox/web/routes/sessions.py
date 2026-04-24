@@ -1,7 +1,5 @@
 """Session snapshot API route: GET /sessions/{session_id}."""
 
-from __future__ import annotations
-
 from uuid import UUID
 
 from fastapi import APIRouter

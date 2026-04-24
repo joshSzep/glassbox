@@ -1,7 +1,5 @@
 """Automation annotation helpers for eval summary reporting."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from glassbox.runtime.eval_runner import EvalCaseResult

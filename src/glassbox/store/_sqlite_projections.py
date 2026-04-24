@@ -1,7 +1,5 @@
 """Projection application helpers for the SQLite-backed event store."""
 
-from __future__ import annotations
-
 import sqlite3
 from datetime import datetime
 

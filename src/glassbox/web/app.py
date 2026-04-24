@@ -1,7 +1,5 @@
 """FastAPI application factory for the Glassbox web server."""
 
-from __future__ import annotations
-
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path

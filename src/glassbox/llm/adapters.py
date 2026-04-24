@@ -1,7 +1,5 @@
 """Stable internal adapter layer for pydantic-ai integration."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import UTC

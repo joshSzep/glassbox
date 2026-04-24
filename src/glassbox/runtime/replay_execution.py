@@ -1,7 +1,5 @@
 """Deterministic replay execution against an isolated runtime."""
 
-from __future__ import annotations
-
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path

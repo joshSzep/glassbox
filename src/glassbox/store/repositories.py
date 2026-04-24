@@ -1,7 +1,5 @@
 """Concrete repository adapters backed by the Glassbox store modules."""
 
-from __future__ import annotations
-
 import sqlite3
 from collections.abc import Sequence
 from datetime import datetime

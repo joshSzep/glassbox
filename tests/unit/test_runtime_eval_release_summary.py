@@ -1,7 +1,5 @@
 """Focused tests for eval release-signoff aggregation and summaries."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from glassbox.runtime.eval_coverage import EvalCoverageAuditResult

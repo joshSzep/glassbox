@@ -1,7 +1,5 @@
 """CLI entrypoint and command dispatch for Glassbox."""
 
-from __future__ import annotations
-
 import argparse
 import sqlite3
 import sys

@@ -1,7 +1,5 @@
 """Offline deterministic replay runner for persisted Glassbox sessions."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from glassbox.core.ids import SessionId

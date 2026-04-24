@@ -1,7 +1,5 @@
 """Model execution helpers built on top of pydantic-ai models."""
 
-from __future__ import annotations
-
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC

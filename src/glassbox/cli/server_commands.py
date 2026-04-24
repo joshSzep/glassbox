@@ -1,7 +1,5 @@
 """CLI command handlers for web server commands."""
 
-from __future__ import annotations
-
 import argparse
 
 from glassbox.cli.path_helpers import resolve_runtime_location

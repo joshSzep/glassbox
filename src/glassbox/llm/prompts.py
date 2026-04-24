@@ -1,7 +1,5 @@
 """System prompt composition for Glassbox model turns."""
 
-from __future__ import annotations
-
 import json
 from collections.abc import Sequence
 

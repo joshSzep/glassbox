@@ -1,7 +1,5 @@
 """Release sign-off aggregation and summary rendering for eval reports."""
 
-from __future__ import annotations
-
 import json
 from collections.abc import Sequence
 from datetime import UTC

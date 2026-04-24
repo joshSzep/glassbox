@@ -1,7 +1,5 @@
 """Unit tests for the pydantic-ai adapter layer."""
 
-from __future__ import annotations
-
 from datetime import UTC
 from datetime import datetime
 from uuid import uuid4

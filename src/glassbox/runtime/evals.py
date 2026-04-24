@@ -1,7 +1,5 @@
 """Declarative eval case schema and discovery for replay-backed suites."""
 
-from __future__ import annotations
-
 import re
 from collections.abc import Sequence
 from datetime import datetime

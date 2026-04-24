@@ -1,7 +1,5 @@
 """Semantic replay fingerprinting for enriched runtime context."""
 
-from __future__ import annotations
-
 import hashlib
 import json
 from typing import Any

@@ -1,7 +1,5 @@
 """Replay outcome triage and operator-facing reporting helpers."""
 
-from __future__ import annotations
-
 from typing import Any
 
 from glassbox.runtime.replay_models import ReplayResult

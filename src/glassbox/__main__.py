@@ -1,7 +1,5 @@
 """Module entry point for `python -m glassbox`."""
 
-from __future__ import annotations
-
 import sys
 
 from glassbox.cli import main

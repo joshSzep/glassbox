@@ -1,7 +1,5 @@
 """Unit tests for automation-facing eval summary formatting."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from glassbox.runtime.eval_coverage import EvalCoverageAuditResult

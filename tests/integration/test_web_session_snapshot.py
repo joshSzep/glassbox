@@ -1,7 +1,5 @@
 """HTTP integration tests for the session snapshot API (GBX-081)."""
 
-from __future__ import annotations
-
 import asyncio
 import json
 import sqlite3

@@ -1,7 +1,5 @@
 """Integration tests for the git status and run tests workflow tools."""
 
-from __future__ import annotations
-
 import asyncio
 import subprocess
 from pathlib import Path

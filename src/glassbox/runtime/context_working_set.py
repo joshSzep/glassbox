@@ -1,7 +1,5 @@
 """Working-set derivation helpers for runtime context assembly."""
 
-from __future__ import annotations
-
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass

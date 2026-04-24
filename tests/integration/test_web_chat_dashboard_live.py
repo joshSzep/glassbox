@@ -1,7 +1,5 @@
 """Live dashboard integration coverage for chat-owned sessions (GBX-174)."""
 
-from __future__ import annotations
-
 import argparse
 import asyncio
 import sqlite3

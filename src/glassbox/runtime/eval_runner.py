@@ -1,7 +1,5 @@
 """Batch runner for replay-backed eval suites."""
 
-from __future__ import annotations
-
 import json
 from datetime import UTC
 from datetime import datetime

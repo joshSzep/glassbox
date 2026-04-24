@@ -1,7 +1,5 @@
 """Helpers for preparing live turn execution state."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 from pydantic_ai.messages import ModelMessage

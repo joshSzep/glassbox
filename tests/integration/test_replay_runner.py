@@ -1,7 +1,5 @@
 """Integration tests for the offline deterministic replay runner."""
 
-from __future__ import annotations
-
 import asyncio
 import json
 import shutil

@@ -1,7 +1,5 @@
 """Workflow tools: git status and test runner for Glassbox sessions."""
 
-from __future__ import annotations
-
 import asyncio
 import re
 import sys

@@ -1,7 +1,5 @@
 """Prompt-facing formatting helpers for runtime context."""
 
-from __future__ import annotations
-
 from collections.abc import Iterable
 from collections.abc import Sequence
 

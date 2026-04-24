@@ -1,7 +1,5 @@
 """Integration tests for failure handling and recovery paths (GBX-131)."""
 
-from __future__ import annotations
-
 import sqlite3
 from pathlib import Path
 from typing import Any

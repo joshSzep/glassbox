@@ -1,7 +1,5 @@
 """HTTP integration tests for the Glassbox web application bootstrap (GBX-080)."""
 
-from __future__ import annotations
-
 import asyncio
 import logging
 import sqlite3

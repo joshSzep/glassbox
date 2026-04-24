@@ -1,7 +1,5 @@
 """Lightweight architectural guardrails for refactor-sensitive boundaries."""
 
-from __future__ import annotations
-
 import ast
 import re
 from pathlib import Path
@@ -185,6 +183,23 @@ def test_dependency_direction_rules_hold_for_refactor_boundaries() -> None:
     assert violations == []
 
 
+def test_python_modules_do_not_enable_future_annotations() -> None:
+    violations: list[str] = []
+
+    for root in (REPO_ROOT / "src", REPO_ROOT / "tests"):
+        for file_path in sorted(root.rglob("*.py")):
+            if "annotations" in _python_future_features(file_path):
+                violations.append(
+                    _format_violation(
+                        file_path,
+                        "python 3.14 modules should not use future annotations",
+                        "from __future__ import annotations",
+                    )
+                )
+
+    assert violations == []
+
+
 def test_python_public_facades_stay_thin_and_delegate_to_owned_modules() -> None:
     violations: list[str] = []
 
@@ -273,6 +288,19 @@ def _python_import_modules(file_path: Path) -> list[str]:
             if node.module is not None:
                 modules.append(node.module)
     return sorted(set(modules))
+
+
+def _python_future_features(file_path: Path) -> set[str]:
+    tree = ast.parse(file_path.read_text(encoding="utf-8"))
+    features: set[str] = set()
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.ImportFrom)
+            and node.level == 0
+            and node.module == "__future__"
+        ):
+            features.update(alias.name for alias in node.names)
+    return features
 
 
 def _javascript_module_edges(file_path: Path) -> set[str]:

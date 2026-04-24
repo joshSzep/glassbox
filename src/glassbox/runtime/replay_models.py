@@ -1,7 +1,5 @@
 """Typed replay models shared across replay bundle, execution, and reporting."""
 
-from __future__ import annotations
-
 from typing import Any
 from typing import Literal
 

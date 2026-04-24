@@ -1,7 +1,5 @@
 """Session row and lineage helpers for the internal SQLite store modules."""
 
-from __future__ import annotations
-
 import sqlite3
 from datetime import UTC
 from datetime import datetime

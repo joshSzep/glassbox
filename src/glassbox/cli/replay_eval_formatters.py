@@ -1,7 +1,5 @@
 """Replay and eval report formatting helpers for the CLI."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from glassbox.runtime.eval_baselines import format_eval_baseline_update_report

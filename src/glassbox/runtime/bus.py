@@ -1,7 +1,5 @@
 """In-process event fanout for runtime consumers."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
