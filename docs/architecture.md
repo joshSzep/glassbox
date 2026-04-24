@@ -1858,74 +1858,141 @@ Guidelines:
 
 ## Module Boundaries
 
-The package layout should reflect architectural boundaries rather than technical trivia.
+The current v1 package layout reflects the post-refactor ownership boundaries rather than a small set of large mixed-responsibility modules.
 
 ```text
 src/glassbox/
     __init__.py
     cli/
         __init__.py
-        app.py
-        commands.py
+        entry.py
+        interactive_commands.py
+        interactive_session.py
+        parser.py
+        path_helpers.py
         renderer.py
+        replay_eval_commands.py
+        replay_eval_formatters.py
+        server_commands.py
+        session_state_commands.py
+        status_formatters.py
     core/
         __init__.py
+        events.py
         ids.py
         models.py
-        events.py
         types.py
     runtime/
         __init__.py
+        bootstrap.py
+        bus.py
+        context.py
+        context_builder.py
+        context_formatting.py
+        context_models.py
+        context_snapshots.py
+        context_working_set.py
+        eval_summary.py
+        eval_summary_annotations.py
+        eval_summary_models.py
+        eval_summary_release.py
+        eval_summary_suite.py
+        model_loop.py
+        replay.py
+        replay_bundle_io.py
+        replay_capture.py
+        replay_compare.py
+        replay_execution.py
+        replay_failures.py
+        replay_fingerprints.py
+        replay_manifests.py
+        replay_models.py
+        replay_triage.py
+        session_queries.py
         supervisor.py
         turn_engine.py
-        context_builder.py
-        approvals.py
-        policies.py
+        turn_preparation.py
+        turn_resumption.py
+        turn_tool_executor.py
     llm/
         __init__.py
-        agent.py
-        prompts.py
         adapters.py
+        executor.py
+        prompts.py
     tools/
         __init__.py
-        base.py
-        registry.py
-        read_file.py
-        search_files.py
-        apply_patch.py
-        run_command.py
-        run_tests.py
-        git_status.py
         ask_user.py
+        command.py
+        patch.py
+        policy.py
+        read_only.py
+        registry.py
+        runtime.py
+        workflow.py
     store/
         __init__.py
-        sqlite.py
-        events.py
-        projections.py
+        _sqlite_events.py
+        _sqlite_fork.py
+        _sqlite_projections.py
+        _sqlite_queries.py
+        _sqlite_schema.py
+        _sqlite_sessions.py
         artifacts.py
+        repositories.py
+        sqlite.py
     web/
         __init__.py
         app.py
-        routes.py
-        sse.py
-        schemas.py
+        routes/
+            approvals.py
+            events.py
+            health.py
+            sessions.py
+        server.py
+        session_api.py
+        static/
+            dashboard.js
+            dashboard-controller.js
+            dashboard-dom.js
+            dashboard-transport.js
+            interaction-actions.js
+            render-action-panes.js
+            render-activity-panes.js
+            render-diagnostics-panes.js
+            render-session-panes.js
+            render-utils.js
+            render.js
+            state-core.js
+            state-events.js
+            state-interaction.js
+            state-snapshot.js
+            state-stream.js
+            state.js
     services/
         __init__.py
-        session_service.py
-        projection_service.py
+        contracts.py
     tests/
         unit/
         integration/
         e2e/
 ```
 
+The public entry modules are intentionally thinner than their neighbors:
+
+- `runtime/__init__.py` stays a curated package surface for runtime wiring types
+- `runtime/replay.py` and `runtime/eval_summary.py` stay as compatibility facades over the split replay and eval-reporting modules
+- `store/sqlite.py` stays as the stable SQLite facade while internal ownership lives in `_sqlite_*` modules
+- `web/static/state.js`, `render.js`, and `dashboard.js` stay as browser facades over the split reducer, renderer, transport, and DOM modules
+
 ### Boundary Rules
 
 - `core` contains pure domain types and no framework code.
-- `runtime` depends on `core`, `llm`, `tools`, and `store`.
+- `services` contains repository and service contracts plus contract-layer shared values such as `StoredArtifact`; it should remain concrete-implementation free.
+- `store` owns persistence internals, repository adapters, artifact storage, and projection rebuild logic. Raw SQLite helpers stay in `_sqlite_*` modules behind `store/sqlite.py`.
+- `runtime` owns orchestration, context assembly, the shared model-loop boundary, session-query shaping, replay execution, and eval reporting. Bootstrap code may wire concrete store implementations, but orchestration code should prefer service and repository contracts.
 - `tools` depends on `core` and minimal runtime contracts.
-- `web` depends on `services`, `store`, and `core`, but should not own business logic.
-- `cli` depends on `services` and runtime entrypoints, not on tool implementations directly.
+- `cli` depends on runtime and service/query seams, not on raw store helpers. `cli/__init__.py` remains a compatibility wrapper while parser, command, interactive-session, and formatting responsibilities live in owned neighbor modules.
+- `web` owns HTTP transport, SSE endpoints, and browser assets. Route modules should use runtime query and service seams rather than rebuilding business logic inline, and the browser facades should stay thin over split controller, DOM, transport, reducer, and renderer modules.
 
 ## Service Interfaces
 

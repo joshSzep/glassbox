@@ -60,11 +60,25 @@ Use these layers:
 - projection tables for current and query-heavy views
 - artifact files on disk for large blobs such as full logs and diffs
 
-This same storage model should also support future session branching without
-changing the source-of-truth rule. The parent session must keep its original
-canonical event stream, while child sessions should record explicit lineage
-metadata and their own canonical imported-history or post-fork events. Branching
-should not require mutating or truncating parent events.
+This same storage model also supports session branching without changing the
+source-of-truth rule. The parent session keeps its original canonical event
+stream, while child sessions record explicit lineage metadata and their own
+canonical imported-history or post-fork events. Branching does not require
+mutating or truncating parent events.
+
+## Store Implementation Boundaries
+
+The persistence contract above is stable even though the store implementation is
+now decomposed internally.
+
+- `src/glassbox/store/sqlite.py` is the public compatibility facade for schema bootstrap, append/read helpers, rebuild entrypoints, and list-style query helpers
+- `src/glassbox/store/_sqlite_schema.py`, `_sqlite_sessions.py`, `_sqlite_events.py`, `_sqlite_projections.py`, `_sqlite_queries.py`, and `_sqlite_fork.py` own the internal storage concerns separately
+- `src/glassbox/store/repositories.py` owns the concrete repository adapters over those helpers
+- `src/glassbox/store/artifacts.py` owns filesystem artifact writes and reads while returning the shared `StoredArtifact` contract type from `services/contracts.py`
+
+This refactor changed internal ownership, not the operator-visible storage model.
+Schema bootstrap, append ordering, projection rebuild semantics, and artifact
+layout remain aligned with the tables and rules documented here.
 
 ## Canonical Tables
 
@@ -75,10 +89,10 @@ The sessions table is an entry point for listing and resuming sessions. Its
 session-state projection so list and filter queries can find suspended sessions
 without replaying the event log.
 
-When branching lands, `sessions` is also the right place for nullable lineage
-metadata such as parent session ID, fork source turn ID, fork source sequence,
-and an optional operator-visible branch label. That metadata should describe
-ancestry and discovery, not replace event-sourced runtime state.
+For branching, `sessions` is also the right place for nullable lineage metadata
+such as parent session ID, fork source turn ID, fork source sequence, and an
+optional operator-visible branch label. That metadata should describe ancestry
+and discovery, not replace event-sourced runtime state.
 
 ```sql
 create table sessions (
@@ -155,12 +169,13 @@ These columns are denormalized from event payloads for queryability.
 - `approval_id` supports pending approval lookups and resolution
 - `actor` helps distinguish user, assistant, runtime, and operator actions when useful
 
-The full event payload still lives in `payload_json`. The extra columns are query aids, not a second source of truth.
+The full event payload still lives in `payload_json`. The extra columns are
+query aids, not a second source of truth.
 
-For future child-session creation, the event log should continue to stay
-session-scoped. If Glassbox materializes inherited transcript history into the
-child session, those imported child-session events still belong to the child's
-canonical event stream rather than acting as pointers into mutable parent state.
+For child-session creation, the event log continues to stay session-scoped. If
+Glassbox materializes inherited transcript history into the child session, those
+imported child-session events still belong to the child's canonical event
+stream rather than acting as pointers into mutable parent state.
 
 ## Projection Tables
 
@@ -264,6 +279,35 @@ create table approvals (
 create index idx_approvals_session_status
     on approvals (session_id, status);
 ```
+
+### Runtime Notes Projection
+
+This table supports runtime-context notes, inherited branch context, and other
+operator-visible annotations without forcing those messages into ad hoc JSON
+queries.
+
+```sql
+create table runtime_notes (
+    session_id text not null,
+    sequence integer not null,
+    source_session_id text,
+    source_sequence integer,
+    category text not null,
+    message text not null,
+    created_at text not null,
+    primary key (session_id, sequence),
+    foreign key (session_id) references sessions(session_id)
+);
+
+create index idx_runtime_notes_session_created
+    on runtime_notes (session_id, created_at, sequence);
+```
+
+Notes:
+
+- `source_session_id` and `source_sequence` preserve provenance when a note is inherited into a child branch
+- the projection remains rebuildable from canonical note events
+- runtime-context APIs can read branch-aware note history without reconstructing it from unrelated transcript or tool records
 
 ### Turn Metrics Projection
 
@@ -463,9 +507,7 @@ Using only a raw JSON event log keeps the model pure, but it shifts too much com
 
 ## Recommended Initial Scope
 
-The first implementation does not need every table in this document.
-
-Start with:
+The current baseline schema includes:
 
 - `sessions`
 - `events`
@@ -473,6 +515,8 @@ Start with:
 - `transcript_messages`
 - `tool_calls`
 - `approvals`
+- `runtime_notes`
+- `turn_metrics`
 
 Add metrics projections and more specialized tables only when the dashboard proves they are needed.
 

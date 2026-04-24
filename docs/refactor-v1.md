@@ -557,7 +557,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R152: Update Architecture, Database, And Docs Hub References For The Refactored Shape
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R150`, `GBX-R151`, `GBX-121`
 - Goal: leave the repository with documentation that matches the post-refactor module boundaries and explains the rationale for the new shape
 - Deliverables:
