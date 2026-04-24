@@ -1,5 +1,7 @@
 # Provider Setup
 
+For the docs hub and workflow guides, start at [README.md](./README.md). For local installation and validation, use [getting-started.md](./getting-started.md).
+
 Glassbox can execute turns against real OpenAI and Anthropic providers when
 provider credentials are available at runtime.
 

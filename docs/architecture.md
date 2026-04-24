@@ -1,5 +1,7 @@
 # Glassbox Architecture
 
+For the docs hub and workflow guides, start at [README.md](./README.md). For installation and first-run setup, use [getting-started.md](./getting-started.md).
+
 ## Goal
 
 Glassbox is a local-first CLI application that runs multi-turn agent workflows while serving a live dashboard that exposes the agent's internal activity. The core experience is similar to Codex and Claude Code style harnesses:

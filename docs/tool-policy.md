@@ -1,5 +1,7 @@
 # Tool Policy And Approval Semantics
 
+For the docs hub and workflow guides, start at [README.md](./README.md). For operator command flows, pair this reference with [interactive-workflows.md](./interactive-workflows.md).
+
 This document describes the tool safety rules and approval behavior that are
 implemented in Glassbox today. It is intended for operators who need to predict
 how the runtime will handle tool calls before they happen.

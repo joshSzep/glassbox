@@ -1,5 +1,7 @@
 # Glassbox Tasks
 
+For the docs hub and operator guides, start at [README.md](./README.md). This file is the implementation task graph and roadmap context, not the primary onboarding path.
+
 ## Purpose
 
 This document is the implementation task graph for Glassbox.

@@ -1,5 +1,7 @@
 # Glassbox Database Design
 
+For the docs hub and workflow guides, start at [README.md](./README.md). For installation and first-run setup, use [getting-started.md](./getting-started.md).
+
 ## Goal
 
 This document expands the persistence direction in [architecture.md](./architecture.md) into a practical SQLite schema strategy for Glassbox.
