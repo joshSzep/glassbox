@@ -488,9 +488,11 @@ Interpret failures based on where they happen:
 - A commit-time replay/eval failure means the local regression barrier already
   found drift in a curated contract. Fix or intentionally refresh the baseline
   before committing.
-- A post-push replay/eval failure means the broader confirmation suite caught
-  drift outside the current smoke set. Treat that as a signal to investigate the
-  change and possibly promote that case or tag into the commit-time barrier.
+- A post-push replay/eval failure after local success means remote confirmation
+  caught drift, coverage, or budget issues on the pushed tree that still need
+  investigation. Treat that as a signal to inspect the retained report and
+  decide whether the baseline, profile selection, or code changed in a way the
+  local commit gate did not account for.
   First check the failed `Push Smoke Evals` run for the pushed commit, then
   read the rendered job summary for the failing case, its outcome class, and the
   retained artifact path. If you still need detail, download the
@@ -499,15 +501,15 @@ Interpret failures based on where they happen:
 
 ### Local-First Operating Flows
 
-When a commit is blocked by the smoke gate, use this sequence:
+When a commit is blocked by the pre-commit eval gate, use this sequence:
 
-1. Run `uv run pre-commit run eval-smoke --all-files` again if you need a clean
+1. Run `uv run pre-commit run eval --all-files` again if you need a clean
   repro outside `git commit`.
 2. Open `.glassbox/evals/pre-commit/summary.json` to identify the failing case,
   replay outcome, and artifact path.
 3. Open the failing `.glassbox/evals/pre-commit/CASE_ID.json` file and inspect
   the mismatch list or error message.
-4. If the drift is accidental, fix the code and rerun the smoke hook.
+4. If the drift is accidental, fix the code and rerun the eval hook.
 5. If the drift is intentional, refresh the checked-in replay bundle and case
   manifest together, review that diff as a baseline change, and rerun the hook
   before committing.
@@ -519,7 +521,7 @@ When local commit checks pass but push-time confirmation fails, use this sequenc
   the failure was `behavioral_drift`, `manifest_drift`, `unsupported_session`,
   or `replay_failure`, and which retained artifact path to inspect.
 3. If the job summary is enough to explain the regression, fix the code or
-  decide whether that case now belongs in the commit-time smoke barrier.
+  decide whether the affected case selection or baseline now needs to change.
 4. If you need more detail, download the `push-smoke-evals-SHA` artifact and
   inspect `.glassbox/evals/push-smoke/summary.json` plus the failing per-case
   JSON file.
@@ -869,7 +871,7 @@ uv run pytest
 uv run pre-commit run --all-files
 ```
 
-When the commit-time smoke eval hook fails, inspect the emitted suite summary
+When the commit-time eval hook fails, inspect the emitted suite summary
 and per-case JSON under `.glassbox/evals/pre-commit/`. Each rerun refreshes
 that managed directory instead of accumulating timestamped outputs.
 
@@ -883,8 +885,8 @@ uv run ty check src/glassbox/cli/__init__.py
 uv run pytest tests/test_import_smoke.py
 uv run glassbox replay SESSION_ID --cwd .
 uv run glassbox eval run --tag smoke --cwd .
-uv run pre-commit run eval-smoke --all-files
-uv run glassbox eval run --tag smoke --output-dir .glassbox/evals/pre-commit --refresh-output-dir --cwd .
+uv run pre-commit run eval --all-files
+uv run glassbox eval run --output-dir .glassbox/evals/pre-commit --refresh-output-dir --cwd .
 ```
 
 ## Reference Docs

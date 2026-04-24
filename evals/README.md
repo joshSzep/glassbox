@@ -61,12 +61,12 @@ Capability coverage expectations live in `evals/coverage.json`. Use
 which release-critical behaviors still lack a curated case, and which selected
 cases are not mapped to a declared product contract.
 
-The commit-time smoke hook uses the same tagged suite with a stable local output
-directory:
+The `eval` pre-commit hook runs the full curated eval suite with a stable
+local output directory:
 
 ```text
-pre-commit run eval-smoke --all-files
-glassbox eval run --profile commit-smoke --output-dir .glassbox/evals/pre-commit --refresh-output-dir
+pre-commit run eval --all-files
+glassbox eval run --output-dir .glassbox/evals/pre-commit --refresh-output-dir
 ```
 
 That managed output directory is refreshed in place on each hook run so the
@@ -362,7 +362,7 @@ Reading context-related failures:
 Troubleshooting flows:
 
 1. Commit blocked by replay/eval drift:
-  rerun `pre-commit run eval-smoke --all-files`, inspect
+  rerun `pre-commit run eval --all-files`, inspect
   `.glassbox/evals/pre-commit/summary.json`, then inspect the failing per-case
   JSON artifact in the same directory.
 1. Commit blocked by profile budget:
