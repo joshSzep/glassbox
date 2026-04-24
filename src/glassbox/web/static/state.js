@@ -20,6 +20,9 @@
  * @typedef {{subject_kind: string, subject: string, summary: string, reasons: string[], signal_types: string[], inherited: boolean}} WorkingSetItem
  * @typedef {{items: WorkingSetItem[], additional_item_count: number}} WorkingSetSummary
  * @typedef {{repository_context: RepositoryContextSummary, runtime_notes: RuntimeContextNote[], additional_runtime_note_count: number, working_set: WorkingSetSummary}} RuntimeContextSummary
+ * @typedef {{summary_kind: string, source_tool_name: string, artifact_kind: string, artifact_path: string, summary: string, freshness: string, target_paths: string[], keyword_filter?: string | null, failing_tests: string[], failure_count: number, error_count: number, timed_out: boolean, inherited: boolean, source_tool_call_id?: string | null}} ArtifactBackedContextSummary
+ * @typedef {{summaries: ArtifactBackedContextSummary[], additional_summary_count: number}} ArtifactBackedContext
+ * @typedef {{repository_context: RepositoryContextSummary, runtime_notes: RuntimeContextNote[], additional_runtime_note_count: number, working_set: WorkingSetSummary, artifact_context: ArtifactBackedContext}} RuntimeContextSummary
  * @typedef {{kind: "message" | "answer" | null, state: "idle" | "submitting" | "submitted" | "failed", error: string | null}} InteractionSubmission
  * @typedef {{state: "idle" | "submitting" | "failed", error: string | null}} ForkSubmission
  * @typedef {{session_id: string, status: string, branch_label: string | null, updated_at: string, latest_message_summary: string | null}} ChildSessionSummary
@@ -325,6 +328,33 @@ function normalizeRuntimeContext(snapshotRuntimeContext) {
         : [],
       additional_item_count: Number.isFinite(snapshotRuntimeContext.working_set?.additional_item_count)
         ? snapshotRuntimeContext.working_set.additional_item_count
+        : 0,
+    },
+    artifact_context: {
+      summaries: Array.isArray(snapshotRuntimeContext.artifact_context?.summaries)
+        ? snapshotRuntimeContext.artifact_context.summaries
+          .filter(summary => summary && typeof summary.summary_kind === "string")
+          .map(summary => ({
+            summary_kind: summary.summary_kind,
+            source_tool_name: typeof summary.source_tool_name === "string" ? summary.source_tool_name : "",
+            artifact_kind: typeof summary.artifact_kind === "string" ? summary.artifact_kind : "",
+            artifact_path: typeof summary.artifact_path === "string" ? summary.artifact_path : "",
+            summary: typeof summary.summary === "string" ? summary.summary : "",
+            freshness: typeof summary.freshness === "string" ? summary.freshness : "fresh",
+            target_paths: Array.isArray(summary.target_paths) ? summary.target_paths.filter(path => typeof path === "string") : [],
+            keyword_filter: typeof summary.keyword_filter === "string" ? summary.keyword_filter : null,
+            failing_tests: Array.isArray(summary.failing_tests) ? summary.failing_tests.filter(testName => typeof testName === "string") : [],
+            failure_count: Number.isFinite(summary.failure_count) ? summary.failure_count : 0,
+            error_count: Number.isFinite(summary.error_count) ? summary.error_count : 0,
+            timed_out: Boolean(summary.timed_out),
+            inherited: Boolean(summary.inherited),
+            source_tool_call_id: typeof summary.source_tool_call_id === "string"
+              ? summary.source_tool_call_id
+              : null,
+          }))
+        : [],
+      additional_summary_count: Number.isFinite(snapshotRuntimeContext.artifact_context?.additional_summary_count)
+        ? snapshotRuntimeContext.artifact_context.additional_summary_count
         : 0,
     },
   };

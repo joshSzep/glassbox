@@ -12,7 +12,11 @@ from glassbox.runtime.context import (
     RuntimeServices,
 )
 from glassbox.runtime.context_builder import (
+    PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
+    ArtifactBackedContextSnapshot,
+    ArtifactBackedContextSummarySnapshot,
     PolicyContext,
+    PytestFailureDigestArtifact,
     RepositoryContextSnapshot,
     RuntimeContextNoteSnapshot,
     RuntimeContextSnapshot,
@@ -21,6 +25,8 @@ from glassbox.runtime.context_builder import (
     TurnContextBuilder,
     WorkingSetItemSnapshot,
     WorkingSetSnapshot,
+    build_artifact_backed_context_snapshot,
+    build_pytest_failure_digest_artifact,
     build_repository_context_snapshot,
     build_runtime_context_snapshot,
     build_working_set_snapshot,
@@ -90,6 +96,10 @@ def __getattr__(name: str) -> Any:
 
 __all__ = [
     "default_database_path",
+    "ArtifactBackedContextSnapshot",
+    "ArtifactBackedContextSummarySnapshot",
+    "build_artifact_backed_context_snapshot",
+    "build_pytest_failure_digest_artifact",
     "build_repository_context_snapshot",
     "build_runtime_context_snapshot",
     "build_working_set_snapshot",
@@ -107,6 +117,8 @@ __all__ = [
     "load_eval_suite",
     "open_runtime_context",
     "PolicyContext",
+    "PYTEST_FAILURE_DIGEST_ARTIFACT_KIND",
+    "PytestFailureDigestArtifact",
     "RepositoryContextSnapshot",
     "ProviderSecretConfig",
     "ReplayBundle",

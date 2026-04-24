@@ -15,6 +15,29 @@ def test_enriched_context_source_fingerprint_ignores_non_semantic_ordering_noise
             "[operator] Stay inside src/glassbox",
             "[inherited repo] README changed recently",
         ],
+        "artifact_context": {
+            "summaries": [
+                {
+                    "summary_kind": "pytest_failure_digest",
+                    "source_tool_name": "run_tests",
+                    "artifact_kind": "context_pytest_failure_digest",
+                    "artifact_path": ".glassbox/sessions/a/artifacts/pytest-a.json",
+                    "summary": "2 failing test(s) for tests/unit/test_a.py",
+                    "target_paths": ["tests/unit/test_a.py"],
+                    "keyword_filter": None,
+                    "failing_tests": [
+                        "tests/unit/test_a.py::test_one",
+                        "tests/unit/test_a.py::test_two",
+                    ],
+                    "failure_count": 2,
+                    "error_count": 0,
+                    "timed_out": False,
+                    "freshness": "fresh",
+                    "inherited": False,
+                }
+            ],
+            "additional_summary_count": 0,
+        },
         "working_set": {
             "items": [
                 {
@@ -45,6 +68,29 @@ def test_enriched_context_source_fingerprint_ignores_non_semantic_ordering_noise
             "[inherited repo] README changed recently",
             "[operator] Stay inside src/glassbox",
         ],
+        "artifact_context": {
+            "summaries": [
+                {
+                    "summary_kind": "pytest_failure_digest",
+                    "source_tool_name": "run_tests",
+                    "artifact_kind": "context_pytest_failure_digest",
+                    "artifact_path": ".glassbox/sessions/b/artifacts/pytest-b.json",
+                    "summary": "2 failing test(s) for tests/unit/test_a.py\n",
+                    "target_paths": ["tests/unit/test_a.py"],
+                    "keyword_filter": None,
+                    "failing_tests": [
+                        "tests/unit/test_a.py::test_two",
+                        "tests/unit/test_a.py::test_one",
+                    ],
+                    "failure_count": 2,
+                    "error_count": 0,
+                    "timed_out": False,
+                    "freshness": "fresh",
+                    "inherited": False,
+                }
+            ],
+            "additional_summary_count": 0,
+        },
         "working_set": {
             "items": [
                 {
@@ -80,20 +126,43 @@ def test_enriched_context_source_fingerprint_ignores_non_semantic_ordering_noise
         "repository_context",
         "runtime_notes",
         "working_set",
+        "pytest_failure_digest",
     ]
     assert [source.provenance_class for source in sources_a] == [
         "recomputed_summary",
         "persisted_session_state",
         "recomputed_summary",
+        "artifact_backed_summary",
     ]
     assert sources_a[1].inherited is True
     assert sources_a[2].additional_item_count == 1
+    assert sources_a[3].summary == "1 artifact-backed summary item"
 
 
 def test_enriched_context_source_fingerprint_catches_meaningful_source_change() -> None:
     baseline_payload = {
         "repo_context": "Workspace: glassbox\nHigh-signal paths: README.md, src/",
         "memory_notes": ["[operator] Stay inside src/glassbox"],
+        "artifact_context": {
+            "summaries": [
+                {
+                    "summary_kind": "pytest_failure_digest",
+                    "source_tool_name": "run_tests",
+                    "artifact_kind": "context_pytest_failure_digest",
+                    "artifact_path": ".glassbox/sessions/a/artifacts/pytest-a.json",
+                    "summary": "1 failing test(s) for tests/unit/test_a.py",
+                    "target_paths": ["tests/unit/test_a.py"],
+                    "keyword_filter": None,
+                    "failing_tests": ["tests/unit/test_a.py::test_one"],
+                    "failure_count": 1,
+                    "error_count": 0,
+                    "timed_out": False,
+                    "freshness": "fresh",
+                    "inherited": False,
+                }
+            ],
+            "additional_summary_count": 0,
+        },
         "working_set": {
             "items": [
                 {
@@ -110,6 +179,29 @@ def test_enriched_context_source_fingerprint_catches_meaningful_source_change() 
     }
     changed_payload = {
         **baseline_payload,
+        "artifact_context": {
+            "summaries": [
+                {
+                    "summary_kind": "pytest_failure_digest",
+                    "source_tool_name": "run_tests",
+                    "artifact_kind": "context_pytest_failure_digest",
+                    "artifact_path": ".glassbox/sessions/b/artifacts/pytest-b.json",
+                    "summary": "2 failing test(s) for tests/unit/test_a.py",
+                    "target_paths": ["tests/unit/test_a.py"],
+                    "keyword_filter": None,
+                    "failing_tests": [
+                        "tests/unit/test_a.py::test_one",
+                        "tests/unit/test_a.py::test_two",
+                    ],
+                    "failure_count": 2,
+                    "error_count": 0,
+                    "timed_out": False,
+                    "freshness": "fresh",
+                    "inherited": False,
+                }
+            ],
+            "additional_summary_count": 0,
+        },
         "working_set": {
             "items": [
                 {
@@ -131,5 +223,7 @@ def test_enriched_context_source_fingerprint_catches_meaningful_source_change() 
     assert fingerprint_replay_enriched_context_sources(baseline_sources) != (
         fingerprint_replay_enriched_context_sources(changed_sources)
     )
-    assert baseline_sources[-1].source_name == "working_set"
+    assert baseline_sources[-2].source_name == "working_set"
+    assert baseline_sources[-2].fingerprint != changed_sources[-2].fingerprint
+    assert baseline_sources[-1].source_name == "pytest_failure_digest"
     assert baseline_sources[-1].fingerprint != changed_sources[-1].fingerprint

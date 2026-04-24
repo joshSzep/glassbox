@@ -16,16 +16,26 @@ from pydantic_ai.messages import (
     ToolReturnPart,
     UserPromptPart,
 )
-from pydantic_ai.models.function import FunctionModel
+from pydantic_ai.models.function import DeltaToolCall, FunctionModel
 
-from glassbox.core import EventEnvelope, SessionConfig
-from glassbox.core.events import ReplayArtifactRecorded
+from glassbox.core import ApprovalDecision, EventEnvelope, SessionConfig
+from glassbox.core.events import (
+    ApprovalRequested,
+    ReplayArtifactRecorded,
+    ToolArtifactRecorded,
+)
 from glassbox.llm import (
     ModelProviderConfig,
     PydanticAIModelAdapter,
     PydanticAIModelExecutor,
 )
-from glassbox.runtime import EventBus, SessionSupervisor, TurnContextBuilder, TurnEngine
+from glassbox.runtime import (
+    PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
+    EventBus,
+    SessionSupervisor,
+    TurnContextBuilder,
+    TurnEngine,
+)
 from glassbox.store import (
     FilesystemArtifactRepository,
     SQLiteSessionRepository,
@@ -38,6 +48,7 @@ from glassbox.tools import (
     ToolPolicyEngine,
     ToolRuntime,
     build_read_only_tool_registry,
+    build_workflow_tool_registry,
 )
 
 
@@ -358,6 +369,119 @@ def test_turn_engine_records_replay_tool_request_and_result_artifacts(
     asyncio.run(scenario())
 
 
+def test_turn_engine_records_pytest_failure_digest_for_later_turns(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "test_fail.py").write_text(
+        "def test_failure():\n    assert False\n",
+        encoding="utf-8",
+    )
+
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = TurnEngine(
+                repository,
+                bus,
+                TurnContextBuilder(repository),
+                lambda _session: PydanticAIModelAdapter(
+                    ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+                ),
+                lambda _session: PydanticAIModelExecutor(
+                    FunctionModel(
+                        function=_run_tests_then_use_digest_response,
+                        stream_function=_stream_run_tests_then_use_digest_response,
+                        model_name="openai:gpt-5.4",
+                    )
+                ),
+                lambda session: ToolRuntime(
+                    build_workflow_tool_registry(session.cwd),
+                    ToolPolicyEngine(),
+                    ToolPolicyContext(
+                        workspace_root=session.cwd,
+                        approval_mode=ApprovalMode.CONFIRM,
+                    ),
+                ),
+                artifact_repository=artifact_repository,
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+
+            async with bus.subscribe() as subscription:
+                state = await supervisor.start_session(config)
+                await subscription.get()
+
+                await supervisor.submit_user_message(
+                    state.session_id,
+                    "Run the targeted tests",
+                )
+                first_turn_events: list[EventEnvelope] = []
+                while (
+                    not first_turn_events
+                    or first_turn_events[-1].event_type != "TurnCompleted"
+                ):
+                    first_turn_events.append(await subscription.get())
+
+                approval_payloads = [
+                    event.payload
+                    for event in repository.read_session_events(state.session_id)
+                    if isinstance(event.payload, ApprovalRequested)
+                ]
+                assert len(approval_payloads) == 1
+
+                await supervisor.resolve_approval(
+                    state.session_id,
+                    approval_payloads[0].approval_id,
+                    ApprovalDecision.APPROVED,
+                )
+
+                resumed_events: list[EventEnvelope] = []
+                while (
+                    not resumed_events
+                    or resumed_events[-1].event_type != "TurnCompleted"
+                ):
+                    resumed_events.append(await subscription.get())
+
+                await supervisor.submit_user_message(
+                    state.session_id,
+                    "Summarize the latest failure",
+                )
+                second_turn_events: list[EventEnvelope] = []
+                while (
+                    not second_turn_events
+                    or second_turn_events[-1].event_type != "TurnCompleted"
+                ):
+                    second_turn_events.append(await subscription.get())
+
+            artifact_events = [
+                event.payload
+                for event in repository.read_session_events(state.session_id)
+                if isinstance(event.payload, ToolArtifactRecorded)
+                and event.payload.artifact_kind == PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
+            ]
+            transcript = repository.list_transcript_messages(state.session_id)
+            assert artifact_events[0].path is not None
+            artifact_payload = json.loads(
+                artifact_repository.read_text_artifact(Path(artifact_events[0].path))
+            )
+        finally:
+            connection.close()
+
+        assert len(artifact_events) == 1
+        assert artifact_payload["failure_count"] == 1
+        assert artifact_payload["failing_tests"] == ["test_fail.py::test_failure"]
+        assert transcript[-1].parts[0].text == "Latest failure summarized."
+
+    asyncio.run(scenario())
+
+
 def _tool_then_text_response(messages, _agent_info) -> ModelResponse:
     saw_tool_return = False
     tool_content = None
@@ -410,3 +534,62 @@ def _blocked_tool_response(messages, _agent_info) -> ModelResponse:
             )
         ]
     )
+
+
+def _run_tests_then_use_digest_response(messages, _agent_info) -> ModelResponse:
+    saw_tool_return = False
+    user_prompt = None
+    system_prompt_text = None
+    tool_content = None
+
+    for message in messages:
+        if isinstance(message, ModelRequest):
+            for part in message.parts:
+                if isinstance(part, SystemPromptPart):
+                    system_prompt_text = part.content
+                if isinstance(part, UserPromptPart):
+                    user_prompt = part.content
+                if isinstance(part, ToolReturnPart) and part.tool_name == "run_tests":
+                    saw_tool_return = True
+                    tool_content = part.content
+
+    assert user_prompt is not None
+    if user_prompt == "Run the targeted tests":
+        if not saw_tool_return:
+            return ModelResponse(
+                parts=[
+                    ToolCallPart(
+                        tool_name="run_tests",
+                        args={"paths": ["test_fail.py"]},
+                        tool_call_id="provider-call-run-tests-1",
+                    )
+                ]
+            )
+
+        assert isinstance(tool_content, dict)
+        assert tool_content["failed"] == 1
+        return ModelResponse(parts=[TextPart(content="Captured failing test.")])
+
+    assert user_prompt == "Summarize the latest failure"
+    assert system_prompt_text is not None
+    assert "Artifact-backed context:" in system_prompt_text
+    assert "[pytest_failure_digest]" in system_prompt_text
+    assert "test_fail.py::test_failure" in system_prompt_text
+    return ModelResponse(parts=[TextPart(content="Latest failure summarized.")])
+
+
+async def _stream_run_tests_then_use_digest_response(messages, agent_info):
+    response = _run_tests_then_use_digest_response(messages, agent_info)
+    first_part = response.parts[0]
+    if isinstance(first_part, TextPart):
+        yield first_part.content
+        return
+
+    assert isinstance(first_part, ToolCallPart)
+    yield {
+        0: DeltaToolCall(
+            name=first_part.tool_name,
+            json_args=json.dumps(first_part.args),
+            tool_call_id=first_part.tool_call_id,
+        )
+    }

@@ -50,7 +50,9 @@ from glassbox.llm import (
     PydanticAIModelExecutor,
 )
 from glassbox.runtime import (
+    PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
     EventBus,
+    PytestFailureDigestArtifact,
     ReplayRunner,
     RuntimeContext,
     RuntimeInfrastructure,
@@ -385,6 +387,21 @@ def test_cli_status_includes_runtime_context_summary(
                 ),
             )
         )
+        artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+        artifact_repository.record_text_artifact(
+            session_id,
+            new_turn_id(),
+            new_tool_call_id(),
+            PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
+            json.dumps(
+                PytestFailureDigestArtifact(
+                    target_paths=["tests/unit/test_context_builder.py"],
+                    failure_count=1,
+                    failing_tests=["tests/unit/test_context_builder.py::test_failure"],
+                ).model_dump(mode="json")
+            ),
+            suffix="json",
+        )
     finally:
         connection.close()
 
@@ -408,6 +425,11 @@ def test_cli_status_includes_runtime_context_summary(
     assert "[repo] README.md is the primary entrypoint" in captured.out
     assert "Working set:" in captured.out
     assert "[note] [repo] README.md is the primary entrypoint" in captured.out
+    assert "Artifact-backed context: 1 visible" in captured.out
+    assert (
+        "[pytest_failure_digest] 1 failing test(s) for "
+        "tests/unit/test_context_builder.py (fresh)" in captured.out
+    )
 
 
 def test_cli_replay_reports_manifest_drift_and_exit_code(

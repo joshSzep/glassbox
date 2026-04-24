@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import sqlite3
 from pathlib import Path
 
@@ -28,6 +29,10 @@ from glassbox.core.ids import (
 )
 from glassbox.runtime import EventBus, SessionSupervisor
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
+from glassbox.runtime.context_builder import (
+    PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
+    PytestFailureDigestArtifact,
+)
 from glassbox.store import (
     SQLiteSessionRepository,
     initialize_database,
@@ -245,6 +250,83 @@ def test_get_session_includes_transcript_messages(tmp_path: Path) -> None:
             assert any(
                 any(part["text"] == "Hello!" for part in m["parts"])
                 for m in user_messages
+            )
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_get_session_includes_artifact_backed_context(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app, runtime_context = _make_app(tmp_path, connection)
+            repo = runtime_context.repositories.sessions
+            artifact_repo = runtime_context.repositories.artifacts
+            bus: EventBus[EventEnvelope] = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(repo, bus)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+            state = await supervisor.start_session(config)
+            tool_call_id = new_tool_call_id()
+            turn_id = new_turn_id()
+            artifact_repo.record_text_artifact(
+                state.session_id,
+                turn_id,
+                tool_call_id,
+                PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
+                json.dumps(
+                    PytestFailureDigestArtifact(
+                        target_paths=["tests/unit/test_context_builder.py"],
+                        failure_count=1,
+                        failing_tests=[
+                            "tests/unit/test_context_builder.py::test_failure"
+                        ],
+                    ).model_dump(mode="json")
+                ),
+                suffix="json",
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get(f"/sessions/{state.session_id}")
+
+            assert response.status_code == 200
+            body = response.json()
+            assert body["runtime_context"]["artifact_context"]["summaries"] == [
+                {
+                    "summary_kind": "pytest_failure_digest",
+                    "provenance_class": "artifact_backed_summary",
+                    "source_tool_name": "run_tests",
+                    "artifact_kind": "context_pytest_failure_digest",
+                    "artifact_path": body["runtime_context"]["artifact_context"][
+                        "summaries"
+                    ][0]["artifact_path"],
+                    "summary": (
+                        "1 failing test(s) for tests/unit/test_context_builder.py"
+                    ),
+                    "freshness": "fresh",
+                    "target_paths": ["tests/unit/test_context_builder.py"],
+                    "keyword_filter": None,
+                    "failing_tests": [
+                        "tests/unit/test_context_builder.py::test_failure"
+                    ],
+                    "failure_count": 1,
+                    "error_count": 0,
+                    "timed_out": False,
+                    "inherited": False,
+                    "source_tool_call_id": str(tool_call_id),
+                }
+            ]
+            assert (
+                body["runtime_context"]["artifact_context"]["additional_summary_count"]
+                == 0
             )
         finally:
             connection.close()

@@ -32,6 +32,13 @@ def build_system_prompt(turn_context: TurnContext) -> str:
         sections.append(build_memory_notes_prompt_fragment(turn_context.memory_notes))
     if turn_context.working_set is not None and turn_context.working_set.items:
         sections.append(build_working_set_prompt_fragment(turn_context.working_set))
+    if (
+        turn_context.artifact_context is not None
+        and turn_context.artifact_context.summaries
+    ):
+        sections.append(
+            build_artifact_backed_context_prompt_fragment(turn_context.artifact_context)
+        )
 
     return "\n\n".join(section for section in sections if section != "")
 
@@ -148,4 +155,29 @@ def build_working_set_prompt_fragment(working_set) -> str:
         )
     if working_set.additional_item_count:
         lines.append(f"- +{working_set.additional_item_count} more working-set item(s)")
+    return "\n".join(lines)
+
+
+def build_artifact_backed_context_prompt_fragment(artifact_context) -> str:
+    """Return fresh artifact-backed context summaries for the current turn."""
+
+    fresh_summaries = [
+        summary
+        for summary in artifact_context.summaries
+        if summary.freshness == "fresh"
+    ]
+    if not fresh_summaries:
+        return ""
+
+    lines = ["Artifact-backed context:"]
+    for summary in fresh_summaries:
+        lines.append(f"- [{summary.summary_kind}] {summary.summary}")
+        if summary.failing_tests:
+            lines.append("  Failing tests: " + ", ".join(summary.failing_tests[:3]))
+    if artifact_context.additional_summary_count:
+        lines.append(
+            "- +"
+            f"{artifact_context.additional_summary_count} more artifact summary "
+            "item(s)"
+        )
     return "\n".join(lines)

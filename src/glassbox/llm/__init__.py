@@ -22,6 +22,7 @@ from glassbox.llm.executor import (
 )
 from glassbox.llm.prompts import (
     build_approval_policy_prompt_fragment,
+    build_artifact_backed_context_prompt_fragment,
     build_memory_notes_prompt_fragment,
     build_output_style_prompt_fragment,
     build_repo_context_prompt_fragment,
@@ -46,6 +47,7 @@ __all__ = [
     "PydanticAIModelAdapter",
     "PydanticAIStreamTranslator",
     "build_approval_policy_prompt_fragment",
+    "build_artifact_backed_context_prompt_fragment",
     "build_anthropic_model_executor",
     "build_local_text_model_executor",
     "build_memory_notes_prompt_fragment",

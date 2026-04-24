@@ -7,6 +7,8 @@ from uuid import uuid4
 from glassbox.core.types import SessionStatus
 from glassbox.llm import build_system_prompt, build_tool_usage_prompt_fragment
 from glassbox.runtime import (
+    ArtifactBackedContextSnapshot,
+    ArtifactBackedContextSummarySnapshot,
     PolicyContext,
     ToolSchema,
     TurnContext,
@@ -62,6 +64,25 @@ def test_build_system_prompt_includes_policy_tools_repo_and_memory() -> None:
                 )
             ]
         ),
+        artifact_context=ArtifactBackedContextSnapshot(
+            summaries=[
+                ArtifactBackedContextSummarySnapshot(
+                    summary_kind="pytest_failure_digest",
+                    source_tool_name="run_tests",
+                    artifact_kind="context_pytest_failure_digest",
+                    artifact_path=(
+                        ".glassbox/sessions/session-123/artifacts/failure-digest.json"
+                    ),
+                    summary=(
+                        "1 failing test(s) for tests/unit/test_context_builder.py"
+                    ),
+                    target_paths=["tests/unit/test_context_builder.py"],
+                    failing_tests=[
+                        "tests/unit/test_context_builder.py::test_example_failure"
+                    ],
+                )
+            ]
+        ),
     )
 
     prompt = build_system_prompt(turn_context)
@@ -77,6 +98,9 @@ def test_build_system_prompt_includes_policy_tools_repo_and_memory() -> None:
     assert "Avoid claiming unseen file changes." in prompt
     assert "Working set:" in prompt
     assert "[file] src/glassbox/runtime/context_builder.py" in prompt
+    assert "Artifact-backed context:" in prompt
+    assert "pytest_failure_digest" in prompt
+    assert "tests/unit/test_context_builder.py::test_example_failure" in prompt
     assert prompt.index("read_file: Read a file from disk.") < prompt.index(
         "shell: Run a shell command."
     )
@@ -100,6 +124,7 @@ def test_build_system_prompt_handles_missing_optional_context() -> None:
     assert "Repository context:" not in prompt
     assert "Memory notes:" not in prompt
     assert "Working set:" not in prompt
+    assert "Artifact-backed context:" not in prompt
 
 
 def test_tool_usage_fragment_is_stable_and_includes_schema() -> None:

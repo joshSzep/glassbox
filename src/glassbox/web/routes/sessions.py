@@ -20,12 +20,15 @@ from glassbox.core.events import (
 from glassbox.core.models import TranscriptMessage
 from glassbox.core.types import ApprovalStatus, ToolExecutionStatus
 from glassbox.runtime import (
+    ArtifactBackedContextSnapshot,
+    ArtifactBackedContextSummarySnapshot,
     RuntimeContextNoteSnapshot,
     RuntimeContextSnapshot,
     WorkingSetItemSnapshot,
     WorkingSetSnapshot,
 )
 from glassbox.runtime.context_builder import (
+    build_artifact_backed_context_snapshot,
     build_runtime_context_snapshot,
     build_working_set_snapshot,
 )
@@ -410,6 +413,11 @@ async def get_session_snapshot(
         record.cwd,
         runtime_notes,
         working_set=working_set,
+        artifact_context=build_artifact_backed_context_snapshot(
+            repo,
+            context.repositories.artifacts,
+            session_id,
+        ),
     )
 
     return SessionSnapshotResponse(
@@ -544,6 +552,30 @@ async def get_session_snapshot(
                     for item in runtime_context.working_set.items
                 ],
                 additional_item_count=runtime_context.working_set.additional_item_count,
+            ),
+            artifact_context=ArtifactBackedContextSnapshot(
+                summaries=[
+                    ArtifactBackedContextSummarySnapshot(
+                        summary_kind=summary.summary_kind,
+                        source_tool_name=summary.source_tool_name,
+                        artifact_kind=summary.artifact_kind,
+                        artifact_path=summary.artifact_path,
+                        summary=summary.summary,
+                        freshness=summary.freshness,
+                        target_paths=list(summary.target_paths),
+                        keyword_filter=summary.keyword_filter,
+                        failing_tests=list(summary.failing_tests),
+                        failure_count=summary.failure_count,
+                        error_count=summary.error_count,
+                        timed_out=summary.timed_out,
+                        inherited=summary.inherited,
+                        source_tool_call_id=summary.source_tool_call_id,
+                    )
+                    for summary in runtime_context.artifact_context.summaries
+                ],
+                additional_summary_count=(
+                    runtime_context.artifact_context.additional_summary_count
+                ),
             ),
         ),
     )

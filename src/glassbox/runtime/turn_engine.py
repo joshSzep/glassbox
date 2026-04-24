@@ -29,6 +29,7 @@ from glassbox.core.events import (
     ModelToolCallRequested,
     ReplayArtifactRecorded,
     SessionFailed,
+    ToolArtifactRecorded,
     ToolExecutionCompleted,
     ToolExecutionStarted,
     ToolOutputChunk,
@@ -62,8 +63,11 @@ from glassbox.llm import (
 )
 from glassbox.runtime.bus import EventBus
 from glassbox.runtime.context_builder import (
+    PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
     TurnContext,
     TurnContextBuilder,
+    build_artifact_backed_context_snapshot,
+    build_pytest_failure_digest_artifact,
     build_repository_context_snapshot,
     build_working_set_snapshot,
     format_repository_context_for_prompt,
@@ -88,6 +92,7 @@ TurnEnginePayload = (
     | ModelToolCallRequested
     | ReplayArtifactRecorded
     | SessionFailed
+    | ToolArtifactRecorded
     | ToolExecutionStarted
     | ToolExecutionCompleted
     | ToolOutputChunk
@@ -120,6 +125,7 @@ class TurnEngine:
         self._model_adapter_factory = model_adapter_factory
         self._model_executor_factory = model_executor_factory
         self._tool_runtime_factory = tool_runtime_factory
+        self._artifact_repository = artifact_repository
         self._replay_recorder = (
             ReplayArtifactRecorder(session_repository, artifact_repository)
             if artifact_repository is not None
@@ -509,6 +515,12 @@ class TurnEngine:
                         )
                     ],
                 )
+                self._record_context_artifacts_for_tool_execution(
+                    event.session_id,
+                    turn_id=turn_id,
+                    prepared_tool_call=prepared_tool_call,
+                    execution_result=execution_result,
+                )
                 self._record_replay_tool_execution_result(
                     event.session_id,
                     turn_id=turn_id,
@@ -568,6 +580,16 @@ class TurnEngine:
             working_set=build_working_set_snapshot(
                 self._session_repository,
                 session_id,
+            ),
+            artifact_context=(
+                build_artifact_backed_context_snapshot(
+                    self._session_repository,
+                    self._artifact_repository,
+                    session_id,
+                    include_stale=False,
+                )
+                if self._artifact_repository is not None
+                else None
             ),
         )
 
@@ -1025,6 +1047,12 @@ class TurnEngine:
                     )
                 ],
             )
+            self._record_context_artifacts_for_tool_execution(
+                session_id,
+                turn_id=turn_id,
+                prepared_tool_call=prepared_tool_call,
+                execution_result=execution_result,
+            )
             self._record_replay_tool_execution_result(
                 session_id,
                 turn_id=turn_id,
@@ -1128,6 +1156,41 @@ class TurnEngine:
             summary=summary,
             error_message=error_message,
         )
+
+    def _record_context_artifacts_for_tool_execution(
+        self,
+        session_id,
+        *,
+        turn_id,
+        prepared_tool_call,
+        execution_result,
+    ) -> None:
+        if self._artifact_repository is None:
+            return
+        if prepared_tool_call.tool_name != "run_tests":
+            return
+
+        pytest_failure_digest = build_pytest_failure_digest_artifact(
+            prepared_tool_call.validated_arguments.model_dump(mode="json"),
+            execution_result.output_payload,
+        )
+        if pytest_failure_digest is None:
+            return
+
+        _, stored_event = self._artifact_repository.record_text_artifact(
+            session_id,
+            turn_id,
+            execution_result.event_tool_call_id,
+            PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
+            json.dumps(
+                pytest_failure_digest.model_dump(mode="json"),
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            suffix="json",
+        )
+        self._event_bus.publish(stored_event)
 
     def _record_replay_turn_output(
         self,

@@ -1,7 +1,9 @@
 """Unit tests for the runtime turn context builder."""
 
+import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Never
 
 import pytest
 from pydantic import BaseModel
@@ -31,6 +33,10 @@ from glassbox.core import (
 )
 from glassbox.core.models import ApprovalRecord
 from glassbox.runtime import (
+    PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
+    ArtifactBackedContextSnapshot,
+    ArtifactBackedContextSummarySnapshot,
+    PytestFailureDigestArtifact,
     RepositoryContextSnapshot,
     RuntimeContextNoteSnapshot,
     RuntimeContextSnapshot,
@@ -38,6 +44,8 @@ from glassbox.runtime import (
     TurnContextBuilder,
     WorkingSetItemSnapshot,
     WorkingSetSnapshot,
+    build_artifact_backed_context_snapshot,
+    build_pytest_failure_digest_artifact,
     build_repository_context_snapshot,
     build_runtime_context_snapshot,
     build_working_set_snapshot,
@@ -186,6 +194,53 @@ class FakeSessionRepository:
 
     def build_imported_transcript_events(self, session_id, fork_point):
         return []
+
+
+class FakeArtifactRepository:
+    def __init__(self, text_artifacts: dict[str, str]) -> None:
+        self._text_artifacts = dict(text_artifacts)
+
+    def write_text_artifact(self, session_id, content: str, *, suffix: str):
+        raise NotImplementedError
+
+    def write_binary_artifact(self, session_id, content: bytes, *, suffix: str):
+        raise NotImplementedError
+
+    def read_text_artifact(
+        self,
+        relative_path: Path,
+        *,
+        encoding: str = "utf-8",
+    ) -> str:
+        del encoding
+        return self._text_artifacts[relative_path.as_posix()]
+
+    def read_binary_artifact(self, relative_path: Path) -> bytes:
+        raise NotImplementedError
+
+    def record_text_artifact(
+        self,
+        session_id,
+        turn_id,
+        tool_call_id,
+        artifact_kind: str,
+        content: str,
+        *,
+        suffix: str,
+    ) -> Never:
+        raise NotImplementedError
+
+    def record_binary_artifact(
+        self,
+        session_id,
+        turn_id,
+        tool_call_id,
+        artifact_kind: str,
+        content: bytes,
+        *,
+        suffix: str,
+    ) -> Never:
+        raise NotImplementedError
 
 
 def test_turn_context_builder_orders_transcript_and_includes_policy_and_tools() -> None:
@@ -575,6 +630,176 @@ def test_runtime_context_snapshot_includes_working_set_summary(tmp_path: Path) -
         ],
         additional_item_count=1,
     )
+
+
+def test_runtime_context_snapshot_includes_artifact_backed_summary() -> None:
+    runtime_context = build_runtime_context_snapshot(
+        Path("/tmp/glassbox"),
+        [],
+        artifact_context=ArtifactBackedContextSnapshot(
+            summaries=[
+                ArtifactBackedContextSummarySnapshot(
+                    summary_kind="pytest_failure_digest",
+                    source_tool_name="run_tests",
+                    artifact_kind=PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
+                    artifact_path=".glassbox/sessions/session-123/artifacts/digest.json",
+                    summary="1 failing test(s) for tests/unit/test_context_builder.py",
+                    target_paths=["tests/unit/test_context_builder.py"],
+                    failing_tests=[
+                        "tests/unit/test_context_builder.py::test_example_failure"
+                    ],
+                    failure_count=1,
+                )
+            ]
+        ),
+    )
+
+    assert runtime_context.artifact_context == ArtifactBackedContextSnapshot(
+        summaries=[
+            ArtifactBackedContextSummarySnapshot(
+                summary_kind="pytest_failure_digest",
+                source_tool_name="run_tests",
+                artifact_kind=PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
+                artifact_path=".glassbox/sessions/session-123/artifacts/digest.json",
+                summary="1 failing test(s) for tests/unit/test_context_builder.py",
+                target_paths=["tests/unit/test_context_builder.py"],
+                failing_tests=[
+                    "tests/unit/test_context_builder.py::test_example_failure"
+                ],
+                failure_count=1,
+                error_count=0,
+                timed_out=False,
+                freshness="fresh",
+                inherited=False,
+            )
+        ],
+        additional_summary_count=0,
+    )
+
+
+def test_build_pytest_failure_digest_artifact_ignores_successful_test_runs() -> None:
+    artifact = build_pytest_failure_digest_artifact(
+        {"paths": ["tests/unit/test_context_builder.py"]},
+        {
+            "passed": 1,
+            "failed": 0,
+            "errors": 0,
+            "stdout": ".\n1 passed in 0.01s\n",
+            "stderr": "",
+            "timed_out": False,
+        },
+    )
+
+    assert artifact is None
+
+
+def test_artifact_backed_context_snapshot_tracks_freshness_and_staleness() -> None:
+    session_id = new_session_id()
+    stale_tool_call_id = new_tool_call_id()
+    current_tool_call_id = new_tool_call_id()
+    repository = FakeSessionRepository(
+        SessionRecord(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            created_at=datetime(2026, 4, 23, 12, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 4, 23, 12, 1, tzinfo=UTC),
+            cwd=Path("/tmp/glassbox"),
+            model_name="openai:gpt-5.4",
+            approval_mode="confirm",
+            last_sequence=4,
+        ),
+        SessionState(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            last_sequence=4,
+        ),
+        [],
+        events=[
+            EventEnvelope(
+                session_id=session_id,
+                sequence=1,
+                payload=ModelToolCallRequested(
+                    turn_id=new_turn_id(),
+                    tool_call_id=stale_tool_call_id,
+                    tool_name="run_tests",
+                    arguments_json='{"paths":["tests/unit/test_old.py"]}',
+                ),
+            ),
+            EventEnvelope(
+                session_id=session_id,
+                sequence=2,
+                payload=ToolArtifactRecorded(
+                    turn_id=new_turn_id(),
+                    tool_call_id=stale_tool_call_id,
+                    artifact_id=new_artifact_id(),
+                    artifact_kind=PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
+                    path=".glassbox/sessions/session/artifacts/old-digest.json",
+                ),
+            ),
+            EventEnvelope(
+                session_id=session_id,
+                sequence=3,
+                payload=ModelToolCallRequested(
+                    turn_id=new_turn_id(),
+                    tool_call_id=current_tool_call_id,
+                    tool_name="run_tests",
+                    arguments_json='{"paths":["tests/unit/test_new.py"]}',
+                ),
+            ),
+            EventEnvelope(
+                session_id=session_id,
+                sequence=4,
+                payload=ToolArtifactRecorded(
+                    turn_id=new_turn_id(),
+                    tool_call_id=current_tool_call_id,
+                    artifact_id=new_artifact_id(),
+                    artifact_kind=PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
+                    path=".glassbox/sessions/session/artifacts/new-digest.json",
+                ),
+            ),
+        ],
+    )
+    artifact_repository = FakeArtifactRepository(
+        {
+            ".glassbox/sessions/session/artifacts/old-digest.json": json.dumps(
+                PytestFailureDigestArtifact(
+                    target_paths=["tests/unit/test_old.py"],
+                    failure_count=1,
+                    failing_tests=["tests/unit/test_old.py::test_old_failure"],
+                ).model_dump(mode="json")
+            ),
+            ".glassbox/sessions/session/artifacts/new-digest.json": json.dumps(
+                PytestFailureDigestArtifact(
+                    target_paths=["tests/unit/test_new.py"],
+                    failure_count=2,
+                    failing_tests=[
+                        "tests/unit/test_new.py::test_first_failure",
+                        "tests/unit/test_new.py::test_second_failure",
+                    ],
+                ).model_dump(mode="json")
+            ),
+        }
+    )
+
+    artifact_context = build_artifact_backed_context_snapshot(
+        repository,
+        artifact_repository,
+        session_id,
+    )
+    fresh_only_context = build_artifact_backed_context_snapshot(
+        repository,
+        artifact_repository,
+        session_id,
+        include_stale=False,
+    )
+
+    assert [summary.freshness for summary in artifact_context.summaries] == [
+        "fresh",
+        "stale",
+    ]
+    assert [summary.target_paths for summary in fresh_only_context.summaries] == [
+        ["tests/unit/test_new.py"]
+    ]
 
 
 def test_working_set_snapshot_prefers_explicit_signals_and_deduplicates_paths() -> None:

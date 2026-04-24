@@ -85,6 +85,27 @@ test("hydrateFromSnapshot copies snapshot fields into dashboard state", () => {
         ],
         additional_item_count: 0,
       },
+      artifact_context: {
+        summaries: [
+          {
+            summary_kind: "pytest_failure_digest",
+            source_tool_name: "run_tests",
+            artifact_kind: "context_pytest_failure_digest",
+            artifact_path: ".glassbox/sessions/session-123/artifacts/digest.json",
+            summary: "1 failing test(s) for tests/unit/test_context_builder.py",
+            freshness: "fresh",
+            target_paths: ["tests/unit/test_context_builder.py"],
+            keyword_filter: null,
+            failing_tests: ["tests/unit/test_context_builder.py::test_failure"],
+            failure_count: 1,
+            error_count: 0,
+            timed_out: false,
+            inherited: false,
+            source_tool_call_id: "tool-123",
+          },
+        ],
+        additional_summary_count: 0,
+      },
     },
     turn_metrics: [
       {
@@ -133,6 +154,8 @@ test("hydrateFromSnapshot copies snapshot fields into dashboard state", () => {
   assert.equal(state.runtimeContext?.repository_context.workspace_name, "workspace");
   assert.equal(state.runtimeContext?.runtime_notes[0].message, "README is the primary entrypoint");
   assert.equal(state.runtimeContext?.working_set.items[0].subject, "src/glassbox/runtime/context_builder.py");
+  assert.equal(state.runtimeContext?.artifact_context.summaries[0].summary_kind, "pytest_failure_digest");
+  assert.equal(state.runtimeContext?.artifact_context.summaries[0].failing_tests[0], "tests/unit/test_context_builder.py::test_failure");
   assert.equal(state.currentTurn?.turn_id, "turn-1");
   assert.equal(state.turnMetrics.length, 1);
   assert.equal(state.turnMetrics[0].model_duration_ms_total, 800);

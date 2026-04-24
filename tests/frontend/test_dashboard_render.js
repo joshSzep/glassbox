@@ -252,6 +252,27 @@ test("renderSelectedSessionSummary includes runtime context summary", () => {
         ],
         additional_item_count: 1,
       },
+      artifact_context: {
+        summaries: [
+          {
+            summary_kind: "pytest_failure_digest",
+            source_tool_name: "run_tests",
+            artifact_kind: "context_pytest_failure_digest",
+            artifact_path: ".glassbox/sessions/session-123/artifacts/digest.json",
+            summary: "1 failing test(s) for tests/unit/test_context_builder.py",
+            freshness: "stale",
+            target_paths: ["tests/unit/test_context_builder.py"],
+            keyword_filter: null,
+            failing_tests: ["tests/unit/test_context_builder.py::test_failure"],
+            failure_count: 1,
+            error_count: 0,
+            timed_out: false,
+            inherited: true,
+            source_tool_call_id: "tool-123",
+          },
+        ],
+        additional_summary_count: 0,
+      },
     },
     turn_metrics: [],
     transcript: [],
@@ -262,6 +283,10 @@ test("renderSelectedSessionSummary includes runtime context summary", () => {
   assert.match(html, /Runtime context/);
   assert.match(html, /High-signal paths/);
   assert.match(html, /README is the operator entrypoint/);
+  assert.match(html, /Artifact-backed context/i);
+  assert.match(html, /pytest_failure_digest/i);
+  assert.match(html, /stale/);
+  assert.match(html, /test_context_builder\.py::test_failure/i);
   assert.match(html, /Working set/);
   assert.match(html, /src\/glassbox\/runtime\/context_builder\.py/);
   assert.match(html, /\+1 more working-set item/);

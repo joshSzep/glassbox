@@ -108,12 +108,32 @@ function renderRuntimeContextSummary(state) {
         <div class="selected-session-value">none</div>
       </div>`;
 
+  const artifactContextHtml = runtimeContext.artifact_context?.summaries?.length > 0
+    ? `<div class="selected-session-item selected-session-item-wide">
+        <div class="selected-session-label">Artifact-backed context</div>
+        <div class="selected-session-value">${runtimeContext.artifact_context.summaries.map(summary => {
+          const freshnessSuffix = summary.freshness ? ` (${summary.freshness})` : "";
+          const inheritedSuffix = summary.inherited ? " (inherited)" : "";
+          const failingTestsSuffix = summary.failing_tests.length > 0
+            ? `: failing tests: ${summary.failing_tests.slice(0, 2).join(", ")}`
+            : "";
+          return `<div>${escHtml(`[${summary.summary_kind}] ${summary.summary}${freshnessSuffix}${inheritedSuffix}${failingTestsSuffix}`)}</div>`;
+        }).join("")}${runtimeContext.artifact_context.additional_summary_count > 0
+          ? `<div>${escHtml(`+${runtimeContext.artifact_context.additional_summary_count} more artifact-backed summary item(s)`)}</div>`
+          : ""}</div>
+      </div>`
+    : `<div class="selected-session-item selected-session-item-wide">
+        <div class="selected-session-label">Artifact-backed context</div>
+        <div class="selected-session-value">none</div>
+      </div>`;
+
   return `<div class="selected-session-runtime-context">
     <div class="selected-session-label">Runtime context</div>
     <div class="selected-session-grid">
       ${repositoryHtml}
       ${runtimeNotesHtml}
       ${workingSetHtml}
+      ${artifactContextHtml}
     </div>
   </div>`;
 }

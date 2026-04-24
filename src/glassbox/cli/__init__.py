@@ -34,6 +34,7 @@ from glassbox.runtime import (
     ReplayResult,
     ReplayRunner,
     RuntimeContext,
+    build_artifact_backed_context_snapshot,
     build_runtime_context_snapshot,
     build_working_set_snapshot,
     open_runtime_context,
@@ -675,7 +676,11 @@ def _status_command(args: argparse.Namespace) -> int:
     cwd, db_path = _resolve_runtime_location(args)
 
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
-        _print_session_status(runtime_context.repositories.sessions, args.session_id)
+        _print_session_status(
+            runtime_context.repositories.sessions,
+            runtime_context.repositories.artifacts,
+            args.session_id,
+        )
 
     return 0
 
@@ -816,7 +821,11 @@ async def _interactive_session_loop(
             print(_interactive_help_text(mode))
             continue
         if action_kind == "status":
-            _print_session_status(repository, session_id)
+            _print_session_status(
+                repository,
+                runtime_context.repositories.artifacts,
+                session_id,
+            )
             continue
         if action_kind == "approve":
             if state.status != SessionStatus.AWAITING_APPROVAL:
@@ -1131,7 +1140,7 @@ def _interactive_help_text(mode: str) -> str:
     return "\n".join(lines)
 
 
-def _print_session_status(repository, session_id: UUID) -> None:
+def _print_session_status(repository, artifact_repository, session_id: UUID) -> None:
     record = repository.get_session(session_id)
     state = repository.get_session_state(session_id)
     if record is None or state is None:
@@ -1153,6 +1162,11 @@ def _print_session_status(repository, session_id: UUID) -> None:
         record.cwd,
         repository.list_runtime_notes(session_id),
         working_set=build_working_set_snapshot(repository, session_id),
+        artifact_context=build_artifact_backed_context_snapshot(
+            repository,
+            artifact_repository,
+            session_id,
+        ),
     )
     dashboard_url = _dashboard_url_from_events(session_events)
     latest_session_failure = _latest_session_failure(session_events)
@@ -1282,6 +1296,32 @@ def _print_runtime_context_summary(runtime_context) -> None:
             )
     else:
         print("  Working set: none")
+
+    if runtime_context.artifact_context.summaries:
+        print(
+            "  Artifact-backed context: "
+            f"{len(runtime_context.artifact_context.summaries)} visible"
+        )
+        for summary in runtime_context.artifact_context.summaries:
+            freshness_suffix = f" ({summary.freshness})"
+            inherited_suffix = " (inherited)" if summary.inherited else ""
+            failing_tests_suffix = ""
+            if summary.failing_tests:
+                failing_tests_suffix = ": failing tests: " + ", ".join(
+                    summary.failing_tests[:2]
+                )
+            print(
+                f"    - [{summary.summary_kind}] {summary.summary}"
+                f"{freshness_suffix}{inherited_suffix}{failing_tests_suffix}"
+            )
+        if runtime_context.artifact_context.additional_summary_count:
+            print(
+                "    - "
+                f"+{runtime_context.artifact_context.additional_summary_count} "
+                "more artifact-backed summary item(s)"
+            )
+    else:
+        print("  Artifact-backed context: none")
 
 
 def _print_replay_report(result: ReplayResult) -> None:

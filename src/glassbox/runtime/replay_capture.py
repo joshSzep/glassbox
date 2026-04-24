@@ -568,6 +568,53 @@ def build_replay_enriched_context_sources(
             )
         )
 
+    artifact_context_payload = turn_context_payload.get("artifact_context")
+    artifact_context_summaries = []
+    artifact_context_additional_count = 0
+    if isinstance(artifact_context_payload, dict):
+        artifact_context_summaries = list(
+            artifact_context_payload.get("summaries") or []
+        )
+        artifact_context_additional_count = int(
+            artifact_context_payload.get("additional_summary_count") or 0
+        )
+    if artifact_context_summaries:
+        normalized_summaries = sorted(
+            [
+                _normalize_artifact_context_summary_payload(summary)
+                for summary in artifact_context_summaries
+                if isinstance(summary, dict)
+            ],
+            key=lambda summary: (
+                summary["summary_kind"],
+                summary["summary"],
+                summary["failure_count"],
+                summary["error_count"],
+            ),
+        )
+        summary_kinds = {summary["summary_kind"] for summary in normalized_summaries}
+        manifests.append(
+            ReplayEnrichedContextSourceManifest(
+                source_name=(
+                    next(iter(summary_kinds))
+                    if len(summary_kinds) == 1
+                    else "artifact_context"
+                ),
+                provenance_class="artifact_backed_summary",
+                fingerprint=_fingerprint_payload({"summaries": normalized_summaries}),
+                inherited=any(
+                    summary.get("inherited") is True for summary in normalized_summaries
+                ),
+                item_count=len(normalized_summaries),
+                additional_item_count=artifact_context_additional_count,
+                summary=(
+                    f"{len(normalized_summaries)} artifact-backed summary item(s)"
+                    if len(normalized_summaries) != 1
+                    else "1 artifact-backed summary item"
+                ),
+            )
+        )
+
     return manifests
 
 
@@ -579,6 +626,7 @@ def fingerprint_replay_enriched_context_payload(
             "repo_context": turn_context_payload.get("repo_context"),
             "memory_notes": list(turn_context_payload.get("memory_notes") or []),
             "working_set": turn_context_payload.get("working_set"),
+            "artifact_context": turn_context_payload.get("artifact_context"),
         }
     )
 
@@ -698,6 +746,7 @@ def _normalize_system_prompt_content(content: str) -> str:
         and not section.startswith("Repository context:")
         and not section.startswith("Memory notes:")
         and not section.startswith("Working set:")
+        and not section.startswith("Artifact-backed context:")
     ]
     return "\n\n".join(filtered_sections)
 
@@ -767,6 +816,41 @@ def _normalize_working_set_item_payload(item: dict[str, Any]) -> dict[str, Any]:
         "reasons": normalized_reasons,
         "signal_types": normalized_signal_types,
         "inherited": bool(item.get("inherited")),
+    }
+
+
+def _normalize_artifact_context_summary_payload(
+    summary: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "summary_kind": str(summary.get("summary_kind") or "").strip(),
+        "summary": str(summary.get("summary") or "").strip(),
+        "source_tool_name": str(summary.get("source_tool_name") or "").strip(),
+        "target_paths": sorted(
+            {
+                path.strip()
+                for path in list(summary.get("target_paths") or [])
+                if isinstance(path, str) and path.strip() != ""
+            },
+            key=str.casefold,
+        ),
+        "keyword_filter": (
+            str(summary.get("keyword_filter")).strip()
+            if summary.get("keyword_filter") not in (None, "")
+            else None
+        ),
+        "failing_tests": sorted(
+            {
+                failing_test.strip()
+                for failing_test in list(summary.get("failing_tests") or [])
+                if isinstance(failing_test, str) and failing_test.strip() != ""
+            },
+            key=str.casefold,
+        ),
+        "failure_count": int(summary.get("failure_count") or 0),
+        "error_count": int(summary.get("error_count") or 0),
+        "timed_out": bool(summary.get("timed_out")),
+        "inherited": bool(summary.get("inherited")),
     }
 
 
