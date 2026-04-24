@@ -476,7 +476,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R140: Split Replay Execution, Bundle I/O, Normalization, And Triage
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R101`, `GBX-R112`
 - Goal: reduce `replay.py` by separating bundle loading/export, replay execution, normalized-state comparison, and outcome triage
 - Deliverables:
