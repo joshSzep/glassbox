@@ -2000,6 +2000,167 @@ uv run ty check src/glassbox/path.py
 
 ---
 
+## Phase 21: Session Branching And Time-Travel
+
+### GBX-210: Define Session Branching And Time-Travel Operator Model
+
+- Status: `TODO`
+- Depends on: `GBX-100`, `GBX-101`, `GBX-181`, `GBX-190`, `GBX-121`
+- Goal: define how Glassbox should support historical inspection and forked follow-up work without breaking the current event-sourced session model
+- Deliverables:
+  - architecture and operator-workflow updates defining session branching, historical inspection, and fork semantics
+  - explicit v1 scope boundary for stable fork points such as the latest completed turn or a selected completed turn
+  - explicit non-goals for v1 such as in-place rewind, event deletion, checkpoint resurrection, or forking from mid-turn transient state
+  - terminology and command-surface proposal for branch or fork actions across CLI and dashboard flows
+- Implementation notes:
+  - preserve the current immutable event-log model; time-travel in v1 should create a new child session rather than mutating or truncating the source session
+  - define the operator-facing cut-point contract in terms of meaningful turn boundaries, even if storage resolves that to an event sequence internally
+  - keep the first version compatible with the current snapshot, SSE, resume, replay, and eval semantics rather than inventing a second history model
+  - be explicit about whether child sessions inherit transcript history only, richer read models, or raw prior events; the chosen contract must stay auditable and replayable
+- Tests and validation included in task:
+  - architecture and doc review against the current event, projection, replay, and standalone-dashboard flows before implementation begins
+  - manual validation that the proposed operator workflow does not contradict existing approval, `ask_user`, resume, or historical snapshot semantics
+- Done when:
+  - the repo has a clear, code-aligned design for how historical session forking works, what counts as a valid fork point, and what is intentionally out of scope for v1
+
+### GBX-211: Add Session Lineage Schema And Persisted Contracts
+
+- Status: `TODO`
+- Depends on: `GBX-210`
+- Goal: extend the canonical persistence and domain models so forked sessions can record parentage and historical cut-point metadata explicitly
+- Deliverables:
+  - lineage fields in the relevant core models and event payloads such as parent session ID, fork source turn ID, fork source sequence, and optional branch label
+  - SQLite schema updates for session lineage metadata with appropriate indexes for parent-child browsing
+  - backward-compatible repository read and write paths for sessions without lineage metadata
+- Implementation notes:
+  - keep lineage as explicit persisted metadata rather than recomputing ancestry heuristically from transcript similarity or artifact names
+  - preserve compatibility with existing sessions and replay bundles that predate branching support
+  - do not turn session metadata into a richer shadow source of truth for mutable runtime state; lineage should describe ancestry, not replace events
+- Tests and validation included in task:
+  - unit and integration tests for model serialization, schema bootstrap, and repository access with and without lineage metadata
+  - tests proving older sessions remain readable after the schema and model changes
+- Done when:
+  - Glassbox can persist and query parent-child session lineage without regressing existing session creation, listing, snapshot, or replay behavior
+
+### GBX-212: Implement Historical Fork-Point Resolution And Imported-History Event Flow
+
+- Status: `TODO`
+- Depends on: `GBX-210`, `GBX-211`, `GBX-024`
+- Goal: make fork creation deterministic by resolving stable historical cut points and materializing the inherited conversation state into the child session explicitly
+- Deliverables:
+  - service or repository helper for resolving valid fork points from a parent session, including latest completed turn and explicit completed-turn selection
+  - event model and projection support for importing inherited transcript history into a child session as canonical child-session data
+  - rejection path for invalid fork points such as active turns, pending approvals, pending questions, failed partial turn state, or unknown turn identifiers
+- Implementation notes:
+  - keep child sessions self-contained for prompt assembly and browser snapshots; avoid requiring the runtime to chase parent ancestry on every turn
+  - prefer importing the normalized conversation state needed for continuation over blindly copying every historical parent event into the child
+  - define deterministic ordering and identity rules for imported transcript messages so projections, replay, and snapshots remain stable
+  - keep this compatible with the current decision that checkpoints are unnecessary for v1; fork-point resolution should operate from canonical events and projections
+- Tests and validation included in task:
+  - integration tests for resolving valid and invalid fork points across completed, running, awaiting-approval, and awaiting-user-input sessions
+  - projection tests proving imported history reconstructs a correct child transcript without mutating the parent session
+- Done when:
+  - Glassbox can derive a valid fork boundary from persisted history and materialize the inherited transcript state into a new session deterministically
+
+### GBX-213: Implement Session Fork Service And CLI Workflow
+
+- Status: `TODO`
+- Depends on: `GBX-032`, `GBX-042`, `GBX-152`, `GBX-212`
+- Goal: let operators create a new child session from a stable historical point entirely through supported service and CLI paths
+- Deliverables:
+  - service-layer fork API for creating a child session from a parent session and selected fork point
+  - CLI command surface such as `glassbox fork SESSION_ID` with options for explicit turn selection, optional branch label, and optional immediate child-session prompt submission if justified
+  - operator-visible CLI output describing the new child session ID and the parent/cut-point relationship
+- Implementation notes:
+  - route the fork behavior through the session service boundary rather than direct CLI-to-repository code
+  - keep the first CLI workflow explicit and auditable; operators should know exactly which historical point they forked from
+  - the source session must remain untouched; the child session is the only place where new post-fork events should appear
+  - if the CLI supports immediate follow-up prompting in the child, keep that as a small adjacent step after successful child creation rather than collapsing the ancestry and turn-start semantics into one opaque action
+- Tests and validation included in task:
+  - CLI and integration tests for successful fork creation from the latest completed turn and from an explicitly selected turn
+  - negative-path tests for unknown sessions, invalid turn identifiers, and non-branchable session state
+- Done when:
+  - an operator can create a forked child session from the terminal and continue work in the child without mutating the original session
+
+### GBX-214: Expose Session Lineage And Fork Actions Through Snapshot, Index, And HTTP APIs
+
+- Status: `TODO`
+- Depends on: `GBX-181`, `GBX-183`, `GBX-213`
+- Goal: make forked-session ancestry visible and actionable through the existing browser-facing backend surfaces
+- Deliverables:
+  - snapshot and session-index response fields for parent lineage, fork source metadata, and child-session summaries where justified
+  - HTTP endpoint for creating a fork from a selected session and historical cut point
+  - backend response contracts sufficient for the dashboard to show lineage and branchability without fetching excessive additional state ad hoc
+- Implementation notes:
+  - share the same service-layer fork logic used by the CLI path; do not duplicate historical-state rules in route handlers
+  - keep the session index practical for browsing related sessions, but avoid turning the first version into a full graph query API
+  - ensure the HTTP contract distinguishes branchable historical points from sessions that are only inspectable
+- Tests and validation included in task:
+  - HTTP integration tests for lineage fields in session summaries and snapshots
+  - HTTP tests for successful and rejected fork requests, including conflict semantics for invalid session state or invalid fork-point selection
+- Done when:
+  - browser-facing clients can discover session ancestry and create a fork through stable HTTP contracts backed by the same runtime rules as the CLI
+
+### GBX-215: Implement Dashboard History Browser And Fork UX
+
+- Status: `TODO`
+- Depends on: `GBX-184`, `GBX-214`
+- Goal: let an operator inspect a session’s historical branch points and create a child session from the dashboard without leaving the existing session browser workflow
+- Deliverables:
+  - dashboard UI for displaying session lineage, including parent information and any known child sessions that are useful for navigation
+  - browser-side state and rendering support for selectable fork points, restricted to valid stable historical cut points
+  - dashboard action flow for creating a fork and navigating into the resulting child session
+- Implementation notes:
+  - keep the initial browser UX explicit rather than magical; operators should understand whether they are inspecting history, opening another session, or creating a new child branch
+  - preserve the existing standalone dashboard mental model of snapshots plus live updates; forking is a persisted session action, not a browser-local state transformation
+  - do not promise in-place historical replay of streamed terminal activity in the browser if the backend only supports snapshot and event-backed inspection
+- Tests and validation included in task:
+  - frontend reducer and rendering tests for lineage presentation, branchable-point selection, and navigation into a forked child session
+  - integration tests for dashboard fork actions backed by mocked or real HTTP responses and resulting snapshot refresh behavior
+- Done when:
+  - an operator can understand session ancestry and create or open forked sessions from the dashboard without ambiguity about what changed
+
+### GBX-216: Make Replay And Eval Workflows Lineage-Aware
+
+- Status: `TODO`
+- Depends on: `GBX-191`, `GBX-194`, `GBX-196`, `GBX-212`
+- Goal: ensure forked sessions remain replayable, exportable, and usable as eval baselines without collapsing their imported history into opaque special cases
+- Deliverables:
+  - replay-capture and replay-bundle support for session lineage metadata and imported-history artifacts or events
+  - deterministic replay behavior for forked child sessions, including comparison rules for inherited transcript history versus post-fork divergence
+  - eval-case compatibility for replay bundles created from branched sessions
+- Implementation notes:
+  - preserve the distinction between inherited historical context and new child-session behavior so replay drift reports remain understandable
+  - avoid requiring the original parent session database rows at replay time once a child replay bundle has been exported
+  - keep redaction and portability guarantees intact for forked sessions just as they are for ordinary replay bundles
+- Tests and validation included in task:
+  - integration tests proving a forked child session can be replayed and exported independently of the live parent session
+  - regression tests for replay diff behavior when the inherited prefix matches but post-fork behavior drifts
+- Done when:
+  - forked sessions remain first-class citizens in replay and eval workflows rather than becoming unsupported historical edge cases
+
+### GBX-217: Document Session Branching And Historical Workflows
+
+- Status: `TODO`
+- Depends on: `GBX-210`, `GBX-213`, `GBX-214`, `GBX-215`, `GBX-216`, `GBX-121`
+- Goal: document how operators should inspect historical sessions, create forks, understand lineage, and use forked sessions with replay and eval workflows
+- Deliverables:
+  - README and architecture updates covering branching semantics, valid fork points, and the immutable-parent model
+  - operator guidance for CLI and dashboard fork workflows, including how to choose between continuing a live session, inspecting a historical snapshot, and creating a child branch
+  - documentation for lineage fields surfaced in the session index and snapshot views
+  - troubleshooting guidance for rejected fork attempts, historical-only sessions, and replay or eval behavior for child sessions
+- Implementation notes:
+  - keep docs explicit that v1 time-travel is branch creation, not destructive rewind or event-log mutation
+  - show at least one end-to-end example that starts from a historical session, creates a fork, and continues work in the child session
+  - align the branching docs with existing replay, eval, and dashboard terminology so ancestry does not become a separate conceptual subsystem
+- Tests and validation included in task:
+  - doc review against implemented CLI help text, snapshot fields, dashboard behavior, and replay or eval support for child sessions
+  - manual verification of the documented branch workflow against the actual operator surfaces
+- Done when:
+  - an operator can discover and use session branching and historical inspection workflows from the docs alone without inferring hidden runtime rules
+
+---
+
 ## Recommended Build Order For The First Usable Vertical Slice
 
 If an agent wants the fastest path to a demonstrable but architecturally correct version, the recommended order is:
