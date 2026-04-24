@@ -191,11 +191,11 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R103: Split SQLite Store Internals Behind Stable Repository Adapters
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R100`
 - Goal: separate schema/bootstrap, event-log operations, and projection application inside the store layer without changing repository behavior
 - Deliverables:
-  - internal store module split for schema/bootstrap, event-store reads/writes, projection application, and lineage/fork helpers
+  - internal store module split for schema/bootstrap, event-store reads/writes, projection application, and lineage/fork helpers under `src/glassbox/store/_sqlite_*.py`
   - existing repository adapters kept stable or migrated with small compatibility shims
   - clear internal ownership for projection rebuild and append-time projection updates
 - Implementation notes:

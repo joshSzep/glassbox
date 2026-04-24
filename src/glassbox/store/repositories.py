@@ -8,7 +8,6 @@ from datetime import datetime
 from pathlib import Path
 
 import glassbox.store.artifacts as artifact_store
-import glassbox.store.sqlite as sqlite_store
 from glassbox.core.events import EventEnvelope, RuntimeNoteRecorded
 from glassbox.core.ids import ApprovalId, MessageId, SessionId, ToolCallId, TurnId
 from glassbox.core.models import (
@@ -23,6 +22,10 @@ from glassbox.core.models import (
     TurnMetricsRecord,
 )
 from glassbox.core.types import ApprovalStatus, SessionStatus, ToolExecutionStatus
+from glassbox.store import _sqlite_events as event_store
+from glassbox.store import _sqlite_fork as fork_store
+from glassbox.store import _sqlite_queries as query_store
+from glassbox.store import _sqlite_sessions as session_store
 from glassbox.store.artifacts import StoredArtifact
 
 
@@ -42,7 +45,7 @@ class SQLiteSessionRepository:
         updated_at: datetime | None = None,
         last_sequence: int = 0,
     ) -> SessionRecord:
-        return sqlite_store.create_session(
+        return session_store.create_session(
             self._connection,
             session_id,
             config,
@@ -53,16 +56,16 @@ class SQLiteSessionRepository:
         )
 
     def get_session(self, session_id: SessionId) -> SessionRecord | None:
-        return sqlite_store.get_session(self._connection, session_id)
+        return session_store.get_session(self._connection, session_id)
 
     def get_session_state(self, session_id: SessionId) -> SessionState | None:
-        return sqlite_store.get_session_state(self._connection, session_id)
+        return session_store.get_session_state(self._connection, session_id)
 
     def list_transcript_messages(
         self,
         session_id: SessionId,
     ) -> list[TranscriptMessage]:
-        return sqlite_store.list_transcript_messages(self._connection, session_id)
+        return query_store.list_transcript_messages(self._connection, session_id)
 
     def list_runtime_notes(
         self,
@@ -70,7 +73,7 @@ class SQLiteSessionRepository:
         *,
         include_inherited: bool = True,
     ) -> list[RuntimeNoteRecord]:
-        return sqlite_store.list_runtime_notes(
+        return query_store.list_runtime_notes(
             self._connection,
             session_id,
             include_inherited=include_inherited,
@@ -82,7 +85,7 @@ class SQLiteSessionRepository:
         status: SessionStatus | None = None,
         limit: int | None = None,
     ) -> list[SessionRecord]:
-        return sqlite_store.list_sessions(
+        return session_store.list_sessions(
             self._connection,
             status=status,
             limit=limit,
@@ -103,7 +106,7 @@ class SQLiteSessionRepository:
         forked_from_sequence: int | None = None,
         branch_label: str | None = None,
     ) -> SessionRecord:
-        return sqlite_store.update_session(
+        return session_store.update_session(
             self._connection,
             session_id,
             status=status,
@@ -119,13 +122,13 @@ class SQLiteSessionRepository:
         )
 
     def append_event(self, event: EventEnvelope) -> EventEnvelope:
-        return sqlite_store.append_event(self._connection, event)
+        return event_store.append_event(self._connection, event)
 
     def append_events(
         self,
         events: Sequence[EventEnvelope],
     ) -> list[EventEnvelope]:
-        return sqlite_store.append_events(self._connection, events)
+        return event_store.append_events(self._connection, events)
 
     def record_runtime_note(
         self,
@@ -152,14 +155,14 @@ class SQLiteSessionRepository:
         )
 
     def read_session_events(self, session_id: SessionId) -> list[EventEnvelope]:
-        return sqlite_store.read_session_events(self._connection, session_id)
+        return event_store.read_session_events(self._connection, session_id)
 
     def read_session_events_after(
         self,
         session_id: SessionId,
         after_sequence: int,
     ) -> list[EventEnvelope]:
-        return sqlite_store.read_session_events_after(
+        return event_store.read_session_events_after(
             self._connection,
             session_id,
             after_sequence,
@@ -174,7 +177,7 @@ class SQLiteSessionRepository:
         tool_call_id: ToolCallId | None = None,
         approval_id: ApprovalId | None = None,
     ) -> list[EventEnvelope]:
-        return sqlite_store.read_events_by_correlation_id(
+        return event_store.read_events_by_correlation_id(
             self._connection,
             session_id,
             turn_id=turn_id,
@@ -184,7 +187,7 @@ class SQLiteSessionRepository:
         )
 
     def rebuild_session_projections(self, session_id: SessionId) -> None:
-        sqlite_store.rebuild_session_projections(self._connection, session_id)
+        event_store.rebuild_session_projections(self._connection, session_id)
 
     def list_tool_calls(
         self,
@@ -192,7 +195,7 @@ class SQLiteSessionRepository:
         *,
         status: ToolExecutionStatus | None = None,
     ) -> list[ToolCallRecord]:
-        return sqlite_store.list_tool_calls(self._connection, session_id, status=status)
+        return query_store.list_tool_calls(self._connection, session_id, status=status)
 
     def list_approvals(
         self,
@@ -200,7 +203,7 @@ class SQLiteSessionRepository:
         *,
         status: ApprovalStatus | None = None,
     ) -> list[ApprovalRecord]:
-        return sqlite_store.list_approvals(self._connection, session_id, status=status)
+        return query_store.list_approvals(self._connection, session_id, status=status)
 
     def list_turn_metrics(
         self,
@@ -208,7 +211,7 @@ class SQLiteSessionRepository:
         *,
         limit: int | None = None,
     ) -> list[TurnMetricsRecord]:
-        return sqlite_store.list_turn_metrics(
+        return query_store.list_turn_metrics(
             self._connection,
             session_id,
             limit=limit,
@@ -220,7 +223,7 @@ class SQLiteSessionRepository:
         *,
         turn_id: TurnId | None = None,
     ) -> ResolvedForkPoint:
-        return sqlite_store.resolve_fork_point(
+        return fork_store.resolve_fork_point(
             self._connection,
             session_id,
             turn_id=turn_id,
@@ -231,7 +234,7 @@ class SQLiteSessionRepository:
         session_id: SessionId,
         fork_point: ResolvedForkPoint,
     ) -> list[EventEnvelope]:
-        return sqlite_store.build_imported_transcript_events(session_id, fork_point)
+        return fork_store.build_imported_transcript_events(session_id, fork_point)
 
 
 class FilesystemArtifactRepository:
