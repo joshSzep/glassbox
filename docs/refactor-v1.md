@@ -748,7 +748,7 @@ These follow-on tasks stay within the same behavior-preserving contract as the o
 
 ### GBX-R191: Update Architecture And Refactor Docs For The Post-v1 Follow-On Shape
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R170`, `GBX-R171`, `GBX-R181`, `GBX-R190`
 - Goal: leave the documentation aligned with the follow-on refactor shape so the remaining runtime, bootstrap, replay, and eval boundaries are described accurately after the new queue completes
 - Deliverables:

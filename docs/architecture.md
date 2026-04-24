@@ -93,14 +93,40 @@ The session supervisor does not directly talk to the model or tools. It delegate
 Responsible for:
 
 - receiving user input
-- assembling runtime context
-- starting a turn
-- invoking the LLM through `pydantic-ai`
-- handling streamed model output
-- interpreting tool requests
+- coordinating turn preparation and suspended-turn resumption
+- starting a turn and recording turn-scoped lifecycle events
+- invoking the shared model loop through `pydantic-ai`
+- handling streamed model output and delegating tool execution side effects
 - deciding whether to continue, pause for approval, or complete the turn
 
-The turn engine is the control plane of the harness.
+The turn engine is the session-facing turn coordinator of the harness. It keeps
+policy about when a turn starts, resumes, fails, or completes, but it does not
+own every detail of preparation, event recording, tool execution, or model-loop
+state transitions inline.
+
+The implemented runtime split keeps those boundaries explicit:
+
+- `runtime/turn_preparation.py` assembles the prepared turn and its runtime context
+- `runtime/turn_resumption.py` reconstructs suspended approval and `ask_user` state
+- `runtime/turn_tool_executor.py` owns tool-call execution side effects during a running turn
+- `runtime/turn_event_recorder.py` owns persisted turn/event emission and replay capture hooks
+- `runtime/model_loop.py` owns the reusable model-call and tool-loop control flow shared by live turns and replay-backed execution
+
+### Runtime Bootstrap
+
+Responsible for:
+
+- resolving workspace-root and database paths
+- opening initialized runtime storage
+- loading provider configuration and tool-policy wiring
+- assembling the concrete `RuntimeContext` used by CLI and web entrypoints
+
+The public bootstrap surface remains `runtime/bootstrap.py`, but its ownership is
+now split deliberately:
+
+- `runtime/bootstrap_storage.py` owns storage-path resolution and SQLite initialization
+- `runtime/bootstrap_provider.py` owns provider configuration and model/tool builders
+- `runtime/bootstrap_assembly.py` assembles repositories, services, and infrastructure into `RuntimeContext`
 
 ### Tool Runtime
 
@@ -1162,6 +1188,12 @@ selection, and sign-off surfaces so contributors can reason about why a case is
 present, where it should run, when it should block, and what evidence should be
 reviewed before a baseline is refreshed or a release is considered trustworthy.
 
+The follow-on eval split also keeps input discovery separate from reporting.
+Suite selection, profile lookup, coverage-audit loading, and output-directory
+resolution now live behind a shared input boundary, so the suite runner,
+summary loaders, and CLI report commands consume the same resolved eval-suite
+inputs instead of rebuilding that selection logic independently.
+
 ### Replay Baseline Capture
 
 Replay should be grounded in recorded turn manifests rather than inferred after
@@ -1225,13 +1257,22 @@ into the same bucket as downstream tool or transcript regressions.
 
 ### Replay Runner Execution Strategy
 
-The implemented v1 replay runner loads recorded replay manifests from the source
-session, builds a replay bundle, then replays the same user-message,
-approval-resolution, and ask-user answer sequence through a fresh isolated
-session database.
+The implemented replay stack keeps `runtime/replay.py` as the stable facade,
+but the replay coordination path is now split into explicit ownership seams.
+
+- `ReplayRunner` remains the user-facing runtime facade for loading, exporting, and replaying bundles
+- `runtime/replay_orchestrator.py` coordinates bundle loading, execution, comparison, and failure-to-result translation
+- `runtime/replay_bundle_io.py` owns repository-backed bundle loading and export
+- `runtime/replay_execution.py` owns isolated deterministic playback against a fresh runtime
+- `runtime/replay_compare.py` owns normalized-state comparison and mismatch collection
+- `runtime/replay_triage.py` owns result classification and operator-facing triage summaries
+
+That stack still replays the same user-message, approval-resolution, and
+`ask_user` answer sequence through a fresh isolated session database, but the
+public replay surface no longer owns all of those responsibilities inline.
 
 To keep replay offline while still exercising the current control plane, the
-runner:
+orchestrated replay path:
 
 - uses the real session supervisor, context builder, turn engine, and policy evaluation path
 - swaps in replay-backed model execution that validates the current prepared turn against the recorded manifest before serving recorded outputs

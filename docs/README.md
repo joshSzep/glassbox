@@ -23,11 +23,11 @@ Use this page to jump to the right level of detail.
 
 ## Deep Reference
 
-- [architecture.md](./architecture.md): current runtime, store, CLI, web, replay, and eval ownership boundaries on top of the event-sourced system design
+- [architecture.md](./architecture.md): current runtime, bootstrap, store, CLI, web, replay, and eval ownership boundaries on top of the event-sourced system design
 - [database.md](./database.md): SQLite event store, projection tables, artifact storage, branching lineage fields, and the split store implementation map
 - [dashboard-frontend-boundaries.md](./dashboard-frontend-boundaries.md): target reducer, renderer, transport, and DOM-binding boundaries for the no-framework dashboard frontend refactor
 - [refactor-boundaries.md](./refactor-boundaries.md): code-aligned boundary map, dependency-direction rules, and guardrails that explain why the current facades and module splits look the way they do
-- [refactor-v1.md](./refactor-v1.md): architecture-first refactor roadmap and status tracker for the v1 decomposition work
+- [refactor-v1.md](./refactor-v1.md): architecture-first refactor roadmap, completed follow-on queue, and status tracker for the v1 decomposition work
 - [tasks-v1.md](./tasks-v1.md): implementation history, completed v1 task graph, and roadmap context
 - [tasks-v2.md](./tasks-v2.md): concrete v2 task graph and milestone plan for persistent runtime ownership, operator-console evolution, upgrade safety, and long-lived workflow hardening
 
@@ -38,5 +38,5 @@ Start with the workflow guide that matches the job you need to do now.
 - If you are new to the repo, start with [getting-started.md](./getting-started.md).
 - If you are running Glassbox day to day, the workflow guides are the main path.
 - If you are changing implementation contracts, keep [architecture.md](./architecture.md) and [database.md](./database.md) open.
-- If you are changing module ownership after the refactor, keep [architecture.md](./architecture.md), [refactor-boundaries.md](./refactor-boundaries.md), and [dashboard-frontend-boundaries.md](./dashboard-frontend-boundaries.md) open together.
+- If you are changing module ownership after the refactor, keep [architecture.md](./architecture.md), [refactor-boundaries.md](./refactor-boundaries.md), and [dashboard-frontend-boundaries.md](./dashboard-frontend-boundaries.md) open together so the runtime/bootstrap, replay/eval, and frontend seams stay aligned.
 - If you need policy, provider, or replay governance details, prefer the dedicated guide over the root README.
