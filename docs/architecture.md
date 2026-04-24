@@ -816,7 +816,8 @@ original path. The child session becomes the audit record of the alternate path.
 The first intended operator surface should stay explicit:
 
 - CLI should expose a dedicated fork action such as `glassbox fork SESSION_ID`
-- the CLI may later accept an explicit historical turn selector such as `--turn TURN_ID`
+- the CLI should support an explicit historical turn selector such as `--turn TURN_ID`
+- the CLI may attach an operator-visible branch label and an immediate follow-up prompt as adjacent options, rather than collapsing forking and continuation into one implicit action
 - the dashboard should treat forking as a persisted session action over a selected historical cut point, not as a browser-local state transformation
 
 ### Stable Fork-Point Contract

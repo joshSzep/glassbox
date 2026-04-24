@@ -120,6 +120,20 @@ class ResolvedForkPoint(BaseModel):
     inherited_messages: list[InheritedTranscriptMessage]
 
 
+class ForkedSession(BaseModel):
+    """Summary of a newly created child session fork."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    child_session_id: SessionId
+    parent_session_id: SessionId
+    forked_from_turn_id: TurnId
+    forked_from_sequence: int = Field(ge=0)
+    branch_label: str | None = None
+    inherited_message_count: int = Field(default=0, ge=0)
+    last_sequence: int = Field(default=0, ge=0)
+
+
 class ToolCallRecord(BaseModel):
     """A query-friendly view of a tool call in a turn."""
 

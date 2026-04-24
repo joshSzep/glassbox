@@ -18,6 +18,7 @@ from glassbox.core.ids import (
 )
 from glassbox.core.models import (
     ApprovalRecord,
+    ForkedSession,
     ResolvedForkPoint,
     SessionConfig,
     SessionRecord,
@@ -137,6 +138,12 @@ class SessionRepository(Protocol):
         turn_id: TurnId | None = None,
     ) -> ResolvedForkPoint: ...
 
+    def build_imported_transcript_events(
+        self,
+        session_id: SessionId,
+        fork_point: ResolvedForkPoint,
+    ) -> list[EventEnvelope]: ...
+
 
 @runtime_checkable
 class ArtifactRepository(Protocol):
@@ -195,6 +202,14 @@ class SessionService(Protocol):
     """Top-level orchestration contract used by CLI, runtime, and web layers."""
 
     async def start_session(self, config: SessionConfig) -> SessionState: ...
+
+    async def fork_session(
+        self,
+        session_id: SessionId,
+        *,
+        turn_id: TurnId | None = None,
+        branch_label: str | None = None,
+    ) -> ForkedSession: ...
 
     async def resume_session(self, session_id: SessionId) -> SessionState: ...
 

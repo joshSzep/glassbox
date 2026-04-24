@@ -51,6 +51,7 @@ from glassbox.core.ids import (
     new_turn_id,
 )
 from glassbox.core.models import (
+    ForkedSession,
     InheritedTranscriptMessage,
     MessagePart,
     PolicyDecision,
@@ -86,6 +87,7 @@ __all__ = [
     "EventEnvelope",
     "EventPayload",
     "EventPayloadType",
+    "ForkedSession",
     "InheritedTranscriptMessage",
     "MessagePart",
     "MessageId",

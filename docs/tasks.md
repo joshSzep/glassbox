@@ -2064,7 +2064,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-213: Implement Session Fork Service And CLI Workflow
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-032`, `GBX-042`, `GBX-152`, `GBX-212`
 - Goal: let operators create a new child session from a stable historical point entirely through supported service and CLI paths
 - Deliverables:

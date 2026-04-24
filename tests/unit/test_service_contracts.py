@@ -10,6 +10,7 @@ import pytest
 from glassbox.core import (
     ApprovalDecision,
     EventEnvelope,
+    ForkedSession,
     MessagePart,
     ResolvedForkPoint,
     SessionConfig,
@@ -146,6 +147,9 @@ class FakeSessionRepository:
             inherited_messages=[],
         )
 
+    def build_imported_transcript_events(self, session_id, fork_point):
+        return []
+
 
 class FakeArtifactRepository:
     def _artifact_event(self, session_id) -> EventEnvelope:
@@ -211,6 +215,23 @@ class FakeArtifactRepository:
 class FakeSessionService:
     async def start_session(self, config: SessionConfig) -> SessionState:
         return SessionState(session_id=new_session_id(), status=SessionStatus.RUNNING)
+
+    async def fork_session(
+        self,
+        session_id,
+        *,
+        turn_id=None,
+        branch_label=None,
+    ) -> ForkedSession:
+        return ForkedSession(
+            child_session_id=new_session_id(),
+            parent_session_id=session_id,
+            forked_from_turn_id=turn_id or new_turn_id(),
+            forked_from_sequence=0,
+            branch_label=branch_label,
+            inherited_message_count=0,
+            last_sequence=1,
+        )
 
     async def resume_session(self, session_id) -> SessionState:
         return SessionState(session_id=session_id, status=SessionStatus.RUNNING)

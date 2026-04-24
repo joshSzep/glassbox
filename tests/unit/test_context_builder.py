@@ -123,6 +123,9 @@ class FakeSessionRepository:
             inherited_messages=[],
         )
 
+    def build_imported_transcript_events(self, session_id, fork_point):
+        return []
+
 
 def test_turn_context_builder_orders_transcript_and_includes_policy_and_tools() -> None:
     session_id = new_session_id()

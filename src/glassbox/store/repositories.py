@@ -189,6 +189,13 @@ class SQLiteSessionRepository:
             turn_id=turn_id,
         )
 
+    def build_imported_transcript_events(
+        self,
+        session_id: SessionId,
+        fork_point: ResolvedForkPoint,
+    ) -> list[EventEnvelope]:
+        return sqlite_store.build_imported_transcript_events(session_id, fork_point)
+
 
 class FilesystemArtifactRepository:
     """Artifact repository adapter backed by the local filesystem and SQLite."""

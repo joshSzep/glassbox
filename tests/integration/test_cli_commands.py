@@ -31,6 +31,7 @@ from glassbox.core.events import (
     SessionStarted,
     ToolExecutionCompleted,
     ToolExecutionStarted,
+    TurnCompleted,
     TurnStarted,
     UserQuestionAsked,
 )
@@ -107,6 +108,7 @@ def test_cli_help_lists_session_oriented_commands(
     assert "chat" in captured.out
     assert "message" in captured.out
     assert "resume" in captured.out
+    assert "fork" in captured.out
     assert "status" in captured.out
     assert "rebuild" in captured.out
     assert "replay" in captured.out
@@ -1762,6 +1764,200 @@ def test_cli_resume_rejects_completed_session(
     )
 
 
+def test_cli_fork_creates_child_session_from_latest_completed_turn(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, parent_session_id = _run_baseline_session(
+        tmp_path,
+        prompt="Inspect the repository",
+    )
+    parent_events_before = _read_session_events(db_path, parent_session_id)
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "fork",
+            str(parent_session_id),
+            "--branch-label",
+            "alt-path",
+            "--prompt",
+            "Try another route",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    sessions = _list_sessions(db_path)
+    child_session = next(
+        session for session in sessions if session.session_id != parent_session_id
+    )
+    parent_events_after = _read_session_events(db_path, parent_session_id)
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        child_transcript = repository.list_transcript_messages(child_session.session_id)
+    finally:
+        connection.close()
+
+    assert exit_code == 0
+    assert f"Forked session {child_session.session_id}" in captured.out
+    assert "Imported 2 transcript messages into child session" in captured.out
+    assert "Branch label: alt-path" in captured.out
+    assert "Queued user message: Try another route" in captured.out
+    assert "Assistant: I received your request: Try another route" in captured.out
+    assert child_session.parent_session_id == parent_session_id
+    assert child_session.branch_label == "alt-path"
+    assert len(parent_events_before) == len(parent_events_after)
+    assert [message.parts[0].text for message in child_transcript] == [
+        "Inspect the repository",
+        "I received your request: Inspect the repository",
+        "Try another route",
+        "I received your request: Try another route",
+    ]
+
+
+def test_cli_fork_supports_explicit_completed_turn_selection(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, parent_session_id = _run_baseline_session(
+        tmp_path,
+        prompt="First prompt",
+    )
+    _ = capsys.readouterr()
+
+    second_exit_code = main(
+        [
+            "message",
+            str(parent_session_id),
+            "Second prompt",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    _ = capsys.readouterr()
+    assert second_exit_code == 0
+
+    first_turn_id = _completed_turn_ids(db_path, parent_session_id)[0]
+
+    exit_code = main(
+        [
+            "fork",
+            str(parent_session_id),
+            "--turn",
+            str(first_turn_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    sessions = _list_sessions(db_path)
+    child_session = next(
+        session for session in sessions if session.session_id != parent_session_id
+    )
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        child_transcript = repository.list_transcript_messages(child_session.session_id)
+    finally:
+        connection.close()
+
+    assert exit_code == 0
+    assert f"Forked session {child_session.session_id}" in captured.out
+    assert child_session.parent_session_id == parent_session_id
+    assert child_session.forked_from_turn_id == first_turn_id
+    assert [message.parts[0].text for message in child_transcript] == [
+        "First prompt",
+        "I received your request: First prompt",
+    ]
+
+
+def test_cli_fork_rejects_unknown_session_id(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    unknown_session_id = UUID("00000000-0000-0000-0000-000000000042")
+
+    exit_code = main(
+        [
+            "fork",
+            str(unknown_session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert captured.err.strip() == f"unknown session_id: {unknown_session_id}"
+
+
+def test_cli_fork_rejects_invalid_turn_identifier(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(
+        tmp_path,
+        prompt="Inspect the repository",
+    )
+    unknown_turn_id = UUID("00000000-0000-0000-0000-000000000099")
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "fork",
+            str(session_id),
+            "--turn",
+            str(unknown_turn_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert captured.err.strip() == f"unknown turn_id: {unknown_turn_id}"
+
+
+def test_cli_fork_rejects_non_branchable_session_state(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id, _approval_id = _seed_pending_approval(tmp_path)
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "fork",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert captured.err.strip() == f"session {session_id} is awaiting approval"
+
+
 def test_cli_status_prints_human_session_summary(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -2182,6 +2378,15 @@ def _read_session_events(db_path: Path, session_id: UUID) -> list[EventEnvelope]
         return repository.read_session_events(session_id)
     finally:
         connection.close()
+
+
+def _completed_turn_ids(db_path: Path, session_id: UUID) -> list[UUID]:
+    return [
+        event.payload.turn_id
+        for event in _read_session_events(db_path, session_id)
+        if isinstance(event.payload, TurnCompleted)
+        and event.payload.outcome == "completed"
+    ]
 
 
 def _first_replay_artifact_path(db_path: Path, session_id: UUID) -> Path:

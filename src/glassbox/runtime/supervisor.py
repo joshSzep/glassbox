@@ -17,10 +17,11 @@ from glassbox.core.ids import (
     ApprovalId,
     QuestionId,
     SessionId,
+    TurnId,
     new_message_id,
     new_session_id,
 )
-from glassbox.core.models import SessionConfig, SessionState
+from glassbox.core.models import ForkedSession, SessionConfig, SessionState
 from glassbox.core.types import ApprovalDecision, SessionStatus
 from glassbox.runtime.bus import EventBus
 from glassbox.runtime.logging import get_runtime_logger, runtime_log_extra
@@ -54,6 +55,10 @@ class SessionSupervisor(SessionService):
                     dashboard_url=config.dashboard_url,
                     model_name=config.model_name,
                     approval_mode=config.approval_mode,
+                    parent_session_id=config.parent_session_id,
+                    forked_from_turn_id=config.forked_from_turn_id,
+                    forked_from_sequence=config.forked_from_sequence,
+                    branch_label=config.branch_label,
                 ),
             )
         )
@@ -70,6 +75,63 @@ class SessionSupervisor(SessionService):
             ),
         )
         return self._require_session_state(session_id)
+
+    async def fork_session(
+        self,
+        session_id: SessionId,
+        *,
+        turn_id: TurnId | None = None,
+        branch_label: str | None = None,
+    ) -> ForkedSession:
+        parent_session = self._session_repository.get_session(session_id)
+        if parent_session is None:
+            raise ValueError(f"unknown session_id: {session_id}")
+
+        fork_point = self._session_repository.resolve_fork_point(
+            session_id,
+            turn_id=turn_id,
+        )
+        child_state = await self.start_session(
+            SessionConfig(
+                model_name=parent_session.model_name,
+                cwd=parent_session.cwd,
+                approval_mode=parent_session.approval_mode,
+                parent_session_id=parent_session.session_id,
+                forked_from_turn_id=fork_point.turn_id,
+                forked_from_sequence=fork_point.sequence,
+                branch_label=branch_label,
+            )
+        )
+        import_events = self._session_repository.build_imported_transcript_events(
+            child_state.session_id,
+            fork_point,
+        )
+        if import_events:
+            stored_import_events = self._session_repository.append_events(import_events)
+            for event in stored_import_events:
+                self._event_bus.publish(event)
+
+        current_state = self._require_session_state(child_state.session_id)
+        logger.info(
+            "session_forked",
+            extra=runtime_log_extra(
+                runtime_event="session_forked",
+                session_id=child_state.session_id,
+                parent_session_id=parent_session.session_id,
+                forked_from_turn_id=fork_point.turn_id,
+                forked_from_sequence=fork_point.sequence,
+                inherited_message_count=len(fork_point.inherited_messages),
+            ),
+        )
+        return ForkedSession(
+            child_session_id=child_state.session_id,
+            parent_session_id=parent_session.session_id,
+            forked_from_turn_id=fork_point.turn_id,
+            forked_from_sequence=fork_point.sequence,
+            branch_label=branch_label,
+            inherited_message_count=len(fork_point.inherited_messages),
+            last_sequence=current_state.last_sequence,
+        )
 
     async def resume_session(self, session_id: SessionId) -> SessionState:
         current_state = self._require_session_state(session_id)

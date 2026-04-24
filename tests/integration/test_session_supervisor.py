@@ -9,15 +9,22 @@ import pytest
 
 from glassbox.core import (
     EventEnvelope,
+    MessagePart,
     SessionConfig,
     SessionResumed,
     SessionStarted,
     SessionStatus,
+    TranscriptMessageImported,
+    TurnCompleted,
     TurnStarted,
     UserMessageReceived,
 )
-from glassbox.core.events import ApprovalRequested, SessionCompleted
-from glassbox.core.ids import new_approval_id, new_turn_id
+from glassbox.core.events import (
+    ApprovalRequested,
+    AssistantMessageCompleted,
+    SessionCompleted,
+)
+from glassbox.core.ids import new_approval_id, new_message_id, new_turn_id
 from glassbox.runtime import EventBus, SessionSupervisor
 from glassbox.store import SQLiteSessionRepository, initialize_database, open_database
 
@@ -217,6 +224,113 @@ def test_session_supervisor_rejects_resuming_completed_session(
                 await supervisor.resume_session(started_state.session_id)
         finally:
             connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_session_supervisor_forks_child_session_from_completed_turn(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            supervisor = SessionSupervisor(repository, EventBus())
+            parent_config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+
+            parent_state = await supervisor.start_session(parent_config)
+            prompt_message_id = new_message_id()
+            turn_id = new_turn_id()
+            assistant_message_id = new_message_id()
+            repository.append_events(
+                [
+                    EventEnvelope(
+                        session_id=parent_state.session_id,
+                        sequence=0,
+                        payload=UserMessageReceived(
+                            message_id=prompt_message_id,
+                            text="Inspect the repo",
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=parent_state.session_id,
+                        sequence=0,
+                        payload=TurnStarted(
+                            turn_id=turn_id,
+                            trigger_message_id=prompt_message_id,
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=parent_state.session_id,
+                        sequence=0,
+                        payload=AssistantMessageCompleted(
+                            message_id=assistant_message_id,
+                            parts=[
+                                MessagePart(
+                                    kind="text",
+                                    text="I received your request: Inspect the repo",
+                                )
+                            ],
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=parent_state.session_id,
+                        sequence=0,
+                        payload=TurnCompleted(
+                            turn_id=turn_id,
+                            outcome="completed",
+                        ),
+                    ),
+                ]
+            )
+
+            parent_events_before = repository.read_session_events(
+                parent_state.session_id
+            )
+            forked_session = await supervisor.fork_session(
+                parent_state.session_id,
+                turn_id=turn_id,
+                branch_label="investigate-alt-path",
+            )
+            child_session = repository.get_session(forked_session.child_session_id)
+            child_events = repository.read_session_events(
+                forked_session.child_session_id
+            )
+            child_transcript = repository.list_transcript_messages(
+                forked_session.child_session_id
+            )
+            parent_events_after = repository.read_session_events(
+                parent_state.session_id
+            )
+        finally:
+            connection.close()
+
+        assert child_session is not None
+        assert child_session.parent_session_id == parent_state.session_id
+        assert child_session.forked_from_turn_id == turn_id
+        assert child_session.forked_from_sequence == 5
+        assert child_session.branch_label == "investigate-alt-path"
+        assert forked_session.parent_session_id == parent_state.session_id
+        assert forked_session.forked_from_turn_id == turn_id
+        assert forked_session.inherited_message_count == 2
+        assert forked_session.last_sequence == 3
+        assert [event.event_type for event in child_events] == [
+            "SessionStarted",
+            "TranscriptMessageImported",
+            "TranscriptMessageImported",
+        ]
+        assert isinstance(child_events[0].payload, SessionStarted)
+        assert child_events[0].payload.parent_session_id == parent_state.session_id
+        assert isinstance(child_events[1].payload, TranscriptMessageImported)
+        assert [message.parts[0].text for message in child_transcript] == [
+            "Inspect the repo",
+            "I received your request: Inspect the repo",
+        ]
+        assert len(parent_events_before) == len(parent_events_after)
 
     asyncio.run(scenario())
 

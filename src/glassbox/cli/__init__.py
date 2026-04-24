@@ -65,6 +65,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _message_command(args)
         if args.command == "resume":
             return _resume_command(args)
+        if args.command == "fork":
+            return _fork_command(args)
         if args.command == "status":
             return _status_command(args)
         if args.command == "replay":
@@ -210,6 +212,36 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     resume_parser.add_argument("session_id", type=_parse_uuid)
     _add_runtime_location_arguments(resume_parser)
+
+    fork_parser = subparsers.add_parser(
+        "fork",
+        help="create a child session from a historical turn",
+        description=(
+            "Create a new child session from the latest completed turn or an "
+            "explicitly selected completed turn in an existing session."
+        ),
+    )
+    fork_parser.add_argument("session_id", type=_parse_uuid)
+    fork_parser.add_argument(
+        "--turn",
+        dest="turn_id",
+        type=_parse_uuid,
+        default=None,
+        help="explicit completed turn identifier to fork from",
+    )
+    fork_parser.add_argument(
+        "--branch-label",
+        "--label",
+        dest="branch_label",
+        default=None,
+        help="optional operator-visible label for the child branch",
+    )
+    fork_parser.add_argument(
+        "--prompt",
+        default=None,
+        help="optional immediate prompt to submit to the new child session",
+    )
+    _add_runtime_location_arguments(fork_parser)
 
     status_parser = subparsers.add_parser(
         "status",
@@ -571,6 +603,47 @@ async def _message_command_async(args: argparse.Namespace) -> int:
             args.prompt,
         )
         await asyncio.sleep(0)
+
+    return await _run_with_renderer(cwd, db_path, action)
+
+
+def _fork_command(args: argparse.Namespace) -> int:
+    return asyncio.run(_fork_command_async(args))
+
+
+async def _fork_command_async(args: argparse.Namespace) -> int:
+    cwd, db_path = _resolve_runtime_location(args)
+
+    async def action(
+        runtime_context: RuntimeContext,
+        _prompt_state: InteractivePromptState,
+    ) -> None:
+        forked_session = await runtime_context.services.session_service.fork_session(
+            args.session_id,
+            turn_id=args.turn_id,
+            branch_label=args.branch_label,
+        )
+        await asyncio.sleep(0)
+        print(
+            "Forked session "
+            f"{forked_session.child_session_id} "
+            f"from {forked_session.parent_session_id} "
+            f"at turn {forked_session.forked_from_turn_id} "
+            f"(sequence {forked_session.forked_from_sequence})"
+        )
+        print(
+            "Imported "
+            f"{forked_session.inherited_message_count} transcript messages "
+            "into child session"
+        )
+        if forked_session.branch_label is not None:
+            print(f"Branch label: {forked_session.branch_label}")
+        if args.prompt:
+            await runtime_context.services.session_service.submit_user_message(
+                forked_session.child_session_id,
+                args.prompt,
+            )
+            await asyncio.sleep(0)
 
     return await _run_with_renderer(cwd, db_path, action)
 
