@@ -265,6 +265,10 @@ class SessionStarted(EventPayload):
     dashboard_url: str | None = None
     model_name: str
     approval_mode: str
+    parent_session_id: UUID | None = None
+    forked_from_turn_id: UUID | None = None
+    forked_from_sequence: int | None = None
+    branch_label: str | None = None
 
 
 class SessionResumed(EventPayload):
@@ -543,8 +547,10 @@ class SessionConfig(BaseModel):
     cwd: Path
     approval_mode: str
     dashboard_url: str | None = None
-    persist_events: bool = True
-    max_turns_per_input: int = 12
+    parent_session_id: UUID | None = None
+    forked_from_turn_id: UUID | None = None
+    forked_from_sequence: int | None = None
+    branch_label: str | None = None
 
 
 class SessionState(BaseModel):
@@ -718,8 +724,15 @@ create table sessions (
     cwd text not null,
     model_name text not null,
     approval_mode text not null,
+    parent_session_id text,
+    forked_from_turn_id text,
+    forked_from_sequence integer,
+    branch_label text,
     last_sequence integer not null default 0
 );
+
+create index idx_sessions_parent_updated
+    on sessions (parent_session_id, updated_at desc);
 
 create table events (
     session_id text not null,

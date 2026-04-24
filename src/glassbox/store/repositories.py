@@ -84,6 +84,10 @@ class SQLiteSessionRepository:
         model_name: str | None = None,
         approval_mode: str | None = None,
         last_sequence: int | None = None,
+        parent_session_id: SessionId | None = None,
+        forked_from_turn_id: TurnId | None = None,
+        forked_from_sequence: int | None = None,
+        branch_label: str | None = None,
     ) -> SessionRecord:
         return sqlite_store.update_session(
             self._connection,
@@ -94,6 +98,10 @@ class SQLiteSessionRepository:
             model_name=model_name,
             approval_mode=approval_mode,
             last_sequence=last_sequence,
+            parent_session_id=parent_session_id,
+            forked_from_turn_id=forked_from_turn_id,
+            forked_from_sequence=forked_from_sequence,
+            branch_label=branch_label,
         )
 
     def append_event(self, event: EventEnvelope) -> EventEnvelope:

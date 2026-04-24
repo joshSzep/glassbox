@@ -38,6 +38,10 @@ class SessionStarted(EventPayload):
     dashboard_url: str | None = None
     model_name: str
     approval_mode: str
+    parent_session_id: SessionId | None = None
+    forked_from_turn_id: TurnId | None = None
+    forked_from_sequence: int | None = Field(default=None, ge=0)
+    branch_label: str | None = None
 
 
 class SessionResumed(EventPayload):

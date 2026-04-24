@@ -75,6 +75,10 @@ class SessionRepository(Protocol):
         model_name: str | None = None,
         approval_mode: str | None = None,
         last_sequence: int | None = None,
+        parent_session_id: SessionId | None = None,
+        forked_from_turn_id: TurnId | None = None,
+        forked_from_sequence: int | None = None,
+        branch_label: str | None = None,
     ) -> SessionRecord: ...
 
     def append_event(self, event: EventEnvelope) -> EventEnvelope: ...

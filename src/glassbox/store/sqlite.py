@@ -56,7 +56,7 @@ from glassbox.core.types import (
     ToolExecutionStatus,
 )
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 type CorrelationValue = TurnId | MessageId | ToolCallId | ApprovalId | QuestionId
 
@@ -76,6 +76,10 @@ BOOTSTRAP_STATEMENTS = (
         cwd text not null,
         model_name text not null,
         approval_mode text not null,
+        parent_session_id text,
+        forked_from_turn_id text,
+        forked_from_sequence integer,
+        branch_label text,
         last_sequence integer not null default 0
     )
     """,
@@ -240,6 +244,8 @@ def initialize_database(connection: sqlite3.Connection) -> None:
         for statement in BOOTSTRAP_STATEMENTS:
             connection.execute(statement)
 
+        _ensure_sessions_lineage_schema(connection)
+
         connection.execute(
             "insert or ignore into schema_migrations(version) values (?)",
             (SCHEMA_VERSION,),
@@ -271,8 +277,12 @@ def create_session(
                 cwd,
                 model_name,
                 approval_mode,
+                parent_session_id,
+                forked_from_turn_id,
+                forked_from_sequence,
+                branch_label,
                 last_sequence
-            ) values (?, ?, ?, ?, ?, ?, ?, ?)
+            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 str(session_id),
@@ -282,6 +292,10 @@ def create_session(
                 str(config.cwd),
                 config.model_name,
                 config.approval_mode,
+                _stringify_identifier(config.parent_session_id),
+                _stringify_identifier(config.forked_from_turn_id),
+                config.forked_from_sequence,
+                config.branch_label,
                 last_sequence,
             ),
         )
@@ -301,6 +315,10 @@ def update_session(
     model_name: str | None = None,
     approval_mode: str | None = None,
     last_sequence: int | None = None,
+    parent_session_id: SessionId | None = None,
+    forked_from_turn_id: TurnId | None = None,
+    forked_from_sequence: int | None = None,
+    branch_label: str | None = None,
 ) -> SessionRecord:
     """Update coarse session metadata and return the stored row."""
 
@@ -319,6 +337,20 @@ def update_session(
         "cwd": str(cwd or session.cwd),
         "model_name": model_name or session.model_name,
         "approval_mode": approval_mode or session.approval_mode,
+        "parent_session_id": _stringify_identifier(parent_session_id)
+        if parent_session_id is not None
+        else _stringify_identifier(session.parent_session_id),
+        "forked_from_turn_id": _stringify_identifier(forked_from_turn_id)
+        if forked_from_turn_id is not None
+        else _stringify_identifier(session.forked_from_turn_id),
+        "forked_from_sequence": (
+            session.forked_from_sequence
+            if forked_from_sequence is None
+            else forked_from_sequence
+        ),
+        "branch_label": (
+            branch_label if branch_label is not None else session.branch_label
+        ),
         "last_sequence": (
             session.last_sequence if last_sequence is None else last_sequence
         ),
@@ -333,6 +365,10 @@ def update_session(
                 cwd = ?,
                 model_name = ?,
                 approval_mode = ?,
+                parent_session_id = ?,
+                forked_from_turn_id = ?,
+                forked_from_sequence = ?,
+                branch_label = ?,
                 last_sequence = ?
             where session_id = ?
             """,
@@ -342,6 +378,10 @@ def update_session(
                 changes["cwd"],
                 changes["model_name"],
                 changes["approval_mode"],
+                changes["parent_session_id"],
+                changes["forked_from_turn_id"],
+                changes["forked_from_sequence"],
+                changes["branch_label"],
                 changes["last_sequence"],
                 str(session_id),
             ),
@@ -368,6 +408,10 @@ def get_session(
             cwd,
             model_name,
             approval_mode,
+            parent_session_id,
+            forked_from_turn_id,
+            forked_from_sequence,
+            branch_label,
             last_sequence
         from sessions
         where session_id = ?
@@ -468,6 +512,10 @@ def list_sessions(
             cwd,
             model_name,
             approval_mode,
+            parent_session_id,
+            forked_from_turn_id,
+            forked_from_sequence,
+            branch_label,
             last_sequence
         from sessions
     """
@@ -828,6 +876,10 @@ def _ensure_session_row_for_append(
             model_name=payload.model_name,
             cwd=Path(payload.cwd),
             approval_mode=payload.approval_mode,
+            parent_session_id=payload.parent_session_id,
+            forked_from_turn_id=payload.forked_from_turn_id,
+            forked_from_sequence=payload.forked_from_sequence,
+            branch_label=payload.branch_label,
         ),
         status=SessionStatus.RUNNING,
         created_at=first_event.created_at,
@@ -906,8 +958,35 @@ def _session_from_row(row: sqlite3.Row) -> SessionRecord:
             "cwd": row["cwd"],
             "model_name": row["model_name"],
             "approval_mode": row["approval_mode"],
+            "parent_session_id": row["parent_session_id"],
+            "forked_from_turn_id": row["forked_from_turn_id"],
+            "forked_from_sequence": row["forked_from_sequence"],
+            "branch_label": row["branch_label"],
             "last_sequence": row["last_sequence"],
         }
+    )
+
+
+def _ensure_sessions_lineage_schema(connection: sqlite3.Connection) -> None:
+    existing_columns = {
+        row["name"]
+        for row in connection.execute("pragma table_info(sessions)").fetchall()
+    }
+    if "parent_session_id" not in existing_columns:
+        connection.execute("alter table sessions add column parent_session_id text")
+    if "forked_from_turn_id" not in existing_columns:
+        connection.execute("alter table sessions add column forked_from_turn_id text")
+    if "forked_from_sequence" not in existing_columns:
+        connection.execute(
+            "alter table sessions add column forked_from_sequence integer"
+        )
+    if "branch_label" not in existing_columns:
+        connection.execute("alter table sessions add column branch_label text")
+    connection.execute(
+        """
+        create index if not exists idx_sessions_parent_updated
+            on sessions (parent_session_id, updated_at desc)
+        """
     )
 
 

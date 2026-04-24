@@ -10,6 +10,7 @@ from glassbox.core import (
     MessagePart,
     PolicyDecision,
     SessionConfig,
+    SessionRecord,
     SessionState,
     SessionStatus,
     ToolCallRecord,
@@ -49,6 +50,43 @@ def test_session_config_round_trip_preserves_dashboard_url() -> None:
 
     assert restored == config
     assert restored.dashboard_url == "http://127.0.0.1:8765/"
+
+
+def test_session_config_round_trip_preserves_lineage_metadata() -> None:
+    config = SessionConfig(
+        model_name="openai:gpt-5.4",
+        cwd=Path("/tmp/glassbox"),
+        approval_mode="confirm",
+        parent_session_id=new_session_id(),
+        forked_from_turn_id=new_turn_id(),
+        forked_from_sequence=12,
+        branch_label="investigate-alt-path",
+    )
+
+    restored = SessionConfig.model_validate(config.model_dump(mode="python"))
+
+    assert restored == config
+
+
+def test_session_record_round_trip_preserves_lineage_metadata() -> None:
+    record = SessionRecord(
+        session_id=new_session_id(),
+        status=SessionStatus.RUNNING,
+        created_at=datetime(2026, 4, 16, tzinfo=UTC),
+        updated_at=datetime(2026, 4, 16, 0, 5, tzinfo=UTC),
+        cwd=Path("/tmp/glassbox"),
+        model_name="openai:gpt-5.4",
+        approval_mode="confirm",
+        last_sequence=4,
+        parent_session_id=new_session_id(),
+        forked_from_turn_id=new_turn_id(),
+        forked_from_sequence=3,
+        branch_label="alt-branch",
+    )
+
+    restored = SessionRecord.model_validate(record.model_dump(mode="python"))
+
+    assert restored == record
 
 
 def test_session_state_round_trip() -> None:

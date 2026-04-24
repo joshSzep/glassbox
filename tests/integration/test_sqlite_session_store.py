@@ -33,6 +33,8 @@ from glassbox.store import (
 
 def test_create_session_and_get_session_round_trip(tmp_path: Path) -> None:
     session_id = new_session_id()
+    parent_session_id = new_session_id()
+    forked_from_turn_id = new_turn_id()
     created_at = datetime(2026, 4, 16, 12, 0, tzinfo=UTC)
     connection = open_database(tmp_path / "glassbox.sqlite3")
     initialize_database(connection)
@@ -44,6 +46,10 @@ def test_create_session_and_get_session_round_trip(tmp_path: Path) -> None:
                 model_name="openai:gpt-5.4",
                 cwd=Path("/tmp/glassbox"),
                 approval_mode="confirm",
+                parent_session_id=parent_session_id,
+                forked_from_turn_id=forked_from_turn_id,
+                forked_from_sequence=9,
+                branch_label="alt-branch",
             ),
             status=SessionStatus.IDLE,
             created_at=created_at,
@@ -55,6 +61,10 @@ def test_create_session_and_get_session_round_trip(tmp_path: Path) -> None:
 
     assert isinstance(created_session, SessionRecord)
     assert fetched_session == created_session
+    assert created_session.parent_session_id == parent_session_id
+    assert created_session.forked_from_turn_id == forked_from_turn_id
+    assert created_session.forked_from_sequence == 9
+    assert created_session.branch_label == "alt-branch"
 
 
 def test_update_session_persists_coarse_metadata(tmp_path: Path) -> None:

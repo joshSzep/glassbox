@@ -34,6 +34,10 @@ class SessionConfig(BaseModel):
     cwd: Path
     approval_mode: str
     dashboard_url: str | None = None
+    parent_session_id: SessionId | None = None
+    forked_from_turn_id: TurnId | None = None
+    forked_from_sequence: int | None = Field(default=None, ge=0)
+    branch_label: str | None = None
 
     @field_validator("approval_mode")
     @classmethod
@@ -67,6 +71,10 @@ class SessionRecord(BaseModel):
     model_name: str
     approval_mode: str
     last_sequence: int = Field(default=0, ge=0)
+    parent_session_id: SessionId | None = None
+    forked_from_turn_id: TurnId | None = None
+    forked_from_sequence: int | None = Field(default=None, ge=0)
+    branch_label: str | None = None
 
 
 class MessagePart(BaseModel):

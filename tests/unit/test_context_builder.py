@@ -72,6 +72,10 @@ class FakeSessionRepository:
         model_name=None,
         approval_mode=None,
         last_sequence=None,
+        parent_session_id=None,
+        forked_from_turn_id=None,
+        forked_from_sequence=None,
+        branch_label=None,
     ):
         return self._session
 

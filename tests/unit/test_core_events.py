@@ -33,6 +33,10 @@ def test_event_envelope_round_trip() -> None:
         dashboard_url="http://127.0.0.1:8765",
         model_name="openai:gpt-5.4",
         approval_mode="confirm",
+        parent_session_id=new_session_id(),
+        forked_from_turn_id=new_turn_id(),
+        forked_from_sequence=7,
+        branch_label="alt-branch",
     )
     envelope = EventEnvelope(
         session_id=new_session_id(),
@@ -45,6 +49,22 @@ def test_event_envelope_round_trip() -> None:
     assert restored == envelope
     assert restored.event_type == "SessionStarted"
     assert restored.event_version == 1
+
+
+def test_session_started_payload_remains_backward_compatible_without_lineage() -> None:
+    payload = SessionStarted.model_validate(
+        {
+            "event_type": "SessionStarted",
+            "cwd": "/tmp/glassbox",
+            "model_name": "openai:gpt-5.4",
+            "approval_mode": "confirm",
+        }
+    )
+
+    assert payload.parent_session_id is None
+    assert payload.forked_from_turn_id is None
+    assert payload.forked_from_sequence is None
+    assert payload.branch_label is None
 
 
 def test_event_envelope_populates_event_type_from_payload() -> None:

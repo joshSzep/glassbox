@@ -87,11 +87,18 @@ create table sessions (
     cwd text not null,
     model_name text not null,
     approval_mode text not null,
+    parent_session_id text,
+    forked_from_turn_id text,
+    forked_from_sequence integer,
+    branch_label text,
     last_sequence integer not null default 0
 );
 
 create index idx_sessions_status_updated
     on sessions (status, updated_at desc);
+
+create index idx_sessions_parent_updated
+    on sessions (parent_session_id, updated_at desc);
 ```
 
 ### Events

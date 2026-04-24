@@ -2025,7 +2025,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-211: Add Session Lineage Schema And Persisted Contracts
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-210`
 - Goal: extend the canonical persistence and domain models so forked sessions can record parentage and historical cut-point metadata explicitly
 - Deliverables:
