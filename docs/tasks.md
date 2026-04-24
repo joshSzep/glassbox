@@ -2122,7 +2122,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-216: Make Replay And Eval Workflows Lineage-Aware
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-191`, `GBX-194`, `GBX-196`, `GBX-212`
 - Goal: ensure forked sessions remain replayable, exportable, and usable as eval baselines without collapsing their imported history into opaque special cases
 - Deliverables:

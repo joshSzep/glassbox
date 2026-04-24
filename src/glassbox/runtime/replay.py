@@ -170,6 +170,17 @@ class ReplayQuestionSnapshot(BaseModel):
     answer: str | None = None
 
 
+class ReplayLineageSnapshot(BaseModel):
+    """Normalized session lineage metadata used for replay comparison."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    parent_session_id: str
+    forked_from_turn_id: str
+    forked_from_sequence: int = Field(ge=0)
+    branch_label: str | None = None
+
+
 class ReplayFinalStateSnapshot(BaseModel):
     """Normalized final session projection used for replay comparison."""
 
@@ -187,6 +198,9 @@ class ReplayNormalizedSession(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     transcript: list[ReplayTranscriptMessage]
+    lineage: ReplayLineageSnapshot | None = None
+    inherited_transcript: list[ReplayTranscriptMessage] = Field(default_factory=list)
+    post_fork_transcript: list[ReplayTranscriptMessage] = Field(default_factory=list)
     tool_calls: list[ReplayToolCallSnapshot]
     approvals: list[ReplayApprovalSnapshot]
     questions: list[ReplayQuestionSnapshot]
@@ -386,6 +400,7 @@ class ReplayRunner:
         *,
         workspace_root: Path | None = None,
     ) -> ReplayResult:
+        bundle = _hydrate_lineage_aware_bundle(bundle)
         try:
             replay_session = await self._run_bundle(
                 bundle,
@@ -1015,21 +1030,38 @@ def _normalize_session(
     repository: SessionRepository,
     events: Sequence[EventEnvelope],
 ) -> ReplayNormalizedSession:
+    session_record = repository.get_session(session_id)
+    if session_record is None:
+        raise _ReplayFailure(f"unknown replay session {session_id}")
     session_state = repository.get_session_state(session_id)
     if session_state is None:
         raise _ReplayFailure(f"unknown session state for replay session {session_id}")
+    transcript_messages = repository.list_transcript_messages(session_id)
+    imported_message_ids = {
+        payload.message_id
+        for event in events
+        if isinstance((payload := event.payload), TranscriptMessageImported)
+    }
+    normalized_transcript = [
+        _normalize_transcript_message(message.role, message.parts)
+        for message in transcript_messages
+    ]
+    inherited_transcript = [
+        _normalize_transcript_message(message.role, message.parts)
+        for message in transcript_messages
+        if message.message_id in imported_message_ids
+    ]
+    post_fork_transcript = [
+        _normalize_transcript_message(message.role, message.parts)
+        for message in transcript_messages
+        if message.message_id not in imported_message_ids
+    ]
 
     return ReplayNormalizedSession(
-        transcript=[
-            ReplayTranscriptMessage(
-                role=message.role,
-                parts=[
-                    ReplayTranscriptPart(kind=part.kind, text=part.text)
-                    for part in message.parts
-                ],
-            )
-            for message in repository.list_transcript_messages(session_id)
-        ],
+        transcript=normalized_transcript,
+        lineage=_normalize_lineage(session_record),
+        inherited_transcript=inherited_transcript,
+        post_fork_transcript=post_fork_transcript,
         tool_calls=[
             ReplayToolCallSnapshot(
                 tool_name=tool_call.tool_name,
@@ -1092,6 +1124,9 @@ def _collect_mismatches(
     replay_dump = replay.model_dump(mode="json")
     for field_name in (
         "transcript",
+        "lineage",
+        "inherited_transcript",
+        "post_fork_transcript",
         "tool_calls",
         "approvals",
         "questions",
@@ -1111,6 +1146,80 @@ def _assistant_message_text(payload: AssistantMessageCompleted) -> str:
 
 def _prepared_turn_tool_names(prepared_turn: PreparedModelTurn) -> list[str]:
     return sorted(tool.name for tool in prepared_turn.request_parameters.function_tools)
+
+
+def _hydrate_lineage_aware_bundle(bundle: ReplayBundle) -> ReplayBundle:
+    baseline_updates: dict[str, object] = {}
+    baseline = bundle.baseline
+
+    lineage = baseline.lineage
+    if lineage is None:
+        lineage = _normalize_lineage_from_session_config(bundle.session_config)
+        if lineage is not None:
+            baseline_updates["lineage"] = lineage
+
+    inherited_transcript = list(baseline.inherited_transcript)
+    if not inherited_transcript and bundle.inherited_messages:
+        inherited_transcript = [
+            _normalize_transcript_message(message.role, message.parts)
+            for message in bundle.inherited_messages
+        ]
+        baseline_updates["inherited_transcript"] = inherited_transcript
+
+    if not baseline.post_fork_transcript and baseline.transcript:
+        inherited_count = len(inherited_transcript)
+        baseline_updates["post_fork_transcript"] = list(
+            baseline.transcript[inherited_count:]
+        )
+
+    if not baseline_updates:
+        return bundle
+
+    return bundle.model_copy(
+        update={"baseline": baseline.model_copy(update=baseline_updates)}
+    )
+
+
+def _normalize_lineage(session: SessionRecord) -> ReplayLineageSnapshot | None:
+    return _normalize_lineage_from_session_config(
+        SessionConfig(
+            model_name=session.model_name,
+            cwd=session.cwd,
+            approval_mode=session.approval_mode,
+            dashboard_url=None,
+            parent_session_id=session.parent_session_id,
+            forked_from_turn_id=session.forked_from_turn_id,
+            forked_from_sequence=session.forked_from_sequence,
+            branch_label=session.branch_label,
+        )
+    )
+
+
+def _normalize_lineage_from_session_config(
+    session_config: SessionConfig,
+) -> ReplayLineageSnapshot | None:
+    if (
+        session_config.parent_session_id is None
+        or session_config.forked_from_turn_id is None
+        or session_config.forked_from_sequence is None
+    ):
+        return None
+    return ReplayLineageSnapshot(
+        parent_session_id=str(session_config.parent_session_id),
+        forked_from_turn_id=str(session_config.forked_from_turn_id),
+        forked_from_sequence=session_config.forked_from_sequence,
+        branch_label=session_config.branch_label,
+    )
+
+
+def _normalize_transcript_message(
+    role: str,
+    parts: Sequence[Any],
+) -> ReplayTranscriptMessage:
+    return ReplayTranscriptMessage(
+        role=role,
+        parts=[ReplayTranscriptPart(kind=part.kind, text=part.text) for part in parts],
+    )
 
 
 def _tool_request_matches(

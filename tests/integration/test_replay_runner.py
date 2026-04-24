@@ -690,6 +690,77 @@ def test_replay_runner_exports_forked_child_bundle_with_imported_history(
     asyncio.run(scenario())
 
 
+def test_replay_runner_reports_post_fork_drift_separately_from_inherited_history(
+    tmp_path: Path,
+) -> None:
+    source_root = tmp_path / "source-workspace"
+    source_root.mkdir()
+    portable_root = tmp_path / "portable-workspace"
+    portable_root.mkdir()
+    bundle_path = tmp_path / "bundles" / "forked-child-session-drift.json"
+
+    async def scenario() -> None:
+        connection = _open_initialized_database(source_root)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, source_root)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = _build_turn_engine(
+                repository,
+                artifact_repository,
+                bus,
+                model_fn=_text_only_response,
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+
+            parent_state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=source_root,
+                    approval_mode="confirm",
+                )
+            )
+            await supervisor.submit_user_message(
+                parent_state.session_id,
+                "Inspect the repo",
+            )
+
+            forked_session = await supervisor.fork_session(parent_state.session_id)
+            await supervisor.submit_user_message(
+                forked_session.child_session_id,
+                "Inspect the repo",
+            )
+
+            ReplayRunner(repository, artifact_repository).export_session_bundle(
+                forked_session.child_session_id,
+                bundle_path,
+            )
+        finally:
+            connection.close()
+
+        payload = json.loads(bundle_path.read_text(encoding="utf-8"))
+        payload["baseline"]["transcript"][-1]["parts"][0]["text"] = (
+            "Unexpected post-fork text"
+        )
+        payload["baseline"]["post_fork_transcript"][-1]["parts"][0]["text"] = (
+            "Unexpected post-fork text"
+        )
+        bundle_path.write_text(
+            json.dumps(payload, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+        result = await ReplayRunner().replay_bundle_file(
+            bundle_path,
+            workspace_root=portable_root,
+        )
+
+        assert result.outcome == "behavioral_drift"
+        assert result.mismatches == ["transcript drift", "post_fork_transcript drift"]
+
+    asyncio.run(scenario())
+
+
 def test_eval_runner_executes_forked_child_bundle_case(tmp_path: Path) -> None:
     source_root = tmp_path / "source-workspace"
     source_root.mkdir()

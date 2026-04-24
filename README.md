@@ -341,6 +341,7 @@ Forked child sessions are first-class replay and eval baselines.
 - `glassbox replay CHILD_SESSION_ID` replays the child session with its inherited transcript history intact.
 - `glassbox replay-export CHILD_SESSION_ID` writes a portable bundle that includes the child lineage metadata and imported-history payload needed to replay without the original parent database.
 - `glassbox eval run` can execute eval cases backed by forked child bundles the same way it executes ordinary session bundles.
+- lineage-aware replay diffs distinguish inherited-prefix drift from post-fork transcript drift so child-session regressions stay understandable.
 
 In other words, a branch is still just a session from the replay and eval point
 of view. The inherited prefix is preserved explicitly so replay can validate the
