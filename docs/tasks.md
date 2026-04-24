@@ -2286,7 +2286,7 @@ Status: DONE
 
 ### GBX-226: Document Richer Runtime Context Workflows And Boundaries
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-220`, `GBX-221`, `GBX-222`, `GBX-223`, `GBX-224`, `GBX-225`, `GBX-121`
 - Goal: explain how richer runtime context works, what it includes, and how it affects replayable session behavior without making it sound like hidden autonomous memory
 - Deliverables:

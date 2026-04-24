@@ -169,7 +169,9 @@ uv run glassbox status SESSION_ID --cwd .
 
 The status view summarizes the current turn, pending approvals, recent tool activity,
 recent turn metrics, transcript count, the latest transcript message, and the
-next valid operator action for the session's current state.
+next valid operator action for the session's current state. It also prints a
+bounded `Runtime context:` summary so operators can see the repository snapshot
+and active runtime notes shaping the next turn.
 
 Resume a persisted session:
 
@@ -658,6 +660,90 @@ Use those fields this way:
 - If you need to reopen actionable work after a `chat` process exits, use the recent-session browser and the selected-session summary to determine whether to answer a pending question, resolve an approval, or switch back to CLI primitives such as `attach`, `answer`, `approve`, or `message`.
 - If the dashboard shows `can_fork: false` or no `branchable_turns`, the session does not currently expose a stable completed-turn boundary for branch creation.
 - If a fork action is rejected, read `fork_blocked_reason` in the summary or snapshot first; it should explain whether the session is running, paused at a suspension point, or otherwise not branchable yet.
+
+## Richer Runtime Context
+
+Glassbox enriches live turns with bounded typed runtime context. This is not a
+hidden autonomous memory layer and it is not an uninspectable provider-side
+prompt trick. It is explicit runtime state assembled before a model call and
+made visible to operators afterward.
+
+Today that richer context has two operator-visible layers on top of the normal
+transcript, tool schema, and policy state:
+
+- `repository context`: a deterministic top-level snapshot of the selected workspace, including the workspace name, high-signal paths, bounded top-level directories and files, and coarse project markers.
+- `runtime notes`: persisted session-scoped notes with category, message, and inheritance provenance when they came from a parent session.
+
+The repository context is deliberately small. It is a top-level orientation
+layer, not a repository index. If the model needs deeper detail, it still has
+to discover that detail through tools.
+
+The runtime notes are also deliberately small. They capture durable, high-signal
+facts that should still matter on later turns, but they remain event-backed and
+inspectable rather than turning into invisible mutable memory.
+
+### Inspecting The Current Context
+
+There are three operator-facing ways to inspect the richer runtime context:
+
+- `glassbox status SESSION_ID --cwd .` prints a `Runtime context:` block with the current repository summary and visible runtime notes.
+- The dashboard selected-session summary renders the same bounded context so browser and terminal inspection stay aligned.
+- `GET /sessions/{session_id}` exposes a `runtime_context` object for tooling, tests, and any browser clients built on the HTTP snapshot contract.
+
+Read those summaries with this mental model:
+
+- high-signal paths and top-level entries are orientation hints, not proof that the runtime indexed the whole repository
+- runtime notes are session memory only when they were explicitly persisted through the event-sourced runtime
+- inherited notes mean the child session received that note from parent history at fork time; they are not live references back into the parent session
+- a missing or minimal repository summary usually means the recorded workspace path no longer exists or no high-signal top-level entries were present
+
+### End-To-End Example
+
+Suppose an earlier turn inspected a repository and a later runtime step recorded
+the note `[repo] README.md is the primary entrypoint`.
+
+On a later turn, the model can receive both:
+
+- repository context like `Workspace: glassbox`, `High-signal paths: README.md, src/, tests/`, and bounded top-level file or directory summaries
+- the persisted runtime note rendered into the turn context as `[repo] README.md is the primary entrypoint`
+
+That means a later prompt like "summarize how this project is organized" starts
+from a small amount of persisted orientation instead of rediscovering the same
+fact every turn.
+
+An operator can verify exactly that context by:
+
+1. running `glassbox status SESSION_ID --cwd .` and reading the `Runtime context:` block
+2. opening the same session in the dashboard and reading the selected-session runtime-context summary
+3. fetching `GET /sessions/{session_id}` and inspecting the `runtime_context` payload directly
+
+If the session is later forked, the child branch keeps an explicit snapshot of
+those active notes as inherited note state. The child can then accumulate new
+notes of its own without mutating the parent's history.
+
+### Resume, Replay, Eval, And Branch Behavior
+
+Richer runtime context participates in the same local-first contract as the rest
+of the runtime.
+
+- `resume`: the session reloads persisted runtime notes from the event store and recomputes repository context from the current session `cwd` before later turns.
+- `fork`: the child session imports the parent's active runtime notes as inherited notes, so the child remains self-contained instead of depending on live parent lookups.
+- `replay`: the recorded replay manifest includes an enriched-context fingerprint derived from the prepared `repo_context` and `memory_notes`. If that preparation changes materially, replay reports `manifest drift` instead of pretending the change was only downstream transcript drift.
+- `replay-export` and `eval`: exported bundles carry inherited runtime notes so forked sessions can replay offline with the same richer-context lineage they had when recorded.
+
+This split is intentional:
+
+- repository context is live, bounded, and recomputed from the workspace contract
+- runtime notes are persisted session state that survives resume, replay, export, eval, and branching
+
+### Richer Context Troubleshooting
+
+- If `status` or the dashboard shows less repository detail than you expected, remember that the summary is bounded to top-level signals. Use tools for deeper inspection.
+- If a historical session only shows the workspace name and little else, the recorded `cwd` may no longer exist on disk. The runtime keeps the summary inspectable instead of failing the whole status or snapshot view.
+- If a child session shows inherited runtime notes, that is expected. It means the branch imported a snapshot of active parent notes at fork time.
+- If replay or eval reports `manifest drift`, inspect the richer runtime context first. A changed repository summary or changed note set can invalidate the recorded prepared-turn contract before any transcript comparison starts.
+- If a runtime note seems "missing," check whether it was actually persisted into the session. Only event-backed notes become part of later turns, status summaries, snapshot payloads, or replay baselines.
+- If the dashboard and CLI appear inconsistent, reload the snapshot and compare against `glassbox status`. They should agree on the bounded runtime-context summary for the same session because both read from the same persisted state and workspace contract.
 
 ## Local Validation
 

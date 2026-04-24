@@ -788,101 +788,111 @@ The detailed projection-table direction lives in [database.md](./database.md), b
 
 ## Richer Runtime Context Model
 
-Glassbox should treat turn context as a first-class runtime contract rather than
-as an opaque prompt-concatenation detail.
+Glassbox treats turn context as a first-class runtime contract rather than as an
+opaque prompt-concatenation detail.
 
-The baseline turn context already includes transcript history, tool schemas, and
-policy state. The next step should make the richer context layers explicit and
-typed so they remain inspectable, bounded, and replayable.
+In the current implementation, each live turn is assembled from explicit typed
+inputs before the model call:
 
-### Context Source Taxonomy
+- transcript history and session state from canonical events and projections
+- tool schema and policy state from the active runtime configuration
+- repository context from a bounded workspace snapshot
+- runtime notes from persisted session note projections
 
-The intended richer-context model should separate turn inputs by source and
-stability rather than flattening everything into one undifferentiated prompt
-blob.
+The turn engine then passes those richer-context inputs into `TurnContext` as a
+prompt-ready `repo_context` string and a list of `memory_notes`. That same
+session data is also exposed back to operators as a structured
+`RuntimeContextSnapshot` so richer context is inspectable outside the raw prompt.
 
-At minimum, the turn context should support these categories:
+### Current Source Taxonomy
 
-- transcript and session state derived from canonical events and projections
-- tool and policy context derived from the current runtime configuration
-- repository context derived from a bounded local summary of the current workspace
-- session-scoped runtime notes derived from persisted note events or equivalent event-backed state
-- turn-local working-set summaries derived from the current actionable state, recent tool results, or similar high-signal runtime facts
+The important design rule is that not all turn inputs share the same lifecycle.
 
-These sources have different lifecycles.
+- transcript and session state are canonical historical inputs reconstructed from events
+- tool and policy state are current runtime constraints
+- repository context is a bounded live summary recomputed from the session `cwd`
+- runtime notes are persisted session-scoped state recorded through events
 
-- transcript and session state are canonical historical inputs
-- tool and policy context are current runtime constraints
-- repository context is recomputed from the workspace under a defined local contract
-- runtime notes are persisted session memory that should survive resume, replay, and branching
-- working-set summaries are bounded turn-local guidance rather than a second durable memory store
+That separation is deliberate because resume, replay, eval, and branching must
+treat each category differently.
 
-Keeping those categories explicit matters because replay, resume, and branch
-behavior should not treat all richer-context inputs the same way.
+### Repository Context Contract
 
-### Prompt Context Versus Tool-Discoverable State
+Repository context is intentionally narrow. The runtime builds it from the
+workspace root using a deterministic top-level scan that ignores dotfiles and
+captures only a bounded orientation layer:
 
-Not every useful fact belongs directly in prompt context.
+- workspace name
+- high-signal paths such as `README.md`, `pyproject.toml`, `src/`, `tests/`, `docs/`, `evals/`, and `frontend/` when present
+- bounded top-level directory and file lists
+- coarse project markers such as `python_pyproject`, `src_layout`, and `tests_present`
 
-The prompt should contain only the bounded summaries that materially improve the
-model's starting point before it decides whether to call tools.
+The prompt uses that summary as orientation, not as a hidden repository index.
+If the model needs real detail, it must still inspect the repository through
+tools.
 
-Prompt context is the right place for:
+If the recorded workspace path no longer exists, Glassbox intentionally degrades
+the repository summary to the workspace name only instead of failing status,
+snapshot, or replay preparation entirely.
 
-- concise repository-level orientation that would otherwise be rediscovered repeatedly
-- session-scoped runtime notes that capture durable high-signal facts for later turns
-- turn-local working-set summaries such as the current blocked state, recent failure context, or the active branch / lineage situation when that changes the next step materially
+### Runtime Note Contract
 
-Tool-discoverable state should remain outside prompt context when it is large,
-volatile, or better retrieved on demand. That includes at least:
+Runtime notes are event-backed session memory, not background hidden memory.
 
-- raw file contents beyond a deliberately bounded summary
-- large directory trees or search results
-- arbitrary command output
-- speculative repository indexes, embeddings, or hidden background analysis products
+- `RuntimeNoteRecorded` adds a local note to the active session
+- `RuntimeNoteImported` records inherited note state in a child or replayed session
+- each note keeps category, message, source session, source sequence, timestamp, and inheritance state in projections
 
-The operating rule should be: if the model can safely and cheaply inspect a
-detail through tools when needed, prefer that over stuffing raw detail into the
-prompt by default.
+When notes are placed into the live prompt they are formatted as concise strings
+like `[repo] README changed recently` or `[inherited repo] README changed recently`.
+That keeps them human-auditable and replayable.
+
+### Operator Inspection Surfaces
+
+Richer runtime context is exposed through normal operator surfaces rather than
+through raw prompt dumps alone.
+
+- CLI `status` prints a `Runtime context:` block with repository summary and visible runtime notes
+- `GET /sessions/{session_id}` returns a typed `runtime_context` snapshot
+- the dashboard renders that same bounded snapshot in the selected-session summary
+
+This is intentionally read-only. The inspection path explains what shaped a turn
+without creating a second mutable configuration surface.
+
+### Resume, Replay, Eval, And Branch Semantics
+
+The richer-context contract has to remain compatible with the rest of the
+runtime's local-first guarantees.
+
+- `resume` reloads active runtime notes from projections and recomputes repository context from the current `cwd`
+- `fork` imports the parent's active runtime notes into the child as explicit `RuntimeNoteImported` events
+- replay bundles carry inherited runtime notes so forked sessions remain portable and self-contained
+- replay manifests store both the normalized turn context and an enriched-context fingerprint derived from `repo_context` and `memory_notes`
+
+That fingerprint matters because replay should report richer-context preparation
+changes as manifest drift, not as vague downstream behavior drift.
+
+In other words:
+
+- repository context is live and recomputed under a bounded contract
+- runtime notes are persisted session state that survives resume, replay, export, eval, and branching
+- inherited note provenance remains explicit so child-session and replay behavior can be audited instead of guessed
 
 ### Scope Boundary
 
-The v1 richer-context scope should stay deliberately narrow.
+The richer-context scope remains deliberately narrow.
 
-- build on the existing typed turn-context boundary
 - keep repository context concise, deterministic, and cheap to recompute locally
 - keep runtime notes session-scoped and event-backed
-- keep working-set summaries bounded and turn-local
 - preserve operator inspectability so context does not become invisible prompt magic
 
-The following should remain out of scope for the first richer-context phase:
+The following remain out of scope for this architecture:
 
 - hidden long-term autonomous memory outside the event-sourced runtime model
 - unbounded repository indexing or background crawl subsystems
 - opaque provider-specific prompt augmentation that cannot be inspected or replayed
 - embeddings or vector stores treated as a silent second source of truth
 - background context accumulation that survives only in process memory
-
-### Operator Expectations
-
-Operators should be able to answer two questions without reading source code:
-
-1. what high-level repository and session facts is the model currently seeing?
-2. which of those facts are persisted session memory versus recomputed local workspace summary?
-
-That implies the richer-context model should eventually be visible through the
-normal operator surfaces as concise summaries rather than only as raw prompt
-text.
-
-### Replay And Branching Implications
-
-Richer context must remain compatible with Glassbox's existing local-first
-determinism promises.
-
-- if a richer-context input materially influences turn preparation, it should participate in replay-manifest capture in a typed or normalized form
-- repository context should be defined narrowly enough that replay can reason about drift explicitly rather than depending on ambient undocumented workspace state
-- session-scoped runtime notes should survive resume and branching through the event-sourced session model rather than via hidden memory stores
-- child sessions should remain explicit about which richer-context inputs were inherited versus newly recorded after the fork
 
 ## Session Branching And Time-Travel Model
 
