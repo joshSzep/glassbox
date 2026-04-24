@@ -318,6 +318,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="optional eval case IDs to run; defaults to all discovered cases",
     )
     eval_run_parser.add_argument(
+        "--profile",
+        default=None,
+        help=(
+            "named repository-owned verification profile to run before extra narrowing"
+        ),
+    )
+    eval_run_parser.add_argument(
         "--tag",
         dest="tags",
         action="append",
@@ -748,6 +755,7 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
     del _db_path
     suite_result = await EvalRunner().run_suite(
         cwd,
+        profile_id=args.profile,
         case_ids=list(args.case_ids) or None,
         tags=list(args.tags) or None,
         output_dir=_resolve_optional_explicit_path(cwd, args.output_dir),
@@ -1351,6 +1359,8 @@ def _print_replay_report(result: ReplayResult) -> None:
 
 def _print_eval_suite_report(result: EvalSuiteResult) -> None:
     print(f"Eval workspace {result.workspace_root}")
+    if result.profile_id is not None:
+        print(f"Profile: {result.profile_id} ({result.profile_verification_stage})")
     print(f"Selected cases: {result.selected_case_count}")
     print(f"Passed: {result.passed_case_count}")
     print(f"Failed: {result.failed_case_count}")

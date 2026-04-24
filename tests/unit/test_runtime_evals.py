@@ -11,9 +11,12 @@ from glassbox.runtime.evals import (
     DEFAULT_EVAL_BUNDLES_DIR,
     EvalCaseExpectation,
     EvalCaseReleaseContract,
+    EvalProfileDefinition,
     discover_eval_case_files,
     load_eval_case,
+    load_eval_profile,
     load_eval_suite,
+    resolve_eval_suite_selection,
 )
 
 
@@ -254,6 +257,168 @@ def test_load_eval_suite_rejects_unknown_case_id(tmp_path: Path) -> None:
         load_eval_suite(tmp_path, case_ids=["missing.case"])
 
 
+def test_load_eval_profile_reads_named_repository_profile(tmp_path: Path) -> None:
+    _write_eval_profiles(
+        tmp_path,
+        [
+            {
+                "profile_id": "commit-smoke",
+                "title": "Commit smoke",
+                "verification_stage": "commit-time",
+                "tags": ["smoke"],
+                "blocking": True,
+            }
+        ],
+    )
+
+    profile = load_eval_profile(tmp_path, profile_id="commit-smoke")
+
+    assert profile == EvalProfileDefinition(
+        profile_id="commit-smoke",
+        title="Commit smoke",
+        verification_stage="commit-time",
+        tags=["smoke"],
+        blocking=True,
+    )
+
+
+def test_resolve_eval_suite_selection_applies_profile_before_extra_tag_filter(
+    tmp_path: Path,
+) -> None:
+    _write_eval_case(
+        tmp_path,
+        "smoke.readme",
+        {
+            "case_id": "smoke.readme",
+            "title": "README smoke",
+            "bundle_path": "../bundles/readme.json",
+            "tags": ["smoke", "tooling"],
+            "release_contract": {
+                "verification_stages": ["commit-time", "push-time"],
+            },
+        },
+    )
+    _write_eval_case(
+        tmp_path,
+        "smoke.context",
+        {
+            "case_id": "smoke.context",
+            "title": "Context smoke",
+            "bundle_path": "../bundles/context.json",
+            "tags": ["smoke", "context"],
+            "release_contract": {
+                "verification_stages": ["commit-time"],
+            },
+        },
+    )
+    _write_eval_profiles(
+        tmp_path,
+        [
+            {
+                "profile_id": "commit-smoke",
+                "title": "Commit smoke",
+                "verification_stage": "commit-time",
+                "tags": ["smoke"],
+                "blocking": True,
+            }
+        ],
+    )
+
+    selection = resolve_eval_suite_selection(
+        tmp_path,
+        profile_id="commit-smoke",
+        tags=["context"],
+    )
+
+    assert selection.profile is not None
+    assert selection.profile.profile_id == "commit-smoke"
+    assert [case.case_id for case in selection.cases] == ["smoke.context"]
+
+
+def test_load_eval_suite_rejects_case_id_outside_selected_profile(
+    tmp_path: Path,
+) -> None:
+    _write_eval_case(
+        tmp_path,
+        "smoke.readme",
+        {
+            "case_id": "smoke.readme",
+            "title": "README smoke",
+            "bundle_path": "../bundles/readme.json",
+            "tags": ["smoke"],
+            "release_contract": {
+                "verification_stages": ["commit-time"],
+            },
+        },
+    )
+    _write_eval_case(
+        tmp_path,
+        "approval.patch",
+        {
+            "case_id": "approval.patch",
+            "title": "Patch approval",
+            "bundle_path": "../bundles/patch.json",
+            "tags": ["approval"],
+            "release_contract": {
+                "verification_stages": ["push-time"],
+            },
+        },
+    )
+    _write_eval_profiles(
+        tmp_path,
+        [
+            {
+                "profile_id": "commit-smoke",
+                "title": "Commit smoke",
+                "verification_stage": "commit-time",
+                "tags": ["smoke"],
+                "blocking": True,
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="does not select eval case id"):
+        load_eval_suite(
+            tmp_path,
+            profile_id="commit-smoke",
+            case_ids=["approval.patch"],
+        )
+
+
+def test_load_eval_suite_rejects_blocking_profile_with_advisory_case(
+    tmp_path: Path,
+) -> None:
+    _write_eval_case(
+        tmp_path,
+        "context.relaxed",
+        {
+            "case_id": "context.relaxed",
+            "title": "Relaxed advisory case",
+            "bundle_path": "../bundles/context.json",
+            "tags": ["context"],
+            "release_contract": {
+                "verification_stages": ["advisory"],
+                "baseline_refresh_policy": "advisory",
+            },
+        },
+    )
+    _write_eval_profiles(
+        tmp_path,
+        [
+            {
+                "profile_id": "advisory-context",
+                "title": "Bad blocking advisory profile",
+                "verification_stage": "advisory",
+                "tags": ["context"],
+                "blocking": True,
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="blocking eval profile advisory-context"):
+        load_eval_suite(tmp_path, profile_id="advisory-context")
+
+
 def _write_eval_case(
     workspace_root: Path,
     case_id: str,
@@ -277,3 +442,17 @@ def _write_eval_case(
         resolved_bundle_path.write_text("{}\n", encoding="utf-8")
 
     return case_path
+
+
+def _write_eval_profiles(
+    workspace_root: Path,
+    profiles: list[dict[str, object]],
+) -> Path:
+    profiles_path = workspace_root / "evals" / "profiles.json"
+    profiles_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "manifest_version": 1,
+        "profiles": profiles,
+    }
+    profiles_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return profiles_path

@@ -9,7 +9,7 @@
     "owner": "runtime.context",
     "capabilities": ["artifact_backed_context", "context_drift_detection"],
     "severity": "medium",
-    "verification_stages": ["push-time", "advisory"],
+    "verification_stages": ["push-time", "release-candidate", "advisory"],
     "baseline_refresh_policy": "review_required"
   },
   "expectation": {

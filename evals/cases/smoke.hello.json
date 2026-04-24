@@ -5,6 +5,13 @@
   "bundle_path": "../bundles/smoke.hello.json",
   "tags": ["smoke"],
   "notes": "Captured from a deterministic no-tool local session for the commit-time smoke suite.",
+  "release_contract": {
+    "owner": "runtime.replay",
+    "capabilities": ["smoke_validation", "replay_portability"],
+    "severity": "high",
+    "verification_stages": ["commit-time", "push-time", "release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
   "expectation": {
     "mode": "exact_match"
   }

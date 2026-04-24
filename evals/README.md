@@ -24,17 +24,22 @@ Run the resulting suite with:
 
 ```text
 glassbox eval run
+glassbox eval run --profile commit-smoke
 glassbox eval run CASE_ID
 glassbox eval run --tag smoke --json
 glassbox eval run --output-dir .glassbox/evals/manual
 ```
+
+Named profiles live in `evals/profiles.json` and make stage intent explicit for
+automation and local verification. Additional `CASE_ID` arguments and repeated
+`--tag` flags still work as narrower filters inside a selected profile.
 
 The commit-time smoke hook uses the same tagged suite with a stable local output
 directory:
 
 ```text
 pre-commit run eval-smoke --all-files
-glassbox eval run --tag smoke --output-dir .glassbox/evals/pre-commit --refresh-output-dir
+glassbox eval run --profile commit-smoke --output-dir .glassbox/evals/pre-commit --refresh-output-dir
 ```
 
 That managed output directory is refreshed in place on each hook run so the
@@ -42,9 +47,27 @@ latest blocked commit leaves behind one stable `summary.json` plus the current
 per-case artifacts without accumulating stale JSON from earlier runs.
 
 Push confirmation uses the same `smoke` tag set from
-`.github/workflows/push-smoke-evals.yml` and uploads the remote run output from
+the `push-confirmation` profile from `.github/workflows/push-smoke-evals.yml`
+and uploads the remote run output from
 `.glassbox/evals/push-smoke/` as a GitHub Actions artifact named
 `push-smoke-evals-SHA`.
+
+Profile manifest shape:
+
+```json
+{
+  "manifest_version": 1,
+  "profiles": [
+    {
+      "profile_id": "commit-smoke",
+      "title": "Commit-time smoke gate",
+      "verification_stage": "commit-time",
+      "tags": ["smoke"],
+      "blocking": true
+    }
+  ]
+}
+```
 
 That workflow also writes a GitHub Actions job summary with selected-case
 counts, pass/fail totals, outcome counts, per-case severity, and retained

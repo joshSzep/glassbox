@@ -2503,7 +2503,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-242: Add Stage-Aware Verification Profiles And Runner Support
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-196`, `GBX-205`, `GBX-241`
 - Goal: replace ad hoc tag-only conventions with explicit verification profiles that correspond to real release checkpoints
 - Deliverables:

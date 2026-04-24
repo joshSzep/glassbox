@@ -37,6 +37,9 @@ def build_eval_suite_summary_payload(
 
     normalized_root = _normalized_artifact_root(artifact_root)
     return {
+        "profile_id": result.profile_id,
+        "profile_title": result.profile_title,
+        "profile_verification_stage": result.profile_verification_stage,
         "suite_status": "failed" if result.failed_case_count else "passed",
         "selected_case_count": result.selected_case_count,
         "passed_case_count": result.passed_case_count,
@@ -85,19 +88,32 @@ def build_eval_suite_job_summary(
     lines = [
         "## Push Smoke Eval Summary",
         "",
-        f"- Suite status: `{payload['suite_status']}`",
-        f"- Selected cases: `{payload['selected_case_count']}`",
-        f"- Passed: `{payload['passed_case_count']}`",
-        f"- Failed: `{payload['failed_case_count']}`",
-        f"- Exit code: `{payload['exit_code']}`",
-        f"- Uploaded artifact: `{payload['artifact_name']}`",
-        f"- Summary JSON: `{payload['summary_artifact_path']}`",
-        "",
-        "### Outcome Totals",
-        "",
-        "| Outcome | Count |",
-        "| --- | ---: |",
     ]
+    if payload["profile_id"] is not None:
+        lines.extend(
+            [
+                f"- Profile: `{payload['profile_id']}`",
+                f"- Profile title: `{payload['profile_title']}`",
+                f"- Verification stage: `{payload['profile_verification_stage']}`",
+            ]
+        )
+
+    lines.extend(
+        [
+            f"- Suite status: `{payload['suite_status']}`",
+            f"- Selected cases: `{payload['selected_case_count']}`",
+            f"- Passed: `{payload['passed_case_count']}`",
+            f"- Failed: `{payload['failed_case_count']}`",
+            f"- Exit code: `{payload['exit_code']}`",
+            f"- Uploaded artifact: `{payload['artifact_name']}`",
+            f"- Summary JSON: `{payload['summary_artifact_path']}`",
+            "",
+            "### Outcome Totals",
+            "",
+            "| Outcome | Count |",
+            "| --- | ---: |",
+        ]
+    )
     for outcome, count in payload["outcome_counts"].items():
         lines.append(f"| `{outcome}` | `{count}` |")
 

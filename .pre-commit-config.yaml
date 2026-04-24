@@ -40,8 +40,8 @@ repos:
         types_or: [python, pyi]
 
       - id: eval-smoke
-        name: glassbox eval run --tag smoke
-        entry: uv run glassbox eval run --tag smoke --output-dir .glassbox/evals/pre-commit --refresh-output-dir --cwd .
+        name: glassbox eval run --profile commit-smoke
+        entry: uv run glassbox eval run --profile commit-smoke --output-dir .glassbox/evals/pre-commit --refresh-output-dir --cwd .
         language: unsupported
         always_run: true
         pass_filenames: false

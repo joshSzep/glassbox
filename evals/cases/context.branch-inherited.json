@@ -9,7 +9,7 @@
     "owner": "runtime.context",
     "capabilities": ["branching", "context_inheritance"],
     "severity": "high",
-    "verification_stages": ["commit-time", "push-time"],
+    "verification_stages": ["commit-time", "push-time", "release-candidate"],
     "baseline_refresh_policy": "review_required"
   },
   "expectation": {

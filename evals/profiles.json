@@ -1,0 +1,36 @@
+{
+  "manifest_version": 1,
+  "profiles": [
+    {
+      "profile_id": "commit-smoke",
+      "title": "Commit-time smoke gate",
+      "description": "Blocking deterministic smoke coverage for local pre-commit verification.",
+      "verification_stage": "commit-time",
+      "tags": ["smoke"],
+      "blocking": true
+    },
+    {
+      "profile_id": "push-confirmation",
+      "title": "Push-time smoke confirmation",
+      "description": "Blocking deterministic smoke coverage for post-push confirmation.",
+      "verification_stage": "push-time",
+      "tags": ["smoke"],
+      "blocking": true
+    },
+    {
+      "profile_id": "release-candidate",
+      "title": "Release-candidate deterministic suite",
+      "description": "Repository-owned replay coverage intended for release candidate sign-off.",
+      "verification_stage": "release-candidate",
+      "blocking": true
+    },
+    {
+      "profile_id": "advisory-context",
+      "title": "Advisory context suite",
+      "description": "Non-blocking context-heavy replay coverage for exploratory drift review.",
+      "verification_stage": "advisory",
+      "tags": ["context"],
+      "blocking": false
+    }
+  ]
+}

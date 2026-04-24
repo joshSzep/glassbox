@@ -31,7 +31,7 @@ jobs:
         id: smoke
         continue-on-error: true
         run: >-
-          uv run glassbox eval run --tag smoke
+          uv run glassbox eval run --profile push-confirmation
           --output-dir "$EVAL_OUTPUT_DIR"
           --refresh-output-dir
           --cwd .

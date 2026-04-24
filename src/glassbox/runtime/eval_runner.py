@@ -14,8 +14,9 @@ from glassbox.runtime.evals import (
     EvalCase,
     EvalCaseSeverity,
     EvalInvariant,
+    EvalProfileDefinition,
     EvalVerificationStage,
-    load_eval_suite,
+    resolve_eval_suite_selection,
 )
 from glassbox.runtime.replay import ReplayOutcome, ReplayResult, ReplayRunner
 
@@ -60,6 +61,9 @@ class EvalSuiteResult(BaseModel):
     workspace_root: Path
     output_dir: Path
     summary_path: Path
+    profile_id: str | None = None
+    profile_title: str | None = None
+    profile_verification_stage: EvalVerificationStage | None = None
     selected_case_count: int
     passed_case_count: int
     failed_case_count: int
@@ -78,17 +82,20 @@ class EvalRunner:
         self,
         workspace_root: Path,
         *,
+        profile_id: str | None = None,
         case_ids: list[str] | None = None,
         tags: list[str] | None = None,
         output_dir: Path | None = None,
         refresh_output_dir: bool = False,
     ) -> EvalSuiteResult:
         resolved_workspace_root = workspace_root.resolve()
-        eval_cases = load_eval_suite(
+        selection = resolve_eval_suite_selection(
             resolved_workspace_root,
+            profile_id=profile_id,
             case_ids=case_ids,
             tags=tags,
         )
+        eval_cases = selection.cases
         if not eval_cases:
             raise ValueError("no eval cases selected")
 
@@ -118,6 +125,9 @@ class EvalRunner:
             workspace_root=resolved_workspace_root,
             output_dir=resolved_output_dir,
             summary_path=summary_path,
+            profile_id=_profile_id(selection.profile),
+            profile_title=_profile_title(selection.profile),
+            profile_verification_stage=_profile_stage(selection.profile),
             selected_case_count=len(case_results),
             passed_case_count=sum(1 for case in case_results if case.passed),
             failed_case_count=sum(1 for case in case_results if not case.passed),
@@ -295,3 +305,23 @@ def _suite_exit_code(case_results: list[EvalCaseResult]) -> int:
         if outcome in failing_outcomes:
             return _REPLAY_EXIT_CODES[outcome]
     return 1
+
+
+def _profile_id(profile: EvalProfileDefinition | None) -> str | None:
+    if profile is None:
+        return None
+    return profile.profile_id
+
+
+def _profile_title(profile: EvalProfileDefinition | None) -> str | None:
+    if profile is None:
+        return None
+    return profile.title
+
+
+def _profile_stage(
+    profile: EvalProfileDefinition | None,
+) -> EvalVerificationStage | None:
+    if profile is None:
+        return None
+    return profile.verification_stage

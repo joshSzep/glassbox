@@ -680,6 +680,122 @@ def test_cli_eval_run_supports_tag_filter_and_json_output(
     assert Path(payload["summary_path"]).is_file()
 
 
+def test_cli_eval_run_supports_profile_selection_and_tag_narrowing(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    smoke_bundle_path, _session_id = _export_eval_bundle(tmp_path, "smoke.readme")
+    context_bundle_path = tmp_path / "evals" / "bundles" / "context.branch.json"
+    shutil.copyfile(smoke_bundle_path, context_bundle_path)
+
+    _write_eval_case(
+        tmp_path,
+        case_id="smoke.readme",
+        title="README smoke",
+        bundle_name=smoke_bundle_path.name,
+        tags=["smoke", "tooling"],
+        release_contract={
+            "owner": "runtime.replay",
+            "verification_stages": ["commit-time", "push-time"],
+        },
+    )
+    _write_eval_case(
+        tmp_path,
+        case_id="context.branch",
+        title="Context branch smoke",
+        bundle_name=context_bundle_path.name,
+        tags=["smoke", "context"],
+        release_contract={
+            "owner": "runtime.context",
+            "verification_stages": ["commit-time", "push-time"],
+        },
+    )
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "commit-smoke",
+                "title": "Commit smoke",
+                "verification_stage": "commit-time",
+                "tags": ["smoke"],
+                "blocking": True,
+            }
+        ],
+    )
+    output_dir = tmp_path / "profiled-eval-output"
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "run",
+            "--profile",
+            "commit-smoke",
+            "--tag",
+            "context",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["profile_id"] == "commit-smoke"
+    assert payload["profile_verification_stage"] == "commit-time"
+    assert payload["selected_case_count"] == 1
+    assert payload["cases"][0]["case_id"] == "context.branch"
+
+
+def test_cli_eval_run_rejects_blocking_profile_with_advisory_case(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    bundle_path, _session_id = _export_eval_bundle(tmp_path, "context.relaxed")
+    _write_eval_case(
+        tmp_path,
+        case_id="context.relaxed",
+        title="Relaxed context advisory",
+        bundle_name=bundle_path.name,
+        tags=["context"],
+        release_contract={
+            "owner": "runtime.context",
+            "verification_stages": ["advisory"],
+            "baseline_refresh_policy": "advisory",
+        },
+    )
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "bad-blocking-context",
+                "title": "Bad blocking context profile",
+                "verification_stage": "advisory",
+                "tags": ["context"],
+                "blocking": True,
+            }
+        ],
+    )
+
+    exit_code = main(
+        [
+            "eval",
+            "run",
+            "--profile",
+            "bad-blocking-context",
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "blocking eval profile bad-blocking-context" in captured.err
+
+
 def test_cli_eval_run_allows_selected_invariants_to_ignore_behavioral_drift(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -2495,6 +2611,7 @@ def _write_eval_case(
     bundle_name: str,
     tags: list[str],
     expectation: dict[str, object] | None = None,
+    release_contract: dict[str, object] | None = None,
 ) -> Path:
     case_path = tmp_path / "evals" / "cases" / f"{case_id}.json"
     case_path.parent.mkdir(parents=True, exist_ok=True)
@@ -2507,8 +2624,25 @@ def _write_eval_case(
     }
     if expectation is not None:
         payload["expectation"] = expectation
+    if release_contract is not None:
+        payload["release_contract"] = release_contract
     case_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     return case_path
+
+
+def _write_eval_profiles(
+    tmp_path: Path,
+    *,
+    profiles: list[dict[str, object]],
+) -> Path:
+    profiles_path = tmp_path / "evals" / "profiles.json"
+    profiles_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "manifest_version": 1,
+        "profiles": profiles,
+    }
+    profiles_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return profiles_path
 
 
 def _ask_user_then_text_response(
