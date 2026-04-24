@@ -33,6 +33,26 @@ from glassbox.store.repositories import (
 )
 from glassbox.store.sqlite import initialize_database, open_database
 
+EXPECTED_COMPLETED_TURN_EVENT_TYPES = [
+    "UserMessageReceived",
+    "TurnStarted",
+    "TurnStatusChanged",
+    "TurnStatusChanged",
+    "ModelCallStarted",
+    "AssistantMessageStarted",
+    "AssistantMessageDelta",
+    "AssistantMessageDelta",
+    "ModelCallCompleted",
+    "TurnStatusChanged",
+    "AssistantMessageCompleted",
+    "TurnStatusChanged",
+    "TurnCompleted",
+]
+EXPECTED_PERSISTED_COMPLETED_TURN_EVENT_TYPES = [
+    "SessionStarted",
+    *EXPECTED_COMPLETED_TURN_EVENT_TYPES,
+]
+
 
 def _open_initialized_database(tmp_path: Path) -> sqlite3.Connection:
     connection = open_database(tmp_path / "glassbox.sqlite3")
@@ -40,95 +60,82 @@ def _open_initialized_database(tmp_path: Path) -> sqlite3.Connection:
     return connection
 
 
+async def _run_completed_turn(tmp_path: Path):
+    connection = _open_initialized_database(tmp_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        bus: EventBus[EventEnvelope] = EventBus()
+        turn_engine = TurnEngine(
+            repository,
+            bus,
+            TurnContextBuilder(repository),
+            lambda _session: PydanticAIModelAdapter(
+                ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+            ),
+            lambda _session: PydanticAIModelExecutor(
+                FunctionModel(
+                    function=_function_model_response,
+                    stream_function=_stream_function_model_response,
+                    model_name="openai:gpt-5.4",
+                )
+            ),
+        )
+        supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+        config = SessionConfig(
+            model_name="openai:gpt-5.4",
+            cwd=tmp_path,
+            approval_mode="confirm",
+        )
+
+        async with bus.subscribe() as subscription:
+            started_state = await supervisor.start_session(config)
+            await subscription.get()
+            await supervisor.submit_user_message(
+                started_state.session_id,
+                "Inspect the repo",
+            )
+
+            events = []
+            while not events or events[-1].event_type != "TurnCompleted":
+                events.append(await subscription.get())
+
+        persisted_events = repository.read_session_events(started_state.session_id)
+        transcript = repository.list_transcript_messages(started_state.session_id)
+        session_state = repository.get_session_state(started_state.session_id)
+    finally:
+        connection.close()
+
+    return events, persisted_events, transcript, session_state
+
+
+def test_completed_turn_event_order_is_stable_characterization(
+    tmp_path: Path,
+) -> None:
+    events, persisted_events, _transcript, _session_state = asyncio.run(
+        _run_completed_turn(tmp_path)
+    )
+
+    assert [event.event_type for event in events] == EXPECTED_COMPLETED_TURN_EVENT_TYPES
+    assert [event.event_type for event in persisted_events] == (
+        EXPECTED_PERSISTED_COMPLETED_TURN_EVENT_TYPES
+    )
+
+
 def test_supervisor_drives_turn_engine_and_persists_assistant_response(
     tmp_path: Path,
 ) -> None:
-    async def scenario() -> None:
-        connection = _open_initialized_database(tmp_path)
-        try:
-            repository = SQLiteSessionRepository(connection)
-            bus: EventBus[EventEnvelope] = EventBus()
-            turn_engine = TurnEngine(
-                repository,
-                bus,
-                TurnContextBuilder(repository),
-                lambda _session: PydanticAIModelAdapter(
-                    ModelProviderConfig(provider="openai", model_name="gpt-5.4")
-                ),
-                lambda _session: PydanticAIModelExecutor(
-                    FunctionModel(
-                        function=_function_model_response,
-                        stream_function=_stream_function_model_response,
-                        model_name="openai:gpt-5.4",
-                    )
-                ),
-            )
-            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
-            config = SessionConfig(
-                model_name="openai:gpt-5.4",
-                cwd=tmp_path,
-                approval_mode="confirm",
-            )
+    _events, _persisted_events, transcript, session_state = asyncio.run(
+        _run_completed_turn(tmp_path)
+    )
 
-            async with bus.subscribe() as subscription:
-                started_state = await supervisor.start_session(config)
-                await subscription.get()
-                await supervisor.submit_user_message(
-                    started_state.session_id,
-                    "Inspect the repo",
-                )
-
-                events = []
-                while not events or events[-1].event_type != "TurnCompleted":
-                    events.append(await subscription.get())
-
-            persisted_events = repository.read_session_events(started_state.session_id)
-            transcript = repository.list_transcript_messages(started_state.session_id)
-            session_state = repository.get_session_state(started_state.session_id)
-        finally:
-            connection.close()
-
-        assert [event.event_type for event in events] == [
-            "UserMessageReceived",
-            "TurnStarted",
-            "TurnStatusChanged",
-            "TurnStatusChanged",
-            "ModelCallStarted",
-            "AssistantMessageStarted",
-            "AssistantMessageDelta",
-            "AssistantMessageDelta",
-            "ModelCallCompleted",
-            "TurnStatusChanged",
-            "AssistantMessageCompleted",
-            "TurnStatusChanged",
-            "TurnCompleted",
-        ]
-        assert [event.event_type for event in persisted_events] == [
-            "SessionStarted",
-            "UserMessageReceived",
-            "TurnStarted",
-            "TurnStatusChanged",
-            "TurnStatusChanged",
-            "ModelCallStarted",
-            "AssistantMessageStarted",
-            "AssistantMessageDelta",
-            "AssistantMessageDelta",
-            "ModelCallCompleted",
-            "TurnStatusChanged",
-            "AssistantMessageCompleted",
-            "TurnStatusChanged",
-            "TurnCompleted",
-        ]
-        assert transcript[0].role == "user"
-        assert transcript[0].parts[0].text == "Inspect the repo"
-        assert transcript[1].role == "assistant"
-        assert transcript[1].parts[0].text == "Repo inspection complete."
-        assert session_state is not None
-        assert session_state.status == SessionStatus.RUNNING
-        assert session_state.current_turn_id is None
-        assert session_state.last_sequence == 14
-
-    asyncio.run(scenario())
+    assert transcript[0].role == "user"
+    assert transcript[0].parts[0].text == "Inspect the repo"
+    assert transcript[1].role == "assistant"
+    assert transcript[1].parts[0].text == "Repo inspection complete."
+    assert session_state is not None
+    assert session_state.status == SessionStatus.RUNNING
+    assert session_state.current_turn_id is None
+    assert session_state.last_sequence == 14
 
 
 def test_turn_engine_injects_repository_context_and_runtime_notes(

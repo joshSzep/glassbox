@@ -18,6 +18,7 @@ import {
   renderToolCallsPane,
   renderTurnPane,
 } from "../../src/glassbox/web/static/render.js";
+import { makeSessionSnapshot } from "./dashboard_test_fixtures.js";
 
 test("renderTurnPane shows realistic current-turn details", () => {
   const state = hydrateFromSnapshot({
@@ -193,6 +194,40 @@ test("synthetic event stream updates multiple panes together", () => {
   assert.match(panes.liveOutput, /patched file/);
   assert.match(panes.approvals, /needs sign-off|Approve/);
   assert.match(panes.eventLog, /ApprovalRequested|ToolOutputChunk/);
+});
+
+test("state and render facades preserve pending-question composition", () => {
+  const snapshot = hydrateFromSnapshot(
+    makeSessionSnapshot("session-123", {
+      transcript: [],
+      last_sequence: 0,
+    }),
+  );
+
+  const state = [
+    {
+      sequence: 1,
+      event_type: "TurnStarted",
+      payload: { turn_id: "turn-ask-1", trigger_message_id: "message-1" },
+    },
+    {
+      sequence: 2,
+      event_type: "UserQuestionAsked",
+      payload: {
+        question_id: "question-1",
+        question: "Which branch should I inspect?",
+      },
+    },
+  ].reduce(
+    (current, event) => applyEvent(current, { session_id: "session-123", ...event }),
+    snapshot,
+  );
+
+  const panes = renderDashboardPanes(state);
+  assert.match(panes.turn, /awaiting_user_input|turn-ask-1/);
+  assert.match(panes.composer, /Answer Pending Question/);
+  assert.match(panes.composer, /Which branch should I inspect\?/);
+  assert.match(panes.eventLog, /UserQuestionAsked/);
 });
 
 test("renderSelectedSessionSummary includes runtime context summary", () => {

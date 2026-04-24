@@ -519,7 +519,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R150: Add Architectural Characterization Coverage For Refactor-Sensitive Seams
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R110`, `GBX-R113`, `GBX-R123`, `GBX-R133`, `GBX-R141`
 - Goal: protect the new boundaries against accidental behavioral drift after the main refactor extractions land
 - Deliverables:

@@ -61,3 +61,25 @@ def test_build_replay_triage_classifies_context_source_drift() -> None:
     assert triage.drift_sources == ["runtime_notes"]
     assert triage.recommended_inspection_path is not None
     assert "runtime note inputs" in triage.recommended_inspection_path
+
+
+def test_replay_behavioral_drift_characterization_preserves_ordered_guidance() -> None:
+    baseline = _normalized_session()
+    replay = _normalized_session(event_families=["SessionStarted"])
+    replay.final_state = ReplayFinalStateSnapshot(status="failed")
+
+    mismatches = collect_mismatches(baseline, replay)
+    triage = build_replay_triage(
+        ReplayResult(
+            outcome="behavioral_drift",
+            mismatches=mismatches,
+            baseline=baseline,
+            replay=replay,
+        )
+    )
+
+    assert mismatches == ["event_families drift", "final_state drift"]
+    assert triage.first_relevant_change == "event_families drift"
+    assert triage.impacted_dimensions == ["event_families", "final_state"]
+    assert triage.recommended_inspection_path is not None
+    assert "event stream" in triage.recommended_inspection_path
