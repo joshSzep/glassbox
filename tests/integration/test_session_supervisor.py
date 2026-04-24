@@ -10,6 +10,7 @@ import pytest
 from glassbox.core import (
     EventEnvelope,
     MessagePart,
+    RuntimeNoteRecorded,
     SessionConfig,
     SessionResumed,
     SessionStarted,
@@ -103,6 +104,67 @@ def test_session_supervisor_submits_user_message_and_stops_session(
         assert persisted_events[1].payload.text == "Inspect the repo"
         assert stopped_state.status == SessionStatus.COMPLETED
         assert stopped_state.last_sequence == 3
+
+    asyncio.run(scenario())
+
+
+def test_session_supervisor_records_runtime_note_and_keeps_it_across_resume(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            bus: EventBus[EventEnvelope] = EventBus()
+            supervisor = SessionSupervisor(repository, bus)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+
+            async with bus.subscribe() as subscription:
+                started_state = await supervisor.start_session(config)
+                await subscription.get()
+
+                assert repository.list_runtime_notes(started_state.session_id) == []
+
+                await supervisor.record_runtime_note(
+                    started_state.session_id,
+                    category=" Operator ",
+                    message=" Prefer concise output ",
+                )
+                note_event = await subscription.get()
+
+                resumed_state = await supervisor.resume_session(
+                    started_state.session_id
+                )
+                await subscription.get()
+
+                notes = repository.list_runtime_notes(started_state.session_id)
+        finally:
+            connection.close()
+
+        assert isinstance(note_event.payload, RuntimeNoteRecorded)
+        assert note_event.payload.category == "operator"
+        assert note_event.payload.message == "Prefer concise output"
+        assert resumed_state.last_sequence == 3
+        assert [
+            (
+                note.source_session_id,
+                note.category,
+                note.message,
+                note.inherited,
+            )
+            for note in notes
+        ] == [
+            (
+                started_state.session_id,
+                "operator",
+                "Prefer concise output",
+                False,
+            )
+        ]
 
     asyncio.run(scenario())
 
@@ -331,6 +393,117 @@ def test_session_supervisor_forks_child_session_from_completed_turn(
             "I received your request: Inspect the repo",
         ]
         assert len(parent_events_before) == len(parent_events_after)
+
+    asyncio.run(scenario())
+
+
+def test_session_supervisor_runtime_notes_are_inherited_by_child_queries(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            supervisor = SessionSupervisor(repository, EventBus())
+            parent_config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+
+            parent_state = await supervisor.start_session(parent_config)
+            await supervisor.record_runtime_note(
+                parent_state.session_id,
+                category="operator",
+                message="Stay inside src/glassbox",
+            )
+
+            prompt_message_id = new_message_id()
+            turn_id = new_turn_id()
+            repository.append_events(
+                [
+                    EventEnvelope(
+                        session_id=parent_state.session_id,
+                        sequence=0,
+                        payload=UserMessageReceived(
+                            message_id=prompt_message_id,
+                            text="Inspect the repo",
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=parent_state.session_id,
+                        sequence=0,
+                        payload=TurnStarted(
+                            turn_id=turn_id,
+                            trigger_message_id=prompt_message_id,
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=parent_state.session_id,
+                        sequence=0,
+                        payload=TurnCompleted(
+                            turn_id=turn_id,
+                            outcome="completed",
+                        ),
+                    ),
+                ]
+            )
+
+            forked_session = await supervisor.fork_session(parent_state.session_id)
+            await supervisor.record_runtime_note(
+                forked_session.child_session_id,
+                category="runtime",
+                message="Child branch prefers narrow diffs",
+            )
+
+            inherited_notes = repository.list_runtime_notes(
+                forked_session.child_session_id
+            )
+            local_notes = repository.list_runtime_notes(
+                forked_session.child_session_id,
+                include_inherited=False,
+            )
+        finally:
+            connection.close()
+
+        assert [
+            (
+                note.source_session_id,
+                note.category,
+                note.message,
+                note.inherited,
+            )
+            for note in inherited_notes
+        ] == [
+            (
+                parent_state.session_id,
+                "operator",
+                "Stay inside src/glassbox",
+                True,
+            ),
+            (
+                forked_session.child_session_id,
+                "runtime",
+                "Child branch prefers narrow diffs",
+                False,
+            ),
+        ]
+        assert [
+            (
+                note.source_session_id,
+                note.category,
+                note.message,
+                note.inherited,
+            )
+            for note in local_notes
+        ] == [
+            (
+                forked_session.child_session_id,
+                "runtime",
+                "Child branch prefers narrow diffs",
+                False,
+            )
+        ]
 
     asyncio.run(scenario())
 

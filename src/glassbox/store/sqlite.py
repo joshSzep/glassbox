@@ -19,6 +19,7 @@ from glassbox.core.events import (
     ModelCallCompleted,
     ModelCallStarted,
     ModelToolCallRequested,
+    RuntimeNoteRecorded,
     SessionCompleted,
     SessionFailed,
     SessionResumed,
@@ -46,6 +47,7 @@ from glassbox.core.models import (
     InheritedTranscriptMessage,
     MessagePart,
     ResolvedForkPoint,
+    RuntimeNoteRecord,
     SessionConfig,
     SessionRecord,
     SessionState,
@@ -60,7 +62,7 @@ from glassbox.core.types import (
     ToolExecutionStatus,
 )
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 IMPORTED_MESSAGE_NAMESPACE = UUID("2af6228d-37a0-4b62-9c58-7a4a2fdcb5fb")
 
 type CorrelationValue = TurnId | MessageId | ToolCallId | ApprovalId | QuestionId
@@ -203,6 +205,21 @@ BOOTSTRAP_STATEMENTS = (
     """
     create index if not exists idx_approvals_session_status
         on approvals (session_id, status)
+    """,
+    """
+    create table if not exists runtime_notes (
+        session_id text not null,
+        sequence integer not null,
+        category text not null,
+        message text not null,
+        created_at text not null,
+        primary key (session_id, sequence),
+        foreign key (session_id) references sessions(session_id)
+    )
+    """,
+    """
+    create index if not exists idx_runtime_notes_session_created
+        on runtime_notes (session_id, created_at, sequence)
     """,
     """
     create table if not exists turn_metrics (
@@ -498,6 +515,43 @@ def list_transcript_messages(
         )
         for row in rows
     ]
+
+
+def list_runtime_notes(
+    connection: sqlite3.Connection,
+    session_id: SessionId,
+    *,
+    include_inherited: bool = True,
+) -> list[RuntimeNoteRecord]:
+    """Read the active runtime note set for a session."""
+
+    session = get_session(connection, session_id)
+    if session is None:
+        return []
+
+    lineage = (
+        _resolve_session_lineage(connection, session)
+        if include_inherited
+        else [session]
+    )
+    notes: list[RuntimeNoteRecord] = []
+    for source_session in lineage:
+        inherited = source_session.session_id != session_id
+        notes.extend(
+            RuntimeNoteRecord(
+                source_session_id=source_session.session_id,
+                source_sequence=row["sequence"],
+                category=row["category"],
+                message=row["message"],
+                created_at=row["created_at"],
+                inherited=inherited,
+            )
+            for row in _list_session_runtime_note_rows(
+                connection,
+                source_session.session_id,
+            )
+        )
+    return notes
 
 
 def list_sessions(
@@ -1114,6 +1168,7 @@ def _apply_projection_event(
     _apply_transcript_projection(connection, event)
     _apply_tool_call_projection(connection, event)
     _apply_approval_projection(connection, event)
+    _apply_runtime_note_projection(connection, event)
     _apply_turn_metrics_projection(connection, event)
 
 
@@ -1136,6 +1191,10 @@ def _clear_session_projections(
     )
     connection.execute(
         "delete from approvals where session_id = ?",
+        (session_id_value,),
+    )
+    connection.execute(
+        "delete from runtime_notes where session_id = ?",
         (session_id_value,),
     )
     connection.execute(
@@ -1566,6 +1625,38 @@ def _apply_approval_projection(
         )
 
 
+def _apply_runtime_note_projection(
+    connection: sqlite3.Connection,
+    event: EventEnvelope,
+) -> None:
+    payload = event.payload
+    if not isinstance(payload, RuntimeNoteRecorded):
+        return
+
+    connection.execute(
+        """
+        insert into runtime_notes (
+            session_id,
+            sequence,
+            category,
+            message,
+            created_at
+        ) values (?, ?, ?, ?, ?)
+        on conflict(session_id, sequence) do update set
+            category = excluded.category,
+            message = excluded.message,
+            created_at = excluded.created_at
+        """,
+        (
+            str(event.session_id),
+            event.sequence,
+            payload.category,
+            payload.message,
+            event.created_at.isoformat(),
+        ),
+    )
+
+
 def _ensure_turn_metrics_row(
     connection: sqlite3.Connection,
     session_id: SessionId,
@@ -1814,3 +1905,44 @@ def _derived_imported_message_id(
         IMPORTED_MESSAGE_NAMESPACE,
         f"{session_id}:{source_message_id}",
     )
+
+
+def _resolve_session_lineage(
+    connection: sqlite3.Connection,
+    session: SessionRecord,
+) -> list[SessionRecord]:
+    lineage: list[SessionRecord] = [session]
+    current_session = session
+    while current_session.parent_session_id is not None:
+        parent_session = get_session(connection, current_session.parent_session_id)
+        if parent_session is None:
+            break
+        lineage.append(parent_session)
+        current_session = parent_session
+    lineage.reverse()
+    return lineage
+
+
+def _list_session_runtime_note_rows(
+    connection: sqlite3.Connection,
+    session_id: SessionId,
+) -> list[sqlite3.Row]:
+    rows = connection.execute(
+        """
+        select sequence, category, message, created_at
+        from runtime_notes
+        where session_id = ?
+        order by sequence asc
+        """,
+        (str(session_id),),
+    ).fetchall()
+    return _dedupe_runtime_note_rows(rows)
+
+
+def _dedupe_runtime_note_rows(rows: Sequence[sqlite3.Row]) -> list[sqlite3.Row]:
+    # Keep the latest exact note per source session so the active note set stays
+    # bounded while the canonical event log remains append-only.
+    retained_rows: dict[tuple[str, str], sqlite3.Row] = {}
+    for row in rows:
+        retained_rows[(row["category"], row["message"])] = row
+    return sorted(retained_rows.values(), key=lambda row: row["sequence"])

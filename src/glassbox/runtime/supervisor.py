@@ -6,6 +6,7 @@ from glassbox.core.events import (
     ApprovalRequested,
     ApprovalResolved,
     EventEnvelope,
+    RuntimeNoteRecorded,
     SessionCompleted,
     SessionResumed,
     SessionStarted,
@@ -228,6 +229,36 @@ class SessionSupervisor(SessionService):
         )
         if self._turn_engine is not None:
             await self._turn_engine.run_for_user_message(event)
+
+    async def record_runtime_note(
+        self,
+        session_id: SessionId,
+        *,
+        category: str,
+        message: str,
+    ) -> None:
+        state = self._require_session_state(session_id)
+        self._ensure_session_is_active(state, action="record runtime note for")
+
+        event = self._session_repository.record_runtime_note(
+            session_id,
+            category=category,
+            message=message,
+        )
+        payload = event.payload
+        if not isinstance(payload, RuntimeNoteRecorded):
+            raise RuntimeError("record_runtime_note stored an unexpected event payload")
+        self._event_bus.publish(event)
+        logger.info(
+            "runtime_note_recorded",
+            extra=runtime_log_extra(
+                runtime_event="runtime_note_recorded",
+                session_id=session_id,
+                event_sequence=event.sequence,
+                category=payload.category,
+                message_length=len(payload.message),
+            ),
+        )
 
     async def resolve_approval(
         self,

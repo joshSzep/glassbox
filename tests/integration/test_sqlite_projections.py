@@ -13,6 +13,7 @@ from glassbox.core import (
     EventEnvelope,
     MessagePart,
     ModelToolCallRequested,
+    RuntimeNoteRecorded,
     SessionStarted,
     ToolExecutionCompleted,
     ToolExecutionStarted,
@@ -28,6 +29,7 @@ from glassbox.core import (
 from glassbox.store import (
     append_events,
     initialize_database,
+    list_runtime_notes,
     open_database,
     rebuild_session_projections,
 )
@@ -378,3 +380,80 @@ def test_rebuild_session_projections_reproduces_projection_state(
         connection.close()
 
     assert after_rebuild == before_rebuild
+
+
+def test_runtime_note_projection_keeps_history_and_bounded_active_set(
+    tmp_path: Path,
+) -> None:
+    session_id = new_session_id()
+    connection = _open_initialized_database(tmp_path)
+    try:
+        append_events(
+            connection,
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=SessionStarted(
+                        cwd="/tmp/glassbox",
+                        model_name="openai:gpt-5.4",
+                        approval_mode="confirm",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=RuntimeNoteRecorded(
+                        category="operator",
+                        message="Prefer concise output",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=RuntimeNoteRecorded(
+                        category="operator",
+                        message="Prefer concise output",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=RuntimeNoteRecorded(
+                        category="runtime",
+                        message="Repo indexing is warm",
+                    ),
+                ),
+            ],
+        )
+
+        projected_rows = connection.execute(
+            """
+            select sequence, category, message
+            from runtime_notes
+            where session_id = ?
+            order by sequence asc
+            """,
+            (str(session_id),),
+        ).fetchall()
+        active_notes_before = list_runtime_notes(connection, session_id)
+
+        rebuild_session_projections(connection, session_id)
+
+        active_notes_after = list_runtime_notes(connection, session_id)
+    finally:
+        connection.close()
+
+    assert [tuple(row) for row in projected_rows] == [
+        (2, "operator", "Prefer concise output"),
+        (3, "operator", "Prefer concise output"),
+        (4, "runtime", "Repo indexing is warm"),
+    ]
+    assert [
+        (note.source_sequence, note.category, note.message, note.inherited)
+        for note in active_notes_before
+    ] == [
+        (3, "operator", "Prefer concise output", False),
+        (4, "runtime", "Repo indexing is warm", False),
+    ]
+    assert active_notes_after == active_notes_before

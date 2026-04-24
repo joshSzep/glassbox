@@ -20,6 +20,7 @@ from glassbox.core.models import (
     ApprovalRecord,
     ForkedSession,
     ResolvedForkPoint,
+    RuntimeNoteRecord,
     SessionConfig,
     SessionRecord,
     SessionState,
@@ -60,6 +61,13 @@ class SessionRepository(Protocol):
         session_id: SessionId,
     ) -> list[TranscriptMessage]: ...
 
+    def list_runtime_notes(
+        self,
+        session_id: SessionId,
+        *,
+        include_inherited: bool = True,
+    ) -> list[RuntimeNoteRecord]: ...
+
     def list_sessions(
         self,
         *,
@@ -89,6 +97,14 @@ class SessionRepository(Protocol):
         self,
         events: Sequence[EventEnvelope],
     ) -> list[EventEnvelope]: ...
+
+    def record_runtime_note(
+        self,
+        session_id: SessionId,
+        *,
+        category: str,
+        message: str,
+    ) -> EventEnvelope: ...
 
     def read_session_events(self, session_id: SessionId) -> list[EventEnvelope]: ...
 
@@ -210,6 +226,14 @@ class SessionService(Protocol):
         turn_id: TurnId | None = None,
         branch_label: str | None = None,
     ) -> ForkedSession: ...
+
+    async def record_runtime_note(
+        self,
+        session_id: SessionId,
+        *,
+        category: str,
+        message: str,
+    ) -> None: ...
 
     async def resume_session(self, session_id: SessionId) -> SessionState: ...
 

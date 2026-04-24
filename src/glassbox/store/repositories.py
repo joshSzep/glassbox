@@ -9,11 +9,12 @@ from pathlib import Path
 
 import glassbox.store.artifacts as artifact_store
 import glassbox.store.sqlite as sqlite_store
-from glassbox.core.events import EventEnvelope
+from glassbox.core.events import EventEnvelope, RuntimeNoteRecorded
 from glassbox.core.ids import ApprovalId, MessageId, SessionId, ToolCallId, TurnId
 from glassbox.core.models import (
     ApprovalRecord,
     ResolvedForkPoint,
+    RuntimeNoteRecord,
     SessionConfig,
     SessionRecord,
     SessionState,
@@ -62,6 +63,18 @@ class SQLiteSessionRepository:
         session_id: SessionId,
     ) -> list[TranscriptMessage]:
         return sqlite_store.list_transcript_messages(self._connection, session_id)
+
+    def list_runtime_notes(
+        self,
+        session_id: SessionId,
+        *,
+        include_inherited: bool = True,
+    ) -> list[RuntimeNoteRecord]:
+        return sqlite_store.list_runtime_notes(
+            self._connection,
+            session_id,
+            include_inherited=include_inherited,
+        )
 
     def list_sessions(
         self,
@@ -113,6 +126,30 @@ class SQLiteSessionRepository:
         events: Sequence[EventEnvelope],
     ) -> list[EventEnvelope]:
         return sqlite_store.append_events(self._connection, events)
+
+    def record_runtime_note(
+        self,
+        session_id: SessionId,
+        *,
+        category: str,
+        message: str,
+    ) -> EventEnvelope:
+        normalized_category = category.strip().lower()
+        normalized_message = message.strip()
+        if not normalized_category:
+            raise ValueError("runtime note category must not be blank")
+        if not normalized_message:
+            raise ValueError("runtime note message must not be blank")
+        return self.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=RuntimeNoteRecorded(
+                    category=normalized_category,
+                    message=normalized_message,
+                ),
+            )
+        )
 
     def read_session_events(self, session_id: SessionId) -> list[EventEnvelope]:
         return sqlite_store.read_session_events(self._connection, session_id)

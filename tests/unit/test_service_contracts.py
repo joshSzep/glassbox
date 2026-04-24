@@ -13,6 +13,7 @@ from glassbox.core import (
     ForkedSession,
     MessagePart,
     ResolvedForkPoint,
+    RuntimeNoteRecorded,
     SessionConfig,
     SessionRecord,
     SessionStarted,
@@ -74,6 +75,9 @@ class FakeSessionRepository:
             )
         ]
 
+    def list_runtime_notes(self, session_id, *, include_inherited=True):
+        return []
+
     def list_sessions(self, *, status=None, limit=None):
         return []
 
@@ -109,6 +113,13 @@ class FakeSessionRepository:
 
     def append_events(self, events):
         return list(events)
+
+    def record_runtime_note(self, session_id, *, category, message):
+        return EventEnvelope(
+            session_id=session_id,
+            sequence=0,
+            payload=RuntimeNoteRecorded(category=category, message=message),
+        )
 
     def read_session_events(self, session_id):
         return []
@@ -235,6 +246,9 @@ class FakeSessionService:
 
     async def resume_session(self, session_id) -> SessionState:
         return SessionState(session_id=session_id, status=SessionStatus.RUNNING)
+
+    async def record_runtime_note(self, session_id, *, category: str, message: str):
+        return None
 
     async def stop_session(
         self,

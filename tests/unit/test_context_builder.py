@@ -7,8 +7,10 @@ import pytest
 from pydantic import BaseModel
 
 from glassbox.core import (
+    EventEnvelope,
     MessagePart,
     ResolvedForkPoint,
+    RuntimeNoteRecorded,
     SessionRecord,
     SessionState,
     SessionStatus,
@@ -63,6 +65,9 @@ class FakeSessionRepository:
             return []
         return list(self._transcript)
 
+    def list_runtime_notes(self, session_id, *, include_inherited=True):
+        return []
+
     def list_sessions(self, *, status=None, limit=None):
         return [self._session]
 
@@ -88,6 +93,13 @@ class FakeSessionRepository:
 
     def append_events(self, events):
         return list(events)
+
+    def record_runtime_note(self, session_id, *, category, message):
+        return EventEnvelope(
+            session_id=session_id,
+            sequence=0,
+            payload=RuntimeNoteRecorded(category=category, message=message),
+        )
 
     def read_session_events(self, session_id):
         return []

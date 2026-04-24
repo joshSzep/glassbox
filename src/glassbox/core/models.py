@@ -97,6 +97,19 @@ class TranscriptMessage(BaseModel):
     created_at: datetime
 
 
+class RuntimeNoteRecord(BaseModel):
+    """A query-friendly view of an active runtime note."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_session_id: SessionId
+    source_sequence: int = Field(ge=0)
+    category: str
+    message: str
+    created_at: datetime
+    inherited: bool = False
+
+
 class InheritedTranscriptMessage(BaseModel):
     """Normalized transcript content inherited from a parent session."""
 

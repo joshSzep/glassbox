@@ -2206,7 +2206,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-222: Implement Session-Scoped Runtime Notes And Retrieval
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-220`, `GBX-024`, `GBX-032`
 - Goal: make session-scoped runtime notes a real persisted input to future turns instead of an unused field on `TurnContext`
 - Deliverables:
