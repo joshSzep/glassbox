@@ -804,6 +804,11 @@ prompt-ready `repo_context` string and a list of `memory_notes`. That same
 session data is also exposed back to operators as a structured
 `RuntimeContextSnapshot` so richer context is inspectable outside the raw prompt.
 
+The next context-quality phase should extend this model with a distinct typed
+`working_set` source. That source is not a replacement for tools or transcript
+history. It is a bounded runtime summary of the current slice of work so the
+model can start from the same high-signal focus the operator can inspect.
+
 ### Current Source Taxonomy
 
 The important design rule is that not all turn inputs share the same lifecycle.
@@ -812,6 +817,13 @@ The important design rule is that not all turn inputs share the same lifecycle.
 - tool and policy state are current runtime constraints
 - repository context is a bounded live summary recomputed from the session `cwd`
 - runtime notes are persisted session-scoped state recorded through events
+
+The working-set contract for the next phase should sit beside those categories,
+not blur them together:
+
+- working-set context is a bounded derived summary assembled from explicit runtime signals
+- working-set inputs must declare provenance rather than appearing as prompt-only magic
+- working-set items are orientation aids, not a hidden substitute for repository inspection tools
 
 That separation is deliberate because resume, replay, eval, and branching must
 treat each category differently.
@@ -847,6 +859,63 @@ When notes are placed into the live prompt they are formatted as concise strings
 like `[repo] README changed recently` or `[inherited repo] README changed recently`.
 That keeps them human-auditable and replayable.
 
+### Working-Set Context Contract
+
+Working-set context is the next bounded enrichment layer after repository
+context and runtime notes.
+
+Its purpose is to summarize the current local focus of the session, not to act
+as a second repository index or a hidden retrieval subsystem.
+
+The working set should therefore be:
+
+- typed rather than inferred only from prompt text
+- derived from explicit runtime signals already visible to the system
+- bounded in size, freshness, and summary length
+- inspectable by operators through the same normal status and snapshot surfaces
+- replayable through explicit provenance and fingerprint rules
+
+The first working-set implementation should draw only from high-signal sources
+whose influence is already explainable, such as:
+
+- recently touched files or artifacts from explicit tool activity
+- failing-test summaries or other error artifacts recorded by the runtime
+- recent approval subjects and denied or resumed tool actions when they materially narrow the current task
+- branch lineage and imported session context when the child session clearly inherited a local area of work
+- relevant runtime notes that already capture stable operator- or runtime-learned facts
+
+The first implementation should intentionally exclude weak or opaque signals such
+as speculative intent inference, broad background crawling, or hidden model-side
+state that cannot be explained back to the operator.
+
+Each working-set item should be able to answer at least these questions:
+
+- what subject is being highlighted such as a file, test, artifact, or bounded summary
+- why it is in the working set
+- which explicit signal or signals promoted it
+- whether it is fresh, inherited, or derived from persisted artifacts
+
+That makes the working set useful for both prompt assembly and replay drift
+analysis without turning it into an opaque memory blob.
+
+### Provenance Classes For Enriched Context
+
+The next context-quality phase should make provenance explicit for every
+enriched-context source that can materially affect turn preparation.
+
+The architecture should use these provenance classes:
+
+- recomputed summaries: bounded context derived live from documented local inputs such as the current workspace root
+- persisted session state: event-backed context that survives resume, replay, export, eval, and branching
+- artifact-backed summaries: derived context stored as explicit artifacts because recomputing it every turn would be too expensive or too unstable
+- intentionally non-replayable candidates: signals that may be useful to inspect experimentally later but are not allowed into the replay-safe baseline until their contract is defined
+
+Working-set signals should declare one of those provenance classes before they
+are allowed to shape the live turn prompt.
+
+That rule prevents the system from drifting toward hidden caches, machine-local
+ambient indexes, or prompt-only heuristics that cannot be audited later.
+
 ### Operator Inspection Surfaces
 
 Richer runtime context is exposed through normal operator surfaces rather than
@@ -855,6 +924,11 @@ through raw prompt dumps alone.
 - CLI `status` prints a `Runtime context:` block with repository summary and visible runtime notes
 - `GET /sessions/{session_id}` returns a typed `runtime_context` snapshot
 - the dashboard renders that same bounded snapshot in the selected-session summary
+
+When working-set context is introduced, it should follow the same rule:
+
+- operators should be able to inspect the current bounded working set and the top reasons items were included
+- the inspection path should remain read-only and summary-oriented rather than exposing raw concatenated prompt text as the only debugging surface
 
 This is intentionally read-only. The inspection path explains what shaped a turn
 without creating a second mutable configuration surface.
@@ -869,6 +943,15 @@ runtime's local-first guarantees.
 - replay bundles carry inherited runtime notes so forked sessions remain portable and self-contained
 - replay manifests store both the normalized turn context and an enriched-context fingerprint derived from `repo_context` and `memory_notes`
 
+The next context-quality phase should refine that replay contract instead of
+replacing it.
+
+- repository context should remain a recomputed bounded summary with explicit drift reporting when the local workspace no longer produces the recorded summary shape
+- runtime notes should remain persisted session state whose inheritance and import path is explicit in events and replay bundles
+- working-set context should be rebuilt only from explicit replay-safe signals or explicit recorded artifacts rather than from hidden parent-session caches or ambient local state
+- replay artifacts should evolve toward per-source provenance metadata and per-source semantic fingerprints while preserving compatibility with the current aggregate enriched-context fingerprint
+- replay and eval reporting should be able to say which enriched-context source drifted, not merely that "context changed"
+
 That fingerprint matters because replay should report richer-context preparation
 changes as manifest drift, not as vague downstream behavior drift.
 
@@ -876,7 +959,15 @@ In other words:
 
 - repository context is live and recomputed under a bounded contract
 - runtime notes are persisted session state that survives resume, replay, export, eval, and branching
+- working-set context should be a bounded derived summary whose allowed signals and provenance classes are defined up front
 - inherited note provenance remains explicit so child-session and replay behavior can be audited instead of guessed
+
+Child sessions should also remain self-contained under this model.
+
+If a future working-set input needs to survive into a child session, Glassbox
+should persist or import it explicitly through the event or artifact model. A
+child session must not depend on mutable hidden parent-session caches that do
+not appear in its own replayable state.
 
 ### Scope Boundary
 
@@ -893,6 +984,8 @@ The following remain out of scope for this architecture:
 - opaque provider-specific prompt augmentation that cannot be inspected or replayed
 - embeddings or vector stores treated as a silent second source of truth
 - background context accumulation that survives only in process memory
+- ambient machine-local caches that materially affect prompt assembly without explicit provenance
+- speculative working-set inference that cannot be justified through events, artifacts, or documented local summaries
 
 ## Session Branching And Time-Travel Model
 

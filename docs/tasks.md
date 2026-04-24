@@ -2309,7 +2309,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-230: Define Working-Set Context Contract And Replay Semantics
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-220`, `GBX-223`, `GBX-224`, `GBX-226`
 - Goal: define a second-generation context model for Glassbox that goes beyond repository-root summaries while staying bounded, inspectable, and replay-aware
 - Deliverables:
