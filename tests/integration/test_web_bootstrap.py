@@ -146,7 +146,7 @@ def test_serve_command_prints_dashboard_url_and_passes_runtime_args(
         recorded["port"] = port
         recorded["db_path"] = db_path
 
-    monkeypatch.setattr("glassbox.web.run_server", fake_run_server)
+    monkeypatch.setattr("glassbox.cli.server_commands.run_server", fake_run_server)
 
     db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
     exit_code = main(
