@@ -554,17 +554,19 @@ def _select_cases_for_profile(
     if profile.tags:
         selected_cases = _filter_cases_by_tags(selected_cases, profile.tags)
 
-    missing_stage = [
-        case.case_id
-        for case in selected_cases
-        if profile.verification_stage not in case.release_contract.verification_stages
-    ]
-    if missing_stage:
-        raise ValueError(
-            f"eval profile {profile.profile_id} includes case"
-            f"{'s' if len(missing_stage) > 1 else ''} without verification stage "
-            f"{profile.verification_stage}: " + ", ".join(missing_stage)
-        )
+    if profile.case_ids:
+        missing_stage = [
+            case.case_id
+            for case in selected_cases
+            if profile.verification_stage
+            not in case.release_contract.verification_stages
+        ]
+        if missing_stage:
+            raise ValueError(
+                f"eval profile {profile.profile_id} includes case"
+                f"{'s' if len(missing_stage) > 1 else ''} without verification stage "
+                f"{profile.verification_stage}: " + ", ".join(missing_stage)
+            )
 
     selected_cases = [
         case

@@ -42,6 +42,12 @@ from glassbox.runtime.provider_config import (
 )
 
 if TYPE_CHECKING:
+    from glassbox.runtime.eval_coverage import (
+        EvalCoverageAuditResult,
+        audit_eval_coverage,
+        load_eval_coverage_manifest,
+        maybe_audit_eval_coverage,
+    )
     from glassbox.runtime.eval_runner import EvalCaseResult, EvalRunner, EvalSuiteResult
     from glassbox.runtime.evals import (
         EvalCase,
@@ -66,6 +72,10 @@ def __getattr__(name: str) -> Any:
 
         return _SessionSupervisor
     if name in {
+        "EvalCoverageAuditResult",
+        "audit_eval_coverage",
+        "load_eval_coverage_manifest",
+        "maybe_audit_eval_coverage",
         "EvalCaseResult",
         "EvalRunner",
         "EvalSuiteResult",
@@ -76,6 +86,15 @@ def __getattr__(name: str) -> Any:
         "load_eval_case",
         "load_eval_suite",
     }:
+        if name in {
+            "EvalCoverageAuditResult",
+            "audit_eval_coverage",
+            "load_eval_coverage_manifest",
+            "maybe_audit_eval_coverage",
+        }:
+            from glassbox.runtime import eval_coverage as _eval_coverage
+
+            return getattr(_eval_coverage, name)
         if name in {"EvalCaseResult", "EvalRunner", "EvalSuiteResult"}:
             from glassbox.runtime import eval_runner as _eval_runner
 
@@ -104,6 +123,7 @@ __all__ = [
     "build_runtime_context_snapshot",
     "build_working_set_snapshot",
     "discover_eval_case_files",
+    "EvalCoverageAuditResult",
     "EvalCase",
     "EvalCaseExpectation",
     "EvalCaseManifest",
@@ -113,8 +133,11 @@ __all__ = [
     "EventBus",
     "EventBusStats",
     "EventBusSubscription",
+    "audit_eval_coverage",
     "load_eval_case",
+    "load_eval_coverage_manifest",
     "load_eval_suite",
+    "maybe_audit_eval_coverage",
     "open_runtime_context",
     "PolicyContext",
     "PYTEST_FAILURE_DIGEST_ARTIFACT_KIND",

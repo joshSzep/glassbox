@@ -34,6 +34,11 @@ Named profiles live in `evals/profiles.json` and make stage intent explicit for
 automation and local verification. Additional `CASE_ID` arguments and repeated
 `--tag` flags still work as narrower filters inside a selected profile.
 
+Capability coverage expectations live in `evals/coverage.json`. Use
+`glassbox eval audit` to report which product behaviors are covered,
+which release-critical behaviors still lack a curated case, and which selected
+cases are not mapped to a declared product contract.
+
 The commit-time smoke hook uses the same tagged suite with a stable local output
 directory:
 
@@ -68,6 +73,39 @@ Profile manifest shape:
   ]
 }
 ```
+
+Coverage manifest shape:
+
+```json
+{
+  "manifest_version": 1,
+  "capabilities": [
+    {
+      "capability_id": "branching",
+      "title": "Branching and fork lineage",
+      "kind": "operator_workflow",
+      "criticality": "release-critical",
+      "verification_stages": ["commit-time", "push-time", "release-candidate"],
+      "expected_case_ids": ["context.branch-inherited"],
+      "coverage_mode": "single_case"
+    },
+    {
+      "capability_id": "artifact_backed_context",
+      "title": "Artifact-backed context contracts",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["advisory"],
+      "expected_case_ids": ["context.artifact", "context.artifact-relaxed"],
+      "coverage_mode": "multi_case"
+    }
+  ]
+}
+```
+
+`coverage_mode` is the typed convention for capabilities that need more than
+one curated case. `single_case` expects at most one mapped case. `multi_case`
+expects at least two explicitly listed cases because different runtime paths or
+selected-invariant contracts matter independently.
 
 That workflow also writes a GitHub Actions job summary with selected-case
 counts, pass/fail totals, outcome counts, per-case severity, and retained

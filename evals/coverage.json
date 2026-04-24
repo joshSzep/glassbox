@@ -1,0 +1,90 @@
+{
+  "manifest_version": 1,
+  "capabilities": [
+    {
+      "capability_id": "smoke_validation",
+      "title": "Deterministic smoke validation",
+      "kind": "product_behavior",
+      "criticality": "release-critical",
+      "verification_stages": ["commit-time", "push-time", "release-candidate"],
+      "expected_case_ids": ["smoke.hello"],
+      "coverage_mode": "single_case",
+      "notes": "The minimal deterministic barrier that proves replay-backed eval execution still works end to end."
+    },
+    {
+      "capability_id": "replay_portability",
+      "title": "Replay portability",
+      "kind": "product_behavior",
+      "criticality": "release-critical",
+      "verification_stages": ["commit-time", "push-time", "release-candidate"],
+      "expected_case_ids": ["smoke.hello"],
+      "coverage_mode": "single_case"
+    },
+    {
+      "capability_id": "branching",
+      "title": "Branching and fork lineage",
+      "kind": "operator_workflow",
+      "criticality": "release-critical",
+      "verification_stages": ["commit-time", "push-time", "release-candidate"],
+      "expected_case_ids": ["context.branch-inherited"],
+      "coverage_mode": "single_case"
+    },
+    {
+      "capability_id": "context_inheritance",
+      "title": "Inherited runtime context",
+      "kind": "product_behavior",
+      "criticality": "release-critical",
+      "verification_stages": ["commit-time", "push-time", "release-candidate"],
+      "expected_case_ids": ["context.branch-inherited"],
+      "coverage_mode": "single_case"
+    },
+    {
+      "capability_id": "context_drift_detection",
+      "title": "Context drift detection",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["push-time", "release-candidate"],
+      "expected_case_ids": ["context.artifact"],
+      "coverage_mode": "single_case"
+    },
+    {
+      "capability_id": "artifact_backed_context",
+      "title": "Artifact-backed context coverage",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["advisory"],
+      "expected_case_ids": ["context.artifact", "context.artifact-relaxed"],
+      "coverage_mode": "multi_case",
+      "notes": "This capability intentionally uses both strict and relaxed selected-invariant cases because transcript drift and artifact-source drift matter independently."
+    },
+    {
+      "capability_id": "selected_invariant_contract",
+      "title": "Selected-invariant replay contracts",
+      "kind": "product_behavior",
+      "criticality": "advisory",
+      "verification_stages": ["advisory"],
+      "expected_case_ids": ["context.artifact-relaxed"],
+      "coverage_mode": "single_case"
+    },
+    {
+      "capability_id": "approval_flow",
+      "title": "Approval workflow",
+      "kind": "operator_workflow",
+      "criticality": "release-critical",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": [],
+      "coverage_mode": "single_case",
+      "notes": "Declared as a release-critical gap until a curated replay or eval case lands."
+    },
+    {
+      "capability_id": "ask_user_flow",
+      "title": "Ask-user workflow",
+      "kind": "operator_workflow",
+      "criticality": "release-critical",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": [],
+      "coverage_mode": "single_case",
+      "notes": "Declared as a release-critical gap until a curated replay or eval case lands."
+    }
+  ]
+}

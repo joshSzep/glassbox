@@ -400,10 +400,12 @@ Run the case directly:
 uv run glassbox eval run tooling.readme --cwd .
 ```
 
-Or run a tagged suite and emit machine-readable output:
+Or run a tagged or profiled suite and emit machine-readable output:
 
 ```bash
 uv run glassbox eval run --tag smoke --json --cwd .
+uv run glassbox eval run --profile commit-smoke --cwd .
+uv run glassbox eval audit --profile release-candidate --json --cwd .
 ```
 
 Each `glassbox eval run` invocation writes one JSON artifact per executed case
@@ -420,7 +422,7 @@ Use replay and eval verification in three layers:
 
 1. Commit time: blocking local hooks. The existing `pre-commit` stack already
    blocks on format, lint, type-check, and `pytest`. Phase 20 extends that same
-   path with curated `smoke` eval cases so the cheapest high-value replay
+  path with the curated `commit-smoke` eval profile so the cheapest high-value replay
   regressions fail before the commit is created. The smoke hook refreshes
   `.glassbox/evals/pre-commit/` in place and writes the latest per-case
   artifacts plus `summary.json` there.
@@ -428,10 +430,11 @@ Use replay and eval verification in three layers:
    larger or more artifact-heavy replay/eval suites can rerun and retain output
   for inspection without slowing every commit loop. The repository ships a
   push-triggered GitHub Actions workflow in `.github/workflows/push-smoke-evals.yml`
-  that reruns the same `smoke` tag set and uploads `.glassbox/evals/push-smoke/`
+  that reruns the `push-confirmation` profile and uploads `.glassbox/evals/push-smoke/`
   as a remote artifact bundle. That workflow also renders a job summary with
-  suite counts, outcome totals, per-case outcome severity, and retained artifact
-  paths so a failed push can be triaged without downloading raw JSON first.
+  suite counts, capability coverage highlights, per-case outcome severity, and
+  retained artifact paths so a failed push can be triaged without downloading
+  raw JSON first.
 3. Later scheduled coverage: optional non-blocking suites for wider advisory
    drift detection.
 

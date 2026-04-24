@@ -39,6 +39,10 @@ from glassbox.runtime import (
     build_working_set_snapshot,
     open_runtime_context,
 )
+from glassbox.runtime.eval_coverage import (
+    audit_eval_coverage,
+    build_eval_coverage_summary_lines,
+)
 from glassbox.web import GlassboxWebServer, WebServerConfig, build_web_server
 
 _APPROVAL_MODE_CHOICES = ("confirm", "review", "on-request", "never")
@@ -350,6 +354,41 @@ def _build_parser() -> argparse.ArgumentParser:
         help="print the structured eval suite report as JSON",
     )
     _add_runtime_location_arguments(eval_run_parser)
+
+    eval_audit_parser = eval_subparsers.add_parser(
+        "audit",
+        help="audit capability coverage against the selected eval portfolio",
+        description=(
+            "Audit repository-local capability coverage expectations against the "
+            "selected eval cases without executing replay bundles."
+        ),
+    )
+    eval_audit_parser.add_argument(
+        "case_ids",
+        nargs="*",
+        help="optional eval case IDs to audit; defaults to the selected suite",
+    )
+    eval_audit_parser.add_argument(
+        "--profile",
+        default=None,
+        help=(
+            "named repository-owned verification profile to audit before extra "
+            "narrowing"
+        ),
+    )
+    eval_audit_parser.add_argument(
+        "--tag",
+        dest="tags",
+        action="append",
+        default=[],
+        help="require a tag on selected eval cases; repeat to require multiple tags",
+    )
+    eval_audit_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the structured coverage audit report as JSON",
+    )
+    _add_runtime_location_arguments(eval_audit_parser)
 
     approve_parser = subparsers.add_parser(
         "approve",
@@ -748,32 +787,54 @@ def _eval_command(args: argparse.Namespace) -> int:
 
 
 async def _eval_command_async(args: argparse.Namespace) -> int:
-    if args.eval_command != "run":
-        raise ValueError("specify an eval subcommand")
-
-    cwd, _db_path = _resolve_runtime_location(args)
-    del _db_path
-    suite_result = await EvalRunner().run_suite(
-        cwd,
-        profile_id=args.profile,
-        case_ids=list(args.case_ids) or None,
-        tags=list(args.tags) or None,
-        output_dir=_resolve_optional_explicit_path(cwd, args.output_dir),
-        refresh_output_dir=args.refresh_output_dir,
-    )
-
-    if args.json:
-        print(
-            json.dumps(
-                suite_result.model_dump(mode="json"),
-                indent=2,
-                sort_keys=True,
-            )
+    if args.eval_command == "run":
+        cwd, _db_path = _resolve_runtime_location(args)
+        del _db_path
+        suite_result = await EvalRunner().run_suite(
+            cwd,
+            profile_id=args.profile,
+            case_ids=list(args.case_ids) or None,
+            tags=list(args.tags) or None,
+            output_dir=_resolve_optional_explicit_path(cwd, args.output_dir),
+            refresh_output_dir=args.refresh_output_dir,
         )
-    else:
-        _print_eval_suite_report(suite_result)
 
-    return suite_result.exit_code
+        if args.json:
+            print(
+                json.dumps(
+                    suite_result.model_dump(mode="json"),
+                    indent=2,
+                    sort_keys=True,
+                )
+            )
+        else:
+            _print_eval_suite_report(suite_result)
+
+        return suite_result.exit_code
+
+    if args.eval_command == "audit":
+        cwd, _db_path = _resolve_runtime_location(args)
+        del _db_path
+        audit_result = audit_eval_coverage(
+            cwd,
+            profile_id=args.profile,
+            case_ids=list(args.case_ids) or None,
+            tags=list(args.tags) or None,
+        )
+
+        if args.json:
+            print(
+                json.dumps(
+                    audit_result.model_dump(mode="json"),
+                    indent=2,
+                    sort_keys=True,
+                )
+            )
+        else:
+            _print_eval_coverage_audit(result=audit_result, workspace_root=cwd)
+        return 0
+
+    raise ValueError("specify an eval subcommand")
 
 
 async def _interactive_session_loop(
@@ -1368,6 +1429,9 @@ def _print_eval_suite_report(result: EvalSuiteResult) -> None:
     for outcome, count in result.outcome_counts.items():
         print(f"  - {_format_replay_outcome(outcome)}: {count}")
     print(f"Artifacts: {result.output_dir}")
+    if result.coverage_audit is not None:
+        for line in build_eval_coverage_summary_lines(result.coverage_audit):
+            print(line)
     print("Cases:")
     for case_result in result.cases:
         status = "passed" if case_result.passed else "failed"
@@ -1386,6 +1450,22 @@ def _print_eval_suite_report(result: EvalSuiteResult) -> None:
                 "    Ignored mismatches: " + ", ".join(case_result.ignored_mismatches)
             )
         print(f"    Artifact: {case_result.artifact_path}")
+
+
+def _print_eval_coverage_audit(*, workspace_root: Path, result) -> None:
+    print(f"Eval workspace {workspace_root.resolve()}")
+    if result.profile_id is not None:
+        print(f"Profile: {result.profile_id} ({result.verification_stage})")
+    for line in build_eval_coverage_summary_lines(result):
+        print(line)
+    if result.uncovered_release_critical_capability_ids:
+        print("Uncovered release-critical capability details:")
+        for capability_id in result.uncovered_release_critical_capability_ids:
+            print(f"  - {capability_id}")
+    if result.unmapped_case_ids:
+        print("Unmapped case details:")
+        for case_id in result.unmapped_case_ids:
+            print(f"  - {case_id}")
 
 
 def _replay_detail_lines(result: ReplayResult) -> list[str]:

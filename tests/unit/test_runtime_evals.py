@@ -419,6 +419,53 @@ def test_load_eval_suite_rejects_blocking_profile_with_advisory_case(
         load_eval_suite(tmp_path, profile_id="advisory-context")
 
 
+def test_load_eval_suite_profile_without_explicit_cases_filters_by_stage(
+    tmp_path: Path,
+) -> None:
+    _write_eval_case(
+        tmp_path,
+        "context.release",
+        {
+            "case_id": "context.release",
+            "title": "Release candidate context",
+            "bundle_path": "../bundles/release.json",
+            "tags": ["context"],
+            "release_contract": {
+                "verification_stages": ["release-candidate"],
+            },
+        },
+    )
+    _write_eval_case(
+        tmp_path,
+        "context.advisory",
+        {
+            "case_id": "context.advisory",
+            "title": "Advisory context",
+            "bundle_path": "../bundles/advisory.json",
+            "tags": ["context"],
+            "release_contract": {
+                "verification_stages": ["advisory"],
+                "baseline_refresh_policy": "advisory",
+            },
+        },
+    )
+    _write_eval_profiles(
+        tmp_path,
+        [
+            {
+                "profile_id": "release-candidate",
+                "title": "Release candidate",
+                "verification_stage": "release-candidate",
+                "blocking": True,
+            }
+        ],
+    )
+
+    cases = load_eval_suite(tmp_path, profile_id="release-candidate")
+
+    assert [case.case_id for case in cases] == ["context.release"]
+
+
 def _write_eval_case(
     workspace_root: Path,
     case_id: str,

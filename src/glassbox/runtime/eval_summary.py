@@ -40,6 +40,11 @@ def build_eval_suite_summary_payload(
         "profile_id": result.profile_id,
         "profile_title": result.profile_title,
         "profile_verification_stage": result.profile_verification_stage,
+        "coverage_audit": (
+            result.coverage_audit.model_dump(mode="json")
+            if result.coverage_audit is not None
+            else None
+        ),
         "suite_status": "failed" if result.failed_case_count else "passed",
         "selected_case_count": result.selected_case_count,
         "passed_case_count": result.passed_case_count,
@@ -116,6 +121,41 @@ def build_eval_suite_job_summary(
     )
     for outcome, count in payload["outcome_counts"].items():
         lines.append(f"| `{outcome}` | `{count}` |")
+
+    coverage_audit = payload["coverage_audit"]
+    if coverage_audit is not None:
+        lines.extend(
+            [
+                "",
+                "### Capability Coverage",
+                "",
+                "- Covered capabilities: "
+                f"`{coverage_audit['covered_capability_count']}` / "
+                f"`{coverage_audit['capability_count']}`",
+                "- Uncovered capabilities: "
+                f"`{coverage_audit['uncovered_capability_count']}`",
+            ]
+        )
+        if coverage_audit["uncovered_release_critical_capability_ids"]:
+            lines.append(
+                "- Uncovered release-critical capabilities: `"
+                + "`, `".join(
+                    coverage_audit["uncovered_release_critical_capability_ids"]
+                )
+                + "`"
+            )
+        if coverage_audit["unmapped_case_ids"]:
+            lines.append(
+                "- Unmapped cases: `"
+                + "`, `".join(coverage_audit["unmapped_case_ids"])
+                + "`"
+            )
+        if coverage_audit["redundant_case_ids"]:
+            lines.append(
+                "- Redundant cases: `"
+                + "`, `".join(coverage_audit["redundant_case_ids"])
+                + "`"
+            )
 
     lines.extend(
         [

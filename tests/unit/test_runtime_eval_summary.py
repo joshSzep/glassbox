@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from glassbox.runtime.eval_coverage import EvalCoverageAuditResult
 from glassbox.runtime.eval_runner import EvalCaseResult, EvalSuiteResult
 from glassbox.runtime.eval_summary import (
     build_eval_suite_annotations,
@@ -41,6 +42,8 @@ def test_build_eval_suite_job_summary_surfaces_counts_cases_and_artifacts() -> N
     assert "- Selected cases: `2`" in summary
     assert "- Passed: `1`" in summary
     assert "- Failed: `1`" in summary
+    assert "- Covered capabilities: `1` / `2`" in summary
+    assert "- Uncovered release-critical capabilities: `approval_flow`" in summary
     assert "| `manifest_drift` | `1` |" in summary
     assert (
         "| `manifest.case` | `runtime.replay` | `failed` | `manifest_drift` | `high` | "
@@ -138,6 +141,45 @@ def _suite_result(cases: list[EvalCaseResult]) -> EvalSuiteResult:
         workspace_root=Path("/workspace/glassbox"),
         output_dir=output_dir,
         summary_path=output_dir / "summary.json",
+        profile_id="push-confirmation",
+        profile_title="Push confirmation",
+        profile_verification_stage="push-time",
+        coverage_audit=EvalCoverageAuditResult.model_validate(
+            {
+                "profile_id": "push-confirmation",
+                "profile_title": "Push confirmation",
+                "verification_stage": "push-time",
+                "audited_case_ids": [case.case_id for case in cases],
+                "capability_count": 2,
+                "covered_capability_count": 1,
+                "uncovered_capability_count": 1,
+                "uncovered_release_critical_capability_ids": ["approval_flow"],
+                "unmapped_case_ids": [],
+                "redundant_case_ids": [],
+                "capability_statuses": [
+                    {
+                        "capability_id": "replay_portability",
+                        "title": "Replay portability",
+                        "criticality": "release-critical",
+                        "verification_stages": ["push-time"],
+                        "coverage_mode": "single_case",
+                        "expected_case_ids": [cases[0].case_id],
+                        "selected_case_ids": [cases[0].case_id],
+                        "covered": True,
+                    },
+                    {
+                        "capability_id": "approval_flow",
+                        "title": "Approval flow",
+                        "criticality": "release-critical",
+                        "verification_stages": ["push-time"],
+                        "coverage_mode": "single_case",
+                        "expected_case_ids": [],
+                        "selected_case_ids": [],
+                        "covered": False,
+                    },
+                ],
+            }
+        ),
         selected_case_count=len(cases),
         passed_case_count=sum(1 for case in cases if case.passed),
         failed_case_count=sum(1 for case in cases if not case.passed),

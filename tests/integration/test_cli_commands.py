@@ -722,6 +722,18 @@ def test_cli_eval_run_supports_profile_selection_and_tag_narrowing(
             }
         ],
     )
+    _write_eval_coverage(
+        tmp_path,
+        profiles=[
+            {
+                "capability_id": "branching",
+                "title": "Branching",
+                "criticality": "release-critical",
+                "verification_stages": ["commit-time"],
+                "expected_case_ids": ["context.branch"],
+            }
+        ],
+    )
     output_dir = tmp_path / "profiled-eval-output"
     _ = capsys.readouterr()
 
@@ -746,8 +758,108 @@ def test_cli_eval_run_supports_profile_selection_and_tag_narrowing(
     assert exit_code == 0
     assert payload["profile_id"] == "commit-smoke"
     assert payload["profile_verification_stage"] == "commit-time"
+    assert payload["coverage_audit"]["covered_capability_count"] == 1
     assert payload["selected_case_count"] == 1
     assert payload["cases"][0]["case_id"] == "context.branch"
+
+
+def test_cli_eval_audit_reports_uncovered_critical_capabilities(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    smoke_bundle_path, _session_id = _export_eval_bundle(tmp_path, "smoke.readme")
+    extra_bundle_path = tmp_path / "evals" / "bundles" / "smoke.extra.json"
+    branch_bundle_path = tmp_path / "evals" / "bundles" / "branch.case.json"
+    shutil.copyfile(smoke_bundle_path, extra_bundle_path)
+    shutil.copyfile(smoke_bundle_path, branch_bundle_path)
+
+    _write_eval_case(
+        tmp_path,
+        case_id="smoke.readme",
+        title="README smoke",
+        bundle_name=smoke_bundle_path.name,
+        tags=["smoke"],
+        release_contract={
+            "owner": "runtime.replay",
+            "capabilities": ["smoke_validation"],
+            "verification_stages": ["commit-time"],
+        },
+    )
+    _write_eval_case(
+        tmp_path,
+        case_id="smoke.extra",
+        title="Extra smoke",
+        bundle_name=extra_bundle_path.name,
+        tags=["smoke"],
+        release_contract={
+            "owner": "runtime.replay",
+            "capabilities": ["smoke_validation"],
+            "verification_stages": ["commit-time"],
+        },
+    )
+    _write_eval_case(
+        tmp_path,
+        case_id="branch.case",
+        title="Branch case",
+        bundle_name=branch_bundle_path.name,
+        tags=["context"],
+        release_contract={
+            "owner": "runtime.context",
+            "capabilities": ["branching"],
+            "verification_stages": ["commit-time"],
+        },
+    )
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "commit-smoke",
+                "title": "Commit smoke",
+                "verification_stage": "commit-time",
+                "tags": ["smoke"],
+                "blocking": True,
+            }
+        ],
+    )
+    _write_eval_coverage(
+        tmp_path,
+        profiles=[
+            {
+                "capability_id": "smoke_validation",
+                "title": "Smoke validation",
+                "criticality": "release-critical",
+                "verification_stages": ["commit-time"],
+                "expected_case_ids": ["smoke.readme"],
+            },
+            {
+                "capability_id": "branching",
+                "title": "Branching",
+                "criticality": "release-critical",
+                "verification_stages": ["commit-time"],
+                "expected_case_ids": ["branch.case"],
+            },
+        ],
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "audit",
+            "--profile",
+            "commit-smoke",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["uncovered_release_critical_capability_ids"] == ["branching"]
+    assert payload["unmapped_case_ids"] == ["smoke.extra"]
+    assert payload["redundant_case_ids"] == ["smoke.extra"]
 
 
 def test_cli_eval_run_rejects_blocking_profile_with_advisory_case(
@@ -2643,6 +2755,21 @@ def _write_eval_profiles(
     }
     profiles_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     return profiles_path
+
+
+def _write_eval_coverage(
+    tmp_path: Path,
+    *,
+    profiles: list[dict[str, object]],
+) -> Path:
+    coverage_path = tmp_path / "evals" / "coverage.json"
+    coverage_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "manifest_version": 1,
+        "capabilities": profiles,
+    }
+    coverage_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return coverage_path
 
 
 def _ask_user_then_text_response(

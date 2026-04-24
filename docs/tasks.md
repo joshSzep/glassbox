@@ -2525,7 +2525,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-243: Add Capability Coverage Matrix And Gap Auditing For Replay And Eval Suites
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-217`, `GBX-236`, `GBX-241`, `GBX-242`
 - Goal: prevent replay and eval suites from becoming an ad hoc pile of scenarios by making product-coverage intent explicit and auditable
 - Deliverables:

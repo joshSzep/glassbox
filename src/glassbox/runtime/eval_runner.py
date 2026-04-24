@@ -9,6 +9,10 @@ from typing import cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from glassbox.runtime.eval_coverage import (
+    EvalCoverageAuditResult,
+    maybe_audit_eval_coverage,
+)
 from glassbox.runtime.evals import (
     EvalBaselineRefreshPolicy,
     EvalCase,
@@ -64,6 +68,7 @@ class EvalSuiteResult(BaseModel):
     profile_id: str | None = None
     profile_title: str | None = None
     profile_verification_stage: EvalVerificationStage | None = None
+    coverage_audit: EvalCoverageAuditResult | None = None
     selected_case_count: int
     passed_case_count: int
     failed_case_count: int
@@ -98,6 +103,12 @@ class EvalRunner:
         eval_cases = selection.cases
         if not eval_cases:
             raise ValueError("no eval cases selected")
+        coverage_audit = maybe_audit_eval_coverage(
+            resolved_workspace_root,
+            profile_id=profile_id,
+            case_ids=case_ids,
+            tags=tags,
+        )
 
         resolved_output_dir = _resolve_output_dir(
             resolved_workspace_root,
@@ -128,6 +139,7 @@ class EvalRunner:
             profile_id=_profile_id(selection.profile),
             profile_title=_profile_title(selection.profile),
             profile_verification_stage=_profile_stage(selection.profile),
+            coverage_audit=coverage_audit,
             selected_case_count=len(case_results),
             passed_case_count=sum(1 for case in case_results if case.passed),
             failed_case_count=sum(1 for case in case_results if not case.passed),
