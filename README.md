@@ -668,11 +668,13 @@ hidden autonomous memory layer and it is not an uninspectable provider-side
 prompt trick. It is explicit runtime state assembled before a model call and
 made visible to operators afterward.
 
-Today that richer context has two operator-visible layers on top of the normal
+Today that richer context has four operator-visible layers on top of the normal
 transcript, tool schema, and policy state:
 
 - `repository context`: a deterministic top-level snapshot of the selected workspace, including the workspace name, high-signal paths, bounded top-level directories and files, and coarse project markers.
 - `runtime notes`: persisted session-scoped notes with category, message, and inheritance provenance when they came from a parent session.
+- `working set`: a bounded summary of the current local focus derived from explicit runtime signals such as recent tests, approvals, tool activity, artifacts, and branch lineage.
+- `artifact-backed context`: explicit derived summaries stored as artifacts when recomputing them ad hoc every turn would be too expensive or too unstable. The first shipped example is a bounded pytest failure digest.
 
 The repository context is deliberately small. It is a top-level orientation
 layer, not a repository index. If the model needs deeper detail, it still has
@@ -682,68 +684,118 @@ The runtime notes are also deliberately small. They capture durable, high-signal
 facts that should still matter on later turns, but they remain event-backed and
 inspectable rather than turning into invisible mutable memory.
 
+The working set is deliberately small for the same reason. It is a local-focus
+aid, not a second repository index or a prompt-only memory blob. Artifact-backed
+context stays similarly bounded: it exists only when Glassbox recorded an
+explicit derived artifact and can still explain that artifact back to the
+operator.
+
+Each richer-context source also declares provenance that replay and eval can
+reason about explicitly:
+
+- `recomputed summary` for bounded local summaries such as repository context or working-set projections rebuilt from replay-safe signals
+- `persisted session state` for event-backed session context such as runtime notes and inherited note state
+- `artifact-backed summary` for explicit derived artifacts such as the pytest failure digest
+
+Glassbox does not allow context-quality v2 to degrade into hidden provider-side
+prompt augmentation or ambient machine-local memory. If a candidate context
+source cannot be inspected, replayed, or explained, it stays out of the replay-
+safe turn contract.
+
 ### Inspecting The Current Context
 
-There are three operator-facing ways to inspect the richer runtime context:
+There are five operator-facing ways to inspect the richer runtime context:
 
-- `glassbox status SESSION_ID --cwd .` prints a `Runtime context:` block with the current repository summary and visible runtime notes.
+- `glassbox status SESSION_ID --cwd .` prints a `Runtime context:` block with repository context, visible runtime notes, the current working set, and any visible artifact-backed summaries.
 - The dashboard selected-session summary renders the same bounded context so browser and terminal inspection stay aligned.
-- `GET /sessions/{session_id}` exposes a `runtime_context` object for tooling, tests, and any browser clients built on the HTTP snapshot contract.
+- `GET /sessions/{session_id}` exposes a typed `runtime_context` object for tooling, tests, and any browser clients built on the HTTP snapshot contract.
+- replay model-call artifacts and exported replay bundles carry both the normalized `turn_context` payload and per-source `enriched_context_sources` manifests.
+- eval case artifacts and suite summaries preserve replay outcome, mismatches, and any source-specific manifest-drift message so context-sensitive failures are inspectable after a local or hook-driven run.
 
 Read those summaries with this mental model:
 
 - high-signal paths and top-level entries are orientation hints, not proof that the runtime indexed the whole repository
 - runtime notes are session memory only when they were explicitly persisted through the event-sourced runtime
+- working-set items are prioritized summaries of current focus, not durable truth on their own
+- artifact-backed summaries are only part of the live prompt when they are still marked fresh
 - inherited notes mean the child session received that note from parent history at fork time; they are not live references back into the parent session
+- inherited working-set or artifact-backed entries mean the child session imported or rebuilt explicit replay-safe context; they are not hidden pointers back into the parent runtime
 - a missing or minimal repository summary usually means the recorded workspace path no longer exists or no high-signal top-level entries were present
 
 ### End-To-End Example
 
-Suppose an earlier turn inspected a repository and a later runtime step recorded
-the note `[repo] README.md is the primary entrypoint`.
+Suppose an earlier turn runs `run_tests` against one targeted failing test file
+and the runtime records a pytest failure digest artifact.
 
-On a later turn, the model can receive both:
+On a later turn, the model can receive all of these at once:
 
 - repository context like `Workspace: glassbox`, `High-signal paths: README.md, src/, tests/`, and bounded top-level file or directory summaries
-- the persisted runtime note rendered into the turn context as `[repo] README.md is the primary entrypoint`
+- any persisted runtime note rendered into the turn context, such as `[repo] README.md is the primary entrypoint`
+- working-set items like `[test] evals/fixtures/test_context_failure.py` or `[artifact] context_pytest_failure_digest`
+- fresh artifact-backed context like a pytest failure digest summary listing the currently failing test node
 
 That means a later prompt like "summarize how this project is organized" starts
 from a small amount of persisted orientation instead of rediscovering the same
-fact every turn.
+fact every turn, and a later prompt like "summarize the latest failure" can use
+the same recorded failing-test digest without rerunning tests first.
 
 An operator can verify exactly that context by:
 
-1. running `glassbox status SESSION_ID --cwd .` and reading the `Runtime context:` block
-2. opening the same session in the dashboard and reading the selected-session runtime-context summary
-3. fetching `GET /sessions/{session_id}` and inspecting the `runtime_context` payload directly
+1. running `glassbox status SESSION_ID --cwd .` and reading the `Runtime context:` block, including working-set reasons and artifact-backed context summaries
+2. opening the same session in the dashboard and reading the selected-session `runtime_context` summary
+3. fetching `GET /sessions/{session_id}` and inspecting the typed `runtime_context` payload directly
+4. exporting or inspecting the replay bundle and reading the recorded `enriched_context_sources` manifests for `repository_context`, `runtime_notes`, `working_set`, and `pytest_failure_digest`
+5. running `glassbox eval run --tag context` and inspecting the generated per-case artifact if replay reports source-level drift
 
 If the session is later forked, the child branch keeps an explicit snapshot of
-those active notes as inherited note state. The child can then accumulate new
-notes of its own without mutating the parent's history.
+those active notes as inherited note state, rebuilds replay-safe working-set
+signals for its own session, and can accumulate new notes of its own without
+mutating the parent's history.
 
 ### Resume, Replay, Eval, And Branch Behavior
 
 Richer runtime context participates in the same local-first contract as the rest
 of the runtime.
 
-- `resume`: the session reloads persisted runtime notes from the event store and recomputes repository context from the current session `cwd` before later turns.
-- `fork`: the child session imports the parent's active runtime notes as inherited notes, so the child remains self-contained instead of depending on live parent lookups.
-- `replay`: the recorded replay manifest includes an enriched-context fingerprint derived from the prepared `repo_context` and `memory_notes`. If that preparation changes materially, replay reports `manifest drift` instead of pretending the change was only downstream transcript drift.
-- `replay-export` and `eval`: exported bundles carry inherited runtime notes so forked sessions can replay offline with the same richer-context lineage they had when recorded.
+- `resume`: the session reloads persisted runtime notes from the event store, recomputes repository context, rebuilds the working set from explicit session signals, and reloads any artifact-backed summaries that still exist locally.
+- `fork`: the child session imports the parent's active runtime notes as inherited notes, keeps explicit lineage metadata, and rebuilds replay-safe working-set context for the child session instead of depending on hidden parent caches.
+- `replay`: current replay manifests record per-source enriched-context metadata, including `source_name`, `provenance_class`, semantic fingerprint, inheritance state, and bounded item counts. If preparation changes materially, replay reports `manifest drift` and can name the specific source that drifted.
+- `replay-export` and `eval`: exported bundles carry inherited runtime notes, child-session lineage, and artifact-backed context dependencies so forked or context-sensitive sessions remain portable and debuggable offline.
+
+Compatibility stays explicit:
+
+- newer replay artifacts prefer per-source `enriched_context_sources` manifests because they explain drift precisely
+- older replay bundles that only carry the legacy aggregate `enriched_context_fingerprint` remain supported, but their drift reporting is necessarily coarser
 
 This split is intentional:
 
 - repository context is live, bounded, and recomputed from the workspace contract
 - runtime notes are persisted session state that survives resume, replay, export, eval, and branching
+- working-set context is a bounded recomputed summary derived from explicit runtime signals only
+- artifact-backed context is explicit derived state linked to recorded artifacts, not a hidden cache
 
 ### Richer Context Troubleshooting
 
 - If `status` or the dashboard shows less repository detail than you expected, remember that the summary is bounded to top-level signals. Use tools for deeper inspection.
 - If a historical session only shows the workspace name and little else, the recorded `cwd` may no longer exist on disk. The runtime keeps the summary inspectable instead of failing the whole status or snapshot view.
 - If a child session shows inherited runtime notes, that is expected. It means the branch imported a snapshot of active parent notes at fork time.
-- If replay or eval reports `manifest drift`, inspect the richer runtime context first. A changed repository summary or changed note set can invalidate the recorded prepared-turn contract before any transcript comparison starts.
+- If a working-set item seems surprising, read its subject kind and reasons before assuming the model inferred hidden intent. The working set is derived from explicit signals like tool activity, approvals, artifacts, and lineage.
+- If artifact-backed context is missing from a later turn, check its freshness and whether the underlying artifact is still present. Fresh summaries are included in prompt assembly; stale or missing artifacts remain inspectable but stop pretending they are current.
+- If replay or eval reports `manifest drift`, inspect the richer runtime context first. A changed repository summary, changed note set, changed working-set projection, or changed artifact-backed summary can invalidate the recorded prepared-turn contract before any transcript comparison starts.
+- If replay reports `recorded enriched context source drifted: ...`, treat that as a source-level context contract change rather than a generic transcript mismatch.
 - If a runtime note seems "missing," check whether it was actually persisted into the session. Only event-backed notes become part of later turns, status summaries, snapshot payloads, or replay baselines.
 - If the dashboard and CLI appear inconsistent, reload the snapshot and compare against `glassbox status`. They should agree on the bounded runtime-context summary for the same session because both read from the same persisted state and workspace contract.
+
+### Context Scope Limits
+
+Context Quality V2 remains deliberately narrow. Glassbox still does not do any
+of the following:
+
+- hidden long-term memory outside the event-sourced runtime
+- broad autonomous repository indexing or background crawling
+- opaque provider-specific prompt augmentation that cannot be inspected or replayed
+- vector-store or embedding retrieval treated as a silent second source of truth
+- unbounded project summarization detached from explicit runtime events, artifacts, or local summaries
 
 ## Local Validation
 

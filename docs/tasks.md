@@ -2435,7 +2435,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-236: Document Context Quality V2 Workflows, Debugging, And Scope Limits
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-232`, `GBX-233`, `GBX-234`, `GBX-235`, `GBX-121`
 - Goal: document the second-generation context model so operators and contributors can understand what improved, what stayed bounded, and how to debug context-related drift
 - Deliverables:

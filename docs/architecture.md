@@ -921,17 +921,36 @@ ambient indexes, or prompt-only heuristics that cannot be audited later.
 Richer runtime context is exposed through normal operator surfaces rather than
 through raw prompt dumps alone.
 
-- CLI `status` prints a `Runtime context:` block with repository summary and visible runtime notes
-- `GET /sessions/{session_id}` returns a typed `runtime_context` snapshot
+- CLI `status` prints a `Runtime context:` block with repository summary, visible runtime notes, working-set items, and artifact-backed context summaries
+- `GET /sessions/{session_id}` returns a typed `runtime_context` snapshot including repository context, runtime notes, working set, and artifact-backed context
 - the dashboard renders that same bounded snapshot in the selected-session summary
+- replay model-call artifacts and exported bundles preserve the same `turn_context` payload plus per-source enriched-context manifests for debugging
+- eval suite artifacts and summaries surface replay outcome, mismatches, and any source-specific context drift message
 
-When working-set context is introduced, it should follow the same rule:
+With context quality v2 in place, those same inspection rules now apply to the
+newer context sources too:
 
 - operators should be able to inspect the current bounded working set and the top reasons items were included
+- operators should be able to inspect artifact freshness, inherited status, and bounded failing-test summaries when artifact-backed context is present
 - the inspection path should remain read-only and summary-oriented rather than exposing raw concatenated prompt text as the only debugging surface
 
 This is intentionally read-only. The inspection path explains what shaped a turn
 without creating a second mutable configuration surface.
+
+### Current Context Quality V2 Flow
+
+The current implementation keeps richer context explicit all the way from turn
+assembly through replay artifacts.
+
+- prompt assembly appends repository context, runtime notes, working-set context, and fresh artifact-backed summaries as separate prompt fragments rather than flattening them into one opaque blob
+- CLI status and dashboard snapshots expose the same bounded runtime-context contract the model received, including working-set reasons and artifact freshness
+- replay capture records per-source manifests with `source_name`, `provenance_class`, semantic fingerprint, inheritance state, summary text, and bounded item counts
+- when one artifact-backed summary kind dominates a turn, replay names that exact source, such as `pytest_failure_digest`, instead of reporting only aggregate context drift
+- selected-invariant eval cases can deliberately ignore transcript-only or event-family noise while still failing on context-source drift
+
+That flow is the important boundary: the model can use richer context, but the
+operator can inspect the same typed sources through normal status, snapshot,
+replay, and eval workflows.
 
 ### Resume, Replay, Eval, And Branch Semantics
 
@@ -941,16 +960,21 @@ runtime's local-first guarantees.
 - `resume` reloads active runtime notes from projections and recomputes repository context from the current `cwd`
 - `fork` imports the parent's active runtime notes into the child as explicit `RuntimeNoteImported` events
 - replay bundles carry inherited runtime notes so forked sessions remain portable and self-contained
-- replay manifests store both the normalized turn context and an enriched-context fingerprint derived from `repo_context` and `memory_notes`
+- replay manifests store both the normalized turn context and per-source enriched-context metadata; older artifacts still fall back to the legacy aggregate fingerprint derived from turn-context payloads
 
-The next context-quality phase should refine that replay contract instead of
-replacing it.
+The current context-quality implementation refines that replay contract instead
+of replacing it.
 
 - repository context should remain a recomputed bounded summary with explicit drift reporting when the local workspace no longer produces the recorded summary shape
 - runtime notes should remain persisted session state whose inheritance and import path is explicit in events and replay bundles
 - working-set context should be rebuilt only from explicit replay-safe signals or explicit recorded artifacts rather than from hidden parent-session caches or ambient local state
-- replay artifacts should evolve toward per-source provenance metadata and per-source semantic fingerprints while preserving compatibility with the current aggregate enriched-context fingerprint
+- replay artifacts now carry per-source provenance metadata and per-source semantic fingerprints while preserving compatibility with older aggregate enriched-context fingerprints
 - replay and eval reporting should be able to say which enriched-context source drifted, not merely that "context changed"
+
+Compatibility expectations should stay explicit in the architecture too:
+
+- newer bundles should carry per-source manifests because they produce actionable source-level drift reports
+- older replay bundles or historical sessions that only have the aggregate enriched-context fingerprint should continue to replay with coarser drift reporting rather than being treated as unsupported immediately
 
 That fingerprint matters because replay should report richer-context preparation
 changes as manifest drift, not as vague downstream behavior drift.
