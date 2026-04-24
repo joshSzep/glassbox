@@ -2141,7 +2141,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-217: Document Session Branching And Historical Workflows
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-210`, `GBX-213`, `GBX-214`, `GBX-215`, `GBX-216`, `GBX-121`
 - Goal: document how operators should inspect historical sessions, create forks, understand lineage, and use forked sessions with replay and eval workflows
 - Deliverables:

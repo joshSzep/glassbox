@@ -820,6 +820,29 @@ The first intended operator surface should stay explicit:
 - the CLI may attach an operator-visible branch label and an immediate follow-up prompt as adjacent options, rather than collapsing forking and continuation into one implicit action
 - the dashboard should treat forking as a persisted session action over a selected historical cut point, not as a browser-local state transformation
 
+### Session Index And Snapshot Contract
+
+The browser-facing lineage contract should stay explicit and typed rather than
+forcing the dashboard to infer ancestry from transcript content.
+
+`GET /sessions` should expose summary-level lineage and branchability fields:
+
+- `parent_session_id`, `forked_from_turn_id`, `forked_from_sequence`, and `branch_label`
+- `child_session_count`
+- `can_fork`, `latest_fork_point_turn_id`, `latest_fork_point_sequence`, and `fork_blocked_reason`
+
+`GET /sessions/{session_id}` should extend that with full fork-navigation data:
+
+- `child_sessions` summaries suitable for navigation without an extra lookup round trip
+- `branchable_turns` containing explicit completed-turn choices with stable turn ID, sequence, timestamp, and operator label
+
+This keeps the browser mental model straightforward:
+
+- historical inspection is read-only observation of persisted state
+- `can_fork` says whether a child branch can be created now
+- `fork_blocked_reason` explains why a session is inspectable but not currently branchable
+- `branchable_turns` enumerates valid older cut points without making the client reconstruct them ad hoc
+
 ### Stable Fork-Point Contract
 
 Valid v1 fork points should be stable turn boundaries only:
@@ -967,6 +990,20 @@ runner:
 - swaps in replay-backed tool execution that validates the current prepared tool request against the recorded manifest before serving recorded tool results
 - compares normalized transcript output, tool-call projections, approval and question flow, emitted event families, and final projected session state against the recorded baseline
 
+### Forked Session Compatibility
+
+Forked child sessions must remain first-class citizens in replay and eval
+workflows.
+
+- replay bundles for child sessions should preserve lineage metadata and the imported transcript prefix explicitly
+- exported child bundles must replay without consulting the original parent SQLite rows at replay time
+- the replay runner should restore canonical imported-history events before applying new child-session actions so prepared-turn validation still reflects the original inherited context
+- eval cases may point at child-session bundles exactly the same way they point at ordinary replay bundles
+
+This preserves the conceptual boundary between inherited history and new child
+behavior without turning branched sessions into opaque unsupported special
+cases.
+
 ### Operator Workflow
 
 The operator workflow should remain explicit and reviewable:
@@ -1032,6 +1069,7 @@ It should support:
 - starting a new interactive session
 - attaching to an existing session interactively
 - resuming a session
+- creating a child session from a stable historical turn
 - sending a prompt
 - answering a pending ask-user question
 - approving or denying actions
@@ -1049,6 +1087,7 @@ The CLI should expose two complementary layers:
 
 ```text
 glassbox run [PROMPT]
+glassbox fork SESSION_ID [--turn TURN_ID] [--branch-label LABEL] [--prompt PROMPT]
 glassbox message SESSION_ID PROMPT
 glassbox answer SESSION_ID QUESTION_ID ANSWER
 glassbox resume SESSION_ID
@@ -1093,6 +1132,7 @@ The semantics should stay narrow:
 - `glassbox replay` uses stable exit codes so scripts can distinguish exact match from drift and replay errors without scraping terminal text
 - `glassbox replay` does not mutate the source session metadata or recorded replay artifacts; replay runs against an isolated temporary session store
 - replay export turns a replayable session into a portable baseline bundle that can move across branches, repositories, or CI machines without the original SQLite database
+- replay export for a forked child session includes the lineage metadata and imported transcript prefix required to replay that child independently of its parent database rows
 - `glassbox eval run` executes curated replay cases serially from the repository-local `evals/` layout, returns a CI-friendly suite summary, and does not require live provider credentials for deterministic cases
 - `glassbox eval run --tag ...` narrows the suite to tagged cases, while explicit `CASE_ID` arguments preserve an operator-controlled selection order for focused validation
 - `glassbox eval run --json` emits a machine-readable suite report including per-case outcomes, expectation-aware pass/fail state, and artifact paths

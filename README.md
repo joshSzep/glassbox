@@ -42,6 +42,7 @@ glassbox attach SESSION_ID
 glassbox message SESSION_ID PROMPT
 glassbox answer SESSION_ID QUESTION_ID ANSWER
 glassbox resume SESSION_ID
+glassbox fork SESSION_ID [--turn TURN_ID] [--branch-label LABEL] [--prompt PROMPT]
 glassbox status SESSION_ID
 glassbox replay SESSION_ID [--json]
 glassbox replay --bundle BUNDLE_PATH [--json]
@@ -221,6 +222,81 @@ Use the command that matches the session's current actionable state:
 - `glassbox approve SESSION_ID APPROVAL_ID` or `glassbox deny SESSION_ID APPROVAL_ID` resolves a pending approval when the session is awaiting approval.
 - `glassbox status SESSION_ID` prints the current session state, any pending approval or question identifiers, and a `Next action:` line that tells you which of the commands above is valid now.
 
+## Historical Inspection And Branching
+
+Historical inspection, branching, and replay are related but different operator
+workflows:
+
+- Use `status` or the dashboard when you need to inspect what already happened.
+- Use `attach`, `resume`, `message`, `answer`, `approve`, and `deny` when the session is still actionable.
+- Use `fork` when you want a new child session that continues from an earlier stable point without mutating the original session.
+- Use `replay` and `eval` when you want to compare current code against a recorded baseline rather than continue live work.
+
+### Branching Model
+
+Glassbox v1 time-travel is branch creation, not destructive rewind.
+
+- The parent session remains immutable.
+- The child session records explicit lineage fields: `parent_session_id`, `forked_from_turn_id`, `forked_from_sequence`, and optional `branch_label`.
+- The child imports the inherited transcript prefix it needs for continuation, then records new post-fork events in its own session log.
+- `--prompt` is optional. When provided, Glassbox submits that prompt to the child session immediately after creating it.
+
+Valid fork points are stable completed-turn boundaries only:
+
+- the latest completed turn in the session
+- an explicitly selected completed turn via `--turn TURN_ID`
+
+Fork creation is rejected when Glassbox cannot resolve a stable historical cut
+point, including:
+
+- a currently running turn
+- a session paused on approval
+- a session paused on `ask_user`
+- ambiguous or corrupted historical state
+
+### CLI Branch Workflow
+
+Inspect a historical session, create a child branch from a selected turn, then
+continue in the child:
+
+```bash
+uv run glassbox status PARENT_SESSION_ID --cwd .
+uv run glassbox fork PARENT_SESSION_ID --turn TURN_ID --branch-label alt-path --cwd .
+uv run glassbox message CHILD_SESSION_ID "Try the alternate fix" --cwd .
+```
+
+Or create the fork and submit the first child prompt in one step:
+
+```bash
+uv run glassbox fork PARENT_SESSION_ID \
+  --turn TURN_ID \
+  --branch-label alt-path \
+  --prompt "Try the alternate fix" \
+  --cwd .
+```
+
+The fork command prints the new `CHILD_SESSION_ID`, the exact historical turn,
+and the inherited transcript count so the operator can audit what changed.
+
+### Dashboard Branch Workflow
+
+Use the browser workflow when you want to inspect lineage before branching:
+
+1. open the session in the dashboard from the co-hosted `chat` URL or from `glassbox serve`
+2. inspect the selected-session lineage summary to confirm whether the current view is actionable live work or historical-only state
+3. use the fork controls over `branchable_turns` to keep the default latest completed turn or choose an older completed turn explicitly
+4. create the fork and let the dashboard navigate into the resulting child session
+
+If the dashboard cannot offer the action, treat that as a state signal rather
+than a UI bug: `fork_blocked_reason` should explain why the selected session is
+inspectable but not forkable yet.
+
+### Choosing Between Live, Historical, And Child Work
+
+- If the selected session is still actionable, keep working in that session with `attach`, `message`, `answer`, or approval commands.
+- If the selected session is historical-only, inspect it with `status` or the dashboard and decide whether to leave it alone or create a child branch.
+- If you want to test an alternate path while preserving the original audit trail, create a fork and continue only in the child session.
+
 Inside interactive `chat` and `attach` sessions:
 
 - freeform text sends the next prompt when the session is idle and running
@@ -253,9 +329,23 @@ reproduce the recorded behavior I care about?"
 Use the workflow that matches the problem you are solving:
 
 - Use `glassbox status`, `attach`, `answer`, `approve`, and `message` when you are operating a live or paused session.
+- Use `glassbox fork SESSION_ID` when you want to continue from a stable historical turn without rewriting the original session.
 - Use `glassbox replay SESSION_ID` when you want to re-check one historical session stored in the local SQLite database.
 - Use `glassbox replay-export SESSION_ID` when you want a portable baseline that can move across branches, repositories, or CI machines.
 - Use `glassbox eval run` when you want a curated regression suite from checked-in replay bundles under `evals/`.
+
+### Forked Sessions In Replay And Eval
+
+Forked child sessions are first-class replay and eval baselines.
+
+- `glassbox replay CHILD_SESSION_ID` replays the child session with its inherited transcript history intact.
+- `glassbox replay-export CHILD_SESSION_ID` writes a portable bundle that includes the child lineage metadata and imported-history payload needed to replay without the original parent database.
+- `glassbox eval run` can execute eval cases backed by forked child bundles the same way it executes ordinary session bundles.
+
+In other words, a branch is still just a session from the replay and eval point
+of view. The inherited prefix is preserved explicitly so replay can validate the
+same child behavior offline instead of treating branched sessions as unsupported
+history edge cases.
 
 ### Replay Result Categories
 
@@ -431,6 +521,7 @@ Use this baseline refresh playbook:
 - If replay reports `behavioral drift`, read the mismatch list and the per-case artifact JSON to see which normalized dimensions changed.
 - If replay reports `unsupported session`, refresh or migrate the baseline instead of trusting a partial replay from an older manifest or bundle version.
 - If replay reports `replay failure`, check for missing or corrupted replay artifacts, a missing bundle file, or a damaged checked-in baseline.
+- If a child-session replay or eval case fails unexpectedly, confirm that you exported the child session itself. Child bundles are self-contained once exported, but replaying the wrong parent bundle will of course validate the wrong history.
 - If a provider-backed baseline drifts unexpectedly, remember that Glassbox is replaying the recorded manifests and outputs offline. The replay signal says the current code no longer matches that recorded baseline, not that the live provider has become deterministic.
 - If you only need one historical check, use `glassbox replay`. Promote to `evals/` only when the scenario should become a curated regression contract for the repository.
 
@@ -532,6 +623,29 @@ When reading the standalone dashboard, interpret the browser state this way:
 - pending `ask_user` questions and pending approvals still reflect actionable session state and can be resolved through the browser when the session allows it
 - standalone browser access does not replace terminal-native `chat` ownership or create cross-process interactive attach semantics
 
+### Lineage And Fork Data In The Dashboard
+
+The standalone session index and per-session snapshot expose lineage and branch
+readiness directly so the browser does not have to infer history from transcript
+text.
+
+Recent-session summaries include:
+
+- `parent_session_id`, `forked_from_turn_id`, `forked_from_sequence`, and `branch_label` for ancestry
+- `child_session_count` for quick branch discovery
+- `can_fork`, `latest_fork_point_turn_id`, `latest_fork_point_sequence`, and `fork_blocked_reason` for lightweight branchability state
+
+The selected-session snapshot adds:
+
+- `child_sessions` with child session ID, status, branch label, update time, and latest message summary
+- `branchable_turns` with explicit completed-turn choices the dashboard can offer in the fork UI
+
+Use those fields this way:
+
+- if `can_fork` is true, the latest completed turn is forkable and `branchable_turns` may offer older completed turns too
+- if `can_fork` is false, `fork_blocked_reason` explains why the session is currently inspectable only
+- `historical snapshot` does not mean "dead end"; it often means "inspect here, then fork if you want to continue from this history"
+
 ### Dashboard Troubleshooting
 
 - If `glassbox chat --no-dashboard` was used, no dashboard URL is advertised for that session. Start `glassbox serve`, open `/`, and choose the session from the recent-session browser. You can still deep-link with `/?session=SESSION_ID` if you already have the ID.
@@ -541,6 +655,8 @@ When reading the standalone dashboard, interpret the browser state this way:
 - If a standalone dashboard view still shows useful snapshot data but reports `live unavailable`, keep using the snapshot as persisted history unless another active process is known to be driving it.
 - If a direct `?session=...` URL points at a deleted, stale, or invalid session, the dashboard returns to the session index and shows a `Session unavailable` recovery message instead of leaving the browser stuck on an unusable selection.
 - If you need to reopen actionable work after a `chat` process exits, use the recent-session browser and the selected-session summary to determine whether to answer a pending question, resolve an approval, or switch back to CLI primitives such as `attach`, `answer`, `approve`, or `message`.
+- If the dashboard shows `can_fork: false` or no `branchable_turns`, the session does not currently expose a stable completed-turn boundary for branch creation.
+- If a fork action is rejected, read `fork_blocked_reason` in the summary or snapshot first; it should explain whether the session is running, paused at a suspension point, or otherwise not branchable yet.
 
 ## Local Validation
 
