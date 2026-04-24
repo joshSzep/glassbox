@@ -2481,7 +2481,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-241: Extend Eval Case Schema With Ownership, Capability, And Verification Metadata
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-195`, `GBX-240`
 - Goal: make each replay-backed eval case self-describing enough to participate in release governance rather than behaving like an anonymous baseline file
 - Deliverables:

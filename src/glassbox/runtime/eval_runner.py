@@ -9,7 +9,14 @@ from typing import cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from glassbox.runtime.evals import EvalCase, EvalInvariant, load_eval_suite
+from glassbox.runtime.evals import (
+    EvalBaselineRefreshPolicy,
+    EvalCase,
+    EvalCaseSeverity,
+    EvalInvariant,
+    EvalVerificationStage,
+    load_eval_suite,
+)
 from glassbox.runtime.replay import ReplayOutcome, ReplayResult, ReplayRunner
 
 _REPLAY_EXIT_CODES: dict[ReplayOutcome, int] = {
@@ -29,6 +36,11 @@ class EvalCaseResult(BaseModel):
     case_id: str
     title: str
     tags: list[str] = Field(default_factory=list)
+    owner: str | None = None
+    capabilities: list[str] = Field(default_factory=list)
+    severity: EvalCaseSeverity = "medium"
+    verification_stages: list[EvalVerificationStage] = Field(default_factory=list)
+    baseline_refresh_policy: EvalBaselineRefreshPolicy = "review_required"
     selected_invariants: list[EvalInvariant] = Field(default_factory=list)
     replay_outcome: ReplayOutcome
     replay_exit_code: int
@@ -139,6 +151,13 @@ class EvalRunner:
             case_id=eval_case.case_id,
             title=eval_case.title,
             tags=list(eval_case.tags),
+            owner=eval_case.release_contract.owner,
+            capabilities=list(eval_case.release_contract.capabilities),
+            severity=eval_case.release_contract.severity,
+            verification_stages=list(eval_case.release_contract.verification_stages),
+            baseline_refresh_policy=(
+                eval_case.release_contract.baseline_refresh_policy
+            ),
             selected_invariants=list(eval_case.expectation.selected_invariants()),
             replay_outcome=replay_result.outcome,
             replay_exit_code=_REPLAY_EXIT_CODES[replay_result.outcome],

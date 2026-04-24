@@ -5,6 +5,13 @@
   "bundle_path": "../bundles/context.artifact-relaxed.json",
   "tags": ["context", "artifact"],
   "notes": "Uses the same artifact-backed session as context.artifact but with an intentionally relaxed assistant transcript baseline.",
+  "release_contract": {
+    "owner": "runtime.context",
+    "capabilities": ["artifact_backed_context", "selected_invariant_contract"],
+    "severity": "low",
+    "verification_stages": ["advisory"],
+    "baseline_refresh_policy": "advisory"
+  },
   "expectation": {
     "mode": "selected_invariants",
     "invariants": ["tool_calls", "approvals", "final_state"]

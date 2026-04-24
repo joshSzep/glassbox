@@ -10,6 +10,7 @@ import pytest
 from glassbox.runtime.evals import (
     DEFAULT_EVAL_BUNDLES_DIR,
     EvalCaseExpectation,
+    EvalCaseReleaseContract,
     discover_eval_case_files,
     load_eval_case,
     load_eval_suite,
@@ -34,6 +35,7 @@ def test_load_eval_case_defaults_to_exact_match_expectation(tmp_path: Path) -> N
     assert case.tags == ["smoke", "tooling"]
     assert case.bundle_path == (tmp_path / DEFAULT_EVAL_BUNDLES_DIR / "readme.json")
     assert case.expectation == EvalCaseExpectation()
+    assert case.release_contract == EvalCaseReleaseContract()
     assert case.expectation.selected_invariants() == (
         "transcript",
         "tool_calls",
@@ -66,6 +68,43 @@ def test_load_eval_case_supports_selected_invariants(tmp_path: Path) -> None:
     assert case.expectation.selected_invariants() == ("final_state", "transcript")
 
 
+def test_load_eval_case_supports_release_contract_metadata(tmp_path: Path) -> None:
+    case_path = _write_eval_case(
+        tmp_path,
+        "context.branch-inherited",
+        {
+            "case_id": "context.branch-inherited",
+            "title": "Forked child context stays replay-stable",
+            "bundle_path": "../bundles/context.branch-inherited.json",
+            "release_contract": {
+                "owner": "Runtime.Context",
+                "capabilities": ["branching", "context_inheritance", "branching"],
+                "severity": "high",
+                "verification_stages": [
+                    "commit-time",
+                    "push-time",
+                    "commit-time",
+                ],
+                "baseline_refresh_policy": "review_required",
+            },
+        },
+    )
+
+    case = load_eval_case(case_path, workspace_root=tmp_path)
+
+    assert case.release_contract.owner == "runtime.context"
+    assert case.release_contract.capabilities == [
+        "branching",
+        "context_inheritance",
+    ]
+    assert case.release_contract.severity == "high"
+    assert case.release_contract.verification_stages == [
+        "commit-time",
+        "push-time",
+    ]
+    assert case.release_contract.baseline_refresh_policy == "review_required"
+
+
 def test_load_eval_case_rejects_invalid_expectation_shape(tmp_path: Path) -> None:
     case_path = _write_eval_case(
         tmp_path,
@@ -81,6 +120,25 @@ def test_load_eval_case_rejects_invalid_expectation_shape(tmp_path: Path) -> Non
     )
 
     with pytest.raises(ValueError, match="selected_invariants expectation"):
+        load_eval_case(case_path, workspace_root=tmp_path)
+
+
+def test_load_eval_case_rejects_incompatible_release_contract(tmp_path: Path) -> None:
+    case_path = _write_eval_case(
+        tmp_path,
+        "invalid.release-contract",
+        {
+            "case_id": "invalid.release-contract",
+            "title": "Invalid release contract",
+            "bundle_path": "../bundles/invalid.json",
+            "release_contract": {
+                "verification_stages": ["commit-time"],
+                "baseline_refresh_policy": "advisory",
+            },
+        },
+    )
+
+    with pytest.raises(ValueError, match="advisory baseline_refresh_policy"):
         load_eval_case(case_path, workspace_root=tmp_path)
 
 

@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Any, Literal
 
 from glassbox.runtime.eval_runner import EvalCaseResult, EvalSuiteResult
-from glassbox.runtime.replay import ReplayOutcome
 
 type AnnotationLevel = Literal["notice", "warning", "error"]
 
@@ -49,9 +48,14 @@ def build_eval_suite_summary_payload(
         "cases": [
             {
                 "case_id": case.case_id,
+                "owner": case.owner,
+                "capabilities": list(case.capabilities),
                 "passed": case.passed,
                 "replay_outcome": case.replay_outcome,
-                "severity": _severity_for_case(case),
+                "severity": case.severity,
+                "verification_stages": list(case.verification_stages),
+                "baseline_refresh_policy": case.baseline_refresh_policy,
+                "annotation_level": _annotation_level_for_case(case),
                 "artifact_path": _artifact_display_path(
                     artifact_root=normalized_root,
                     output_dir=result.output_dir,
@@ -102,15 +106,17 @@ def build_eval_suite_job_summary(
             "",
             "### Cases",
             "",
-            "| Case | Status | Outcome | Severity | Artifact |",
-            "| --- | --- | --- | --- | --- |",
+            "| Case | Owner | Status | Outcome | Severity | Artifact |",
+            "| --- | --- | --- | --- | --- | --- |",
         ]
     )
     for case in payload["cases"]:
         case_status = "passed" if case["passed"] else "failed"
+        owner = case["owner"] or "-"
         lines.append(
             "| "
-            f"`{case['case_id']}` | `{case_status}` | `{case['replay_outcome']}` | "
+            f"`{case['case_id']}` | `{owner}` | `{case_status}` | "
+            f"`{case['replay_outcome']}` | "
             f"`{case['severity']}` | `{case['artifact_path']}` |"
         )
 
@@ -119,9 +125,11 @@ def build_eval_suite_job_summary(
         lines.extend(["", "### Failed Cases", ""])
         for case in failed_cases:
             detail = case["message"] or "See retained case artifact for details."
+            owner_suffix = f" owner `{case['owner']}`" if case["owner"] else ""
             lines.append(
                 f"- `{case['case_id']}`: `{case['replay_outcome']}` "
-                f"(`{case['severity']}`) at `{case['artifact_path']}`. {detail}"
+                f"(`{case['severity']}`{owner_suffix}) at "
+                f"`{case['artifact_path']}`. {detail}"
             )
 
     lines.extend(
@@ -159,7 +167,7 @@ def build_eval_suite_annotations(
         detail = case.message or "See retained case artifact for details."
         annotations.append(
             EvalAutomationAnnotation(
-                level=_severity_for_case(case),
+                level=_annotation_level_for_case(case),
                 title=f"{case.case_id}: {case.replay_outcome}",
                 message=f"{detail} Artifact: {artifact_path}",
             )
@@ -192,15 +200,15 @@ def _artifact_display_path(
     return f"{artifact_root}/{relative_path.as_posix()}"
 
 
-def _severity_for_case(case: EvalCaseResult) -> AnnotationLevel:
-    severity_by_outcome: dict[ReplayOutcome, AnnotationLevel] = {
-        "exact_match": "notice",
-        "behavioral_drift": "warning",
-        "manifest_drift": "error",
-        "unsupported_session": "error",
-        "replay_failure": "error",
-    }
-    return severity_by_outcome[case.replay_outcome]
+def _annotation_level_for_case(case: EvalCaseResult) -> AnnotationLevel:
+    if case.replay_outcome == "exact_match":
+        return "notice"
+    if case.replay_outcome == "behavioral_drift" and case.severity in {
+        "low",
+        "medium",
+    }:
+        return "warning"
+    return "error"
 
 
 def _escape_github_actions_value(value: str) -> str:

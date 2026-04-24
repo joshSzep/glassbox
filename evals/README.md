@@ -88,11 +88,38 @@ Case manifest shape:
   "bundle_path": "../bundles/tooling.readme.json",
   "tags": ["smoke", "tooling"],
   "notes": "Captured after replay bundle export stabilized.",
+  "release_contract": {
+    "owner": "runtime.replay",
+    "capabilities": ["repository_inspection", "replay_portability"],
+    "severity": "medium",
+    "verification_stages": ["commit-time", "push-time"],
+    "baseline_refresh_policy": "review_required"
+  },
   "expectation": {
     "mode": "exact_match"
   }
 }
 ```
+
+`release_contract` is optional for older cases, but curated cases should now use
+it so the suite can surface ownership and release intent explicitly.
+
+Current metadata conventions:
+
+- `owner`: normalized repository-owned area identifier such as `runtime.replay`,
+  `runtime.context`, or `tools.policy`
+- `capabilities`: one or more normalized operator-facing behaviors protected by
+  the case, such as `branching`, `approval_flow`, `context_inheritance`, or
+  `replay_portability`
+- `severity`: one of `critical`, `high`, `medium`, or `low`
+- `verification_stages`: one or more of `commit-time`, `push-time`,
+  `release-candidate`, or `advisory`
+- `baseline_refresh_policy`: one of `review_required`, `intentional_only`, or
+  `advisory`
+
+Backwards compatibility is preserved for older manifests that omit
+`release_contract`. They default to an advisory, medium-severity case with no
+declared owner or capability metadata.
 
 For targeted cases, `expectation.mode` may be `selected_invariants` with an
 explicit `invariants` list such as `final_state` or `transcript`. Omitting the

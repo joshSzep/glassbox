@@ -5,6 +5,13 @@
   "bundle_path": "../bundles/context.artifact.json",
   "tags": ["context", "artifact"],
   "notes": "Tracks pytest failure-digest context while ignoring run_tests output chunk differences that replay does not reproduce.",
+  "release_contract": {
+    "owner": "runtime.context",
+    "capabilities": ["artifact_backed_context", "context_drift_detection"],
+    "severity": "medium",
+    "verification_stages": ["push-time", "advisory"],
+    "baseline_refresh_policy": "review_required"
+  },
   "expectation": {
     "mode": "selected_invariants",
     "invariants": ["transcript", "tool_calls", "approvals", "final_state"]

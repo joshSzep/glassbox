@@ -11,6 +11,7 @@ from glassbox.runtime.eval_summary import (
     build_eval_suite_summary_payload,
     format_github_actions_annotation,
 )
+from glassbox.runtime.evals import EvalCaseSeverity
 from glassbox.runtime.replay import ReplayOutcome
 
 
@@ -42,7 +43,7 @@ def test_build_eval_suite_job_summary_surfaces_counts_cases_and_artifacts() -> N
     assert "- Failed: `1`" in summary
     assert "| `manifest_drift` | `1` |" in summary
     assert (
-        "| `manifest.case` | `failed` | `manifest_drift` | `error` | "
+        "| `manifest.case` | `runtime.replay` | `failed` | `manifest_drift` | `high` | "
         "`.glassbox/evals/push-smoke/manifest.case.json` |"
     ) in summary
     assert "push-smoke-evals-deadbeef" in summary
@@ -59,12 +60,14 @@ def test_build_eval_suite_annotations_marks_failed_cases_by_severity() -> None:
                 replay_outcome="behavioral_drift",
                 passed=False,
                 message="transcript drift",
+                severity="medium",
             ),
             _case_result(
                 case_id="broken.case",
                 replay_outcome="replay_failure",
                 passed=False,
                 message="missing replay bundle file",
+                severity="high",
             ),
         ]
     )
@@ -150,11 +153,17 @@ def _case_result(
     replay_outcome: ReplayOutcome = "exact_match",
     passed: bool = True,
     message: str | None = None,
+    severity: EvalCaseSeverity | None = None,
 ) -> EvalCaseResult:
     return EvalCaseResult(
         case_id=case_id,
         title=case_id,
         tags=["smoke"],
+        owner="runtime.replay",
+        capabilities=["replay_contract"],
+        severity=severity or ("high" if not passed else "medium"),
+        verification_stages=["push-time"],
+        baseline_refresh_policy="review_required",
         selected_invariants=[],
         replay_outcome=replay_outcome,
         replay_exit_code=0 if replay_outcome == "exact_match" else 11,

@@ -22,6 +22,18 @@ type EvalInvariant = Literal[
     "event_families",
     "final_state",
 ]
+type EvalCaseSeverity = Literal["critical", "high", "medium", "low"]
+type EvalVerificationStage = Literal[
+    "commit-time",
+    "push-time",
+    "release-candidate",
+    "advisory",
+]
+type EvalBaselineRefreshPolicy = Literal[
+    "review_required",
+    "intentional_only",
+    "advisory",
+]
 
 _IDENTIFIER_PATTERN = re.compile(r"^[a-z0-9]+(?:[._-][a-z0-9]+)*$")
 _ALL_EVAL_INVARIANTS: tuple[EvalInvariant, ...] = (
@@ -32,6 +44,10 @@ _ALL_EVAL_INVARIANTS: tuple[EvalInvariant, ...] = (
     "event_families",
     "final_state",
 )
+
+
+def _default_verification_stages() -> list[EvalVerificationStage]:
+    return ["advisory"]
 
 
 class EvalCaseExpectation(BaseModel):
@@ -69,6 +85,64 @@ class EvalCaseExpectation(BaseModel):
         return tuple(self.invariants)
 
 
+class EvalCaseReleaseContract(BaseModel):
+    """Release-oriented metadata for one replay-backed eval case."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    owner: str | None = None
+    capabilities: list[str] = Field(default_factory=list)
+    severity: EvalCaseSeverity = "medium"
+    verification_stages: list[EvalVerificationStage] = Field(
+        default_factory=_default_verification_stages
+    )
+    baseline_refresh_policy: EvalBaselineRefreshPolicy = "review_required"
+
+    @field_validator("owner")
+    @classmethod
+    def validate_owner(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return _normalize_identifier(value, kind="owner")
+
+    @field_validator("capabilities")
+    @classmethod
+    def validate_capabilities(cls, value: list[str]) -> list[str]:
+        normalized: list[str] = []
+        for capability in value:
+            candidate = _normalize_identifier(capability, kind="capability")
+            if candidate not in normalized:
+                normalized.append(candidate)
+        return normalized
+
+    @field_validator("verification_stages")
+    @classmethod
+    def validate_verification_stages(
+        cls,
+        value: list[EvalVerificationStage],
+    ) -> list[EvalVerificationStage]:
+        normalized: list[EvalVerificationStage] = []
+        for stage in value:
+            if stage not in normalized:
+                normalized.append(stage)
+        return normalized
+
+    @model_validator(mode="after")
+    def validate_release_contract(self) -> EvalCaseReleaseContract:
+        if not self.verification_stages:
+            raise ValueError(
+                "release_contract.verification_stages must include at least one stage"
+            )
+        if self.baseline_refresh_policy == "advisory" and (
+            "advisory" not in self.verification_stages
+        ):
+            raise ValueError(
+                "advisory baseline_refresh_policy requires "
+                "an advisory verification stage"
+            )
+        return self
+
+
 class EvalCaseManifest(BaseModel):
     """On-disk manifest for one repository-local eval case."""
 
@@ -81,6 +155,9 @@ class EvalCaseManifest(BaseModel):
     tags: list[str] = Field(default_factory=list)
     notes: str | None = None
     expectation: EvalCaseExpectation = Field(default_factory=EvalCaseExpectation)
+    release_contract: EvalCaseReleaseContract = Field(
+        default_factory=EvalCaseReleaseContract
+    )
 
     @field_validator("manifest_version")
     @classmethod
@@ -141,6 +218,7 @@ class EvalCase(BaseModel):
     tags: list[str] = Field(default_factory=list)
     notes: str | None = None
     expectation: EvalCaseExpectation
+    release_contract: EvalCaseReleaseContract
 
 
 def discover_eval_case_files(
@@ -206,6 +284,7 @@ def load_eval_case(
         tags=manifest.tags,
         notes=manifest.notes,
         expectation=manifest.expectation,
+        release_contract=manifest.release_contract,
     )
 
 
