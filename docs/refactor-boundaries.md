@@ -182,6 +182,7 @@ The `web` package should not own the canonical logic for deriving session summar
 - `render.js` should split behind a stable facade into session discovery, selected-session summary/lineage, transcript/live activity, operator actions, and operational diagnostics pane families
 - `approval-actions.js` and `interaction-actions.js` should remain the focused POST transport modules, while `dashboard.js` remains the only browser shell that touches DOM, URL/history, and SSE lifecycle concerns
 - the reducer split now keeps `src/glassbox/web/static/state.js` as the public facade while moving base state to `state-core.js`, snapshot shaping to `state-snapshot.js`, session/stream transitions to `state-stream.js`, browser submission-state helpers to `state-interaction.js`, and incremental event reduction to `state-events.js`
+- the renderer split now keeps `src/glassbox/web/static/render.js` as the public facade while moving shared HTML helpers to `render-utils.js`, session-discovery and selected-session summary panes to `render-session-panes.js`, transcript/live-activity panes to `render-activity-panes.js`, operator-action panes to `render-action-panes.js`, and diagnostics panes to `render-diagnostics-panes.js`
 
 ### Replay And Eval
 

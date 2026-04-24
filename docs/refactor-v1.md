@@ -434,7 +434,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R132: Split Dashboard Pane Rendering By Pane Family
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R130`, `GBX-R131`
 - Goal: reduce `render.js` by grouping renderers into coherent pane families rather than one broad rendering file
 - Deliverables:

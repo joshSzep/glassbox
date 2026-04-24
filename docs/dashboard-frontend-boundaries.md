@@ -52,6 +52,15 @@ The first reducer split is now in place:
 - `state-events.js` owns incremental event reduction and event-scoped reducer helpers
 - `state.js` remains the stable public facade consumed by the browser app and frontend tests
 
+The first renderer split is now in place:
+
+- `render-utils.js` owns shared escaping, empty-state, status-chip, and short-ID helpers
+- `render-session-panes.js` owns landing, session-browser, selected-session summary, runtime-context, and lineage panes
+- `render-activity-panes.js` owns transcript, current-turn, and live-output panes
+- `render-action-panes.js` owns composer, fork, and approvals panes
+- `render-diagnostics-panes.js` owns metrics, active-tool-calls, and event-log panes
+- `render.js` remains the stable public facade consumed by the browser app and frontend tests
+
 ### State Boundary
 
 `state.js` should remain the public reducer facade for now, but its internals should split into these responsibility groups:
