@@ -58,6 +58,12 @@ Use these layers:
 - projection tables for current and query-heavy views
 - artifact files on disk for large blobs such as full logs and diffs
 
+This same storage model should also support future session branching without
+changing the source-of-truth rule. The parent session must keep its original
+canonical event stream, while child sessions should record explicit lineage
+metadata and their own canonical imported-history or post-fork events. Branching
+should not require mutating or truncating parent events.
+
 ## Canonical Tables
 
 ### Sessions
@@ -66,6 +72,11 @@ The sessions table is an entry point for listing and resuming sessions. Its
 `status` and `last_sequence` should stay aligned with the latest derived
 session-state projection so list and filter queries can find suspended sessions
 without replaying the event log.
+
+When branching lands, `sessions` is also the right place for nullable lineage
+metadata such as parent session ID, fork source turn ID, fork source sequence,
+and an optional operator-visible branch label. That metadata should describe
+ancestry and discovery, not replace event-sourced runtime state.
 
 ```sql
 create table sessions (
@@ -136,6 +147,11 @@ These columns are denormalized from event payloads for queryability.
 - `actor` helps distinguish user, assistant, runtime, and operator actions when useful
 
 The full event payload still lives in `payload_json`. The extra columns are query aids, not a second source of truth.
+
+For future child-session creation, the event log should continue to stay
+session-scoped. If Glassbox materializes inherited transcript history into the
+child session, those imported child-session events still belong to the child's
+canonical event stream rather than acting as pointers into mutable parent state.
 
 ## Projection Tables
 

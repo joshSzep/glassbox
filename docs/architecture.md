@@ -773,19 +773,102 @@ The dashboard and CLI should depend on projections, not on mutable runtime inter
 
 The detailed projection-table direction lives in [database.md](./database.md), but the important architectural rule is simple: projections are read models, not a second source of truth.
 
+## Session Branching And Time-Travel Model
+
+Session branching is a separate operator workflow from both raw historical
+inspection and deterministic replay. It answers a different question from each:
+
+- historical inspection asks what happened during the original session
+- branching asks what should happen next if the operator wants to continue from an earlier stable point
+- deterministic replay asks whether the current Glassbox codebase still reproduces equivalent behavior against a recorded baseline
+
+Glassbox should support time-travel in v1 by creating a new child session from
+an explicitly selected historical cut point. The source session remains
+immutable. Time-travel is therefore branch creation, not event-log mutation,
+session rewind, or destructive rollback.
+
+### Operator Model
+
+The intended v1 operator flow is:
+
+1. inspect a persisted session from the CLI or dashboard
+2. choose a stable historical cut point, usually the latest completed turn or a selected completed turn
+3. create a new child session from that point
+4. continue work in the child session using the normal prompt, answer, approval, replay, and dashboard workflows
+
+This keeps the runtime honest about what happened historically while still
+making exploration practical. The parent session remains the audit record of the
+original path. The child session becomes the audit record of the alternate path.
+
+The first intended operator surface should stay explicit:
+
+- CLI should expose a dedicated fork action such as `glassbox fork SESSION_ID`
+- the CLI may later accept an explicit historical turn selector such as `--turn TURN_ID`
+- the dashboard should treat forking as a persisted session action over a selected historical cut point, not as a browser-local state transformation
+
+### Stable Fork-Point Contract
+
+Valid v1 fork points should be stable turn boundaries only:
+
+- the latest completed turn in a session
+- an explicitly selected completed turn in a session's historical timeline
+
+Invalid v1 fork points should include at least:
+
+- a currently running turn
+- unresolved approval suspension points
+- unresolved `ask_user` suspension points
+- mid-stream model output or tool execution
+- corrupted or ambiguous historical state that cannot be resolved to a deterministic boundary
+
+The operator-facing contract should talk about turn boundaries, even if the
+runtime resolves the final fork point internally to a concrete event sequence.
+
+### Scope Boundary
+
+The v1 scope should stay deliberately narrow:
+
+- create a new child session rather than mutating the parent
+- preserve parent-child lineage explicitly
+- materialize enough inherited conversation history into the child session for normal continuation
+- keep child sessions compatible with existing snapshot, status, replay, and eval workflows
+
+The following are intentionally out of scope for v1:
+
+- in-place session rewind
+- deleting or truncating canonical events from a source session
+- branching from transient in-flight turn state
+- requiring checkpoint restoration just to create a branch
+- treating the dashboard as a second runtime that can rewrite history locally
+
+### Persistence Direction
+
+Branching should remain faithful to the event-sourced architecture.
+
+- the parent session keeps its original canonical event stream unchanged
+- the child session records explicit lineage metadata pointing back to the parent and selected fork point
+- the child session should become self-contained enough that prompt assembly, snapshots, and replay do not need to chase ancestry dynamically on every turn
+
+That last point matters. The branch workflow should not turn normal turn
+execution into a graph traversal problem. Branch creation may need to inspect
+parent history, but the resulting child session should continue to behave like a
+first-class ordinary session once created.
+
 ## Deterministic Replay And Eval Model
 
 Deterministic replay is a separate operator workflow from raw history
-inspection. Glassbox should support three distinct modes of looking at prior
+inspection. Glassbox should support four distinct modes of looking at prior
 work:
 
 - historical inspection of persisted events, projections, and artifacts
+- historical branch creation from a stable prior cut point
 - offline deterministic replay against recorded manifests and stubbed outputs
 - optional future live-provider comparison runs that are useful for research but are not part of the deterministic baseline contract
 
 These modes answer different questions.
 
 - historical inspection asks what happened during the original session
+- branching asks what should happen next from an earlier stable point while preserving the original audit trail
 - deterministic replay asks whether the current Glassbox codebase still produces equivalent behavior against a recorded baseline
 - future live comparison asks how current providers behave now, which is valuable later but is intentionally outside the v1 deterministic contract
 

@@ -2004,7 +2004,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-210: Define Session Branching And Time-Travel Operator Model
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-100`, `GBX-101`, `GBX-181`, `GBX-190`, `GBX-121`
 - Goal: define how Glassbox should support historical inspection and forked follow-up work without breaking the current event-sourced session model
 - Deliverables:
