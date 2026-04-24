@@ -1140,6 +1140,14 @@ These modes answer different questions.
 - deterministic replay asks whether the current Glassbox codebase still produces equivalent behavior against a recorded baseline
 - future live comparison asks how current providers behave now, which is valuable later but is intentionally outside the v1 deterministic contract
 
+The repository-owned eval profile manifest now carries this boundary directly.
+Profiles default to the `deterministic` track that feeds replay-backed eval,
+budget enforcement, and release sign-off. A separate
+`live-provider-canary` track is reserved for optional provider research and is
+required to stay advisory and non-blocking. That keeps the future canary path
+code-aligned without letting release-signoff workflows quietly absorb
+non-deterministic evidence.
+
 ### Replay Baseline Capture
 
 Replay should be grounded in recorded turn manifests rather than inferred after

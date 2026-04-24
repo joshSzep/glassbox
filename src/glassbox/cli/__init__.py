@@ -54,7 +54,7 @@ from glassbox.runtime.eval_summary import (
     build_eval_release_signoff_report,
     build_eval_release_signoff_summary,
 )
-from glassbox.runtime.evals import resolve_eval_suite_selection
+from glassbox.runtime.evals import load_eval_profiles, resolve_eval_suite_selection
 from glassbox.web import GlassboxWebServer, WebServerConfig, build_web_server
 
 _APPROVAL_MODE_CHOICES = ("confirm", "review", "on-request", "never")
@@ -66,6 +66,7 @@ _EVAL_VERIFICATION_STAGE_CHOICES = (
     "release-candidate",
     "advisory",
 )
+_EVAL_PROFILE_TRACK_CHOICES = ("deterministic", "live-provider-canary")
 _EVAL_BASELINE_REFRESH_POLICY_CHOICES = (
     "review_required",
     "intentional_only",
@@ -422,6 +423,27 @@ def _build_parser() -> argparse.ArgumentParser:
         help="print the structured coverage audit report as JSON",
     )
     _add_runtime_location_arguments(eval_audit_parser)
+
+    eval_profiles_parser = eval_subparsers.add_parser(
+        "profiles",
+        help="list repository-owned eval profiles",
+        description=(
+            "List repository-owned eval profiles and optionally narrow them by "
+            "deterministic or live-provider-canary track."
+        ),
+    )
+    eval_profiles_parser.add_argument(
+        "--track",
+        choices=_EVAL_PROFILE_TRACK_CHOICES,
+        default=None,
+        help="optional profile track filter",
+    )
+    eval_profiles_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the structured profile listing as JSON",
+    )
+    _add_runtime_location_arguments(eval_profiles_parser)
 
     eval_report_parser = eval_subparsers.add_parser(
         "report",
@@ -1060,6 +1082,23 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
             _print_eval_coverage_audit(result=audit_result, workspace_root=cwd)
         return 0
 
+    if args.eval_command == "profiles":
+        cwd, _db_path = _resolve_runtime_location(args)
+        del _db_path
+        profiles = load_eval_profiles(cwd, track=args.track)
+
+        if args.json:
+            print(
+                json.dumps(
+                    [profile.model_dump(mode="json") for profile in profiles],
+                    indent=2,
+                    sort_keys=True,
+                )
+            )
+        else:
+            _print_eval_profiles(workspace_root=cwd, profiles=profiles)
+        return 0
+
     if args.eval_command == "report":
         cwd, _db_path = _resolve_runtime_location(args)
         del _db_path
@@ -1087,6 +1126,13 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
             profile = selection.profile
             if profile is None:
                 raise ValueError(f"unknown eval profile: {profile_id}")
+            if profile.track != "deterministic":
+                raise ValueError(
+                    "eval report only supports deterministic profiles; "
+                    f"{profile.profile_id} is track {profile.track}. "
+                    "Use 'glassbox eval profiles --track live-provider-canary' "
+                    "for optional canary scaffolding instead."
+                )
             if not selection.cases:
                 skipped_profiles.append(
                     EvalReleaseSignoffSkippedProfileInput(
@@ -1930,6 +1976,26 @@ def _print_eval_coverage_audit(*, workspace_root: Path, result) -> None:
 def _print_eval_baseline_update(report) -> None:
     for line in format_eval_baseline_update_report(report):
         print(line)
+
+
+def _print_eval_profiles(*, workspace_root: Path, profiles) -> None:
+    print(f"Eval workspace {workspace_root.resolve()}")
+    if not profiles:
+        print("No eval profiles matched the requested filter")
+        return
+    print("Profiles:")
+    for profile in profiles:
+        print(
+            f"  - {profile.profile_id}: {profile.track}, "
+            f"{profile.verification_stage}, "
+            f"{'blocking' if profile.blocking else 'non-blocking'}"
+        )
+        if profile.tags:
+            print("    Tags: " + ", ".join(profile.tags))
+        if profile.case_ids:
+            print("    Case IDs: " + ", ".join(profile.case_ids))
+        if profile.description:
+            print("    Description: " + profile.description)
 
 
 def _format_budget_limit(limit: int | None) -> str:

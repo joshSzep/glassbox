@@ -27,6 +27,8 @@ glassbox eval run
 glassbox eval run --profile commit-smoke
 glassbox eval run CASE_ID
 glassbox eval run --tag smoke --json
+glassbox eval profiles
+glassbox eval profiles --track live-provider-canary --json
 glassbox eval run --output-dir .glassbox/evals/manual
 glassbox eval report release-candidate advisory-context
 glassbox eval report commit-smoke push-confirmation release-candidate --output-dir .glassbox/evals/release-signoff
@@ -37,6 +39,15 @@ glassbox eval refresh CASE_ID SESSION_ID --reason "Why this baseline changed"
 Named profiles live in `evals/profiles.json` and make stage intent explicit for
 automation and local verification. Additional `CASE_ID` arguments and repeated
 `--tag` flags still work as narrower filters inside a selected profile.
+
+Profiles also now declare a `track`. The default `deterministic` track feeds the
+normal replay, eval, budget, and release-signoff workflow. The separate
+`live-provider-canary` track is reserved for future optional live-provider
+comparison work and must remain advisory and non-blocking.
+
+Use `glassbox eval profiles` to inspect the repository-owned profile catalog and
+`glassbox eval profiles --track live-provider-canary` to find the non-blocking
+canary scaffold without mixing it into deterministic release commands.
 
 Profiles can now also declare a reviewable `budget` block with size and
 determinism guardrails such as maximum selected case count,
@@ -97,6 +108,10 @@ Per-profile sign-off rows may also say `skipped` when the requested report
 filters leave that profile with no selected cases. That skip is recorded in the
 report instead of being inferred from missing output.
 
+`glassbox eval report` is intentionally deterministic-only. If a requested
+profile belongs to the `live-provider-canary` track, the command fails early so
+optional canary research cannot be mistaken for deterministic release evidence.
+
 Profile manifest shape:
 
 ```json
@@ -107,6 +122,7 @@ Profile manifest shape:
       "profile_id": "commit-smoke",
       "title": "Commit-time smoke gate",
       "verification_stage": "commit-time",
+      "track": "deterministic",
       "tags": ["smoke"],
       "blocking": true,
       "budget": {
@@ -119,6 +135,14 @@ Profile manifest shape:
         "promotion_policy": "Promote only deterministic, low-cost smoke cases.",
         "demotion_policy": "Demote cases that become noisy or too expensive for commit-time use."
       }
+    },
+    {
+      "profile_id": "live-provider-canary",
+      "title": "Live-provider canary scaffold",
+      "verification_stage": "advisory",
+      "track": "live-provider-canary",
+      "tags": ["live-provider"],
+      "blocking": false
     }
   ]
 }
@@ -226,6 +250,11 @@ summarizes retained per-profile `summary.json` outputs, case artifact paths,
 severity totals, aggregate capability coverage, advisory drift counts,
 unsupported cases, skipped profiles, and baseline freshness cues such as the
 latest and oldest retained baseline update timestamps.
+
+The live-provider canary track deliberately does not reuse release-signoff
+status or deterministic profile budgets as a source of shipping confidence.
+It is a repository-owned place to stage future comparison work while keeping
+the local-first deterministic contract honest.
 
 Case manifest shape:
 

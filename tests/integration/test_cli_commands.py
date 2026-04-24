@@ -921,6 +921,85 @@ def test_cli_eval_audit_reports_uncovered_critical_capabilities(
     assert payload["redundant_case_ids"] == ["smoke.extra"]
 
 
+def test_cli_eval_profiles_lists_live_provider_canary_track(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "commit-smoke",
+                "title": "Commit smoke",
+                "verification_stage": "commit-time",
+                "blocking": True,
+            },
+            {
+                "profile_id": "live-provider-canary",
+                "title": "Live provider canary",
+                "verification_stage": "advisory",
+                "track": "live-provider-canary",
+                "blocking": False,
+                "tags": ["live-provider"],
+            },
+        ],
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "profiles",
+            "--track",
+            "live-provider-canary",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert [profile["profile_id"] for profile in payload] == ["live-provider-canary"]
+    assert payload[0]["track"] == "live-provider-canary"
+    assert payload[0]["blocking"] is False
+
+
+def test_cli_eval_report_rejects_live_provider_canary_profile(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "live-provider-canary",
+                "title": "Live provider canary",
+                "verification_stage": "advisory",
+                "track": "live-provider-canary",
+                "blocking": False,
+            }
+        ],
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "report",
+            "live-provider-canary",
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "eval report only supports deterministic profiles" in captured.err
+    assert "live-provider-canary" in captured.err
+
+
 def test_cli_eval_promote_creates_case_bundle_and_review_artifact(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

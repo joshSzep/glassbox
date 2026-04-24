@@ -33,6 +33,7 @@ type EvalVerificationStage = Literal[
     "release-candidate",
     "advisory",
 ]
+type EvalProfileTrack = Literal["deterministic", "live-provider-canary"]
 type EvalBaselineRefreshPolicy = Literal[
     "review_required",
     "intentional_only",
@@ -279,6 +280,7 @@ class EvalProfileDefinition(BaseModel):
     title: str
     description: str | None = None
     verification_stage: EvalVerificationStage
+    track: EvalProfileTrack = "deterministic"
     tags: list[str] = Field(default_factory=list)
     case_ids: list[str] = Field(default_factory=list)
     blocking: bool = True
@@ -324,6 +326,21 @@ class EvalProfileDefinition(BaseModel):
             if candidate not in normalized:
                 normalized.append(candidate)
         return normalized
+
+    @model_validator(mode="after")
+    def validate_track_contract(self) -> EvalProfileDefinition:
+        if self.track != "live-provider-canary":
+            return self
+        if self.blocking:
+            raise ValueError(
+                "live-provider-canary eval profiles must stay non-blocking"
+            )
+        if self.verification_stage != "advisory":
+            raise ValueError(
+                "live-provider-canary eval profiles must use advisory "
+                "verification_stage"
+            )
+        return self
 
 
 class EvalProfileManifest(BaseModel):
@@ -518,6 +535,24 @@ def load_eval_profile(
         return profiles_by_id[normalized_profile_id]
     except KeyError as exc:
         raise ValueError(f"unknown eval profile: {normalized_profile_id}") from exc
+
+
+def load_eval_profiles(
+    workspace_root: Path,
+    *,
+    track: EvalProfileTrack | None = None,
+    profiles_path: Path | None = None,
+) -> list[EvalProfileDefinition]:
+    """Load repository-owned eval profiles, optionally narrowed by track."""
+
+    manifest = load_eval_profile_manifest(
+        workspace_root,
+        profiles_path=profiles_path,
+    )
+    profiles = list(manifest.profiles)
+    if track is not None:
+        profiles = [profile for profile in profiles if profile.track == track]
+    return profiles
 
 
 def load_eval_profile_manifest(

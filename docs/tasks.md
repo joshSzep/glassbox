@@ -2635,7 +2635,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-248: Define And Scaffold A Non-Blocking Live-Provider Canary Track
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-143`, `GBX-190`, `GBX-240`, `GBX-241`, `GBX-242`
 - Goal: allow the project to explore live-provider behavior over time without contaminating the deterministic release contract or local blocking workflows
 - Deliverables:

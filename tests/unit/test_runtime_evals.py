@@ -16,6 +16,7 @@ from glassbox.runtime.evals import (
     discover_eval_case_files,
     load_eval_case,
     load_eval_profile,
+    load_eval_profiles,
     load_eval_suite,
     resolve_eval_suite_selection,
 )
@@ -326,6 +327,82 @@ def test_load_eval_profile_reads_budget_metadata(tmp_path: Path) -> None:
             "Demote cases that need repeated baseline refreshes or relaxed invariants."
         ),
     )
+
+
+def test_load_eval_profile_reads_live_provider_canary_track_metadata(
+    tmp_path: Path,
+) -> None:
+    _write_eval_profiles(
+        tmp_path,
+        [
+            {
+                "profile_id": "live-provider-canary",
+                "title": "Live provider canary",
+                "description": "Optional live-provider comparison scaffold.",
+                "verification_stage": "advisory",
+                "track": "live-provider-canary",
+                "blocking": False,
+                "tags": ["live-provider"],
+            }
+        ],
+    )
+
+    profile = load_eval_profile(tmp_path, profile_id="live-provider-canary")
+
+    assert profile == EvalProfileDefinition(
+        profile_id="live-provider-canary",
+        title="Live provider canary",
+        description="Optional live-provider comparison scaffold.",
+        verification_stage="advisory",
+        track="live-provider-canary",
+        blocking=False,
+        tags=["live-provider"],
+    )
+
+
+def test_load_eval_profiles_filters_by_track(tmp_path: Path) -> None:
+    _write_eval_profiles(
+        tmp_path,
+        [
+            {
+                "profile_id": "commit-smoke",
+                "title": "Commit smoke",
+                "verification_stage": "commit-time",
+                "blocking": True,
+            },
+            {
+                "profile_id": "live-provider-canary",
+                "title": "Live provider canary",
+                "verification_stage": "advisory",
+                "track": "live-provider-canary",
+                "blocking": False,
+            },
+        ],
+    )
+
+    profiles = load_eval_profiles(tmp_path, track="live-provider-canary")
+
+    assert [profile.profile_id for profile in profiles] == ["live-provider-canary"]
+
+
+def test_load_eval_profile_rejects_blocking_live_provider_canary_profile(
+    tmp_path: Path,
+) -> None:
+    _write_eval_profiles(
+        tmp_path,
+        [
+            {
+                "profile_id": "bad-canary",
+                "title": "Bad canary",
+                "verification_stage": "advisory",
+                "track": "live-provider-canary",
+                "blocking": True,
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="must stay non-blocking"):
+        load_eval_profile(tmp_path, profile_id="bad-canary")
 
 
 def test_resolve_eval_suite_selection_applies_profile_before_extra_tag_filter(

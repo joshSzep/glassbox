@@ -71,6 +71,15 @@
         "promotion_policy": "Promote context cases into stricter profiles only after the drift they watch becomes deterministic enough for a blocking gate.",
         "demotion_policy": "Keep exploratory or noisy context cases in advisory review until they stop requiring relaxed interpretation."
       }
+    },
+    {
+      "profile_id": "live-provider-canary",
+      "title": "Live-provider canary scaffold",
+      "description": "Non-blocking advisory scaffold for future live-provider comparison work kept outside deterministic release sign-off.",
+      "verification_stage": "advisory",
+      "track": "live-provider-canary",
+      "tags": ["live-provider"],
+      "blocking": false
     }
   ]
 }
