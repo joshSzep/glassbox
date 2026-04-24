@@ -395,7 +395,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R130: Define Dashboard Frontend State, View, And Transport Boundaries
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R102`, `GBX-R113`
 - Goal: define the intended boundaries for dashboard reducer logic, pane rendering, DOM orchestration, and transport concerns before splitting the large frontend files
 - Deliverables:

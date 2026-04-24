@@ -177,6 +177,10 @@ The `web` package should not own the canonical logic for deriving session summar
 - reducer and snapshot-normalization logic should stay pure
 - pane rendering should stay pure and be grouped by UI responsibility
 - fetch/SSE transport and DOM-binding logic should live outside pure reducers and renderers
+- the detailed target browser-module map now lives in [dashboard-frontend-boundaries.md](./dashboard-frontend-boundaries.md)
+- `state.js` should split behind a stable facade into snapshot hydration, session/stream state, browser submission state, and incremental event-reduction helpers
+- `render.js` should split behind a stable facade into session discovery, selected-session summary/lineage, transcript/live activity, operator actions, and operational diagnostics pane families
+- `approval-actions.js` and `interaction-actions.js` should remain the focused POST transport modules, while `dashboard.js` remains the only browser shell that touches DOM, URL/history, and SSE lifecycle concerns
 
 ### Replay And Eval
 
