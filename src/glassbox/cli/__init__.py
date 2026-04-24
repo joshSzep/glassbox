@@ -14,7 +14,7 @@ from pathlib import Path
 from uuid import UUID
 
 from glassbox.cli.renderer import CliEventRenderer, InteractivePromptState
-from glassbox.core import SessionConfig, TranscriptMessage
+from glassbox.core import SessionConfig
 from glassbox.core.events import (
     EventEnvelope,
     SessionFailed,
@@ -34,9 +34,6 @@ from glassbox.runtime import (
     ReplayResult,
     ReplayRunner,
     RuntimeContext,
-    build_artifact_backed_context_snapshot,
-    build_runtime_context_snapshot,
-    build_working_set_snapshot,
     open_runtime_context,
 )
 from glassbox.runtime.eval_baselines import (
@@ -55,6 +52,7 @@ from glassbox.runtime.eval_summary import (
     build_eval_release_signoff_summary,
 )
 from glassbox.runtime.evals import load_eval_profiles, resolve_eval_suite_selection
+from glassbox.runtime.session_queries import SessionQueryService, SessionStatusView
 from glassbox.web import GlassboxWebServer, WebServerConfig, build_web_server
 
 _APPROVAL_MODE_CHOICES = ("confirm", "review", "on-request", "never")
@@ -970,10 +968,12 @@ def _status_command(args: argparse.Namespace) -> int:
     cwd, db_path = _resolve_runtime_location(args)
 
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
-        _print_session_status(
+        query_service = SessionQueryService(
             runtime_context.repositories.sessions,
             runtime_context.repositories.artifacts,
-            args.session_id,
+        )
+        _print_session_status(
+            query_service.get_session_status_view(args.session_id),
         )
 
     return 0
@@ -1309,10 +1309,12 @@ async def _interactive_session_loop(
             print(_interactive_help_text(mode))
             continue
         if action_kind == "status":
-            _print_session_status(
+            query_service = SessionQueryService(
                 repository,
                 runtime_context.repositories.artifacts,
-                session_id,
+            )
+            _print_session_status(
+                query_service.get_session_status_view(session_id),
             )
             continue
         if action_kind == "approve":
@@ -1400,23 +1402,6 @@ def _rebuild_command(args: argparse.Namespace) -> int:
         return 0
 
 
-def _latest_message_summary(
-    transcript_messages: Sequence[TranscriptMessage],
-) -> str | None:
-    if not transcript_messages:
-        return None
-
-    latest_message = transcript_messages[-1]
-    text = " ".join(
-        part.text.strip().replace("\n", " ")
-        for part in latest_message.parts
-        if part.text.strip()
-    ).strip()
-    if not text:
-        return latest_message.role
-    return f"{latest_message.role}: {text}"
-
-
 def _current_turn_id(
     state,
     approvals: Sequence[ApprovalRecord],
@@ -1426,29 +1411,6 @@ def _current_turn_id(
     if state.status == "awaiting_approval" and approvals:
         return approvals[-1].turn_id
     return None
-
-
-def _find_turn_metrics(
-    turn_metrics: Sequence[TurnMetricsRecord],
-    turn_id: UUID | None,
-) -> TurnMetricsRecord | None:
-    if turn_id is None:
-        return None
-    for metrics in turn_metrics:
-        if metrics.turn_id == turn_id:
-            return metrics
-    return None
-
-
-def _recent_tool_calls(
-    tool_calls: Sequence[ToolCallRecord],
-    *,
-    limit: int = 3,
-) -> list[ToolCallRecord]:
-    def sort_key(tool_call: ToolCallRecord) -> datetime:
-        return tool_call.completed_at or tool_call.started_at or datetime.min
-
-    return sorted(tool_calls, key=sort_key, reverse=True)[:limit]
 
 
 def _can_accept_interactive_chat_prompt(state: SessionState) -> bool:
@@ -1628,97 +1590,70 @@ def _interactive_help_text(mode: str) -> str:
     return "\n".join(lines)
 
 
-def _print_session_status(repository, artifact_repository, session_id: UUID) -> None:
-    record = repository.get_session(session_id)
-    state = repository.get_session_state(session_id)
-    if record is None or state is None:
-        raise ValueError(f"unknown session_id: {session_id}")
+def _print_session_status(status_view: SessionStatusView) -> None:
+    snapshot = status_view.snapshot
+    current_turn_id = status_view.effective_current_turn_id
 
-    transcript_messages = repository.list_transcript_messages(session_id)
-    pending_approvals = repository.list_approvals(session_id)
-    tool_calls = repository.list_tool_calls(session_id)
-    turn_metrics = repository.list_turn_metrics(session_id, limit=5)
-    session_events = repository.read_session_events(session_id)
+    print(f"Session {snapshot.session_id}")
+    print(f"Status: {snapshot.status}")
+    print(f"Last sequence: {snapshot.last_sequence}")
+    print(_format_current_turn_line(current_turn_id, snapshot.status))
+    print(f"Workspace: {snapshot.cwd}")
+    print(f"Model: {snapshot.model_name}")
+    print(f"Approval mode: {snapshot.approval_mode}")
+    if snapshot.dashboard_url is not None:
+        print(f"Dashboard URL: {snapshot.dashboard_url}")
+    print(f"Transcript messages: {len(snapshot.transcript)}")
+    _print_runtime_context_summary(snapshot.runtime_context)
 
-    current_turn_id = _current_turn_id(state, pending_approvals)
-    current_turn_metrics = _find_turn_metrics(turn_metrics, current_turn_id)
-    latest_turn_metrics = current_turn_metrics or (
-        turn_metrics[0] if turn_metrics else None
-    )
-    recent_tool_calls = _recent_tool_calls(tool_calls)
-    runtime_context = build_runtime_context_snapshot(
-        record.cwd,
-        repository.list_runtime_notes(session_id),
-        working_set=build_working_set_snapshot(repository, session_id),
-        artifact_context=build_artifact_backed_context_snapshot(
-            repository,
-            artifact_repository,
-            session_id,
-        ),
-    )
-    dashboard_url = _dashboard_url_from_events(session_events)
-    latest_session_failure = _latest_session_failure(session_events)
-    pending_question_text = _pending_question_text_from_events(
-        session_events,
-        state.pending_question_id,
-    )
+    if snapshot.session_failure_message is not None:
+        print(
+            _format_session_failure(
+                snapshot.session_failure_message,
+                snapshot.session_failure_retryable,
+            )
+        )
 
-    print(f"Session {record.session_id}")
-    print(f"Status: {state.status}")
-    print(f"Last sequence: {state.last_sequence}")
-    print(_format_current_turn_line(current_turn_id, state.status))
-    print(f"Workspace: {record.cwd}")
-    print(f"Model: {record.model_name}")
-    print(f"Approval mode: {record.approval_mode}")
-    if dashboard_url is not None:
-        print(f"Dashboard URL: {dashboard_url}")
-    print(f"Transcript messages: {len(transcript_messages)}")
-    _print_runtime_context_summary(runtime_context)
-
-    if latest_session_failure is not None:
-        print(_format_session_failure(latest_session_failure))
-
-    latest_summary = _latest_message_summary(transcript_messages)
-    if latest_summary is not None:
-        print(f"Latest message: {latest_summary}")
-    if state.pending_question_id is not None:
+    if status_view.latest_message_summary is not None:
+        print(f"Latest message: {status_view.latest_message_summary}")
+    if snapshot.pending_question_id is not None:
         print(
             _format_pending_question_line(
-                state.pending_question_id,
-                pending_question_text,
+                snapshot.pending_question_id,
+                snapshot.pending_question_text,
             )
         )
     print(
         _format_next_action_line(
-            record.session_id,
-            state.status,
+            snapshot.session_id,
+            snapshot.status,
             current_turn_id,
-            state.pending_approval_id,
-            state.pending_question_id,
-            latest_session_failure,
+            snapshot.pending_approval_id,
+            snapshot.pending_question_id,
+            _session_failure_from_status_view(status_view),
         )
     )
 
-    if latest_turn_metrics is not None:
+    if status_view.latest_turn_metrics is not None:
         label = (
             "Current turn metrics"
-            if current_turn_metrics is not None
+            if status_view.current_turn_metrics is not None
             else "Latest turn metrics"
         )
-        print(f"{label}: {_format_turn_metrics(latest_turn_metrics)}")
+        print(f"{label}: {_format_turn_metrics(status_view.latest_turn_metrics)}")
     else:
         print("Latest turn metrics: none")
 
-    if pending_approvals:
-        print(f"Pending approvals: {len(pending_approvals)}")
-        for approval in pending_approvals:
+    if snapshot.pending_approvals:
+        print(f"Pending approvals: {len(snapshot.pending_approvals)}")
+        for approval in snapshot.pending_approvals:
             print(f"  - {_format_approval_summary(approval)}")
     else:
         print("Pending approvals: none")
 
-    if recent_tool_calls:
+    if status_view.recent_tool_calls:
         print("Recent tool activity:")
-        for tool_call in recent_tool_calls:
+        for tool_call in status_view.recent_tool_calls:
             print(f"  - {_format_tool_call_summary(tool_call)}")
     else:
         print("Recent tool activity: none")
@@ -2124,9 +2059,24 @@ def _latest_session_failure(
     return None
 
 
-def _format_session_failure(session_failure: SessionFailed) -> str:
-    retryable_suffix = " (retryable)" if session_failure.retryable else ""
-    return f"Session failure: {session_failure.error_message}{retryable_suffix}"
+def _format_session_failure(
+    error_message: str,
+    retryable: bool | None,
+) -> str:
+    retryable_suffix = " (retryable)" if retryable else ""
+    return f"Session failure: {error_message}{retryable_suffix}"
+
+
+def _session_failure_from_status_view(
+    status_view: SessionStatusView,
+) -> SessionFailed | None:
+    snapshot = status_view.snapshot
+    if snapshot.session_failure_message is None:
+        return None
+    return SessionFailed(
+        error_message=snapshot.session_failure_message,
+        retryable=bool(snapshot.session_failure_retryable),
+    )
 
 
 def _format_tool_call_summary(tool_call: ToolCallRecord) -> str:

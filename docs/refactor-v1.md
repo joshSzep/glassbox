@@ -172,11 +172,11 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R102: Introduce Shared Session Snapshot And Query Service
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R100`
 - Goal: centralize session snapshot shaping and next-action summaries so CLI and web consumers stop rebuilding parallel views of the same state
 - Deliverables:
-  - runtime-level query or snapshot service for session summaries, session snapshots, fork capability, next-action summaries, and runtime-context snapshots
+  - runtime-level query or snapshot service for session summaries, session snapshots, fork capability, next-action summaries, and runtime-context snapshots: [session_queries.py](./../src/glassbox/runtime/session_queries.py)
   - migration of web session routes and CLI status-style reporting onto the shared service boundary
   - compatibility coverage for existing HTTP snapshot payloads and CLI summary output where behavior is intended to remain stable
 - Implementation notes:

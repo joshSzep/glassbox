@@ -85,6 +85,7 @@ The `runtime` package should not become a catch-all for transport formatting, ra
 - the shared model-loop boundary currently lives in `src/glassbox/runtime/model_loop.py` and is consumed by `turn_engine.py` plus replay runtime wiring
 - context-building logic should separate structured snapshot derivation, working-set derivation, and prompt rendering
 - runtime query code should provide session summaries and snapshots to both CLI and web consumers without embedding HTTP concerns
+- the shared session-query boundary now lives in `src/glassbox/runtime/session_queries.py` and is consumed by CLI status reporting plus web session routes
 - bootstrap should wire public collaborators together, not hide ownership behind broad transitive re-exports
 
 ### Store
@@ -227,7 +228,7 @@ This boundary note is the source of truth for the early refactor tasks in [refac
 The intended mapping is:
 
 - `GBX-R101`: shared model-loop boundary for live turns and replay
-- `GBX-R102`: shared session snapshot and query service
+- `GBX-R102`: shared session snapshot and query service in `src/glassbox/runtime/session_queries.py`
 - `GBX-R103`: store-internal split under stable repository adapters
 - `GBX-R104`: export-surface tightening and dependency-direction cleanup
 
