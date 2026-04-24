@@ -4,6 +4,9 @@ import json
 from pathlib import Path
 from typing import Any
 
+from glassbox.runtime.eval_inputs import (
+    load_eval_suite_result as load_eval_suite_result_from_inputs,
+)
 from glassbox.runtime.eval_runner import EvalSuiteResult
 from glassbox.runtime.eval_summary_annotations import annotation_level_for_case
 from glassbox.runtime.eval_summary_annotations import artifact_display_path
@@ -13,7 +16,7 @@ from glassbox.runtime.eval_summary_annotations import normalized_artifact_root
 def load_eval_suite_result(summary_path: Path) -> EvalSuiteResult:
     """Load one structured eval suite summary from disk."""
 
-    return EvalSuiteResult.model_validate_json(summary_path.read_text(encoding="utf-8"))
+    return load_eval_suite_result_from_inputs(summary_path, EvalSuiteResult)
 
 
 def build_eval_suite_summary_payload(

@@ -706,7 +706,7 @@ These follow-on tasks stay within the same behavior-preserving contract as the o
 
 ### GBX-R181: Separate Eval Suite Discovery And Input Loading From Reporting Concerns
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R141`, `GBX-R180`
 - Goal: decouple eval suite discovery and filesystem input shaping from summary and release-signoff reporting so eval workflows can evolve without expanding report modules again
 - Deliverables:

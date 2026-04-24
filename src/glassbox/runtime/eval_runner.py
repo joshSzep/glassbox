@@ -1,8 +1,6 @@
 """Batch runner for replay-backed eval suites."""
 
 import json
-from datetime import UTC
-from datetime import datetime
 from pathlib import Path
 from typing import Literal
 from typing import cast
@@ -12,7 +10,7 @@ from pydantic import ConfigDict
 from pydantic import Field
 
 from glassbox.runtime.eval_coverage import EvalCoverageAuditResult
-from glassbox.runtime.eval_coverage import maybe_audit_eval_coverage
+from glassbox.runtime.eval_inputs import resolve_eval_suite_input
 from glassbox.runtime.evals import EvalBaselineRefreshPolicy
 from glassbox.runtime.evals import EvalCase
 from glassbox.runtime.evals import EvalCaseSeverity
@@ -20,7 +18,6 @@ from glassbox.runtime.evals import EvalInvariant
 from glassbox.runtime.evals import EvalProfileBudget
 from glassbox.runtime.evals import EvalProfileDefinition
 from glassbox.runtime.evals import EvalVerificationStage
-from glassbox.runtime.evals import resolve_eval_suite_selection
 from glassbox.runtime.replay import ReplayOutcome
 from glassbox.runtime.replay import ReplayResult
 from glassbox.runtime.replay import ReplayRunner
@@ -151,59 +148,41 @@ class EvalRunner:
         output_dir: Path | None = None,
         refresh_output_dir: bool = False,
     ) -> EvalSuiteResult:
-        resolved_workspace_root = workspace_root.resolve()
-        selection = resolve_eval_suite_selection(
-            resolved_workspace_root,
+        suite_input = resolve_eval_suite_input(
+            workspace_root,
             profile_id=profile_id,
             case_ids=case_ids,
             tags=tags,
-        )
-        eval_cases = selection.cases
-        if not eval_cases:
-            raise ValueError("no eval cases selected")
-        coverage_audit = maybe_audit_eval_coverage(
-            resolved_workspace_root,
-            profile_id=profile_id,
-            case_ids=case_ids,
-            tags=tags,
-        )
-
-        resolved_output_dir = _resolve_output_dir(
-            resolved_workspace_root,
             output_dir=output_dir,
+            refresh_output_dir=refresh_output_dir,
         )
-        if refresh_output_dir:
-            _refresh_output_dir(
-                resolved_workspace_root,
-                output_dir=resolved_output_dir,
-            )
-        resolved_output_dir.mkdir(parents=True, exist_ok=True)
+        eval_cases = suite_input.selection.cases
 
         case_results = [
             await self._run_case(
                 eval_case,
-                workspace_root=resolved_workspace_root,
-                output_dir=resolved_output_dir,
+                workspace_root=suite_input.workspace_root,
+                output_dir=suite_input.output_dir,
             )
             for eval_case in eval_cases
         ]
         profile_budget = _evaluate_profile_budget(
-            profile=selection.profile,
+            profile=suite_input.selection.profile,
             eval_cases=eval_cases,
             case_results=case_results,
         )
         outcome_counts = _outcome_counts(case_results)
         exit_code = _suite_exit_code(case_results, profile_budget)
-        summary_path = resolved_output_dir / "summary.json"
+        summary_path = suite_input.output_dir / "summary.json"
         suite_result = EvalSuiteResult(
-            workspace_root=resolved_workspace_root,
-            output_dir=resolved_output_dir,
+            workspace_root=suite_input.workspace_root,
+            output_dir=suite_input.output_dir,
             summary_path=summary_path,
-            profile_id=_profile_id(selection.profile),
-            profile_title=_profile_title(selection.profile),
-            profile_verification_stage=_profile_stage(selection.profile),
+            profile_id=_profile_id(suite_input.selection.profile),
+            profile_title=_profile_title(suite_input.selection.profile),
+            profile_verification_stage=_profile_stage(suite_input.selection.profile),
             profile_budget=profile_budget,
-            coverage_audit=coverage_audit,
+            coverage_audit=suite_input.coverage_audit,
             selected_case_count=len(case_results),
             passed_case_count=sum(1 for case in case_results if case.passed),
             failed_case_count=sum(1 for case in case_results if not case.passed),
@@ -291,26 +270,6 @@ class EvalRunner:
             encoding="utf-8",
         )
         return case_result
-
-
-def _resolve_output_dir(workspace_root: Path, *, output_dir: Path | None) -> Path:
-    if output_dir is not None:
-        return output_dir.resolve()
-    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-    return (workspace_root / ".glassbox" / "evals" / timestamp).resolve()
-
-
-def _refresh_output_dir(workspace_root: Path, *, output_dir: Path) -> None:
-    managed_root = (workspace_root / ".glassbox" / "evals").resolve()
-    if not output_dir.is_relative_to(managed_root):
-        raise ValueError(
-            "--refresh-output-dir requires an output directory under .glassbox/evals"
-        )
-    if not output_dir.exists():
-        return
-    for child in output_dir.iterdir():
-        if child.is_file() and child.suffix == ".json":
-            child.unlink()
 
 
 def _partition_mismatches(

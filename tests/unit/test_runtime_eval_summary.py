@@ -1,8 +1,10 @@
 """Unit tests for automation-facing eval summary formatting."""
 
+import json
 from pathlib import Path
 
 from glassbox.runtime.eval_coverage import EvalCoverageAuditResult
+from glassbox.runtime.eval_inputs import load_eval_suite_result
 from glassbox.runtime.eval_runner import EvalCaseResult
 from glassbox.runtime.eval_runner import EvalProfileBudgetHealth
 from glassbox.runtime.eval_runner import EvalSuiteResult
@@ -195,6 +197,19 @@ def test_format_github_actions_annotation_escapes_control_characters() -> None:
 
     assert command.startswith("::error title=manifest.case: manifest_drift::")
     assert "%0A" in command
+
+
+def test_load_eval_suite_result_round_trips_summary_json(tmp_path: Path) -> None:
+    result = _suite_result([_case_result(case_id="smoke.hello")])
+    summary_path = tmp_path / "summary.json"
+    summary_path.write_text(
+        json.dumps(result.model_dump(mode="json"), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    loaded = load_eval_suite_result(summary_path, EvalSuiteResult)
+
+    assert loaded == result
 
 
 def _suite_result(

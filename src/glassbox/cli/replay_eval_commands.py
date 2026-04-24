@@ -20,13 +20,13 @@ from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.eval_baselines import promote_eval_case
 from glassbox.runtime.eval_baselines import refresh_eval_case
 from glassbox.runtime.eval_coverage import audit_eval_coverage
+from glassbox.runtime.eval_inputs import resolve_eval_suite_input
 from glassbox.runtime.eval_runner import EvalRunner
 from glassbox.runtime.eval_summary import EvalReleaseSignoffProfileInput
 from glassbox.runtime.eval_summary import EvalReleaseSignoffSkippedProfileInput
 from glassbox.runtime.eval_summary import build_eval_release_signoff_report
 from glassbox.runtime.eval_summary import build_eval_release_signoff_summary
 from glassbox.runtime.evals import load_eval_profiles
-from glassbox.runtime.evals import resolve_eval_suite_selection
 from glassbox.runtime.replay import ReplayRunner
 
 
@@ -175,11 +175,14 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
             seen_profile_ids.add(profile_id)
             requested_profile_ids.append(profile_id)
 
-            selection = resolve_eval_suite_selection(
+            suite_input = resolve_eval_suite_input(
                 cwd,
                 profile_id=profile_id,
                 tags=tag_filters,
+                output_dir=root_output_dir / "profiles" / profile_id,
+                require_cases=False,
             )
+            selection = suite_input.selection
             profile = selection.profile
             if profile is None:
                 raise ValueError(f"unknown eval profile: {profile_id}")
@@ -204,7 +207,7 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
                 cwd,
                 profile_id=profile.profile_id,
                 tags=tag_filters,
-                output_dir=root_output_dir / "profiles" / profile.profile_id,
+                output_dir=suite_input.output_dir,
             )
             profile_inputs.append(
                 EvalReleaseSignoffProfileInput(
