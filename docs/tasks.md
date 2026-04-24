@@ -2456,6 +2456,228 @@ uv run ty check src/glassbox/path.py
 
 ---
 
+## Phase 24: Replay And Eval As A Release Discipline
+
+### GBX-240: Define Release-Contract Model For Replay And Eval
+
+- Status: `TODO`
+- Depends on: `GBX-196`, `GBX-205`, `GBX-235`, `GBX-236`, `GBX-121`
+- Goal: define how curated replay and eval suites map onto release decisions so deterministic replay becomes a maintained product contract rather than only a debugging aid
+- Deliverables:
+  - architecture and workflow updates defining release-oriented verification tiers such as commit-time, push-time, release-candidate, and advisory replay or eval profiles
+  - explicit terminology for case ownership, covered capability, severity, blocking intent, and baseline freshness expectations
+  - explicit distinction between deterministic release-contract coverage and non-blocking research or canary verification
+  - documented severity expectations for `manifest_drift`, `behavioral_drift`, `unsupported_session`, and `replay_failure` when they occur in blocking versus advisory profiles
+- Implementation notes:
+  - keep the release contract grounded in the existing local-first workflow rather than introducing a second remote-only governance path
+  - treat replay and eval as evidence about user-visible runtime behavior, not as a generic replacement for unit or integration tests
+  - define which kinds of behavioral guarantees must be backed by exact-match cases, which can use selected invariants, and which remain explicitly advisory
+  - keep the contract compatible with the current event-sourced architecture, replay taxonomy, and baseline bundle model
+- Tests and validation included in task:
+  - architecture and doc review against the current replay runner, eval runner, pre-commit smoke gate, and push-time confirmation workflow before implementation begins
+  - manual validation that the proposed release tiers can be expressed through the existing case, tag, and artifact model without creating ambiguous operator semantics
+- Done when:
+  - the repo has a clear, code-aligned definition of how replay and eval results influence release confidence, what they own, and what remains outside the deterministic release contract
+
+### GBX-241: Extend Eval Case Schema With Ownership, Capability, And Verification Metadata
+
+- Status: `TODO`
+- Depends on: `GBX-195`, `GBX-240`
+- Goal: make each replay-backed eval case self-describing enough to participate in release governance rather than behaving like an anonymous baseline file
+- Deliverables:
+  - eval-case schema updates for metadata such as owning area, covered capability or workflow, severity, intended verification stage, and baseline refresh policy
+  - repository-local conventions for describing whether a case is exact-match, selected-invariant, advisory-only, or eligible for blocking profiles
+  - runner and report support for surfacing the new metadata in suite summaries, per-case artifacts, and operator-facing output
+  - backward-compatible handling for older case manifests that predate the richer release-discipline metadata
+- Implementation notes:
+  - keep the new metadata declarative and reviewable inside case manifests rather than spreading ownership or blocking intent across CI config, docs, and naming conventions
+  - align capability names with operator workflows and documented product surfaces rather than with internal module boundaries alone
+  - avoid turning case manifests into a second free-form planning document; add only metadata that materially improves selection, reporting, or governance
+  - preserve the current case-discovery and tag-filtering ergonomics while the schema evolves
+- Tests and validation included in task:
+  - schema-validation tests for valid and invalid case manifests using the richer release metadata
+  - tests for case discovery, fallback defaults, and summary rendering against older and newer case definitions
+  - doc review against the existing `evals/` layout and baseline-promotion workflow while defining the richer metadata contract
+- Done when:
+  - each curated replay case can declare what product behavior it protects, how serious failure is, and where it belongs in the verification pipeline without relying on out-of-band tribal knowledge
+
+### GBX-242: Add Stage-Aware Verification Profiles And Runner Support
+
+- Status: `TODO`
+- Depends on: `GBX-196`, `GBX-205`, `GBX-241`
+- Goal: replace ad hoc tag-only conventions with explicit verification profiles that correspond to real release checkpoints
+- Deliverables:
+  - repository-local profile format for named suites such as `commit-smoke`, `push-confirmation`, `release-candidate`, and `advisory-context`
+  - CLI support for running evals by profile, such as `glassbox eval run --profile PROFILE`, while preserving targeted case and tag selection where useful
+  - profile validation rules that reject incompatible case metadata such as advisory-only or live-canary cases inside a blocking deterministic profile
+  - migration path for existing pre-commit and push-time automation so they can reference profiles instead of hardcoded tag assumptions alone
+- Implementation notes:
+  - profiles may be implemented in terms of tags internally, but the operator model should make stage intent first-class rather than implicit
+  - keep profile selection stable and reviewable from the repository, not dependent on opaque CI-side wiring
+  - do not remove the simpler tag path; profiles should add governance and ergonomics, not block narrow local iteration
+  - preserve current exit-code semantics and artifact generation behavior across profile-driven runs
+- Tests and validation included in task:
+  - CLI integration tests for profile selection, profile-versus-tag precedence, and invalid case membership handling
+  - tests proving the existing commit-time and push-time workflows can be expressed through the profile model without semantic drift
+  - regression tests for machine-readable summary output from profile-driven eval runs
+- Done when:
+  - operators and automation can invoke stable named verification stages directly, and those stages carry explicit repository-owned meaning beyond raw tag filters
+
+### GBX-243: Add Capability Coverage Matrix And Gap Auditing For Replay And Eval Suites
+
+- Status: `TODO`
+- Depends on: `GBX-217`, `GBX-236`, `GBX-241`, `GBX-242`
+- Goal: prevent replay and eval suites from becoming an ad hoc pile of scenarios by making product-coverage intent explicit and auditable
+- Deliverables:
+  - repository-local coverage manifest mapping key operator capabilities and product workflows to the replay or eval cases expected to protect them
+  - validation path or audit command for reporting uncovered release-critical capabilities, redundant low-value coverage, and cases that are not mapped to any declared product contract
+  - summary output that can surface capability coverage alongside profile results during release-oriented runs
+  - conventions for capabilities that require more than one case because different invariants or runtime paths matter independently
+- Implementation notes:
+  - optimize for product-level coverage reasoning such as approvals, ask-user flow, branching, context drift, and replay portability rather than module-by-module accounting
+  - one case may cover multiple capabilities, but the mapping should stay explicit and reviewable
+  - do not turn the first version into a heavyweight traceability system; keep the matrix small, typed, and actionable
+  - ensure coverage auditing is compatible with selected-invariant cases so a capability can still be considered protected when exact transcript stability is not the correct contract
+- Tests and validation included in task:
+  - validation tests for coverage-manifest parsing and gap reporting against representative case portfolios
+  - regression tests proving release-critical capabilities can be audited without scraping human prose from docs or case titles
+  - doc review against the current architecture, README workflows, and existing smoke cases while naming the initial capability set
+- Done when:
+  - the repository can answer which product behaviors are protected by replay or eval baselines and which important behaviors still lack a curated regression contract
+
+### GBX-244: Implement Guided Baseline Promotion And Refresh Workflow
+
+- Status: `TODO`
+- Depends on: `GBX-194`, `GBX-195`, `GBX-240`, `GBX-241`
+- Goal: make baseline creation and refresh deliberate, reviewable actions instead of manual bundle overwrites that can silently legitimize regressions
+- Deliverables:
+  - helper workflow or command surface for promoting a replayable session into a new case or refreshing an existing case from a new source session
+  - required rationale or change-note fields for baseline refreshes, with clear operator-visible output describing what was refreshed and why
+  - diff-friendly refresh artifacts summarizing changes to bundle content, case metadata, or selected invariants before the refreshed baseline is accepted
+  - guardrails that prevent blind refresh of blocking or release-candidate cases without the required release-discipline metadata and operator acknowledgement
+- Implementation notes:
+  - preserve the current conceptual split where the bundle is recorded evidence and the case manifest is the repository-owned contract
+  - avoid inventing an opaque baseline-management database; the workflow should remain repository-local, file-backed, and reviewable in Git
+  - make refresh ergonomics good enough that developers use the guided path instead of editing JSON by hand when real contract changes occur
+  - keep refreshed artifacts portable and redacted just like initial bundle export
+- Tests and validation included in task:
+  - integration tests for promoting a new case and refreshing an existing one through the guided path
+  - tests proving required rationale and metadata checks fire for blocking or release-critical cases
+  - regression tests that refreshed bundles remain replayable and do not bypass the existing schema or redaction rules
+- Done when:
+  - baseline updates are explicit, attributable, and reviewable enough that refreshing a replay contract feels closer to updating a public interface than to approving a snapshot blindly
+
+### GBX-245: Improve Replay And Eval Failure Artifacts For Fast Triage
+
+- Status: `TODO`
+- Depends on: `GBX-193`, `GBX-204`, `GBX-233`, `GBX-240`, `GBX-241`
+- Goal: reduce the time from a failing replay or eval run to a useful hypothesis about what changed and where to inspect next
+- Deliverables:
+  - richer per-case artifact content highlighting the first relevant mismatch, impacted capability metadata, drift source, and recommended next inspection path
+  - improved distinction between manifest drift, context-source drift, behavioral drift, unsupported cases, and replay failures in both machine-readable and human-readable outputs
+  - compact summary fields suitable for pre-commit and push-time triage that point directly to the right detailed artifact without forcing full JSON inspection first
+  - report support for per-source enriched-context drift and selected-invariant pass or fail interpretation where those semantics already exist
+- Implementation notes:
+  - optimize failure artifacts for operator reasoning, not only for machine parsing
+  - keep detailed diffs in retained artifacts, but make the top-level summary answer what failed, how serious it is, and what likely changed
+  - do not collapse context drift into generic transcript mismatch when more precise classification is available
+  - preserve backwards compatibility for older replay artifacts that lack newer provenance metadata
+- Tests and validation included in task:
+  - regression tests for representative drift scenarios proving the enriched failure artifacts surface the right first-order explanation
+  - CLI and summary-output tests for concise triage rendering across manifest drift, behavioral drift, and replay failure cases
+  - manual validation that the new artifacts materially reduce debugging time for at least one context-drift case and one tool-flow drift case
+- Done when:
+  - a failing replay or eval artifact tells an operator what changed, how severe it is, and where to look next without requiring implementation archaeology first
+
+### GBX-246: Add Verification Budget And Determinism Guardrails Per Profile
+
+- Status: `TODO`
+- Depends on: `GBX-201`, `GBX-203`, `GBX-242`, `GBX-245`
+- Goal: keep blocking replay and eval profiles small, deterministic, and maintainable as the curated case portfolio grows
+- Deliverables:
+  - profile-level budget metadata covering limits or expectations such as selected case count, runtime cost, artifact volume, and whether unsupported or advisory cases are allowed
+  - runner enforcement or warning behavior for profile-budget violations so smoke suites do not silently bloat into slow, noisy release gates
+  - explicit policy for promoting a case into a stricter profile or demoting it out when it proves too expensive or too unstable for that stage
+  - summary output surfacing profile-budget health alongside functional replay outcomes
+- Implementation notes:
+  - keep the first version focused on the main failure mode: blocking suites that gradually become too broad or too noisy to trust
+  - do not silently skip cases to satisfy budgets; budget violations should surface explicitly as governance problems
+  - align the guardrails with the local-first workflow so commit-time ergonomics remain honest rather than implicitly degraded
+  - keep profile budgets reviewable in repository-owned config rather than hardcoded in automation scripts only
+- Tests and validation included in task:
+  - integration tests for budget validation, blocking-versus-warning behavior, and profile incompatibility reporting
+  - regression tests proving existing commit-smoke and push-confirmation profiles remain executable under the new guardrails
+  - manual validation that profile-budget output is understandable enough to guide case promotion and demotion decisions
+- Done when:
+  - blocking replay and eval profiles have explicit, enforced size and determinism expectations that help keep them trustworthy over time
+
+### GBX-247: Generate Release Sign-Off Reports From Curated Replay And Eval Profiles
+
+- Status: `TODO`
+- Depends on: `GBX-243`, `GBX-244`, `GBX-245`, `GBX-246`
+- Goal: produce a release-oriented artifact that summarizes whether the current codebase satisfies the curated replay and eval contract for a release candidate
+- Deliverables:
+  - report format and command surface for generating a release-oriented replay and eval summary from one or more named profiles
+  - report content covering selected profiles, covered capabilities, case outcomes, severity totals, baseline freshness cues, and links or paths to retained detailed artifacts
+  - machine-readable report artifact suitable for CI retention or manual sign-off workflows, plus concise human-readable rendering for terminal and automation summaries
+  - explicit handling for blocking failures, advisory drift, skipped profiles, and unsupported cases so release decisions are not inferred from raw output
+- Implementation notes:
+  - keep the sign-off report as a summary over existing replay and eval artifacts, not as a replacement for the underlying per-case evidence
+  - make the report usable in local and automation-driven release-candidate workflows alike
+  - reuse the same capability, severity, and profile vocabulary established by earlier tasks rather than inventing a separate release-report schema
+  - do not imply that a passing replay report alone certifies the whole product; keep it positioned as one major source of release confidence alongside other validation layers
+- Tests and validation included in task:
+  - integration tests for release-report generation across all-pass, mixed-severity, and blocking-failure scenarios
+  - tests for machine-readable output shape and retained artifact linkage
+  - manual validation that a developer can use the generated report to answer whether a release-candidate build met the curated replay and eval contract
+- Done when:
+  - Glassbox can emit a single release-oriented replay and eval report that explains what was verified, what failed, what remained advisory, and where the detailed evidence lives
+
+### GBX-248: Define And Scaffold A Non-Blocking Live-Provider Canary Track
+
+- Status: `TODO`
+- Depends on: `GBX-143`, `GBX-190`, `GBX-240`, `GBX-241`, `GBX-242`
+- Goal: allow the project to explore live-provider behavior over time without contaminating the deterministic release contract or local blocking workflows
+- Deliverables:
+  - architecture and workflow updates defining a separate live-provider canary track that is explicitly non-blocking relative to deterministic replay and eval profiles
+  - metadata or profile support for distinguishing deterministic cases from optional live-provider comparison coverage
+  - initial command-surface or profile scaffolding for selecting the canary track without requiring the deterministic runner to pretend live providers are stable baselines
+  - operator guidance for what live-canary results mean and how they differ from deterministic replay or eval outcomes
+- Implementation notes:
+  - keep live-provider comparison clearly separated from the deterministic taxonomy, artifact rules, and release-signoff semantics
+  - do not require live credentials or network access for the default local-first verification path
+  - the first version may stop at profile and reporting scaffolding if full live-provider comparison semantics are not yet worth implementing
+  - ensure any future live-provider artifacts remain redacted and do not erode the portability assumptions of deterministic replay bundles
+- Tests and validation included in task:
+  - doc and workflow review against the existing deterministic replay contract before implementation begins
+  - if command or profile scaffolding is added, tests for metadata validation and selection routing without requiring external network calls
+  - manual validation that the resulting operator story keeps canary insight useful while leaving deterministic release gates untouched
+- Done when:
+  - the repository has a clear, code-aligned place for optional live-provider comparison work that does not weaken or confuse the deterministic release discipline
+
+### GBX-249: Document Replay And Eval Release Discipline, Governance, And Sign-Off Workflow
+
+- Status: `TODO`
+- Depends on: `GBX-240`, `GBX-241`, `GBX-242`, `GBX-243`, `GBX-244`, `GBX-245`, `GBX-246`, `GBX-247`, `GBX-248`, `GBX-121`
+- Goal: explain how replay and eval now function as a maintained release contract so contributors can use the full governance workflow without reverse-engineering conventions from CI config and JSON files
+- Deliverables:
+  - README and architecture updates covering verification profiles, case ownership metadata, capability coverage, baseline refresh workflow, and release sign-off reporting
+  - operator guidance for when to add a new replay case, when to refresh an existing baseline, when to promote or demote a case between profiles, and how to interpret severity in failures
+  - documentation for fast triage of manifest drift, behavioral drift, context-source drift, unsupported cases, and profile-budget violations
+  - explicit explanation of the boundary between deterministic release verification and optional live-provider canary work
+- Implementation notes:
+  - keep the docs explicit that replay and eval complement lint, type checking, `pytest`, and other verification layers rather than replacing them
+  - show at least one end-to-end example that starts from a new replayable session, promotes it into a governed case, runs it through a blocking profile, refreshes it intentionally, and emits a release-oriented summary
+  - align the documentation with the actual case schema, profile config, artifact paths, and automation surfaces introduced by this phase
+  - preserve the local-first workflow emphasis: the point is earlier trustworthy signal, not heavier process for its own sake
+- Tests and validation included in task:
+  - doc review against implemented case metadata, profile selection, coverage auditing, refresh workflow, diagnostic artifacts, and release-report behavior
+  - manual verification that a contributor can understand and execute the new replay or eval governance workflow from the docs alone
+- Done when:
+  - the repository documentation makes replay and eval feel like an intentional release discipline with clear ownership, workflows, and boundaries rather than a collection of loosely related commands
+
+---
+
 ## Recommended Build Order For The First Usable Vertical Slice
 
 If an agent wants the fastest path to a demonstrable but architecturally correct version, the recommended order is:
