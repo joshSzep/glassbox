@@ -7,28 +7,39 @@ import pytest
 from pydantic import BaseModel
 
 from glassbox.core import (
+    ApprovalStatus,
     EventEnvelope,
     MessagePart,
+    ModelToolCallRequested,
+    ReplayArtifactRecorded,
     ResolvedForkPoint,
     RuntimeNoteRecord,
     RuntimeNoteRecorded,
     SessionRecord,
     SessionState,
     SessionStatus,
+    ToolArtifactRecorded,
+    ToolCallRecord,
+    ToolExecutionStatus,
     TranscriptMessage,
     new_approval_id,
+    new_artifact_id,
     new_message_id,
     new_session_id,
+    new_tool_call_id,
     new_turn_id,
 )
+from glassbox.core.models import ApprovalRecord
 from glassbox.runtime import (
     RepositoryContextSnapshot,
     RuntimeContextNoteSnapshot,
     RuntimeContextSnapshot,
     ToolSchema,
     TurnContextBuilder,
+    WorkingSetItemSnapshot,
     build_repository_context_snapshot,
     build_runtime_context_snapshot,
+    build_working_set_snapshot,
     format_repository_context_for_prompt,
     format_tool_schemas_for_prompt,
     format_transcript_for_prompt,
@@ -37,10 +48,24 @@ from glassbox.tools import ToolRegistry, ToolRiskLevel, ToolSpec
 
 
 class FakeSessionRepository:
-    def __init__(self, session, session_state, transcript):
+    def __init__(
+        self,
+        session,
+        session_state,
+        transcript,
+        *,
+        runtime_notes=None,
+        events=None,
+        tool_calls=None,
+        approvals=None,
+    ):
         self._session = session
         self._session_state = session_state
         self._transcript = transcript
+        self._runtime_notes = list(runtime_notes or [])
+        self._events = list(events or [])
+        self._tool_calls = list(tool_calls or [])
+        self._approvals = list(approvals or [])
 
     def create_session(
         self,
@@ -70,7 +95,11 @@ class FakeSessionRepository:
         return list(self._transcript)
 
     def list_runtime_notes(self, session_id, *, include_inherited=True):
-        return []
+        if self._session.session_id != session_id:
+            return []
+        if include_inherited:
+            return list(self._runtime_notes)
+        return [note for note in self._runtime_notes if not note.inherited]
 
     def list_sessions(self, *, status=None, limit=None):
         return [self._session]
@@ -106,7 +135,9 @@ class FakeSessionRepository:
         )
 
     def read_session_events(self, session_id):
-        return []
+        if self._session.session_id != session_id:
+            return []
+        return list(self._events)
 
     def read_session_events_after(self, session_id, after_sequence):
         return []
@@ -126,10 +157,20 @@ class FakeSessionRepository:
         return None
 
     def list_tool_calls(self, session_id, *, status=None):
-        return []
+        if self._session.session_id != session_id:
+            return []
+        if status is None:
+            return list(self._tool_calls)
+        return [
+            tool_call for tool_call in self._tool_calls if tool_call.status == status
+        ]
 
     def list_approvals(self, session_id, *, status=None):
-        return []
+        if self._session.session_id != session_id:
+            return []
+        if status is None:
+            return list(self._approvals)
+        return [approval for approval in self._approvals if approval.status == status]
 
     def list_turn_metrics(self, session_id, *, limit=None):
         return []
@@ -495,6 +536,246 @@ def test_runtime_context_snapshot_is_bounded_and_preserves_note_provenance(
         ],
         additional_runtime_note_count=1,
     )
+
+
+def test_working_set_snapshot_prefers_explicit_signals_and_deduplicates_paths() -> None:
+    session_id = new_session_id()
+    parent_session_id = new_session_id()
+    turn_id = new_turn_id()
+    tool_call_id = new_tool_call_id()
+    repository = FakeSessionRepository(
+        SessionRecord(
+            session_id=session_id,
+            status=SessionStatus.AWAITING_APPROVAL,
+            created_at=datetime(2026, 4, 23, 12, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 4, 23, 12, 5, tzinfo=UTC),
+            cwd=Path("/tmp/glassbox"),
+            model_name="openai:gpt-5.4",
+            approval_mode="confirm",
+            last_sequence=12,
+            parent_session_id=parent_session_id,
+            branch_label="alt-path",
+        ),
+        SessionState(
+            session_id=session_id,
+            status=SessionStatus.AWAITING_APPROVAL,
+            last_sequence=12,
+            pending_approval_id=new_approval_id(),
+        ),
+        [],
+        runtime_notes=[
+            RuntimeNoteRecord(
+                source_sequence=2,
+                category="repo",
+                message="Keep src/glassbox/runtime/context_builder.py in focus",
+                source_session_id=session_id,
+                created_at=datetime(2026, 4, 23, 12, 4, tzinfo=UTC),
+                inherited=False,
+            ),
+            RuntimeNoteRecord(
+                source_sequence=1,
+                category="plan",
+                message="Child session inherited runtime-context investigation",
+                source_session_id=parent_session_id,
+                created_at=datetime(2026, 4, 23, 12, 3, tzinfo=UTC),
+                inherited=True,
+            ),
+        ],
+        events=[
+            EventEnvelope(
+                session_id=session_id,
+                sequence=8,
+                payload=ModelToolCallRequested(
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    tool_name="read_file",
+                    arguments_json='{"path":"src/glassbox/runtime/context_builder.py"}',
+                ),
+            ),
+            EventEnvelope(
+                session_id=session_id,
+                sequence=9,
+                payload=ModelToolCallRequested(
+                    turn_id=turn_id,
+                    tool_call_id=new_tool_call_id(),
+                    tool_name="apply_patch",
+                    arguments_json='{"path":"src/glassbox/runtime/context_builder.py","old_text":"x","new_text":"y"}',
+                ),
+            ),
+            EventEnvelope(
+                session_id=session_id,
+                sequence=10,
+                payload=ModelToolCallRequested(
+                    turn_id=turn_id,
+                    tool_call_id=new_tool_call_id(),
+                    tool_name="run_tests",
+                    arguments_json='{"paths":["tests/unit/test_context_builder.py"]}',
+                ),
+            ),
+            EventEnvelope(
+                session_id=session_id,
+                sequence=11,
+                payload=ToolArtifactRecorded(
+                    turn_id=turn_id,
+                    tool_call_id=new_tool_call_id(),
+                    artifact_id=new_artifact_id(),
+                    artifact_kind="pytest_failure",
+                    path=(f".glassbox/sessions/{session_id}/artifacts/failure.txt"),
+                ),
+            ),
+            EventEnvelope(
+                session_id=session_id,
+                sequence=12,
+                payload=ReplayArtifactRecorded(
+                    turn_id=turn_id,
+                    artifact_id=new_artifact_id(),
+                    artifact_kind="replay_model_call",
+                    path=".glassbox/sessions/ignored/artifacts/replay.json",
+                ),
+            ),
+        ],
+        tool_calls=[
+            ToolCallRecord(
+                tool_call_id=tool_call_id,
+                turn_id=turn_id,
+                tool_name="run_command",
+                status=ToolExecutionStatus.FAILED,
+                started_at=datetime(2026, 4, 23, 12, 2, tzinfo=UTC),
+                completed_at=datetime(2026, 4, 23, 12, 2, 30, tzinfo=UTC),
+                summary="pytest exited with code 1",
+            )
+        ],
+        approvals=[
+            ApprovalRecord(
+                approval_id=new_approval_id(),
+                turn_id=turn_id,
+                subject="apply_patch src/glassbox/runtime/context_builder.py",
+                reason="workspace write requires approval",
+                status=ApprovalStatus.PENDING,
+                requested_at=datetime(2026, 4, 23, 12, 5, tzinfo=UTC),
+            )
+        ],
+    )
+
+    working_set = build_working_set_snapshot(repository, session_id)
+
+    assert working_set.items[0] == WorkingSetItemSnapshot(
+        subject_kind="approval",
+        subject="apply_patch src/glassbox/runtime/context_builder.py",
+        summary="pending approval focus",
+        reasons=["pending approval: workspace write requires approval"],
+        signal_types=["approval"],
+        inherited=False,
+    )
+    file_item = next(
+        item
+        for item in working_set.items
+        if item.subject == "src/glassbox/runtime/context_builder.py"
+    )
+    assert file_item.subject_kind == "file"
+    assert file_item.summary == "recently targeted workspace path"
+    assert file_item.signal_types == ["tool_request_path"]
+    assert file_item.reasons == [
+        "apply_patch targeted src/glassbox/runtime/context_builder.py",
+        "read_file targeted src/glassbox/runtime/context_builder.py",
+    ]
+
+    assert next(
+        item
+        for item in working_set.items
+        if item.subject == "tests/unit/test_context_builder.py"
+    ) == WorkingSetItemSnapshot(
+        subject_kind="test",
+        subject="tests/unit/test_context_builder.py",
+        summary="recent test target",
+        reasons=["run_tests targeted tests/unit/test_context_builder.py"],
+        signal_types=["tool_request_test_path"],
+        inherited=False,
+    )
+    assert (
+        next(
+            item for item in working_set.items if item.subject_kind == "artifact"
+        ).summary
+        == "recent test artifact"
+    )
+    assert (
+        next(
+            item for item in working_set.items if item.subject_kind == "branch"
+        ).inherited
+        is True
+    )
+
+
+def test_working_set_snapshot_is_bounded_and_reports_overflow() -> None:
+    session_id = new_session_id()
+    repository = FakeSessionRepository(
+        SessionRecord(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            created_at=datetime(2026, 4, 23, 12, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 4, 23, 12, 1, tzinfo=UTC),
+            cwd=Path("/tmp/glassbox"),
+            model_name="openai:gpt-5.4",
+            approval_mode="confirm",
+            last_sequence=4,
+        ),
+        SessionState(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            last_sequence=4,
+        ),
+        [],
+        events=[
+            EventEnvelope(
+                session_id=session_id,
+                sequence=1,
+                payload=ModelToolCallRequested(
+                    turn_id=new_turn_id(),
+                    tool_call_id=new_tool_call_id(),
+                    tool_name="read_file",
+                    arguments_json='{"path":"src/a.py"}',
+                ),
+            ),
+            EventEnvelope(
+                session_id=session_id,
+                sequence=2,
+                payload=ModelToolCallRequested(
+                    turn_id=new_turn_id(),
+                    tool_call_id=new_tool_call_id(),
+                    tool_name="read_file",
+                    arguments_json='{"path":"src/b.py"}',
+                ),
+            ),
+            EventEnvelope(
+                session_id=session_id,
+                sequence=3,
+                payload=ModelToolCallRequested(
+                    turn_id=new_turn_id(),
+                    tool_call_id=new_tool_call_id(),
+                    tool_name="run_tests",
+                    arguments_json='{"paths":["tests/test_b.py"]}',
+                ),
+            ),
+        ],
+        runtime_notes=[
+            RuntimeNoteRecord(
+                source_sequence=1,
+                category="repo",
+                message="Keep src/a.py in focus",
+                source_session_id=session_id,
+                created_at=datetime(2026, 4, 23, 12, 1, tzinfo=UTC),
+                inherited=False,
+            )
+        ],
+    )
+
+    working_set = build_working_set_snapshot(repository, session_id, item_limit=2)
+
+    assert working_set.additional_item_count == 2
+    assert [item.subject for item in working_set.items] == [
+        "tests/test_b.py",
+        "src/b.py",
+    ]
 
 
 class ReadFileArgs(BaseModel):

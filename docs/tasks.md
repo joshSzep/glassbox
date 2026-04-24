@@ -2330,7 +2330,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-231: Implement Typed Working-Set Projection From Explicit Runtime Signals
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-024`, `GBX-111`, `GBX-191`, `GBX-225`, `GBX-230`
 - Goal: build a deterministic working-set summary from already-explicit session signals so the model starts each turn with better local task awareness
 - Deliverables:
