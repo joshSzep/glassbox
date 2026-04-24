@@ -414,7 +414,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R131: Split Dashboard State Reducer Into Snapshot, Live-Event, And Interaction Slices
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R130`
 - Goal: reduce `state.js` by separating snapshot hydration, incremental event reduction, and UI submission state handling
 - Deliverables:

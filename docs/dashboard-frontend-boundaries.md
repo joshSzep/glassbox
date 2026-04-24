@@ -43,6 +43,15 @@ That shape should remain the public mental model after the split, even if intern
 
 The target decomposition should keep the existing top-level browser files as stable facades first, then move internals behind them.
 
+The first reducer split is now in place:
+
+- `state-core.js` owns base state creation and idle submission helpers
+- `state-snapshot.js` owns snapshot normalization, hydration, lineage defaults, and runtime-context note merging helpers
+- `state-stream.js` owns session-index, session-selection, and stream-state transitions
+- `state-interaction.js` owns browser submission-state helpers for approvals, prompts, answers, and forks
+- `state-events.js` owns incremental event reduction and event-scoped reducer helpers
+- `state.js` remains the stable public facade consumed by the browser app and frontend tests
+
 ### State Boundary
 
 `state.js` should remain the public reducer facade for now, but its internals should split into these responsibility groups:
