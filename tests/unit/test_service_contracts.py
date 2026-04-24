@@ -24,16 +24,16 @@ from glassbox.core import (
     new_session_id,
     new_turn_id,
 )
-from glassbox.runtime import (
-    EventBus,
+from glassbox.runtime.bus import EventBus
+from glassbox.runtime.context import (
     RuntimeContext,
     RuntimeInfrastructure,
-    RuntimeProviderConfig,
     RuntimeRepositories,
     RuntimeServices,
 )
+from glassbox.runtime.provider_config import RuntimeProviderConfig
 from glassbox.services import ArtifactRepository, SessionRepository, SessionService
-from glassbox.store import StoredArtifact
+from glassbox.store.artifacts import StoredArtifact
 
 
 class FakeSessionRepository:

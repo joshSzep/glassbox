@@ -28,14 +28,8 @@ from glassbox.core.models import (
     TurnMetricsRecord,
 )
 from glassbox.core.types import ApprovalDecision, SessionStatus
-from glassbox.runtime import (
-    EvalRunner,
-    EvalSuiteResult,
-    ReplayResult,
-    ReplayRunner,
-    RuntimeContext,
-    open_runtime_context,
-)
+from glassbox.runtime.bootstrap import open_runtime_context
+from glassbox.runtime.context import RuntimeContext
 from glassbox.runtime.eval_baselines import (
     format_eval_baseline_update_report,
     promote_eval_case,
@@ -45,6 +39,7 @@ from glassbox.runtime.eval_coverage import (
     audit_eval_coverage,
     build_eval_coverage_summary_lines,
 )
+from glassbox.runtime.eval_runner import EvalRunner, EvalSuiteResult
 from glassbox.runtime.eval_summary import (
     EvalReleaseSignoffProfileInput,
     EvalReleaseSignoffSkippedProfileInput,
@@ -52,6 +47,7 @@ from glassbox.runtime.eval_summary import (
     build_eval_release_signoff_summary,
 )
 from glassbox.runtime.evals import load_eval_profiles, resolve_eval_suite_selection
+from glassbox.runtime.replay import ReplayResult, ReplayRunner
 from glassbox.runtime.session_queries import SessionQueryService, SessionStatusView
 from glassbox.web import GlassboxWebServer, WebServerConfig, build_web_server
 

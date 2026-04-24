@@ -32,7 +32,7 @@ from glassbox.core import (
     new_turn_id,
 )
 from glassbox.core.models import ApprovalRecord
-from glassbox.runtime import (
+from glassbox.runtime.context_builder import (
     PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
     ArtifactBackedContextSnapshot,
     ArtifactBackedContextSummarySnapshot,

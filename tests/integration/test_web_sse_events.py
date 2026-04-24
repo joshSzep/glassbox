@@ -17,9 +17,9 @@ from pathlib import Path
 import httpx
 
 from glassbox.core import SessionConfig
-from glassbox.runtime import SessionSupervisor
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
-from glassbox.store import initialize_database, open_database
+from glassbox.runtime.supervisor import SessionSupervisor
+from glassbox.store.sqlite import initialize_database, open_database
 from glassbox.web import create_app
 from glassbox.web.routes.events import (
     _event_stream,  # noqa: PLC2701

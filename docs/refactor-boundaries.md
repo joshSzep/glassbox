@@ -87,6 +87,7 @@ The `runtime` package should not become a catch-all for transport formatting, ra
 - runtime query code should provide session summaries and snapshots to both CLI and web consumers without embedding HTTP concerns
 - the shared session-query boundary now lives in `src/glassbox/runtime/session_queries.py` and is consumed by CLI status reporting plus web session routes
 - bootstrap should wire public collaborators together, not hide ownership behind broad transitive re-exports
+- `runtime/__init__.py` should stay a small public surface for bootstrap, event-bus, and runtime-context types; replay, supervisor, turn-engine, and context-builder imports should come from explicit submodules
 
 ### Store
 
@@ -110,6 +111,7 @@ The `store` package should not own runtime orchestration, CLI formatting, or web
 - projection application should remain deterministic and rebuildable from `events`
 - repository adapters should stay stable while internal storage helpers split underneath them
 - the SQLite store now uses internal `_sqlite_schema.py`, `_sqlite_sessions.py`, `_sqlite_events.py`, `_sqlite_projections.py`, `_sqlite_queries.py`, and `_sqlite_fork.py` modules behind the stable `store/sqlite.py` facade
+- `store/__init__.py` should stay limited to repository adapters, bootstrap helpers, and shared artifact models; raw SQLite and artifact helper imports should come from `store.sqlite` or `store.artifacts`
 
 ### Services
 
@@ -200,6 +202,7 @@ The practical rules are:
 - `store` must not depend on `runtime`, `cli`, or `web`
 - `services` must remain concrete-implementation free
 - `runtime` may depend on `store` implementations in bootstrap code, but orchestration logic should prefer service or repository contracts where practical
+- package-root imports should not be used as a convenience layer when they hide ownership of replay, turn execution, context building, or raw persistence helpers
 
 ## Acceptable Temporary Compatibility Shims
 

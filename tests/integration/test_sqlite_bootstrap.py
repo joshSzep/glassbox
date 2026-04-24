@@ -4,7 +4,7 @@ import sqlite3
 from pathlib import Path
 
 from glassbox.core import SessionStatus, new_session_id
-from glassbox.store import (
+from glassbox.store.sqlite import (
     SCHEMA_VERSION,
     get_session,
     initialize_database,

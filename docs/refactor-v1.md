@@ -210,7 +210,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R104: Tighten Runtime Package Export Surface And Dependency Direction
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R100`, `GBX-R101`, `GBX-R102`, `GBX-R103`
 - Goal: reduce hidden coupling caused by broad convenience re-exports and clarify which packages may depend on which internal modules
 - Deliverables:

@@ -8,7 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from glassbox.runtime import RuntimeContextSnapshot
+from glassbox.runtime.context_builder import RuntimeContextSnapshot
 from glassbox.runtime.session_queries import SessionQueryService
 from glassbox.web.app import RuntimeContextDep
 

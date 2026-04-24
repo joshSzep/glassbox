@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from glassbox.core.types import SessionStatus
 from glassbox.llm import build_system_prompt, build_tool_usage_prompt_fragment
-from glassbox.runtime import (
+from glassbox.runtime.context_builder import (
     ArtifactBackedContextSnapshot,
     ArtifactBackedContextSummarySnapshot,
     PolicyContext,

@@ -10,14 +10,16 @@ from glassbox.core import (
     new_tool_call_id,
     new_turn_id,
 )
-from glassbox.store import (
-    initialize_database,
-    open_database,
+from glassbox.store.artifacts import (
     read_binary_artifact,
-    read_events_by_correlation_id,
     read_text_artifact,
     record_text_artifact,
     write_binary_artifact,
+)
+from glassbox.store.sqlite import (
+    initialize_database,
+    open_database,
+    read_events_by_correlation_id,
 )
 
 
@@ -31,7 +33,7 @@ def test_record_text_artifact_writes_session_scoped_file_and_links_event(
     initialize_database(connection)
     try:
         # Seed the session row required by the event store.
-        from glassbox.store import append_event
+        from glassbox.store.sqlite import append_event
 
         append_event(
             connection,

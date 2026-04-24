@@ -28,7 +28,7 @@ from glassbox.llm import (
     ModelToolCallDelta,
     PydanticAIModelAdapter,
 )
-from glassbox.runtime import PolicyContext, ToolSchema, TurnContext
+from glassbox.runtime.context_builder import PolicyContext, ToolSchema, TurnContext
 
 
 def test_build_turn_request_splits_pending_user_prompt_from_history() -> None:

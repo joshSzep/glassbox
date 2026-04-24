@@ -7,6 +7,10 @@ from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
 
+import glassbox.store._sqlite_events as event_store
+import glassbox.store._sqlite_fork as fork_store
+import glassbox.store._sqlite_queries as query_store
+import glassbox.store._sqlite_sessions as session_store
 import glassbox.store.artifacts as artifact_store
 from glassbox.core.events import EventEnvelope, RuntimeNoteRecorded
 from glassbox.core.ids import ApprovalId, MessageId, SessionId, ToolCallId, TurnId
@@ -22,10 +26,6 @@ from glassbox.core.models import (
     TurnMetricsRecord,
 )
 from glassbox.core.types import ApprovalStatus, SessionStatus, ToolExecutionStatus
-from glassbox.store import _sqlite_events as event_store
-from glassbox.store import _sqlite_fork as fork_store
-from glassbox.store import _sqlite_queries as query_store
-from glassbox.store import _sqlite_sessions as session_store
 from glassbox.store.artifacts import StoredArtifact
 
 

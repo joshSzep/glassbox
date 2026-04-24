@@ -26,7 +26,7 @@ from glassbox.core import (
     new_tool_call_id,
     new_turn_id,
 )
-from glassbox.store import (
+from glassbox.store.sqlite import (
     append_events,
     initialize_database,
     list_runtime_notes,

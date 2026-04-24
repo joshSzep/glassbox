@@ -12,13 +12,11 @@ from glassbox.core import EventEnvelope, SessionConfig
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.ids import new_approval_id, new_turn_id
 from glassbox.core.types import ApprovalDecision
-from glassbox.runtime import EventBus, SessionSupervisor
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
-from glassbox.store import (
-    SQLiteSessionRepository,
-    initialize_database,
-    open_database,
-)
+from glassbox.runtime.bus import EventBus
+from glassbox.runtime.supervisor import SessionSupervisor
+from glassbox.store.repositories import SQLiteSessionRepository
+from glassbox.store.sqlite import initialize_database, open_database
 from glassbox.web import create_app
 
 # ---------------------------------------------------------------------------

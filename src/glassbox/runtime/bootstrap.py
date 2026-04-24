@@ -34,12 +34,11 @@ from glassbox.runtime.provider_config import (
 )
 from glassbox.runtime.supervisor import SessionSupervisor
 from glassbox.runtime.turn_engine import TurnEngine
-from glassbox.store import (
+from glassbox.store.repositories import (
     FilesystemArtifactRepository,
     SQLiteSessionRepository,
-    initialize_database,
-    open_database,
 )
+from glassbox.store.sqlite import initialize_database, open_database
 from glassbox.tools import (
     ApprovalMode,
     ToolPolicyContext,

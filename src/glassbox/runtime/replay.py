@@ -68,12 +68,11 @@ from glassbox.runtime.replay_capture import (
 from glassbox.runtime.supervisor import SessionSupervisor
 from glassbox.runtime.turn_engine import TurnEngine
 from glassbox.services import ArtifactRepository, SessionRepository
-from glassbox.store import (
+from glassbox.store.repositories import (
     FilesystemArtifactRepository,
     SQLiteSessionRepository,
-    initialize_database,
-    open_database,
 )
+from glassbox.store.sqlite import initialize_database, open_database
 from glassbox.tools import (
     ApprovalMode,
     ToolExecutionResult,

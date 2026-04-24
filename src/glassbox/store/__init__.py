@@ -1,69 +1,17 @@
-"""Persistence package for Glassbox."""
+"""Curated public store package surface for Glassbox."""
 
-from glassbox.store.artifacts import (
-    StoredArtifact,
-    artifact_relative_path,
-    read_binary_artifact,
-    read_text_artifact,
-    record_binary_artifact,
-    record_text_artifact,
-    write_binary_artifact,
-    write_text_artifact,
-)
+from glassbox.store.artifacts import StoredArtifact
 from glassbox.store.repositories import (
     FilesystemArtifactRepository,
     SQLiteSessionRepository,
 )
-from glassbox.store.sqlite import (
-    SCHEMA_VERSION,
-    append_event,
-    append_events,
-    build_imported_transcript_events,
-    create_session,
-    get_session,
-    get_session_state,
-    initialize_database,
-    list_runtime_notes,
-    list_sessions,
-    list_transcript_messages,
-    list_turn_metrics,
-    open_database,
-    read_events_by_correlation_id,
-    read_session_events,
-    read_session_events_after,
-    rebuild_session_projections,
-    resolve_fork_point,
-    update_session,
-)
+from glassbox.store.sqlite import SCHEMA_VERSION, initialize_database, open_database
 
 __all__ = [
     "FilesystemArtifactRepository",
     "SCHEMA_VERSION",
     "SQLiteSessionRepository",
     "StoredArtifact",
-    "append_event",
-    "append_events",
-    "build_imported_transcript_events",
-    "artifact_relative_path",
-    "create_session",
-    "get_session",
-    "get_session_state",
     "initialize_database",
-    "list_runtime_notes",
-    "list_transcript_messages",
-    "list_sessions",
-    "list_turn_metrics",
     "open_database",
-    "read_binary_artifact",
-    "read_events_by_correlation_id",
-    "read_session_events",
-    "read_session_events_after",
-    "read_text_artifact",
-    "record_binary_artifact",
-    "record_text_artifact",
-    "rebuild_session_projections",
-    "resolve_fork_point",
-    "update_session",
-    "write_binary_artifact",
-    "write_text_artifact",
 ]
