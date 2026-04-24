@@ -1,0 +1,232 @@
+"""CLI command handlers for interactive and session workflow commands."""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+
+import glassbox.cli as cli_root
+from glassbox.core import SessionConfig
+from glassbox.core.types import ApprovalDecision
+from glassbox.runtime.context import RuntimeContext
+
+from .path_helpers import resolve_runtime_location
+
+
+def _run_command(args: argparse.Namespace) -> int:
+    return asyncio.run(_run_command_async(args))
+
+
+async def _run_command_async(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    config = SessionConfig(
+        model_name=args.model_name,
+        cwd=cwd,
+        approval_mode=args.approval_mode,
+    )
+
+    async def action(
+        runtime_context: RuntimeContext,
+        _prompt_state,
+    ) -> None:
+        session_state = await runtime_context.services.session_service.start_session(
+            config
+        )
+        await asyncio.sleep(0)
+        if args.prompt:
+            await runtime_context.services.session_service.submit_user_message(
+                session_state.session_id,
+                args.prompt,
+            )
+            await asyncio.sleep(0)
+
+    return await cli_root._run_with_renderer(cwd, db_path, action)
+
+
+def _chat_command(args: argparse.Namespace) -> int:
+    return asyncio.run(_chat_command_async(args))
+
+
+async def _chat_command_async(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    base_config = SessionConfig(
+        model_name=args.model_name,
+        cwd=cwd,
+        approval_mode=args.approval_mode,
+    )
+
+    async def action(runtime_context: RuntimeContext, prompt_state) -> None:
+        dashboard_server = None
+        dashboard_url = None
+        try:
+            dashboard_server, dashboard_url = await cli_root._start_chat_dashboard(
+                runtime_context,
+                args,
+            )
+            await asyncio.sleep(0)
+
+            config = base_config.model_copy(update={"dashboard_url": dashboard_url})
+            session_state = (
+                await runtime_context.services.session_service.start_session(config)
+            )
+            await asyncio.sleep(0)
+            if args.prompt:
+                await runtime_context.services.session_service.submit_user_message(
+                    session_state.session_id,
+                    args.prompt,
+                )
+                await asyncio.sleep(0)
+            print(f"Attached to session {session_state.session_id}")
+            if dashboard_url is not None:
+                print(
+                    "Dashboard available at "
+                    + cli_root._dashboard_session_url(
+                        dashboard_url,
+                        session_state.session_id,
+                    )
+                )
+            await cli_root._interactive_session_loop(
+                runtime_context,
+                session_state.session_id,
+                prompt_state,
+            )
+        finally:
+            if dashboard_server is not None:
+                await dashboard_server.stop()
+
+    return await cli_root._run_with_renderer(cwd, db_path, action)
+
+
+def _attach_command(args: argparse.Namespace) -> int:
+    return asyncio.run(_attach_command_async(args))
+
+
+async def _attach_command_async(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+
+    async def action(runtime_context: RuntimeContext, prompt_state) -> None:
+        repository = runtime_context.repositories.sessions
+        state = repository.get_session_state(args.session_id)
+        if state is None:
+            raise ValueError(f"unknown session_id: {args.session_id}")
+
+        cli_root._ensure_session_can_attach(args.session_id, state)
+        print(f"Attached to session {args.session_id}")
+        await cli_root._interactive_session_loop(
+            runtime_context,
+            args.session_id,
+            prompt_state,
+        )
+
+    return await cli_root._run_with_renderer(cwd, db_path, action)
+
+
+def _resume_command(args: argparse.Namespace) -> int:
+    return asyncio.run(_resume_command_async(args))
+
+
+async def _resume_command_async(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+
+    async def action(runtime_context: RuntimeContext, _prompt_state) -> None:
+        await runtime_context.services.session_service.resume_session(args.session_id)
+        await asyncio.sleep(0)
+
+    return await cli_root._run_with_renderer(cwd, db_path, action)
+
+
+def _message_command(args: argparse.Namespace) -> int:
+    return asyncio.run(_message_command_async(args))
+
+
+async def _message_command_async(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+
+    async def action(runtime_context: RuntimeContext, _prompt_state) -> None:
+        await runtime_context.services.session_service.submit_user_message(
+            args.session_id,
+            args.prompt,
+        )
+        await asyncio.sleep(0)
+
+    return await cli_root._run_with_renderer(cwd, db_path, action)
+
+
+def _fork_command(args: argparse.Namespace) -> int:
+    return asyncio.run(_fork_command_async(args))
+
+
+async def _fork_command_async(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+
+    async def action(runtime_context: RuntimeContext, _prompt_state) -> None:
+        forked_session = await runtime_context.services.session_service.fork_session(
+            args.session_id,
+            turn_id=args.turn_id,
+            branch_label=args.branch_label,
+        )
+        await asyncio.sleep(0)
+        print(
+            "Forked session "
+            f"{forked_session.child_session_id} "
+            f"from {forked_session.parent_session_id} "
+            f"at turn {forked_session.forked_from_turn_id} "
+            f"(sequence {forked_session.forked_from_sequence})"
+        )
+        print(
+            "Imported "
+            f"{forked_session.inherited_message_count} transcript messages "
+            "into child session"
+        )
+        if forked_session.branch_label is not None:
+            print(f"Branch label: {forked_session.branch_label}")
+        if args.prompt:
+            await runtime_context.services.session_service.submit_user_message(
+                forked_session.child_session_id,
+                args.prompt,
+            )
+            await asyncio.sleep(0)
+
+    return await cli_root._run_with_renderer(cwd, db_path, action)
+
+
+def _answer_command(args: argparse.Namespace) -> int:
+    return asyncio.run(_answer_command_async(args))
+
+
+async def _answer_command_async(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+
+    async def action(runtime_context: RuntimeContext, _prompt_state) -> None:
+        await runtime_context.services.session_service.provide_user_answer(
+            args.session_id,
+            args.question_id,
+            args.answer,
+        )
+        await asyncio.sleep(0)
+
+    return await cli_root._run_with_renderer(cwd, db_path, action)
+
+
+def _resolve_approval_command(
+    args: argparse.Namespace,
+    decision: ApprovalDecision,
+) -> int:
+    return asyncio.run(_resolve_approval_command_async(args, decision))
+
+
+async def _resolve_approval_command_async(
+    args: argparse.Namespace,
+    decision: ApprovalDecision,
+) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+
+    async def action(runtime_context: RuntimeContext, _prompt_state) -> None:
+        await runtime_context.services.session_service.resolve_approval(
+            args.session_id,
+            args.approval_id,
+            decision,
+        )
+        await asyncio.sleep(0)
+
+    return await cli_root._run_with_renderer(cwd, db_path, action)

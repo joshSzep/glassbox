@@ -334,7 +334,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R121: Extract CLI Command Handlers By Workflow Family
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R120`, `GBX-R102`
 - Goal: split command execution logic into smaller modules grouped by workflow rather than keeping all handlers inline in `cli/__init__.py`
 - Deliverables:

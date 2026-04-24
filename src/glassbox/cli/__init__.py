@@ -4,16 +4,13 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
 import sys
 from collections.abc import Awaitable, Callable, Sequence
 from contextlib import suppress
-from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID
 
 from glassbox.cli.renderer import CliEventRenderer, InteractivePromptState
-from glassbox.core import SessionConfig
 from glassbox.core.events import (
     EventEnvelope,
     SessionFailed,
@@ -29,24 +26,12 @@ from glassbox.core.models import (
 from glassbox.core.types import ApprovalDecision, SessionStatus
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.context import RuntimeContext
-from glassbox.runtime.eval_baselines import (
-    format_eval_baseline_update_report,
-    promote_eval_case,
-    refresh_eval_case,
-)
+from glassbox.runtime.eval_baselines import format_eval_baseline_update_report
 from glassbox.runtime.eval_coverage import (
-    audit_eval_coverage,
     build_eval_coverage_summary_lines,
 )
-from glassbox.runtime.eval_runner import EvalRunner, EvalSuiteResult
-from glassbox.runtime.eval_summary import (
-    EvalReleaseSignoffProfileInput,
-    EvalReleaseSignoffSkippedProfileInput,
-    build_eval_release_signoff_report,
-    build_eval_release_signoff_summary,
-)
-from glassbox.runtime.evals import load_eval_profiles, resolve_eval_suite_selection
-from glassbox.runtime.replay import ReplayResult, ReplayRunner
+from glassbox.runtime.eval_runner import EvalSuiteResult
+from glassbox.runtime.replay import ReplayResult
 from glassbox.runtime.session_queries import SessionQueryService, SessionStatusView
 from glassbox.web import GlassboxWebServer, WebServerConfig, build_web_server
 
@@ -67,537 +52,124 @@ def main(argv: Sequence[str] | None = None) -> int:
     return run_main(argv)
 
 
-def _resolve_runtime_location(args: argparse.Namespace) -> tuple[Path, Path | None]:
-    cwd = Path(args.cwd).resolve()
-    db_path = Path(args.db_path).resolve() if args.db_path is not None else None
-    return cwd, db_path
-
-
-def _resolve_optional_output_path(
-    cwd: Path,
-    output: str | None,
-    *,
-    default_name: str,
-) -> Path:
-    if output is None:
-        return (cwd / default_name).resolve()
-
-    output_path = Path(output).expanduser()
-    if not output_path.is_absolute():
-        output_path = cwd / output_path
-    return output_path.resolve()
-
-
-def _resolve_optional_explicit_path(cwd: Path, output: str | None) -> Path | None:
-    if output is None:
-        return None
-
-    output_path = Path(output).expanduser()
-    if not output_path.is_absolute():
-        output_path = cwd / output_path
-    return output_path.resolve()
-
-
 def _run_command(args: argparse.Namespace) -> int:
-    return asyncio.run(_run_command_async(args))
+    from glassbox.cli.interactive_commands import _run_command as impl
+
+    return impl(args)
 
 
 async def _run_command_async(args: argparse.Namespace) -> int:
-    cwd, db_path = _resolve_runtime_location(args)
-    config = SessionConfig(
-        model_name=args.model_name,
-        cwd=cwd,
-        approval_mode=args.approval_mode,
-    )
+    from glassbox.cli.interactive_commands import _run_command_async as impl
 
-    async def action(
-        runtime_context: RuntimeContext,
-        _prompt_state: InteractivePromptState,
-    ) -> None:
-        session_state = await runtime_context.services.session_service.start_session(
-            config
-        )
-        await asyncio.sleep(0)
-        if args.prompt:
-            await runtime_context.services.session_service.submit_user_message(
-                session_state.session_id,
-                args.prompt,
-            )
-            await asyncio.sleep(0)
-
-    return await _run_with_renderer(cwd, db_path, action)
+    return await impl(args)
 
 
 def _chat_command(args: argparse.Namespace) -> int:
-    return asyncio.run(_chat_command_async(args))
+    from glassbox.cli.interactive_commands import _chat_command as impl
+
+    return impl(args)
 
 
 async def _chat_command_async(args: argparse.Namespace) -> int:
-    cwd, db_path = _resolve_runtime_location(args)
-    base_config = SessionConfig(
-        model_name=args.model_name,
-        cwd=cwd,
-        approval_mode=args.approval_mode,
-    )
+    from glassbox.cli.interactive_commands import _chat_command_async as impl
 
-    async def action(
-        runtime_context: RuntimeContext,
-        prompt_state: InteractivePromptState,
-    ) -> None:
-        dashboard_server: GlassboxWebServer | None = None
-        dashboard_url: str | None = None
-        try:
-            dashboard_server, dashboard_url = await _start_chat_dashboard(
-                runtime_context,
-                args,
-            )
-            await asyncio.sleep(0)
-
-            config = base_config.model_copy(update={"dashboard_url": dashboard_url})
-            session_state = (
-                await runtime_context.services.session_service.start_session(config)
-            )
-            await asyncio.sleep(0)
-            if args.prompt:
-                await runtime_context.services.session_service.submit_user_message(
-                    session_state.session_id,
-                    args.prompt,
-                )
-                await asyncio.sleep(0)
-            print(f"Attached to session {session_state.session_id}")
-            if dashboard_url is not None:
-                print(
-                    "Dashboard available at "
-                    f"{_dashboard_session_url(dashboard_url, session_state.session_id)}"
-                )
-            await _interactive_session_loop(
-                runtime_context,
-                session_state.session_id,
-                prompt_state,
-            )
-        finally:
-            if dashboard_server is not None:
-                await dashboard_server.stop()
-
-    return await _run_with_renderer(cwd, db_path, action)
+    return await impl(args)
 
 
 def _attach_command(args: argparse.Namespace) -> int:
-    return asyncio.run(_attach_command_async(args))
+    from glassbox.cli.interactive_commands import _attach_command as impl
+
+    return impl(args)
 
 
 async def _attach_command_async(args: argparse.Namespace) -> int:
-    cwd, db_path = _resolve_runtime_location(args)
+    from glassbox.cli.interactive_commands import _attach_command_async as impl
 
-    async def action(
-        runtime_context: RuntimeContext,
-        prompt_state: InteractivePromptState,
-    ) -> None:
-        repository = runtime_context.repositories.sessions
-        state = repository.get_session_state(args.session_id)
-        if state is None:
-            raise ValueError(f"unknown session_id: {args.session_id}")
-
-        _ensure_session_can_attach(args.session_id, state)
-        print(f"Attached to session {args.session_id}")
-        await _interactive_session_loop(
-            runtime_context,
-            args.session_id,
-            prompt_state,
-        )
-
-    return await _run_with_renderer(cwd, db_path, action)
+    return await impl(args)
 
 
 def _resume_command(args: argparse.Namespace) -> int:
-    return asyncio.run(_resume_command_async(args))
+    from glassbox.cli.interactive_commands import _resume_command as impl
+
+    return impl(args)
 
 
 async def _resume_command_async(args: argparse.Namespace) -> int:
-    cwd, db_path = _resolve_runtime_location(args)
+    from glassbox.cli.interactive_commands import _resume_command_async as impl
 
-    async def action(
-        runtime_context: RuntimeContext,
-        _prompt_state: InteractivePromptState,
-    ) -> None:
-        await runtime_context.services.session_service.resume_session(args.session_id)
-        await asyncio.sleep(0)
-
-    return await _run_with_renderer(cwd, db_path, action)
+    return await impl(args)
 
 
 def _message_command(args: argparse.Namespace) -> int:
-    return asyncio.run(_message_command_async(args))
+    from glassbox.cli.interactive_commands import _message_command as impl
+
+    return impl(args)
 
 
 async def _message_command_async(args: argparse.Namespace) -> int:
-    cwd, db_path = _resolve_runtime_location(args)
+    from glassbox.cli.interactive_commands import _message_command_async as impl
 
-    async def action(
-        runtime_context: RuntimeContext,
-        _prompt_state: InteractivePromptState,
-    ) -> None:
-        await runtime_context.services.session_service.submit_user_message(
-            args.session_id,
-            args.prompt,
-        )
-        await asyncio.sleep(0)
-
-    return await _run_with_renderer(cwd, db_path, action)
+    return await impl(args)
 
 
 def _fork_command(args: argparse.Namespace) -> int:
-    return asyncio.run(_fork_command_async(args))
+    from glassbox.cli.interactive_commands import _fork_command as impl
+
+    return impl(args)
 
 
 async def _fork_command_async(args: argparse.Namespace) -> int:
-    cwd, db_path = _resolve_runtime_location(args)
+    from glassbox.cli.interactive_commands import _fork_command_async as impl
 
-    async def action(
-        runtime_context: RuntimeContext,
-        _prompt_state: InteractivePromptState,
-    ) -> None:
-        forked_session = await runtime_context.services.session_service.fork_session(
-            args.session_id,
-            turn_id=args.turn_id,
-            branch_label=args.branch_label,
-        )
-        await asyncio.sleep(0)
-        print(
-            "Forked session "
-            f"{forked_session.child_session_id} "
-            f"from {forked_session.parent_session_id} "
-            f"at turn {forked_session.forked_from_turn_id} "
-            f"(sequence {forked_session.forked_from_sequence})"
-        )
-        print(
-            "Imported "
-            f"{forked_session.inherited_message_count} transcript messages "
-            "into child session"
-        )
-        if forked_session.branch_label is not None:
-            print(f"Branch label: {forked_session.branch_label}")
-        if args.prompt:
-            await runtime_context.services.session_service.submit_user_message(
-                forked_session.child_session_id,
-                args.prompt,
-            )
-            await asyncio.sleep(0)
-
-    return await _run_with_renderer(cwd, db_path, action)
+    return await impl(args)
 
 
 def _answer_command(args: argparse.Namespace) -> int:
-    return asyncio.run(_answer_command_async(args))
+    from glassbox.cli.interactive_commands import _answer_command as impl
+
+    return impl(args)
 
 
 async def _answer_command_async(args: argparse.Namespace) -> int:
-    cwd, db_path = _resolve_runtime_location(args)
+    from glassbox.cli.interactive_commands import _answer_command_async as impl
 
-    async def action(
-        runtime_context: RuntimeContext,
-        _prompt_state: InteractivePromptState,
-    ) -> None:
-        await runtime_context.services.session_service.provide_user_answer(
-            args.session_id,
-            args.question_id,
-            args.answer,
-        )
-        await asyncio.sleep(0)
-
-    return await _run_with_renderer(cwd, db_path, action)
+    return await impl(args)
 
 
 def _status_command(args: argparse.Namespace) -> int:
-    cwd, db_path = _resolve_runtime_location(args)
+    from glassbox.cli.session_state_commands import _status_command as impl
 
-    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
-        query_service = SessionQueryService(
-            runtime_context.repositories.sessions,
-            runtime_context.repositories.artifacts,
-        )
-        _print_session_status(
-            query_service.get_session_status_view(args.session_id),
-        )
-
-    return 0
+    return impl(args)
 
 
 def _replay_command(args: argparse.Namespace) -> int:
-    return asyncio.run(_replay_command_async(args))
+    from glassbox.cli.replay_eval_commands import _replay_command as impl
+
+    return impl(args)
 
 
 async def _replay_command_async(args: argparse.Namespace) -> int:
-    cwd, db_path = _resolve_runtime_location(args)
+    from glassbox.cli.replay_eval_commands import _replay_command_async as impl
 
-    if (args.session_id is None) == (args.bundle is None):
-        raise ValueError("specify exactly one of session_id or --bundle")
-
-    if args.bundle is not None:
-        result = await ReplayRunner().replay_bundle_file(
-            Path(args.bundle),
-            workspace_root=cwd,
-        )
-    else:
-        session_id = args.session_id
-        assert session_id is not None
-
-        with open_runtime_context(cwd, db_path=db_path) as runtime_context:
-            result = await ReplayRunner(
-                runtime_context.repositories.sessions,
-                runtime_context.repositories.artifacts,
-            ).replay_session(session_id)
-
-    if args.json:
-        print(json.dumps(_replay_result_payload(result), indent=2, sort_keys=True))
-    else:
-        _print_replay_report(result)
-
-    return _replay_exit_code(result)
+    return await impl(args)
 
 
 def _replay_export_command(args: argparse.Namespace) -> int:
-    cwd, db_path = _resolve_runtime_location(args)
-    output_path = _resolve_optional_output_path(
-        cwd,
-        args.output,
-        default_name=f"glassbox-replay-{args.session_id}.json",
-    )
+    from glassbox.cli.replay_eval_commands import _replay_export_command as impl
 
-    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
-        exported_path = ReplayRunner(
-            runtime_context.repositories.sessions,
-            runtime_context.repositories.artifacts,
-        ).export_session_bundle(args.session_id, output_path)
-
-    print(f"Exported replay bundle for session {args.session_id}: {exported_path}")
-    return 0
+    return impl(args)
 
 
 def _eval_command(args: argparse.Namespace) -> int:
-    return asyncio.run(_eval_command_async(args))
+    from glassbox.cli.replay_eval_commands import _eval_command as impl
+
+    return impl(args)
 
 
 async def _eval_command_async(args: argparse.Namespace) -> int:
-    if args.eval_command == "run":
-        cwd, _db_path = _resolve_runtime_location(args)
-        del _db_path
-        suite_result = await EvalRunner().run_suite(
-            cwd,
-            profile_id=args.profile,
-            case_ids=list(args.case_ids) or None,
-            tags=list(args.tags) or None,
-            output_dir=_resolve_optional_explicit_path(cwd, args.output_dir),
-            refresh_output_dir=args.refresh_output_dir,
-        )
+    from glassbox.cli.replay_eval_commands import _eval_command_async as impl
 
-        if args.json:
-            print(
-                json.dumps(
-                    suite_result.model_dump(mode="json"),
-                    indent=2,
-                    sort_keys=True,
-                )
-            )
-        else:
-            _print_eval_suite_report(suite_result)
-
-        return suite_result.exit_code
-
-    if args.eval_command == "audit":
-        cwd, _db_path = _resolve_runtime_location(args)
-        del _db_path
-        audit_result = audit_eval_coverage(
-            cwd,
-            profile_id=args.profile,
-            case_ids=list(args.case_ids) or None,
-            tags=list(args.tags) or None,
-        )
-
-        if args.json:
-            print(
-                json.dumps(
-                    audit_result.model_dump(mode="json"),
-                    indent=2,
-                    sort_keys=True,
-                )
-            )
-        else:
-            _print_eval_coverage_audit(result=audit_result, workspace_root=cwd)
-        return 0
-
-    if args.eval_command == "profiles":
-        cwd, _db_path = _resolve_runtime_location(args)
-        del _db_path
-        profiles = load_eval_profiles(cwd, track=args.track)
-
-        if args.json:
-            print(
-                json.dumps(
-                    [profile.model_dump(mode="json") for profile in profiles],
-                    indent=2,
-                    sort_keys=True,
-                )
-            )
-        else:
-            _print_eval_profiles(workspace_root=cwd, profiles=profiles)
-        return 0
-
-    if args.eval_command == "report":
-        cwd, _db_path = _resolve_runtime_location(args)
-        del _db_path
-        root_output_dir = _resolve_eval_report_output_dir(cwd, args.output_dir)
-        root_output_dir.mkdir(parents=True, exist_ok=True)
-
-        profile_inputs: list[EvalReleaseSignoffProfileInput] = []
-        skipped_profiles: list[EvalReleaseSignoffSkippedProfileInput] = []
-        seen_profile_ids: set[str] = set()
-        requested_profile_ids: list[str] = []
-        runner = EvalRunner()
-        tag_filters = list(args.tags) or None
-
-        for profile_id in args.profile_ids:
-            if profile_id in seen_profile_ids:
-                continue
-            seen_profile_ids.add(profile_id)
-            requested_profile_ids.append(profile_id)
-
-            selection = resolve_eval_suite_selection(
-                cwd,
-                profile_id=profile_id,
-                tags=tag_filters,
-            )
-            profile = selection.profile
-            if profile is None:
-                raise ValueError(f"unknown eval profile: {profile_id}")
-            if profile.track != "deterministic":
-                raise ValueError(
-                    "eval report only supports deterministic profiles; "
-                    f"{profile.profile_id} is track {profile.track}. "
-                    "Use 'glassbox eval profiles --track live-provider-canary' "
-                    "for optional canary scaffolding instead."
-                )
-            if not selection.cases:
-                skipped_profiles.append(
-                    EvalReleaseSignoffSkippedProfileInput(
-                        profile_id=profile.profile_id,
-                        profile=profile,
-                        reason="no eval cases selected after applying report filters",
-                    )
-                )
-                continue
-
-            suite_result = await runner.run_suite(
-                cwd,
-                profile_id=profile.profile_id,
-                tags=tag_filters,
-                output_dir=root_output_dir / "profiles" / profile.profile_id,
-            )
-            profile_inputs.append(
-                EvalReleaseSignoffProfileInput(
-                    profile=profile,
-                    eval_cases=selection.cases,
-                    suite_result=suite_result,
-                )
-            )
-
-        report = build_eval_release_signoff_report(
-            workspace_root=cwd,
-            requested_profile_ids=requested_profile_ids,
-            tag_filters=list(args.tags),
-            profile_inputs=profile_inputs,
-            skipped_profiles=skipped_profiles,
-            artifact_root=root_output_dir,
-        )
-        report_json_path = root_output_dir / "release-signoff.json"
-        report_summary_path = root_output_dir / "release-signoff.md"
-        report_json_path.write_text(
-            json.dumps(report.model_dump(mode="json"), indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
-        report_summary_path.write_text(
-            build_eval_release_signoff_summary(report),
-            encoding="utf-8",
-        )
-
-        if args.json:
-            print(json.dumps(report.model_dump(mode="json"), indent=2, sort_keys=True))
-        else:
-            print(build_eval_release_signoff_summary(report), end="")
-        return report.exit_code
-
-    if args.eval_command == "promote":
-        cwd, db_path = _resolve_runtime_location(args)
-        report_output = _resolve_optional_explicit_path(cwd, args.report_output)
-        with open_runtime_context(cwd, db_path=db_path) as runtime_context:
-            report = promote_eval_case(
-                cwd,
-                replay_runner=ReplayRunner(
-                    runtime_context.repositories.sessions,
-                    runtime_context.repositories.artifacts,
-                ),
-                session_id=args.session_id,
-                case_id=args.case_id,
-                title=args.title,
-                tags=list(args.tags),
-                notes=args.notes,
-                expectation_mode=args.expectation_mode,
-                invariants=list(args.invariants),
-                owner=args.owner,
-                capabilities=list(args.capabilities),
-                severity=args.severity,
-                verification_stages=None
-                if args.verification_stages is None
-                else list(args.verification_stages),
-                baseline_refresh_policy=args.baseline_refresh_policy,
-                rationale=args.reason,
-                report_path=report_output,
-            )
-
-        if args.json:
-            print(json.dumps(report.model_dump(mode="json"), indent=2, sort_keys=True))
-        else:
-            _print_eval_baseline_update(report)
-        return 0
-
-    if args.eval_command == "refresh":
-        cwd, db_path = _resolve_runtime_location(args)
-        report_output = _resolve_optional_explicit_path(cwd, args.report_output)
-        with open_runtime_context(cwd, db_path=db_path) as runtime_context:
-            report = refresh_eval_case(
-                cwd,
-                replay_runner=ReplayRunner(
-                    runtime_context.repositories.sessions,
-                    runtime_context.repositories.artifacts,
-                ),
-                session_id=args.session_id,
-                case_id=args.case_id,
-                rationale=args.reason,
-                acknowledge_policy=args.acknowledge_policy,
-                title=args.title,
-                tags=None if args.tags is None else list(args.tags),
-                notes=args.notes,
-                expectation_mode=args.expectation_mode,
-                invariants=None if args.invariants is None else list(args.invariants),
-                owner=args.owner,
-                capabilities=None
-                if args.capabilities is None
-                else list(args.capabilities),
-                severity=args.severity,
-                verification_stages=None
-                if args.verification_stages is None
-                else list(args.verification_stages),
-                baseline_refresh_policy=args.baseline_refresh_policy,
-                report_path=report_output,
-            )
-
-        if args.json:
-            print(json.dumps(report.model_dump(mode="json"), indent=2, sort_keys=True))
-        else:
-            _print_eval_baseline_update(report)
-        return 0
-
-    raise ValueError("specify an eval subcommand")
+    return await impl(args)
 
 
 async def _interactive_session_loop(
@@ -716,34 +288,9 @@ async def _interactive_session_loop(
 
 
 def _rebuild_command(args: argparse.Namespace) -> int:
-    cwd, db_path = _resolve_runtime_location(args)
+    from glassbox.cli.session_state_commands import _rebuild_command as impl
 
-    if args.all == (args.session_id is not None):
-        raise ValueError("specify exactly one of session_id or --all")
-
-    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
-        repository = runtime_context.repositories.sessions
-
-        if args.all:
-            sessions = repository.list_sessions()
-            if not sessions:
-                print("No sessions found to rebuild")
-                return 0
-
-            for session in sessions:
-                repository.rebuild_session_projections(session.session_id)
-                print(f"Rebuilt projections for session {session.session_id}")
-            print(f"Rebuilt projections for {len(sessions)} session(s)")
-            return 0
-
-        session_id = args.session_id
-        assert session_id is not None
-        if repository.get_session(session_id) is None:
-            raise ValueError(f"unknown session_id: {session_id}")
-
-        repository.rebuild_session_projections(session_id)
-        print(f"Rebuilt projections for session {session_id}")
-        return 0
+    return impl(args)
 
 
 def _current_turn_id(
@@ -1283,17 +830,6 @@ def _format_budget_limit(limit: int | None) -> str:
     return f" / {limit}"
 
 
-def _resolve_eval_report_output_dir(cwd: Path, output_dir: str | None) -> Path:
-    if output_dir is not None:
-        return _resolve_optional_output_path(
-            cwd,
-            output_dir,
-            default_name="unused",
-        )
-    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-    return (cwd / ".glassbox" / "evals" / f"release-signoff-{timestamp}").resolve()
-
-
 def _replay_detail_lines(result: ReplayResult) -> list[str]:
     if result.baseline is None or result.replay is None:
         return []
@@ -1512,27 +1048,20 @@ def _resolve_approval_command(
     args: argparse.Namespace,
     decision: ApprovalDecision,
 ) -> int:
-    return asyncio.run(_resolve_approval_command_async(args, decision))
+    from glassbox.cli.interactive_commands import _resolve_approval_command as impl
+
+    return impl(args, decision)
 
 
 async def _resolve_approval_command_async(
     args: argparse.Namespace,
     decision: ApprovalDecision,
 ) -> int:
-    cwd, db_path = _resolve_runtime_location(args)
+    from glassbox.cli.interactive_commands import (
+        _resolve_approval_command_async as impl,
+    )
 
-    async def action(
-        runtime_context: RuntimeContext,
-        _prompt_state: InteractivePromptState,
-    ) -> None:
-        await runtime_context.services.session_service.resolve_approval(
-            args.session_id,
-            args.approval_id,
-            decision,
-        )
-        await asyncio.sleep(0)
-
-    return await _run_with_renderer(cwd, db_path, action)
+    return await impl(args, decision)
 
 
 async def _run_with_renderer(
@@ -1562,14 +1091,9 @@ async def _run_with_renderer(
 
 
 def _serve_command(args: argparse.Namespace) -> int:
-    from glassbox.web import WebServerConfig, run_server
+    from glassbox.cli.server_commands import _serve_command as impl
 
-    cwd, db_path = _resolve_runtime_location(args)
-    dashboard_url = WebServerConfig(host=args.host, port=args.port).dashboard_url
-    print(f"Dashboard available at {dashboard_url}")
-    print("Use ?session=SESSION_ID to open a specific session in the dashboard.")
-    run_server(cwd, host=args.host, port=args.port, db_path=db_path)
-    return 0
+    return impl(args)
 
 
 def _dashboard_session_url(dashboard_url: str, session_id: UUID) -> str:
