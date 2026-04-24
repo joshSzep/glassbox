@@ -133,11 +133,11 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R100: Define Refactor Boundary Map And Behavior-Preservation Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-132`, `GBX-185`
 - Goal: define the intended runtime, store, CLI, replay, and web module boundaries before moving logic across files
 - Deliverables:
-  - architecture note describing target boundaries for turn execution, replay execution, snapshot shaping, store internals, CLI command handling, and dashboard frontend modules
+  - architecture note describing target boundaries for turn execution, replay execution, snapshot shaping, store internals, CLI command handling, and dashboard frontend modules: [refactor-boundaries.md](./refactor-boundaries.md)
   - explicit non-goals for this refactor pass so behavior-preserving tasks do not silently become feature work
   - dependency-direction rules between `runtime`, `store`, `services`, `cli`, and `web`
   - identification of current compatibility shims that are acceptable temporarily versus ones that must be removed during this roadmap
