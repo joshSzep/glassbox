@@ -2226,7 +2226,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-223: Inject Enriched Context Into Turn Assembly And Prompt Construction
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-221`, `GBX-222`, `GBX-052`, `GBX-053`
 - Goal: make richer repository context and runtime notes part of the actual live turn path rather than dormant optional fields
 - Deliverables:

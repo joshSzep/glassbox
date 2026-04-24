@@ -454,7 +454,7 @@ def _snapshot_request_part(part: Any) -> ReplayMessagePartSnapshot:
     if isinstance(part, SystemPromptPart):
         return ReplayMessagePartSnapshot(
             part_kind="system_prompt",
-            content=part.content,
+            content=_normalize_system_prompt_content(part.content),
         )
     if isinstance(part, UserPromptPart):
         return ReplayMessagePartSnapshot(
@@ -501,6 +501,18 @@ def _normalize_user_prompt_content(content: Any) -> Any:
     if isinstance(content, TextContent):
         return content.content
     return _redact_json(_json_compatible(content))
+
+
+def _normalize_system_prompt_content(content: str) -> str:
+    sections = [section.strip() for section in content.split("\n\n")]
+    filtered_sections = [
+        section
+        for section in sections
+        if section != ""
+        and not section.startswith("Repository context:")
+        and not section.startswith("Memory notes:")
+    ]
+    return "\n\n".join(filtered_sections)
 
 
 def _json_compatible(value: Any) -> Any:

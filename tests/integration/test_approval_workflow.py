@@ -10,6 +10,7 @@ from pathlib import Path
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
+    SystemPromptPart,
     TextPart,
     ToolCallPart,
     ToolReturnPart,
@@ -316,6 +317,88 @@ def test_approval_deny_resumes_turn_with_denial_message(tmp_path: Path) -> None:
         )
 
     asyncio.run(scenario())
+
+
+def test_approval_resume_keeps_repository_context_and_runtime_notes(
+    tmp_path: Path,
+) -> None:
+    observed_system_prompts: list[str] = []
+
+    def capturing_patch_then_text(messages, _agent_info) -> ModelResponse:
+        saw_tool_return = False
+        for message in messages:
+            if isinstance(message, ModelRequest):
+                for part in message.parts:
+                    if isinstance(part, SystemPromptPart):
+                        observed_system_prompts.append(part.content)
+                    if (
+                        isinstance(part, ToolReturnPart)
+                        and part.tool_name == "apply_patch"
+                    ):
+                        saw_tool_return = True
+        if not saw_tool_return:
+            return ModelResponse(
+                parts=[
+                    ToolCallPart(
+                        tool_name="apply_patch",
+                        args=_PATCH_ARGS,
+                        tool_call_id=_PATCH_CALL_ID,
+                    )
+                ]
+            )
+        return ModelResponse(parts=[TextPart(content="Patch applied.")])
+
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            (tmp_path / "src").mkdir()
+            (tmp_path / "README.md").write_text("# Glassbox\n", encoding="utf-8")
+
+            repository = SQLiteSessionRepository(connection)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = _build_turn_engine(
+                repository, bus, tmp_path, capturing_patch_then_text
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+
+            state = await supervisor.start_session(config)
+            await supervisor.record_runtime_note(
+                state.session_id,
+                category="operator",
+                message="Apply only reviewed patches",
+            )
+            await supervisor.submit_user_message(state.session_id, "Patch the repo.")
+
+            approval_payload = next(
+                ev.payload
+                for ev in repository.read_session_events(state.session_id)
+                if isinstance(ev.payload, ApprovalRequested)
+            )
+            await supervisor.resolve_approval(
+                state.session_id,
+                approval_payload.approval_id,
+                ApprovalDecision.APPROVED,
+            )
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+    assert len(observed_system_prompts) == 2
+    assert all("Repository context:" in prompt for prompt in observed_system_prompts)
+    assert all(
+        f"Workspace: {tmp_path.name}" in prompt for prompt in observed_system_prompts
+    )
+    assert all("Memory notes:" in prompt for prompt in observed_system_prompts)
+    assert all(
+        "- [operator] Apply only reviewed patches" in prompt
+        for prompt in observed_system_prompts
+    )
 
 
 def test_approval_workflow_records_replay_artifacts_across_suspend_and_resume(

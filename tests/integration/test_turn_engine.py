@@ -129,6 +129,70 @@ def test_supervisor_drives_turn_engine_and_persists_assistant_response(
     asyncio.run(scenario())
 
 
+def test_turn_engine_injects_repository_context_and_runtime_notes(
+    tmp_path: Path,
+) -> None:
+    observed_system_prompts: list[str] = []
+
+    def capturing_model_response(messages, _agent_info) -> ModelResponse:
+        for message in messages:
+            if not isinstance(message, ModelRequest):
+                continue
+            for part in message.parts:
+                if isinstance(part, SystemPromptPart):
+                    observed_system_prompts.append(part.content)
+        return ModelResponse(parts=[TextPart(content="Repo inspection complete.")])
+
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            (tmp_path / "src").mkdir()
+            (tmp_path / "tests").mkdir()
+            (tmp_path / "README.md").write_text("# Glassbox\n", encoding="utf-8")
+
+            repository = SQLiteSessionRepository(connection)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = TurnEngine(
+                repository,
+                bus,
+                TurnContextBuilder(repository),
+                lambda _session: PydanticAIModelAdapter(
+                    ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+                ),
+                lambda _session: PydanticAIModelExecutor(
+                    FunctionModel(
+                        function=capturing_model_response,
+                        model_name="openai:gpt-5.4",
+                    )
+                ),
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+
+            state = await supervisor.start_session(config)
+            await supervisor.record_runtime_note(
+                state.session_id,
+                category="operator",
+                message="Prefer concise output",
+            )
+            await supervisor.submit_user_message(state.session_id, "Inspect the repo")
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+    assert observed_system_prompts
+    assert "Repository context:" in observed_system_prompts[0]
+    assert f"Workspace: {tmp_path.name}" in observed_system_prompts[0]
+    assert "High-signal paths: README.md, src/, tests/" in observed_system_prompts[0]
+    assert "Memory notes:" in observed_system_prompts[0]
+    assert "- [operator] Prefer concise output" in observed_system_prompts[0]
+
+
 def test_turn_engine_emits_correlated_runtime_logs(
     tmp_path: Path,
     caplog: pytest.LogCaptureFixture,

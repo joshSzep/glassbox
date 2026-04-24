@@ -49,7 +49,7 @@ from glassbox.core.ids import (
     new_question_id,
     new_turn_id,
 )
-from glassbox.core.models import MessagePart, SessionRecord
+from glassbox.core.models import MessagePart, RuntimeNoteRecord, SessionRecord
 from glassbox.core.types import ApprovalDecision, TurnStatus
 from glassbox.llm import (
     ModelAdapter,
@@ -61,7 +61,12 @@ from glassbox.llm import (
     build_system_prompt,
 )
 from glassbox.runtime.bus import EventBus
-from glassbox.runtime.context_builder import TurnContextBuilder
+from glassbox.runtime.context_builder import (
+    TurnContext,
+    TurnContextBuilder,
+    build_repository_context_snapshot,
+    format_repository_context_for_prompt,
+)
 from glassbox.runtime.errors import SessionRuntimeFailure
 from glassbox.runtime.logging import get_runtime_logger, runtime_log_extra
 from glassbox.runtime.replay_capture import ReplayArtifactRecorder
@@ -162,11 +167,10 @@ class TurnEngine:
                 if self._tool_runtime_factory is not None
                 else None
             )
-            turn_context = self._context_builder.build(
+            turn_context = self._build_live_turn_context(
                 event.session_id,
-                tool_registry=(
-                    tool_runtime.tool_registry if tool_runtime is not None else None
-                ),
+                session,
+                tool_runtime=tool_runtime,
             )
             system_prompt = build_system_prompt(turn_context)
             model_adapter = self._model_adapter_factory(session)
@@ -261,11 +265,10 @@ class TurnEngine:
                 if self._tool_runtime_factory is not None
                 else None
             )
-            turn_context = self._context_builder.build(
+            turn_context = self._build_live_turn_context(
                 event.session_id,
-                tool_registry=(
-                    tool_runtime.tool_registry if tool_runtime is not None else None
-                ),
+                session,
+                tool_runtime=tool_runtime,
             )
             system_prompt = build_system_prompt(turn_context)
             model_adapter = self._model_adapter_factory(session)
@@ -381,11 +384,10 @@ class TurnEngine:
                 if self._tool_runtime_factory is not None
                 else None
             )
-            turn_context = self._context_builder.build(
+            turn_context = self._build_live_turn_context(
                 event.session_id,
-                tool_registry=(
-                    tool_runtime.tool_registry if tool_runtime is not None else None
-                ),
+                session,
+                tool_runtime=tool_runtime,
             )
             system_prompt = build_system_prompt(turn_context)
             model_adapter = self._model_adapter_factory(session)
@@ -541,6 +543,28 @@ class TurnEngine:
                 approval_id=payload.approval_id,
             )
             raise
+
+    def _build_live_turn_context(
+        self,
+        session_id,
+        session: SessionRecord,
+        *,
+        tool_runtime: ToolRuntime | None,
+    ) -> TurnContext:
+        repository_context = format_repository_context_for_prompt(
+            build_repository_context_snapshot(session.cwd)
+        )
+        runtime_notes = self._session_repository.list_runtime_notes(session_id)
+        return self._context_builder.build(
+            session_id,
+            tool_registry=(
+                tool_runtime.tool_registry if tool_runtime is not None else None
+            ),
+            repo_context=repository_context,
+            memory_notes=[
+                _format_runtime_note_for_prompt(note) for note in runtime_notes
+            ],
+        )
 
     def _record_failed_turn(
         self,
@@ -1160,6 +1184,12 @@ def _request_messages(prepared_turn: PreparedModelTurn) -> list[ModelMessage]:
         )
     )
     return messages
+
+
+def _format_runtime_note_for_prompt(note: RuntimeNoteRecord) -> str:
+    if note.inherited:
+        return f"[inherited {note.category}] {note.message}"
+    return f"[{note.category}] {note.message}"
 
 
 def _continuation_turn(

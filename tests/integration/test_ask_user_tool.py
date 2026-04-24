@@ -10,6 +10,7 @@ import pytest
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
+    SystemPromptPart,
     TextPart,
     ToolCallPart,
     ToolReturnPart,
@@ -260,6 +261,94 @@ def test_provide_user_answer_resumes_turn(tmp_path: Path) -> None:
         assert "blue" in transcript[-1].parts[0].text
 
     asyncio.run(scenario())
+
+
+def test_ask_user_resume_keeps_repository_context_and_runtime_notes(
+    tmp_path: Path,
+) -> None:
+    observed_system_prompts: list[str] = []
+
+    def capturing_ask_user_then_text(messages: list, _agent_info: Any) -> ModelResponse:
+        saw_tool_return = False
+        answer: str | None = None
+
+        for message in messages:
+            if isinstance(message, ModelRequest):
+                for part in message.parts:
+                    if isinstance(part, SystemPromptPart):
+                        observed_system_prompts.append(part.content)
+                    if (
+                        isinstance(part, ToolReturnPart)
+                        and part.tool_name == "ask_user"
+                    ):
+                        saw_tool_return = True
+                        assert isinstance(part.content, dict)
+                        answer = str(part.content["answer"])
+
+        if not saw_tool_return:
+            return ModelResponse(
+                parts=[
+                    ToolCallPart(
+                        tool_name="ask_user",
+                        args={"question": "What colour should I use?"},
+                        tool_call_id="provider-ask-1",
+                    )
+                ]
+            )
+
+        return ModelResponse(parts=[TextPart(content=f"I will use: {answer}")])
+
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            (tmp_path / "docs").mkdir()
+            (tmp_path / "README.md").write_text("# Glassbox\n", encoding="utf-8")
+
+            repository = SQLiteSessionRepository(connection)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = _make_turn_engine(
+                tmp_path, repository, bus, capturing_ask_user_then_text
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="never",
+            )
+
+            state = await supervisor.start_session(config)
+            await supervisor.record_runtime_note(
+                state.session_id,
+                category="runtime",
+                message="Track operator colour preferences",
+            )
+            await supervisor.submit_user_message(state.session_id, "Pick a colour.")
+
+            question_payload = next(
+                ev.payload
+                for ev in repository.read_session_events(state.session_id)
+                if isinstance(ev.payload, UserQuestionAsked)
+            )
+            await supervisor.provide_user_answer(
+                state.session_id,
+                question_payload.question_id,
+                "blue",
+            )
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+    assert len(observed_system_prompts) == 2
+    assert all("Repository context:" in prompt for prompt in observed_system_prompts)
+    assert all(
+        f"Workspace: {tmp_path.name}" in prompt for prompt in observed_system_prompts
+    )
+    assert all("Memory notes:" in prompt for prompt in observed_system_prompts)
+    assert all(
+        "- [runtime] Track operator colour preferences" in prompt
+        for prompt in observed_system_prompts
+    )
 
 
 def test_ask_user_workflow_records_replay_artifacts_across_suspend_and_resume(
