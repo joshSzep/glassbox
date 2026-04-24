@@ -253,7 +253,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R111: Split Context Builder Into Snapshot Builders, Working-Set Derivation, And Prompt Formatting
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R102`, `GBX-R103`
 - Goal: separate structured context derivation from prompt rendering and working-set heuristics
 - Deliverables:

@@ -85,6 +85,7 @@ The `runtime` package should not become a catch-all for transport formatting, ra
 - the shared model-loop boundary currently lives in `src/glassbox/runtime/model_loop.py` and is consumed by `turn_engine.py` plus replay runtime wiring
 - turn preparation, suspended-turn reconstruction, and tool execution side effects now live in `src/glassbox/runtime/turn_preparation.py`, `turn_resumption.py`, and `turn_tool_executor.py`, leaving `turn_engine.py` focused on session-facing turn coordination and failure handling
 - context-building logic should separate structured snapshot derivation, working-set derivation, and prompt rendering
+- the shared context assembly boundary now uses `src/glassbox/runtime/context_snapshots.py`, `context_working_set.py`, and `context_formatting.py`, with `context_builder.py` reduced to typed models plus `TurnContextBuilder` assembly
 - runtime query code should provide session summaries and snapshots to both CLI and web consumers without embedding HTTP concerns
 - the shared session-query boundary now lives in `src/glassbox/runtime/session_queries.py` and is consumed by CLI status reporting plus web session routes
 - bootstrap should wire public collaborators together, not hide ownership behind broad transitive re-exports

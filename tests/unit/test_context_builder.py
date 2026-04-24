@@ -44,14 +44,20 @@ from glassbox.runtime.context_builder import (
     TurnContextBuilder,
     WorkingSetItemSnapshot,
     WorkingSetSnapshot,
+)
+from glassbox.runtime.context_formatting import (
+    format_repository_context_for_prompt,
+    format_tool_schemas_for_prompt,
+    format_transcript_for_prompt,
+)
+from glassbox.runtime.context_snapshots import (
     build_artifact_backed_context_snapshot,
     build_pytest_failure_digest_artifact,
     build_repository_context_snapshot,
     build_runtime_context_snapshot,
+)
+from glassbox.runtime.context_working_set import (
     build_working_set_snapshot,
-    format_repository_context_for_prompt,
-    format_tool_schemas_for_prompt,
-    format_transcript_for_prompt,
 )
 from glassbox.tools import ToolRegistry, ToolRiskLevel, ToolSpec
 

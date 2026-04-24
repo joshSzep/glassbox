@@ -26,12 +26,12 @@ from glassbox.core.models import (
     TurnMetricsRecord,
 )
 from glassbox.core.types import ApprovalStatus, ToolExecutionStatus
-from glassbox.runtime.context_builder import (
-    RuntimeContextSnapshot,
+from glassbox.runtime.context_builder import RuntimeContextSnapshot
+from glassbox.runtime.context_snapshots import (
     build_artifact_backed_context_snapshot,
     build_runtime_context_snapshot,
-    build_working_set_snapshot,
 )
+from glassbox.runtime.context_working_set import build_working_set_snapshot
 from glassbox.services import ArtifactRepository, SessionRepository
 
 

@@ -13,14 +13,13 @@ from glassbox.llm import (
     PreparedModelTurn,
     build_system_prompt,
 )
-from glassbox.runtime.context_builder import (
-    TurnContext,
-    TurnContextBuilder,
+from glassbox.runtime.context_builder import TurnContext, TurnContextBuilder
+from glassbox.runtime.context_formatting import format_repository_context_for_prompt
+from glassbox.runtime.context_snapshots import (
     build_artifact_backed_context_snapshot,
     build_repository_context_snapshot,
-    build_working_set_snapshot,
-    format_repository_context_for_prompt,
 )
+from glassbox.runtime.context_working_set import build_working_set_snapshot
 from glassbox.runtime.model_loop import initial_model_messages
 from glassbox.services import ArtifactRepository, SessionRepository
 from glassbox.tools import ToolRuntime
