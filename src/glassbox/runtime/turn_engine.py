@@ -1,6 +1,7 @@
 """Turn engine for assistant responses with optional tool execution."""
 
 import json
+from collections.abc import Awaitable
 from collections.abc import Callable
 from collections.abc import Sequence
 from typing import cast
@@ -55,6 +56,7 @@ from glassbox.runtime.model_loop import ModelLoopRunner
 from glassbox.runtime.model_loop import ModelLoopSuspension
 from glassbox.runtime.replay_capture import ReplayArtifactRecorder
 from glassbox.runtime.turn_preparation import LiveTurnPreparation
+from glassbox.runtime.turn_preparation import PreparedTurnRun
 from glassbox.runtime.turn_resumption import SuspendedTurnResumption
 from glassbox.runtime.turn_tool_executor import TurnToolExecutor
 from glassbox.runtime.turn_tool_executor import TurnToolExecutorHooks
@@ -65,6 +67,7 @@ from glassbox.tools import ToolRuntime
 ModelAdapterFactory = Callable[[SessionRecord], ModelAdapter]
 ModelExecutorFactory = Callable[[SessionRecord], ModelExecutor]
 ToolRuntimeFactory = Callable[[SessionRecord], ToolRuntime]
+PreparedTurnHook = Callable[[PreparedTurnRun], Awaitable[None]]
 TurnEnginePayload = (
     TurnStarted
     | TurnStatusChanged
@@ -164,31 +167,15 @@ class TurnEngine:
             ],
         )
 
-        try:
-            prepared_run = self._turn_preparation.prepare(event.session_id, session)
-            assistant_message_id = new_message_id()
-
-            await self._run_model_loop(
-                event.session_id,
-                turn_id=turn_id,
-                turn_context=prepared_run.turn_context,
-                prepared_turn=prepared_run.prepared_turn,
-                conversation=prepared_run.conversation,
-                model_adapter=prepared_run.model_adapter,
-                model_executor=prepared_run.model_executor,
-                tool_runtime=prepared_run.tool_runtime,
-                assistant_message_id=assistant_message_id,
-                assistant_started=False,
-                starting_model_call_index=0,
-            )
-        except Exception as exc:
-            self._record_failed_turn(
-                event.session_id,
-                turn_id=turn_id,
-                error=exc,
-                trigger="user_message",
-            )
-            raise
+        await self._run_prepared_turn(
+            event.session_id,
+            session=session,
+            turn_id=turn_id,
+            assistant_message_id=new_message_id(),
+            assistant_started=False,
+            starting_model_call_index=0,
+            trigger="user_message",
+        )
 
     async def run_for_user_answer(self, event: EventEnvelope) -> None:
         """Resume a suspended turn after the operator answers an ask_user question."""
@@ -221,32 +208,20 @@ class TurnEngine:
             [TurnStatusChanged(turn_id=turn_id, status=TurnStatus.BUILDING_CONTEXT)],
         )
 
-        try:
-            prepared_run = self._turn_preparation.prepare(event.session_id, session)
+        async def continue_with_user_answer(prepared_run: PreparedTurnRun) -> None:
             resume_state.extend_conversation(prepared_run.conversation)
 
-            await self._run_model_loop(
-                event.session_id,
-                turn_id=turn_id,
-                turn_context=prepared_run.turn_context,
-                prepared_turn=prepared_run.prepared_turn,
-                conversation=prepared_run.conversation,
-                model_adapter=prepared_run.model_adapter,
-                model_executor=prepared_run.model_executor,
-                tool_runtime=prepared_run.tool_runtime,
-                assistant_message_id=resume_state.assistant_message_id,
-                assistant_started=True,  # AssistantMessageStarted was emitted earlier
-                starting_model_call_index=resume_state.starting_model_call_index,
-            )
-        except Exception as exc:
-            self._record_failed_turn(
-                event.session_id,
-                turn_id=turn_id,
-                error=exc,
-                trigger="user_answer",
-                question_id=payload.question_id,
-            )
-            raise
+        await self._run_prepared_turn(
+            event.session_id,
+            session=session,
+            turn_id=turn_id,
+            assistant_message_id=resume_state.assistant_message_id,
+            assistant_started=True,
+            starting_model_call_index=resume_state.starting_model_call_index,
+            trigger="user_answer",
+            question_id=payload.question_id,
+            before_model_loop=continue_with_user_answer,
+        )
 
     async def run_for_approval_resolution(self, event: EventEnvelope) -> None:
         """Resume a suspended turn after an operator approves or denies a tool call."""
@@ -287,8 +262,9 @@ class TurnEngine:
             [TurnStatusChanged(turn_id=turn_id, status=TurnStatus.BUILDING_CONTEXT)],
         )
 
-        try:
-            prepared_run = self._turn_preparation.prepare(event.session_id, session)
+        async def continue_with_approval_resolution(
+            prepared_run: PreparedTurnRun,
+        ) -> None:
             resume_state.extend_conversation(prepared_run.conversation)
 
             if payload.decision == ApprovalDecision.APPROVED:
@@ -303,12 +279,44 @@ class TurnEngine:
                     tool_call=resume_state.to_model_tool_call(),
                 )
                 prepared_run.conversation.append(execution_result.to_model_request())
-            else:
-                # DENIED — inject a denial message as the tool return.
-                prepared_run.conversation.append(resume_state.make_denial_tool_return())
+                return
+
+            # DENIED — inject a denial message as the tool return.
+            prepared_run.conversation.append(resume_state.make_denial_tool_return())
+
+        await self._run_prepared_turn(
+            event.session_id,
+            session=session,
+            turn_id=turn_id,
+            assistant_message_id=resume_state.assistant_message_id,
+            assistant_started=True,
+            starting_model_call_index=resume_state.starting_model_call_index,
+            trigger="approval_resolution",
+            approval_id=payload.approval_id,
+            before_model_loop=continue_with_approval_resolution,
+        )
+
+    async def _run_prepared_turn(
+        self,
+        session_id,
+        *,
+        session: SessionRecord,
+        turn_id,
+        assistant_message_id: MessageId,
+        assistant_started: bool,
+        starting_model_call_index: int,
+        trigger: str,
+        approval_id=None,
+        question_id=None,
+        before_model_loop: PreparedTurnHook | None = None,
+    ) -> None:
+        try:
+            prepared_run = self._turn_preparation.prepare(session_id, session)
+            if before_model_loop is not None:
+                await before_model_loop(prepared_run)
 
             await self._run_model_loop(
-                event.session_id,
+                session_id,
                 turn_id=turn_id,
                 turn_context=prepared_run.turn_context,
                 prepared_turn=prepared_run.prepared_turn,
@@ -316,17 +324,18 @@ class TurnEngine:
                 model_adapter=prepared_run.model_adapter,
                 model_executor=prepared_run.model_executor,
                 tool_runtime=prepared_run.tool_runtime,
-                assistant_message_id=resume_state.assistant_message_id,
-                assistant_started=True,
-                starting_model_call_index=resume_state.starting_model_call_index,
+                assistant_message_id=assistant_message_id,
+                assistant_started=assistant_started,
+                starting_model_call_index=starting_model_call_index,
             )
         except Exception as exc:
             self._record_failed_turn(
-                event.session_id,
+                session_id,
                 turn_id=turn_id,
                 error=exc,
-                trigger="approval_resolution",
-                approval_id=payload.approval_id,
+                trigger=trigger,
+                approval_id=approval_id,
+                question_id=question_id,
             )
             raise
 

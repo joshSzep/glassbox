@@ -602,7 +602,7 @@ These follow-on tasks stay within the same behavior-preserving contract as the o
 
 ### GBX-R160: Collapse Live And Resumed Turn Execution Onto One Internal Run Path
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R110`, `GBX-R150`
 - Goal: remove the remaining control-flow duplication inside [turn_engine.py](./../src/glassbox/runtime/turn_engine.py) by routing fresh turns and resumed turns through one explicit internal execution path
 - Deliverables:
