@@ -21,6 +21,7 @@ from glassbox.core.events import (
     ModelCallStarted,
     ModelToolCallRequested,
     ReplayArtifactRecorded,
+    TranscriptMessageImported,
     TurnCompleted,
     TurnFailed,
     UserAnswerProvided,
@@ -28,7 +29,12 @@ from glassbox.core.events import (
     UserQuestionAsked,
 )
 from glassbox.core.ids import SessionId
-from glassbox.core.models import SessionConfig
+from glassbox.core.models import (
+    InheritedTranscriptMessage,
+    ResolvedForkPoint,
+    SessionConfig,
+    SessionRecord,
+)
 from glassbox.core.types import ApprovalDecision
 from glassbox.llm import (
     ModelExecutionResult,
@@ -197,6 +203,7 @@ class ReplayBundle(BaseModel):
     bundle_version: int = REPLAY_BUNDLE_VERSION
     source_session_id: SessionId
     session_config: SessionConfig
+    inherited_messages: list[InheritedTranscriptMessage] = Field(default_factory=list)
     actions: list[ReplayAction]
     model_calls: list[ReplayRecordedModelCall]
     tool_requests: list[ReplayToolRequestManifest]
@@ -271,11 +278,8 @@ class ReplayRunner:
 
         return ReplayBundle(
             source_session_id=session_id,
-            session_config=SessionConfig(
-                model_name=source_session.model_name,
-                cwd=source_session.cwd,
-                approval_mode=source_session.approval_mode,
-            ),
+            session_config=_build_replay_bundle_session_config(source_session),
+            inherited_messages=_build_inherited_messages(source_events),
             actions=_build_replay_actions(source_events),
             model_calls=_build_recorded_model_calls(
                 source_events,
@@ -496,6 +500,14 @@ class ReplayRunner:
                 )
                 supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
                 replay_state = await supervisor.start_session(replay_session_config)
+                restored_import_events = _build_replay_import_events(
+                    bundle,
+                    repository,
+                    replay_state.session_id,
+                )
+                if restored_import_events:
+                    for event in repository.append_events(restored_import_events):
+                        bus.publish(event)
 
                 for action in bundle.actions:
                     if action.action_type == "user_message":
@@ -750,6 +762,69 @@ def _build_replay_actions(events: Sequence[EventEnvelope]) -> list[ReplayAction]
                 )
             )
     return actions
+
+
+def _build_replay_bundle_session_config(source_session: SessionRecord) -> SessionConfig:
+    return SessionConfig(
+        model_name=source_session.model_name,
+        cwd=source_session.cwd,
+        approval_mode=source_session.approval_mode,
+        parent_session_id=source_session.parent_session_id,
+        forked_from_turn_id=source_session.forked_from_turn_id,
+        forked_from_sequence=source_session.forked_from_sequence,
+        branch_label=source_session.branch_label,
+    )
+
+
+def _build_inherited_messages(
+    events: Sequence[EventEnvelope],
+) -> list[InheritedTranscriptMessage]:
+    inherited_messages = [
+        InheritedTranscriptMessage(
+            source_message_id=payload.source_message_id,
+            source_turn_id=payload.source_turn_id,
+            role=payload.role,
+            parts=payload.parts,
+            created_at=payload.source_created_at,
+        )
+        for event in events
+        if isinstance((payload := event.payload), TranscriptMessageImported)
+    ]
+    inherited_messages.sort(
+        key=lambda message: (message.created_at, str(message.source_message_id))
+    )
+    return inherited_messages
+
+
+def _build_replay_import_events(
+    bundle: ReplayBundle,
+    repository: SQLiteSessionRepository,
+    session_id: SessionId,
+) -> list[EventEnvelope]:
+    if not bundle.inherited_messages:
+        return []
+
+    parent_session_id = bundle.session_config.parent_session_id
+    forked_from_turn_id = bundle.session_config.forked_from_turn_id
+    forked_from_sequence = bundle.session_config.forked_from_sequence
+    if (
+        parent_session_id is None
+        or forked_from_turn_id is None
+        or forked_from_sequence is None
+    ):
+        raise _ReplayUnsupportedSession(
+            "forked replay bundle is missing lineage metadata for inherited transcript"
+        )
+
+    return repository.build_imported_transcript_events(
+        session_id,
+        ResolvedForkPoint(
+            parent_session_id=parent_session_id,
+            turn_id=forked_from_turn_id,
+            sequence=forked_from_sequence,
+            inherited_messages=list(bundle.inherited_messages),
+        ),
+    )
 
 
 def _build_recorded_model_calls(

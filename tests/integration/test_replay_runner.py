@@ -33,6 +33,7 @@ from glassbox.llm import (
     PydanticAIModelExecutor,
 )
 from glassbox.runtime import (
+    EvalRunner,
     EventBus,
     ReplayRunner,
     SessionSupervisor,
@@ -622,6 +623,151 @@ def test_replay_runner_exports_bundle_and_replays_without_source_database(
         assert result.outcome == "exact_match"
         assert result.source_session_id == state.session_id
         assert result.replay == result.baseline
+
+    asyncio.run(scenario())
+
+
+def test_replay_runner_exports_forked_child_bundle_with_imported_history(
+    tmp_path: Path,
+) -> None:
+    source_root = tmp_path / "source-workspace"
+    source_root.mkdir()
+    portable_root = tmp_path / "portable-workspace"
+    portable_root.mkdir()
+    bundle_path = tmp_path / "bundles" / "forked-child-session.json"
+
+    async def scenario() -> None:
+        connection = _open_initialized_database(source_root)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, source_root)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = _build_turn_engine(
+                repository,
+                artifact_repository,
+                bus,
+                model_fn=_text_only_response,
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+
+            parent_state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=source_root,
+                    approval_mode="confirm",
+                )
+            )
+            await supervisor.submit_user_message(
+                parent_state.session_id,
+                "Inspect the repo",
+            )
+
+            forked_session = await supervisor.fork_session(parent_state.session_id)
+            await supervisor.submit_user_message(
+                forked_session.child_session_id,
+                "Inspect the repo",
+            )
+
+            runner = ReplayRunner(repository, artifact_repository)
+            exported_path = runner.export_session_bundle(
+                forked_session.child_session_id,
+                bundle_path,
+            )
+            result = await ReplayRunner().replay_bundle_file(
+                exported_path,
+                workspace_root=portable_root,
+            )
+        finally:
+            connection.close()
+
+        shutil.rmtree(source_root)
+
+        assert exported_path == bundle_path.resolve()
+        assert result.outcome == "exact_match"
+        assert result.source_session_id == forked_session.child_session_id
+        assert result.replay == result.baseline
+
+    asyncio.run(scenario())
+
+
+def test_eval_runner_executes_forked_child_bundle_case(tmp_path: Path) -> None:
+    source_root = tmp_path / "source-workspace"
+    source_root.mkdir()
+    cases_dir = tmp_path / "evals" / "cases"
+    cases_dir.mkdir(parents=True)
+    bundles_dir = tmp_path / "evals" / "bundles"
+    bundles_dir.mkdir(parents=True)
+    bundle_path = bundles_dir / "forked-child-session.json"
+    case_path = cases_dir / "forked-child-session.json"
+    output_dir = tmp_path / ".glassbox" / "evals" / "test-run"
+
+    async def scenario() -> None:
+        connection = _open_initialized_database(source_root)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, source_root)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = _build_turn_engine(
+                repository,
+                artifact_repository,
+                bus,
+                model_fn=_text_only_response,
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+
+            parent_state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=source_root,
+                    approval_mode="confirm",
+                )
+            )
+            await supervisor.submit_user_message(
+                parent_state.session_id,
+                "Inspect the repo",
+            )
+
+            forked_session = await supervisor.fork_session(parent_state.session_id)
+            await supervisor.submit_user_message(
+                forked_session.child_session_id,
+                "Inspect the repo",
+            )
+
+            ReplayRunner(repository, artifact_repository).export_session_bundle(
+                forked_session.child_session_id,
+                bundle_path,
+            )
+        finally:
+            connection.close()
+
+        case_path.write_text(
+            json.dumps(
+                {
+                    "case_id": "forked-child-session",
+                    "title": "Forked child session replay bundle",
+                    "bundle_path": "../bundles/forked-child-session.json",
+                    "tags": ["branching", "replay"],
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        result = await EvalRunner().run_suite(
+            tmp_path,
+            case_ids=["forked-child-session"],
+            output_dir=output_dir,
+        )
+
+        assert result.selected_case_count == 1
+        assert result.passed_case_count == 1
+        assert result.failed_case_count == 0
+        assert result.exit_code == 0
+        assert result.outcome_counts["exact_match"] == 1
+        assert result.cases[0].case_id == "forked-child-session"
+        assert result.cases[0].replay_outcome == "exact_match"
+        assert result.cases[0].passed is True
 
     asyncio.run(scenario())
 
