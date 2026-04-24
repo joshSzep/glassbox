@@ -2165,7 +2165,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-220: Define Richer Runtime Context Contract And Scope
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-033`, `GBX-051`, `GBX-191`, `GBX-217`, `GBX-121`
 - Goal: define what additional turn context Glassbox should assemble beyond transcript, tools, and approval state so future prompt improvements remain inspectable, replayable, and bounded
 - Deliverables:

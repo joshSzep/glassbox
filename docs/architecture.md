@@ -157,7 +157,7 @@ The main turn loop should work like this:
 2. The session supervisor validates that the session can accept input.
 3. A `UserMessageReceived` event is appended.
 4. The turn engine emits `TurnStarted`.
-5. The context builder assembles conversation history, tool schema, policy state, repo context, and any memory state.
+5. The context builder assembles conversation history, tool schema, policy state, repository context, session-scoped runtime notes, and any bounded working-set summary needed for the turn.
 6. The model adapter calls the LLM via `pydantic-ai`.
 7. Streamed model text is emitted as incremental events.
 8. If the model requests a tool, the tool runtime validates and executes it.
@@ -786,6 +786,104 @@ The dashboard and CLI should depend on projections, not on mutable runtime inter
 
 The detailed projection-table direction lives in [database.md](./database.md), but the important architectural rule is simple: projections are read models, not a second source of truth.
 
+## Richer Runtime Context Model
+
+Glassbox should treat turn context as a first-class runtime contract rather than
+as an opaque prompt-concatenation detail.
+
+The baseline turn context already includes transcript history, tool schemas, and
+policy state. The next step should make the richer context layers explicit and
+typed so they remain inspectable, bounded, and replayable.
+
+### Context Source Taxonomy
+
+The intended richer-context model should separate turn inputs by source and
+stability rather than flattening everything into one undifferentiated prompt
+blob.
+
+At minimum, the turn context should support these categories:
+
+- transcript and session state derived from canonical events and projections
+- tool and policy context derived from the current runtime configuration
+- repository context derived from a bounded local summary of the current workspace
+- session-scoped runtime notes derived from persisted note events or equivalent event-backed state
+- turn-local working-set summaries derived from the current actionable state, recent tool results, or similar high-signal runtime facts
+
+These sources have different lifecycles.
+
+- transcript and session state are canonical historical inputs
+- tool and policy context are current runtime constraints
+- repository context is recomputed from the workspace under a defined local contract
+- runtime notes are persisted session memory that should survive resume, replay, and branching
+- working-set summaries are bounded turn-local guidance rather than a second durable memory store
+
+Keeping those categories explicit matters because replay, resume, and branch
+behavior should not treat all richer-context inputs the same way.
+
+### Prompt Context Versus Tool-Discoverable State
+
+Not every useful fact belongs directly in prompt context.
+
+The prompt should contain only the bounded summaries that materially improve the
+model's starting point before it decides whether to call tools.
+
+Prompt context is the right place for:
+
+- concise repository-level orientation that would otherwise be rediscovered repeatedly
+- session-scoped runtime notes that capture durable high-signal facts for later turns
+- turn-local working-set summaries such as the current blocked state, recent failure context, or the active branch / lineage situation when that changes the next step materially
+
+Tool-discoverable state should remain outside prompt context when it is large,
+volatile, or better retrieved on demand. That includes at least:
+
+- raw file contents beyond a deliberately bounded summary
+- large directory trees or search results
+- arbitrary command output
+- speculative repository indexes, embeddings, or hidden background analysis products
+
+The operating rule should be: if the model can safely and cheaply inspect a
+detail through tools when needed, prefer that over stuffing raw detail into the
+prompt by default.
+
+### Scope Boundary
+
+The v1 richer-context scope should stay deliberately narrow.
+
+- build on the existing typed turn-context boundary
+- keep repository context concise, deterministic, and cheap to recompute locally
+- keep runtime notes session-scoped and event-backed
+- keep working-set summaries bounded and turn-local
+- preserve operator inspectability so context does not become invisible prompt magic
+
+The following should remain out of scope for the first richer-context phase:
+
+- hidden long-term autonomous memory outside the event-sourced runtime model
+- unbounded repository indexing or background crawl subsystems
+- opaque provider-specific prompt augmentation that cannot be inspected or replayed
+- embeddings or vector stores treated as a silent second source of truth
+- background context accumulation that survives only in process memory
+
+### Operator Expectations
+
+Operators should be able to answer two questions without reading source code:
+
+1. what high-level repository and session facts is the model currently seeing?
+2. which of those facts are persisted session memory versus recomputed local workspace summary?
+
+That implies the richer-context model should eventually be visible through the
+normal operator surfaces as concise summaries rather than only as raw prompt
+text.
+
+### Replay And Branching Implications
+
+Richer context must remain compatible with Glassbox's existing local-first
+determinism promises.
+
+- if a richer-context input materially influences turn preparation, it should participate in replay-manifest capture in a typed or normalized form
+- repository context should be defined narrowly enough that replay can reason about drift explicitly rather than depending on ambient undocumented workspace state
+- session-scoped runtime notes should survive resume and branching through the event-sourced session model rather than via hidden memory stores
+- child sessions should remain explicit about which richer-context inputs were inherited versus newly recorded after the fork
+
 ## Session Branching And Time-Travel Model
 
 Session branching is a separate operator workflow from both raw historical
@@ -924,6 +1022,7 @@ For each replayable turn, Glassbox should capture enough structured baseline
 data to reconstruct the control path offline, including:
 
 - the assembled model context or a normalized equivalent
+- richer runtime context inputs such as repository summaries, session-scoped runtime notes, and any bounded working-set summary that materially affects turn preparation
 - tool schema and policy snapshot relevant to the turn
 - provider and model fingerprint information that is safe to persist
 - normalized tool requests and deterministic tool result payloads
