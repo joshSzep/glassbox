@@ -26,7 +26,7 @@ from glassbox.core.models import (
     TurnMetricsRecord,
 )
 from glassbox.core.types import ApprovalStatus, SessionStatus, ToolExecutionStatus
-from glassbox.store.artifacts import StoredArtifact
+from glassbox.services.contracts import StoredArtifact
 
 
 class SQLiteSessionRepository:

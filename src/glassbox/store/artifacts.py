@@ -3,22 +3,12 @@
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass
 from pathlib import Path
 
 from glassbox.core.events import EventEnvelope, ToolArtifactRecorded
 from glassbox.core.ids import ArtifactId, SessionId, ToolCallId, TurnId, new_artifact_id
+from glassbox.services.contracts import StoredArtifact
 from glassbox.store.sqlite import append_event
-
-
-@dataclass(frozen=True, slots=True)
-class StoredArtifact:
-    """Resolved information for a file-backed session artifact."""
-
-    artifact_id: ArtifactId
-    session_id: SessionId
-    relative_path: Path
-    absolute_path: Path
 
 
 def artifact_relative_path(

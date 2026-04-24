@@ -538,7 +538,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R151: Add Lightweight Boundary Guardrails For File Growth And Import Direction
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R104`, `GBX-R150`
 - Goal: reduce the chance that oversized files and blurred subsystem dependencies reappear after the refactor roadmap lands
 - Deliverables:

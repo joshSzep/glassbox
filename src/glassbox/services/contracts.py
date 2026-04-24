@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Protocol, runtime_checkable
@@ -10,6 +11,7 @@ from typing import Protocol, runtime_checkable
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import (
     ApprovalId,
+    ArtifactId,
     MessageId,
     QuestionId,
     SessionId,
@@ -34,7 +36,16 @@ from glassbox.core.types import (
     SessionStatus,
     ToolExecutionStatus,
 )
-from glassbox.store.artifacts import StoredArtifact
+
+
+@dataclass(frozen=True, slots=True)
+class StoredArtifact:
+    """Resolved information for a file-backed session artifact."""
+
+    artifact_id: ArtifactId
+    session_id: SessionId
+    relative_path: Path
+    absolute_path: Path
 
 
 @runtime_checkable

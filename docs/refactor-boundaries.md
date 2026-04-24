@@ -227,6 +227,19 @@ The practical rules are:
 - `runtime` may depend on `store` implementations in bootstrap code, but orchestration logic should prefer service or repository contracts where practical
 - package-root imports should not be used as a convenience layer when they hide ownership of replay, turn execution, context building, or raw persistence helpers
 
+## Boundary Guardrails
+
+The refactor roadmap now has lightweight enforcement for the most important boundaries above.
+
+The guardrails are intentionally narrow:
+
+- `tests/unit/test_architecture_guardrails.py` enforces dependency direction for `store`, `services`, CLI command modules, and web route modules
+- the store and services packages are guarded against importing outward into `runtime`, `cli`, or `web`
+- CLI command modules and web route modules are guarded against reaching into raw SQLite helpers instead of using repository, service, or query seams
+- thin public facades are kept reviewable with soft size caps and explicit delegate-module checks for `runtime/__init__.py`, `store/sqlite.py`, `runtime/eval_summary.py`, `runtime/replay.py`, and the browser entry facades in `web/static/`
+
+If a guardrail fails, the default repair should be to move new behavior into the owning split module or add one focused neighbor module, not to widen a facade or cross a subsystem boundary.
+
 ## Acceptable Temporary Compatibility Shims
 
 The following temporary compatibility patterns are acceptable during this refactor pass:
