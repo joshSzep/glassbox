@@ -2,6 +2,8 @@
 
 This note is the frontend architecture source of truth for `GBX-R130`, `GBX-R131`, and `GBX-R132`.
 
+It now also records the `GBX-R133` app-entry split for transport, controller, and DOM-binding responsibilities.
+
 It defines how the current no-framework dashboard should be decomposed without changing browser-visible behavior, HTTP payloads, or the existing frontend test strategy.
 
 ## Purpose
@@ -60,6 +62,13 @@ The first renderer split is now in place:
 - `render-action-panes.js` owns composer, fork, and approvals panes
 - `render-diagnostics-panes.js` owns metrics, active-tool-calls, and event-log panes
 - `render.js` remains the stable public facade consumed by the browser app and frontend tests
+
+The first dashboard app-entry split is now in place:
+
+- `dashboard-transport.js` owns snapshot/index fetches and SSE connection setup
+- `dashboard-controller.js` owns state transitions, session selection flow, live-stream retry behavior, and action orchestration
+- `dashboard-dom.js` owns DOM lookup, pane rendering, event binding, and local input drafts
+- `dashboard.js` remains the stable public facade consumed by the browser app and frontend tests
 
 ### State Boundary
 

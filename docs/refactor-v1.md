@@ -453,7 +453,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R133: Split Dashboard App Entry Into Transport, Controller, And DOM-Binding Layers
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R130`, `GBX-R131`, `GBX-R132`
 - Goal: separate dashboard startup, network I/O, SSE lifecycle, and DOM event binding from the remaining browser app orchestration code
 - Deliverables:

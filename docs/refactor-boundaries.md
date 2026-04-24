@@ -183,6 +183,7 @@ The `web` package should not own the canonical logic for deriving session summar
 - `approval-actions.js` and `interaction-actions.js` should remain the focused POST transport modules, while `dashboard.js` remains the only browser shell that touches DOM, URL/history, and SSE lifecycle concerns
 - the reducer split now keeps `src/glassbox/web/static/state.js` as the public facade while moving base state to `state-core.js`, snapshot shaping to `state-snapshot.js`, session/stream transitions to `state-stream.js`, browser submission-state helpers to `state-interaction.js`, and incremental event reduction to `state-events.js`
 - the renderer split now keeps `src/glassbox/web/static/render.js` as the public facade while moving shared HTML helpers to `render-utils.js`, session-discovery and selected-session summary panes to `render-session-panes.js`, transcript/live-activity panes to `render-activity-panes.js`, operator-action panes to `render-action-panes.js`, and diagnostics panes to `render-diagnostics-panes.js`
+- the dashboard app-entry split now keeps `src/glassbox/web/static/dashboard.js` as the public facade while moving snapshot/index fetches and SSE setup to `dashboard-transport.js`, stateful browser orchestration to `dashboard-controller.js`, and DOM rendering plus event binding to `dashboard-dom.js`
 
 ### Replay And Eval
 
