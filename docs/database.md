@@ -26,6 +26,26 @@ The event log preserves correctness, replayability, and versioned history.
 
 The projection tables make common runtime and dashboard queries cheap. They are not authoritative and must always be rebuildable from the event log.
 
+## Current Baseline Before V2 Execution
+
+The repository already implements the core storage model described here. Treat
+the following as the starting point for v2 storage work:
+
+- the SQLite schema already includes `sessions`, `events`, `session_state`,
+    `transcript_messages`, `tool_calls`, `approvals`, `runtime_notes`, and
+    `turn_metrics`
+- schema bootstrap already records a schema version row and applies a small
+    amount of ad hoc schema patching during initialization for newer lineage and
+    runtime-note columns
+- projection rebuild already exists as an implemented repository and CLI path
+    over canonical events
+- session discovery, lineage-aware snapshots, approval queues, runtime context,
+    and replay or eval workflows already depend on this schema in production code
+
+v2 database work should therefore focus on making schema evolution, rebuild
+observability, recovery, and retention more explicit rather than reintroducing
+the current storage model from scratch.
+
 ## Why The Initial Minimal Schema Is Not Enough
 
 The minimal schema in [architecture.md](./architecture.md) is a good starting point:
@@ -79,6 +99,13 @@ now decomposed internally.
 This refactor changed internal ownership, not the operator-visible storage model.
 Schema bootstrap, append ordering, projection rebuild semantics, and artifact
 layout remain aligned with the tables and rules documented here.
+
+What is not yet complete is the migration and recovery story. The current
+bootstrap still mixes explicit schema version stamping with targeted patch
+helpers during initialization. That is sufficient for the shipped baseline, but
+v2 should replace it with ordered, inspectable migrations and clearer
+projection-health and recovery surfaces as described in
+[tasks-v2.md](./tasks-v2.md).
 
 ## Canonical Tables
 
@@ -481,6 +508,17 @@ Use these rules:
 - keep projection rebuild code able to interpret old event versions
 
 Projection tables can be migrated more aggressively because they are derived.
+
+For the current baseline, note the distinction between what already exists and
+what v2 still needs:
+
+- today: schema bootstrap can create the current schema, stamp the current
+    schema version, and apply a limited amount of ad hoc upgrade logic during
+    initialization
+- today: projection rebuild is available from canonical events
+- still needed for v2: explicit ordered migrations, upgrade metadata the
+    operator can reason about, and projection-health or lag reporting beyond
+    manual rebuild paths
 
 ## Tradeoffs
 

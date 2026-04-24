@@ -27,6 +27,27 @@ The v2 thesis is:
 - keep replay and eval deterministic by default
 - extend the current architecture deliberately rather than replacing it with a cloud-first or opaque orchestration model
 
+## Current Baseline Before V2 Execution
+
+The repository has moved materially since this file was first written. Treat the
+following as the starting point for every v2 task in this document:
+
+- the CLI already supports `chat`, process-local `attach`, explicit state-driven
+  session commands, `serve`, `fork`, `status`, and `rebuild`
+- the dashboard already supports recent-session discovery, deep-link session
+  inspection, lineage-aware snapshots, next-action controls, pending approvals,
+  and SSE-backed live versus historical state indicators
+- the store already records a schema version row, applies a small amount of ad
+  hoc bootstrap schema patching, and can rebuild projections from canonical
+  events, but it does not yet have explicit ordered migrations or projection
+  health surfaces
+- replay and eval already support repository-owned cases and profiles, coverage
+  auditing, baseline promotion and refresh, replay bundle export, and
+  release-signoff reporting
+
+v2 work should extend these existing surfaces rather than reintroduce them under
+new names.
+
 ## Agent Execution Rules
 
 These rules apply to every task in this file.
@@ -108,10 +129,12 @@ Each phase below corresponds to one concrete milestone.
 - Goal: define how Glassbox should support a long-lived runtime process and cross-process operator attachment without violating the current event-sourced architecture
 - Deliverables:
   - architecture and workflow updates for embedded runtime versus background runtime ownership
+  - explicit decision record for whether the first persistent owner is introduced as a new daemon command surface, an extension of the existing runtime-serving surface, or another concrete local-first control path
   - explicit runtime ownership semantics for workspace-local sessions
   - attach model for terminal and browser clients reconnecting to a persistent runtime
   - scope boundary for what remains intentionally out of scope for the first v2 slice
 - Implementation notes:
+  - start from the current baseline: `chat` owns the live in-process session loop, `attach` reopens persisted actionable sessions, `serve` exposes standalone browser inspection, SSE provides browser live tails, and the event bus is still process-local
   - preserve the current single-runtime-per-workspace assumption unless a stronger multi-owner model is justified explicitly
   - define how live event delivery, session mutation, and runtime shutdown interact across processes
   - treat CLI attach, browser observation, and health inspection as separate operator surfaces even if they share a transport
@@ -131,6 +154,7 @@ Each phase below corresponds to one concrete milestone.
   - implementation path for local IPC, loopback HTTP streaming, or equivalent transport chosen in `GBX-300`
   - compatibility layer that preserves the current embedded runtime behavior during migration
 - Implementation notes:
+  - treat the existing in-process event bus plus SSE fanout as the compatibility baseline to preserve during the refactor
   - keep canonical persistence independent from subscriber health or transport latency
   - preserve current CLI renderer and SSE semantics where practical so the transition stays incremental
   - do not let transport concerns leak into turn orchestration or repository code
@@ -146,14 +170,14 @@ Each phase below corresponds to one concrete milestone.
 - Depends on: `GBX-300`, `GBX-301`
 - Goal: allow Glassbox to run as a long-lived workspace runtime that survives terminal exit and can continue owning actionable sessions
 - Deliverables:
-  - background runtime command surface such as `glassbox daemon` or equivalent
+  - background runtime command surface such as `glassbox daemon`, an explicit extension of `serve`, or another concrete control path chosen in `GBX-300`
   - workspace-local runtime discovery and lock semantics
   - start, stop, and health behavior for the persistent runtime owner
   - session ownership rules that prevent conflicting concurrent writers
 - Implementation notes:
   - keep the first persistent runtime local-first and workspace-scoped; do not expand into remote orchestration
   - make runtime shutdown and orphaned-lock recovery explicit and observable
-  - reuse existing runtime bootstrap and service wiring rather than creating a second control plane
+  - reuse existing runtime bootstrap, session service, and server wiring rather than creating a second control plane
 - Tests and validation included in task:
   - integration tests for background runtime startup, duplicate-owner rejection, and clean shutdown
   - recovery tests for stale lock or abandoned runtime ownership after process interruption
@@ -171,6 +195,7 @@ Each phase below corresponds to one concrete milestone.
   - operator-visible messaging for live, stale, reconnecting, and unavailable runtime states
   - compatibility handling for sessions that are only historically inspectable
 - Implementation notes:
+  - the current `attach` command already reopens persisted actionable sessions; this task is specifically about live attach and reconnect against a different owning process
   - keep conversational routing semantics aligned with the current interactive CLI rather than inventing a second UX model
   - distinguish between attach-to-runtime and open-historical-session behavior explicitly
   - do not silently fall back from live attach to stale snapshot mode without telling the operator
@@ -190,6 +215,7 @@ Each phase below corresponds to one concrete milestone.
   - operator guidance for starting, attaching to, and recovering a background runtime
   - troubleshooting notes for stale ownership, reconnect failures, and runtime shutdown behavior
 - Implementation notes:
+  - build on the existing `/healthz`, standalone dashboard session index, and operator docs rather than replacing them with parallel discovery surfaces
   - keep health surfaces complementary to the event model; they describe runtime availability, not canonical session truth
   - align terminal, dashboard, and docs terminology for runtime-owned versus historical-only sessions
 - Tests and validation included in task:
@@ -202,7 +228,7 @@ Each phase below corresponds to one concrete milestone.
 
 ## Phase 26: Durable Storage, Migration, And Recovery
 
-### GBX-310: Replace Bootstrap-Only Schema Setup With Versioned Migrations
+### GBX-310: Replace Bootstrap-And-Ad-Hoc Schema Patching With Versioned Migrations
 
 - Status: `TODO`
 - Depends on: `GBX-302`
@@ -212,6 +238,7 @@ Each phase below corresponds to one concrete milestone.
   - schema-version tracking and upgrade metadata
   - migration entrypoint integrated with runtime bootstrap and recovery workflows
 - Implementation notes:
+  - the current baseline already records one schema version row and applies targeted bootstrap patch helpers for lineage and runtime-note columns; replace those hidden upgrades with explicit ordered migrations
   - keep migrations explicit and reviewable rather than hiding schema mutation inside ad hoc bootstrap code
   - preserve backwards compatibility for older workspaces where possible and fail visibly where not
   - distinguish schema upgrade from projection rebuild so operators can reason about each independently
@@ -231,6 +258,7 @@ Each phase below corresponds to one concrete milestone.
   - safer per-session and whole-workspace rebuild behavior
   - operator-visible distinction between canonical event integrity and derived-state corruption
 - Implementation notes:
+  - the current `rebuild` command and repository rebuild helpers are the starting point; harden and instrument them rather than replacing them
   - keep rebuild deterministic from events; do not introduce shadow checkpoints unless a real need is demonstrated
   - surface projection lag or failure as an operational condition, not a silent stale-read risk
   - preserve current rebuild commands where practical while strengthening their observability
@@ -286,12 +314,13 @@ Each phase below corresponds to one concrete milestone.
 
 - Status: `TODO`
 - Depends on: `GBX-304`, `GBX-184`, `GBX-185`, `GBX-225`
-- Goal: define how the dashboard should evolve from a single-session inspector into an operator console for live, paused, and historical sessions
+- Goal: define how the dashboard should evolve from the current session-index-plus-deep-link inspector into an operator console for live, paused, and historical sessions
 - Deliverables:
   - architecture and UX contract for multi-session browsing, filtering, and actionable queues
   - explicit operator semantics for live runtime-backed sessions versus historical-only sessions
   - prioritization rules for what the dashboard should surface first when many sessions exist
 - Implementation notes:
+  - the current dashboard already provides recent-session browsing, lineage-aware deep links, next-action controls, and live versus historical SSE state; v2 should build on that shell instead of assuming a blank browser baseline
   - preserve the current event-sourced snapshot-plus-stream model; do not move state authority into browser-only logic
   - keep the first v2 console focused on operator value, not generic application chrome
   - align dashboard terminology with CLI status and runtime health language
@@ -307,11 +336,11 @@ Each phase below corresponds to one concrete milestone.
 - Depends on: `GBX-320`, `GBX-302`
 - Goal: provide the backend data model needed for a dashboard that prioritizes operational awareness over one-session-at-a-time inspection
 - Deliverables:
-  - aggregate APIs or read models for recent sessions, pending approvals, pending questions, failed sessions, and runtime health
+  - aggregate APIs or read models beyond the existing recent-session summaries, covering pending approvals, pending questions, failed sessions, and runtime health
   - filtering and ordering support for status, recency, and action-needed flows
   - concise summary fields for operator triage without full snapshot fetches
 - Implementation notes:
-  - build these from persisted sessions, projections, and runtime-health surfaces rather than browser heuristics
+  - build these from the existing session summary and snapshot query path, persisted sessions, projections, and runtime-health surfaces rather than browser heuristics
   - keep the initial aggregate model small and operationally meaningful
   - avoid introducing a separate analytics subsystem when current projections and indexes can support the required reads
 - Tests and validation included in task:
@@ -350,6 +379,7 @@ Each phase below corresponds to one concrete milestone.
   - lineage-aware navigation and summary views
   - browser inspection surfaces for replay or eval drift artifacts where that adds triage value
 - Implementation notes:
+  - the current snapshot already exposes child sessions, branchable turns, and fork metadata; this task adds comparison and drift-triage UX on top of that baseline
   - keep comparison views explicitly anchored in persisted lineage and replay artifacts rather than computed guesswork
   - do not hide raw detail; comparison views should accelerate inspection, not replace the underlying evidence
   - avoid making the browser the only place replay drift can be understood
@@ -373,6 +403,7 @@ Each phase below corresponds to one concrete milestone.
   - explicit scope for per-tool, per-argument, and per-command policy controls
   - compatibility rules between policy configuration, approval modes, and replay semantics
 - Implementation notes:
+  - the compatibility baseline is the current coarse risk buckets, workspace-scope path checks, destructive-command blocking, and approval-mode gating described in `tool-policy.md`
   - keep policy inspectable and local-first; do not hide decision rules in runtime-only implicit heuristics
   - preserve the current simple risk model as the compatibility baseline while v2 policy grows
   - make explicit which policy changes should count as replay-manifest drift versus ordinary runtime configuration
@@ -411,6 +442,7 @@ Each phase below corresponds to one concrete milestone.
   - session and turn summaries for tool-risk and policy activity
   - dashboard and CLI surfaces that explain why a tool was allowed, gated, or blocked
 - Implementation notes:
+  - extend the current policy-decision reason strings and approval state rather than creating a disconnected second audit pipeline
   - reuse current event and artifact patterns where possible rather than creating a separate audit database
   - keep the summary surfaces concise but precise enough to aid operator reasoning
   - preserve clear distinction between policy classification and actual tool outcome
@@ -453,6 +485,7 @@ Each phase below corresponds to one concrete milestone.
   - scope definition for heuristics based on touched files, known owning subsystems, and case metadata
   - explicit non-goals for the first version where confident impact analysis is not yet possible
 - Implementation notes:
+  - start from the existing eval profiles, coverage manifest, case capability metadata, and release-signoff workflow rather than inventing a second portfolio system
   - keep recommendations advisory unless the mapping becomes strong enough for tighter enforcement later
   - ground the model in repository-owned metadata and capability coverage rather than hidden machine-learned state
   - preserve the current named-profile operator model even if smarter recommendations are added
@@ -491,6 +524,7 @@ Each phase below corresponds to one concrete milestone.
   - stronger summaries of impacted capabilities, profiles, and likely change owners during refresh workflows
   - tighter guardrails for refreshing cases that participate in stricter profiles
 - Implementation notes:
+  - current promotion, refresh, and release-signoff outputs are the baseline; extend those review artifacts rather than replacing the workflow
   - build on the current guided workflow rather than replacing it
   - optimize for repository review and contributor comprehension, not only machine-readable output
   - preserve portability and redaction guarantees for refreshed artifacts
@@ -510,6 +544,7 @@ Each phase below corresponds to one concrete milestone.
   - compact CLI or artifact views showing how a change affects commit-time, push-time, and release-candidate verification surfaces
   - stronger linkage between failing cases and owning capabilities or release stages
 - Implementation notes:
+  - build on the existing deterministic profile tracks and `eval report` sign-off output rather than collapsing the current release workflow into a new command family
   - do not collapse the existing profile system into one monolithic release command
   - preserve the distinction between deterministic blocking profiles and advisory canary surfaces
   - favor concise, operator-usable summaries over more configuration complexity
@@ -553,7 +588,7 @@ Each phase below corresponds to one concrete milestone.
   - redaction and portability rules for session-sharing workflows
 - Implementation notes:
   - keep the exported package inspectable and intentionally scoped to operator handoff use cases
-  - avoid conflating session export with deterministic replay evidence unless the workflows deliberately overlap
+  - avoid conflating session export with the existing deterministic `replay-export` evidence path unless the workflows deliberately overlap
   - preserve local-path and secret redaction guarantees
 - Tests and validation included in task:
   - integration tests for session export of representative live, paused, and branched sessions

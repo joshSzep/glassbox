@@ -49,9 +49,29 @@ That architecture provides:
 - multiple UIs without duplicated runtime logic
 - a natural place to insert persistence, approvals, and auditability
 
+## Current Baseline Before V2 Execution
+
+The repository has moved beyond the earliest architecture slices. Treat the
+following as the implemented baseline that v2 extends:
+
+- `glassbox chat` owns the live in-process conversational workflow
+- `glassbox attach` reopens persisted actionable sessions from projections, but
+    does not yet provide live terminal attach to a runtime owned by another
+    process
+- `glassbox serve` exposes the standalone browser console over persisted
+    sessions, recent-session discovery, snapshot reads, HTTP actions, and SSE
+    live tails
+- the dashboard already behaves as a session-index-plus-deep-link operator
+    surface rather than a single hard-coded session view
+- replay, eval, branching, lineage-aware snapshots, and runtime-context
+    inspection are existing product surfaces, not future placeholders
+
+v2 architecture work should extend these shipped boundaries rather than restate
+them as if they are still only design intent.
+
 ## Runtime Model
 
-The first implementation should be a single async process.
+The current shipped implementation is a single async process.
 
 That process hosts:
 
@@ -62,16 +82,22 @@ That process hosts:
 - the event store
 - the dashboard web server
 
-This avoids premature service decomposition. A single-process design is easier to build, test, and reason about while preserving the same core abstractions needed for a future split-process architecture.
+This avoids premature service decomposition. A single-process design is easier to build, test, and reason about while preserving the same core abstractions needed for a future split-process or persistent-runtime architecture.
 
 For interactive terminal UX, this means the first-class conversational experience
 should also live inside that same process. A long-lived CLI session can keep an
 event subscription open, render runtime activity continuously, and submit
-follow-up operator input through the existing session service. In v1, that
-interactive experience is intentionally process-local rather than daemon-backed.
-An attached terminal can reopen and continue a persisted paused or idle session,
-but it should not claim to stream live events from another already-running
-process until the runtime grows an explicit cross-process attach mechanism.
+follow-up operator input through the existing session service. In the shipped
+baseline, that interactive experience is intentionally process-local rather
+than daemon-backed. An attached terminal can reopen and continue a persisted
+paused or idle session, but it should not claim to stream live events from
+another already-running process until the runtime grows an explicit
+cross-process attach mechanism.
+
+That boundary is the starting point for v2, not necessarily the final answer.
+`GBX-300` through `GBX-304` in [tasks-v2.md](./tasks-v2.md) deliberately reopen
+the question of persistent runtime ownership, transport, and live cross-process
+terminal attach.
 
 ## Top-Level Subsystems
 
@@ -1800,9 +1826,10 @@ resident background runtime.
 
 ### Cross-Process Attach Decision
 
-Decision: keep the interactive terminal UX process-local for the current
-architecture. Do not introduce a daemon-backed runtime or a cross-process
-terminal attach protocol in the current roadmap phase.
+Current baseline decision: keep the interactive terminal UX process-local for
+the shipped architecture. Do not treat the current CLI and dashboard surfaces
+as if they already imply a daemon-backed runtime or a cross-process terminal
+attach protocol.
 
 This is the current stance because the existing surfaces already cover most of
 the operator value at materially lower complexity:
@@ -1814,8 +1841,12 @@ the operator value at materially lower complexity:
 - approval and question flows are already resumable from persisted events rather than process-local memory
 
 The remaining gap is specifically terminal-native live attach to a runtime that
-is still owned by another process. That is real operator value, but it is not
-large enough yet to justify the additional platform and protocol cost.
+is still owned by another process. That is real operator value, but it remains
+future work rather than an accidental promise of the current surfaces.
+
+For v2 planning, this section should be read as the current baseline and
+tradeoff record that `GBX-300` may intentionally revise, not as a permanent
+architectural ban on persistent runtime ownership.
 
 #### Tradeoff Analysis
 
