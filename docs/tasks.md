@@ -2460,7 +2460,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-240: Define Release-Contract Model For Replay And Eval
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-196`, `GBX-205`, `GBX-235`, `GBX-236`, `GBX-121`
 - Goal: define how curated replay and eval suites map onto release decisions so deterministic replay becomes a maintained product contract rather than only a debugging aid
 - Deliverables:

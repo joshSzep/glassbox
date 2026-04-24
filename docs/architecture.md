@@ -1459,6 +1459,143 @@ local enforcement model: catch the cheapest high-value regressions before
 commit, then use post-push automation for confirmation, artifact retention, and
 visibility rather than as the first line of defense.
 
+### Replay And Eval As A Release Contract
+
+Replay and eval should be treated as a maintained release contract for
+Glassbox, not only as debugging conveniences.
+
+The purpose of this contract is to answer a release-oriented question that raw
+history inspection and ordinary automated tests do not answer cleanly on their
+own:
+
+- does the current Glassbox codebase still honor the curated operator-visible
+    behaviors that the repository has chosen to preserve?
+
+This release contract should stay explicitly narrower than total product
+correctness.
+
+- `pytest`, linting, and type checking still protect implementation quality,
+    local correctness, and internal contracts
+- replay and eval protect curated runtime behavior across real session flows,
+    including context assembly, tool control flow, suspension behavior, and final
+    projected state
+- passing replay and eval suites increase release confidence, but they do not by
+    themselves certify the entire system
+
+#### Verification Tiers
+
+Replay and eval coverage should be organized into explicit verification tiers
+with different operator expectations.
+
+- commit-time: the smallest blocking deterministic suite, intended to catch the
+    highest-value regressions before history is created
+- push-time confirmation: deterministic coverage that reruns after `origin`
+    receives new commits and retains artifacts for shared review
+- release-candidate: the broadest deterministic suite required before treating
+    a build as a serious release candidate
+- advisory: deterministic but non-blocking coverage that is useful for trend
+    detection, coverage growth, or costlier scenarios that have not earned
+    blocking status yet
+- canary or research: explicitly non-deterministic or live-provider comparison
+    work that may be useful for observing current model behavior, but is outside
+    the deterministic release contract
+
+The first three tiers are release-bearing tiers. Advisory and canary coverage
+may inform product direction, but they must not weaken or blur the meaning of a
+passing deterministic release signal.
+
+#### Case Terminology
+
+Each curated replay or eval case should eventually be describable using a small
+stable set of release-governance terms.
+
+- covered capability: the operator-visible workflow or behavior the case is
+    intended to protect, such as approval flow, `ask_user` suspension, branching,
+    artifact-backed context, or replay portability
+- owner: the subsystem or product area expected to respond when the case drifts
+- severity: how seriously failure of this case should be treated in the tiers
+    where it participates
+- blocking intent: whether the case is allowed in commit-time, push-time,
+    release-candidate, or advisory-only suites
+- baseline freshness: whether the bundle is current enough to keep providing a
+    meaningful contract rather than stale reassurance
+
+This terminology should stay repository-owned and reviewable. It must not live
+only in CI wiring, naming conventions, or contributor folklore.
+
+#### Exact-Match Versus Selected-Invariant Contracts
+
+The release contract should remain strict by default, but not simplistic.
+
+- exact-match cases are the default tool when Glassbox should preserve the
+    whole normalized behavior of a workflow
+- selected-invariant cases are appropriate when the important contract is
+    narrower, such as final projected state, approval flow, or context-source
+    stability, and exact transcript equivalence would create noise rather than
+    confidence
+- advisory cases may intentionally observe broader or costlier behavior without
+    imposing a blocking release burden immediately
+
+Selected-invariant cases must remain explicit. They are a targeted contract
+choice, not a hidden weakening of deterministic replay.
+
+#### Severity Expectations For Replay Outcomes
+
+The replay taxonomy remains the same, but release-oriented suites should attach
+clear severity expectations to those outcomes.
+
+- `exact_match` means the curated release contract held for that case
+- `manifest_drift` should generally be treated as high severity in blocking
+    deterministic tiers, because it means Glassbox no longer reproduced the
+    recorded context, policy, schema, or preparation contract before playback
+    meaningfully began
+- `behavioral_drift` should be treated according to the case contract: high
+    severity for exact-match blocking cases, and expectation-aware for
+    selected-invariant cases where some mismatch dimensions are intentionally
+    ignored
+- `unsupported_session` should be rare in curated blocking tiers; if it appears
+    there, that is usually a release-governance problem rather than a harmless
+    skip
+- `replay_failure` should be treated as a verification-system defect until
+    proven otherwise, because the project has lost trustworthy evidence about the
+    case it meant to verify
+
+These distinctions matter because a context-manifest regression, a tolerated
+transcript-only mismatch, and a broken replay runner should not carry the same
+release meaning.
+
+#### Deterministic Contract Versus Canary Work
+
+Deterministic replay and eval must stay clearly separate from future
+live-provider comparison or other research-oriented verification.
+
+- deterministic release verification asks whether the current Glassbox control
+    plane still reproduces curated recorded behavior under the offline replay
+    contract
+- canary or live-provider work asks how providers behave now under current
+    credentials, latency, and model behavior
+
+Both are useful, but they answer different questions. Live-provider comparison
+must remain non-blocking until the repository deliberately defines a separate
+contract for it. It must not be allowed to contaminate the meaning of a passing
+deterministic release tier.
+
+#### Release Sign-Off Principle
+
+Over time, Glassbox should be able to summarize replay and eval results as part
+of release sign-off using repository-owned deterministic tiers, covered
+capabilities, and retained drift artifacts.
+
+The intended release posture is:
+
+- blocking deterministic tiers provide the minimum trustworthy evidence that
+    key operator-visible behaviors still hold
+- advisory deterministic tiers expand confidence without redefining the minimum
+    contract silently
+- canary work remains informative but separate
+- baseline refresh is a contract change that should be reviewed deliberately,
+    not a routine mechanism for making failures disappear
+
 ### Interactive Command Surface
 
 The primary conversational UX should move toward a persistent terminal session
