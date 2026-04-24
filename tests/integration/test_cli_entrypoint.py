@@ -38,6 +38,32 @@ def test_python_module_entrypoint_prints_help(
     assert "serve" in captured.out
 
 
+def test_cli_unknown_command_exits_with_parser_error(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["not-a-command"])
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 2
+    assert "usage: glassbox" in captured.err
+    assert "invalid choice: 'not-a-command'" in captured.err
+
+
+def test_cli_invalid_port_exits_with_parser_error(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["serve", "--port", "70000"])
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 2
+    assert "usage: glassbox serve" in captured.err
+    assert "invalid port: 70000" in captured.err
+
+
 def test_cli_run_creates_a_baseline_session_and_initial_prompt(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

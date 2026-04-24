@@ -315,7 +315,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R120: Split CLI Parser Construction From Command Dispatch
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R104`
 - Goal: reduce `cli/__init__.py` by separating argument-parser construction from command dispatch and process-level error handling
 - Deliverables:
