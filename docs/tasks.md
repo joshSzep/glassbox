@@ -2372,7 +2372,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-233: Add Per-Source Provenance Metadata And Fingerprints For Enriched Context
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-191`, `GBX-224`, `GBX-230`, `GBX-232`
 - Goal: make enriched-context drift reporting more actionable by capturing provenance and fingerprints per context source instead of only at the aggregate level
 - Deliverables:

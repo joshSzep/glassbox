@@ -59,6 +59,7 @@ class PreparedModelTurn:
     user_prompt: str | None
     request_parameters: ModelRequestParameters
     model_settings: dict[str, object]
+    turn_context_payload: dict[str, object] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -168,6 +169,10 @@ class PydanticAIModelAdapter:
             user_prompt=user_prompt,
             request_parameters=request_parameters,
             model_settings=dict(self.config.model_settings),
+            turn_context_payload=cast(
+                dict[str, object],
+                turn_context.model_dump(mode="json"),
+            ),
         )
 
     def new_stream_translator(self) -> PydanticAIStreamTranslator:

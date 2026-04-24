@@ -1207,6 +1207,7 @@ def _continuation_turn(
         user_prompt=None,
         request_parameters=prepared_turn.request_parameters,
         model_settings=prepared_turn.model_settings,
+        turn_context_payload=prepared_turn.turn_context_payload,
     )
 
 

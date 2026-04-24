@@ -488,7 +488,70 @@ def test_replay_runner_reports_enriched_context_manifest_drift(
 
         assert result.outcome == "manifest_drift"
         assert result.message is not None
-        assert "enriched context" in result.message
+        assert (
+            "recorded enriched context source drifted: runtime_notes" in result.message
+        )
+
+    asyncio.run(scenario())
+
+
+def test_replay_runner_preserves_older_artifact_enriched_context_fallback(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = _build_turn_engine(
+                repository,
+                artifact_repository,
+                bus,
+                model_fn=_text_only_response,
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+
+            state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+            await supervisor.record_runtime_note(
+                state.session_id,
+                category="operator",
+                message="Stay inside src/glassbox",
+            )
+            await supervisor.submit_user_message(state.session_id, "Inspect the repo")
+
+            artifact_path = tmp_path / _replay_model_call_artifact_path(
+                repository,
+                state.session_id,
+            )
+            artifact_payload = json.loads(artifact_path.read_text(encoding="utf-8"))
+            artifact_payload.pop("enriched_context_sources", None)
+            artifact_payload["turn_context"]["memory_notes"] = [
+                "[operator] Unexpected note"
+            ]
+            artifact_path.write_text(
+                json.dumps(artifact_payload, indent=2),
+                encoding="utf-8",
+            )
+
+            result = await ReplayRunner(repository, artifact_repository).replay_session(
+                state.session_id
+            )
+        finally:
+            connection.close()
+
+        assert result.outcome == "manifest_drift"
+        assert result.message is not None
+        assert (
+            "enriched context no longer matches recorded replay manifest"
+            in result.message
+        )
 
     asyncio.run(scenario())
 

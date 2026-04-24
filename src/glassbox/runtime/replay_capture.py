@@ -91,6 +91,25 @@ class ReplayPreparedTurnSnapshot(BaseModel):
     model_settings: dict[str, Any] = Field(default_factory=dict)
 
 
+class ReplayEnrichedContextSourceManifest(BaseModel):
+    """Semantic replay metadata for one enriched-context source."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_name: str
+    schema_version: int = Field(default=1, ge=1)
+    provenance_class: Literal[
+        "recomputed_summary",
+        "persisted_session_state",
+        "artifact_backed_summary",
+    ]
+    fingerprint: str
+    inherited: bool = False
+    item_count: int | None = Field(default=None, ge=0)
+    additional_item_count: int | None = Field(default=None, ge=0)
+    summary: str | None = None
+
+
 class ReplayModelCallManifest(BaseModel):
     """Replay baseline for one model call inside a turn."""
 
@@ -101,6 +120,9 @@ class ReplayModelCallManifest(BaseModel):
     call_index: int = Field(ge=1)
     turn_context: dict[str, Any]
     enriched_context_fingerprint: str | None = None
+    enriched_context_sources: list[ReplayEnrichedContextSourceManifest] = Field(
+        default_factory=list
+    )
     runtime_config: ReplayRuntimeConfigSnapshot
     prepared_turn: ReplayPreparedTurnSnapshot
 
@@ -208,11 +230,15 @@ def build_replay_model_call_manifest(
     turn_context: TurnContext,
     prepared_turn: PreparedModelTurn,
 ) -> ReplayModelCallManifest:
+    turn_context_payload = _redact_json(turn_context.model_dump(mode="json"))
     return ReplayModelCallManifest(
         call_index=call_index,
-        turn_context=_redact_json(turn_context.model_dump(mode="json")),
+        turn_context=turn_context_payload,
         enriched_context_fingerprint=build_replay_enriched_context_fingerprint(
             turn_context
+        ),
+        enriched_context_sources=build_replay_enriched_context_sources(
+            turn_context_payload
         ),
         runtime_config=build_replay_runtime_config_snapshot(
             prepared_turn,
@@ -450,6 +476,101 @@ def build_replay_enriched_context_fingerprint(turn_context: TurnContext) -> str:
     )
 
 
+def build_replay_enriched_context_sources(
+    turn_context_payload: dict[str, Any],
+) -> list[ReplayEnrichedContextSourceManifest]:
+    """Return typed per-source semantic fingerprints for enriched context."""
+
+    manifests: list[ReplayEnrichedContextSourceManifest] = []
+
+    repo_context = turn_context_payload.get("repo_context")
+    if isinstance(repo_context, str) and repo_context.strip() != "":
+        manifests.append(
+            ReplayEnrichedContextSourceManifest(
+                source_name="repository_context",
+                provenance_class="recomputed_summary",
+                fingerprint=_fingerprint_payload(
+                    {"repo_context": _normalize_repo_context(repo_context)}
+                ),
+                summary=_repo_context_summary(repo_context),
+            )
+        )
+
+    memory_notes = [
+        str(note).strip()
+        for note in list(turn_context_payload.get("memory_notes") or [])
+        if str(note).strip() != ""
+    ]
+    if memory_notes:
+        manifests.append(
+            ReplayEnrichedContextSourceManifest(
+                source_name="runtime_notes",
+                provenance_class="persisted_session_state",
+                fingerprint=_fingerprint_payload(
+                    {
+                        "memory_notes": sorted(memory_notes, key=str.casefold),
+                        "inherited_count": sum(
+                            1
+                            for note in memory_notes
+                            if note.casefold().startswith("[inherited ")
+                        ),
+                    }
+                ),
+                inherited=any(
+                    note.casefold().startswith("[inherited ") for note in memory_notes
+                ),
+                item_count=len(memory_notes),
+                summary=(
+                    f"{len(memory_notes)} runtime note(s)"
+                    if len(memory_notes) != 1
+                    else "1 runtime note"
+                ),
+            )
+        )
+
+    working_set_payload = turn_context_payload.get("working_set")
+    working_set_items = []
+    additional_item_count = 0
+    if isinstance(working_set_payload, dict):
+        working_set_items = list(working_set_payload.get("items") or [])
+        additional_item_count = int(
+            working_set_payload.get("additional_item_count") or 0
+        )
+    if working_set_items:
+        normalized_items = sorted(
+            [
+                _normalize_working_set_item_payload(item)
+                for item in working_set_items
+                if isinstance(item, dict)
+            ],
+            key=lambda item: (
+                item["subject_kind"],
+                item["subject"],
+                item["summary"],
+                item["inherited"],
+            ),
+        )
+        manifests.append(
+            ReplayEnrichedContextSourceManifest(
+                source_name="working_set",
+                provenance_class="recomputed_summary",
+                fingerprint=_fingerprint_payload({"items": normalized_items}),
+                inherited=any(
+                    item.get("inherited") is True for item in normalized_items
+                ),
+                item_count=len(normalized_items),
+                additional_item_count=additional_item_count,
+                summary=(
+                    f"{len(normalized_items)} working-set item(s)"
+                    if len(normalized_items) != 1
+                    else "1 working-set item"
+                ),
+            )
+        )
+
+    return manifests
+
+
 def fingerprint_replay_enriched_context_payload(
     turn_context_payload: dict[str, Any],
 ) -> str:
@@ -458,6 +579,27 @@ def fingerprint_replay_enriched_context_payload(
             "repo_context": turn_context_payload.get("repo_context"),
             "memory_notes": list(turn_context_payload.get("memory_notes") or []),
             "working_set": turn_context_payload.get("working_set"),
+        }
+    )
+
+
+def fingerprint_replay_enriched_context_sources(
+    sources: Sequence[ReplayEnrichedContextSourceManifest],
+) -> str:
+    return _fingerprint_payload(
+        {
+            "sources": [
+                {
+                    "source_name": source.source_name,
+                    "schema_version": source.schema_version,
+                    "provenance_class": source.provenance_class,
+                    "fingerprint": source.fingerprint,
+                    "inherited": source.inherited,
+                    "item_count": source.item_count,
+                    "additional_item_count": source.additional_item_count,
+                }
+                for source in sorted(sources, key=lambda source: source.source_name)
+            ]
         }
     )
 
@@ -558,6 +700,74 @@ def _normalize_system_prompt_content(content: str) -> str:
         and not section.startswith("Working set:")
     ]
     return "\n\n".join(filtered_sections)
+
+
+def _normalize_repo_context(repo_context: str) -> str:
+    high_signal_paths: list[str] = []
+    project_markers: list[str] = []
+    for raw_line in repo_context.splitlines():
+        line = raw_line.strip()
+        if line == "":
+            continue
+        if line.startswith("High-signal paths: "):
+            high_signal_paths = _parse_repo_context_csv(
+                line.removeprefix("High-signal paths: ")
+            )
+            continue
+        if line.startswith("Project markers: "):
+            project_markers = _parse_repo_context_csv(
+                line.removeprefix("Project markers: ")
+            )
+    return json.dumps(
+        {
+            "high_signal_paths": high_signal_paths,
+            "project_markers": project_markers,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+
+def _repo_context_summary(repo_context: str) -> str:
+    first_line = next(
+        (line.strip() for line in repo_context.splitlines() if line.strip() != ""),
+        "repository context",
+    )
+    return first_line
+
+
+def _parse_repo_context_csv(value: str) -> list[str]:
+    return sorted(
+        {item.strip() for item in value.split(",") if item.strip() != ""},
+        key=str.casefold,
+    )
+
+
+def _normalize_working_set_item_payload(item: dict[str, Any]) -> dict[str, Any]:
+    normalized_reasons = sorted(
+        {
+            reason.strip()
+            for reason in list(item.get("reasons") or [])
+            if isinstance(reason, str) and reason.strip() != ""
+        },
+        key=str.casefold,
+    )
+    normalized_signal_types = sorted(
+        {
+            signal_type.strip()
+            for signal_type in list(item.get("signal_types") or [])
+            if isinstance(signal_type, str) and signal_type.strip() != ""
+        },
+        key=str.casefold,
+    )
+    return {
+        "subject_kind": str(item.get("subject_kind") or "").strip(),
+        "subject": str(item.get("subject") or "").strip(),
+        "summary": str(item.get("summary") or "").strip(),
+        "reasons": normalized_reasons,
+        "signal_types": normalized_signal_types,
+        "inherited": bool(item.get("inherited")),
+    }
 
 
 def _json_compatible(value: Any) -> Any:
