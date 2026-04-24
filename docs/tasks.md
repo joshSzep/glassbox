@@ -2161,6 +2161,150 @@ uv run ty check src/glassbox/path.py
 
 ---
 
+## Phase 22: Richer Runtime Context And Memory-Grounded Turns
+
+### GBX-220: Define Richer Runtime Context Contract And Scope
+
+- Status: `TODO`
+- Depends on: `GBX-033`, `GBX-051`, `GBX-191`, `GBX-217`, `GBX-121`
+- Goal: define what additional turn context Glassbox should assemble beyond transcript, tools, and approval state so future prompt improvements remain inspectable, replayable, and bounded
+- Deliverables:
+  - architecture and operator-workflow updates defining the richer runtime context model
+  - explicit context-source taxonomy covering at least repository context, session-scoped runtime notes, and turn-local working-set summaries
+  - explicit rules for what belongs in prompt context versus what should remain tool-discoverable at runtime
+  - scope boundary for v1 richer context so the implementation does not collapse into unbounded repository indexing or hidden agent memory
+- Implementation notes:
+  - build on the existing typed `TurnContext` shape and prompt-fragment hooks rather than inventing a second context path beside them
+  - keep the contract deterministic enough that replay and eval can continue to reason about context drift explicitly
+  - define budget and freshness expectations up front so repository context remains concise, stable, and cheap to recompute locally
+  - treat richer context as an operator-facing runtime feature, not as invisible prompt magic
+- Tests and validation included in task:
+  - architecture and doc review against the current `TurnContextBuilder`, system-prompt composition, replay-manifest capture, and session resume behavior before implementation begins
+  - manual validation that the proposed context model does not contradict the current event-sourced source-of-truth rule or the local-first replay model
+- Done when:
+  - the repo has a clear, code-aligned contract for what richer runtime context contains, where it comes from, and what is intentionally out of scope for the first implementation
+
+### GBX-221: Implement Typed Repository Context Snapshot Builder
+
+- Status: `TODO`
+- Depends on: `GBX-220`
+- Goal: assemble a deterministic repository-context summary that gives the model useful workspace awareness without forcing it to rediscover the same high-level facts every turn
+- Deliverables:
+  - typed repository-context models and builder helpers under the runtime boundary
+  - initial repository snapshot sources such as stable workspace root metadata, high-signal top-level project structure, and other low-cost summary inputs justified by the design task
+  - normalization rules that keep repository-context text compact, ordered, and replay-friendly
+- Implementation notes:
+  - do not dump raw file trees or whole documents into prompt context by default; prefer concise, typed summaries that are cheap to inspect and compare
+  - keep repository-context building distinct from tool execution so the turn engine still owns a clean separation between assembly and action
+  - be deliberate about any filesystem reads or lightweight git-derived signals included in the baseline so the result stays deterministic enough for local replay
+  - expose enough structure that later tasks can surface repository context in status, snapshots, or replay manifests without reverse-parsing prompt text
+- Tests and validation included in task:
+  - unit tests for repository-context assembly and stable ordering using representative fixture workspaces
+  - regression tests proving repository-context normalization is deterministic for the same workspace contents
+- Done when:
+  - Glassbox can build a compact typed repository-context snapshot suitable for inclusion in turn context without relying on ad hoc string concatenation in the turn engine
+
+### GBX-222: Implement Session-Scoped Runtime Notes And Retrieval
+
+- Status: `TODO`
+- Depends on: `GBX-220`, `GBX-024`, `GBX-032`
+- Goal: make session-scoped runtime notes a real persisted input to future turns instead of an unused field on `TurnContext`
+- Deliverables:
+  - service and repository support for recording and retrieving session-scoped runtime notes using the existing runtime-note event model or an equivalent event-aligned refinement if the contract changes
+  - projection or query helpers for reading the currently active note set efficiently during context assembly
+  - clear note categories or source metadata if needed to distinguish operator notes, runtime notes, and inherited branch context
+- Implementation notes:
+  - keep notes session-scoped and event-backed so they survive resume, branching, and replay without inventing an out-of-band memory store
+  - prefer append-only note recording plus deterministic current-state derivation over mutable ad hoc note blobs
+  - define deduplication, supersession, or retention semantics explicitly so note growth remains bounded in long-lived sessions
+  - if branch inheritance matters, keep inherited notes distinguishable from newly recorded child-session notes rather than flattening all memory into one opaque list
+- Tests and validation included in task:
+  - integration tests for recording, projecting, and retrieving runtime notes across normal sessions, resumed sessions, and forked child sessions where relevant
+  - regression tests proving older sessions without notes remain readable and do not break context assembly
+- Done when:
+  - session-scoped runtime notes can be persisted, recovered, and queried through the normal event and projection flow instead of existing only as an unused prompt hook
+
+### GBX-223: Inject Enriched Context Into Turn Assembly And Prompt Construction
+
+- Status: `TODO`
+- Depends on: `GBX-221`, `GBX-222`, `GBX-052`, `GBX-053`
+- Goal: make richer repository context and runtime notes part of the actual live turn path rather than dormant optional fields
+- Deliverables:
+  - turn-engine wiring that builds repository context and session notes for user-message, approval-resume, and ask-user-resume turn paths
+  - `TurnContextBuilder` integration for the richer context inputs
+  - prompt-composition updates only where needed to keep repository context and notes clearly separated from transcript and tool instructions
+- Implementation notes:
+  - keep the richer-context path explicit in the turn engine so failures in context assembly surface as debuggable runtime behavior rather than silent prompt degradation
+  - ensure the enriched context stays bounded; do not let one large repository summary crowd out transcript or tool information indiscriminately
+  - preserve the current typed system-prompt composition model rather than inlining new context fragments directly into model adapters or executors
+  - cover all turn entry points so resumed turns do not silently lose repository context or memory notes compared with initial user-message turns
+- Tests and validation included in task:
+  - integration tests for end-to-end prompt assembly including repository context and runtime notes across initial, approval-resumed, and ask-user-resumed turns
+  - prompt-composition tests proving the enriched context remains clearly separated and stable in the final system prompt
+- Done when:
+  - live Glassbox turns actually receive the richer repository context and session-scoped notes through the normal typed prompt assembly path
+
+### GBX-224: Make Replay, Resume, And Branching Respect Enriched Context
+
+- Status: `TODO`
+- Depends on: `GBX-100`, `GBX-191`, `GBX-212`, `GBX-216`, `GBX-223`
+- Goal: preserve richer runtime context across replay, eval, resume, and branch workflows so smarter prompt assembly does not reduce determinism or make child sessions opaque again
+- Deliverables:
+  - replay-manifest and portable-bundle support for the enriched context inputs that materially influence turn preparation
+  - explicit replay-drift behavior when repository context or runtime notes no longer reproduce the recorded manifest shape
+  - resume and branching rules for how repository context is recomputed versus how runtime notes and inherited context are carried forward into child sessions
+- Implementation notes:
+  - keep the distinction clear between recomputed repository summaries and persisted note state; not every richer-context input should be treated the same way during replay or forking
+  - do not make replay depend on undocumented ambient workspace state beyond the defined repository-context contract
+  - ensure child sessions remain self-contained enough that replay and eval can reason about inherited notes or context explicitly rather than reconstructing them heuristically from the parent session
+  - preserve the current local-first replay taxonomy by reporting richer-context mismatches as manifest drift when appropriate rather than collapsing them into generic transcript drift
+- Tests and validation included in task:
+  - integration tests proving enriched-context sessions can still be resumed, exported, replayed, and used as eval baselines
+  - regression tests for forked sessions where inherited note state or repository context contributes to child-session turn preparation
+- Done when:
+  - richer runtime context remains compatible with the project’s existing resume, replay, eval, and branching guarantees instead of becoming hidden non-replayable prompt state
+
+### GBX-225: Surface Current Runtime Context For Operator Inspection
+
+- Status: `TODO`
+- Depends on: `GBX-111`, `GBX-183`, `GBX-223`
+- Goal: make the richer context inspectable enough that operators can understand what high-level workspace and memory facts the model is currently seeing
+- Deliverables:
+  - status, snapshot, or equivalent operator-facing surfaces for concise repository-context and runtime-note summaries where they add practical debugging value
+  - bounded presentation rules so these summaries remain legible in terminal and browser workflows
+  - any backend response-contract updates needed to support the richer-context display path without exposing raw prompt text as the only inspection mechanism
+- Implementation notes:
+  - surface summaries, not giant prompt dumps; operators should understand the current context model without reading opaque concatenated system-prompt text
+  - keep browser and terminal semantics aligned where the same session context is represented in both places
+  - do not turn operator inspection into a second mutable configuration path unless a later task explicitly introduces editable note workflows
+- Tests and validation included in task:
+  - CLI and/or HTTP integration tests for richer-context summary visibility in representative session states
+  - frontend or renderer regression tests if new browser or terminal presentation is added
+- Done when:
+  - an operator can inspect the key repository-context and session-note inputs shaping a turn without diving into implementation code or replay artifacts first
+
+### GBX-226: Document Richer Runtime Context Workflows And Boundaries
+
+- Status: `TODO`
+- Depends on: `GBX-220`, `GBX-221`, `GBX-222`, `GBX-223`, `GBX-224`, `GBX-225`, `GBX-121`
+- Goal: explain how richer runtime context works, what it includes, and how it affects replayable session behavior without making it sound like hidden autonomous memory
+- Deliverables:
+  - README and architecture updates covering repository context, session-scoped runtime notes, and their role in live turns
+  - operator guidance for understanding richer-context summaries in the CLI and dashboard
+  - documentation for how enriched context interacts with resume, replay, eval, and branch workflows
+  - troubleshooting guidance for context drift, stale summaries, and note-related behavior changes during replay or resumed sessions
+- Implementation notes:
+  - keep docs explicit that richer context is still bounded, typed runtime state, not an uninspectable black-box memory layer
+  - show at least one end-to-end example where repository context and runtime notes affect a later turn in a way the operator can inspect
+  - align the docs with the existing replay and eval terminology so context drift becomes part of the same conceptual model rather than a separate subsystem
+- Tests and validation included in task:
+  - doc review against implemented builder behavior, prompt composition, status or snapshot surfaces, and replay-manifest semantics
+  - manual verification that the documented richer-context workflow matches the actual operator-visible behavior
+- Done when:
+  - a developer or operator can understand what richer runtime context is, how it is assembled, and how it behaves under replay and branching from the docs alone
+
+---
+
 ## Recommended Build Order For The First Usable Vertical Slice
 
 If an agent wants the fastest path to a demonstrable but architecturally correct version, the recommended order is:
