@@ -2265,9 +2265,8 @@ uv run ty check src/glassbox/path.py
   - richer runtime context remains compatible with the project’s existing resume, replay, eval, and branching guarantees instead of becoming hidden non-replayable prompt state
 
 ### GBX-225: Surface Current Runtime Context For Operator Inspection
-Status: DONE
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-111`, `GBX-183`, `GBX-223`
 - Goal: make the richer context inspectable enough that operators can understand what high-level workspace and memory facts the model is currently seeing
 - Deliverables:
