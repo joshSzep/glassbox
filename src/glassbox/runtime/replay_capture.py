@@ -100,6 +100,7 @@ class ReplayModelCallManifest(BaseModel):
     artifact_kind: Literal["replay_model_call"] = REPLAY_MODEL_CALL_ARTIFACT
     call_index: int = Field(ge=1)
     turn_context: dict[str, Any]
+    enriched_context_fingerprint: str | None = None
     runtime_config: ReplayRuntimeConfigSnapshot
     prepared_turn: ReplayPreparedTurnSnapshot
 
@@ -180,12 +181,16 @@ def build_replay_prepared_turn_snapshot(
     prepared_turn: PreparedModelTurn,
     *,
     tool_names: Sequence[str],
+    normalize_system_prompt: bool = True,
 ) -> ReplayPreparedTurnSnapshot:
     return ReplayPreparedTurnSnapshot(
         model_name=prepared_turn.model_name,
         user_prompt=prepared_turn.user_prompt,
         message_history=[
-            _snapshot_model_message(message)
+            _snapshot_model_message(
+                message,
+                normalize_system_prompt=normalize_system_prompt,
+            )
             for message in prepared_turn.message_history
         ],
         request_parameters={
@@ -206,6 +211,9 @@ def build_replay_model_call_manifest(
     return ReplayModelCallManifest(
         call_index=call_index,
         turn_context=_redact_json(turn_context.model_dump(mode="json")),
+        enriched_context_fingerprint=build_replay_enriched_context_fingerprint(
+            turn_context
+        ),
         runtime_config=build_replay_runtime_config_snapshot(
             prepared_turn,
             tool_names=[tool.name for tool in turn_context.available_tools],
@@ -436,11 +444,38 @@ def _fingerprint_payload(payload: dict[str, Any]) -> str:
     ).hexdigest()
 
 
-def _snapshot_model_message(message: ModelMessage) -> ReplayMessageSnapshot:
+def build_replay_enriched_context_fingerprint(turn_context: TurnContext) -> str:
+    return fingerprint_replay_enriched_context_payload(
+        turn_context.model_dump(mode="json")
+    )
+
+
+def fingerprint_replay_enriched_context_payload(
+    turn_context_payload: dict[str, Any],
+) -> str:
+    return _fingerprint_payload(
+        {
+            "repo_context": turn_context_payload.get("repo_context"),
+            "memory_notes": list(turn_context_payload.get("memory_notes") or []),
+        }
+    )
+
+
+def _snapshot_model_message(
+    message: ModelMessage,
+    *,
+    normalize_system_prompt: bool = True,
+) -> ReplayMessageSnapshot:
     if isinstance(message, ModelRequest):
         return ReplayMessageSnapshot(
             message_kind="request",
-            parts=[_snapshot_request_part(part) for part in message.parts],
+            parts=[
+                _snapshot_request_part(
+                    part,
+                    normalize_system_prompt=normalize_system_prompt,
+                )
+                for part in message.parts
+            ],
         )
     if isinstance(message, ModelResponse):
         return ReplayMessageSnapshot(
@@ -450,11 +485,19 @@ def _snapshot_model_message(message: ModelMessage) -> ReplayMessageSnapshot:
     raise TypeError(f"unsupported model message type: {type(message)!r}")
 
 
-def _snapshot_request_part(part: Any) -> ReplayMessagePartSnapshot:
+def _snapshot_request_part(
+    part: Any,
+    *,
+    normalize_system_prompt: bool = True,
+) -> ReplayMessagePartSnapshot:
     if isinstance(part, SystemPromptPart):
         return ReplayMessagePartSnapshot(
             part_kind="system_prompt",
-            content=_normalize_system_prompt_content(part.content),
+            content=(
+                _normalize_system_prompt_content(part.content)
+                if normalize_system_prompt
+                else part.content
+            ),
         )
     if isinstance(part, UserPromptPart):
         return ReplayMessagePartSnapshot(

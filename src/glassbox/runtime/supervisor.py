@@ -6,6 +6,7 @@ from glassbox.core.events import (
     ApprovalRequested,
     ApprovalResolved,
     EventEnvelope,
+    RuntimeNoteImported,
     RuntimeNoteRecorded,
     SessionCompleted,
     SessionResumed,
@@ -110,6 +111,27 @@ class SessionSupervisor(SessionService):
         if import_events:
             stored_import_events = self._session_repository.append_events(import_events)
             for event in stored_import_events:
+                self._event_bus.publish(event)
+
+        inherited_runtime_note_events = [
+            EventEnvelope(
+                session_id=child_state.session_id,
+                sequence=0,
+                payload=RuntimeNoteImported(
+                    source_session_id=note.source_session_id,
+                    source_sequence=note.source_sequence,
+                    category=note.category,
+                    message=note.message,
+                    source_created_at=note.created_at,
+                ),
+            )
+            for note in self._session_repository.list_runtime_notes(session_id)
+        ]
+        if inherited_runtime_note_events:
+            stored_runtime_note_events = self._session_repository.append_events(
+                inherited_runtime_note_events
+            )
+            for event in stored_runtime_note_events:
                 self._event_bus.publish(event)
 
         current_state = self._require_session_state(child_state.session_id)

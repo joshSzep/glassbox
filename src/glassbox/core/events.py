@@ -223,6 +223,15 @@ class RuntimeNoteRecorded(EventPayload):
     message: str
 
 
+class RuntimeNoteImported(EventPayload):
+    event_type: Literal["RuntimeNoteImported"] = "RuntimeNoteImported"
+    source_session_id: SessionId
+    source_sequence: int = Field(ge=0)
+    category: str
+    message: str
+    source_created_at: datetime
+
+
 class ErrorRecorded(EventPayload):
     event_type: Literal["ErrorRecorded"] = "ErrorRecorded"
     scope: ErrorScope
@@ -256,6 +265,7 @@ EventPayloadType = Annotated[
     | UserQuestionAsked
     | UserAnswerProvided
     | RuntimeNoteRecorded
+    | RuntimeNoteImported
     | ErrorRecorded,
     Field(discriminator="event_type"),
 ]

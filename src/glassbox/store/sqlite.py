@@ -7,6 +7,7 @@ import sqlite3
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
 from uuid import UUID, uuid5
 
 from glassbox.core.events import (
@@ -19,6 +20,7 @@ from glassbox.core.events import (
     ModelCallCompleted,
     ModelCallStarted,
     ModelToolCallRequested,
+    RuntimeNoteImported,
     RuntimeNoteRecorded,
     SessionCompleted,
     SessionFailed,
@@ -210,6 +212,8 @@ BOOTSTRAP_STATEMENTS = (
     create table if not exists runtime_notes (
         session_id text not null,
         sequence integer not null,
+        source_session_id text,
+        source_sequence integer,
         category text not null,
         message text not null,
         created_at text not null,
@@ -267,6 +271,7 @@ def initialize_database(connection: sqlite3.Connection) -> None:
             connection.execute(statement)
 
         _ensure_sessions_lineage_schema(connection)
+        _ensure_runtime_notes_schema(connection)
 
         connection.execute(
             "insert or ignore into schema_migrations(version) values (?)",
@@ -529,18 +534,24 @@ def list_runtime_notes(
     if session is None:
         return []
 
-    lineage = (
-        _resolve_session_lineage(connection, session)
-        if include_inherited
-        else [session]
-    )
+    current_rows = _list_session_runtime_note_rows(connection, session_id)
+    current_notes = [_runtime_note_from_row(session_id, row) for row in current_rows]
+    if not include_inherited:
+        return [note for note in current_notes if not note.inherited]
+
+    if (
+        any(note.inherited for note in current_notes)
+        or session.parent_session_id is None
+    ):
+        return current_notes
+
     notes: list[RuntimeNoteRecord] = []
-    for source_session in lineage:
+    for source_session in _resolve_session_lineage(connection, session):
         inherited = source_session.session_id != session_id
         notes.extend(
             RuntimeNoteRecord(
                 source_session_id=source_session.session_id,
-                source_sequence=row["sequence"],
+                source_sequence=row["source_sequence"] or row["sequence"],
                 category=row["category"],
                 message=row["message"],
                 created_at=row["created_at"],
@@ -1148,6 +1159,29 @@ def _ensure_sessions_lineage_schema(connection: sqlite3.Connection) -> None:
     )
 
 
+def _ensure_runtime_notes_schema(connection: sqlite3.Connection) -> None:
+    existing_columns = {
+        row["name"]
+        for row in connection.execute("pragma table_info(runtime_notes)").fetchall()
+    }
+    if "source_session_id" not in existing_columns:
+        connection.execute(
+            "alter table runtime_notes add column source_session_id text"
+        )
+    if "source_sequence" not in existing_columns:
+        connection.execute(
+            "alter table runtime_notes add column source_sequence integer"
+        )
+    connection.execute(
+        """
+        update runtime_notes
+        set source_session_id = coalesce(source_session_id, session_id),
+            source_sequence = coalesce(source_sequence, sequence)
+        where source_session_id is null or source_sequence is null
+        """
+    )
+
+
 def _stringify_identifier(value: CorrelationValue | None) -> str | None:
     if value is None:
         return None
@@ -1630,7 +1664,15 @@ def _apply_runtime_note_projection(
     event: EventEnvelope,
 ) -> None:
     payload = event.payload
-    if not isinstance(payload, RuntimeNoteRecorded):
+    if isinstance(payload, RuntimeNoteRecorded):
+        source_session_id = event.session_id
+        source_sequence = event.sequence
+        created_at = event.created_at.isoformat()
+    elif isinstance(payload, RuntimeNoteImported):
+        source_session_id = payload.source_session_id
+        source_sequence = payload.source_sequence
+        created_at = payload.source_created_at.isoformat()
+    else:
         return
 
     connection.execute(
@@ -1638,11 +1680,15 @@ def _apply_runtime_note_projection(
         insert into runtime_notes (
             session_id,
             sequence,
+            source_session_id,
+            source_sequence,
             category,
             message,
             created_at
-        ) values (?, ?, ?, ?, ?)
+        ) values (?, ?, ?, ?, ?, ?, ?)
         on conflict(session_id, sequence) do update set
+            source_session_id = excluded.source_session_id,
+            source_sequence = excluded.source_sequence,
             category = excluded.category,
             message = excluded.message,
             created_at = excluded.created_at
@@ -1650,9 +1696,11 @@ def _apply_runtime_note_projection(
         (
             str(event.session_id),
             event.sequence,
+            str(source_session_id),
+            source_sequence,
             payload.category,
             payload.message,
-            event.created_at.isoformat(),
+            created_at,
         ),
     )
 
@@ -1929,7 +1977,13 @@ def _list_session_runtime_note_rows(
 ) -> list[sqlite3.Row]:
     rows = connection.execute(
         """
-        select sequence, category, message, created_at
+        select
+            sequence,
+            source_session_id,
+            source_sequence,
+            category,
+            message,
+            created_at
         from runtime_notes
         where session_id = ?
         order by sequence asc
@@ -1942,7 +1996,33 @@ def _list_session_runtime_note_rows(
 def _dedupe_runtime_note_rows(rows: Sequence[sqlite3.Row]) -> list[sqlite3.Row]:
     # Keep the latest exact note per source session so the active note set stays
     # bounded while the canonical event log remains append-only.
-    retained_rows: dict[tuple[str, str], sqlite3.Row] = {}
+    retained_rows: dict[tuple[str, str, str], sqlite3.Row] = {}
     for row in rows:
-        retained_rows[(row["category"], row["message"])] = row
+        retained_rows[
+            (
+                str(row["source_session_id"] or ""),
+                row["category"],
+                row["message"],
+            )
+        ] = row
     return sorted(retained_rows.values(), key=lambda row: row["sequence"])
+
+
+def _runtime_note_from_row(
+    session_id: SessionId,
+    row: sqlite3.Row,
+) -> RuntimeNoteRecord:
+    source_session_id_value = row["source_session_id"]
+    source_session_id = (
+        session_id
+        if not source_session_id_value
+        else cast(SessionId, source_session_id_value)
+    )
+    return RuntimeNoteRecord(
+        source_session_id=source_session_id,
+        source_sequence=row["source_sequence"] or row["sequence"],
+        category=row["category"],
+        message=row["message"],
+        created_at=row["created_at"],
+        inherited=source_session_id != str(session_id),
+    )

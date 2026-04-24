@@ -436,6 +436,120 @@ def test_replay_runner_reports_manifest_drift(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
+def test_replay_runner_reports_enriched_context_manifest_drift(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = _build_turn_engine(
+                repository,
+                artifact_repository,
+                bus,
+                model_fn=_text_only_response,
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+
+            state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+            await supervisor.record_runtime_note(
+                state.session_id,
+                category="operator",
+                message="Stay inside src/glassbox",
+            )
+            await supervisor.submit_user_message(state.session_id, "Inspect the repo")
+
+            artifact_path = tmp_path / _replay_model_call_artifact_path(
+                repository,
+                state.session_id,
+            )
+            artifact_payload = json.loads(artifact_path.read_text(encoding="utf-8"))
+            artifact_payload["turn_context"]["memory_notes"] = [
+                "[operator] Unexpected note"
+            ]
+            artifact_path.write_text(
+                json.dumps(artifact_payload, indent=2),
+                encoding="utf-8",
+            )
+
+            result = await ReplayRunner(repository, artifact_repository).replay_session(
+                state.session_id
+            )
+        finally:
+            connection.close()
+
+        assert result.outcome == "manifest_drift"
+        assert result.message is not None
+        assert "enriched context" in result.message
+
+    asyncio.run(scenario())
+
+
+def test_replay_runner_replays_runtime_note_actions_and_inherited_child_notes(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = _build_turn_engine(
+                repository,
+                artifact_repository,
+                bus,
+                model_fn=_text_only_response,
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+
+            parent_state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+            await supervisor.record_runtime_note(
+                parent_state.session_id,
+                category="operator",
+                message="Stay inside src/glassbox",
+            )
+            await supervisor.submit_user_message(
+                parent_state.session_id,
+                "Inspect the repo",
+            )
+
+            forked_session = await supervisor.fork_session(parent_state.session_id)
+            await supervisor.record_runtime_note(
+                forked_session.child_session_id,
+                category="runtime",
+                message="Child branch prefers narrow diffs",
+            )
+            await supervisor.submit_user_message(
+                forked_session.child_session_id,
+                "Inspect the repo",
+            )
+
+            result = await ReplayRunner(repository, artifact_repository).replay_session(
+                forked_session.child_session_id
+            )
+        finally:
+            connection.close()
+
+        assert result.outcome == "exact_match"
+        assert result.replay == result.baseline
+
+    asyncio.run(scenario())
+
+
 def test_replay_runner_reports_missing_artifact(tmp_path: Path) -> None:
     async def scenario() -> None:
         connection = _open_initialized_database(tmp_path)

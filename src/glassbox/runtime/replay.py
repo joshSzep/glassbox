@@ -21,6 +21,8 @@ from glassbox.core.events import (
     ModelCallStarted,
     ModelToolCallRequested,
     ReplayArtifactRecorded,
+    RuntimeNoteImported,
+    RuntimeNoteRecorded,
     TranscriptMessageImported,
     TurnCompleted,
     TurnFailed,
@@ -32,6 +34,7 @@ from glassbox.core.ids import SessionId
 from glassbox.core.models import (
     InheritedTranscriptMessage,
     ResolvedForkPoint,
+    RuntimeNoteRecord,
     SessionConfig,
     SessionRecord,
 )
@@ -56,6 +59,7 @@ from glassbox.runtime.replay_capture import (
     build_replay_prepared_turn_snapshot,
     build_replay_runtime_config_snapshot,
     build_replay_tool_request_manifest,
+    fingerprint_replay_enriched_context_payload,
     load_replay_manifest,
 )
 from glassbox.runtime.supervisor import SessionSupervisor
@@ -93,10 +97,12 @@ class ReplayAction(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    action_type: Literal["user_message", "approval", "user_answer"]
+    action_type: Literal["user_message", "approval", "user_answer", "runtime_note"]
     text: str | None = None
     decision: ApprovalDecision | None = None
     answer: str | None = None
+    category: str | None = None
+    message: str | None = None
 
 
 class ReplayRecordedToolCall(BaseModel):
@@ -218,6 +224,7 @@ class ReplayBundle(BaseModel):
     source_session_id: SessionId
     session_config: SessionConfig
     inherited_messages: list[InheritedTranscriptMessage] = Field(default_factory=list)
+    inherited_runtime_notes: list[RuntimeNoteRecord] = Field(default_factory=list)
     actions: list[ReplayAction]
     model_calls: list[ReplayRecordedModelCall]
     tool_requests: list[ReplayToolRequestManifest]
@@ -294,6 +301,12 @@ class ReplayRunner:
             source_session_id=session_id,
             session_config=_build_replay_bundle_session_config(source_session),
             inherited_messages=_build_inherited_messages(source_events),
+            inherited_runtime_notes=_build_inherited_runtime_notes(
+                session_id,
+                source_session,
+                source_events,
+                session_repository,
+            ),
             actions=_build_replay_actions(source_events),
             model_calls=_build_recorded_model_calls(
                 source_events,
@@ -524,12 +537,30 @@ class ReplayRunner:
                     for event in repository.append_events(restored_import_events):
                         bus.publish(event)
 
+                restored_runtime_note_events = _build_replay_runtime_note_import_events(
+                    bundle,
+                    replay_state.session_id,
+                )
+                if restored_runtime_note_events:
+                    for event in repository.append_events(restored_runtime_note_events):
+                        bus.publish(event)
+
                 for action in bundle.actions:
                     if action.action_type == "user_message":
                         assert action.text is not None
                         await supervisor.submit_user_message(
                             replay_state.session_id,
                             action.text,
+                        )
+                        continue
+
+                    if action.action_type == "runtime_note":
+                        assert action.category is not None
+                        assert action.message is not None
+                        await supervisor.record_runtime_note(
+                            replay_state.session_id,
+                            category=action.category,
+                            message=action.message,
                         )
                         continue
 
@@ -633,6 +664,16 @@ class _ReplayModelExecutor(ModelExecutor):
             drift_reasons.append("runtime config no longer matches recorded manifest")
         if current_prepared_turn != recorded_call.manifest.prepared_turn:
             drift_reasons.append("prepared turn no longer matches recorded manifest")
+        if (
+            recorded_call.manifest.enriched_context_fingerprint is not None
+            and fingerprint_replay_enriched_context_payload(
+                recorded_call.manifest.turn_context
+            )
+            != recorded_call.manifest.enriched_context_fingerprint
+        ):
+            drift_reasons.append(
+                "enriched context no longer matches recorded replay manifest"
+            )
         if drift_reasons:
             raise _ReplayManifestDrift("; ".join(drift_reasons))
 
@@ -762,6 +803,14 @@ def _build_replay_actions(events: Sequence[EventEnvelope]) -> list[ReplayAction]
         payload = event.payload
         if isinstance(payload, UserMessageReceived):
             actions.append(ReplayAction(action_type="user_message", text=payload.text))
+        elif isinstance(payload, RuntimeNoteRecorded):
+            actions.append(
+                ReplayAction(
+                    action_type="runtime_note",
+                    category=payload.category,
+                    message=payload.message,
+                )
+            )
         elif isinstance(payload, ApprovalResolved):
             actions.append(
                 ReplayAction(
@@ -811,6 +860,34 @@ def _build_inherited_messages(
     return inherited_messages
 
 
+def _build_inherited_runtime_notes(
+    session_id: SessionId,
+    source_session: SessionRecord,
+    events: Sequence[EventEnvelope],
+    session_repository: SessionRepository,
+) -> list[RuntimeNoteRecord]:
+    imported_notes = [
+        RuntimeNoteRecord(
+            source_session_id=payload.source_session_id,
+            source_sequence=payload.source_sequence,
+            category=payload.category,
+            message=payload.message,
+            created_at=payload.source_created_at,
+            inherited=True,
+        )
+        for event in events
+        if isinstance((payload := event.payload), RuntimeNoteImported)
+    ]
+    if imported_notes or source_session.parent_session_id is None:
+        return imported_notes
+
+    return [
+        note
+        for note in session_repository.list_runtime_notes(session_id)
+        if note.inherited
+    ]
+
+
 def _build_replay_import_events(
     bundle: ReplayBundle,
     repository: SQLiteSessionRepository,
@@ -840,6 +917,26 @@ def _build_replay_import_events(
             inherited_messages=list(bundle.inherited_messages),
         ),
     )
+
+
+def _build_replay_runtime_note_import_events(
+    bundle: ReplayBundle,
+    session_id: SessionId,
+) -> list[EventEnvelope]:
+    return [
+        EventEnvelope(
+            session_id=session_id,
+            sequence=0,
+            payload=RuntimeNoteImported(
+                source_session_id=note.source_session_id,
+                source_sequence=note.source_sequence,
+                category=note.category,
+                message=note.message,
+                source_created_at=note.created_at,
+            ),
+        )
+        for note in bundle.inherited_runtime_notes
+    ]
 
 
 def _build_recorded_model_calls(

@@ -2246,7 +2246,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-224: Make Replay, Resume, And Branching Respect Enriched Context
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-100`, `GBX-191`, `GBX-212`, `GBX-216`, `GBX-223`
 - Goal: preserve richer runtime context across replay, eval, resume, and branch workflows so smarter prompt assembly does not reduce determinism or make child sessions opaque again
 - Deliverables:

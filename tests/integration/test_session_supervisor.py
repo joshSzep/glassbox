@@ -508,6 +508,81 @@ def test_session_supervisor_runtime_notes_are_inherited_by_child_queries(
     asyncio.run(scenario())
 
 
+def test_forked_child_runtime_notes_are_snapshotted_at_fork_time(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            supervisor = SessionSupervisor(repository, EventBus())
+            parent_state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+            await supervisor.record_runtime_note(
+                parent_state.session_id,
+                category="operator",
+                message="Stay inside src/glassbox",
+            )
+
+            prompt_message_id = new_message_id()
+            turn_id = new_turn_id()
+            repository.append_events(
+                [
+                    EventEnvelope(
+                        session_id=parent_state.session_id,
+                        sequence=0,
+                        payload=UserMessageReceived(
+                            message_id=prompt_message_id,
+                            text="Inspect the repo",
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=parent_state.session_id,
+                        sequence=0,
+                        payload=TurnStarted(
+                            turn_id=turn_id,
+                            trigger_message_id=prompt_message_id,
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=parent_state.session_id,
+                        sequence=0,
+                        payload=TurnCompleted(
+                            turn_id=turn_id,
+                            outcome="completed",
+                        ),
+                    ),
+                ]
+            )
+
+            forked_session = await supervisor.fork_session(parent_state.session_id)
+            await supervisor.record_runtime_note(
+                parent_state.session_id,
+                category="operator",
+                message="Parent note added after fork",
+            )
+
+            child_notes = repository.list_runtime_notes(forked_session.child_session_id)
+            child_local_notes = repository.list_runtime_notes(
+                forked_session.child_session_id,
+                include_inherited=False,
+            )
+        finally:
+            connection.close()
+
+        assert [
+            (note.category, note.message, note.inherited) for note in child_notes
+        ] == [("operator", "Stay inside src/glassbox", True)]
+        assert child_local_notes == []
+
+    asyncio.run(scenario())
+
+
 def test_session_supervisor_rejects_resuming_in_flight_turn_after_restart(
     tmp_path: Path,
 ) -> None:
