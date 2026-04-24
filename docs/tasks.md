@@ -2305,6 +2305,157 @@ uv run ty check src/glassbox/path.py
 
 ---
 
+## Phase 23: Context Quality V2 Without Hidden State
+
+### GBX-230: Define Working-Set Context Contract And Replay Semantics
+
+- Status: `TODO`
+- Depends on: `GBX-220`, `GBX-223`, `GBX-224`, `GBX-226`
+- Goal: define a second-generation context model for Glassbox that goes beyond repository-root summaries while staying bounded, inspectable, and replay-aware
+- Deliverables:
+  - architecture and task-graph updates defining a typed `working_set` context source distinct from transcript, repository summary, and runtime notes
+  - explicit provenance rules for what signals are allowed to shape the working set such as recent tool outputs, touched files, failing tests, branch lineage, and session-scoped notes
+  - replay taxonomy updates that distinguish between full enriched-context drift and per-source drift where practical
+  - explicit non-goals for v2 such as hidden embeddings, ambient machine caches, broad autonomous indexing, or opaque long-term memory
+- Implementation notes:
+  - keep the working set as a deterministic runtime summary, not a second retrieval system beside the existing tools
+  - define strict budget limits for item count, summary length, and freshness so the working set does not crowd out transcript and tool instructions
+  - require each candidate working-set signal to declare whether it is recomputed, persisted, artifact-backed, or intentionally excluded from replay guarantees
+  - align the contract with the existing `TurnContext` and replay-manifest model instead of introducing a side channel for prompt enrichment
+- Tests and validation included in task:
+  - doc review against the current `TurnContextBuilder`, prompt composition, replay manifest capture, and operator inspection surfaces
+  - manual validation that the proposed contract can be expressed through typed models, replay fingerprints, and bounded snapshot APIs without hidden state
+- Done when:
+  - the repository has a code-aligned design for `working_set` context, provenance classes, and replay semantics that can drive implementation without reopening the architecture debate in later tasks
+
+### GBX-231: Implement Typed Working-Set Projection From Explicit Runtime Signals
+
+- Status: `TODO`
+- Depends on: `GBX-024`, `GBX-111`, `GBX-191`, `GBX-225`, `GBX-230`
+- Goal: build a deterministic working-set summary from already-explicit session signals so the model starts each turn with better local task awareness
+- Deliverables:
+  - typed working-set models and builder helpers under the runtime boundary
+  - projection or query support for deriving a bounded current working set from explicit signals such as touched files, recent tool calls, approval subjects, failing-test artifacts, and inherited branch context where justified
+  - prioritization and normalization rules that keep working-set ordering stable and explanation-friendly
+  - initial operator-visible summaries for why a file, test, or artifact is present in the working set
+- Implementation notes:
+  - prefer event- and artifact-derived signals over ad hoc filesystem heuristics so the result remains explainable and replayable
+  - start with a narrow set of strong signals rather than trying to infer intent from every available event family
+  - keep duplicate suppression, decay, and supersession rules explicit so long-running sessions do not accumulate stale focus items forever
+  - if a signal cannot be made deterministic enough for replay, leave it out of the baseline working set and track it as an explicit future candidate
+- Tests and validation included in task:
+  - unit tests for working-set ranking, deduplication, and stable ordering from representative event and artifact inputs
+  - integration tests proving the same persisted session state yields the same working-set snapshot across resume and rebuild flows
+- Done when:
+  - Glassbox can derive a bounded typed working set from explicit runtime state without relying on hidden caches or prompt-only heuristics
+
+### GBX-232: Inject Working-Set Context Into Turn Assembly, Status, And Snapshot Flows
+
+- Status: `TODO`
+- Depends on: `GBX-223`, `GBX-225`, `GBX-231`
+- Goal: make the working set part of normal live turn preparation and operator inspection instead of an internal-only helper
+- Deliverables:
+  - `TurnContextBuilder` and prompt-composition updates that surface the working set as a distinct prompt fragment beside repository context and runtime notes
+  - CLI and snapshot updates that let operators inspect the current working set and its top-ranked signals without dumping raw prompt text
+  - dashboard reducer and rendering updates for the new working-set surface where appropriate
+  - bounded formatting rules that keep the working-set display legible in both terminal and browser workflows
+- Implementation notes:
+  - keep working-set prompt text separate from repository context so replay artifacts and operator surfaces can reason about the two independently
+  - ensure all turn entry paths receive the same working-set behavior, including user-message turns, approval resumes, and ask-user resumes
+  - preserve the current principle that prompt enrichment failures should surface explicitly rather than silently dropping context quality
+  - do not let working-set summaries become editable from the operator surface in this phase
+- Tests and validation included in task:
+  - integration tests for prompt assembly and operator-visible status or snapshot output including working-set summaries across representative session states
+  - frontend or renderer regression tests covering working-set rendering and update behavior from snapshot plus SSE
+- Done when:
+  - live Glassbox turns use the working set consistently and operators can inspect the current focus summary without reading raw replay artifacts
+
+### GBX-233: Add Per-Source Provenance Metadata And Fingerprints For Enriched Context
+
+- Status: `TODO`
+- Depends on: `GBX-191`, `GBX-224`, `GBX-230`, `GBX-232`
+- Goal: make enriched-context drift reporting more actionable by capturing provenance and fingerprints per context source instead of only at the aggregate level
+- Deliverables:
+  - typed provenance records for repository context, runtime notes, working-set context, and any other enriched-context sources introduced by the v2 model
+  - replay-manifest updates that record per-source schema version, provenance classification, and semantic fingerprint
+  - replay diff reporting updates that can identify which context source drifted rather than collapsing all mismatches into one enriched-context failure
+  - any snapshot or inspection-contract updates needed to expose concise provenance information for debugging
+- Implementation notes:
+  - fingerprints should be semantic and stable, not overly sensitive to formatting, ordering noise, or irrelevant metadata
+  - provenance should distinguish recomputed summaries, persisted notes, inherited context, and artifact-backed summaries clearly
+  - preserve backward compatibility for older replay bundles that only have the aggregate enriched-context fingerprint
+  - do not force every future context source to use identical drift policy; the contract should support source-specific evolution without ambiguity
+- Tests and validation included in task:
+  - regression tests for replay manifests and offline replay that verify per-source drift classification and backwards compatibility with older artifacts
+  - unit tests proving provenance and fingerprint helpers ignore non-semantic noise but catch meaningful context changes
+- Done when:
+  - replay and eval output can identify the specific enriched-context source that changed and the system still supports older replay artifacts gracefully
+
+### GBX-234: Add Artifact-Backed Context Summaries For Expensive Derived Inputs
+
+- Status: `TODO`
+- Depends on: `GBX-025`, `GBX-191`, `GBX-230`, `GBX-233`
+- Goal: support richer context inputs that are too expensive or too volatile to recompute ad hoc every turn by storing them as explicit derived artifacts
+- Deliverables:
+  - an artifact-backed contract for derived context summaries such as bounded failing-test digests, curated file-cluster summaries, or other expensive high-signal turn aids justified by the working-set design
+  - repository and runtime support for recording, retrieving, and invalidating those summaries through the normal event and artifact flow
+  - replay-manifest support that records when a turn depended on an artifact-backed context summary and how it should be validated during replay
+  - operator-visible summary metadata showing when a context artifact is present and whether it is stale, inherited, or recomputed
+- Implementation notes:
+  - start with one narrowly defined artifact-backed summary type rather than introducing a generic plugin system
+  - keep artifact generation explicit and event-linked so replay, resume, and branch workflows can reason about dependency on those summaries without hidden caches
+  - define invalidation and freshness rules up front so stale artifacts do not silently degrade later turns
+  - avoid storing giant prompt-ready blobs when a compact typed summary plus referenced artifact is sufficient
+- Tests and validation included in task:
+  - integration tests covering artifact-backed context generation, retrieval, invalidation, and replay behavior for sessions that depend on the summary
+  - regression tests proving sessions without the new artifact type remain fully readable and replayable
+- Done when:
+  - Glassbox can use at least one expensive derived context summary through explicit artifact contracts rather than hidden recomputation or prompt-only hacks
+
+### GBX-235: Expand Replay And Eval Coverage For Context Drift, Inheritance, And Working-Set Evolution
+
+- Status: `TODO`
+- Depends on: `GBX-196`, `GBX-216`, `GBX-233`, `GBX-234`
+- Goal: make the richer context model safe to evolve by adding replay and eval baselines that specifically exercise context-sensitive behavior
+- Deliverables:
+  - new replay or eval fixtures covering stable working-set construction, context drift detection, branch-inherited context, and artifact-backed context dependencies
+  - selected-invariant eval cases that distinguish transcript stability from context-source drift where strict exact-match would be too blunt
+  - documentation or metadata updates describing how to read context-related replay and eval failures during local verification and push-time confirmation
+  - any pre-commit or CI hook updates needed if context-sensitive smoke coverage becomes part of the enforced baseline
+- Implementation notes:
+  - add cases that fail for the right reason when context inputs change, not only cases that confirm the happy path
+  - ensure at least one case covers branch inheritance so child-session context stays self-contained and understandable under replay
+  - keep smoke coverage small and stable; broader context-behavior coverage can remain advisory until the signal quality is proven
+  - use the existing replay taxonomy deliberately so context drift is not misreported as generic transcript instability
+- Tests and validation included in task:
+  - targeted replay and eval runs for the new cases, plus verification that local and push-time reporting still surfaces actionable artifacts and summaries
+  - manual verification that failing context-sensitive cases explain themselves clearly through the generated JSON artifacts and summaries
+- Done when:
+  - Glassbox has automated regression coverage for the new context architecture and context drift is a routine, explainable verification signal rather than a surprise failure mode
+
+### GBX-236: Document Context Quality V2 Workflows, Debugging, And Scope Limits
+
+- Status: `TODO`
+- Depends on: `GBX-232`, `GBX-233`, `GBX-234`, `GBX-235`, `GBX-121`
+- Goal: document the second-generation context model so operators and contributors can understand what improved, what stayed bounded, and how to debug context-related drift
+- Deliverables:
+  - README and architecture updates covering working-set context, provenance metadata, artifact-backed summaries, and the updated replay semantics
+  - operator guidance for reading working-set and provenance information in CLI status, dashboard snapshots, replay diffs, and eval artifacts
+  - troubleshooting guidance for stale context artifacts, source-level drift reports, and branch-inherited context surprises
+  - explicit scope boundaries describing what Glassbox still does not do such as hidden vector memory, broad autonomous indexing, or unbounded project summarization
+- Implementation notes:
+  - keep the docs explicit that context quality improvements remain typed runtime state, not opaque prompt engineering
+  - include at least one end-to-end example where a working-set summary materially shapes a later turn and the operator can inspect the same context source through normal surfaces
+  - align the new docs with the existing replay, eval, and branching language so context-quality v2 feels like an extension of the current system rather than a parallel subsystem
+  - document upgrade and compatibility expectations for older replay bundles and sessions where provenance metadata is missing
+- Tests and validation included in task:
+  - doc review against implemented prompt composition, runtime inspection, replay artifacts, and eval reporting
+  - manual verification that a developer can understand how context-quality v2 affects replayability from the docs alone
+- Done when:
+  - the repository documentation explains the v2 context model, its replay guarantees, and its debugging workflow clearly enough that contributors do not need to reverse-engineer the implementation first
+
+---
+
 ## Recommended Build Order For The First Usable Vertical Slice
 
 If an agent wants the fastest path to a demonstrable but architecturally correct version, the recommended order is:
