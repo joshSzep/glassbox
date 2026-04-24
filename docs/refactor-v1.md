@@ -372,7 +372,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R123: Extract CLI Status, Replay, And Eval Report Formatting
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R121`, `GBX-R122`
 - Goal: separate human-readable and machine-readable reporting from command control flow
 - Deliverables:

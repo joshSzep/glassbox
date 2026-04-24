@@ -14,8 +14,6 @@ from glassbox.cli.renderer import CliEventRenderer, InteractivePromptState
 from glassbox.core.events import (
     EventEnvelope,
     SessionFailed,
-    SessionStarted,
-    UserQuestionAsked,
 )
 from glassbox.core.models import (
     ApprovalRecord,
@@ -26,22 +24,10 @@ from glassbox.core.models import (
 from glassbox.core.types import ApprovalDecision
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.context import RuntimeContext
-from glassbox.runtime.eval_baselines import format_eval_baseline_update_report
-from glassbox.runtime.eval_coverage import (
-    build_eval_coverage_summary_lines,
-)
 from glassbox.runtime.eval_runner import EvalSuiteResult
 from glassbox.runtime.replay import ReplayResult
 from glassbox.runtime.session_queries import SessionStatusView
 from glassbox.web import GlassboxWebServer, WebServerConfig, build_web_server
-
-_REPLAY_EXIT_CODES = {
-    "exact_match": 0,
-    "behavioral_drift": 10,
-    "manifest_drift": 11,
-    "unsupported_session": 12,
-    "replay_failure": 13,
-}
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -297,512 +283,153 @@ def _interactive_help_text(mode: str) -> str:
 
 
 def _print_session_status(status_view: SessionStatusView) -> None:
-    snapshot = status_view.snapshot
-    current_turn_id = status_view.effective_current_turn_id
+    from glassbox.cli.status_formatters import _print_session_status as impl
 
-    print(f"Session {snapshot.session_id}")
-    print(f"Status: {snapshot.status}")
-    print(f"Last sequence: {snapshot.last_sequence}")
-    print(_format_current_turn_line(current_turn_id, snapshot.status))
-    print(f"Workspace: {snapshot.cwd}")
-    print(f"Model: {snapshot.model_name}")
-    print(f"Approval mode: {snapshot.approval_mode}")
-    if snapshot.dashboard_url is not None:
-        print(f"Dashboard URL: {snapshot.dashboard_url}")
-    print(f"Transcript messages: {len(snapshot.transcript)}")
-    _print_runtime_context_summary(snapshot.runtime_context)
-
-    if snapshot.session_failure_message is not None:
-        print(
-            _format_session_failure(
-                snapshot.session_failure_message,
-                snapshot.session_failure_retryable,
-            )
-        )
-
-    if status_view.latest_message_summary is not None:
-        print(f"Latest message: {status_view.latest_message_summary}")
-    if snapshot.pending_question_id is not None:
-        print(
-            _format_pending_question_line(
-                snapshot.pending_question_id,
-                snapshot.pending_question_text,
-            )
-        )
-    print(
-        _format_next_action_line(
-            snapshot.session_id,
-            snapshot.status,
-            current_turn_id,
-            snapshot.pending_approval_id,
-            snapshot.pending_question_id,
-            _session_failure_from_status_view(status_view),
-        )
-    )
-
-    if status_view.latest_turn_metrics is not None:
-        label = (
-            "Current turn metrics"
-            if status_view.current_turn_metrics is not None
-            else "Latest turn metrics"
-        )
-        print(f"{label}: {_format_turn_metrics(status_view.latest_turn_metrics)}")
-    else:
-        print("Latest turn metrics: none")
-
-    if snapshot.pending_approvals:
-        print(f"Pending approvals: {len(snapshot.pending_approvals)}")
-        for approval in snapshot.pending_approvals:
-            print(f"  - {_format_approval_summary(approval)}")
-    else:
-        print("Pending approvals: none")
-
-    if status_view.recent_tool_calls:
-        print("Recent tool activity:")
-        for tool_call in status_view.recent_tool_calls:
-            print(f"  - {_format_tool_call_summary(tool_call)}")
-    else:
-        print("Recent tool activity: none")
+    return impl(status_view)
 
 
 def _print_runtime_context_summary(runtime_context) -> None:
-    repository_context = runtime_context.repository_context
+    from glassbox.cli.status_formatters import _print_runtime_context_summary as impl
 
-    print("Runtime context:")
-    print(f"  Workspace summary: {repository_context.workspace_name}")
-    if repository_context.high_signal_paths:
-        print("  High-signal paths: " + ", ".join(repository_context.high_signal_paths))
-    if repository_context.top_level_directories:
-        directory_line = ", ".join(repository_context.top_level_directories)
-        if repository_context.additional_directory_count:
-            directory_line += (
-                f" (+{repository_context.additional_directory_count} more)"
-            )
-        print(f"  Top-level directories: {directory_line}")
-    if repository_context.top_level_files:
-        file_line = ", ".join(repository_context.top_level_files)
-        if repository_context.additional_file_count:
-            file_line += f" (+{repository_context.additional_file_count} more)"
-        print(f"  Top-level files: {file_line}")
-    if repository_context.project_markers:
-        print("  Project markers: " + ", ".join(repository_context.project_markers))
-
-    if runtime_context.runtime_notes:
-        print(f"  Runtime notes: {len(runtime_context.runtime_notes)} visible")
-        for note in runtime_context.runtime_notes:
-            inherited_suffix = ""
-            if note.inherited and note.source_session_id is not None:
-                inherited_suffix = (
-                    f" (inherited from {str(note.source_session_id)[:8]})"
-                )
-            elif note.inherited:
-                inherited_suffix = " (inherited)"
-            print(f"    - [{note.category}] {note.message}{inherited_suffix}")
-        if runtime_context.additional_runtime_note_count:
-            print(
-                "    - "
-                f"+{runtime_context.additional_runtime_note_count} more active note(s)"
-            )
-    else:
-        print("  Runtime notes: none")
-
-    if runtime_context.working_set.items:
-        print(f"  Working set: {len(runtime_context.working_set.items)} visible")
-        for item in runtime_context.working_set.items:
-            reason_text = "; ".join(item.reasons[:2])
-            inherited_suffix = " (inherited)" if item.inherited else ""
-            detail_suffix = f": {reason_text}" if reason_text else ""
-            print(
-                f"    - [{item.subject_kind}] {item.subject}"
-                f"{inherited_suffix}"
-                f" - {item.summary}{detail_suffix}"
-            )
-        if runtime_context.working_set.additional_item_count:
-            print(
-                "    - "
-                f"+{runtime_context.working_set.additional_item_count} "
-                "more working-set item(s)"
-            )
-    else:
-        print("  Working set: none")
-
-    if runtime_context.artifact_context.summaries:
-        print(
-            "  Artifact-backed context: "
-            f"{len(runtime_context.artifact_context.summaries)} visible"
-        )
-        for summary in runtime_context.artifact_context.summaries:
-            freshness_suffix = f" ({summary.freshness})"
-            inherited_suffix = " (inherited)" if summary.inherited else ""
-            failing_tests_suffix = ""
-            if summary.failing_tests:
-                failing_tests_suffix = ": failing tests: " + ", ".join(
-                    summary.failing_tests[:2]
-                )
-            print(
-                f"    - [{summary.summary_kind}] {summary.summary}"
-                f"{freshness_suffix}{inherited_suffix}{failing_tests_suffix}"
-            )
-        if runtime_context.artifact_context.additional_summary_count:
-            print(
-                "    - "
-                f"+{runtime_context.artifact_context.additional_summary_count} "
-                "more artifact-backed summary item(s)"
-            )
-    else:
-        print("  Artifact-backed context: none")
+    return impl(runtime_context)
 
 
 def _print_replay_report(result: ReplayResult) -> None:
-    session_id = result.source_session_id
-    if session_id is not None:
-        print(f"Replay session {session_id}")
-    print(f"Outcome: {_format_replay_outcome(result.outcome)}")
+    from glassbox.cli.replay_eval_formatters import _print_replay_report as impl
 
-    if result.message:
-        print(f"Summary: {result.message}")
-
-    if result.triage is not None:
-        if result.triage.classification != result.outcome:
-            print(
-                "Classification: "
-                + _format_replay_outcome(result.triage.classification)
-            )
-        if result.triage.headline not in {"", result.message, None}:
-            print(f"Triage: {result.triage.headline}")
-        if result.triage.first_relevant_change not in {None, result.triage.headline}:
-            print(f"First change: {result.triage.first_relevant_change}")
-        if result.triage.drift_sources:
-            print("Drift sources: " + ", ".join(result.triage.drift_sources))
-        if result.triage.recommended_inspection_path:
-            print(f"Next inspect: {result.triage.recommended_inspection_path}")
-
-    if result.outcome == "exact_match":
-        print(
-            "Matched: transcript, tool calls, approval flow, question flow, "
-            "event families, and final state"
-        )
-        return
-
-    if result.mismatches:
-        print("Mismatches:")
-        for mismatch in result.mismatches:
-            print(f"  - {mismatch}")
-
-    for detail_line in _replay_detail_lines(result):
-        print(detail_line)
+    return impl(result)
 
 
 def _print_eval_suite_report(result: EvalSuiteResult) -> None:
-    print(f"Eval workspace {result.workspace_root}")
-    if result.profile_id is not None:
-        print(f"Profile: {result.profile_id} ({result.profile_verification_stage})")
-    if result.profile_budget is not None:
-        print(
-            f"Budget: {result.profile_budget.status} "
-            f"({result.profile_budget.enforcement})"
-        )
-    print(f"Selected cases: {result.selected_case_count}")
-    print(f"Passed: {result.passed_case_count}")
-    print(f"Failed: {result.failed_case_count}")
-    print("Outcomes:")
-    for outcome, count in result.outcome_counts.items():
-        print(f"  - {_format_replay_outcome(outcome)}: {count}")
-    print(f"Artifacts: {result.output_dir}")
-    if result.coverage_audit is not None:
-        for line in build_eval_coverage_summary_lines(result.coverage_audit):
-            print(line)
-    if result.profile_budget is not None:
-        profile_budget = result.profile_budget
-        print("Profile budget:")
-        print(
-            "  Selected cases: "
-            f"{profile_budget.selected_case_count}"
-            + _format_budget_limit(profile_budget.max_selected_case_count)
-        )
-        print(
-            "  Selected-invariant cases: "
-            f"{profile_budget.selected_invariant_case_count}"
-            + _format_budget_limit(profile_budget.max_selected_invariant_case_count)
-        )
-        print(
-            "  Recorded model calls: "
-            f"{profile_budget.recorded_model_call_count}"
-            + _format_budget_limit(profile_budget.max_recorded_model_call_count)
-        )
-        print(
-            "  Case artifact bytes: "
-            f"{profile_budget.case_artifact_bytes}"
-            + _format_budget_limit(profile_budget.max_case_artifact_bytes)
-        )
-        print(
-            "  Unsupported cases: "
-            f"{profile_budget.unsupported_case_count}"
-            + (" (allowed)" if profile_budget.allow_unsupported_cases else "")
-        )
-        print(
-            "  Advisory cases: "
-            f"{profile_budget.advisory_case_count}"
-            + (" (allowed)" if profile_budget.allow_advisory_cases else "")
-        )
-        if profile_budget.promotion_policy:
-            print("  Promotion policy: " + profile_budget.promotion_policy)
-        if profile_budget.demotion_policy:
-            print("  Demotion policy: " + profile_budget.demotion_policy)
-        if profile_budget.violations:
-            print("  Budget violations:")
-            for violation in profile_budget.violations:
-                print("    - " + violation.message)
-    print("Cases:")
-    for case_result in result.cases:
-        status = "passed" if case_result.passed else "failed"
-        print(
-            f"  - {case_result.case_id}: "
-            f"{_format_replay_outcome(case_result.replay_outcome)} ({status})"
-        )
-        if (
-            case_result.triage_classification is not None
-            and case_result.triage_classification != case_result.replay_outcome
-        ):
-            print(
-                "    Classification: "
-                + _format_replay_outcome(case_result.triage_classification)
-            )
-        if case_result.triage_headline:
-            print(f"    Triage: {case_result.triage_headline}")
-        if case_result.message:
-            print(f"    Summary: {case_result.message}")
-        if case_result.first_relevant_mismatch:
-            print("    First relevant mismatch: " + case_result.first_relevant_mismatch)
-        elif case_result.triage_first_relevant_change:
-            print(
-                "    First reported change: " + case_result.triage_first_relevant_change
-            )
-        if case_result.relevant_mismatches:
-            print(
-                "    Relevant mismatches: " + ", ".join(case_result.relevant_mismatches)
-            )
-        if case_result.ignored_mismatches:
-            print(
-                "    Ignored mismatches: " + ", ".join(case_result.ignored_mismatches)
-            )
-        if case_result.selected_invariant_interpretation:
-            print(
-                "    Selected invariants: "
-                + case_result.selected_invariant_interpretation
-            )
-        if case_result.triage_drift_sources:
-            print("    Drift sources: " + ", ".join(case_result.triage_drift_sources))
-        if case_result.triage_recommended_inspection_path:
-            print("    Next inspect: " + case_result.triage_recommended_inspection_path)
-        print(f"    Artifact: {case_result.artifact_path}")
+    from glassbox.cli.replay_eval_formatters import _print_eval_suite_report as impl
+
+    return impl(result)
 
 
 def _print_eval_coverage_audit(*, workspace_root: Path, result) -> None:
-    print(f"Eval workspace {workspace_root.resolve()}")
-    if result.profile_id is not None:
-        print(f"Profile: {result.profile_id} ({result.verification_stage})")
-    for line in build_eval_coverage_summary_lines(result):
-        print(line)
-    if result.uncovered_release_critical_capability_ids:
-        print("Uncovered release-critical capability details:")
-        for capability_id in result.uncovered_release_critical_capability_ids:
-            print(f"  - {capability_id}")
-    if result.unmapped_case_ids:
-        print("Unmapped case details:")
-        for case_id in result.unmapped_case_ids:
-            print(f"  - {case_id}")
+    from glassbox.cli.replay_eval_formatters import _print_eval_coverage_audit as impl
+
+    return impl(workspace_root=workspace_root, result=result)
 
 
 def _print_eval_baseline_update(report) -> None:
-    for line in format_eval_baseline_update_report(report):
-        print(line)
+    from glassbox.cli.replay_eval_formatters import _print_eval_baseline_update as impl
+
+    return impl(report)
 
 
 def _print_eval_profiles(*, workspace_root: Path, profiles) -> None:
-    print(f"Eval workspace {workspace_root.resolve()}")
-    if not profiles:
-        print("No eval profiles matched the requested filter")
-        return
-    print("Profiles:")
-    for profile in profiles:
-        print(
-            f"  - {profile.profile_id}: {profile.track}, "
-            f"{profile.verification_stage}, "
-            f"{'blocking' if profile.blocking else 'non-blocking'}"
-        )
-        if profile.tags:
-            print("    Tags: " + ", ".join(profile.tags))
-        if profile.case_ids:
-            print("    Case IDs: " + ", ".join(profile.case_ids))
-        if profile.description:
-            print("    Description: " + profile.description)
+    from glassbox.cli.replay_eval_formatters import _print_eval_profiles as impl
+
+    return impl(workspace_root=workspace_root, profiles=profiles)
 
 
 def _format_budget_limit(limit: int | None) -> str:
-    if limit is None:
-        return " (no configured limit)"
-    return f" / {limit}"
+    from glassbox.cli.replay_eval_formatters import _format_budget_limit as impl
+
+    return impl(limit)
 
 
 def _replay_detail_lines(result: ReplayResult) -> list[str]:
-    if result.baseline is None or result.replay is None:
-        return []
+    from glassbox.cli.replay_eval_formatters import _replay_detail_lines as impl
 
-    detail_lines: list[str] = []
-    mismatch_set = set(result.mismatches)
-    if "transcript drift" in mismatch_set:
-        detail_lines.append(
-            "Transcript: baseline "
-            f"{len(result.baseline.transcript)} message(s), replay "
-            f"{len(result.replay.transcript)} message(s)"
-        )
-    if "tool_calls drift" in mismatch_set:
-        detail_lines.append(
-            "Tool calls: baseline "
-            f"{len(result.baseline.tool_calls)} call(s), replay "
-            f"{len(result.replay.tool_calls)} call(s)"
-        )
-    if "approvals drift" in mismatch_set:
-        detail_lines.append(
-            "Approvals: baseline "
-            f"{len(result.baseline.approvals)} item(s), replay "
-            f"{len(result.replay.approvals)} item(s)"
-        )
-    if "questions drift" in mismatch_set:
-        detail_lines.append(
-            "Questions: baseline "
-            f"{len(result.baseline.questions)} item(s), replay "
-            f"{len(result.replay.questions)} item(s)"
-        )
-    if "event_families drift" in mismatch_set:
-        detail_lines.append(
-            "Event families: baseline "
-            f"{len(result.baseline.event_families)} event(s), replay "
-            f"{len(result.replay.event_families)} event(s)"
-        )
-    if "final_state drift" in mismatch_set:
-        detail_lines.append(
-            "Final state: baseline "
-            f"{result.baseline.final_state.status}, replay "
-            f"{result.replay.final_state.status}"
-        )
-    return detail_lines
+    return impl(result)
 
 
 def _replay_result_payload(result: ReplayResult) -> dict[str, object]:
-    payload = result.model_dump(mode="json")
-    payload["exit_code"] = _replay_exit_code(result)
-    return payload
+    from glassbox.cli.replay_eval_formatters import _replay_result_payload as impl
+
+    return impl(result)
 
 
 def _replay_exit_code(result: ReplayResult) -> int:
-    return _REPLAY_EXIT_CODES[result.outcome]
+    from glassbox.cli.replay_eval_formatters import _replay_exit_code as impl
+
+    return impl(result)
 
 
 def _format_replay_outcome(outcome: str) -> str:
-    return outcome.replace("_", " ")
+    from glassbox.cli.replay_eval_formatters import _format_replay_outcome as impl
+
+    return impl(outcome)
 
 
 def _format_current_turn_line(turn_id: UUID | None, status: str) -> str:
-    if turn_id is None:
-        return "Current turn: none"
-    return f"Current turn: {turn_id} ({status})"
+    from glassbox.cli.status_formatters import _format_current_turn_line as impl
+
+    return impl(turn_id, status)
 
 
 def _format_turn_metrics(metrics: TurnMetricsRecord) -> str:
-    return (
-        f"turn {metrics.turn_id}; "
-        f"model {metrics.model_call_count} call(s), "
-        f"{metrics.model_input_tokens_total} input / "
-        f"{metrics.model_output_tokens_total} output tokens, "
-        f"{metrics.model_duration_ms_total} ms; "
-        f"tools {metrics.tool_call_count} call(s), "
-        f"{metrics.tool_duration_ms_total} ms, "
-        f"{metrics.succeeded_tool_call_count} succeeded / "
-        f"{metrics.failed_tool_call_count} failed; "
-        f"turn duration {_format_duration(metrics.turn_duration_ms)}"
-    )
+    from glassbox.cli.status_formatters import _format_turn_metrics as impl
+
+    return impl(metrics)
 
 
 def _format_duration(duration_ms: int | None) -> str:
-    if duration_ms is None:
-        return "n/a"
-    return f"{duration_ms} ms"
+    from glassbox.cli.status_formatters import _format_duration as impl
+
+    return impl(duration_ms)
 
 
 def _format_approval_summary(approval: ApprovalRecord) -> str:
-    return (
-        f"{approval.approval_id} for turn {approval.turn_id}: "
-        f"{approval.subject} ({approval.reason})"
-    )
+    from glassbox.cli.status_formatters import _format_approval_summary as impl
+
+    return impl(approval)
 
 
 def _dashboard_url_from_events(events: Sequence[EventEnvelope]) -> str | None:
-    for event in events:
-        if isinstance(event.payload, SessionStarted):
-            return event.payload.dashboard_url
-    return None
+    from glassbox.cli.status_formatters import _dashboard_url_from_events as impl
+
+    return impl(events)
 
 
 def _latest_session_failure(
     events: Sequence[EventEnvelope],
 ) -> SessionFailed | None:
-    for event in reversed(events):
-        if isinstance(event.payload, SessionFailed):
-            return event.payload
-    return None
+    from glassbox.cli.status_formatters import _latest_session_failure as impl
+
+    return impl(events)
 
 
 def _format_session_failure(
     error_message: str,
     retryable: bool | None,
 ) -> str:
-    retryable_suffix = " (retryable)" if retryable else ""
-    return f"Session failure: {error_message}{retryable_suffix}"
+    from glassbox.cli.status_formatters import _format_session_failure as impl
+
+    return impl(error_message, retryable)
 
 
 def _session_failure_from_status_view(
     status_view: SessionStatusView,
 ) -> SessionFailed | None:
-    snapshot = status_view.snapshot
-    if snapshot.session_failure_message is None:
-        return None
-    return SessionFailed(
-        error_message=snapshot.session_failure_message,
-        retryable=bool(snapshot.session_failure_retryable),
-    )
+    from glassbox.cli.status_formatters import _session_failure_from_status_view as impl
+
+    return impl(status_view)
 
 
 def _format_tool_call_summary(tool_call: ToolCallRecord) -> str:
-    summary_suffix = f": {tool_call.summary}" if tool_call.summary else ""
-    return (
-        f"{tool_call.tool_name} {tool_call.status} "
-        f"(turn {tool_call.turn_id}){summary_suffix}"
-    )
+    from glassbox.cli.status_formatters import _format_tool_call_summary as impl
+
+    return impl(tool_call)
 
 
 def _pending_question_text_from_events(
     events: Sequence[EventEnvelope],
     pending_question_id,
 ) -> str | None:
-    if pending_question_id is None:
-        return None
+    from glassbox.cli.status_formatters import (
+        _pending_question_text_from_events as impl,
+    )
 
-    pending_question_id_text = str(pending_question_id)
-    for event in reversed(events):
-        if not isinstance(event.payload, UserQuestionAsked):
-            continue
-        if str(event.payload.question_id) != pending_question_id_text:
-            continue
-        return event.payload.question
-    return None
+    return impl(events, pending_question_id)
 
 
 def _format_pending_question_line(question_id, question_text: str | None) -> str:
-    if question_text:
-        return f"Pending question: {question_id}: {question_text}"
-    return f"Pending question: {question_id}"
+    from glassbox.cli.status_formatters import _format_pending_question_line as impl
+
+    return impl(question_id, question_text)
 
 
 def _format_next_action_line(
@@ -813,50 +440,16 @@ def _format_next_action_line(
     pending_question_id,
     latest_session_failure: SessionFailed | None,
 ) -> str:
-    if status == "awaiting_approval" and pending_approval_id is not None:
-        return (
-            "Next action: resolve approval "
-            f"{pending_approval_id} with 'glassbox approve {session_id} "
-            f"{pending_approval_id}' or 'glassbox deny {session_id} "
-            f"{pending_approval_id}', or use the dashboard approvals pane"
-        )
+    from glassbox.cli.status_formatters import _format_next_action_line as impl
 
-    if status == "awaiting_user_input" and pending_question_id is not None:
-        return (
-            "Next action: answer question "
-            f"{pending_question_id} with 'glassbox answer {session_id} "
-            f"{pending_question_id} ANSWER', or use the dashboard Next Action "
-            "pane"
-        )
-
-    if status == "running" and current_turn_id is None:
-        return (
-            "Next action: submit a new prompt with 'glassbox message "
-            f"{session_id} PROMPT', or use the dashboard Next Action pane"
-        )
-
-    if status == "running":
-        return (
-            "Next action: wait for the active turn to finish before sending "
-            "another prompt"
-        )
-
-    if status == "completed":
-        return (
-            "Next action: this session is complete; start a new session with "
-            "'glassbox run PROMPT'"
-        )
-
-    if status == "failed":
-        failure_guidance = "inspect the failure details above"
-        if latest_session_failure is not None and latest_session_failure.retryable:
-            failure_guidance = "inspect the retryable failure details above"
-        return (
-            "Next action: "
-            f"{failure_guidance}, or start a new session with 'glassbox run PROMPT'"
-        )
-
-    return "Next action: inspect the session details above before taking another step"
+    return impl(
+        session_id,
+        status,
+        current_turn_id,
+        pending_approval_id,
+        pending_question_id,
+        latest_session_failure,
+    )
 
 
 def _resolve_approval_command(
