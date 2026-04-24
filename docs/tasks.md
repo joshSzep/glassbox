@@ -1958,7 +1958,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-204: Surface Push-Time Replay/Eval Results For Fast Triage
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-203`, `GBX-111`
 - Goal: make remote replay/eval confirmation failures easy to understand quickly instead of forcing developers to download raw artifacts before they know which case drifted
 - Deliverables:

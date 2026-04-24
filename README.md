@@ -336,7 +336,9 @@ Use replay and eval verification in three layers:
   for inspection without slowing every commit loop. The repository ships a
   push-triggered GitHub Actions workflow in `.github/workflows/push-smoke-evals.yml`
   that reruns the same `smoke` tag set and uploads `.glassbox/evals/push-smoke/`
-  as a remote artifact bundle.
+  as a remote artifact bundle. That workflow also renders a job summary with
+  suite counts, outcome totals, per-case outcome severity, and retained artifact
+  paths so a failed push can be triaged without downloading raw JSON first.
 3. Later scheduled coverage: optional non-blocking suites for wider advisory
    drift detection.
 
@@ -355,8 +357,10 @@ Interpret failures based on where they happen:
   drift outside the current smoke set. Treat that as a signal to investigate the
   change and possibly promote that case or tag into the commit-time barrier.
   First check the failed `Push Smoke Evals` run for the pushed commit, then
-  download the `push-smoke-evals-SHA` artifact and inspect `summary.json` plus
-  the per-case JSON files.
+  read the rendered job summary for the failing case, its outcome class, and the
+  retained artifact path. If you still need detail, download the
+  `push-smoke-evals-SHA` artifact and inspect `summary.json` plus the per-case
+  JSON files.
 
 ### Targeted Expectations And Baseline Refresh
 

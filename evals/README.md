@@ -46,6 +46,11 @@ Push confirmation uses the same `smoke` tag set from
 `.glassbox/evals/push-smoke/` as a GitHub Actions artifact named
 `push-smoke-evals-SHA`.
 
+That workflow also writes a GitHub Actions job summary with selected-case
+counts, pass/fail totals, outcome counts, per-case severity, and retained
+artifact paths such as `.glassbox/evals/push-smoke/summary.json` and
+`.glassbox/evals/push-smoke/CASE_ID.json`.
+
 Each run writes one JSON artifact per case plus `summary.json` into the selected
 output directory. If `--output-dir` is omitted, Glassbox creates a timestamped
 directory under `.glassbox/evals/`.
