@@ -114,6 +114,10 @@ uv run ty check src/glassbox/path.py
 
 ## Milestone Map
 
+The original v1 roadmap completed the first six milestones below.
+
+The follow-on refactor queue in the later phases of this file continues with the remaining milestones.
+
 The intended refactor milestone order is:
 
 1. architectural boundary repairs
@@ -122,8 +126,25 @@ The intended refactor milestone order is:
 4. dashboard frontend decomposition
 5. replay and eval/reporting decomposition
 6. boundary guardrails and refactor closeout
+7. turn-execution coordinator hardening
+8. context and bootstrap boundary tightening
+9. replay and eval orchestration hardening
+10. follow-on guardrails and doc closeout
 
 Each phase below corresponds to one concrete refactor milestone.
+
+## Current State
+
+Phases 40 through 45 are complete and remain in this file as the historical record of the original v1 refactor roadmap.
+
+The remaining phases below are the current concrete follow-on plan for the refactor surfaces that still carry concentrated coordination logic after the main decomposition landed.
+
+These follow-on tasks stay within the same behavior-preserving contract as the original roadmap:
+
+- keep operator-visible CLI, dashboard, replay, and snapshot behavior stable by default
+- keep `events` and rebuildable projections as the canonical source of truth
+- prefer extracting explicit seams from the current modules over introducing new framework layers
+- use the existing characterization suite to protect event ordering, replay outcomes, and snapshot/report payload stability while internals move
 
 ## Task Graph
 
@@ -574,3 +595,172 @@ Each phase below corresponds to one concrete refactor milestone.
   - manual verification that the docs hub points to the right implementation references after the refactor completes
 - Done when:
   - the code-aligned docs describe the refactored module boundaries accurately and the docs hub reflects the new roadmap
+
+---
+
+## Phase 46: Turn-Execution Coordinator Hardening
+
+### GBX-R160: Collapse Live And Resumed Turn Execution Onto One Internal Run Path
+
+- Status: `TODO`
+- Depends on: `GBX-R110`, `GBX-R150`
+- Goal: remove the remaining control-flow duplication inside [turn_engine.py](./../src/glassbox/runtime/turn_engine.py) by routing fresh turns and resumed turns through one explicit internal execution path
+- Deliverables:
+  - one shared turn-run path that accepts prepared or resumed turn inputs and owns assistant message lifecycle, model-call indexing, and final turn outcome handling
+  - slimmer trigger-specific entrypoints for user messages, approval resolutions, and `ask_user` answers that focus on validation and preparation only
+  - a clearer separation between trigger-specific reconstruction logic and the common run loop used after preparation completes
+- Implementation notes:
+  - preserve current event ordering, trigger-specific logging, and retryable failure semantics
+  - keep approval and `ask_user` resumption preparation in the dedicated resumption layer rather than moving it back into the shared path
+  - do not change replay behavior or provider interaction contracts as part of this task
+- Tests and validation included in task:
+  - integration regression tests covering user-message, approval-resolution, and user-answer turn continuations through the same underlying run path
+  - characterization coverage proving current assistant-message and turn-completion event ordering remains stable after the collapse
+- Done when:
+  - the public entrypoints in `turn_engine.py` prepare trigger-specific state and then delegate to one shared internal turn-run path
+
+### GBX-R161: Extract Turn Event Recording And Failure Serialization From Turn Engine
+
+- Status: `TODO`
+- Depends on: `GBX-R160`
+- Goal: reduce [turn_engine.py](./../src/glassbox/runtime/turn_engine.py) to orchestration by moving event-batch construction, assistant-stream event assembly, and failure-event serialization behind explicit collaborators
+- Deliverables:
+  - extracted helper or collaborator boundary for append-and-publish batches, assistant delta/completion emission, and failed-turn/session-failed event construction
+  - explicit hook boundary for replay-artifact and tool-artifact event recording so orchestration code stops mixing event-shaping with control flow
+  - a smaller turn-engine module that reads primarily as session-facing coordination and failure routing
+- Implementation notes:
+  - preserve current payload shapes, event-envelope sequencing, and batch ordering exactly unless a later task explicitly changes them
+  - prefer one focused event-writing boundary over multiple tiny helper modules
+  - do not move repository, CLI, or web concerns into the extracted event-recording layer
+- Tests and validation included in task:
+  - targeted regression tests for failed-turn and failed-session event emission
+  - focused tests or characterization coverage for assistant streaming events, replay artifact events, and tool artifact events emitted during successful and failed turns
+- Done when:
+  - event construction and failure serialization are no longer interleaved throughout the turn coordinator code path
+
+---
+
+## Phase 47: Context And Bootstrap Boundary Tightening
+
+### GBX-R170: Unify Structured Runtime-Context Derivation Across Turn Building And Session Queries
+
+- Status: `TODO`
+- Depends on: `GBX-R111`, `GBX-R150`
+- Goal: remove the remaining duplication between [context_builder.py](./../src/glassbox/runtime/context_builder.py) and [session_queries.py](./../src/glassbox/runtime/session_queries.py) around runtime notes, artifact-backed summaries, and reusable structured context snapshots
+- Deliverables:
+  - one shared structured runtime-context derivation path consumed by both `TurnContextBuilder` and `SessionQueryService`
+  - a clearer separation between reusable structured snapshot data and prompt-only formatting concerns
+  - compatibility coverage proving session snapshot payloads and prompt-facing context content remain aligned where they derive from the same underlying snapshot inputs
+- Implementation notes:
+  - keep prompt rendering in the formatting layer; this task is about shared structured inputs, not about merging query payloads with prompt text
+  - avoid introducing a second repository-scan path for the same working-set or artifact-backed summary inputs
+  - preserve current runtime-context snapshot shapes unless a later task explicitly changes their contract
+- Tests and validation included in task:
+  - regression tests comparing runtime-context views consumed by session snapshots and turn-context assembly for seeded sessions
+  - focused tests for shared artifact-backed snapshot helpers and runtime-note inheritance behavior
+- Done when:
+  - structured runtime-context derivation lives behind one explicit boundary and prompt/query layers only adapt that shared structured output
+
+### GBX-R171: Split Runtime Bootstrap Into Storage, Provider, And Service Assembly Layers
+
+- Status: `TODO`
+- Depends on: `GBX-R104`, `GBX-R160`, `GBX-R170`
+- Goal: reduce [bootstrap.py](./../src/glassbox/runtime/bootstrap.py) to a thin public composition surface by separating workspace/database bootstrap, provider/executor wiring, and service/repository assembly
+- Deliverables:
+  - extracted storage/bootstrap boundary for workspace path resolution, database opening, and schema initialization
+  - extracted provider/executor assembly boundary for runtime provider config loading and model-executor factory wiring
+  - extracted runtime-assembly boundary for repositories, services, infrastructure, and artifact wiring that still produces the same public `RuntimeContext`
+  - a slimmer `bootstrap.py` facade that preserves current entrypoint ergonomics for CLI, tests, and web server startup
+- Implementation notes:
+  - preserve the current single-process runtime model and `open_runtime_context()` API
+  - do not introduce daemon ownership, cross-process transport, or migration behavior as part of this refactor task
+  - optimize for testability and explicit assembly seams rather than for the shortest import paths
+- Tests and validation included in task:
+  - bootstrap integration tests for CLI and web startup paths using the preserved public runtime bootstrap surface
+  - focused tests proving provider config fallback, executor-factory selection, and storage initialization semantics remain unchanged
+- Done when:
+  - `bootstrap.py` is a thin public facade and storage, provider, and runtime assembly concerns no longer share one module body
+
+---
+
+## Phase 48: Replay And Eval Orchestration Hardening
+
+### GBX-R180: Introduce One Replay Orchestrator Over Bundle I/O, Execution, Compare, And Triage
+
+- Status: `TODO`
+- Depends on: `GBX-R140`, `GBX-R160`, `GBX-R171`
+- Goal: make the replay flow easier to trace by moving high-level replay control decisions behind one explicit orchestration boundary while keeping [replay.py](./../src/glassbox/runtime/replay.py) as the stable public facade
+- Deliverables:
+  - extracted replay orchestrator that coordinates bundle loading, deterministic execution, normalized comparison, and outcome triage through one typed handoff path
+  - a thinner `replay.py` facade that delegates orchestration rather than coordinating helper modules inline
+  - explicit intermediate models or result boundaries connecting execution outputs, comparison results, and triage outcomes
+- Implementation notes:
+  - preserve current replay taxonomy, mismatch semantics, bundle-version handling, and CLI exit-code mapping
+  - keep deterministic replay execution isolated from live runtime side effects
+  - do not duplicate shared model-loop behavior or move comparison logic back into execution modules
+- Tests and validation included in task:
+  - replay integration tests covering recorded sessions, exported bundles, mismatch classification, and failure triage after the orchestration move
+  - focused regression tests for the typed handoff between execution, compare, and triage layers
+- Done when:
+  - the high-level replay control flow is expressed through one explicit orchestration boundary and `replay.py` remains a thin stable entry surface
+
+### GBX-R181: Separate Eval Suite Discovery And Input Loading From Reporting Concerns
+
+- Status: `TODO`
+- Depends on: `GBX-R141`, `GBX-R180`
+- Goal: decouple eval suite discovery and filesystem input shaping from summary and release-signoff reporting so eval workflows can evolve without expanding report modules again
+- Deliverables:
+  - extracted eval-suite discovery or input-loading boundary that produces typed suite/job inputs before reporting begins
+  - preserved report builders that continue consuming typed eval result models rather than raw filesystem paths or ad hoc JSON loading
+  - a clearer handoff between eval execution, suite discovery, and output/report formatting modules
+- Implementation notes:
+  - keep current eval CLI behavior, JSON outputs, and release-signoff semantics stable unless a later task explicitly changes them
+  - prefer one explicit discovery/input seam over scattering filesystem reads across runner and report modules
+  - do not widen report modules into new orchestration surfaces during the extraction
+- Tests and validation included in task:
+  - integration tests for eval command flows across direct case paths, bundles, and profile-driven suite inputs
+  - focused tests for suite discovery/input shaping independent from summary and annotation formatting
+- Done when:
+  - eval suite discovery and input loading are separate from reporting concerns and the reporting modules consume typed intermediate models only
+
+---
+
+## Phase 49: Follow-On Guardrails And Documentation Closeout
+
+### GBX-R190: Extend Architecture Guardrails To The New Runtime And Replay Facades
+
+- Status: `TODO`
+- Depends on: `GBX-R161`, `GBX-R171`, `GBX-R180`
+- Goal: keep the follow-on refactor seams from collapsing back into larger coordination modules by extending the existing lightweight guardrails to the new runtime and replay boundaries
+- Deliverables:
+  - updated architectural guardrail coverage for the intended ownership of the turn coordinator, runtime bootstrap facade, and replay orchestration facade
+  - low-friction delegate-module and import-direction checks where practical for the newly extracted public entry modules
+  - documented guardrail intent so contributors can tell whether a failure should be fixed by moving code or by revisiting the boundary intentionally
+- Implementation notes:
+  - prefer a small number of readable guardrails over brittle file-size rules
+  - enforce only boundaries that correspond to explicit ownership established earlier in this file
+  - avoid broadening test noise with rules that cannot be repaired locally
+- Tests and validation included in task:
+  - targeted updates to the architecture guardrail test suite and import-smoke coverage for the affected entry modules
+  - manual review that the guardrails remain understandable and actionable after the new boundaries land
+- Done when:
+  - the follow-on runtime and replay boundary seams are protected by the same lightweight enforcement model used elsewhere in the refactor roadmap
+
+### GBX-R191: Update Architecture And Refactor Docs For The Post-v1 Follow-On Shape
+
+- Status: `TODO`
+- Depends on: `GBX-R170`, `GBX-R171`, `GBX-R181`, `GBX-R190`
+- Goal: leave the documentation aligned with the follow-on refactor shape so the remaining runtime, bootstrap, replay, and eval boundaries are described accurately after the new queue completes
+- Deliverables:
+  - updates to [architecture.md](./architecture.md) for the refined turn-coordinator, runtime-context, bootstrap, replay, and eval boundaries
+  - updates to [refactor-boundaries.md](./refactor-boundaries.md) describing the tightened ownership of the follow-on runtime and replay seams where that rationale changed materially
+  - updates to this roadmap and the docs hub so the completed historical phases and the follow-on queue are both represented accurately
+- Implementation notes:
+  - document architectural ownership and dependency direction, not just file moves
+  - keep the docs explicit about what remained behavior-preserving versus what became easier to evolve internally
+  - remove any stale descriptions that still imply the pre-follow-on coordinator and orchestration structure
+- Tests and validation included in task:
+  - doc review against the final module layout for runtime, replay, eval, and bootstrap code
+  - manual verification that the docs hub points to the right boundary documents after the follow-on queue completes
+- Done when:
+  - the code-aligned docs describe the post-v1 follow-on refactor shape accurately and the roadmap no longer relies on stale boundary descriptions
