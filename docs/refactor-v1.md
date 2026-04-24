@@ -496,7 +496,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R141: Split Eval Summary And Release-Signoff Reporting By Output Concern
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R140`
 - Goal: reduce `eval_summary.py` by separating summary payload construction, release-signoff aggregation, and annotation formatting
 - Deliverables:
