@@ -233,7 +233,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R110: Split Turn Engine Into Coordinator, Tool Execution, And Resumption Components
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R101`, `GBX-R103`
 - Goal: reduce `turn_engine.py` to top-level turn coordination by extracting tool execution and suspended-turn resumption concerns
 - Deliverables:
