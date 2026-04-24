@@ -14,6 +14,10 @@ from glassbox.core.events import UserMessageReceived
 from glassbox.core.ids import new_message_id
 from glassbox.core.ids import new_turn_id
 from glassbox.runtime.bus import EventBus
+from glassbox.runtime.context_builder import TurnContextBuilder
+from glassbox.runtime.context_formatting import format_repository_context_for_prompt
+from glassbox.runtime.context_formatting import format_runtime_notes_for_prompt
+from glassbox.runtime.runtime_context_derivation import derive_runtime_context_snapshot
 from glassbox.runtime.session_queries import SessionQueryService
 from glassbox.runtime.supervisor import SessionSupervisor
 from glassbox.store.repositories import FilesystemArtifactRepository
@@ -142,6 +146,61 @@ def test_session_query_service_preserves_snapshot_shape_for_cli_and_web(
                 "assistant: I received your request: Inspect the repository"
             )
             assert status_view.effective_current_turn_id is None
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_session_query_and_turn_context_share_runtime_context_derivation(
+    tmp_path: Path,
+) -> None:
+    """Session snapshots and prompt-context assembly adapt the same structure."""
+
+    async def scenario() -> None:
+        (tmp_path / "src").mkdir()
+        (tmp_path / "README.md").write_text("# Glassbox\n", encoding="utf-8")
+
+        connection = _open_initialized_db(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifacts = FilesystemArtifactRepository(connection, tmp_path)
+            query_service = SessionQueryService(repository, artifacts)
+            bus: EventBus[EventEnvelope] = EventBus()
+            supervisor = SessionSupervisor(repository, bus)
+
+            session_state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+            await supervisor.record_runtime_note(
+                session_state.session_id,
+                category="repo",
+                message="Keep session snapshots and prompt context aligned",
+            )
+
+            runtime_context = derive_runtime_context_snapshot(
+                repository,
+                session_state.session_id,
+                tmp_path,
+                artifact_repository=artifacts,
+            )
+            snapshot = query_service.get_session_snapshot(session_state.session_id)
+            turn_context = TurnContextBuilder(repository).build_from_runtime_context(
+                session_state.session_id,
+                runtime_context,
+            )
+
+            assert snapshot.runtime_context == runtime_context
+            assert turn_context.repo_context == format_repository_context_for_prompt(
+                runtime_context.repository_context
+            )
+            assert turn_context.memory_notes == format_runtime_notes_for_prompt(
+                runtime_context.runtime_notes
+            )
         finally:
             connection.close()
 

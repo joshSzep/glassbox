@@ -4,19 +4,15 @@ from dataclasses import dataclass
 
 from pydantic_ai.messages import ModelMessage
 
-from glassbox.core.models import RuntimeNoteRecord
 from glassbox.core.models import SessionRecord
 from glassbox.llm import ModelAdapter
 from glassbox.llm import ModelExecutor
 from glassbox.llm import PreparedModelTurn
 from glassbox.llm import build_system_prompt
-from glassbox.runtime.context_builder import TurnContext
 from glassbox.runtime.context_builder import TurnContextBuilder
-from glassbox.runtime.context_formatting import format_repository_context_for_prompt
-from glassbox.runtime.context_snapshots import build_artifact_backed_context_snapshot
-from glassbox.runtime.context_snapshots import build_repository_context_snapshot
-from glassbox.runtime.context_working_set import build_working_set_snapshot
+from glassbox.runtime.context_models import TurnContext
 from glassbox.runtime.model_loop import initial_model_messages
+from glassbox.runtime.runtime_context_derivation import derive_runtime_context_snapshot
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
 from glassbox.tools import ToolRuntime
@@ -86,37 +82,17 @@ class LiveTurnPreparation:
         *,
         tool_runtime: ToolRuntime | None,
     ) -> TurnContext:
-        repository_context = format_repository_context_for_prompt(
-            build_repository_context_snapshot(session.cwd)
-        )
-        runtime_notes = self._session_repository.list_runtime_notes(session_id)
-        return self._context_builder.build(
+        runtime_context = derive_runtime_context_snapshot(
+            self._session_repository,
             session_id,
+            session.cwd,
+            artifact_repository=self._artifact_repository,
+            include_stale_artifacts=False,
+        )
+        return self._context_builder.build_from_runtime_context(
+            session_id,
+            runtime_context,
             tool_registry=(
                 tool_runtime.tool_registry if tool_runtime is not None else None
             ),
-            repo_context=repository_context,
-            memory_notes=[
-                _format_runtime_note_for_prompt(note) for note in runtime_notes
-            ],
-            working_set=build_working_set_snapshot(
-                self._session_repository,
-                session_id,
-            ),
-            artifact_context=(
-                build_artifact_backed_context_snapshot(
-                    self._session_repository,
-                    self._artifact_repository,
-                    session_id,
-                    include_stale=False,
-                )
-                if self._artifact_repository is not None
-                else None
-            ),
         )
-
-
-def _format_runtime_note_for_prompt(note: RuntimeNoteRecord) -> str:
-    if note.inherited:
-        return f"[inherited {note.category}] {note.message}"
-    return f"[{note.category}] {note.message}"

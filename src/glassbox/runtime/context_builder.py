@@ -4,6 +4,7 @@ from collections.abc import Sequence
 
 from glassbox.core.ids import SessionId
 from glassbox.runtime.context_formatting import format_repository_context_for_prompt
+from glassbox.runtime.context_formatting import format_runtime_notes_for_prompt
 from glassbox.runtime.context_formatting import format_tool_schemas_for_prompt
 from glassbox.runtime.context_formatting import format_transcript_for_prompt
 from glassbox.runtime.context_formatting import normalize_tool_schemas
@@ -78,6 +79,28 @@ class TurnContextBuilder:
             artifact_context=artifact_context,
         )
 
+    def build_from_runtime_context(
+        self,
+        session_id: SessionId,
+        runtime_context: RuntimeContextSnapshot,
+        *,
+        tool_schemas: Sequence[ToolSchema] = (),
+        tool_registry: ToolRegistry | None = None,
+    ) -> TurnContext:
+        """Build a turn context from a shared structured runtime-context snapshot."""
+
+        return self.build(
+            session_id,
+            tool_schemas=tool_schemas,
+            tool_registry=tool_registry,
+            repo_context=format_repository_context_for_prompt(
+                runtime_context.repository_context
+            ),
+            memory_notes=format_runtime_notes_for_prompt(runtime_context.runtime_notes),
+            working_set=runtime_context.working_set,
+            artifact_context=runtime_context.artifact_context,
+        )
+
 
 __all__ = [
     "ArtifactBackedContextSnapshot",
@@ -88,6 +111,7 @@ __all__ = [
     "build_runtime_context_snapshot",
     "build_working_set_snapshot",
     "format_repository_context_for_prompt",
+    "format_runtime_notes_for_prompt",
     "format_tool_schemas_for_prompt",
     "format_transcript_for_prompt",
     "normalize_tool_schemas",

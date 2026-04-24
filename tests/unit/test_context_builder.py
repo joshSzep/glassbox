@@ -43,6 +43,7 @@ from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.context_builder import WorkingSetItemSnapshot
 from glassbox.runtime.context_builder import WorkingSetSnapshot
 from glassbox.runtime.context_formatting import format_repository_context_for_prompt
+from glassbox.runtime.context_formatting import format_runtime_notes_for_prompt
 from glassbox.runtime.context_formatting import format_tool_schemas_for_prompt
 from glassbox.runtime.context_formatting import format_transcript_for_prompt
 from glassbox.runtime.context_snapshots import build_artifact_backed_context_snapshot
@@ -50,6 +51,7 @@ from glassbox.runtime.context_snapshots import build_pytest_failure_digest_artif
 from glassbox.runtime.context_snapshots import build_repository_context_snapshot
 from glassbox.runtime.context_snapshots import build_runtime_context_snapshot
 from glassbox.runtime.context_working_set import build_working_set_snapshot
+from glassbox.runtime.runtime_context_derivation import derive_runtime_context_snapshot
 from glassbox.tools import ToolRegistry
 from glassbox.tools import ToolRiskLevel
 from glassbox.tools import ToolSpec
@@ -328,6 +330,80 @@ def test_turn_context_builder_rejects_unknown_sessions() -> None:
 
     with pytest.raises(ValueError):
         builder.build(new_session_id())
+
+
+def test_turn_context_builder_builds_prompt_fields_from_runtime_context() -> None:
+    session_id = new_session_id()
+    repository = FakeSessionRepository(
+        SessionRecord(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            created_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+            cwd=Path("/tmp/glassbox"),
+            model_name="openai:gpt-5.4",
+            approval_mode="confirm",
+            last_sequence=1,
+        ),
+        SessionState(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            last_sequence=1,
+        ),
+        [],
+    )
+    builder = TurnContextBuilder(repository)
+    runtime_context = RuntimeContextSnapshot(
+        repository_context=RepositoryContextSnapshot(
+            workspace_name="glassbox",
+            high_signal_paths=["README.md", "src/"],
+        ),
+        runtime_notes=[
+            RuntimeContextNoteSnapshot(
+                category="repo",
+                message="Keep runtime-context derivation shared",
+                inherited=True,
+                source_session_id=session_id,
+            )
+        ],
+        working_set=WorkingSetSnapshot(
+            items=[
+                WorkingSetItemSnapshot(
+                    subject_kind="file",
+                    subject="src/glassbox/runtime/session_queries.py",
+                    summary="recently targeted workspace path",
+                    reasons=[
+                        "read_file targeted src/glassbox/runtime/session_queries.py"
+                    ],
+                    signal_types=["tool_request_path"],
+                )
+            ]
+        ),
+        artifact_context=ArtifactBackedContextSnapshot(
+            summaries=[
+                ArtifactBackedContextSummarySnapshot(
+                    summary_kind="pytest_failure_digest",
+                    source_tool_name="run_tests",
+                    artifact_kind=PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
+                    artifact_path=".glassbox/sessions/test/artifacts/failure.json",
+                    summary="1 failing test(s) for tests/unit/test_context_builder.py",
+                    freshness="fresh",
+                    target_paths=["tests/unit/test_context_builder.py"],
+                )
+            ]
+        ),
+    )
+
+    context = builder.build_from_runtime_context(session_id, runtime_context)
+
+    assert context.repo_context == format_repository_context_for_prompt(
+        runtime_context.repository_context
+    )
+    assert context.memory_notes == format_runtime_notes_for_prompt(
+        runtime_context.runtime_notes
+    )
+    assert context.working_set == runtime_context.working_set
+    assert context.artifact_context == runtime_context.artifact_context
 
 
 def test_turn_context_builder_can_derive_tools_from_registry() -> None:
@@ -1038,6 +1114,102 @@ def test_working_set_snapshot_is_bounded_and_reports_overflow() -> None:
     assert [item.subject for item in working_set.items] == [
         "tests/test_b.py",
         "src/b.py",
+    ]
+
+
+def test_derive_runtime_context_snapshot_preserves_shared_structured_inputs() -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    repository = FakeSessionRepository(
+        SessionRecord(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            created_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 4, 24, 12, 1, tzinfo=UTC),
+            cwd=Path("/tmp/glassbox"),
+            model_name="openai:gpt-5.4",
+            approval_mode="confirm",
+            last_sequence=4,
+        ),
+        SessionState(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            last_sequence=4,
+        ),
+        [],
+        runtime_notes=[
+            RuntimeNoteRecord(
+                source_sequence=1,
+                category="repo",
+                message="Carry branch notes into child sessions",
+                source_session_id=new_session_id(),
+                created_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+                inherited=True,
+            )
+        ],
+        events=[
+            EventEnvelope(
+                session_id=session_id,
+                sequence=1,
+                payload=ModelToolCallRequested(
+                    turn_id=turn_id,
+                    tool_call_id=new_tool_call_id(),
+                    tool_name="run_tests",
+                    arguments_json='{"paths":["tests/unit/test_context_builder.py"]}',
+                ),
+            ),
+            EventEnvelope(
+                session_id=session_id,
+                sequence=2,
+                payload=ToolArtifactRecorded(
+                    turn_id=turn_id,
+                    tool_call_id=new_tool_call_id(),
+                    artifact_id=new_artifact_id(),
+                    artifact_kind=PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
+                    path=".glassbox/sessions/test/artifacts/failure.json",
+                ),
+            ),
+        ],
+    )
+    artifacts = FakeArtifactRepository(
+        {
+            ".glassbox/sessions/test/artifacts/failure.json": json.dumps(
+                {
+                    "summary_kind": "pytest_failure_digest",
+                    "source_tool_name": "run_tests",
+                    "target_paths": ["tests/unit/test_context_builder.py"],
+                    "failure_count": 1,
+                    "error_count": 0,
+                    "timed_out": False,
+                    "failing_tests": [
+                        "tests/unit/test_context_builder.py::test_example"
+                    ],
+                }
+            )
+        }
+    )
+
+    runtime_context = derive_runtime_context_snapshot(
+        repository,
+        session_id,
+        Path("/tmp/glassbox"),
+        artifact_repository=artifacts,
+        include_stale_artifacts=False,
+    )
+
+    assert runtime_context.runtime_notes == [
+        RuntimeContextNoteSnapshot(
+            category="repo",
+            message="Carry branch notes into child sessions",
+            inherited=True,
+            source_session_id=repository.list_runtime_notes(session_id)[
+                0
+            ].source_session_id,
+        )
+    ]
+    assert runtime_context.artifact_context.summaries[0].freshness == "fresh"
+    assert runtime_context.artifact_context.summaries[0].failing_tests == [
+        "tests/unit/test_context_builder.py::test_example"
     ]
 
 

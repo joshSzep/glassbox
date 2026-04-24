@@ -25,9 +25,7 @@ from glassbox.core.models import TurnMetricsRecord
 from glassbox.core.types import ApprovalStatus
 from glassbox.core.types import ToolExecutionStatus
 from glassbox.runtime.context_builder import RuntimeContextSnapshot
-from glassbox.runtime.context_snapshots import build_artifact_backed_context_snapshot
-from glassbox.runtime.context_snapshots import build_runtime_context_snapshot
-from glassbox.runtime.context_working_set import build_working_set_snapshot
+from glassbox.runtime.runtime_context_derivation import derive_runtime_context_snapshot
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
 
@@ -367,18 +365,11 @@ class SessionQueryService:
         record: SessionRecord,
         session_id: SessionId,
     ) -> RuntimeContextSnapshot:
-        return build_runtime_context_snapshot(
+        return derive_runtime_context_snapshot(
+            self._session_repository,
+            session_id,
             record.cwd,
-            self._session_repository.list_runtime_notes(session_id),
-            working_set=build_working_set_snapshot(
-                self._session_repository,
-                session_id,
-            ),
-            artifact_context=build_artifact_backed_context_snapshot(
-                self._session_repository,
-                self._artifact_repository,
-                session_id,
-            ),
+            artifact_repository=self._artifact_repository,
         )
 
     def _child_session_summaries(

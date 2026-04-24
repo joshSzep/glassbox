@@ -5,6 +5,7 @@ from collections.abc import Sequence
 
 from glassbox.core.models import TranscriptMessage
 from glassbox.runtime.context_models import RepositoryContextSnapshot
+from glassbox.runtime.context_models import RuntimeContextNoteSnapshot
 from glassbox.tools import ToolSchema
 
 
@@ -60,3 +61,17 @@ def format_repository_context_for_prompt(
     if snapshot.project_markers:
         lines.append("Project markers: " + ", ".join(snapshot.project_markers))
     return "\n".join(lines)
+
+
+def format_runtime_notes_for_prompt(
+    notes: Sequence[RuntimeContextNoteSnapshot],
+) -> list[str]:
+    """Render runtime-note snapshots into stable prompt memory notes."""
+
+    formatted_notes: list[str] = []
+    for note in notes:
+        category_prefix = (
+            f"inherited {note.category}" if note.inherited else note.category
+        )
+        formatted_notes.append(f"[{category_prefix}] {note.message}")
+    return formatted_notes

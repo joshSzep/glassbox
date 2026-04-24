@@ -644,7 +644,7 @@ These follow-on tasks stay within the same behavior-preserving contract as the o
 
 ### GBX-R170: Unify Structured Runtime-Context Derivation Across Turn Building And Session Queries
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R111`, `GBX-R150`
 - Goal: remove the remaining duplication between [context_builder.py](./../src/glassbox/runtime/context_builder.py) and [session_queries.py](./../src/glassbox/runtime/session_queries.py) around runtime notes, artifact-backed summaries, and reusable structured context snapshots
 - Deliverables:
