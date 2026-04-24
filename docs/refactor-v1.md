@@ -292,7 +292,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R113: Extract Session Query Composition From Web Route Modules
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R102`, `GBX-R110`, `GBX-R111`
 - Goal: reduce `web/routes/sessions.py` to HTTP concerns by moving snapshot composition and response shaping to reusable runtime query code
 - Deliverables:
