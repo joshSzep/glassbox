@@ -621,7 +621,7 @@ These follow-on tasks stay within the same behavior-preserving contract as the o
 
 ### GBX-R161: Extract Turn Event Recording And Failure Serialization From Turn Engine
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R160`
 - Goal: reduce [turn_engine.py](./../src/glassbox/runtime/turn_engine.py) to orchestration by moving event-batch construction, assistant-stream event assembly, and failure-event serialization behind explicit collaborators
 - Deliverables:
