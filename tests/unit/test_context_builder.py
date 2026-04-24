@@ -19,8 +19,11 @@ from glassbox.core import (
     new_turn_id,
 )
 from glassbox.runtime import (
+    RepositoryContextSnapshot,
     ToolSchema,
     TurnContextBuilder,
+    build_repository_context_snapshot,
+    format_repository_context_for_prompt,
     format_tool_schemas_for_prompt,
     format_transcript_for_prompt,
 )
@@ -313,6 +316,106 @@ def test_tool_schema_formatter_rejects_duplicates() -> None:
                 ToolSchema(name="read_file", description="Read twice"),
             ]
         )
+
+
+def test_repository_context_snapshot_is_bounded_and_deterministic(
+    tmp_path: Path,
+) -> None:
+    for directory_name in (
+        "src",
+        "tests",
+        "docs",
+        "evals",
+        "frontend",
+        "examples",
+        "scripts",
+        "fixtures",
+        "extra-dir",
+    ):
+        (tmp_path / directory_name).mkdir()
+    for file_name in (
+        "README.md",
+        "pyproject.toml",
+        "uv.lock",
+        "LICENSE",
+        "Makefile",
+        "CONTRIBUTING.md",
+        "notes.txt",
+        "changelog.md",
+        "extra.txt",
+    ):
+        (tmp_path / file_name).write_text(file_name, encoding="utf-8")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".env").write_text("secret=true\n", encoding="utf-8")
+
+    first_snapshot = build_repository_context_snapshot(tmp_path)
+    second_snapshot = build_repository_context_snapshot(tmp_path)
+
+    assert first_snapshot == second_snapshot
+    assert first_snapshot.workspace_name == tmp_path.name
+    assert first_snapshot.top_level_directories == [
+        "docs/",
+        "evals/",
+        "examples/",
+        "extra-dir/",
+        "fixtures/",
+        "frontend/",
+        "scripts/",
+        "src/",
+    ]
+    assert first_snapshot.additional_directory_count == 1
+    assert first_snapshot.top_level_files == [
+        "CONTRIBUTING.md",
+        "LICENSE",
+        "Makefile",
+        "README.md",
+        "changelog.md",
+        "extra.txt",
+        "notes.txt",
+        "pyproject.toml",
+    ]
+    assert first_snapshot.additional_file_count == 1
+    assert first_snapshot.high_signal_paths == [
+        "README.md",
+        "pyproject.toml",
+        "src/",
+        "tests/",
+        "docs/",
+        "evals/",
+        "frontend/",
+    ]
+    assert first_snapshot.project_markers == [
+        "python_pyproject",
+        "src_layout",
+        "tests_present",
+        "docs_present",
+        "evals_present",
+        "frontend_present",
+    ]
+
+
+def test_repository_context_formatter_renders_expected_summary() -> None:
+    formatted = format_repository_context_for_prompt(
+        RepositoryContextSnapshot(
+            workspace_name="glassbox",
+            high_signal_paths=["README.md", "src/", "tests/"],
+            top_level_directories=["docs/", "src/", "tests/"],
+            additional_directory_count=2,
+            top_level_files=["LICENSE", "README.md", "pyproject.toml"],
+            additional_file_count=1,
+            project_markers=["python_pyproject", "src_layout", "tests_present"],
+        )
+    )
+
+    assert formatted == "\n".join(
+        [
+            "Workspace: glassbox",
+            "High-signal paths: README.md, src/, tests/",
+            "Top-level directories: docs/, src/, tests/ (+2 more)",
+            "Top-level files: LICENSE, README.md, pyproject.toml (+1 more)",
+            "Project markers: python_pyproject, src_layout, tests_present",
+        ]
+    )
 
 
 class ReadFileArgs(BaseModel):

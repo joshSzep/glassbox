@@ -2186,7 +2186,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-221: Implement Typed Repository Context Snapshot Builder
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-220`
 - Goal: assemble a deterministic repository-context summary that gives the model useful workspace awareness without forcing it to rediscover the same high-level facts every turn
 - Deliverables:

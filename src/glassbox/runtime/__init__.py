@@ -13,9 +13,12 @@ from glassbox.runtime.context import (
 )
 from glassbox.runtime.context_builder import (
     PolicyContext,
+    RepositoryContextSnapshot,
     ToolSchema,
     TurnContext,
     TurnContextBuilder,
+    build_repository_context_snapshot,
+    format_repository_context_for_prompt,
     format_tool_schemas_for_prompt,
     format_transcript_for_prompt,
     normalize_tool_schemas,
@@ -81,6 +84,7 @@ def __getattr__(name: str) -> Any:
 
 __all__ = [
     "default_database_path",
+    "build_repository_context_snapshot",
     "discover_eval_case_files",
     "EvalCase",
     "EvalCaseExpectation",
@@ -95,6 +99,7 @@ __all__ = [
     "load_eval_suite",
     "open_runtime_context",
     "PolicyContext",
+    "RepositoryContextSnapshot",
     "ProviderSecretConfig",
     "ReplayBundle",
     "ReplayResult",
@@ -109,6 +114,7 @@ __all__ = [
     "TurnEngine",
     "TurnContext",
     "TurnContextBuilder",
+    "format_repository_context_for_prompt",
     "format_tool_schemas_for_prompt",
     "format_transcript_for_prompt",
     "load_runtime_provider_config",
