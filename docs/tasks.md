@@ -2613,7 +2613,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-247: Generate Release Sign-Off Reports From Curated Replay And Eval Profiles
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-243`, `GBX-244`, `GBX-245`, `GBX-246`
 - Goal: produce a release-oriented artifact that summarizes whether the current codebase satisfies the curated replay and eval contract for a release candidate
 - Deliverables:

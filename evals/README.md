@@ -28,6 +28,8 @@ glassbox eval run --profile commit-smoke
 glassbox eval run CASE_ID
 glassbox eval run --tag smoke --json
 glassbox eval run --output-dir .glassbox/evals/manual
+glassbox eval report release-candidate advisory-context
+glassbox eval report commit-smoke push-confirmation release-candidate --output-dir .glassbox/evals/release-signoff
 glassbox eval promote SESSION_ID CASE_ID --title "Case title"
 glassbox eval refresh CASE_ID SESSION_ID --reason "Why this baseline changed"
 ```
@@ -65,6 +67,35 @@ the `push-confirmation` profile from `.github/workflows/push-smoke-evals.yml`
 and uploads the remote run output from
 `.glassbox/evals/push-smoke/` as a GitHub Actions artifact named
 `push-smoke-evals-SHA`.
+
+Release sign-off can now aggregate one or more named profiles into one retained
+report directory:
+
+```text
+glassbox eval report release-candidate advisory-context
+glassbox eval report commit-smoke push-confirmation release-candidate --output-dir .glassbox/evals/release-signoff
+```
+
+That command writes:
+
+- per-profile retained evidence under `profiles/PROFILE_ID/`
+- `release-signoff.json` as the machine-readable contract summary
+- `release-signoff.md` as the concise human-readable release note for terminal or CI summaries
+
+The release sign-off status is intentionally not the same thing as an individual
+suite exit code:
+
+- `passed` means the selected blocking profiles passed, no blocking profile was
+  skipped, and no selected release-critical capability remained uncovered.
+- `warning` means the retained evidence is usable but still includes
+  non-blocking concerns such as advisory drift or a skipped non-blocking
+  profile.
+- `failed` means the curated release contract was not met because of a blocking
+  failure, a skipped blocking profile, or uncovered release-critical coverage.
+
+Per-profile sign-off rows may also say `skipped` when the requested report
+filters leave that profile with no selected cases. That skip is recorded in the
+report instead of being inferred from missing output.
 
 Profile manifest shape:
 
@@ -189,6 +220,13 @@ renderers surface that budget health next to the replay outcomes so a suite can
 fail because it became too broad or too noisy, even if each individual case
 still replayed successfully.
 
+`release-signoff.json` reuses the same capability, severity, budget, and case
+metadata vocabulary instead of inventing a separate release-only schema. It
+summarizes retained per-profile `summary.json` outputs, case artifact paths,
+severity totals, aggregate capability coverage, advisory drift counts,
+unsupported cases, skipped profiles, and baseline freshness cues such as the
+latest and oldest retained baseline update timestamps.
+
 Case manifest shape:
 
 ```json
@@ -271,6 +309,11 @@ Troubleshooting flows:
   or the terminal `Profile budget:` block to see whether selected case count,
   selected-invariant count, recorded model calls, artifact volume, or advisory
   eligibility exceeded the profile guardrails.
+1. Release sign-off warning or failure:
+  inspect `release-signoff.md` first, then open `release-signoff.json` if the
+  machine-readable profile, capability, or freshness details are needed before
+  drilling into `profiles/PROFILE_ID/summary.json` or the retained per-case
+  artifacts.
 2. Push confirmation failed after local success:
   read the GitHub Actions job summary first, then download the
   `push-smoke-evals-SHA` artifact only if the summary does not already explain

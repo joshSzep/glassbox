@@ -1595,6 +1595,347 @@ def test_cli_eval_run_rejects_refresh_outside_managed_output_tree(
     assert not output_dir.exists()
 
 
+def test_cli_eval_report_generates_release_signoff_artifacts_for_all_pass_suite(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    smoke_bundle_path, _session_id = _export_eval_bundle(tmp_path, "smoke.readme")
+    release_bundle_path = tmp_path / "evals" / "bundles" / "release.flow.json"
+    shutil.copyfile(smoke_bundle_path, release_bundle_path)
+
+    _write_eval_case(
+        tmp_path,
+        case_id="smoke.readme",
+        title="README smoke",
+        bundle_name=smoke_bundle_path.name,
+        tags=["smoke"],
+        release_contract={
+            "owner": "runtime.replay",
+            "capabilities": ["repository_inspection"],
+            "severity": "medium",
+            "verification_stages": ["commit-time"],
+        },
+        baseline_history=[
+            {
+                "operation": "promote",
+                "recorded_at": "2026-01-10T00:00:00Z",
+                "source_session_id": "00000000-0000-0000-0000-000000000001",
+                "rationale": "Initial smoke promotion",
+            }
+        ],
+    )
+    _write_eval_case(
+        tmp_path,
+        case_id="release.flow",
+        title="Release flow",
+        bundle_name=release_bundle_path.name,
+        tags=["release"],
+        release_contract={
+            "owner": "runtime.release",
+            "capabilities": ["approval_flow"],
+            "severity": "high",
+            "verification_stages": ["release-candidate"],
+        },
+        baseline_history=[
+            {
+                "operation": "refresh",
+                "recorded_at": "2026-02-10T00:00:00Z",
+                "source_session_id": "00000000-0000-0000-0000-000000000002",
+                "rationale": "Refresh after contract review",
+            }
+        ],
+    )
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "commit-smoke",
+                "title": "Commit smoke",
+                "verification_stage": "commit-time",
+                "tags": ["smoke"],
+                "blocking": True,
+            },
+            {
+                "profile_id": "release-candidate",
+                "title": "Release candidate",
+                "verification_stage": "release-candidate",
+                "tags": ["release"],
+                "blocking": True,
+            },
+        ],
+    )
+    _write_eval_coverage(
+        tmp_path,
+        profiles=[
+            {
+                "capability_id": "repository_inspection",
+                "title": "Repository inspection",
+                "criticality": "important",
+                "verification_stages": ["commit-time"],
+                "expected_case_ids": ["smoke.readme"],
+                "coverage_mode": "single_case",
+            },
+            {
+                "capability_id": "approval_flow",
+                "title": "Approval flow",
+                "criticality": "release-critical",
+                "verification_stages": ["release-candidate"],
+                "expected_case_ids": ["release.flow"],
+                "coverage_mode": "single_case",
+            },
+        ],
+    )
+
+    output_dir = tmp_path / "release-signoff-output"
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "report",
+            "commit-smoke",
+            "release-candidate",
+            "--cwd",
+            str(tmp_path),
+            "--output-dir",
+            str(output_dir),
+            "--json",
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["status"] == "passed"
+    assert payload["contract_satisfied"] is True
+    assert payload["latest_baseline_case_id"] == "release.flow"
+    assert payload["profiles"][0]["summary_artifact_path"] == (
+        "profiles/commit-smoke/summary.json"
+    )
+    assert payload["profiles"][1]["summary_artifact_path"] == (
+        "profiles/release-candidate/summary.json"
+    )
+    assert (output_dir / "release-signoff.json").is_file()
+    assert (output_dir / "release-signoff.md").is_file()
+    assert (output_dir / "profiles" / "commit-smoke" / "summary.json").is_file()
+    assert (output_dir / "profiles" / "release-candidate" / "summary.json").is_file()
+
+
+def test_cli_eval_report_surfaces_blocking_failures_and_advisory_drift(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    bundle_path, _session_id = _export_eval_bundle(tmp_path, "release.blocking")
+    blocking_bundle_path = tmp_path / "evals" / "bundles" / "release.blocking.json"
+    advisory_bundle_path = tmp_path / "evals" / "bundles" / "context.relaxed.json"
+
+    failing_payload = json.loads(bundle_path.read_text(encoding="utf-8"))
+    failing_payload["baseline"]["final_state"]["status"] = "failed"
+    blocking_bundle_path.write_text(
+        json.dumps(failing_payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    advisory_bundle_path.write_text(
+        json.dumps(failing_payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    _write_eval_case(
+        tmp_path,
+        case_id="release.blocking",
+        title="Blocking release profile",
+        bundle_name=blocking_bundle_path.name,
+        tags=["release"],
+        release_contract={
+            "owner": "runtime.release",
+            "capabilities": ["release_contract"],
+            "severity": "critical",
+            "verification_stages": ["release-candidate"],
+        },
+    )
+    _write_eval_case(
+        tmp_path,
+        case_id="context.relaxed",
+        title="Advisory relaxed context",
+        bundle_name=advisory_bundle_path.name,
+        tags=["context"],
+        expectation={
+            "mode": "selected_invariants",
+            "invariants": ["transcript"],
+        },
+        release_contract={
+            "owner": "runtime.context",
+            "capabilities": ["context_inheritance"],
+            "severity": "low",
+            "verification_stages": ["advisory"],
+            "baseline_refresh_policy": "advisory",
+        },
+    )
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "release-candidate",
+                "title": "Release candidate",
+                "verification_stage": "release-candidate",
+                "tags": ["release"],
+                "blocking": True,
+            },
+            {
+                "profile_id": "advisory-context",
+                "title": "Advisory context",
+                "verification_stage": "advisory",
+                "tags": ["context"],
+                "blocking": False,
+            },
+        ],
+    )
+    _write_eval_coverage(
+        tmp_path,
+        profiles=[
+            {
+                "capability_id": "release_contract",
+                "title": "Release contract",
+                "criticality": "release-critical",
+                "verification_stages": ["release-candidate"],
+                "expected_case_ids": ["release.blocking"],
+                "coverage_mode": "single_case",
+            },
+            {
+                "capability_id": "context_inheritance",
+                "title": "Context inheritance",
+                "criticality": "advisory",
+                "verification_stages": ["advisory"],
+                "expected_case_ids": ["context.relaxed"],
+                "coverage_mode": "single_case",
+            },
+        ],
+    )
+
+    output_dir = tmp_path / "release-signoff-mixed"
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "report",
+            "release-candidate",
+            "advisory-context",
+            "--cwd",
+            str(tmp_path),
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(
+        (output_dir / "release-signoff.json").read_text(encoding="utf-8")
+    )
+
+    assert exit_code == 1
+    assert "Status: `failed`" in captured.out
+    assert "release-candidate" in captured.out
+    assert "advisory-context" in captured.out
+    assert "profiles/advisory-context/context.relaxed.json" in captured.out
+    assert payload["status"] == "failed"
+    assert payload["advisory_drift_case_count"] == 1
+    assert payload["failed_severity_totals"]["critical"] == 1
+    assert [profile["status"] for profile in payload["profiles"]] == [
+        "failed",
+        "warning",
+    ]
+
+
+def test_cli_eval_report_records_skipped_profiles_and_unsupported_cases(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    bundle_path, _session_id = _export_eval_bundle(tmp_path, "context.unsupported")
+    unsupported_bundle_path = (
+        tmp_path / "evals" / "bundles" / "context.unsupported.json"
+    )
+
+    unsupported_payload = json.loads(bundle_path.read_text(encoding="utf-8"))
+    unsupported_payload["bundle_version"] = 2
+    unsupported_bundle_path.write_text(
+        json.dumps(unsupported_payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    _write_eval_case(
+        tmp_path,
+        case_id="smoke.readme",
+        title="README smoke",
+        bundle_name=bundle_path.name,
+        tags=["smoke"],
+        release_contract={
+            "verification_stages": ["commit-time"],
+        },
+    )
+    _write_eval_case(
+        tmp_path,
+        case_id="context.unsupported",
+        title="Unsupported advisory case",
+        bundle_name=unsupported_bundle_path.name,
+        tags=["context"],
+        release_contract={
+            "verification_stages": ["advisory"],
+            "baseline_refresh_policy": "advisory",
+        },
+    )
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "commit-smoke",
+                "title": "Commit smoke",
+                "verification_stage": "commit-time",
+                "tags": ["smoke"],
+                "blocking": True,
+            },
+            {
+                "profile_id": "advisory-context",
+                "title": "Advisory context",
+                "verification_stage": "advisory",
+                "tags": ["context"],
+                "blocking": False,
+            },
+        ],
+    )
+
+    output_dir = tmp_path / "release-signoff-skipped"
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "report",
+            "commit-smoke",
+            "advisory-context",
+            "--tag",
+            "context",
+            "--cwd",
+            str(tmp_path),
+            "--output-dir",
+            str(output_dir),
+            "--json",
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 1
+    assert payload["status"] == "failed"
+    assert payload["unsupported_case_count"] == 1
+    assert [profile["status"] for profile in payload["profiles"]] == [
+        "skipped",
+        "warning",
+    ]
+    assert payload["profiles"][0]["skip_reason"] == (
+        "no eval cases selected after applying report filters"
+    )
+
+
 def test_cli_message_submits_new_user_turn_to_existing_session(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -3259,6 +3600,7 @@ def _write_eval_case(
     tags: list[str],
     expectation: dict[str, object] | None = None,
     release_contract: dict[str, object] | None = None,
+    baseline_history: list[dict[str, object]] | None = None,
 ) -> Path:
     case_path = tmp_path / "evals" / "cases" / f"{case_id}.json"
     case_path.parent.mkdir(parents=True, exist_ok=True)
@@ -3273,6 +3615,8 @@ def _write_eval_case(
         payload["expectation"] = expectation
     if release_contract is not None:
         payload["release_contract"] = release_contract
+    if baseline_history is not None:
+        payload["baseline_history"] = baseline_history
     case_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     return case_path
 

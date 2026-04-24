@@ -9,7 +9,7 @@ import sqlite3
 import sys
 from collections.abc import Awaitable, Callable, Sequence
 from contextlib import suppress
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID
 
@@ -48,6 +48,13 @@ from glassbox.runtime.eval_coverage import (
     audit_eval_coverage,
     build_eval_coverage_summary_lines,
 )
+from glassbox.runtime.eval_summary import (
+    EvalReleaseSignoffProfileInput,
+    EvalReleaseSignoffSkippedProfileInput,
+    build_eval_release_signoff_report,
+    build_eval_release_signoff_summary,
+)
+from glassbox.runtime.evals import resolve_eval_suite_selection
 from glassbox.web import GlassboxWebServer, WebServerConfig, build_web_server
 
 _APPROVAL_MODE_CHOICES = ("confirm", "review", "on-request", "never")
@@ -415,6 +422,44 @@ def _build_parser() -> argparse.ArgumentParser:
         help="print the structured coverage audit report as JSON",
     )
     _add_runtime_location_arguments(eval_audit_parser)
+
+    eval_report_parser = eval_subparsers.add_parser(
+        "report",
+        help="generate a release sign-off report from named eval profiles",
+        description=(
+            "Run one or more named repository-owned eval profiles and aggregate "
+            "their retained evidence into a release-oriented sign-off report."
+        ),
+    )
+    eval_report_parser.add_argument(
+        "profile_ids",
+        nargs="+",
+        help="one or more named profiles to include in the release sign-off report",
+    )
+    eval_report_parser.add_argument(
+        "--tag",
+        dest="tags",
+        action="append",
+        default=[],
+        help=(
+            "require a tag on selected eval cases inside each requested profile; "
+            "repeat to require multiple tags"
+        ),
+    )
+    eval_report_parser.add_argument(
+        "--output-dir",
+        default=None,
+        help=(
+            "directory for the generated release sign-off report and per-profile "
+            "eval artifacts"
+        ),
+    )
+    eval_report_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the structured release sign-off report as JSON",
+    )
+    _add_runtime_location_arguments(eval_report_parser)
 
     eval_promote_parser = eval_subparsers.add_parser(
         "promote",
@@ -1014,6 +1059,82 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
         else:
             _print_eval_coverage_audit(result=audit_result, workspace_root=cwd)
         return 0
+
+    if args.eval_command == "report":
+        cwd, _db_path = _resolve_runtime_location(args)
+        del _db_path
+        root_output_dir = _resolve_eval_report_output_dir(cwd, args.output_dir)
+        root_output_dir.mkdir(parents=True, exist_ok=True)
+
+        profile_inputs: list[EvalReleaseSignoffProfileInput] = []
+        skipped_profiles: list[EvalReleaseSignoffSkippedProfileInput] = []
+        seen_profile_ids: set[str] = set()
+        requested_profile_ids: list[str] = []
+        runner = EvalRunner()
+        tag_filters = list(args.tags) or None
+
+        for profile_id in args.profile_ids:
+            if profile_id in seen_profile_ids:
+                continue
+            seen_profile_ids.add(profile_id)
+            requested_profile_ids.append(profile_id)
+
+            selection = resolve_eval_suite_selection(
+                cwd,
+                profile_id=profile_id,
+                tags=tag_filters,
+            )
+            profile = selection.profile
+            if profile is None:
+                raise ValueError(f"unknown eval profile: {profile_id}")
+            if not selection.cases:
+                skipped_profiles.append(
+                    EvalReleaseSignoffSkippedProfileInput(
+                        profile_id=profile.profile_id,
+                        profile=profile,
+                        reason="no eval cases selected after applying report filters",
+                    )
+                )
+                continue
+
+            suite_result = await runner.run_suite(
+                cwd,
+                profile_id=profile.profile_id,
+                tags=tag_filters,
+                output_dir=root_output_dir / "profiles" / profile.profile_id,
+            )
+            profile_inputs.append(
+                EvalReleaseSignoffProfileInput(
+                    profile=profile,
+                    eval_cases=selection.cases,
+                    suite_result=suite_result,
+                )
+            )
+
+        report = build_eval_release_signoff_report(
+            workspace_root=cwd,
+            requested_profile_ids=requested_profile_ids,
+            tag_filters=list(args.tags),
+            profile_inputs=profile_inputs,
+            skipped_profiles=skipped_profiles,
+            artifact_root=root_output_dir,
+        )
+        report_json_path = root_output_dir / "release-signoff.json"
+        report_summary_path = root_output_dir / "release-signoff.md"
+        report_json_path.write_text(
+            json.dumps(report.model_dump(mode="json"), indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        report_summary_path.write_text(
+            build_eval_release_signoff_summary(report),
+            encoding="utf-8",
+        )
+
+        if args.json:
+            print(json.dumps(report.model_dump(mode="json"), indent=2, sort_keys=True))
+        else:
+            print(build_eval_release_signoff_summary(report), end="")
+        return report.exit_code
 
     if args.eval_command == "promote":
         cwd, db_path = _resolve_runtime_location(args)
@@ -1815,6 +1936,17 @@ def _format_budget_limit(limit: int | None) -> str:
     if limit is None:
         return " (no configured limit)"
     return f" / {limit}"
+
+
+def _resolve_eval_report_output_dir(cwd: Path, output_dir: str | None) -> Path:
+    if output_dir is not None:
+        return _resolve_optional_output_path(
+            cwd,
+            output_dir,
+            default_name="unused",
+        )
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    return (cwd / ".glassbox" / "evals" / f"release-signoff-{timestamp}").resolve()
 
 
 def _replay_detail_lines(result: ReplayResult) -> list[str]:
