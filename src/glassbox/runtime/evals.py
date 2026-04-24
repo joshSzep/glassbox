@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
+from datetime import datetime
 from pathlib import Path
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -36,6 +38,7 @@ type EvalBaselineRefreshPolicy = Literal[
     "intentional_only",
     "advisory",
 ]
+type EvalBaselineOperation = Literal["promote", "refresh"]
 
 _IDENTIFIER_PATTERN = re.compile(r"^[a-z0-9]+(?:[._-][a-z0-9]+)*$")
 _ALL_EVAL_INVARIANTS: tuple[EvalInvariant, ...] = (
@@ -145,6 +148,25 @@ class EvalCaseReleaseContract(BaseModel):
         return self
 
 
+class EvalBaselineHistoryEntry(BaseModel):
+    """One reviewable promotion or refresh note for an eval baseline."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    operation: EvalBaselineOperation
+    recorded_at: datetime
+    source_session_id: UUID
+    rationale: str
+
+    @field_validator("rationale")
+    @classmethod
+    def validate_rationale(cls, value: str) -> str:
+        rationale = value.strip()
+        if not rationale:
+            raise ValueError("baseline rationale must not be empty")
+        return rationale
+
+
 class EvalCaseManifest(BaseModel):
     """On-disk manifest for one repository-local eval case."""
 
@@ -160,6 +182,7 @@ class EvalCaseManifest(BaseModel):
     release_contract: EvalCaseReleaseContract = Field(
         default_factory=EvalCaseReleaseContract
     )
+    baseline_history: list[EvalBaselineHistoryEntry] = Field(default_factory=list)
 
     @field_validator("manifest_version")
     @classmethod
@@ -221,6 +244,7 @@ class EvalCase(BaseModel):
     notes: str | None = None
     expectation: EvalCaseExpectation
     release_contract: EvalCaseReleaseContract
+    baseline_history: list[EvalBaselineHistoryEntry] = Field(default_factory=list)
 
 
 class EvalProfileDefinition(BaseModel):
@@ -380,6 +404,7 @@ def load_eval_case(
         notes=manifest.notes,
         expectation=manifest.expectation,
         release_contract=manifest.release_contract,
+        baseline_history=list(manifest.baseline_history),
     )
 
 

@@ -2547,7 +2547,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-244: Implement Guided Baseline Promotion And Refresh Workflow
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-194`, `GBX-195`, `GBX-240`, `GBX-241`
 - Goal: make baseline creation and refresh deliberate, reviewable actions instead of manual bundle overwrites that can silently legitimize regressions
 - Deliverables:

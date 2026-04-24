@@ -406,11 +406,19 @@ Or run a tagged or profiled suite and emit machine-readable output:
 uv run glassbox eval run --tag smoke --json --cwd .
 uv run glassbox eval run --profile commit-smoke --cwd .
 uv run glassbox eval audit --profile release-candidate --json --cwd .
+uv run glassbox eval promote SESSION_ID CASE_ID --title "Case title" --cwd . --db-path .glassbox/glassbox.sqlite3
+uv run glassbox eval refresh CASE_ID SESSION_ID --reason "Intentional baseline update" --acknowledge-policy --cwd . --db-path .glassbox/glassbox.sqlite3
 ```
 
 Each `glassbox eval run` invocation writes one JSON artifact per executed case
 plus `summary.json`. If you omit `--output-dir`, Glassbox creates a timestamped
 directory under `.glassbox/evals/`.
+
+Guided baseline management is available through `glassbox eval promote` and
+`glassbox eval refresh`. Promotion creates a new checked-in case plus bundle,
+and refresh writes a review artifact under `.glassbox/evals/baseline-updates/`
+that summarizes the bundle and manifest changes before you accept the updated
+baseline.
 
 ### Local-First Verification Policy
 

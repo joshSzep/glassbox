@@ -39,6 +39,11 @@ from glassbox.runtime import (
     build_working_set_snapshot,
     open_runtime_context,
 )
+from glassbox.runtime.eval_baselines import (
+    format_eval_baseline_update_report,
+    promote_eval_case,
+    refresh_eval_case,
+)
 from glassbox.runtime.eval_coverage import (
     audit_eval_coverage,
     build_eval_coverage_summary_lines,
@@ -46,6 +51,27 @@ from glassbox.runtime.eval_coverage import (
 from glassbox.web import GlassboxWebServer, WebServerConfig, build_web_server
 
 _APPROVAL_MODE_CHOICES = ("confirm", "review", "on-request", "never")
+_EVAL_EXPECTATION_MODE_CHOICES = ("exact_match", "selected_invariants")
+_EVAL_SEVERITY_CHOICES = ("critical", "high", "medium", "low")
+_EVAL_VERIFICATION_STAGE_CHOICES = (
+    "commit-time",
+    "push-time",
+    "release-candidate",
+    "advisory",
+)
+_EVAL_BASELINE_REFRESH_POLICY_CHOICES = (
+    "review_required",
+    "intentional_only",
+    "advisory",
+)
+_EVAL_INVARIANT_CHOICES = (
+    "transcript",
+    "tool_calls",
+    "approvals",
+    "questions",
+    "event_families",
+    "final_state",
+)
 _REPLAY_EXIT_CODES = {
     "exact_match": 0,
     "behavioral_drift": 10,
@@ -389,6 +415,161 @@ def _build_parser() -> argparse.ArgumentParser:
         help="print the structured coverage audit report as JSON",
     )
     _add_runtime_location_arguments(eval_audit_parser)
+
+    eval_promote_parser = eval_subparsers.add_parser(
+        "promote",
+        help="promote one recorded session into a new eval case",
+        description=(
+            "Export a replayable session into evals/bundles/ and create a new "
+            "repository-local eval case manifest in one guided step."
+        ),
+    )
+    eval_promote_parser.add_argument("session_id", type=_parse_uuid)
+    eval_promote_parser.add_argument("case_id")
+    eval_promote_parser.add_argument("--title", required=True)
+    eval_promote_parser.add_argument(
+        "--tag",
+        dest="tags",
+        action="append",
+        default=[],
+        help="tag to add to the promoted eval case; repeat as needed",
+    )
+    eval_promote_parser.add_argument("--notes", default=None)
+    eval_promote_parser.add_argument(
+        "--reason",
+        default=None,
+        help="optional initial promotion note stored in the case history",
+    )
+    eval_promote_parser.add_argument(
+        "--expectation-mode",
+        choices=_EVAL_EXPECTATION_MODE_CHOICES,
+        default="exact_match",
+    )
+    eval_promote_parser.add_argument(
+        "--invariant",
+        dest="invariants",
+        action="append",
+        default=[],
+        choices=_EVAL_INVARIANT_CHOICES,
+        help="selected invariant for the case; repeat as needed",
+    )
+    eval_promote_parser.add_argument("--owner", default=None)
+    eval_promote_parser.add_argument(
+        "--capability",
+        dest="capabilities",
+        action="append",
+        default=[],
+        help="capability protected by the case; repeat as needed",
+    )
+    eval_promote_parser.add_argument(
+        "--severity",
+        choices=_EVAL_SEVERITY_CHOICES,
+        default="medium",
+    )
+    eval_promote_parser.add_argument(
+        "--verification-stage",
+        dest="verification_stages",
+        action="append",
+        default=None,
+        choices=_EVAL_VERIFICATION_STAGE_CHOICES,
+        help="verification stage for the case; repeat as needed",
+    )
+    eval_promote_parser.add_argument(
+        "--baseline-refresh-policy",
+        choices=_EVAL_BASELINE_REFRESH_POLICY_CHOICES,
+        default="review_required",
+    )
+    eval_promote_parser.add_argument(
+        "--report-output",
+        default=None,
+        help="optional path for the generated baseline review artifact",
+    )
+    eval_promote_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the structured promotion report as JSON",
+    )
+    _add_runtime_location_arguments(eval_promote_parser)
+
+    eval_refresh_parser = eval_subparsers.add_parser(
+        "refresh",
+        help="refresh one existing eval baseline from a new source session",
+        description=(
+            "Export a new replay bundle into an existing eval case and emit a "
+            "review artifact that summarizes what changed and why."
+        ),
+    )
+    eval_refresh_parser.add_argument("case_id")
+    eval_refresh_parser.add_argument("session_id", type=_parse_uuid)
+    eval_refresh_parser.add_argument(
+        "--reason",
+        required=True,
+        help="required refresh rationale stored in the case history",
+    )
+    eval_refresh_parser.add_argument(
+        "--acknowledge-policy",
+        action="store_true",
+        help="required when refreshing blocking or release-candidate cases",
+    )
+    eval_refresh_parser.add_argument("--title", default=None)
+    eval_refresh_parser.add_argument(
+        "--tag",
+        dest="tags",
+        action="append",
+        default=None,
+        help="replace case tags with the provided values; repeat as needed",
+    )
+    eval_refresh_parser.add_argument("--notes", default=None)
+    eval_refresh_parser.add_argument(
+        "--expectation-mode",
+        choices=_EVAL_EXPECTATION_MODE_CHOICES,
+        default=None,
+    )
+    eval_refresh_parser.add_argument(
+        "--invariant",
+        dest="invariants",
+        action="append",
+        default=None,
+        choices=_EVAL_INVARIANT_CHOICES,
+        help="replace selected invariants with the provided values",
+    )
+    eval_refresh_parser.add_argument("--owner", default=None)
+    eval_refresh_parser.add_argument(
+        "--capability",
+        dest="capabilities",
+        action="append",
+        default=None,
+        help="replace protected capabilities with the provided values",
+    )
+    eval_refresh_parser.add_argument(
+        "--severity",
+        choices=_EVAL_SEVERITY_CHOICES,
+        default=None,
+    )
+    eval_refresh_parser.add_argument(
+        "--verification-stage",
+        dest="verification_stages",
+        action="append",
+        default=None,
+        choices=_EVAL_VERIFICATION_STAGE_CHOICES,
+        help="replace verification stages with the provided values",
+    )
+    eval_refresh_parser.add_argument(
+        "--baseline-refresh-policy",
+        choices=_EVAL_BASELINE_REFRESH_POLICY_CHOICES,
+        default=None,
+    )
+    eval_refresh_parser.add_argument(
+        "--report-output",
+        default=None,
+        help="optional path for the generated baseline review artifact",
+    )
+    eval_refresh_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the structured refresh report as JSON",
+    )
+    _add_runtime_location_arguments(eval_refresh_parser)
 
     approve_parser = subparsers.add_parser(
         "approve",
@@ -832,6 +1013,77 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
             )
         else:
             _print_eval_coverage_audit(result=audit_result, workspace_root=cwd)
+        return 0
+
+    if args.eval_command == "promote":
+        cwd, db_path = _resolve_runtime_location(args)
+        report_output = _resolve_optional_explicit_path(cwd, args.report_output)
+        with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+            report = promote_eval_case(
+                cwd,
+                replay_runner=ReplayRunner(
+                    runtime_context.repositories.sessions,
+                    runtime_context.repositories.artifacts,
+                ),
+                session_id=args.session_id,
+                case_id=args.case_id,
+                title=args.title,
+                tags=list(args.tags),
+                notes=args.notes,
+                expectation_mode=args.expectation_mode,
+                invariants=list(args.invariants),
+                owner=args.owner,
+                capabilities=list(args.capabilities),
+                severity=args.severity,
+                verification_stages=None
+                if args.verification_stages is None
+                else list(args.verification_stages),
+                baseline_refresh_policy=args.baseline_refresh_policy,
+                rationale=args.reason,
+                report_path=report_output,
+            )
+
+        if args.json:
+            print(json.dumps(report.model_dump(mode="json"), indent=2, sort_keys=True))
+        else:
+            _print_eval_baseline_update(report)
+        return 0
+
+    if args.eval_command == "refresh":
+        cwd, db_path = _resolve_runtime_location(args)
+        report_output = _resolve_optional_explicit_path(cwd, args.report_output)
+        with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+            report = refresh_eval_case(
+                cwd,
+                replay_runner=ReplayRunner(
+                    runtime_context.repositories.sessions,
+                    runtime_context.repositories.artifacts,
+                ),
+                session_id=args.session_id,
+                case_id=args.case_id,
+                rationale=args.reason,
+                acknowledge_policy=args.acknowledge_policy,
+                title=args.title,
+                tags=None if args.tags is None else list(args.tags),
+                notes=args.notes,
+                expectation_mode=args.expectation_mode,
+                invariants=None if args.invariants is None else list(args.invariants),
+                owner=args.owner,
+                capabilities=None
+                if args.capabilities is None
+                else list(args.capabilities),
+                severity=args.severity,
+                verification_stages=None
+                if args.verification_stages is None
+                else list(args.verification_stages),
+                baseline_refresh_policy=args.baseline_refresh_policy,
+                report_path=report_output,
+            )
+
+        if args.json:
+            print(json.dumps(report.model_dump(mode="json"), indent=2, sort_keys=True))
+        else:
+            _print_eval_baseline_update(report)
         return 0
 
     raise ValueError("specify an eval subcommand")
@@ -1466,6 +1718,11 @@ def _print_eval_coverage_audit(*, workspace_root: Path, result) -> None:
         print("Unmapped case details:")
         for case_id in result.unmapped_case_ids:
             print(f"  - {case_id}")
+
+
+def _print_eval_baseline_update(report) -> None:
+    for line in format_eval_baseline_update_report(report):
+        print(line)
 
 
 def _replay_detail_lines(result: ReplayResult) -> list[str]:

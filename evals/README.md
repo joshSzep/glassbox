@@ -16,9 +16,9 @@ evals/
 
 Promotion workflow:
 
-1. Export a replayable session into `evals/bundles/CASE_ID.json`.
-2. Add `evals/cases/CASE_ID.json` with the stable case metadata and expected invariants.
-3. Review bundle and case updates together whenever a baseline is intentionally refreshed.
+1. Promote a replayable session into a curated case with `glassbox eval promote SESSION_ID CASE_ID --title ...`.
+2. Review the generated bundle, case manifest, and review artifact together.
+3. Refresh an existing case with `glassbox eval refresh CASE_ID SESSION_ID --reason ...` whenever a baseline change is intentional.
 
 Run the resulting suite with:
 
@@ -28,6 +28,8 @@ glassbox eval run --profile commit-smoke
 glassbox eval run CASE_ID
 glassbox eval run --tag smoke --json
 glassbox eval run --output-dir .glassbox/evals/manual
+glassbox eval promote SESSION_ID CASE_ID --title "Case title"
+glassbox eval refresh CASE_ID SESSION_ID --reason "Why this baseline changed"
 ```
 
 Named profiles live in `evals/profiles.json` and make stage intent explicit for
@@ -106,6 +108,22 @@ Coverage manifest shape:
 one curated case. `single_case` expects at most one mapped case. `multi_case`
 expects at least two explicitly listed cases because different runtime paths or
 selected-invariant contracts matter independently.
+
+Guided baseline updates:
+
+- `glassbox eval promote` exports the replay bundle into `evals/bundles/`,
+  creates `evals/cases/CASE_ID.json`, and records an initial `baseline_history`
+  entry inside the case manifest.
+- `glassbox eval refresh` reuses the existing case manifest and bundle path,
+  requires `--reason`, appends a `baseline_history` entry, and writes a
+  diff-friendly review artifact under `.glassbox/evals/baseline-updates/` by
+  default.
+- Blocking or `release-candidate` cases require both release-discipline
+  metadata such as `owner` and `capabilities` and an explicit
+  `--acknowledge-policy` flag before refresh is allowed.
+- The refresh artifact summarizes bundle metric changes, manifest field changes,
+  and expectation or release-contract changes before the refreshed baseline is
+  accepted.
 
 That workflow also writes a GitHub Actions job summary with selected-case
 counts, pass/fail totals, outcome counts, per-case severity, and retained
@@ -213,5 +231,7 @@ Troubleshooting flows:
   `push-smoke-evals-SHA` artifact only if the summary does not already explain
   the failing case.
 3. Intentional baseline refresh:
-  update the checked-in bundle and case manifest together, then rerun the
-  targeted case or tagged suite before committing.
+  use `glassbox eval refresh CASE_ID SESSION_ID --reason ...`, review the
+  generated `.glassbox/evals/baseline-updates/CASE_ID.json` artifact alongside
+  the checked-in bundle and case manifest changes, then rerun the targeted case
+  or tagged suite before committing.

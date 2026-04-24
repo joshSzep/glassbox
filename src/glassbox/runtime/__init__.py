@@ -42,6 +42,12 @@ from glassbox.runtime.provider_config import (
 )
 
 if TYPE_CHECKING:
+    from glassbox.runtime.eval_baselines import (
+        EvalBaselineUpdateReport,
+        format_eval_baseline_update_report,
+        promote_eval_case,
+        refresh_eval_case,
+    )
     from glassbox.runtime.eval_coverage import (
         EvalCoverageAuditResult,
         audit_eval_coverage,
@@ -72,6 +78,10 @@ def __getattr__(name: str) -> Any:
 
         return _SessionSupervisor
     if name in {
+        "EvalBaselineUpdateReport",
+        "format_eval_baseline_update_report",
+        "promote_eval_case",
+        "refresh_eval_case",
         "EvalCoverageAuditResult",
         "audit_eval_coverage",
         "load_eval_coverage_manifest",
@@ -86,6 +96,15 @@ def __getattr__(name: str) -> Any:
         "load_eval_case",
         "load_eval_suite",
     }:
+        if name in {
+            "EvalBaselineUpdateReport",
+            "format_eval_baseline_update_report",
+            "promote_eval_case",
+            "refresh_eval_case",
+        }:
+            from glassbox.runtime import eval_baselines as _eval_baselines
+
+            return getattr(_eval_baselines, name)
         if name in {
             "EvalCoverageAuditResult",
             "audit_eval_coverage",
@@ -123,6 +142,7 @@ __all__ = [
     "build_runtime_context_snapshot",
     "build_working_set_snapshot",
     "discover_eval_case_files",
+    "EvalBaselineUpdateReport",
     "EvalCoverageAuditResult",
     "EvalCase",
     "EvalCaseExpectation",
@@ -134,6 +154,7 @@ __all__ = [
     "EventBusStats",
     "EventBusSubscription",
     "audit_eval_coverage",
+    "format_eval_baseline_update_report",
     "load_eval_case",
     "load_eval_coverage_manifest",
     "load_eval_suite",
@@ -144,9 +165,11 @@ __all__ = [
     "PytestFailureDigestArtifact",
     "RepositoryContextSnapshot",
     "ProviderSecretConfig",
+    "promote_eval_case",
     "ReplayBundle",
     "ReplayResult",
     "ReplayRunner",
+    "refresh_eval_case",
     "RuntimeContext",
     "RuntimeContextNoteSnapshot",
     "RuntimeContextSnapshot",
