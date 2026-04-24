@@ -58,6 +58,17 @@ def test_enriched_context_source_fingerprint_ignores_non_semantic_ordering_noise
                     "signal_types": ["inherited_runtime_note"],
                     "inherited": True,
                 },
+                {
+                    "subject_kind": "artifact",
+                    "subject": ".glassbox/sessions/a/artifacts/alpha.json",
+                    "summary": "recent test artifact",
+                    "reasons": [
+                        "context_pytest_failure_digest artifact recorded at "
+                        ".glassbox/sessions/a/artifacts/alpha.json"
+                    ],
+                    "signal_types": ["tool_artifact"],
+                    "inherited": False,
+                },
             ],
             "additional_item_count": 1,
         },
@@ -109,6 +120,17 @@ def test_enriched_context_source_fingerprint_ignores_non_semantic_ordering_noise
                     "summary": "recently targeted workspace path",
                     "reasons": ["apply_patch targeted file", "recent tool request"],
                     "signal_types": ["tool_artifact", "tool_request_path"],
+                    "inherited": False,
+                },
+                {
+                    "subject_kind": "artifact",
+                    "subject": ".glassbox/sessions/b/artifacts/beta.json",
+                    "summary": "recent test artifact",
+                    "reasons": [
+                        "context_pytest_failure_digest artifact recorded at "
+                        ".glassbox/sessions/b/artifacts/beta.json"
+                    ],
+                    "signal_types": ["tool_artifact"],
                     "inherited": False,
                 },
             ],

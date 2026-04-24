@@ -54,6 +54,7 @@ from glassbox.tools import (
     build_ask_user_tool_registry,
     build_patch_tool_registry,
     build_read_only_tool_registry,
+    build_workflow_tool_registry,
 )
 
 
@@ -95,13 +96,23 @@ def _replay_model_call_artifact_path(
     repository: SQLiteSessionRepository,
     session_id,
 ) -> Path:
+    return _replay_model_call_artifact_paths(repository, session_id)[0]
+
+
+def _replay_model_call_artifact_paths(
+    repository: SQLiteSessionRepository,
+    session_id,
+) -> list[Path]:
+    paths: list[Path] = []
     for event in repository.read_session_events(session_id):
         if not isinstance(event.payload, ReplayArtifactRecorded):
             continue
         if event.payload.artifact_kind == "replay_model_call":
             assert event.payload.path is not None
-            return Path(event.payload.path)
-    raise AssertionError("expected replay_model_call artifact")
+            paths.append(Path(event.payload.path))
+    if not paths:
+        raise AssertionError("expected replay_model_call artifact")
+    return paths
 
 
 def _first_replay_artifact_path(
@@ -197,6 +208,44 @@ def _ask_user_then_text_response(messages: list, _agent_info: Any) -> ModelRespo
             )
         ]
     )
+
+
+def _run_tests_then_use_digest_response(
+    messages: list, _agent_info: Any
+) -> ModelResponse:
+    saw_tool_return = False
+    user_prompt = None
+    tool_content = None
+
+    for message in messages:
+        if not isinstance(message, ModelRequest):
+            continue
+        for part in message.parts:
+            if isinstance(part, UserPromptPart):
+                user_prompt = part.content
+            if isinstance(part, ToolReturnPart) and part.tool_name == "run_tests":
+                saw_tool_return = True
+                tool_content = part.content
+
+    assert user_prompt is not None
+    if user_prompt == "Run the targeted tests":
+        if not saw_tool_return:
+            return ModelResponse(
+                parts=[
+                    ToolCallPart(
+                        tool_name="run_tests",
+                        args={"paths": ["test_fail.py"]},
+                        tool_call_id="provider-call-run-tests-1",
+                    )
+                ]
+            )
+
+        assert isinstance(tool_content, dict)
+        assert tool_content["failed"] == 1
+        return ModelResponse(parts=[TextPart(content="Captured failing test.")])
+
+    assert user_prompt == "Summarize the latest failure"
+    return ModelResponse(parts=[TextPart(content="Latest failure summarized.")])
 
 
 def test_replay_runner_matches_text_only_session(tmp_path: Path) -> None:
@@ -389,6 +438,74 @@ def test_replay_runner_matches_ask_user_resume_session(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
+def test_replay_runner_preserves_artifact_backed_context_under_replay(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "test_fail.py").write_text(
+        "def test_failure():\n    assert False\n",
+        encoding="utf-8",
+    )
+
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = _build_turn_engine(
+                repository,
+                artifact_repository,
+                bus,
+                model_fn=_run_tests_then_use_digest_response,
+                tool_runtime_factory=lambda session: ToolRuntime(
+                    build_workflow_tool_registry(session.cwd),
+                    ToolPolicyEngine(),
+                    ToolPolicyContext(
+                        workspace_root=session.cwd,
+                        approval_mode=ApprovalMode.CONFIRM,
+                    ),
+                ),
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+
+            state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+            await supervisor.submit_user_message(
+                state.session_id,
+                "Run the targeted tests",
+            )
+            approval_payload = next(
+                event.payload
+                for event in repository.read_session_events(state.session_id)
+                if isinstance(event.payload, ApprovalRequested)
+            )
+            await supervisor.resolve_approval(
+                state.session_id,
+                approval_payload.approval_id,
+                ApprovalDecision.APPROVED,
+            )
+            await supervisor.submit_user_message(
+                state.session_id,
+                "Summarize the latest failure",
+            )
+
+            result = await ReplayRunner(repository, artifact_repository).replay_session(
+                state.session_id
+            )
+        finally:
+            connection.close()
+
+        assert result.outcome == "behavioral_drift"
+        assert result.mismatches == ["event_families drift"]
+
+    asyncio.run(scenario())
+
+
 def test_replay_runner_reports_manifest_drift(tmp_path: Path) -> None:
     async def scenario() -> None:
         connection = _open_initialized_database(tmp_path)
@@ -490,6 +607,92 @@ def test_replay_runner_reports_enriched_context_manifest_drift(
         assert result.message is not None
         assert (
             "recorded enriched context source drifted: runtime_notes" in result.message
+        )
+
+    asyncio.run(scenario())
+
+
+def test_replay_runner_reports_artifact_backed_context_manifest_drift(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "test_fail.py").write_text(
+        "def test_failure():\n    assert False\n",
+        encoding="utf-8",
+    )
+
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = _build_turn_engine(
+                repository,
+                artifact_repository,
+                bus,
+                model_fn=_run_tests_then_use_digest_response,
+                tool_runtime_factory=lambda session: ToolRuntime(
+                    build_workflow_tool_registry(session.cwd),
+                    ToolPolicyEngine(),
+                    ToolPolicyContext(
+                        workspace_root=session.cwd,
+                        approval_mode=ApprovalMode.CONFIRM,
+                    ),
+                ),
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+
+            state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+            await supervisor.submit_user_message(
+                state.session_id,
+                "Run the targeted tests",
+            )
+            approval_payload = next(
+                event.payload
+                for event in repository.read_session_events(state.session_id)
+                if isinstance(event.payload, ApprovalRequested)
+            )
+            await supervisor.resolve_approval(
+                state.session_id,
+                approval_payload.approval_id,
+                ApprovalDecision.APPROVED,
+            )
+            await supervisor.submit_user_message(
+                state.session_id,
+                "Summarize the latest failure",
+            )
+
+            artifact_paths = _replay_model_call_artifact_paths(
+                repository,
+                state.session_id,
+            )
+            artifact_path = tmp_path / artifact_paths[-1]
+            artifact_payload = json.loads(artifact_path.read_text(encoding="utf-8"))
+            artifact_payload["turn_context"]["artifact_context"]["summaries"][0][
+                "failing_tests"
+            ] = ["unexpected::failure"]
+            artifact_path.write_text(
+                json.dumps(artifact_payload, indent=2),
+                encoding="utf-8",
+            )
+
+            result = await ReplayRunner(repository, artifact_repository).replay_session(
+                state.session_id
+            )
+        finally:
+            connection.close()
+
+        assert result.outcome == "manifest_drift"
+        assert result.message is not None
+        assert (
+            "recorded enriched context source drifted: pytest_failure_digest"
+            in result.message
         )
 
     asyncio.run(scenario())
@@ -1016,6 +1219,130 @@ def test_eval_runner_executes_forked_child_bundle_case(tmp_path: Path) -> None:
         assert result.cases[0].case_id == "forked-child-session"
         assert result.cases[0].replay_outcome == "exact_match"
         assert result.cases[0].passed is True
+
+    asyncio.run(scenario())
+
+
+def test_eval_runner_allows_selected_invariants_for_context_sensitive_bundle(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "test_fail.py").write_text(
+        "def test_failure():\n    assert False\n",
+        encoding="utf-8",
+    )
+    cases_dir = tmp_path / "evals" / "cases"
+    cases_dir.mkdir(parents=True)
+    bundles_dir = tmp_path / "evals" / "bundles"
+    bundles_dir.mkdir(parents=True)
+    bundle_path = bundles_dir / "context.artifact.json"
+    case_path = cases_dir / "context.artifact.json"
+    output_dir = tmp_path / ".glassbox" / "evals" / "context-run"
+
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = _build_turn_engine(
+                repository,
+                artifact_repository,
+                bus,
+                model_fn=_run_tests_then_use_digest_response,
+                tool_runtime_factory=lambda session: ToolRuntime(
+                    build_workflow_tool_registry(session.cwd),
+                    ToolPolicyEngine(),
+                    ToolPolicyContext(
+                        workspace_root=session.cwd,
+                        approval_mode=ApprovalMode.CONFIRM,
+                    ),
+                ),
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+
+            state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+            await supervisor.submit_user_message(
+                state.session_id,
+                "Run the targeted tests",
+            )
+            approval_payload = next(
+                event.payload
+                for event in repository.read_session_events(state.session_id)
+                if isinstance(event.payload, ApprovalRequested)
+            )
+            await supervisor.resolve_approval(
+                state.session_id,
+                approval_payload.approval_id,
+                ApprovalDecision.APPROVED,
+            )
+            await supervisor.submit_user_message(
+                state.session_id,
+                "Summarize the latest failure",
+            )
+
+            ReplayRunner(repository, artifact_repository).export_session_bundle(
+                state.session_id,
+                bundle_path,
+            )
+        finally:
+            connection.close()
+
+        bundle_payload = json.loads(bundle_path.read_text(encoding="utf-8"))
+        bundle_payload["baseline"]["transcript"][-1]["parts"][0]["text"] = (
+            "Unexpected relaxed transcript"
+        )
+        bundle_path.write_text(
+            json.dumps(bundle_payload, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+        case_path.write_text(
+            json.dumps(
+                {
+                    "case_id": "context.artifact",
+                    "title": "Artifact-backed context can ignore transcript-only drift",
+                    "bundle_path": "../bundles/context.artifact.json",
+                    "tags": ["context"],
+                    "expectation": {
+                        "mode": "selected_invariants",
+                        "invariants": [
+                            "tool_calls",
+                            "approvals",
+                            "final_state",
+                        ],
+                    },
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        result = await EvalRunner().run_suite(
+            tmp_path,
+            case_ids=["context.artifact"],
+            output_dir=output_dir,
+        )
+
+        assert result.selected_case_count == 1
+        assert result.passed_case_count == 1
+        assert result.failed_case_count == 0
+        assert result.exit_code == 0
+        assert result.cases[0].replay_outcome == "behavioral_drift"
+        assert result.cases[0].passed is True
+        assert sorted(result.cases[0].ignored_mismatches) == [
+            "event_families drift",
+            "transcript drift",
+        ]
+        assert result.cases[0].message == (
+            "selected invariants matched; mismatches were limited to ignored dimensions"
+        )
 
     asyncio.run(scenario())
 

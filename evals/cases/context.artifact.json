@@ -1,0 +1,12 @@
+{
+  "manifest_version": 1,
+  "case_id": "context.artifact",
+  "title": "Artifact-backed context keeps stable invariants",
+  "bundle_path": "../bundles/context.artifact.json",
+  "tags": ["context", "artifact"],
+  "notes": "Tracks pytest failure-digest context while ignoring run_tests output chunk differences that replay does not reproduce.",
+  "expectation": {
+    "mode": "selected_invariants",
+    "invariants": ["transcript", "tool_calls", "approvals", "final_state"]
+  }
+}

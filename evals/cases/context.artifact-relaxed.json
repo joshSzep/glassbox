@@ -1,0 +1,12 @@
+{
+  "manifest_version": 1,
+  "case_id": "context.artifact-relaxed",
+  "title": "Artifact-backed context can ignore transcript-only drift",
+  "bundle_path": "../bundles/context.artifact-relaxed.json",
+  "tags": ["context", "artifact"],
+  "notes": "Uses the same artifact-backed session as context.artifact but with an intentionally relaxed assistant transcript baseline.",
+  "expectation": {
+    "mode": "selected_invariants",
+    "invariants": ["tool_calls", "approvals", "final_state"]
+  }
+}

@@ -793,14 +793,21 @@ def _parse_repo_context_csv(value: str) -> list[str]:
 
 
 def _normalize_working_set_item_payload(item: dict[str, Any]) -> dict[str, Any]:
+    subject_kind = str(item.get("subject_kind") or "").strip()
+    normalized_subject = str(item.get("subject") or "").strip()
     normalized_reasons = sorted(
         {
-            reason.strip()
+            _normalize_working_set_reason(subject_kind, reason)
             for reason in list(item.get("reasons") or [])
             if isinstance(reason, str) and reason.strip() != ""
         },
         key=str.casefold,
     )
+    if subject_kind == "artifact":
+        normalized_subject = _normalize_working_set_artifact_subject(
+            normalized_subject,
+            normalized_reasons,
+        )
     normalized_signal_types = sorted(
         {
             signal_type.strip()
@@ -810,13 +817,34 @@ def _normalize_working_set_item_payload(item: dict[str, Any]) -> dict[str, Any]:
         key=str.casefold,
     )
     return {
-        "subject_kind": str(item.get("subject_kind") or "").strip(),
-        "subject": str(item.get("subject") or "").strip(),
+        "subject_kind": subject_kind,
+        "subject": normalized_subject,
         "summary": str(item.get("summary") or "").strip(),
         "reasons": normalized_reasons,
         "signal_types": normalized_signal_types,
         "inherited": bool(item.get("inherited")),
     }
+
+
+def _normalize_working_set_reason(subject_kind: str, reason: str) -> str:
+    normalized_reason = reason.strip()
+    if subject_kind == "artifact":
+        marker = " artifact recorded at "
+        prefix, separator, _ = normalized_reason.partition(marker)
+        if separator:
+            return f"{prefix}{marker}<artifact-path>"
+    return normalized_reason
+
+
+def _normalize_working_set_artifact_subject(
+    subject: str,
+    normalized_reasons: list[str],
+) -> str:
+    for reason in normalized_reasons:
+        prefix, separator, _ = reason.partition(" artifact recorded at ")
+        if separator:
+            return prefix.strip()
+    return "<artifact-path>" if subject != "" else subject
 
 
 def _normalize_artifact_context_summary_payload(

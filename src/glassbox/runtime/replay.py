@@ -68,6 +68,7 @@ from glassbox.runtime.supervisor import SessionSupervisor
 from glassbox.runtime.turn_engine import TurnEngine
 from glassbox.services import ArtifactRepository, SessionRepository
 from glassbox.store import (
+    FilesystemArtifactRepository,
     SQLiteSessionRepository,
     initialize_database,
     open_database,
@@ -520,6 +521,10 @@ class ReplayRunner:
             try:
                 initialize_database(connection)
                 repository = SQLiteSessionRepository(connection)
+                artifact_repository = FilesystemArtifactRepository(
+                    connection,
+                    replay_root,
+                )
                 bus: EventBus[EventEnvelope] = EventBus()
                 turn_engine = TurnEngine(
                     repository,
@@ -532,6 +537,7 @@ class ReplayRunner:
                         if tool_runtime is not None
                         else None
                     ),
+                    artifact_repository=artifact_repository,
                 )
                 supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
                 replay_state = await supervisor.start_session(replay_session_config)

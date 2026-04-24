@@ -1,0 +1,11 @@
+{
+  "manifest_version": 1,
+  "case_id": "context.branch-inherited",
+  "title": "Forked child context stays replay-stable",
+  "bundle_path": "../bundles/context.branch-inherited.json",
+  "tags": ["smoke", "context"],
+  "notes": "Exercises inherited transcript, inherited runtime notes, and branch working-set state in the commit-time smoke suite.",
+  "expectation": {
+    "mode": "exact_match"
+  }
+}

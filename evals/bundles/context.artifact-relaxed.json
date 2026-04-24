@@ -1,0 +1,1427 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Run the targeted tests"
+    },
+    {
+      "action_type": "approval",
+      "decision": "approved"
+    },
+    {
+      "action_type": "user_message",
+      "text": "Summarize the latest failure"
+    }
+  ],
+  "baseline": {
+    "approvals": [
+      {
+        "decided_by": "user",
+        "reason": "approval required: command execution is gated by local policy (confirm)",
+        "status": "approved",
+        "subject": "run_tests"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TurnStatusChanged",
+      "TurnStatusChanged",
+      "ModelCallStarted",
+      "AssistantMessageStarted",
+      "ModelCallCompleted",
+      "ModelToolCallRequested",
+      "TurnStatusChanged",
+      "ApprovalRequested",
+      "TurnCompleted",
+      "ApprovalResolved",
+      "TurnStatusChanged",
+      "TurnStatusChanged",
+      "ToolExecutionStarted",
+      "ToolOutputChunk",
+      "ToolOutputChunk",
+      "ToolOutputChunk",
+      "ToolOutputChunk",
+      "ToolOutputChunk",
+      "ToolOutputChunk",
+      "ToolOutputChunk",
+      "ToolOutputChunk",
+      "ToolOutputChunk",
+      "ToolExecutionCompleted",
+      "ToolArtifactRecorded",
+      "TurnStatusChanged",
+      "ModelCallStarted",
+      "ModelCallCompleted",
+      "TurnStatusChanged",
+      "AssistantMessageCompleted",
+      "TurnStatusChanged",
+      "TurnCompleted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TurnStatusChanged",
+      "TurnStatusChanged",
+      "ModelCallStarted",
+      "AssistantMessageStarted",
+      "ModelCallCompleted",
+      "TurnStatusChanged",
+      "AssistantMessageCompleted",
+      "TurnStatusChanged",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Run the targeted tests"
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": ""
+          }
+        ],
+        "role": "assistant"
+      },
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Captured failing test."
+          }
+        ],
+        "role": "assistant"
+      },
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Summarize the latest failure"
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Latest failure summarized."
+          }
+        ],
+        "role": "assistant"
+      }
+    ],
+    "questions": [],
+    "tool_calls": [
+      {
+        "status": "requested",
+        "tool_name": "run_tests"
+      },
+      {
+        "status": "succeeded",
+        "summary": "run_tests completed",
+        "tool_name": "run_tests"
+      }
+    ],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Run the targeted tests"
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": ""
+          }
+        ],
+        "role": "assistant"
+      },
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Captured failing test."
+          }
+        ],
+        "role": "assistant"
+      },
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Summarize the latest failure"
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Transcript intentionally relaxed."
+          }
+        ],
+        "role": "assistant"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "inherited_messages": [],
+  "inherited_runtime_notes": [],
+  "model_calls": [
+    {
+      "input_tokens": 690,
+      "manifest": {
+        "artifact_kind": "replay_model_call",
+        "call_index": 1,
+        "enriched_context_fingerprint": "fba11600455b9e23188391d6792e21209af6f2c7c44f62b56b2cfbb6195efacc",
+        "enriched_context_sources": [
+          {
+            "fingerprint": "35e4ff392245fcbd6a84464fa5b5852bb78a960d7aced074348fd080ef990986",
+            "inherited": false,
+            "provenance_class": "recomputed_summary",
+            "schema_version": 1,
+            "source_name": "repository_context",
+            "summary": "Workspace: glassbox"
+          }
+        ],
+        "manifest_version": 1,
+        "prepared_turn": {
+          "message_history": [
+            {
+              "message_kind": "request",
+              "parts": [
+                {
+                  "content": "You are Glassbox, a terminal-first agent running inside an event-driven runtime.\nWork from the transcript, tool results, and supplied context rather than inventing hidden state.\nTreat tool calls and approvals as explicit runtime actions, not as assumptions.\n\nOutput style:\n- Be concise, factual, and explicit about uncertainty.\n- Do not claim an action succeeded unless the transcript or a tool result shows it succeeded.\n- If you are blocked by policy, approvals, or missing tool access, say so directly.\n\nTool usage:\n- Use tools when they materially improve correctness or let you inspect the workspace.\n- Never invent tool outputs, side effects, or file changes.\n- Arguments for tool calls must match the declared JSON schema.\nAvailable tools:\ngit_status: Get the current git status of the workspace: branch name, staged files, modified files, and untracked files.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for inspecting git status of the workspace.\", \"properties\": {\"cwd\": {\"default\": \".\", \"description\": \"Working directory relative to the workspace root.\", \"title\": \"Cwd\", \"type\": \"string\"}}, \"title\": \"GitStatusArgs\", \"type\": \"object\"}\nlist_dir: List directory contents inside the workspace.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for listing one directory inside the workspace.\", \"properties\": {\"limit\": {\"default\": 100, \"maximum\": 500, \"minimum\": 1, \"title\": \"Limit\", \"type\": \"integer\"}, \"path\": {\"default\": \".\", \"title\": \"Path\", \"type\": \"string\"}}, \"title\": \"ListDirArgs\", \"type\": \"object\"}\nread_file: Read text from a file inside the workspace.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for reading one text file inside the workspace.\", \"properties\": {\"end_line\": {\"anyOf\": [{\"minimum\": 1, \"type\": \"integer\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"End Line\"}, \"path\": {\"title\": \"Path\", \"type\": \"string\"}, \"start_line\": {\"default\": 1, \"minimum\": 1, \"title\": \"Start Line\", \"type\": \"integer\"}}, \"required\": [\"path\"], \"title\": \"ReadFileArgs\", \"type\": \"object\"}\nrun_command: Run a shell command inside the workspace directory. stdout and stderr are captured and streamed as output chunks.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for running one shell command inside the workspace.\", \"properties\": {\"command\": {\"description\": \"Shell command to execute.\", \"minLength\": 1, \"title\": \"Command\", \"type\": \"string\"}, \"cwd\": {\"default\": \".\", \"description\": \"Working directory relative to the workspace root.\", \"title\": \"Cwd\", \"type\": \"string\"}, \"timeout\": {\"default\": 30, \"description\": \"Maximum seconds to wait before killing the process.\", \"maximum\": 300, \"minimum\": 1, \"title\": \"Timeout\", \"type\": \"integer\"}}, \"required\": [\"command\"], \"title\": \"RunCommandArgs\", \"type\": \"object\"}\nrun_tests: Run pytest in the workspace. Paths can target specific test files or directories; an empty list runs the full test suite.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for running pytest in the workspace.\", \"properties\": {\"keywords\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"default\": null, \"description\": \"Pytest -k expression to filter tests by keyword.\", \"title\": \"Keywords\"}, \"paths\": {\"description\": \"Test paths or files to run relative to the workspace root. Empty list runs the full test suite.\", \"items\": {\"type\": \"string\"}, \"title\": \"Paths\", \"type\": \"array\"}, \"timeout\": {\"default\": 60, \"description\": \"Maximum seconds to wait before killing the test run.\", \"maximum\": 600, \"minimum\": 1, \"title\": \"Timeout\", \"type\": \"integer\"}}, \"title\": \"RunTestsArgs\", \"type\": \"object\"}\nsearch_files: Search workspace text files for matching text.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for searching workspace text files.\", \"properties\": {\"limit\": {\"default\": 20, \"maximum\": 200, \"minimum\": 1, \"title\": \"Limit\", \"type\": \"integer\"}, \"path\": {\"default\": \".\", \"title\": \"Path\", \"type\": \"string\"}, \"query\": {\"minLength\": 1, \"title\": \"Query\", \"type\": \"string\"}}, \"required\": [\"query\"], \"title\": \"SearchFilesArgs\", \"type\": \"object\"}\n\nApproval policy:\n- Current approval mode: confirm.\n- If a requested action needs approval, stop and ask for approval rather than implying it already happened.\n- No approval request is currently pending.",
+                  "part_kind": "system_prompt"
+                }
+              ]
+            },
+            {
+              "message_kind": "request",
+              "parts": [
+                {
+                  "content": "Run the targeted tests",
+                  "part_kind": "user_prompt"
+                }
+              ]
+            }
+          ],
+          "model_name": "openai:gpt-5.4",
+          "model_settings": {},
+          "request_parameters": {
+            "allow_image_output": false,
+            "allow_text_output": true,
+            "tool_names": [
+              "git_status",
+              "list_dir",
+              "read_file",
+              "run_command",
+              "run_tests",
+              "search_files"
+            ]
+          }
+        },
+        "runtime_config": {
+          "allow_image_output": false,
+          "allow_text_output": true,
+          "fingerprint": "ea7b5de7f9efe375d41f52694bad3113f9e515706c7dd14f8c9c158eda7fd392",
+          "model_name": "openai:gpt-5.4",
+          "model_settings": {},
+          "tool_names": [
+            "git_status",
+            "list_dir",
+            "read_file",
+            "run_command",
+            "run_tests",
+            "search_files"
+          ]
+        },
+        "turn_context": {
+          "artifact_context": {
+            "additional_summary_count": 0,
+            "summaries": []
+          },
+          "available_tools": [
+            {
+              "description": "Get the current git status of the workspace: branch name, staged files, modified files, and untracked files.",
+              "name": "git_status",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for inspecting git status of the workspace.",
+                "properties": {
+                  "cwd": {
+                    "default": ".",
+                    "description": "Working directory relative to the workspace root.",
+                    "title": "Cwd",
+                    "type": "string"
+                  }
+                },
+                "title": "GitStatusArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "List directory contents inside the workspace.",
+              "name": "list_dir",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for listing one directory inside the workspace.",
+                "properties": {
+                  "limit": {
+                    "default": 100,
+                    "maximum": 500,
+                    "minimum": 1,
+                    "title": "Limit",
+                    "type": "integer"
+                  },
+                  "path": {
+                    "default": ".",
+                    "title": "Path",
+                    "type": "string"
+                  }
+                },
+                "title": "ListDirArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Read text from a file inside the workspace.",
+              "name": "read_file",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for reading one text file inside the workspace.",
+                "properties": {
+                  "end_line": {
+                    "anyOf": [
+                      {
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "End Line"
+                  },
+                  "path": {
+                    "title": "Path",
+                    "type": "string"
+                  },
+                  "start_line": {
+                    "default": 1,
+                    "minimum": 1,
+                    "title": "Start Line",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "title": "ReadFileArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Run a shell command inside the workspace directory. stdout and stderr are captured and streamed as output chunks.",
+              "name": "run_command",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for running one shell command inside the workspace.",
+                "properties": {
+                  "command": {
+                    "description": "Shell command to execute.",
+                    "minLength": 1,
+                    "title": "Command",
+                    "type": "string"
+                  },
+                  "cwd": {
+                    "default": ".",
+                    "description": "Working directory relative to the workspace root.",
+                    "title": "Cwd",
+                    "type": "string"
+                  },
+                  "timeout": {
+                    "default": 30,
+                    "description": "Maximum seconds to wait before killing the process.",
+                    "maximum": 300,
+                    "minimum": 1,
+                    "title": "Timeout",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "command"
+                ],
+                "title": "RunCommandArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Run pytest in the workspace. Paths can target specific test files or directories; an empty list runs the full test suite.",
+              "name": "run_tests",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for running pytest in the workspace.",
+                "properties": {
+                  "keywords": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "description": "Pytest -k expression to filter tests by keyword.",
+                    "title": "Keywords"
+                  },
+                  "paths": {
+                    "description": "Test paths or files to run relative to the workspace root. Empty list runs the full test suite.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "title": "Paths",
+                    "type": "array"
+                  },
+                  "timeout": {
+                    "default": 60,
+                    "description": "Maximum seconds to wait before killing the test run.",
+                    "maximum": 600,
+                    "minimum": 1,
+                    "title": "Timeout",
+                    "type": "integer"
+                  }
+                },
+                "title": "RunTestsArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Search workspace text files for matching text.",
+              "name": "search_files",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for searching workspace text files.",
+                "properties": {
+                  "limit": {
+                    "default": 20,
+                    "maximum": 200,
+                    "minimum": 1,
+                    "title": "Limit",
+                    "type": "integer"
+                  },
+                  "path": {
+                    "default": ".",
+                    "title": "Path",
+                    "type": "string"
+                  },
+                  "query": {
+                    "minLength": 1,
+                    "title": "Query",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "title": "SearchFilesArgs",
+                "type": "object"
+              }
+            }
+          ],
+          "current_turn_id": "9e213027-cc94-4410-924c-31aca07b3aa9",
+          "last_sequence": 4,
+          "memory_notes": [],
+          "policy": {
+            "approval_mode": "confirm",
+            "pending_approval_id": null
+          },
+          "repo_context": "Workspace: glassbox\nHigh-signal paths: README.md, pyproject.toml, src/, tests/, docs/, evals/\nTop-level directories: docs/, evals/, src/, tests/\nTop-level files: LICENSE, README.md, pyproject.toml, uv.lock\nProject markers: python_pyproject, src_layout, tests_present, docs_present, evals_present",
+          "session_id": "4d12a8ae-a8a0-4819-aa8d-f4aa5175a63f",
+          "session_status": "running",
+          "transcript": [
+            {
+              "created_at": "2026-04-24T06:48:56.141892Z",
+              "message_id": "4018d658-5ee7-452c-8b0d-65abd8bdcf8e",
+              "parts": [
+                {
+                  "kind": "text",
+                  "text": "Run the targeted tests"
+                }
+              ],
+              "role": "user"
+            }
+          ],
+          "working_set": {
+            "additional_item_count": 0,
+            "items": []
+          }
+        }
+      },
+      "output_tokens": 7,
+      "text_deltas": [],
+      "tool_calls": [
+        {
+          "arguments": {
+            "keywords": null,
+            "paths": [
+              "evals/fixtures/test_context_failure.py"
+            ],
+            "timeout": 60
+          },
+          "provider_tool_call_id": "provider-call-run-tests-1",
+          "tool_name": "run_tests"
+        }
+      ]
+    },
+    {
+      "assistant_text": "Captured failing test.",
+      "input_tokens": 775,
+      "manifest": {
+        "artifact_kind": "replay_model_call",
+        "call_index": 2,
+        "enriched_context_fingerprint": "c216d238d72f21433642d208a318682b4343f2b7944fe0f3a3bed3859bfadf3d",
+        "enriched_context_sources": [
+          {
+            "fingerprint": "35e4ff392245fcbd6a84464fa5b5852bb78a960d7aced074348fd080ef990986",
+            "inherited": false,
+            "provenance_class": "recomputed_summary",
+            "schema_version": 1,
+            "source_name": "repository_context",
+            "summary": "Workspace: glassbox"
+          },
+          {
+            "additional_item_count": 0,
+            "fingerprint": "041a2352caaae36847462aeb4ebc7cae1358160b1f5656e3a611910404b03cdf",
+            "inherited": false,
+            "item_count": 3,
+            "provenance_class": "recomputed_summary",
+            "schema_version": 1,
+            "source_name": "working_set",
+            "summary": "3 working-set item(s)"
+          }
+        ],
+        "manifest_version": 1,
+        "prepared_turn": {
+          "message_history": [
+            {
+              "message_kind": "request",
+              "parts": [
+                {
+                  "content": "You are Glassbox, a terminal-first agent running inside an event-driven runtime.\nWork from the transcript, tool results, and supplied context rather than inventing hidden state.\nTreat tool calls and approvals as explicit runtime actions, not as assumptions.\n\nOutput style:\n- Be concise, factual, and explicit about uncertainty.\n- Do not claim an action succeeded unless the transcript or a tool result shows it succeeded.\n- If you are blocked by policy, approvals, or missing tool access, say so directly.\n\nTool usage:\n- Use tools when they materially improve correctness or let you inspect the workspace.\n- Never invent tool outputs, side effects, or file changes.\n- Arguments for tool calls must match the declared JSON schema.\nAvailable tools:\ngit_status: Get the current git status of the workspace: branch name, staged files, modified files, and untracked files.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for inspecting git status of the workspace.\", \"properties\": {\"cwd\": {\"default\": \".\", \"description\": \"Working directory relative to the workspace root.\", \"title\": \"Cwd\", \"type\": \"string\"}}, \"title\": \"GitStatusArgs\", \"type\": \"object\"}\nlist_dir: List directory contents inside the workspace.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for listing one directory inside the workspace.\", \"properties\": {\"limit\": {\"default\": 100, \"maximum\": 500, \"minimum\": 1, \"title\": \"Limit\", \"type\": \"integer\"}, \"path\": {\"default\": \".\", \"title\": \"Path\", \"type\": \"string\"}}, \"title\": \"ListDirArgs\", \"type\": \"object\"}\nread_file: Read text from a file inside the workspace.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for reading one text file inside the workspace.\", \"properties\": {\"end_line\": {\"anyOf\": [{\"minimum\": 1, \"type\": \"integer\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"End Line\"}, \"path\": {\"title\": \"Path\", \"type\": \"string\"}, \"start_line\": {\"default\": 1, \"minimum\": 1, \"title\": \"Start Line\", \"type\": \"integer\"}}, \"required\": [\"path\"], \"title\": \"ReadFileArgs\", \"type\": \"object\"}\nrun_command: Run a shell command inside the workspace directory. stdout and stderr are captured and streamed as output chunks.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for running one shell command inside the workspace.\", \"properties\": {\"command\": {\"description\": \"Shell command to execute.\", \"minLength\": 1, \"title\": \"Command\", \"type\": \"string\"}, \"cwd\": {\"default\": \".\", \"description\": \"Working directory relative to the workspace root.\", \"title\": \"Cwd\", \"type\": \"string\"}, \"timeout\": {\"default\": 30, \"description\": \"Maximum seconds to wait before killing the process.\", \"maximum\": 300, \"minimum\": 1, \"title\": \"Timeout\", \"type\": \"integer\"}}, \"required\": [\"command\"], \"title\": \"RunCommandArgs\", \"type\": \"object\"}\nrun_tests: Run pytest in the workspace. Paths can target specific test files or directories; an empty list runs the full test suite.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for running pytest in the workspace.\", \"properties\": {\"keywords\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"default\": null, \"description\": \"Pytest -k expression to filter tests by keyword.\", \"title\": \"Keywords\"}, \"paths\": {\"description\": \"Test paths or files to run relative to the workspace root. Empty list runs the full test suite.\", \"items\": {\"type\": \"string\"}, \"title\": \"Paths\", \"type\": \"array\"}, \"timeout\": {\"default\": 60, \"description\": \"Maximum seconds to wait before killing the test run.\", \"maximum\": 600, \"minimum\": 1, \"title\": \"Timeout\", \"type\": \"integer\"}}, \"title\": \"RunTestsArgs\", \"type\": \"object\"}\nsearch_files: Search workspace text files for matching text.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for searching workspace text files.\", \"properties\": {\"limit\": {\"default\": 20, \"maximum\": 200, \"minimum\": 1, \"title\": \"Limit\", \"type\": \"integer\"}, \"path\": {\"default\": \".\", \"title\": \"Path\", \"type\": \"string\"}, \"query\": {\"minLength\": 1, \"title\": \"Query\", \"type\": \"string\"}}, \"required\": [\"query\"], \"title\": \"SearchFilesArgs\", \"type\": \"object\"}\n\nApproval policy:\n- Current approval mode: confirm.\n- If a requested action needs approval, stop and ask for approval rather than implying it already happened.\n- No approval request is currently pending.",
+                  "part_kind": "system_prompt"
+                }
+              ]
+            },
+            {
+              "message_kind": "request",
+              "parts": [
+                {
+                  "content": "Run the targeted tests",
+                  "part_kind": "user_prompt"
+                }
+              ]
+            },
+            {
+              "message_kind": "response",
+              "parts": [
+                {
+                  "content": "",
+                  "part_kind": "text"
+                }
+              ]
+            },
+            {
+              "message_kind": "response",
+              "parts": [
+                {
+                  "arguments": {
+                    "keywords": null,
+                    "paths": [
+                      "evals/fixtures/test_context_failure.py"
+                    ],
+                    "timeout": 60
+                  },
+                  "part_kind": "tool_call",
+                  "tool_call_id": "provider-call-run-tests-1",
+                  "tool_name": "run_tests"
+                }
+              ]
+            },
+            {
+              "message_kind": "request",
+              "parts": [
+                {
+                  "content": {
+                    "errors": 0,
+                    "exit_code": 1,
+                    "failed": 1,
+                    "passed": 0,
+                    "stderr": "",
+                    "stdout": "F                                                                        [100%]\n=================================== FAILURES ===================================\n_____________________________ test_context_failure _____________________________\nevals/fixtures/test_context_failure.py:2: in test_context_failure\n    assert False\nE   assert False\n=========================== short test summary info ============================\nFAILED evals/fixtures/test_context_failure.py::test_context_failure - assert ...\n1 failed in 0.02s\n",
+                    "timed_out": false,
+                    "truncated": false,
+                    "warnings": 0
+                  },
+                  "part_kind": "tool_return",
+                  "tool_call_id": "provider-call-run-tests-1",
+                  "tool_name": "run_tests"
+                }
+              ]
+            }
+          ],
+          "model_name": "openai:gpt-5.4",
+          "model_settings": {},
+          "request_parameters": {
+            "allow_image_output": false,
+            "allow_text_output": true,
+            "tool_names": [
+              "git_status",
+              "list_dir",
+              "read_file",
+              "run_command",
+              "run_tests",
+              "search_files"
+            ]
+          }
+        },
+        "runtime_config": {
+          "allow_image_output": false,
+          "allow_text_output": true,
+          "fingerprint": "ea7b5de7f9efe375d41f52694bad3113f9e515706c7dd14f8c9c158eda7fd392",
+          "model_name": "openai:gpt-5.4",
+          "model_settings": {},
+          "tool_names": [
+            "git_status",
+            "list_dir",
+            "read_file",
+            "run_command",
+            "run_tests",
+            "search_files"
+          ]
+        },
+        "turn_context": {
+          "artifact_context": {
+            "additional_summary_count": 0,
+            "summaries": []
+          },
+          "available_tools": [
+            {
+              "description": "Get the current git status of the workspace: branch name, staged files, modified files, and untracked files.",
+              "name": "git_status",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for inspecting git status of the workspace.",
+                "properties": {
+                  "cwd": {
+                    "default": ".",
+                    "description": "Working directory relative to the workspace root.",
+                    "title": "Cwd",
+                    "type": "string"
+                  }
+                },
+                "title": "GitStatusArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "List directory contents inside the workspace.",
+              "name": "list_dir",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for listing one directory inside the workspace.",
+                "properties": {
+                  "limit": {
+                    "default": 100,
+                    "maximum": 500,
+                    "minimum": 1,
+                    "title": "Limit",
+                    "type": "integer"
+                  },
+                  "path": {
+                    "default": ".",
+                    "title": "Path",
+                    "type": "string"
+                  }
+                },
+                "title": "ListDirArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Read text from a file inside the workspace.",
+              "name": "read_file",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for reading one text file inside the workspace.",
+                "properties": {
+                  "end_line": {
+                    "anyOf": [
+                      {
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "End Line"
+                  },
+                  "path": {
+                    "title": "Path",
+                    "type": "string"
+                  },
+                  "start_line": {
+                    "default": 1,
+                    "minimum": 1,
+                    "title": "Start Line",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "title": "ReadFileArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Run a shell command inside the workspace directory. stdout and stderr are captured and streamed as output chunks.",
+              "name": "run_command",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for running one shell command inside the workspace.",
+                "properties": {
+                  "command": {
+                    "description": "Shell command to execute.",
+                    "minLength": 1,
+                    "title": "Command",
+                    "type": "string"
+                  },
+                  "cwd": {
+                    "default": ".",
+                    "description": "Working directory relative to the workspace root.",
+                    "title": "Cwd",
+                    "type": "string"
+                  },
+                  "timeout": {
+                    "default": 30,
+                    "description": "Maximum seconds to wait before killing the process.",
+                    "maximum": 300,
+                    "minimum": 1,
+                    "title": "Timeout",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "command"
+                ],
+                "title": "RunCommandArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Run pytest in the workspace. Paths can target specific test files or directories; an empty list runs the full test suite.",
+              "name": "run_tests",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for running pytest in the workspace.",
+                "properties": {
+                  "keywords": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "description": "Pytest -k expression to filter tests by keyword.",
+                    "title": "Keywords"
+                  },
+                  "paths": {
+                    "description": "Test paths or files to run relative to the workspace root. Empty list runs the full test suite.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "title": "Paths",
+                    "type": "array"
+                  },
+                  "timeout": {
+                    "default": 60,
+                    "description": "Maximum seconds to wait before killing the test run.",
+                    "maximum": 600,
+                    "minimum": 1,
+                    "title": "Timeout",
+                    "type": "integer"
+                  }
+                },
+                "title": "RunTestsArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Search workspace text files for matching text.",
+              "name": "search_files",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for searching workspace text files.",
+                "properties": {
+                  "limit": {
+                    "default": 20,
+                    "maximum": 200,
+                    "minimum": 1,
+                    "title": "Limit",
+                    "type": "integer"
+                  },
+                  "path": {
+                    "default": ".",
+                    "title": "Path",
+                    "type": "string"
+                  },
+                  "query": {
+                    "minLength": 1,
+                    "title": "Query",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "title": "SearchFilesArgs",
+                "type": "object"
+              }
+            }
+          ],
+          "current_turn_id": null,
+          "last_sequence": 17,
+          "memory_notes": [],
+          "policy": {
+            "approval_mode": "confirm",
+            "pending_approval_id": null
+          },
+          "repo_context": "Workspace: glassbox\nHigh-signal paths: README.md, pyproject.toml, src/, tests/, docs/, evals/\nTop-level directories: docs/, evals/, src/, tests/\nTop-level files: LICENSE, README.md, pyproject.toml, uv.lock\nProject markers: python_pyproject, src_layout, tests_present, docs_present, evals_present",
+          "session_id": "4d12a8ae-a8a0-4819-aa8d-f4aa5175a63f",
+          "session_status": "running",
+          "transcript": [
+            {
+              "created_at": "2026-04-24T06:48:56.141892Z",
+              "message_id": "4018d658-5ee7-452c-8b0d-65abd8bdcf8e",
+              "parts": [
+                {
+                  "kind": "text",
+                  "text": "Run the targeted tests"
+                }
+              ],
+              "role": "user"
+            },
+            {
+              "created_at": "2026-04-24T06:48:56.144021Z",
+              "message_id": "512f5154-b574-4e0e-a0b4-adbac9e7d989",
+              "parts": [
+                {
+                  "kind": "text",
+                  "text": ""
+                }
+              ],
+              "role": "assistant"
+            }
+          ],
+          "working_set": {
+            "additional_item_count": 0,
+            "items": [
+              {
+                "inherited": false,
+                "reasons": [
+                  "resolved approval: approval required: command execution is gated by local policy (confirm)"
+                ],
+                "signal_types": [
+                  "approval"
+                ],
+                "subject": "run_tests",
+                "subject_kind": "approval",
+                "summary": "recent approval context"
+              },
+              {
+                "inherited": false,
+                "reasons": [
+                  "run_tests targeted evals/fixtures/test_context_failure.py"
+                ],
+                "signal_types": [
+                  "tool_request_test_path"
+                ],
+                "subject": "evals/fixtures/test_context_failure.py",
+                "subject_kind": "test",
+                "summary": "recent test target"
+              },
+              {
+                "inherited": false,
+                "reasons": [
+                  "run_tests: requested"
+                ],
+                "signal_types": [
+                  "tool_call"
+                ],
+                "subject": "run_tests",
+                "subject_kind": "tool",
+                "summary": "recent tool execution"
+              }
+            ]
+          }
+        }
+      },
+      "output_tokens": 15,
+      "text_deltas": [],
+      "tool_calls": []
+    },
+    {
+      "assistant_text": "Latest failure summarized.",
+      "input_tokens": 764,
+      "manifest": {
+        "artifact_kind": "replay_model_call",
+        "call_index": 1,
+        "enriched_context_fingerprint": "2e055965128c68b3fe109b1640318afb27819cb90f2ee6d5e7e8243571cdce21",
+        "enriched_context_sources": [
+          {
+            "fingerprint": "35e4ff392245fcbd6a84464fa5b5852bb78a960d7aced074348fd080ef990986",
+            "inherited": false,
+            "provenance_class": "recomputed_summary",
+            "schema_version": 1,
+            "source_name": "repository_context",
+            "summary": "Workspace: glassbox"
+          },
+          {
+            "additional_item_count": 0,
+            "fingerprint": "e68eaab770b7288846b6fd4895591ca15409abb99a4d2a54d20846c2a2238219",
+            "inherited": false,
+            "item_count": 4,
+            "provenance_class": "recomputed_summary",
+            "schema_version": 1,
+            "source_name": "working_set",
+            "summary": "4 working-set item(s)"
+          },
+          {
+            "additional_item_count": 0,
+            "fingerprint": "d0135a33a4e9aca4c06eb2ccb962c4bb03cfbe244f19505d2898f2fba9f594d1",
+            "inherited": false,
+            "item_count": 1,
+            "provenance_class": "artifact_backed_summary",
+            "schema_version": 1,
+            "source_name": "pytest_failure_digest",
+            "summary": "1 artifact-backed summary item"
+          }
+        ],
+        "manifest_version": 1,
+        "prepared_turn": {
+          "message_history": [
+            {
+              "message_kind": "request",
+              "parts": [
+                {
+                  "content": "You are Glassbox, a terminal-first agent running inside an event-driven runtime.\nWork from the transcript, tool results, and supplied context rather than inventing hidden state.\nTreat tool calls and approvals as explicit runtime actions, not as assumptions.\n\nOutput style:\n- Be concise, factual, and explicit about uncertainty.\n- Do not claim an action succeeded unless the transcript or a tool result shows it succeeded.\n- If you are blocked by policy, approvals, or missing tool access, say so directly.\n\nTool usage:\n- Use tools when they materially improve correctness or let you inspect the workspace.\n- Never invent tool outputs, side effects, or file changes.\n- Arguments for tool calls must match the declared JSON schema.\nAvailable tools:\ngit_status: Get the current git status of the workspace: branch name, staged files, modified files, and untracked files.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for inspecting git status of the workspace.\", \"properties\": {\"cwd\": {\"default\": \".\", \"description\": \"Working directory relative to the workspace root.\", \"title\": \"Cwd\", \"type\": \"string\"}}, \"title\": \"GitStatusArgs\", \"type\": \"object\"}\nlist_dir: List directory contents inside the workspace.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for listing one directory inside the workspace.\", \"properties\": {\"limit\": {\"default\": 100, \"maximum\": 500, \"minimum\": 1, \"title\": \"Limit\", \"type\": \"integer\"}, \"path\": {\"default\": \".\", \"title\": \"Path\", \"type\": \"string\"}}, \"title\": \"ListDirArgs\", \"type\": \"object\"}\nread_file: Read text from a file inside the workspace.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for reading one text file inside the workspace.\", \"properties\": {\"end_line\": {\"anyOf\": [{\"minimum\": 1, \"type\": \"integer\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"End Line\"}, \"path\": {\"title\": \"Path\", \"type\": \"string\"}, \"start_line\": {\"default\": 1, \"minimum\": 1, \"title\": \"Start Line\", \"type\": \"integer\"}}, \"required\": [\"path\"], \"title\": \"ReadFileArgs\", \"type\": \"object\"}\nrun_command: Run a shell command inside the workspace directory. stdout and stderr are captured and streamed as output chunks.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for running one shell command inside the workspace.\", \"properties\": {\"command\": {\"description\": \"Shell command to execute.\", \"minLength\": 1, \"title\": \"Command\", \"type\": \"string\"}, \"cwd\": {\"default\": \".\", \"description\": \"Working directory relative to the workspace root.\", \"title\": \"Cwd\", \"type\": \"string\"}, \"timeout\": {\"default\": 30, \"description\": \"Maximum seconds to wait before killing the process.\", \"maximum\": 300, \"minimum\": 1, \"title\": \"Timeout\", \"type\": \"integer\"}}, \"required\": [\"command\"], \"title\": \"RunCommandArgs\", \"type\": \"object\"}\nrun_tests: Run pytest in the workspace. Paths can target specific test files or directories; an empty list runs the full test suite.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for running pytest in the workspace.\", \"properties\": {\"keywords\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"default\": null, \"description\": \"Pytest -k expression to filter tests by keyword.\", \"title\": \"Keywords\"}, \"paths\": {\"description\": \"Test paths or files to run relative to the workspace root. Empty list runs the full test suite.\", \"items\": {\"type\": \"string\"}, \"title\": \"Paths\", \"type\": \"array\"}, \"timeout\": {\"default\": 60, \"description\": \"Maximum seconds to wait before killing the test run.\", \"maximum\": 600, \"minimum\": 1, \"title\": \"Timeout\", \"type\": \"integer\"}}, \"title\": \"RunTestsArgs\", \"type\": \"object\"}\nsearch_files: Search workspace text files for matching text.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for searching workspace text files.\", \"properties\": {\"limit\": {\"default\": 20, \"maximum\": 200, \"minimum\": 1, \"title\": \"Limit\", \"type\": \"integer\"}, \"path\": {\"default\": \".\", \"title\": \"Path\", \"type\": \"string\"}, \"query\": {\"minLength\": 1, \"title\": \"Query\", \"type\": \"string\"}}, \"required\": [\"query\"], \"title\": \"SearchFilesArgs\", \"type\": \"object\"}\n\nApproval policy:\n- Current approval mode: confirm.\n- If a requested action needs approval, stop and ask for approval rather than implying it already happened.\n- No approval request is currently pending.",
+                  "part_kind": "system_prompt"
+                }
+              ]
+            },
+            {
+              "message_kind": "request",
+              "parts": [
+                {
+                  "content": "Run the targeted tests",
+                  "part_kind": "user_prompt"
+                }
+              ]
+            },
+            {
+              "message_kind": "response",
+              "parts": [
+                {
+                  "content": "",
+                  "part_kind": "text"
+                }
+              ]
+            },
+            {
+              "message_kind": "response",
+              "parts": [
+                {
+                  "content": "Captured failing test.",
+                  "part_kind": "text"
+                }
+              ]
+            },
+            {
+              "message_kind": "request",
+              "parts": [
+                {
+                  "content": "Summarize the latest failure",
+                  "part_kind": "user_prompt"
+                }
+              ]
+            }
+          ],
+          "model_name": "openai:gpt-5.4",
+          "model_settings": {},
+          "request_parameters": {
+            "allow_image_output": false,
+            "allow_text_output": true,
+            "tool_names": [
+              "git_status",
+              "list_dir",
+              "read_file",
+              "run_command",
+              "run_tests",
+              "search_files"
+            ]
+          }
+        },
+        "runtime_config": {
+          "allow_image_output": false,
+          "allow_text_output": true,
+          "fingerprint": "ea7b5de7f9efe375d41f52694bad3113f9e515706c7dd14f8c9c158eda7fd392",
+          "model_name": "openai:gpt-5.4",
+          "model_settings": {},
+          "tool_names": [
+            "git_status",
+            "list_dir",
+            "read_file",
+            "run_command",
+            "run_tests",
+            "search_files"
+          ]
+        },
+        "turn_context": {
+          "artifact_context": {
+            "additional_summary_count": 0,
+            "summaries": [
+              {
+                "artifact_kind": "context_pytest_failure_digest",
+                "artifact_path": ".glassbox/sessions/4d12a8ae-a8a0-4819-aa8d-f4aa5175a63f/artifacts/35ba6b0b-e3a2-4471-95f6-6994ba68878f.json",
+                "error_count": 0,
+                "failing_tests": [
+                  "evals/fixtures/test_context_failure.py::test_context_failure"
+                ],
+                "failure_count": 1,
+                "freshness": "fresh",
+                "inherited": false,
+                "keyword_filter": null,
+                "provenance_class": "artifact_backed_summary",
+                "source_tool_call_id": "a8f5a63c-fe2f-4660-b602-d7dd3feec7a6",
+                "source_tool_name": "run_tests",
+                "summary": "1 failing test(s) for evals/fixtures/test_context_failure.py",
+                "summary_kind": "pytest_failure_digest",
+                "target_paths": [
+                  "evals/fixtures/test_context_failure.py"
+                ],
+                "timed_out": false
+              }
+            ]
+          },
+          "available_tools": [
+            {
+              "description": "Get the current git status of the workspace: branch name, staged files, modified files, and untracked files.",
+              "name": "git_status",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for inspecting git status of the workspace.",
+                "properties": {
+                  "cwd": {
+                    "default": ".",
+                    "description": "Working directory relative to the workspace root.",
+                    "title": "Cwd",
+                    "type": "string"
+                  }
+                },
+                "title": "GitStatusArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "List directory contents inside the workspace.",
+              "name": "list_dir",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for listing one directory inside the workspace.",
+                "properties": {
+                  "limit": {
+                    "default": 100,
+                    "maximum": 500,
+                    "minimum": 1,
+                    "title": "Limit",
+                    "type": "integer"
+                  },
+                  "path": {
+                    "default": ".",
+                    "title": "Path",
+                    "type": "string"
+                  }
+                },
+                "title": "ListDirArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Read text from a file inside the workspace.",
+              "name": "read_file",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for reading one text file inside the workspace.",
+                "properties": {
+                  "end_line": {
+                    "anyOf": [
+                      {
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "End Line"
+                  },
+                  "path": {
+                    "title": "Path",
+                    "type": "string"
+                  },
+                  "start_line": {
+                    "default": 1,
+                    "minimum": 1,
+                    "title": "Start Line",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "title": "ReadFileArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Run a shell command inside the workspace directory. stdout and stderr are captured and streamed as output chunks.",
+              "name": "run_command",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for running one shell command inside the workspace.",
+                "properties": {
+                  "command": {
+                    "description": "Shell command to execute.",
+                    "minLength": 1,
+                    "title": "Command",
+                    "type": "string"
+                  },
+                  "cwd": {
+                    "default": ".",
+                    "description": "Working directory relative to the workspace root.",
+                    "title": "Cwd",
+                    "type": "string"
+                  },
+                  "timeout": {
+                    "default": 30,
+                    "description": "Maximum seconds to wait before killing the process.",
+                    "maximum": 300,
+                    "minimum": 1,
+                    "title": "Timeout",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "command"
+                ],
+                "title": "RunCommandArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Run pytest in the workspace. Paths can target specific test files or directories; an empty list runs the full test suite.",
+              "name": "run_tests",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for running pytest in the workspace.",
+                "properties": {
+                  "keywords": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "description": "Pytest -k expression to filter tests by keyword.",
+                    "title": "Keywords"
+                  },
+                  "paths": {
+                    "description": "Test paths or files to run relative to the workspace root. Empty list runs the full test suite.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "title": "Paths",
+                    "type": "array"
+                  },
+                  "timeout": {
+                    "default": 60,
+                    "description": "Maximum seconds to wait before killing the test run.",
+                    "maximum": 600,
+                    "minimum": 1,
+                    "title": "Timeout",
+                    "type": "integer"
+                  }
+                },
+                "title": "RunTestsArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Search workspace text files for matching text.",
+              "name": "search_files",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for searching workspace text files.",
+                "properties": {
+                  "limit": {
+                    "default": 20,
+                    "maximum": 200,
+                    "minimum": 1,
+                    "title": "Limit",
+                    "type": "integer"
+                  },
+                  "path": {
+                    "default": ".",
+                    "title": "Path",
+                    "type": "string"
+                  },
+                  "query": {
+                    "minLength": 1,
+                    "title": "Query",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "title": "SearchFilesArgs",
+                "type": "object"
+              }
+            }
+          ],
+          "current_turn_id": "49d0bef3-528e-4b52-9fb9-bf1a0138afd0",
+          "last_sequence": 43,
+          "memory_notes": [],
+          "policy": {
+            "approval_mode": "confirm",
+            "pending_approval_id": null
+          },
+          "repo_context": "Workspace: glassbox\nHigh-signal paths: README.md, pyproject.toml, src/, tests/, docs/, evals/\nTop-level directories: docs/, evals/, src/, tests/\nTop-level files: LICENSE, README.md, pyproject.toml, uv.lock\nProject markers: python_pyproject, src_layout, tests_present, docs_present, evals_present",
+          "session_id": "4d12a8ae-a8a0-4819-aa8d-f4aa5175a63f",
+          "session_status": "running",
+          "transcript": [
+            {
+              "created_at": "2026-04-24T06:48:56.141892Z",
+              "message_id": "4018d658-5ee7-452c-8b0d-65abd8bdcf8e",
+              "parts": [
+                {
+                  "kind": "text",
+                  "text": "Run the targeted tests"
+                }
+              ],
+              "role": "user"
+            },
+            {
+              "created_at": "2026-04-24T06:48:56.144021Z",
+              "message_id": "512f5154-b574-4e0e-a0b4-adbac9e7d989",
+              "parts": [
+                {
+                  "kind": "text",
+                  "text": ""
+                }
+              ],
+              "role": "assistant"
+            },
+            {
+              "created_at": "2026-04-24T06:48:56.541741Z",
+              "message_id": "51ce3c03-82b5-47f8-9e38-a52ce282d4f5",
+              "parts": [
+                {
+                  "kind": "text",
+                  "text": "Captured failing test."
+                }
+              ],
+              "role": "assistant"
+            },
+            {
+              "created_at": "2026-04-24T06:48:56.542584Z",
+              "message_id": "20cdfa0d-779a-4010-8f2e-316a082356d9",
+              "parts": [
+                {
+                  "kind": "text",
+                  "text": "Summarize the latest failure"
+                }
+              ],
+              "role": "user"
+            }
+          ],
+          "working_set": {
+            "additional_item_count": 0,
+            "items": [
+              {
+                "inherited": false,
+                "reasons": [
+                  "resolved approval: approval required: command execution is gated by local policy (confirm)"
+                ],
+                "signal_types": [
+                  "approval"
+                ],
+                "subject": "run_tests",
+                "subject_kind": "approval",
+                "summary": "recent approval context"
+              },
+              {
+                "inherited": false,
+                "reasons": [
+                  "context_pytest_failure_digest artifact recorded at .glassbox/sessions/4d12a8ae-a8a0-4819-aa8d-f4aa5175a63f/artifacts/35ba6b0b-e3a2-4471-95f6-6994ba68878f.json"
+                ],
+                "signal_types": [
+                  "tool_artifact"
+                ],
+                "subject": ".glassbox/sessions/4d12a8ae-a8a0-4819-aa8d-f4aa5175a63f/artifacts/35ba6b0b-e3a2-4471-95f6-6994ba68878f.json",
+                "subject_kind": "artifact",
+                "summary": "recent test artifact"
+              },
+              {
+                "inherited": false,
+                "reasons": [
+                  "run_tests targeted evals/fixtures/test_context_failure.py"
+                ],
+                "signal_types": [
+                  "tool_request_test_path"
+                ],
+                "subject": "evals/fixtures/test_context_failure.py",
+                "subject_kind": "test",
+                "summary": "recent test target"
+              },
+              {
+                "inherited": false,
+                "reasons": [
+                  "run_tests: run_tests completed",
+                  "run_tests: requested"
+                ],
+                "signal_types": [
+                  "tool_call"
+                ],
+                "subject": "run_tests",
+                "subject_kind": "tool",
+                "summary": "recent tool execution"
+              }
+            ]
+          }
+        }
+      },
+      "output_tokens": 8,
+      "text_deltas": [],
+      "tool_calls": []
+    }
+  ],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "4d12a8ae-a8a0-4819-aa8d-f4aa5175a63f",
+  "tool_requests": [
+    {
+      "artifact_kind": "replay_tool_request",
+      "manifest_version": 1,
+      "policy_decision": {
+        "allowed": true,
+        "reason": "approval required: command execution is gated by local policy (confirm)",
+        "requires_approval": true
+      },
+      "provider_tool_call_id": "provider-call-run-tests-1",
+      "tool_call_id": "eae6a2aa-03f3-441b-bd31-2251a4b9fa05",
+      "tool_name": "run_tests",
+      "validated_arguments": {
+        "keywords": null,
+        "paths": [
+          "evals/fixtures/test_context_failure.py"
+        ],
+        "timeout": 60
+      }
+    }
+  ],
+  "tool_results": [
+    {
+      "artifact_kind": "replay_tool_result",
+      "manifest_version": 1,
+      "output_payload": {
+        "errors": 0,
+        "exit_code": 1,
+        "failed": 1,
+        "passed": 0,
+        "stderr": "",
+        "stdout": "F                                                                        [100%]\n=================================== FAILURES ===================================\n_____________________________ test_context_failure _____________________________\nevals/fixtures/test_context_failure.py:2: in test_context_failure\n    assert False\nE   assert False\n=========================== short test summary info ============================\nFAILED evals/fixtures/test_context_failure.py::test_context_failure - assert ...\n1 failed in 0.02s\n",
+        "timed_out": false,
+        "truncated": false,
+        "warnings": 0
+      },
+      "provider_tool_call_id": "provider-call-run-tests-1",
+      "success": true,
+      "summary": "run_tests completed",
+      "tool_call_id": "a8f5a63c-fe2f-4660-b602-d7dd3feec7a6",
+      "tool_name": "run_tests"
+    }
+  ],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "details": {
+        "approval_id": "fcd7cdb8-3373-4a39-a463-7f624f920aa0",
+        "reason": "approval required: command execution is gated by local policy (confirm)",
+        "tool_call_id": "eae6a2aa-03f3-441b-bd31-2251a4b9fa05",
+        "tool_name": "run_tests"
+      },
+      "manifest_version": 1,
+      "outcome": "awaiting_approval"
+    },
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": "Captured failing test.",
+      "details": {},
+      "manifest_version": 1,
+      "outcome": "completed"
+    },
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": "Latest failure summarized.",
+      "details": {},
+      "manifest_version": 1,
+      "outcome": "completed"
+    }
+  ]
+}

@@ -1,0 +1,378 @@
+{
+  "actions": [
+    {
+      "action_type": "runtime_note",
+      "category": "focus",
+      "message": "Preserve inherited context and branch lineage."
+    },
+    {
+      "action_type": "user_message",
+      "text": "Summarize the child focus"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "event_families": [
+      "SessionStarted",
+      "TranscriptMessageImported",
+      "TranscriptMessageImported",
+      "RuntimeNoteImported",
+      "RuntimeNoteRecorded",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TurnStatusChanged",
+      "TurnStatusChanged",
+      "ModelCallStarted",
+      "AssistantMessageStarted",
+      "ModelCallCompleted",
+      "TurnStatusChanged",
+      "AssistantMessageCompleted",
+      "TurnStatusChanged",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Inspect the inherited context"
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Parent context recorded."
+          }
+        ],
+        "role": "assistant"
+      }
+    ],
+    "lineage": {
+      "branch_label": "context-child",
+      "forked_from_sequence": 14,
+      "forked_from_turn_id": "16ae73ae-a637-40e7-b4a6-ecce25dc295d",
+      "parent_session_id": "fc23a52e-9cce-425b-a617-f1a8f35576c0"
+    },
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Summarize the child focus"
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Child context summarized."
+          }
+        ],
+        "role": "assistant"
+      }
+    ],
+    "questions": [],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Inspect the inherited context"
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Parent context recorded."
+          }
+        ],
+        "role": "assistant"
+      },
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Summarize the child focus"
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Child context summarized."
+          }
+        ],
+        "role": "assistant"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "inherited_messages": [
+    {
+      "created_at": "2026-04-24T06:48:56.554626Z",
+      "parts": [
+        {
+          "kind": "text",
+          "text": "Inspect the inherited context"
+        }
+      ],
+      "role": "user",
+      "source_message_id": "2ff714a8-8b75-4f9f-87e0-1c1f8e6e1094"
+    },
+    {
+      "created_at": "2026-04-24T06:48:56.555522Z",
+      "parts": [
+        {
+          "kind": "text",
+          "text": "Parent context recorded."
+        }
+      ],
+      "role": "assistant",
+      "source_message_id": "97672e67-2437-4fbf-a81a-1837ca73d0bf"
+    }
+  ],
+  "inherited_runtime_notes": [
+    {
+      "category": "scope",
+      "created_at": "2026-04-24T06:48:56.554351Z",
+      "inherited": true,
+      "message": "Limit checks to eval fixtures and replay metadata.",
+      "source_sequence": 2,
+      "source_session_id": "fc23a52e-9cce-425b-a617-f1a8f35576c0"
+    }
+  ],
+  "model_calls": [
+    {
+      "assistant_text": "Child context summarized.",
+      "input_tokens": 333,
+      "manifest": {
+        "artifact_kind": "replay_model_call",
+        "call_index": 1,
+        "enriched_context_fingerprint": "c0b9916931deff7f91a0be312193b98480b76717e721a1f571cc7a52843c8a07",
+        "enriched_context_sources": [
+          {
+            "fingerprint": "35e4ff392245fcbd6a84464fa5b5852bb78a960d7aced074348fd080ef990986",
+            "inherited": false,
+            "provenance_class": "recomputed_summary",
+            "schema_version": 1,
+            "source_name": "repository_context",
+            "summary": "Workspace: glassbox"
+          },
+          {
+            "fingerprint": "690347516ba66c93b11ecaa6ed414ac66b340d7ee81f0851922d1341e1ebca2b",
+            "inherited": true,
+            "item_count": 2,
+            "provenance_class": "persisted_session_state",
+            "schema_version": 1,
+            "source_name": "runtime_notes",
+            "summary": "2 runtime note(s)"
+          },
+          {
+            "additional_item_count": 0,
+            "fingerprint": "4312be62245d742f0b295ca961e9dcef1f86669ad86fa66752d99f87df4a04ec",
+            "inherited": true,
+            "item_count": 3,
+            "provenance_class": "recomputed_summary",
+            "schema_version": 1,
+            "source_name": "working_set",
+            "summary": "3 working-set item(s)"
+          }
+        ],
+        "manifest_version": 1,
+        "prepared_turn": {
+          "message_history": [
+            {
+              "message_kind": "request",
+              "parts": [
+                {
+                  "content": "You are Glassbox, a terminal-first agent running inside an event-driven runtime.\nWork from the transcript, tool results, and supplied context rather than inventing hidden state.\nTreat tool calls and approvals as explicit runtime actions, not as assumptions.\n\nOutput style:\n- Be concise, factual, and explicit about uncertainty.\n- Do not claim an action succeeded unless the transcript or a tool result shows it succeeded.\n- If you are blocked by policy, approvals, or missing tool access, say so directly.\n\nTool usage:\n- Use tools when they materially improve correctness or let you inspect the workspace.\n- Never invent tool outputs, side effects, or file changes.\n- Arguments for tool calls must match the declared JSON schema.\n- No tools are currently available for this turn.\n\nApproval policy:\n- Current approval mode: never.\n- If a requested action needs approval, stop and ask for approval rather than implying it already happened.\n- No approval request is currently pending.",
+                  "part_kind": "system_prompt"
+                }
+              ]
+            },
+            {
+              "message_kind": "request",
+              "parts": [
+                {
+                  "content": "Inspect the inherited context",
+                  "part_kind": "user_prompt"
+                }
+              ]
+            },
+            {
+              "message_kind": "response",
+              "parts": [
+                {
+                  "content": "Parent context recorded.",
+                  "part_kind": "text"
+                }
+              ]
+            },
+            {
+              "message_kind": "request",
+              "parts": [
+                {
+                  "content": "Summarize the child focus",
+                  "part_kind": "user_prompt"
+                }
+              ]
+            }
+          ],
+          "model_name": "openai:gpt-5.4",
+          "model_settings": {},
+          "request_parameters": {
+            "allow_image_output": false,
+            "allow_text_output": true,
+            "tool_names": []
+          }
+        },
+        "runtime_config": {
+          "allow_image_output": false,
+          "allow_text_output": true,
+          "fingerprint": "8da33b93dfa779e47844e03b57c6875103a802045ca0bca08cfc0e37074be254",
+          "model_name": "openai:gpt-5.4",
+          "model_settings": {},
+          "tool_names": []
+        },
+        "turn_context": {
+          "artifact_context": {
+            "additional_summary_count": 0,
+            "summaries": []
+          },
+          "available_tools": [],
+          "current_turn_id": "8601868a-343b-4f98-8ae5-10760071f750",
+          "last_sequence": 8,
+          "memory_notes": [
+            "[inherited scope] Limit checks to eval fixtures and replay metadata.",
+            "[focus] Preserve inherited context and branch lineage."
+          ],
+          "policy": {
+            "approval_mode": "never",
+            "pending_approval_id": null
+          },
+          "repo_context": "Workspace: glassbox\nHigh-signal paths: README.md, pyproject.toml, src/, tests/, docs/, evals/\nTop-level directories: docs/, evals/, src/, tests/\nTop-level files: LICENSE, README.md, pyproject.toml, uv.lock\nProject markers: python_pyproject, src_layout, tests_present, docs_present, evals_present",
+          "session_id": "b86d2969-355f-41ce-9ba5-033363182a91",
+          "session_status": "running",
+          "transcript": [
+            {
+              "created_at": "2026-04-24T06:48:56.554626Z",
+              "message_id": "62703314-95a7-56f3-a970-43cf020de278",
+              "parts": [
+                {
+                  "kind": "text",
+                  "text": "Inspect the inherited context"
+                }
+              ],
+              "role": "user"
+            },
+            {
+              "created_at": "2026-04-24T06:48:56.555522Z",
+              "message_id": "4365f7bc-0b7d-5849-8a4c-d44ff872ebf8",
+              "parts": [
+                {
+                  "kind": "text",
+                  "text": "Parent context recorded."
+                }
+              ],
+              "role": "assistant"
+            },
+            {
+              "created_at": "2026-04-24T06:48:56.558987Z",
+              "message_id": "ad2472da-08f5-49d9-9a19-05ba05517566",
+              "parts": [
+                {
+                  "kind": "text",
+                  "text": "Summarize the child focus"
+                }
+              ],
+              "role": "user"
+            }
+          ],
+          "working_set": {
+            "additional_item_count": 0,
+            "items": [
+              {
+                "inherited": false,
+                "reasons": [
+                  "runtime note [focus] Preserve inherited context and branch lineage."
+                ],
+                "signal_types": [
+                  "runtime_note"
+                ],
+                "subject": "[focus] Preserve inherited context and branch lineage.",
+                "subject_kind": "note",
+                "summary": "runtime note"
+              },
+              {
+                "inherited": true,
+                "reasons": [
+                  "inherited runtime note [scope] Limit checks to eval fixtures and replay metadata."
+                ],
+                "signal_types": [
+                  "inherited_runtime_note"
+                ],
+                "subject": "[scope] Limit checks to eval fixtures and replay metadata.",
+                "subject_kind": "note",
+                "summary": "inherited runtime note"
+              },
+              {
+                "inherited": true,
+                "reasons": [
+                  "branch 'context-child' inherited from fc23a52e"
+                ],
+                "signal_types": [
+                  "lineage"
+                ],
+                "subject": "context-child",
+                "subject_kind": "branch",
+                "summary": "inherited branch context"
+              }
+            ]
+          }
+        }
+      },
+      "output_tokens": 8,
+      "text_deltas": [],
+      "tool_calls": []
+    }
+  ],
+  "session_config": {
+    "approval_mode": "never",
+    "branch_label": "context-child",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "forked_from_sequence": 14,
+    "forked_from_turn_id": "16ae73ae-a637-40e7-b4a6-ecce25dc295d",
+    "model_name": "openai:gpt-5.4",
+    "parent_session_id": "fc23a52e-9cce-425b-a617-f1a8f35576c0"
+  },
+  "source_session_id": "b86d2969-355f-41ce-9ba5-033363182a91",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": "Child context summarized.",
+      "details": {},
+      "manifest_version": 1,
+      "outcome": "completed"
+    }
+  ]
+}

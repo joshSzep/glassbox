@@ -55,10 +55,24 @@ Choose tags with the local-first workflow in mind:
 
 - `smoke` cases are the blocking commit-time barrier and should stay small,
   stable, and cheap to rerun.
+- `context.branch-inherited` is part of `smoke`, so the existing commit-time and
+  push-time smoke workflows now exercise branch-inherited context without any
+  hook changes.
 - Broader tags are better for advisory or push-time confirmation until their
   value is high enough to justify blocking every commit.
 - If a post-push failure keeps finding the same class of regression, promote the
   relevant case or tag into `smoke` so it fails earlier.
+
+Current context-focused cases:
+
+- `context.branch-inherited`: exact-match replay coverage for inherited
+  transcript, inherited runtime notes, and branch lineage.
+- `context.artifact`: selected-invariant coverage for artifact-backed pytest
+  failure digests while ignoring known `event_families drift` from replayed
+  `run_tests` output chunks.
+- `context.artifact-relaxed`: the same artifact-backed session with an
+  intentionally relaxed transcript baseline so transcript-only drift can be
+  ignored without hiding context-source drift.
 
 Each run writes one JSON artifact per case plus `summary.json` into the selected
 output directory. If `--output-dir` is omitted, Glassbox creates a timestamped
@@ -83,6 +97,22 @@ Case manifest shape:
 For targeted cases, `expectation.mode` may be `selected_invariants` with an
 explicit `invariants` list such as `final_state` or `transcript`. Omitting the
 expectation keeps the default strict behavior.
+
+Reading context-related failures:
+
+1. `manifest_drift` with text such as `recorded enriched context source drifted:
+  pytest_failure_digest` means replay detected a semantic change in one
+  specific context source. Treat that as a replay-contract failure, not as a
+  generic transcript mismatch.
+2. `behavioral_drift` on a `selected_invariants` case can still be a pass when
+  the case artifact reports only `ignored_mismatches`. This is how
+  `context.artifact` and `context.artifact-relaxed` tolerate known transcript
+  or event-family noise while still failing if approvals, tool calls, final
+  state, or context manifests drift.
+3. `event_families drift` on `run_tests`-backed cases currently comes from live
+  `ToolOutputChunk` events that offline replay does not reproduce. That drift
+  is expected for the artifact cases and should not be mistaken for context
+  source drift.
 
 Troubleshooting flows:
 

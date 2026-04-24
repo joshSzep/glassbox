@@ -2393,7 +2393,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-234: Add Artifact-Backed Context Summaries For Expensive Derived Inputs
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-025`, `GBX-191`, `GBX-230`, `GBX-233`
 - Goal: support richer context inputs that are too expensive or too volatile to recompute ad hoc every turn by storing them as explicit derived artifacts
 - Deliverables:
@@ -2414,7 +2414,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-235: Expand Replay And Eval Coverage For Context Drift, Inheritance, And Working-Set Evolution
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-196`, `GBX-216`, `GBX-233`, `GBX-234`
 - Goal: make the richer context model safe to evolve by adding replay and eval baselines that specifically exercise context-sensitive behavior
 - Deliverables:
