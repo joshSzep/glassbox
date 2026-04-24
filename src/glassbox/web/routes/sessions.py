@@ -19,6 +19,8 @@ from glassbox.core.events import (
 )
 from glassbox.core.models import TranscriptMessage
 from glassbox.core.types import ApprovalStatus, ToolExecutionStatus
+from glassbox.runtime import RuntimeContextNoteSnapshot, RuntimeContextSnapshot
+from glassbox.runtime.context_builder import build_runtime_context_snapshot
 from glassbox.web.app import RuntimeContextDep
 
 router = APIRouter(prefix="/sessions")
@@ -167,6 +169,7 @@ class SessionSnapshotResponse(BaseModel):
     active_tool_calls: list[ActiveToolCallResponse]
     pending_approvals: list[PendingApprovalResponse]
     turn_metrics: list[TurnMetricsResponse]
+    runtime_context: RuntimeContextSnapshot
 
 
 @router.get("", response_model=list[SessionSummaryResponse])
@@ -381,6 +384,7 @@ async def get_session_snapshot(
     )
     pending_approvals = repo.list_approvals(session_id, status=ApprovalStatus.PENDING)
     turn_metrics = repo.list_turn_metrics(session_id, limit=10)
+    runtime_notes = repo.list_runtime_notes(session_id)
     dashboard_url = _dashboard_url_from_events(session_events)
     latest_session_failure = _latest_session_failure(session_events)
     pending_question_text = _pending_question_text_from_events(
@@ -393,6 +397,7 @@ async def get_session_snapshot(
         latest_fork_point_sequence,
         fork_blocked_reason,
     ) = _fork_capability(repo, session_id)
+    runtime_context = build_runtime_context_snapshot(record.cwd, runtime_notes)
 
     return SessionSnapshotResponse(
         session_id=str(record.session_id),
@@ -501,6 +506,19 @@ async def get_session_snapshot(
             )
             for metrics in turn_metrics
         ],
+        runtime_context=RuntimeContextSnapshot(
+            repository_context=runtime_context.repository_context,
+            runtime_notes=[
+                RuntimeContextNoteSnapshot(
+                    category=note.category,
+                    message=note.message,
+                    inherited=note.inherited,
+                    source_session_id=note.source_session_id,
+                )
+                for note in runtime_context.runtime_notes
+            ],
+            additional_runtime_note_count=runtime_context.additional_runtime_note_count,
+        ),
     )
 
 

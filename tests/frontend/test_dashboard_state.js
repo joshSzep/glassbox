@@ -53,6 +53,26 @@ test("hydrateFromSnapshot copies snapshot fields into dashboard state", () => {
     pending_question_text: null,
     session_failure_message: null,
     session_failure_retryable: null,
+    runtime_context: {
+      repository_context: {
+        workspace_name: "workspace",
+        high_signal_paths: ["README.md", "src/"],
+        top_level_directories: ["src/"],
+        additional_directory_count: 0,
+        top_level_files: ["README.md"],
+        additional_file_count: 0,
+        project_markers: ["src_layout"],
+      },
+      runtime_notes: [
+        {
+          category: "repo",
+          message: "README is the primary entrypoint",
+          inherited: false,
+          source_session_id: "session-123",
+        },
+      ],
+      additional_runtime_note_count: 0,
+    },
     turn_metrics: [
       {
         turn_id: "turn-1",
@@ -97,6 +117,8 @@ test("hydrateFromSnapshot copies snapshot fields into dashboard state", () => {
   assert.equal(state.modelName, "openai:gpt-5.4");
   assert.equal(state.dashboardUrl, "http://127.0.0.1:8765");
   assert.equal(state.pendingQuestionText, null);
+  assert.equal(state.runtimeContext?.repository_context.workspace_name, "workspace");
+  assert.equal(state.runtimeContext?.runtime_notes[0].message, "README is the primary entrypoint");
   assert.equal(state.currentTurn?.turn_id, "turn-1");
   assert.equal(state.turnMetrics.length, 1);
   assert.equal(state.turnMetrics[0].model_duration_ms_total, 800);
@@ -198,6 +220,65 @@ test("applyEvent tracks session-level failure details", () => {
   assert.equal(failed.currentTurn, null);
   assert.equal(failed.pendingApprovalId, null);
   assert.equal(failed.pendingQuestionId, null);
+});
+
+test("applyEvent updates runtime context note summaries", () => {
+  const initial = hydrateFromSnapshot({
+    session_id: "session-123",
+    status: "running",
+    current_turn_id: null,
+    model_name: "openai:gpt-5.4",
+    cwd: "/tmp/workspace",
+    approval_mode: "confirm",
+    parent_session_id: null,
+    forked_from_turn_id: null,
+    forked_from_sequence: null,
+    branch_label: null,
+    child_sessions: [],
+    branchable_turns: [],
+    can_fork: false,
+    latest_fork_point_turn_id: null,
+    latest_fork_point_sequence: null,
+    fork_blocked_reason: null,
+    dashboard_url: null,
+    last_sequence: 0,
+    pending_approval_id: null,
+    pending_question_id: null,
+    pending_question_text: null,
+    session_failure_message: null,
+    session_failure_retryable: null,
+    runtime_context: {
+      repository_context: {
+        workspace_name: "workspace",
+        high_signal_paths: ["README.md"],
+        top_level_directories: ["src/"],
+        additional_directory_count: 0,
+        top_level_files: ["README.md"],
+        additional_file_count: 0,
+        project_markers: ["src_layout"],
+      },
+      runtime_notes: [],
+      additional_runtime_note_count: 0,
+    },
+    turn_metrics: [],
+    transcript: [],
+    active_tool_calls: [],
+    pending_approvals: [],
+  });
+
+  const updated = applyEvent(initial, {
+    session_id: "session-123",
+    sequence: 1,
+    event_type: "RuntimeNoteRecorded",
+    payload: {
+      category: "repo",
+      message: "README changed recently",
+      source_session_id: "session-123",
+    },
+  });
+
+  assert.equal(updated.runtimeContext?.runtime_notes.length, 1);
+  assert.equal(updated.runtimeContext?.runtime_notes[0].message, "README changed recently");
 });
 
 test("hydrateFromSnapshot records lineage and default fork selection", () => {

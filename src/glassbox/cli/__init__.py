@@ -34,6 +34,7 @@ from glassbox.runtime import (
     ReplayResult,
     ReplayRunner,
     RuntimeContext,
+    build_runtime_context_snapshot,
     open_runtime_context,
 )
 from glassbox.web import GlassboxWebServer, WebServerConfig, build_web_server
@@ -1147,6 +1148,10 @@ def _print_session_status(repository, session_id: UUID) -> None:
         turn_metrics[0] if turn_metrics else None
     )
     recent_tool_calls = _recent_tool_calls(tool_calls)
+    runtime_context = build_runtime_context_snapshot(
+        record.cwd,
+        repository.list_runtime_notes(session_id),
+    )
     dashboard_url = _dashboard_url_from_events(session_events)
     latest_session_failure = _latest_session_failure(session_events)
     pending_question_text = _pending_question_text_from_events(
@@ -1164,6 +1169,7 @@ def _print_session_status(repository, session_id: UUID) -> None:
     if dashboard_url is not None:
         print(f"Dashboard URL: {dashboard_url}")
     print(f"Transcript messages: {len(transcript_messages)}")
+    _print_runtime_context_summary(runtime_context)
 
     if latest_session_failure is not None:
         print(_format_session_failure(latest_session_failure))
@@ -1212,6 +1218,48 @@ def _print_session_status(repository, session_id: UUID) -> None:
             print(f"  - {_format_tool_call_summary(tool_call)}")
     else:
         print("Recent tool activity: none")
+
+
+def _print_runtime_context_summary(runtime_context) -> None:
+    repository_context = runtime_context.repository_context
+
+    print("Runtime context:")
+    print(f"  Workspace summary: {repository_context.workspace_name}")
+    if repository_context.high_signal_paths:
+        print("  High-signal paths: " + ", ".join(repository_context.high_signal_paths))
+    if repository_context.top_level_directories:
+        directory_line = ", ".join(repository_context.top_level_directories)
+        if repository_context.additional_directory_count:
+            directory_line += (
+                f" (+{repository_context.additional_directory_count} more)"
+            )
+        print(f"  Top-level directories: {directory_line}")
+    if repository_context.top_level_files:
+        file_line = ", ".join(repository_context.top_level_files)
+        if repository_context.additional_file_count:
+            file_line += f" (+{repository_context.additional_file_count} more)"
+        print(f"  Top-level files: {file_line}")
+    if repository_context.project_markers:
+        print("  Project markers: " + ", ".join(repository_context.project_markers))
+
+    if runtime_context.runtime_notes:
+        print(f"  Runtime notes: {len(runtime_context.runtime_notes)} visible")
+        for note in runtime_context.runtime_notes:
+            inherited_suffix = ""
+            if note.inherited and note.source_session_id is not None:
+                inherited_suffix = (
+                    f" (inherited from {str(note.source_session_id)[:8]})"
+                )
+            elif note.inherited:
+                inherited_suffix = " (inherited)"
+            print(f"    - [{note.category}] {note.message}{inherited_suffix}")
+        if runtime_context.additional_runtime_note_count:
+            print(
+                "    - "
+                f"+{runtime_context.additional_runtime_note_count} more active note(s)"
+            )
+    else:
+        print("  Runtime notes: none")
 
 
 def _print_replay_report(result: ReplayResult) -> None:

@@ -10,6 +10,7 @@ from glassbox.core import (
     EventEnvelope,
     MessagePart,
     ResolvedForkPoint,
+    RuntimeNoteRecord,
     RuntimeNoteRecorded,
     SessionRecord,
     SessionState,
@@ -22,9 +23,12 @@ from glassbox.core import (
 )
 from glassbox.runtime import (
     RepositoryContextSnapshot,
+    RuntimeContextNoteSnapshot,
+    RuntimeContextSnapshot,
     ToolSchema,
     TurnContextBuilder,
     build_repository_context_snapshot,
+    build_runtime_context_snapshot,
     format_repository_context_for_prompt,
     format_tool_schemas_for_prompt,
     format_transcript_for_prompt,
@@ -427,6 +431,69 @@ def test_repository_context_formatter_renders_expected_summary() -> None:
             "Top-level files: LICENSE, README.md, pyproject.toml (+1 more)",
             "Project markers: python_pyproject, src_layout, tests_present",
         ]
+    )
+
+
+def test_repository_context_snapshot_handles_missing_workspace() -> None:
+    snapshot = build_repository_context_snapshot(
+        Path("/tmp/glassbox-missing-workspace")
+    )
+
+    assert snapshot == RepositoryContextSnapshot(
+        workspace_name="glassbox-missing-workspace"
+    )
+
+
+def test_runtime_context_snapshot_is_bounded_and_preserves_note_provenance(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "src").mkdir()
+    (tmp_path / "README.md").write_text("hello\n", encoding="utf-8")
+    parent_session_id = new_session_id()
+    child_session_id = new_session_id()
+
+    runtime_context = build_runtime_context_snapshot(
+        tmp_path,
+        [
+            RuntimeNoteRecord(
+                source_sequence=1,
+                category="repo",
+                message="README changed recently",
+                source_session_id=parent_session_id,
+                created_at=datetime(2026, 4, 23, 12, 0, tzinfo=UTC),
+                inherited=True,
+            ),
+            RuntimeNoteRecord(
+                source_sequence=2,
+                category="plan",
+                message="Need operator approval before write",
+                source_session_id=child_session_id,
+                created_at=datetime(2026, 4, 23, 12, 1, tzinfo=UTC),
+                inherited=False,
+            ),
+        ],
+        note_limit=1,
+    )
+
+    assert runtime_context == RuntimeContextSnapshot(
+        repository_context=RepositoryContextSnapshot(
+            workspace_name=tmp_path.name,
+            high_signal_paths=["README.md", "src/"],
+            top_level_directories=["src/"],
+            additional_directory_count=0,
+            top_level_files=["README.md"],
+            additional_file_count=0,
+            project_markers=["src_layout"],
+        ),
+        runtime_notes=[
+            RuntimeContextNoteSnapshot(
+                category="repo",
+                message="README changed recently",
+                inherited=True,
+                source_session_id=parent_session_id,
+            )
+        ],
+        additional_runtime_note_count=1,
     )
 
 

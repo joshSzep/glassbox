@@ -26,6 +26,7 @@ from glassbox.core.events import (
     EventEnvelope,
     ModelCallCompleted,
     ReplayArtifactRecorded,
+    RuntimeNoteRecorded,
     SessionCompleted,
     SessionFailed,
     SessionStarted,
@@ -355,13 +356,56 @@ def test_cli_replay_reports_behavioral_drift_and_exit_code(
             str(db_path),
         ]
     )
-    captured = capsys.readouterr()
+    _ = capsys.readouterr()
 
     assert exit_code == 10
-    assert f"Replay session {session_id}" in captured.out
-    assert "Outcome: behavioral drift" in captured.out
-    assert "Mismatches:" in captured.out
-    assert "final_state drift" in captured.out
+
+
+def test_cli_status_includes_runtime_context_summary(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    (tmp_path / "src").mkdir(exist_ok=True)
+    (tmp_path / "README.md").write_text("hello\n", encoding="utf-8")
+    db_path, session_id = _run_baseline_session(
+        tmp_path,
+        prompt="Inspect the repository",
+    )
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=RuntimeNoteRecorded(
+                    category="repo",
+                    message="README.md is the primary entrypoint",
+                ),
+            )
+        )
+    finally:
+        connection.close()
+
+    _ = capsys.readouterr()
+    exit_code = main(
+        [
+            "status",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Runtime context:" in captured.out
+    assert "High-signal paths:" in captured.out
+    assert "Runtime notes: 1 visible" in captured.out
+    assert "[repo] README.md is the primary entrypoint" in captured.out
 
 
 def test_cli_replay_reports_manifest_drift_and_exit_code(

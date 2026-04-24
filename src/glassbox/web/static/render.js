@@ -34,6 +34,73 @@ function renderGuidanceChip(tone, label) {
   return `<span class="guidance-chip guidance-chip-${escHtml(tone)}">${escHtml(label)}</span>`;
 }
 
+function renderRuntimeContextSummary(state) {
+  const runtimeContext = state.runtimeContext;
+  if (!runtimeContext) {
+    return "";
+  }
+
+  const repository = runtimeContext.repository_context;
+  const repositoryDetails = [
+    ["Workspace summary", repository.workspace_name],
+  ];
+
+  if (repository.high_signal_paths.length > 0) {
+    repositoryDetails.push(["High-signal paths", repository.high_signal_paths.join(", ")]);
+  }
+  if (repository.top_level_directories.length > 0) {
+    let directoryLine = repository.top_level_directories.join(", ");
+    if (repository.additional_directory_count > 0) {
+      directoryLine += ` (+${repository.additional_directory_count} more)`;
+    }
+    repositoryDetails.push(["Top-level directories", directoryLine]);
+  }
+  if (repository.top_level_files.length > 0) {
+    let fileLine = repository.top_level_files.join(", ");
+    if (repository.additional_file_count > 0) {
+      fileLine += ` (+${repository.additional_file_count} more)`;
+    }
+    repositoryDetails.push(["Top-level files", fileLine]);
+  }
+  if (repository.project_markers.length > 0) {
+    repositoryDetails.push(["Project markers", repository.project_markers.join(", ")]);
+  }
+
+  const repositoryHtml = repositoryDetails.map(([label, value]) => `
+    <div class="selected-session-item${label === "High-signal paths" || label === "Top-level directories" || label === "Top-level files" ? " selected-session-item-wide" : ""}">
+      <div class="selected-session-label">${escHtml(label)}</div>
+      <div class="selected-session-value">${escHtml(value)}</div>
+    </div>
+  `).join("");
+
+  const runtimeNotesHtml = runtimeContext.runtime_notes.length > 0
+    ? `<div class="selected-session-item selected-session-item-wide">
+        <div class="selected-session-label">Runtime notes</div>
+        <div class="selected-session-value">${runtimeContext.runtime_notes.map(note => {
+          const suffix = note.inherited
+            ? note.source_session_id
+              ? ` (inherited from ${shortId(note.source_session_id)})`
+              : " (inherited)"
+            : "";
+          return `<div>${escHtml(`[${note.category}] ${note.message}${suffix}`)}</div>`;
+        }).join("")}${runtimeContext.additional_runtime_note_count > 0
+          ? `<div>${escHtml(`+${runtimeContext.additional_runtime_note_count} more active note(s)`)}</div>`
+          : ""}</div>
+      </div>`
+    : `<div class="selected-session-item selected-session-item-wide">
+        <div class="selected-session-label">Runtime notes</div>
+        <div class="selected-session-value">none</div>
+      </div>`;
+
+  return `<div class="selected-session-runtime-context">
+    <div class="selected-session-label">Runtime context</div>
+    <div class="selected-session-grid">
+      ${repositoryHtml}
+      ${runtimeNotesHtml}
+    </div>
+  </div>`;
+}
+
 function streamSummaryFromState(state) {
   if (state.streamState === "connecting") {
     return {
@@ -483,6 +550,7 @@ export function renderSelectedSessionSummary(state) {
         <div class="selected-session-value">${escHtml(state.approvalMode ?? "unknown")}</div>
       </div>
     </div>
+    ${renderRuntimeContextSummary(state)}
     ${renderLineageNavigator(state)}
   </div>`;
 }

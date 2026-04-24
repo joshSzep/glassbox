@@ -8,13 +8,14 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field
 
 from glassbox.core.ids import ApprovalId, SessionId, TurnId
-from glassbox.core.models import TranscriptMessage
+from glassbox.core.models import RuntimeNoteRecord, TranscriptMessage
 from glassbox.core.types import SessionStatus
 from glassbox.services import SessionRepository
 from glassbox.tools import ToolRegistry, ToolSchema
 
 _DEFAULT_REPOSITORY_CONTEXT_DIRECTORY_LIMIT = 8
 _DEFAULT_REPOSITORY_CONTEXT_FILE_LIMIT = 8
+_DEFAULT_RUNTIME_NOTE_LIMIT = 8
 _HIGH_SIGNAL_REPOSITORY_ENTRIES = (
     "README.md",
     "pyproject.toml",
@@ -39,6 +40,27 @@ class RepositoryContextSnapshot(BaseModel):
     top_level_files: list[str] = Field(default_factory=list)
     additional_file_count: int = Field(default=0, ge=0)
     project_markers: list[str] = Field(default_factory=list)
+
+
+class RuntimeContextNoteSnapshot(BaseModel):
+    """Bounded runtime note summary for operator inspection."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    category: str
+    message: str
+    inherited: bool = False
+    source_session_id: SessionId | None = None
+
+
+class RuntimeContextSnapshot(BaseModel):
+    """Shared operator-facing runtime context summary."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    repository_context: RepositoryContextSnapshot
+    runtime_notes: list[RuntimeContextNoteSnapshot] = Field(default_factory=list)
+    additional_runtime_note_count: int = Field(default=0, ge=0)
 
 
 class PolicyContext(BaseModel):
@@ -122,6 +144,11 @@ def build_repository_context_snapshot(
     """Return a bounded deterministic summary of the workspace root."""
 
     resolved_root = workspace_root.resolve()
+    if not resolved_root.exists() or not resolved_root.is_dir():
+        return RepositoryContextSnapshot(
+            workspace_name=resolved_root.name or str(resolved_root),
+        )
+
     entries = sorted(
         (entry for entry in resolved_root.iterdir() if not entry.name.startswith(".")),
         key=lambda entry: entry.name,
@@ -174,6 +201,30 @@ def format_repository_context_for_prompt(
     if snapshot.project_markers:
         lines.append("Project markers: " + ", ".join(snapshot.project_markers))
     return "\n".join(lines)
+
+
+def build_runtime_context_snapshot(
+    workspace_root: Path,
+    runtime_notes: Sequence[RuntimeNoteRecord],
+    *,
+    note_limit: int = _DEFAULT_RUNTIME_NOTE_LIMIT,
+) -> RuntimeContextSnapshot:
+    """Return a bounded operator-facing summary of the current runtime context."""
+
+    limited_notes = list(runtime_notes[:note_limit])
+    return RuntimeContextSnapshot(
+        repository_context=build_repository_context_snapshot(workspace_root),
+        runtime_notes=[
+            RuntimeContextNoteSnapshot(
+                category=note.category,
+                message=note.message,
+                inherited=note.inherited,
+                source_session_id=note.source_session_id,
+            )
+            for note in limited_notes
+        ],
+        additional_runtime_note_count=max(len(runtime_notes) - len(limited_notes), 0),
+    )
 
 
 def normalize_tool_schemas(tool_schemas: Iterable[ToolSchema]) -> list[ToolSchema]:

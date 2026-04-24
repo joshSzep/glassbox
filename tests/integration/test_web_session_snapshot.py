@@ -161,6 +161,12 @@ def test_get_session_returns_snapshot_after_session_started(tmp_path: Path) -> N
             assert body["transcript"] == []
             assert body["active_tool_calls"] == []
             assert body["pending_approvals"] == []
+            assert (
+                body["runtime_context"]["repository_context"]["workspace_name"]
+                == tmp_path.name
+            )
+            assert body["runtime_context"]["runtime_notes"] == []
+            assert body["runtime_context"]["additional_runtime_note_count"] == 0
         finally:
             connection.close()
 
@@ -205,6 +211,8 @@ def test_get_session_includes_transcript_messages(tmp_path: Path) -> None:
     async def scenario() -> None:
         connection = _open_initialized_db(tmp_path)
         try:
+            (tmp_path / "src").mkdir(exist_ok=True)
+            (tmp_path / "README.md").write_text("hello\n", encoding="utf-8")
             app, runtime_context = _make_app(tmp_path, connection)
             repo = runtime_context.repositories.sessions
             bus: EventBus[EventEnvelope] = runtime_context.infrastructure.event_bus
@@ -287,6 +295,61 @@ def test_get_session_includes_pending_approvals(tmp_path: Path) -> None:
             assert pending[0]["approval_id"] == str(approval_id)
             assert pending[0]["subject"] == "apply_patch"
             assert pending[0]["reason"] == "needs operator sign-off"
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_get_session_includes_runtime_context_runtime_notes(tmp_path: Path) -> None:
+    """Snapshot exposes bounded runtime context for operator inspection."""
+
+    async def scenario() -> None:
+        (tmp_path / "src").mkdir(exist_ok=True)
+        (tmp_path / "README.md").write_text("hello\n", encoding="utf-8")
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app, runtime_context = _make_app(tmp_path, connection)
+            repo = runtime_context.repositories.sessions
+            bus: EventBus[EventEnvelope] = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(repo, bus)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+            state = await supervisor.start_session(config)
+            await supervisor.record_runtime_note(
+                state.session_id,
+                category="repo",
+                message="README.md is the primary operator entrypoint",
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get(f"/sessions/{state.session_id}")
+
+            assert response.status_code == 200
+            body = response.json()
+            runtime_context_body = body["runtime_context"]
+            assert (
+                runtime_context_body["repository_context"]["workspace_name"]
+                == tmp_path.name
+            )
+            assert set(
+                runtime_context_body["repository_context"]["high_signal_paths"]
+            ) == {"README.md", "src/"}
+            assert runtime_context_body["runtime_notes"] == [
+                {
+                    "category": "repo",
+                    "message": "README.md is the primary operator entrypoint",
+                    "inherited": False,
+                    "source_session_id": str(state.session_id),
+                }
+            ]
+            assert runtime_context_body["additional_runtime_note_count"] == 0
         finally:
             connection.close()
 

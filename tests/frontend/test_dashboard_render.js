@@ -31,8 +31,10 @@ test("renderTurnPane shows realistic current-turn details", () => {
     last_sequence: 1,
     pending_approval_id: null,
     pending_question_id: null,
+    pending_question_text: null,
     session_failure_message: null,
     session_failure_retryable: null,
+    runtime_context: null,
     turn_metrics: [
       {
         turn_id: "turn-1",
@@ -74,8 +76,10 @@ test("renderToolCallsPane and renderLiveOutputPane show realistic entries", () =
     last_sequence: 5,
     pending_approval_id: null,
     pending_question_id: null,
+    pending_question_text: null,
     session_failure_message: null,
     session_failure_retryable: null,
+    runtime_context: null,
     turn_metrics: [],
     transcript: [],
     active_tool_calls: [
@@ -116,8 +120,10 @@ test("synthetic event stream updates multiple panes together", () => {
     last_sequence: 0,
     pending_approval_id: null,
     pending_question_id: null,
+    pending_question_text: null,
     session_failure_message: null,
     session_failure_retryable: null,
+    runtime_context: null,
     turn_metrics: [],
     transcript: [],
     active_tool_calls: [],
@@ -187,6 +193,63 @@ test("synthetic event stream updates multiple panes together", () => {
   assert.match(panes.liveOutput, /patched file/);
   assert.match(panes.approvals, /needs sign-off|Approve/);
   assert.match(panes.eventLog, /ApprovalRequested|ToolOutputChunk/);
+});
+
+test("renderSelectedSessionSummary includes runtime context summary", () => {
+  const html = renderSelectedSessionSummary(hydrateFromSnapshot({
+    session_id: "session-123",
+    status: "running",
+    current_turn_id: null,
+    model_name: "openai:gpt-5.4",
+    cwd: "/tmp/workspace",
+    approval_mode: "confirm",
+    parent_session_id: null,
+    forked_from_turn_id: null,
+    forked_from_sequence: null,
+    branch_label: null,
+    child_sessions: [],
+    branchable_turns: [],
+    can_fork: false,
+    latest_fork_point_turn_id: null,
+    latest_fork_point_sequence: null,
+    fork_blocked_reason: null,
+    dashboard_url: null,
+    last_sequence: 0,
+    pending_approval_id: null,
+    pending_question_id: null,
+    pending_question_text: null,
+    session_failure_message: null,
+    session_failure_retryable: null,
+    runtime_context: {
+      repository_context: {
+        workspace_name: "glassbox",
+        high_signal_paths: ["README.md", "src/"],
+        top_level_directories: ["docs/", "src/"],
+        additional_directory_count: 0,
+        top_level_files: ["README.md", "pyproject.toml"],
+        additional_file_count: 0,
+        project_markers: ["python_pyproject", "src_layout"],
+      },
+      runtime_notes: [
+        {
+          category: "repo",
+          message: "README is the operator entrypoint",
+          inherited: true,
+          source_session_id: "session-parent",
+        },
+      ],
+      additional_runtime_note_count: 0,
+    },
+    turn_metrics: [],
+    transcript: [],
+    active_tool_calls: [],
+    pending_approvals: [],
+  }));
+
+  assert.match(html, /Runtime context/);
+  assert.match(html, /High-signal paths/);
+  assert.match(html, /README is the operator entrypoint/);
+  assert.match(html, /inherited from session-/);
 });
 
 test("renderApprovalsPane shows submitted and failed resolution states", () => {

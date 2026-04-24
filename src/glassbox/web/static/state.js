@@ -15,6 +15,9 @@
  * @typedef {{turn_id: string, started_at?: string | null, completed_at?: string | null, turn_duration_ms?: number | null, model_call_count: number, model_duration_ms_total: number, model_input_tokens_total: number, model_output_tokens_total: number, tool_call_count: number, tool_duration_ms_total: number, succeeded_tool_call_count: number, failed_tool_call_count: number}} TurnMetrics
  * @typedef {{turn_id: string, tool_call_id: string, stream: string, chunk: string}} LiveOutputEntry
  * @typedef {{sequence: number, event_type: string}} EventLogEntry
+ * @typedef {{workspace_name: string, high_signal_paths: string[], top_level_directories: string[], additional_directory_count: number, top_level_files: string[], additional_file_count: number, project_markers: string[]}} RepositoryContextSummary
+ * @typedef {{category: string, message: string, inherited: boolean, source_session_id?: string | null}} RuntimeContextNote
+ * @typedef {{repository_context: RepositoryContextSummary, runtime_notes: RuntimeContextNote[], additional_runtime_note_count: number}} RuntimeContextSummary
  * @typedef {{kind: "message" | "answer" | null, state: "idle" | "submitting" | "submitted" | "failed", error: string | null}} InteractionSubmission
  * @typedef {{state: "idle" | "submitting" | "failed", error: string | null}} ForkSubmission
  * @typedef {{session_id: string, status: string, branch_label: string | null, updated_at: string, latest_message_summary: string | null}} ChildSessionSummary
@@ -45,6 +48,7 @@
  * @property {string | null} pendingQuestionText
  * @property {string | null} sessionFailureMessage
  * @property {boolean | null} sessionFailureRetryable
+ * @property {RuntimeContextSummary | null} runtimeContext
  * @property {CurrentTurn | null} currentTurn
  * @property {TurnMetrics[]} turnMetrics
  * @property {TranscriptMessage[]} transcript
@@ -94,6 +98,7 @@
  * @property {ActiveToolCall[]} active_tool_calls
  * @property {PendingApproval[]} pending_approvals
  * @property {TurnMetrics[]} turn_metrics
+ * @property {RuntimeContextSummary | null} runtime_context
  */
 
 /**
@@ -130,6 +135,7 @@ export function createState() {
     pendingQuestionText: null,
     sessionFailureMessage: null,
     sessionFailureRetryable: null,
+    runtimeContext: null,
     currentTurn: null,
     turnMetrics: [],
     transcript: [],
@@ -257,6 +263,99 @@ function inferCurrentTurn(snapshot) {
   return null;
 }
 
+function normalizeRuntimeContext(snapshotRuntimeContext) {
+  if (!snapshotRuntimeContext || !snapshotRuntimeContext.repository_context) {
+    return null;
+  }
+
+  const repositoryContext = snapshotRuntimeContext.repository_context;
+  return {
+    repository_context: {
+      workspace_name: typeof repositoryContext.workspace_name === "string"
+        ? repositoryContext.workspace_name
+        : "workspace",
+      high_signal_paths: Array.isArray(repositoryContext.high_signal_paths)
+        ? [...repositoryContext.high_signal_paths]
+        : [],
+      top_level_directories: Array.isArray(repositoryContext.top_level_directories)
+        ? [...repositoryContext.top_level_directories]
+        : [],
+      additional_directory_count: Number.isFinite(repositoryContext.additional_directory_count)
+        ? repositoryContext.additional_directory_count
+        : 0,
+      top_level_files: Array.isArray(repositoryContext.top_level_files)
+        ? [...repositoryContext.top_level_files]
+        : [],
+      additional_file_count: Number.isFinite(repositoryContext.additional_file_count)
+        ? repositoryContext.additional_file_count
+        : 0,
+      project_markers: Array.isArray(repositoryContext.project_markers)
+        ? [...repositoryContext.project_markers]
+        : [],
+    },
+    runtime_notes: Array.isArray(snapshotRuntimeContext.runtime_notes)
+      ? snapshotRuntimeContext.runtime_notes
+        .filter(note => note && typeof note.category === "string")
+        .map(note => ({
+          category: note.category,
+          message: typeof note.message === "string" ? note.message : "",
+          inherited: Boolean(note.inherited),
+          source_session_id: typeof note.source_session_id === "string"
+            ? note.source_session_id
+            : null,
+        }))
+      : [],
+    additional_runtime_note_count: Number.isFinite(snapshotRuntimeContext.additional_runtime_note_count)
+      ? snapshotRuntimeContext.additional_runtime_note_count
+      : 0,
+  };
+}
+
+function runtimeContextNoteKey(note) {
+  return [
+    note.source_session_id ?? "local",
+    note.category,
+    note.message,
+  ].join("\u0000");
+}
+
+function upsertRuntimeContextNote(runtimeContext, note) {
+  if (!runtimeContext) {
+    return runtimeContext;
+  }
+
+  const existingIndex = runtimeContext.runtime_notes.findIndex(
+    existing => runtimeContextNoteKey(existing) === runtimeContextNoteKey(note),
+  );
+  if (existingIndex >= 0) {
+    const nextNotes = [...runtimeContext.runtime_notes];
+    nextNotes[existingIndex] = note;
+    return {
+      ...runtimeContext,
+      runtime_notes: nextNotes,
+    };
+  }
+
+  if (runtimeContext.additional_runtime_note_count > 0) {
+    return {
+      ...runtimeContext,
+      additional_runtime_note_count: runtimeContext.additional_runtime_note_count + 1,
+    };
+  }
+
+  if (runtimeContext.runtime_notes.length >= 8) {
+    return {
+      ...runtimeContext,
+      additional_runtime_note_count: 1,
+    };
+  }
+
+  return {
+    ...runtimeContext,
+    runtime_notes: [...runtimeContext.runtime_notes, note],
+  };
+}
+
 /**
  * @param {SessionSnapshot} snapshot
  * @returns {DashboardState}
@@ -289,6 +388,7 @@ export function hydrateFromSnapshot(snapshot) {
     pendingQuestionText: snapshot.pending_question_text ?? null,
     sessionFailureMessage: snapshot.session_failure_message ?? null,
     sessionFailureRetryable: snapshot.session_failure_retryable ?? null,
+    runtimeContext: normalizeRuntimeContext(snapshot.runtime_context),
     currentTurn: inferCurrentTurn(snapshot),
     turnMetrics: [...(snapshot.turn_metrics ?? [])],
     transcript: [...(snapshot.transcript ?? [])],
@@ -1128,6 +1228,22 @@ export function applyEvent(state, envelope) {
         activeToolCalls: next.activeToolCalls.filter(
           item => item.tool_call_id !== payload.tool_call_id,
         ),
+      };
+    case "RuntimeNoteRecorded":
+    case "RuntimeNoteImported":
+      if (typeof payload.category !== "string" || typeof payload.message !== "string") {
+        return next;
+      }
+      return {
+        ...next,
+        runtimeContext: upsertRuntimeContextNote(next.runtimeContext, {
+          category: payload.category,
+          message: payload.message,
+          inherited: envelope.event_type === "RuntimeNoteImported" || Boolean(payload.inherited),
+          source_session_id: typeof payload.source_session_id === "string"
+            ? payload.source_session_id
+            : next.sessionId,
+        }),
       };
     case "ModelCallStarted":
       if (typeof payload.turn_id !== "string") {
