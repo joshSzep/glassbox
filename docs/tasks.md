@@ -2084,7 +2084,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-214: Expose Session Lineage And Fork Actions Through Snapshot, Index, And HTTP APIs
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-181`, `GBX-183`, `GBX-213`
 - Goal: make forked-session ancestry visible and actionable through the existing browser-facing backend surfaces
 - Deliverables:

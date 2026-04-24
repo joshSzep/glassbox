@@ -999,8 +999,9 @@ SSE is a better first fit than WebSockets because the dominant direction is serv
 The first server surface should include:
 
 - `GET /healthz`
-- `GET /sessions` for recent-session discovery in the standalone dashboard
-- `GET /sessions/{session_id}` for a snapshot view
+- `GET /sessions` for recent-session discovery in the standalone dashboard, including parent lineage metadata and lightweight branchability state
+- `GET /sessions/{session_id}` for a snapshot view, including parent metadata, child-session summaries, and branchability details for the selected session
+- `POST /sessions/{session_id}/fork` to create a child session from the latest or explicitly selected stable historical turn boundary
 - `GET /sessions/{session_id}/events` as an SSE stream
 - `POST /sessions/{session_id}/approvals/{approval_id}` to resolve approvals
 

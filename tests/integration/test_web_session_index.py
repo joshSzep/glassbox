@@ -8,8 +8,15 @@ from pathlib import Path
 
 import httpx
 
-from glassbox.core import EventEnvelope, SessionConfig
-from glassbox.core.events import SessionFailed, TurnStarted, UserQuestionAsked
+from glassbox.core import EventEnvelope, MessagePart, SessionConfig
+from glassbox.core.events import (
+    AssistantMessageCompleted,
+    SessionFailed,
+    TurnCompleted,
+    TurnStarted,
+    UserMessageReceived,
+    UserQuestionAsked,
+)
 from glassbox.core.ids import (
     new_message_id,
     new_question_id,
@@ -36,6 +43,59 @@ def _open_initialized_db(tmp_path: Path) -> sqlite3.Connection:
 def _make_app(tmp_path: Path, connection: sqlite3.Connection):
     runtime_context = _build_runtime_context(connection, tmp_path)
     return create_app(runtime_context), runtime_context
+
+
+def _append_completed_turn(
+    repo: SQLiteSessionRepository,
+    session_id,
+    *,
+    user_text: str,
+    assistant_text: str,
+):
+    user_message_id = new_message_id()
+    turn_id = new_turn_id()
+
+    repo.append_event(
+        EventEnvelope(
+            session_id=session_id,
+            sequence=0,
+            payload=UserMessageReceived(
+                message_id=user_message_id,
+                text=user_text,
+            ),
+        )
+    )
+    repo.append_event(
+        EventEnvelope(
+            session_id=session_id,
+            sequence=0,
+            payload=TurnStarted(
+                turn_id=turn_id,
+                trigger_message_id=user_message_id,
+            ),
+        )
+    )
+    repo.append_event(
+        EventEnvelope(
+            session_id=session_id,
+            sequence=0,
+            payload=AssistantMessageCompleted(
+                message_id=new_message_id(),
+                parts=[MessagePart(kind="text", text=assistant_text)],
+            ),
+        )
+    )
+    repo.append_event(
+        EventEnvelope(
+            session_id=session_id,
+            sequence=0,
+            payload=TurnCompleted(
+                turn_id=turn_id,
+                outcome="completed",
+            ),
+        )
+    )
+    return turn_id
 
 
 def test_get_sessions_returns_empty_list_when_no_sessions_exist(tmp_path: Path) -> None:
@@ -195,6 +255,15 @@ def test_get_sessions_summary_response_includes_expected_top_level_keys(
                 "model_name",
                 "cwd",
                 "approval_mode",
+                "parent_session_id",
+                "forked_from_turn_id",
+                "forked_from_sequence",
+                "branch_label",
+                "child_session_count",
+                "can_fork",
+                "latest_fork_point_turn_id",
+                "latest_fork_point_sequence",
+                "fork_blocked_reason",
                 "dashboard_url",
                 "created_at",
                 "updated_at",
@@ -207,6 +276,81 @@ def test_get_sessions_summary_response_includes_expected_top_level_keys(
                 "latest_message_summary",
                 "next_action_summary",
             }
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_get_sessions_includes_lineage_and_branchability_fields(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app, runtime_context = _make_app(tmp_path, connection)
+            repo = SQLiteSessionRepository(connection)
+            bus: EventBus[EventEnvelope] = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(repo, bus)
+
+            parent_state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path / "parent",
+                    approval_mode="confirm",
+                )
+            )
+            _append_completed_turn(
+                repo,
+                parent_state.session_id,
+                user_text="Inspect the repository",
+                assistant_text="I received your request: Inspect the repository",
+            )
+            forked_session = await supervisor.fork_session(
+                parent_state.session_id,
+                branch_label="alt-path",
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get("/sessions")
+
+            assert response.status_code == 200
+            body = response.json()
+            parent_summary = next(
+                item
+                for item in body
+                if item["session_id"] == str(parent_state.session_id)
+            )
+            child_summary = next(
+                item
+                for item in body
+                if item["session_id"] == str(forked_session.child_session_id)
+            )
+
+            assert parent_summary["parent_session_id"] is None
+            assert parent_summary["child_session_count"] == 1
+            assert parent_summary["can_fork"] is True
+            assert parent_summary["latest_fork_point_turn_id"] is not None
+            assert parent_summary["latest_fork_point_sequence"] is not None
+            assert parent_summary["fork_blocked_reason"] is None
+
+            assert child_summary["parent_session_id"] == str(parent_state.session_id)
+            assert child_summary["forked_from_turn_id"] == str(
+                forked_session.forked_from_turn_id
+            )
+            assert (
+                child_summary["forked_from_sequence"]
+                == forked_session.forked_from_sequence
+            )
+            assert child_summary["branch_label"] == "alt-path"
+            assert child_summary["child_session_count"] == 0
+            assert child_summary["can_fork"] is False
+            assert child_summary["latest_fork_point_turn_id"] is None
+            assert child_summary["latest_fork_point_sequence"] is None
+            assert child_summary["fork_blocked_reason"] == (
+                f"session {forked_session.child_session_id} has no completed fork point"
+            )
         finally:
             connection.close()
 

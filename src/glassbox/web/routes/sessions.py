@@ -64,6 +64,29 @@ class TurnMetricsResponse(BaseModel):
     failed_tool_call_count: int
 
 
+class ChildSessionSummaryResponse(BaseModel):
+    session_id: str
+    status: str
+    branch_label: str | None
+    updated_at: datetime
+    latest_message_summary: str | None
+
+
+class ForkSessionRequest(BaseModel):
+    turn_id: UUID | None = None
+    branch_label: str | None = None
+
+
+class ForkSessionResponse(BaseModel):
+    child_session_id: str
+    parent_session_id: str
+    forked_from_turn_id: str
+    forked_from_sequence: int
+    branch_label: str | None
+    inherited_message_count: int
+    last_sequence: int
+
+
 class SubmitSessionMessageRequest(BaseModel):
     text: str
 
@@ -82,6 +105,15 @@ class SessionSummaryResponse(BaseModel):
     model_name: str
     cwd: str
     approval_mode: str
+    parent_session_id: str | None
+    forked_from_turn_id: str | None
+    forked_from_sequence: int | None
+    branch_label: str | None
+    child_session_count: int
+    can_fork: bool
+    latest_fork_point_turn_id: str | None
+    latest_fork_point_sequence: int | None
+    fork_blocked_reason: str | None
     dashboard_url: str | None
     created_at: datetime
     updated_at: datetime
@@ -102,6 +134,15 @@ class SessionSnapshotResponse(BaseModel):
     model_name: str
     cwd: str
     approval_mode: str
+    parent_session_id: str | None
+    forked_from_turn_id: str | None
+    forked_from_sequence: int | None
+    branch_label: str | None
+    child_sessions: list[ChildSessionSummaryResponse]
+    can_fork: bool
+    latest_fork_point_turn_id: str | None
+    latest_fork_point_sequence: int | None
+    fork_blocked_reason: str | None
     dashboard_url: str | None
     created_at: datetime
     updated_at: datetime
@@ -126,6 +167,7 @@ async def list_session_summaries(
     repo = context.repositories.sessions
     records = repo.list_sessions()
     summaries: list[SessionSummaryResponse] = []
+    child_counts_by_parent = _child_counts_by_parent(records)
 
     for record in records:
         state = repo.get_session_state(record.session_id)
@@ -138,6 +180,12 @@ async def list_session_summaries(
             session_events,
             pending_question_id,
         )
+        (
+            can_fork,
+            latest_fork_point_turn_id,
+            latest_fork_point_sequence,
+            fork_blocked_reason,
+        ) = _fork_capability(repo, record.session_id)
 
         summaries.append(
             SessionSummaryResponse(
@@ -146,6 +194,30 @@ async def list_session_summaries(
                 model_name=record.model_name,
                 cwd=str(record.cwd),
                 approval_mode=record.approval_mode,
+                parent_session_id=(
+                    str(record.parent_session_id)
+                    if record.parent_session_id is not None
+                    else None
+                ),
+                forked_from_turn_id=(
+                    str(record.forked_from_turn_id)
+                    if record.forked_from_turn_id is not None
+                    else None
+                ),
+                forked_from_sequence=record.forked_from_sequence,
+                branch_label=record.branch_label,
+                child_session_count=child_counts_by_parent.get(
+                    str(record.session_id),
+                    0,
+                ),
+                can_fork=can_fork,
+                latest_fork_point_turn_id=(
+                    str(latest_fork_point_turn_id)
+                    if latest_fork_point_turn_id is not None
+                    else None
+                ),
+                latest_fork_point_sequence=latest_fork_point_sequence,
+                fork_blocked_reason=fork_blocked_reason,
                 dashboard_url=dashboard_url,
                 created_at=record.created_at,
                 updated_at=record.updated_at,
@@ -184,6 +256,42 @@ async def list_session_summaries(
         )
 
     return summaries
+
+
+@router.post(
+    "/{session_id}/fork",
+    response_model=ForkSessionResponse,
+    status_code=201,
+)
+async def fork_session(
+    session_id: UUID,
+    body: ForkSessionRequest,
+    context: RuntimeContextDep,
+) -> ForkSessionResponse:
+    """Create a child session from a stable historical fork point."""
+
+    repo = context.repositories.sessions
+    if repo.get_session(session_id) is None:
+        raise HTTPException(status_code=404, detail=f"session {session_id} not found")
+
+    try:
+        forked_session = await context.services.session_service.fork_session(
+            session_id,
+            turn_id=body.turn_id,
+            branch_label=body.branch_label,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    return ForkSessionResponse(
+        child_session_id=str(forked_session.child_session_id),
+        parent_session_id=str(forked_session.parent_session_id),
+        forked_from_turn_id=str(forked_session.forked_from_turn_id),
+        forked_from_sequence=forked_session.forked_from_sequence,
+        branch_label=forked_session.branch_label,
+        inherited_message_count=forked_session.inherited_message_count,
+        last_sequence=forked_session.last_sequence,
+    )
 
 
 @router.post(
@@ -268,6 +376,12 @@ async def get_session_snapshot(
         session_events,
         state.pending_question_id if state is not None else None,
     )
+    (
+        can_fork,
+        latest_fork_point_turn_id,
+        latest_fork_point_sequence,
+        fork_blocked_reason,
+    ) = _fork_capability(repo, session_id)
 
     return SessionSnapshotResponse(
         session_id=str(record.session_id),
@@ -278,6 +392,27 @@ async def get_session_snapshot(
         model_name=record.model_name,
         cwd=str(record.cwd),
         approval_mode=record.approval_mode,
+        parent_session_id=(
+            str(record.parent_session_id)
+            if record.parent_session_id is not None
+            else None
+        ),
+        forked_from_turn_id=(
+            str(record.forked_from_turn_id)
+            if record.forked_from_turn_id is not None
+            else None
+        ),
+        forked_from_sequence=record.forked_from_sequence,
+        branch_label=record.branch_label,
+        child_sessions=_child_session_summaries(repo, session_id),
+        can_fork=can_fork,
+        latest_fork_point_turn_id=(
+            str(latest_fork_point_turn_id)
+            if latest_fork_point_turn_id is not None
+            else None
+        ),
+        latest_fork_point_sequence=latest_fork_point_sequence,
+        fork_blocked_reason=fork_blocked_reason,
         dashboard_url=dashboard_url,
         created_at=record.created_at,
         updated_at=record.updated_at,
@@ -360,6 +495,53 @@ def _dashboard_url_from_events(events: list[EventEnvelope]) -> str | None:
         if isinstance(event.payload, SessionStarted):
             return event.payload.dashboard_url
     return None
+
+
+def _child_counts_by_parent(records) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for record in records:
+        if record.parent_session_id is None:
+            continue
+        parent_session_id = str(record.parent_session_id)
+        counts[parent_session_id] = counts.get(parent_session_id, 0) + 1
+    return counts
+
+
+def _child_session_summaries(
+    repo,
+    session_id: UUID,
+) -> list[ChildSessionSummaryResponse]:
+    child_records = [
+        record
+        for record in repo.list_sessions()
+        if record.parent_session_id == session_id
+    ]
+    child_records.sort(key=lambda record: record.updated_at, reverse=True)
+
+    return [
+        ChildSessionSummaryResponse(
+            session_id=str(record.session_id),
+            status=record.status,
+            branch_label=record.branch_label,
+            updated_at=record.updated_at,
+            latest_message_summary=_latest_message_summary(
+                repo.list_transcript_messages(record.session_id)
+            ),
+        )
+        for record in child_records
+    ]
+
+
+def _fork_capability(
+    repo,
+    session_id: UUID,
+) -> tuple[bool, UUID | None, int | None, str | None]:
+    try:
+        fork_point = repo.resolve_fork_point(session_id)
+    except ValueError as exc:
+        return False, None, None, str(exc)
+
+    return True, fork_point.turn_id, fork_point.sequence, None
 
 
 def _latest_session_failure(events: list[EventEnvelope]) -> SessionFailed | None:
