@@ -131,7 +131,7 @@ def test_cli_answer_resumes_pending_ask_user_turn(
     db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
 
     monkeypatch.setattr(
-        "glassbox.cli.open_runtime_context",
+        "glassbox.cli.runtime_runner.open_runtime_context",
         lambda cwd, db_path=None: nullcontext(runtime_context),
     )
 
@@ -200,7 +200,7 @@ def test_cli_answer_rejects_unknown_question_id(
     db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
 
     monkeypatch.setattr(
-        "glassbox.cli.open_runtime_context",
+        "glassbox.cli.runtime_runner.open_runtime_context",
         lambda cwd, db_path=None: nullcontext(runtime_context),
     )
 
@@ -2092,7 +2092,7 @@ def test_cli_chat_keeps_session_open_for_multiple_prompts(
     )
 
     monkeypatch.setattr(
-        "glassbox.cli._read_interactive_input",
+        "glassbox.cli.interactive_session._read_interactive_input",
         lambda prompt: next(interactive_inputs),
     )
 
@@ -2156,7 +2156,7 @@ def test_cli_attach_keeps_existing_idle_session_open_for_new_prompts(
     interactive_inputs = iter(["Now summarize the tests.", "/exit"])
 
     monkeypatch.setattr(
-        "glassbox.cli._read_interactive_input",
+        "glassbox.cli.interactive_session._read_interactive_input",
         lambda prompt: next(interactive_inputs),
     )
 
@@ -2209,11 +2209,11 @@ def test_cli_attach_answers_pending_question_for_existing_session(
     interactive_inputs = iter(["blue", "/exit"])
 
     monkeypatch.setattr(
-        "glassbox.cli.open_runtime_context",
+        "glassbox.cli.runtime_runner.open_runtime_context",
         lambda cwd, db_path=None: nullcontext(runtime_context),
     )
     monkeypatch.setattr(
-        "glassbox.cli._read_interactive_input",
+        "glassbox.cli.interactive_session._read_interactive_input",
         lambda prompt: next(interactive_inputs),
     )
 
@@ -2276,11 +2276,11 @@ def test_cli_chat_routes_pending_question_answers_without_question_id(
     interactive_inputs = iter(["Pick a colour.", "blue", "/exit"])
 
     monkeypatch.setattr(
-        "glassbox.cli.open_runtime_context",
+        "glassbox.cli.runtime_runner.open_runtime_context",
         lambda cwd, db_path=None: nullcontext(runtime_context),
     )
     monkeypatch.setattr(
-        "glassbox.cli._read_interactive_input",
+        "glassbox.cli.interactive_session._read_interactive_input",
         lambda prompt: next(interactive_inputs),
     )
 
@@ -2327,7 +2327,7 @@ def test_cli_attach_approval_mode_requires_slash_commands_and_supports_status_he
     interactive_inputs = iter(["hello", "/status", "/help", "/approve", "/exit"])
 
     monkeypatch.setattr(
-        "glassbox.cli._read_interactive_input",
+        "glassbox.cli.interactive_session._read_interactive_input",
         lambda prompt: next(interactive_inputs),
     )
 
@@ -2364,7 +2364,7 @@ def test_cli_attach_supports_deny_slash_command(
     interactive_inputs = iter(["/deny", "/exit"])
 
     monkeypatch.setattr(
-        "glassbox.cli._read_interactive_input",
+        "glassbox.cli.interactive_session._read_interactive_input",
         lambda prompt: next(interactive_inputs),
     )
 
@@ -2414,11 +2414,11 @@ def test_cli_chat_redraws_prompt_and_routes_answer_after_question_arrives_mid_pr
         return "/exit"
 
     monkeypatch.setattr(
-        "glassbox.cli.open_runtime_context",
+        "glassbox.cli.runtime_runner.open_runtime_context",
         lambda cwd, db_path=None: nullcontext(runtime_context),
     )
     monkeypatch.setattr(
-        "glassbox.cli._read_interactive_input_async",
+        "glassbox.cli.interactive_session._read_interactive_input_async",
         fake_read_interactive_input,
     )
 
@@ -2482,11 +2482,11 @@ def test_cli_chat_redraws_prompt_and_routes_approval_after_request_arrives_mid_p
         return "/exit"
 
     monkeypatch.setattr(
-        "glassbox.cli.open_runtime_context",
+        "glassbox.cli.runtime_runner.open_runtime_context",
         lambda cwd, db_path=None: nullcontext(runtime_context),
     )
     monkeypatch.setattr(
-        "glassbox.cli._read_interactive_input_async",
+        "glassbox.cli.interactive_session._read_interactive_input_async",
         fake_read_interactive_input,
     )
 
@@ -2541,10 +2541,13 @@ def test_cli_chat_starts_dashboard_sidecar_and_records_live_dashboard_url(
         return server
 
     monkeypatch.setattr(
-        "glassbox.cli.build_web_server",
+        "glassbox.cli.runtime_runner.build_web_server",
         fake_build_web_server,
     )
-    monkeypatch.setattr("glassbox.cli._read_interactive_input", lambda prompt: "/exit")
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_session._read_interactive_input",
+        lambda prompt: "/exit",
+    )
 
     exit_code = main(
         [
@@ -2593,10 +2596,13 @@ def test_cli_chat_continues_without_dashboard_when_default_startup_fails(
         return FailingChatDashboardServer(host=host, port=port)
 
     monkeypatch.setattr(
-        "glassbox.cli.build_web_server",
+        "glassbox.cli.runtime_runner.build_web_server",
         fake_build_web_server,
     )
-    monkeypatch.setattr("glassbox.cli._read_interactive_input", lambda prompt: "/exit")
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_session._read_interactive_input",
+        lambda prompt: "/exit",
+    )
 
     exit_code = main(
         [
@@ -2643,10 +2649,13 @@ def test_cli_chat_fails_when_explicit_dashboard_binding_fails(
         return FailingChatDashboardServer(host=host, port=port)
 
     monkeypatch.setattr(
-        "glassbox.cli.build_web_server",
+        "glassbox.cli.runtime_runner.build_web_server",
         fake_build_web_server,
     )
-    monkeypatch.setattr("glassbox.cli._read_interactive_input", fail_if_prompted)
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_session._read_interactive_input",
+        fail_if_prompted,
+    )
 
     exit_code = main(
         [
@@ -2685,8 +2694,11 @@ def test_cli_chat_can_disable_dashboard_sidecar(
     def fail_if_built(*args, **kwargs):
         raise AssertionError("dashboard sidecar should not be built")
 
-    monkeypatch.setattr("glassbox.cli.build_web_server", fail_if_built)
-    monkeypatch.setattr("glassbox.cli._read_interactive_input", lambda prompt: "/exit")
+    monkeypatch.setattr("glassbox.cli.runtime_runner.build_web_server", fail_if_built)
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_session._read_interactive_input",
+        lambda prompt: "/exit",
+    )
 
     exit_code = main(
         [

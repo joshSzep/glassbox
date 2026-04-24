@@ -24,7 +24,7 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.function import FunctionModel
 
-from glassbox.cli import _chat_command_async
+from glassbox.cli.interactive_commands import _chat_command_async
 from glassbox.core import EventEnvelope, SessionState
 from glassbox.llm import (
     ModelProviderConfig,
@@ -382,12 +382,15 @@ async def _start_chat(
         return "/exit"
 
     monkeypatch.setattr(
-        "glassbox.cli.open_runtime_context",
+        "glassbox.cli.runtime_runner.open_runtime_context",
         lambda cwd, db_path=None: nullcontext(runtime_context),
     )
-    monkeypatch.setattr("glassbox.cli.build_web_server", fake_build_web_server)
     monkeypatch.setattr(
-        "glassbox.cli._read_interactive_input_async",
+        "glassbox.cli.runtime_runner.build_web_server",
+        fake_build_web_server,
+    )
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_session._read_interactive_input_async",
         fake_read_interactive_input,
     )
 

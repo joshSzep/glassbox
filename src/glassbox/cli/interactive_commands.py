@@ -5,12 +5,17 @@ from __future__ import annotations
 import argparse
 import asyncio
 
-import glassbox.cli as cli_root
 from glassbox.core import SessionConfig
 from glassbox.core.types import ApprovalDecision
 from glassbox.runtime.context import RuntimeContext
 
+from .interactive_session import _interactive_session_loop
 from .path_helpers import resolve_runtime_location
+from .runtime_runner import (
+    _dashboard_session_url,
+    _run_with_renderer,
+    _start_chat_dashboard,
+)
 
 
 def _run_command(args: argparse.Namespace) -> int:
@@ -40,7 +45,7 @@ async def _run_command_async(args: argparse.Namespace) -> int:
             )
             await asyncio.sleep(0)
 
-    return await cli_root._run_with_renderer(cwd, db_path, action)
+    return await _run_with_renderer(cwd, db_path, action)
 
 
 def _chat_command(args: argparse.Namespace) -> int:
@@ -59,7 +64,7 @@ async def _chat_command_async(args: argparse.Namespace) -> int:
         dashboard_server = None
         dashboard_url = None
         try:
-            dashboard_server, dashboard_url = await cli_root._start_chat_dashboard(
+            dashboard_server, dashboard_url = await _start_chat_dashboard(
                 runtime_context,
                 args,
             )
@@ -80,12 +85,12 @@ async def _chat_command_async(args: argparse.Namespace) -> int:
             if dashboard_url is not None:
                 print(
                     "Dashboard available at "
-                    + cli_root._dashboard_session_url(
+                    + _dashboard_session_url(
                         dashboard_url,
                         session_state.session_id,
                     )
                 )
-            await cli_root._interactive_session_loop(
+            await _interactive_session_loop(
                 runtime_context,
                 session_state.session_id,
                 prompt_state,
@@ -94,7 +99,7 @@ async def _chat_command_async(args: argparse.Namespace) -> int:
             if dashboard_server is not None:
                 await dashboard_server.stop()
 
-    return await cli_root._run_with_renderer(cwd, db_path, action)
+    return await _run_with_renderer(cwd, db_path, action)
 
 
 def _attach_command(args: argparse.Namespace) -> int:
@@ -110,15 +115,17 @@ async def _attach_command_async(args: argparse.Namespace) -> int:
         if state is None:
             raise ValueError(f"unknown session_id: {args.session_id}")
 
-        cli_root._ensure_session_can_attach(args.session_id, state)
+        from .interactive_session import _ensure_session_can_attach
+
+        _ensure_session_can_attach(args.session_id, state)
         print(f"Attached to session {args.session_id}")
-        await cli_root._interactive_session_loop(
+        await _interactive_session_loop(
             runtime_context,
             args.session_id,
             prompt_state,
         )
 
-    return await cli_root._run_with_renderer(cwd, db_path, action)
+    return await _run_with_renderer(cwd, db_path, action)
 
 
 def _resume_command(args: argparse.Namespace) -> int:
@@ -132,7 +139,7 @@ async def _resume_command_async(args: argparse.Namespace) -> int:
         await runtime_context.services.session_service.resume_session(args.session_id)
         await asyncio.sleep(0)
 
-    return await cli_root._run_with_renderer(cwd, db_path, action)
+    return await _run_with_renderer(cwd, db_path, action)
 
 
 def _message_command(args: argparse.Namespace) -> int:
@@ -149,7 +156,7 @@ async def _message_command_async(args: argparse.Namespace) -> int:
         )
         await asyncio.sleep(0)
 
-    return await cli_root._run_with_renderer(cwd, db_path, action)
+    return await _run_with_renderer(cwd, db_path, action)
 
 
 def _fork_command(args: argparse.Namespace) -> int:
@@ -187,7 +194,7 @@ async def _fork_command_async(args: argparse.Namespace) -> int:
             )
             await asyncio.sleep(0)
 
-    return await cli_root._run_with_renderer(cwd, db_path, action)
+    return await _run_with_renderer(cwd, db_path, action)
 
 
 def _answer_command(args: argparse.Namespace) -> int:
@@ -205,7 +212,7 @@ async def _answer_command_async(args: argparse.Namespace) -> int:
         )
         await asyncio.sleep(0)
 
-    return await cli_root._run_with_renderer(cwd, db_path, action)
+    return await _run_with_renderer(cwd, db_path, action)
 
 
 def _resolve_approval_command(
@@ -229,4 +236,4 @@ async def _resolve_approval_command_async(
         )
         await asyncio.sleep(0)
 
-    return await cli_root._run_with_renderer(cwd, db_path, action)
+    return await _run_with_renderer(cwd, db_path, action)

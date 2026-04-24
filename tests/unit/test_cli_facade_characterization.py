@@ -1,10 +1,11 @@
-"""Characterization coverage for CLI package-root compatibility facades."""
+"""Characterization coverage for CLI status and replay formatters."""
 
 from __future__ import annotations
 
 from uuid import UUID
 
-from glassbox.cli import _print_replay_report, _print_session_status
+from glassbox.cli.replay_eval_formatters import _print_replay_report
+from glassbox.cli.status_formatters import _print_session_status
 from glassbox.runtime.replay import (
     ReplayFinalStateSnapshot,
     ReplayNormalizedSession,

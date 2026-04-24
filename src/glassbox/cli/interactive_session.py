@@ -6,12 +6,19 @@ import asyncio
 from collections.abc import Sequence
 from uuid import UUID
 
-import glassbox.cli as cli_root
 from glassbox.cli.renderer import InteractivePromptState
 from glassbox.core.models import ApprovalRecord, SessionState
 from glassbox.core.types import ApprovalDecision, SessionStatus
 from glassbox.runtime.context import RuntimeContext
 from glassbox.runtime.session_queries import SessionQueryService
+
+from .status_formatters import (
+    _format_next_action_line,
+    _format_pending_question_line,
+    _latest_session_failure,
+    _pending_question_text_from_events,
+    _print_session_status,
+)
 
 
 async def _interactive_session_loop(
@@ -43,7 +50,7 @@ async def _interactive_session_loop(
         prompt_label = _interactive_prompt_label(mode)
         prompt_state.activate(prompt_label, prompt_context_lines)
         try:
-            user_input = await cli_root._read_interactive_input_async(prompt_label)
+            user_input = await _read_interactive_input_async(prompt_label)
         except EOFError, KeyboardInterrupt:
             prompt_state.clear()
             print()
@@ -71,9 +78,7 @@ async def _interactive_session_loop(
                 repository,
                 runtime_context.repositories.artifacts,
             )
-            cli_root._print_session_status(
-                query_service.get_session_status_view(session_id),
-            )
+            _print_session_status(query_service.get_session_status_view(session_id))
             continue
         if action_kind == "approve":
             if state.status != SessionStatus.AWAITING_APPROVAL:
@@ -155,7 +160,7 @@ def _read_interactive_input(prompt: str) -> str:
 
 
 async def _read_interactive_input_async(prompt: str) -> str:
-    return await asyncio.to_thread(cli_root._read_interactive_input, prompt)
+    return await asyncio.to_thread(_read_interactive_input, prompt)
 
 
 def _parse_interactive_input(user_input: str) -> tuple[str, str]:
@@ -211,9 +216,9 @@ def _format_interactive_chat_pause_line(
 ) -> str:
     session_events = repository.read_session_events(session_id)
     pending_approvals = repository.list_approvals(session_id)
-    latest_session_failure = cli_root._latest_session_failure(session_events)
+    latest_session_failure = _latest_session_failure(session_events)
     current_turn_id = _current_turn_id(state, pending_approvals)
-    next_action = cli_root._format_next_action_line(
+    next_action = _format_next_action_line(
         session_id,
         state.status,
         current_turn_id,
@@ -242,12 +247,12 @@ def _interactive_prompt_context_lines(
 ) -> list[str]:
     if mode == "answer":
         session_events = repository.read_session_events(session_id)
-        question_text = cli_root._pending_question_text_from_events(
+        question_text = _pending_question_text_from_events(
             session_events,
             state.pending_question_id,
         )
         return [
-            cli_root._format_pending_question_line(
+            _format_pending_question_line(
                 state.pending_question_id,
                 question_text,
             ),
@@ -285,7 +290,7 @@ def _interactive_blocked_input_message(state: SessionState, session_id: UUID) ->
             "or /deny."
         )
 
-    next_action = cli_root._format_next_action_line(
+    next_action = _format_next_action_line(
         session_id,
         state.status,
         state.current_turn_id,

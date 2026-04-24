@@ -7,7 +7,7 @@ import asyncio
 import json
 from pathlib import Path
 
-import glassbox.cli as cli_root
+from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.eval_baselines import promote_eval_case, refresh_eval_case
 from glassbox.runtime.eval_coverage import audit_eval_coverage
 from glassbox.runtime.eval_runner import EvalRunner
@@ -25,6 +25,15 @@ from .path_helpers import (
     resolve_optional_explicit_path,
     resolve_optional_output_path,
     resolve_runtime_location,
+)
+from .replay_eval_formatters import (
+    _print_eval_baseline_update,
+    _print_eval_coverage_audit,
+    _print_eval_profiles,
+    _print_eval_suite_report,
+    _print_replay_report,
+    _replay_exit_code,
+    _replay_result_payload,
 )
 
 
@@ -47,7 +56,7 @@ async def _replay_command_async(args: argparse.Namespace) -> int:
         session_id = args.session_id
         assert session_id is not None
 
-        with cli_root.open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        with open_runtime_context(cwd, db_path=db_path) as runtime_context:
             result = await ReplayRunner(
                 runtime_context.repositories.sessions,
                 runtime_context.repositories.artifacts,
@@ -56,15 +65,15 @@ async def _replay_command_async(args: argparse.Namespace) -> int:
     if args.json:
         print(
             json.dumps(
-                cli_root._replay_result_payload(result),
+                _replay_result_payload(result),
                 indent=2,
                 sort_keys=True,
             )
         )
     else:
-        cli_root._print_replay_report(result)
+        _print_replay_report(result)
 
-    return cli_root._replay_exit_code(result)
+    return _replay_exit_code(result)
 
 
 def _replay_export_command(args: argparse.Namespace) -> int:
@@ -75,7 +84,7 @@ def _replay_export_command(args: argparse.Namespace) -> int:
         default_name=f"glassbox-replay-{args.session_id}.json",
     )
 
-    with cli_root.open_runtime_context(cwd, db_path=db_path) as runtime_context:
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
         exported_path = ReplayRunner(
             runtime_context.repositories.sessions,
             runtime_context.repositories.artifacts,
@@ -111,7 +120,7 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
                 )
             )
         else:
-            cli_root._print_eval_suite_report(suite_result)
+            _print_eval_suite_report(suite_result)
 
         return suite_result.exit_code
 
@@ -134,7 +143,7 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
                 )
             )
         else:
-            cli_root._print_eval_coverage_audit(result=audit_result, workspace_root=cwd)
+            _print_eval_coverage_audit(result=audit_result, workspace_root=cwd)
         return 0
 
     if args.eval_command == "profiles":
@@ -151,7 +160,7 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
                 )
             )
         else:
-            cli_root._print_eval_profiles(workspace_root=cwd, profiles=profiles)
+            _print_eval_profiles(workspace_root=cwd, profiles=profiles)
         return 0
 
     if args.eval_command == "report":
@@ -240,7 +249,7 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
     if args.eval_command == "promote":
         cwd, db_path = resolve_runtime_location(args)
         report_output = resolve_optional_explicit_path(cwd, args.report_output)
-        with cli_root.open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        with open_runtime_context(cwd, db_path=db_path) as runtime_context:
             report = promote_eval_case(
                 cwd,
                 replay_runner=ReplayRunner(
@@ -268,13 +277,13 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
         if args.json:
             print(json.dumps(report.model_dump(mode="json"), indent=2, sort_keys=True))
         else:
-            cli_root._print_eval_baseline_update(report)
+            _print_eval_baseline_update(report)
         return 0
 
     if args.eval_command == "refresh":
         cwd, db_path = resolve_runtime_location(args)
         report_output = resolve_optional_explicit_path(cwd, args.report_output)
-        with cli_root.open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        with open_runtime_context(cwd, db_path=db_path) as runtime_context:
             report = refresh_eval_case(
                 cwd,
                 replay_runner=ReplayRunner(
@@ -305,7 +314,7 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
         if args.json:
             print(json.dumps(report.model_dump(mode="json"), indent=2, sort_keys=True))
         else:
-            cli_root._print_eval_baseline_update(report)
+            _print_eval_baseline_update(report)
         return 0
 
     raise ValueError("specify an eval subcommand")

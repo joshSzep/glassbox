@@ -46,20 +46,24 @@ def dispatch_command(
 
 
 def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
-    from glassbox.cli import (
+    from glassbox.cli.interactive_commands import (
         _answer_command,
         _attach_command,
         _chat_command,
-        _eval_command,
         _fork_command,
         _message_command,
-        _rebuild_command,
-        _replay_command,
-        _replay_export_command,
         _resolve_approval_command,
         _resume_command,
         _run_command,
-        _serve_command,
+    )
+    from glassbox.cli.replay_eval_commands import (
+        _eval_command,
+        _replay_command,
+        _replay_export_command,
+    )
+    from glassbox.cli.server_commands import _serve_command
+    from glassbox.cli.session_state_commands import (
+        _rebuild_command,
         _status_command,
     )
 

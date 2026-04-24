@@ -297,7 +297,7 @@ def test_cli_chat_with_unsupported_provider_emits_session_failed(
         raise AssertionError(f"interactive prompt should not be reached: {prompt}")
 
     monkeypatch.setattr(
-        "glassbox.cli._read_interactive_input",
+        "glassbox.cli.interactive_session._read_interactive_input",
         fail_if_prompted,
     )
 
