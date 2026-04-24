@@ -66,6 +66,17 @@ class UserMessageReceived(EventPayload):
     text: str
 
 
+class TranscriptMessageImported(EventPayload):
+    event_type: Literal["TranscriptMessageImported"] = "TranscriptMessageImported"
+    message_id: MessageId
+    source_session_id: SessionId
+    source_message_id: MessageId
+    source_turn_id: TurnId | None = None
+    role: Literal["user", "assistant", "system"]
+    parts: list[MessagePart]
+    source_created_at: datetime
+
+
 class AssistantMessageStarted(EventPayload):
     event_type: Literal["AssistantMessageStarted"] = "AssistantMessageStarted"
     message_id: MessageId
@@ -224,6 +235,7 @@ EventPayloadType = Annotated[
     | SessionCompleted
     | SessionFailed
     | UserMessageReceived
+    | TranscriptMessageImported
     | AssistantMessageStarted
     | AssistantMessageDelta
     | AssistantMessageCompleted

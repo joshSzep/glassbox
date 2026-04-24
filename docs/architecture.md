@@ -867,6 +867,12 @@ execution into a graph traversal problem. Branch creation may need to inspect
 parent history, but the resulting child session should continue to behave like a
 first-class ordinary session once created.
 
+The current direction for that materialization is:
+
+- resolve the fork boundary from the parent session's canonical events together with the projected suspension state
+- carry forward only the normalized transcript needed for continuation, rather than replaying every parent event into the child
+- record those inherited messages as canonical child-session import events with deterministic child message IDs derived from the child session and source message identity
+
 ## Deterministic Replay And Eval Model
 
 Deterministic replay is a separate operator workflow from raw history

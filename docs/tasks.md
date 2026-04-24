@@ -2044,7 +2044,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-212: Implement Historical Fork-Point Resolution And Imported-History Event Flow
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-210`, `GBX-211`, `GBX-024`
 - Goal: make fork creation deterministic by resolving stable historical cut points and materializing the inherited conversation state into the child session explicitly
 - Deliverables:

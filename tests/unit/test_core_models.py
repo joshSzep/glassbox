@@ -7,8 +7,10 @@ import pytest
 from pydantic import ValidationError
 
 from glassbox.core import (
+    InheritedTranscriptMessage,
     MessagePart,
     PolicyDecision,
+    ResolvedForkPoint,
     SessionConfig,
     SessionRecord,
     SessionState,
@@ -114,6 +116,27 @@ def test_transcript_message_round_trip() -> None:
     restored = TranscriptMessage.model_validate(message.model_dump(mode="python"))
 
     assert restored == message
+
+
+def test_resolved_fork_point_round_trip() -> None:
+    fork_point = ResolvedForkPoint(
+        parent_session_id=new_session_id(),
+        turn_id=new_turn_id(),
+        sequence=8,
+        inherited_messages=[
+            InheritedTranscriptMessage(
+                source_message_id=new_message_id(),
+                source_turn_id=new_turn_id(),
+                role="assistant",
+                parts=[MessagePart(kind="text", text="prior answer")],
+                created_at=datetime(2026, 4, 16, 12, 4, tzinfo=UTC),
+            )
+        ],
+    )
+
+    restored = ResolvedForkPoint.model_validate(fork_point.model_dump(mode="python"))
+
+    assert restored == fork_point
 
 
 def test_tool_call_record_round_trip() -> None:

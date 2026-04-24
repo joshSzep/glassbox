@@ -13,6 +13,7 @@ from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import ApprovalId, MessageId, SessionId, ToolCallId, TurnId
 from glassbox.core.models import (
     ApprovalRecord,
+    ResolvedForkPoint,
     SessionConfig,
     SessionRecord,
     SessionState,
@@ -174,6 +175,18 @@ class SQLiteSessionRepository:
             self._connection,
             session_id,
             limit=limit,
+        )
+
+    def resolve_fork_point(
+        self,
+        session_id: SessionId,
+        *,
+        turn_id: TurnId | None = None,
+    ) -> ResolvedForkPoint:
+        return sqlite_store.resolve_fork_point(
+            self._connection,
+            session_id,
+            turn_id=turn_id,
         )
 
 

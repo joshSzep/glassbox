@@ -18,6 +18,7 @@ from glassbox.store.sqlite import (
     SCHEMA_VERSION,
     append_event,
     append_events,
+    build_imported_transcript_events,
     create_session,
     get_session,
     get_session_state,
@@ -30,6 +31,7 @@ from glassbox.store.sqlite import (
     read_session_events,
     read_session_events_after,
     rebuild_session_projections,
+    resolve_fork_point,
     update_session,
 )
 
@@ -40,6 +42,7 @@ __all__ = [
     "StoredArtifact",
     "append_event",
     "append_events",
+    "build_imported_transcript_events",
     "artifact_relative_path",
     "create_session",
     "get_session",
@@ -57,6 +60,7 @@ __all__ = [
     "record_binary_artifact",
     "record_text_artifact",
     "rebuild_session_projections",
+    "resolve_fork_point",
     "update_session",
     "write_binary_artifact",
     "write_text_artifact",

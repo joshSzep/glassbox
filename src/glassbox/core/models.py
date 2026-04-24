@@ -97,6 +97,29 @@ class TranscriptMessage(BaseModel):
     created_at: datetime
 
 
+class InheritedTranscriptMessage(BaseModel):
+    """Normalized transcript content inherited from a parent session."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_message_id: MessageId
+    source_turn_id: TurnId | None = None
+    role: MessageRole
+    parts: list[MessagePart]
+    created_at: datetime
+
+
+class ResolvedForkPoint(BaseModel):
+    """A validated historical fork boundary resolved from persisted session data."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    parent_session_id: SessionId
+    turn_id: TurnId
+    sequence: int = Field(ge=0)
+    inherited_messages: list[InheritedTranscriptMessage]
+
+
 class ToolCallRecord(BaseModel):
     """A query-friendly view of a tool call in a turn."""
 

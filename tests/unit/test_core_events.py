@@ -16,6 +16,7 @@ from glassbox.core import (
     MessagePart,
     SessionStarted,
     ToolOutputChunk,
+    TranscriptMessageImported,
     TurnStatus,
     TurnStatusChanged,
     UserMessageReceived,
@@ -191,3 +192,25 @@ def test_event_envelope_preserves_created_at() -> None:
     )
 
     assert envelope.created_at == created_at
+
+
+def test_transcript_message_imported_round_trip() -> None:
+    payload = TranscriptMessageImported(
+        message_id=new_message_id(),
+        source_session_id=new_session_id(),
+        source_message_id=new_message_id(),
+        source_turn_id=new_turn_id(),
+        role="assistant",
+        parts=[MessagePart(kind="text", text="imported answer")],
+        source_created_at=datetime(2026, 4, 16, 12, 4, tzinfo=UTC),
+    )
+    envelope = EventEnvelope(
+        session_id=new_session_id(),
+        sequence=6,
+        payload=payload,
+    )
+
+    restored = EventEnvelope.model_validate(envelope.model_dump(mode="python"))
+
+    assert restored == envelope
+    assert restored.message_id == payload.message_id

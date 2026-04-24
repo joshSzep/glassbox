@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from glassbox.core import (
     MessagePart,
+    ResolvedForkPoint,
     SessionRecord,
     SessionState,
     SessionStatus,
@@ -113,6 +114,14 @@ class FakeSessionRepository:
 
     def list_turn_metrics(self, session_id, *, limit=None):
         return []
+
+    def resolve_fork_point(self, session_id, *, turn_id=None):
+        return ResolvedForkPoint(
+            parent_session_id=session_id,
+            turn_id=new_turn_id(),
+            sequence=0,
+            inherited_messages=[],
+        )
 
 
 def test_turn_context_builder_orders_transcript_and_includes_policy_and_tools() -> None:

@@ -11,6 +11,7 @@ from glassbox.core import (
     ApprovalDecision,
     EventEnvelope,
     MessagePart,
+    ResolvedForkPoint,
     SessionConfig,
     SessionRecord,
     SessionStarted,
@@ -19,6 +20,7 @@ from glassbox.core import (
     TranscriptMessage,
     new_artifact_id,
     new_session_id,
+    new_turn_id,
 )
 from glassbox.runtime import (
     EventBus,
@@ -135,6 +137,14 @@ class FakeSessionRepository:
 
     def list_turn_metrics(self, session_id, *, limit=None):
         return []
+
+    def resolve_fork_point(self, session_id, *, turn_id=None) -> ResolvedForkPoint:
+        return ResolvedForkPoint(
+            parent_session_id=session_id,
+            turn_id=new_turn_id(),
+            sequence=0,
+            inherited_messages=[],
+        )
 
 
 class FakeArtifactRepository:

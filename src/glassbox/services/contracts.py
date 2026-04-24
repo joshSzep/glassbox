@@ -18,6 +18,7 @@ from glassbox.core.ids import (
 )
 from glassbox.core.models import (
     ApprovalRecord,
+    ResolvedForkPoint,
     SessionConfig,
     SessionRecord,
     SessionState,
@@ -128,6 +129,13 @@ class SessionRepository(Protocol):
         *,
         limit: int | None = None,
     ) -> list[TurnMetricsRecord]: ...
+
+    def resolve_fork_point(
+        self,
+        session_id: SessionId,
+        *,
+        turn_id: TurnId | None = None,
+    ) -> ResolvedForkPoint: ...
 
 
 @runtime_checkable
