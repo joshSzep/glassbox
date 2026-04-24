@@ -729,7 +729,7 @@ These follow-on tasks stay within the same behavior-preserving contract as the o
 
 ### GBX-R190: Extend Architecture Guardrails To The New Runtime And Replay Facades
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R161`, `GBX-R171`, `GBX-R180`
 - Goal: keep the follow-on refactor seams from collapsing back into larger coordination modules by extending the existing lightweight guardrails to the new runtime and replay boundaries
 - Deliverables:
