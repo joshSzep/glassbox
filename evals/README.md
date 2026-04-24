@@ -51,6 +51,15 @@ counts, pass/fail totals, outcome counts, per-case severity, and retained
 artifact paths such as `.glassbox/evals/push-smoke/summary.json` and
 `.glassbox/evals/push-smoke/CASE_ID.json`.
 
+Choose tags with the local-first workflow in mind:
+
+- `smoke` cases are the blocking commit-time barrier and should stay small,
+  stable, and cheap to rerun.
+- Broader tags are better for advisory or push-time confirmation until their
+  value is high enough to justify blocking every commit.
+- If a post-push failure keeps finding the same class of regression, promote the
+  relevant case or tag into `smoke` so it fails earlier.
+
 Each run writes one JSON artifact per case plus `summary.json` into the selected
 output directory. If `--output-dir` is omitted, Glassbox creates a timestamped
 directory under `.glassbox/evals/`.
@@ -74,3 +83,17 @@ Case manifest shape:
 For targeted cases, `expectation.mode` may be `selected_invariants` with an
 explicit `invariants` list such as `final_state` or `transcript`. Omitting the
 expectation keeps the default strict behavior.
+
+Troubleshooting flows:
+
+1. Commit blocked by replay/eval drift:
+  rerun `pre-commit run eval-smoke --all-files`, inspect
+  `.glassbox/evals/pre-commit/summary.json`, then inspect the failing per-case
+  JSON artifact in the same directory.
+2. Push confirmation failed after local success:
+  read the GitHub Actions job summary first, then download the
+  `push-smoke-evals-SHA` artifact only if the summary does not already explain
+  the failing case.
+3. Intentional baseline refresh:
+  update the checked-in bundle and case manifest together, then rerun the
+  targeted case or tagged suite before committing.

@@ -1980,7 +1980,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-205: Document Local Commit Gates And Push-Time Confirmation For Replay/Evals
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-200`, `GBX-201`, `GBX-202`, `GBX-203`, `GBX-204`, `GBX-121`
 - Goal: explain the final local-first verification workflow clearly enough that a developer using direct commits to `main` understands what runs before commit, what runs after push, and how to respond when one of those layers fails
 - Deliverables:

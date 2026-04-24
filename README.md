@@ -362,6 +362,46 @@ Interpret failures based on where they happen:
   `push-smoke-evals-SHA` artifact and inspect `summary.json` plus the per-case
   JSON files.
 
+### Local-First Operating Flows
+
+When a commit is blocked by the smoke gate, use this sequence:
+
+1. Run `uv run pre-commit run eval-smoke --all-files` again if you need a clean
+  repro outside `git commit`.
+2. Open `.glassbox/evals/pre-commit/summary.json` to identify the failing case,
+  replay outcome, and artifact path.
+3. Open the failing `.glassbox/evals/pre-commit/CASE_ID.json` file and inspect
+  the mismatch list or error message.
+4. If the drift is accidental, fix the code and rerun the smoke hook.
+5. If the drift is intentional, refresh the checked-in replay bundle and case
+  manifest together, review that diff as a baseline change, and rerun the hook
+  before committing.
+
+When local commit checks pass but push-time confirmation fails, use this sequence:
+
+1. Open the failed `Push Smoke Evals` run for the pushed commit.
+2. Read the rendered job summary first. It tells you which case failed, whether
+  the failure was `behavioral_drift`, `manifest_drift`, `unsupported_session`,
+  or `replay_failure`, and which retained artifact path to inspect.
+3. If the job summary is enough to explain the regression, fix the code or
+  decide whether that case now belongs in the commit-time smoke barrier.
+4. If you need more detail, download the `push-smoke-evals-SHA` artifact and
+  inspect `.glassbox/evals/push-smoke/summary.json` plus the failing per-case
+  JSON file.
+5. After the fix or baseline refresh, rerun the relevant local smoke command,
+  commit, and push again so the remote confirmation reruns on the corrected
+  tree.
+
+Use these rules for the blocking `smoke` tag set:
+
+- Keep `smoke` small, deterministic, and offline-friendly.
+- Put a case in `smoke` only when it protects a high-value contract and reruns
+  fast enough to stay in the commit path.
+- Leave broader or more volatile cases on non-blocking tags until they have
+  proved stable enough to justify blocking every commit.
+- Promote a non-blocking case into `smoke` when a post-push failure shows that
+  the repo needs that regression signal earlier.
+
 ### Targeted Expectations And Baseline Refresh
 
 The default expectation is strict `exact_match`. Use a narrower
@@ -372,6 +412,18 @@ That is a reviewable statement about what the case is meant to protect. It is
 not a mechanism for silently tolerating arbitrary drift. When prompts, tool
 schemas, or runtime context intentionally change, refresh the exported bundle and
 review the bundle diff together with the case manifest change.
+
+Use this baseline refresh playbook:
+
+1. Confirm the observed drift is intentional and not a regression you want to
+  keep catching.
+2. Regenerate or re-export the replay bundle into `evals/bundles/CASE_ID.json`.
+3. Update `evals/cases/CASE_ID.json` if the title, tags, notes, or selected
+  invariants changed with the new contract.
+4. Review bundle and manifest diffs together so the expected behavior change is
+  explicit in one commit.
+5. Rerun `uv run glassbox eval run CASE_ID --cwd .` or the relevant tagged suite
+  before committing the refreshed baseline.
 
 ### Replay And Eval Troubleshooting
 
