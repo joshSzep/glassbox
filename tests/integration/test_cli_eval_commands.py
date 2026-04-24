@@ -7,15 +7,12 @@ from pathlib import Path
 import pytest
 
 from glassbox.cli import main
-
-from .cli_test_support import (
-    _export_eval_bundle,
-    _list_sessions,
-    _run_baseline_session,
-    _write_eval_case,
-    _write_eval_coverage,
-    _write_eval_profiles,
-)
+from tests.integration.cli_test_support import _export_eval_bundle
+from tests.integration.cli_test_support import _list_sessions
+from tests.integration.cli_test_support import _run_baseline_session
+from tests.integration.cli_test_support import _write_eval_case
+from tests.integration.cli_test_support import _write_eval_coverage
+from tests.integration.cli_test_support import _write_eval_profiles
 
 
 def test_cli_eval_run_reports_mixed_outcomes_and_writes_artifacts(

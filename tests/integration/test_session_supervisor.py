@@ -7,29 +7,28 @@ from pathlib import Path
 
 import pytest
 
-from glassbox.core import (
-    EventEnvelope,
-    MessagePart,
-    RuntimeNoteRecorded,
-    SessionConfig,
-    SessionResumed,
-    SessionStarted,
-    SessionStatus,
-    TranscriptMessageImported,
-    TurnCompleted,
-    TurnStarted,
-    UserMessageReceived,
-)
-from glassbox.core.events import (
-    ApprovalRequested,
-    AssistantMessageCompleted,
-    SessionCompleted,
-)
-from glassbox.core.ids import new_approval_id, new_message_id, new_turn_id
+from glassbox.core import EventEnvelope
+from glassbox.core import MessagePart
+from glassbox.core import RuntimeNoteRecorded
+from glassbox.core import SessionConfig
+from glassbox.core import SessionResumed
+from glassbox.core import SessionStarted
+from glassbox.core import SessionStatus
+from glassbox.core import TranscriptMessageImported
+from glassbox.core import TurnCompleted
+from glassbox.core import TurnStarted
+from glassbox.core import UserMessageReceived
+from glassbox.core.events import ApprovalRequested
+from glassbox.core.events import AssistantMessageCompleted
+from glassbox.core.events import SessionCompleted
+from glassbox.core.ids import new_approval_id
+from glassbox.core.ids import new_message_id
+from glassbox.core.ids import new_turn_id
 from glassbox.runtime.bus import EventBus
 from glassbox.runtime.supervisor import SessionSupervisor
 from glassbox.store.repositories import SQLiteSessionRepository
-from glassbox.store.sqlite import initialize_database, open_database
+from glassbox.store.sqlite import initialize_database
+from glassbox.store.sqlite import open_database
 
 
 def _open_initialized_database(tmp_path: Path) -> sqlite3.Connection:

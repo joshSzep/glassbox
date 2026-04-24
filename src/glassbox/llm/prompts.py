@@ -5,12 +5,10 @@ from __future__ import annotations
 import json
 from collections.abc import Sequence
 
-from glassbox.runtime.context_builder import (
-    PolicyContext,
-    ToolSchema,
-    TurnContext,
-    normalize_tool_schemas,
-)
+from glassbox.runtime.context_builder import PolicyContext
+from glassbox.runtime.context_builder import ToolSchema
+from glassbox.runtime.context_builder import TurnContext
+from glassbox.runtime.context_builder import normalize_tool_schemas
 
 
 def build_system_prompt(turn_context: TurnContext) -> str:

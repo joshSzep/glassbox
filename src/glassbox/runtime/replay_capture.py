@@ -2,21 +2,25 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any
+from typing import Literal
 
-from glassbox.core.events import EventEnvelope, ReplayArtifactRecorded
-from glassbox.core.ids import SessionId, ToolCallId, TurnId
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import ReplayArtifactRecorded
+from glassbox.core.ids import SessionId
+from glassbox.core.ids import ToolCallId
+from glassbox.core.ids import TurnId
 from glassbox.llm import PreparedModelTurn
 from glassbox.runtime.context_builder import TurnContext
-from glassbox.runtime.replay_manifests import (
-    ReplayManifest,
-    build_replay_model_call_manifest,
-    build_replay_tool_request_manifest,
-    build_replay_tool_result_manifest,
-    build_replay_turn_output_manifest,
-)
-from glassbox.services import ArtifactRepository, SessionRepository
-from glassbox.tools import PreparedToolExecution, ToolExecutionResult
+from glassbox.runtime.replay_manifests import ReplayManifest
+from glassbox.runtime.replay_manifests import build_replay_model_call_manifest
+from glassbox.runtime.replay_manifests import build_replay_tool_request_manifest
+from glassbox.runtime.replay_manifests import build_replay_tool_result_manifest
+from glassbox.runtime.replay_manifests import build_replay_turn_output_manifest
+from glassbox.services import ArtifactRepository
+from glassbox.services import SessionRepository
+from glassbox.tools import PreparedToolExecution
+from glassbox.tools import ToolExecutionResult
 
 
 class ReplayArtifactRecorder:

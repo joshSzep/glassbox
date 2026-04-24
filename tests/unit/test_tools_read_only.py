@@ -5,13 +5,11 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from glassbox.tools import (
-    DirectoryEntry,
-    ListDirResult,
-    ReadFileResult,
-    SearchFilesResult,
-    build_read_only_tool_registry,
-)
+from glassbox.tools import DirectoryEntry
+from glassbox.tools import ListDirResult
+from glassbox.tools import ReadFileResult
+from glassbox.tools import SearchFilesResult
+from glassbox.tools import build_read_only_tool_registry
 
 
 def test_build_read_only_tool_registry_exposes_expected_tool_names() -> None:

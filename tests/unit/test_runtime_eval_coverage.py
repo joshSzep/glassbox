@@ -7,11 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from glassbox.runtime.eval_coverage import (
-    EvalCoverageManifest,
-    audit_eval_coverage,
-    load_eval_coverage_manifest,
-)
+from glassbox.runtime.eval_coverage import EvalCoverageManifest
+from glassbox.runtime.eval_coverage import audit_eval_coverage
+from glassbox.runtime.eval_coverage import load_eval_coverage_manifest
 
 
 def test_load_eval_coverage_manifest_supports_multi_case_capabilities(

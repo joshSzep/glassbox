@@ -5,12 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from glassbox.tools import (
-    ListDirArgs,
-    ReadFileArgs,
-    SearchFilesArgs,
-    build_read_only_tool_registry,
-)
+from glassbox.tools import ListDirArgs
+from glassbox.tools import ReadFileArgs
+from glassbox.tools import SearchFilesArgs
+from glassbox.tools import build_read_only_tool_registry
 
 
 def test_read_only_tools_execute_against_workspace(tmp_path: Path) -> None:

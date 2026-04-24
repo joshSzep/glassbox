@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from glassbox.runtime.eval_runner import EvalCaseResult, EvalSuiteResult
-
-from .eval_summary_models import AnnotationLevel, EvalAutomationAnnotation
+from glassbox.runtime.eval_runner import EvalCaseResult
+from glassbox.runtime.eval_runner import EvalSuiteResult
+from glassbox.runtime.eval_summary_models import AnnotationLevel
+from glassbox.runtime.eval_summary_models import EvalAutomationAnnotation
 
 
 def build_eval_suite_annotations(

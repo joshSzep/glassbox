@@ -10,49 +10,41 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from pydantic_ai.messages import (
-    ModelRequest,
-    ModelResponse,
-    TextPart,
-    ToolCallPart,
-    ToolReturnPart,
-    UserPromptPart,
-)
+from pydantic_ai.messages import ModelRequest
+from pydantic_ai.messages import ModelResponse
+from pydantic_ai.messages import TextPart
+from pydantic_ai.messages import ToolCallPart
+from pydantic_ai.messages import ToolReturnPart
+from pydantic_ai.messages import UserPromptPart
 from pydantic_ai.models.function import FunctionModel
 
-from glassbox.core import EventEnvelope, SessionConfig
-from glassbox.core.events import (
-    ApprovalRequested,
-    ReplayArtifactRecorded,
-    UserQuestionAsked,
-)
+from glassbox.core import EventEnvelope
+from glassbox.core import SessionConfig
+from glassbox.core.events import ApprovalRequested
+from glassbox.core.events import ReplayArtifactRecorded
+from glassbox.core.events import UserQuestionAsked
 from glassbox.core.types import ApprovalDecision
-from glassbox.llm import (
-    ModelProviderConfig,
-    PydanticAIModelAdapter,
-    PydanticAIModelExecutor,
-)
+from glassbox.llm import ModelProviderConfig
+from glassbox.llm import PydanticAIModelAdapter
+from glassbox.llm import PydanticAIModelExecutor
 from glassbox.runtime.bus import EventBus
 from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.eval_runner import EvalRunner
 from glassbox.runtime.replay import ReplayRunner
 from glassbox.runtime.supervisor import SessionSupervisor
 from glassbox.runtime.turn_engine import TurnEngine
-from glassbox.store.repositories import (
-    FilesystemArtifactRepository,
-    SQLiteSessionRepository,
-)
-from glassbox.store.sqlite import initialize_database, open_database
-from glassbox.tools import (
-    ApprovalMode,
-    ToolPolicyContext,
-    ToolPolicyEngine,
-    ToolRuntime,
-    build_ask_user_tool_registry,
-    build_patch_tool_registry,
-    build_read_only_tool_registry,
-    build_workflow_tool_registry,
-)
+from glassbox.store.repositories import FilesystemArtifactRepository
+from glassbox.store.repositories import SQLiteSessionRepository
+from glassbox.store.sqlite import initialize_database
+from glassbox.store.sqlite import open_database
+from glassbox.tools import ApprovalMode
+from glassbox.tools import ToolPolicyContext
+from glassbox.tools import ToolPolicyEngine
+from glassbox.tools import ToolRuntime
+from glassbox.tools import build_ask_user_tool_registry
+from glassbox.tools import build_patch_tool_registry
+from glassbox.tools import build_read_only_tool_registry
+from glassbox.tools import build_workflow_tool_registry
 
 
 def _open_initialized_database(tmp_path: Path) -> sqlite3.Connection:

@@ -4,28 +4,32 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
-from typing import Protocol, cast
+from typing import Protocol
+from typing import cast
 
 from pydantic_ai.messages import ModelMessage
 
-from glassbox.core.events import (
-    ApprovalRequested,
-    EventEnvelope,
-    ModelToolCallRequested,
-    ToolExecutionCompleted,
-    ToolExecutionStarted,
-    ToolOutputChunk,
-    ToolOutputStream,
-    TurnCompleted,
-    TurnStatusChanged,
-    UserQuestionAsked,
-)
-from glassbox.core.ids import ToolCallId, new_approval_id, new_question_id
+from glassbox.core.events import ApprovalRequested
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import ModelToolCallRequested
+from glassbox.core.events import ToolExecutionCompleted
+from glassbox.core.events import ToolExecutionStarted
+from glassbox.core.events import ToolOutputChunk
+from glassbox.core.events import ToolOutputStream
+from glassbox.core.events import TurnCompleted
+from glassbox.core.events import TurnStatusChanged
+from glassbox.core.events import UserQuestionAsked
+from glassbox.core.ids import ToolCallId
+from glassbox.core.ids import new_approval_id
+from glassbox.core.ids import new_question_id
 from glassbox.core.types import TurnStatus
 from glassbox.llm import ModelToolCall
-from glassbox.runtime.logging import get_runtime_logger, runtime_log_extra
+from glassbox.runtime.logging import get_runtime_logger
+from glassbox.runtime.logging import runtime_log_extra
 from glassbox.runtime.model_loop import ModelLoopSuspension
-from glassbox.tools import PreparedToolExecution, ToolExecutionResult, ToolRuntime
+from glassbox.tools import PreparedToolExecution
+from glassbox.tools import ToolExecutionResult
+from glassbox.tools import ToolRuntime
 
 logger = get_runtime_logger("turn_tools")
 

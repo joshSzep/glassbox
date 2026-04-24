@@ -4,22 +4,21 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
+from fastapi import HTTPException
 
 from glassbox.runtime.session_queries import SessionQueryService
 from glassbox.web.app import RuntimeContextDep
-from glassbox.web.session_api import (
-    ActionAcceptedResponse,
-    ForkSessionRequest,
-    ForkSessionResponse,
-    SessionSnapshotResponse,
-    SessionSummaryResponse,
-    SubmitSessionAnswerRequest,
-    SubmitSessionMessageRequest,
-    build_fork_session_response,
-    build_session_snapshot_response,
-    build_session_summary_responses,
-)
+from glassbox.web.session_api import ActionAcceptedResponse
+from glassbox.web.session_api import ForkSessionRequest
+from glassbox.web.session_api import ForkSessionResponse
+from glassbox.web.session_api import SessionSnapshotResponse
+from glassbox.web.session_api import SessionSummaryResponse
+from glassbox.web.session_api import SubmitSessionAnswerRequest
+from glassbox.web.session_api import SubmitSessionMessageRequest
+from glassbox.web.session_api import build_fork_session_response
+from glassbox.web.session_api import build_session_snapshot_response
+from glassbox.web.session_api import build_session_summary_responses
 
 router = APIRouter(prefix="/sessions")
 

@@ -2,14 +2,12 @@
 
 import pytest
 
+from glassbox.runtime.replay_fingerprints import build_replay_enriched_context_sources
 from glassbox.runtime.replay_fingerprints import (
-    build_replay_enriched_context_sources,
     fingerprint_replay_enriched_context_sources,
 )
-from glassbox.runtime.replay_manifests import (
-    build_replay_turn_output_manifest,
-    load_replay_manifest,
-)
+from glassbox.runtime.replay_manifests import build_replay_turn_output_manifest
+from glassbox.runtime.replay_manifests import load_replay_manifest
 
 
 def test_enriched_context_source_fingerprint_ignores_non_semantic_ordering_noise() -> (

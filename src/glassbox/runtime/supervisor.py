@@ -2,33 +2,34 @@
 
 from __future__ import annotations
 
-from glassbox.core.events import (
-    ApprovalRequested,
-    ApprovalResolved,
-    EventEnvelope,
-    RuntimeNoteImported,
-    RuntimeNoteRecorded,
-    SessionCompleted,
-    SessionResumed,
-    SessionStarted,
-    UserAnswerProvided,
-    UserMessageReceived,
-    UserQuestionAsked,
-)
-from glassbox.core.ids import (
-    ApprovalId,
-    QuestionId,
-    SessionId,
-    TurnId,
-    new_message_id,
-    new_session_id,
-)
-from glassbox.core.models import ForkedSession, SessionConfig, SessionState
-from glassbox.core.types import ApprovalDecision, SessionStatus
+from glassbox.core.events import ApprovalRequested
+from glassbox.core.events import ApprovalResolved
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import RuntimeNoteImported
+from glassbox.core.events import RuntimeNoteRecorded
+from glassbox.core.events import SessionCompleted
+from glassbox.core.events import SessionResumed
+from glassbox.core.events import SessionStarted
+from glassbox.core.events import UserAnswerProvided
+from glassbox.core.events import UserMessageReceived
+from glassbox.core.events import UserQuestionAsked
+from glassbox.core.ids import ApprovalId
+from glassbox.core.ids import QuestionId
+from glassbox.core.ids import SessionId
+from glassbox.core.ids import TurnId
+from glassbox.core.ids import new_message_id
+from glassbox.core.ids import new_session_id
+from glassbox.core.models import ForkedSession
+from glassbox.core.models import SessionConfig
+from glassbox.core.models import SessionState
+from glassbox.core.types import ApprovalDecision
+from glassbox.core.types import SessionStatus
 from glassbox.runtime.bus import EventBus
-from glassbox.runtime.logging import get_runtime_logger, runtime_log_extra
+from glassbox.runtime.logging import get_runtime_logger
+from glassbox.runtime.logging import runtime_log_extra
 from glassbox.runtime.turn_engine import TurnEngine
-from glassbox.services import SessionRepository, SessionService
+from glassbox.services import SessionRepository
+from glassbox.services import SessionService
 
 logger = get_runtime_logger("supervisor")
 

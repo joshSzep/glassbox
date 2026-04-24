@@ -3,12 +3,10 @@
 import pytest
 from pydantic import BaseModel
 
-from glassbox.tools import (
-    ToolRegistry,
-    ToolRiskLevel,
-    ToolSpec,
-    ToolStreamingMode,
-)
+from glassbox.tools import ToolRegistry
+from glassbox.tools import ToolRiskLevel
+from glassbox.tools import ToolSpec
+from glassbox.tools import ToolStreamingMode
 
 
 class ReadFileArgs(BaseModel):

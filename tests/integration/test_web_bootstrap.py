@@ -10,12 +10,17 @@ from pathlib import Path
 import httpx
 import pytest
 
-from glassbox.core import SessionConfig, new_session_id
-from glassbox.llm import PydanticAIModelExecutor, build_local_text_model_executor
+from glassbox.core import SessionConfig
+from glassbox.core import new_session_id
+from glassbox.llm import PydanticAIModelExecutor
+from glassbox.llm import build_local_text_model_executor
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.runtime.logging import configure_runtime_logging
-from glassbox.store import initialize_database, open_database
-from glassbox.web import build_web_server, create_app, run_server
+from glassbox.store import initialize_database
+from glassbox.store import open_database
+from glassbox.web import build_web_server
+from glassbox.web import create_app
+from glassbox.web import run_server
 
 
 def _make_runtime_context(tmp_path: Path, connection: sqlite3.Connection):

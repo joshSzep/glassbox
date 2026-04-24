@@ -7,7 +7,8 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
+from fastapi import HTTPException
 from pydantic import BaseModel
 
 from glassbox.core.types import ApprovalDecision

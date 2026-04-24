@@ -5,34 +5,29 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from glassbox.core.ids import SessionId
-from glassbox.runtime.context_formatting import (
-    format_repository_context_for_prompt,
-    format_tool_schemas_for_prompt,
-    format_transcript_for_prompt,
-    normalize_tool_schemas,
-)
-from glassbox.runtime.context_models import (
-    PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
-    ArtifactBackedContextSnapshot,
-    ArtifactBackedContextSummarySnapshot,
-    PolicyContext,
-    PytestFailureDigestArtifact,
-    RepositoryContextSnapshot,
-    RuntimeContextNoteSnapshot,
-    RuntimeContextSnapshot,
-    TurnContext,
-    WorkingSetItemSnapshot,
-    WorkingSetSnapshot,
-)
-from glassbox.runtime.context_snapshots import (
-    build_artifact_backed_context_snapshot,
-    build_pytest_failure_digest_artifact,
-    build_repository_context_snapshot,
-    build_runtime_context_snapshot,
-)
+from glassbox.runtime.context_formatting import format_repository_context_for_prompt
+from glassbox.runtime.context_formatting import format_tool_schemas_for_prompt
+from glassbox.runtime.context_formatting import format_transcript_for_prompt
+from glassbox.runtime.context_formatting import normalize_tool_schemas
+from glassbox.runtime.context_models import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
+from glassbox.runtime.context_models import ArtifactBackedContextSnapshot
+from glassbox.runtime.context_models import ArtifactBackedContextSummarySnapshot
+from glassbox.runtime.context_models import PolicyContext
+from glassbox.runtime.context_models import PytestFailureDigestArtifact
+from glassbox.runtime.context_models import RepositoryContextSnapshot
+from glassbox.runtime.context_models import RuntimeContextNoteSnapshot
+from glassbox.runtime.context_models import RuntimeContextSnapshot
+from glassbox.runtime.context_models import TurnContext
+from glassbox.runtime.context_models import WorkingSetItemSnapshot
+from glassbox.runtime.context_models import WorkingSetSnapshot
+from glassbox.runtime.context_snapshots import build_artifact_backed_context_snapshot
+from glassbox.runtime.context_snapshots import build_pytest_failure_digest_artifact
+from glassbox.runtime.context_snapshots import build_repository_context_snapshot
+from glassbox.runtime.context_snapshots import build_runtime_context_snapshot
 from glassbox.runtime.context_working_set import build_working_set_snapshot
 from glassbox.services import SessionRepository
-from glassbox.tools import ToolRegistry, ToolSchema
+from glassbox.tools import ToolRegistry
+from glassbox.tools import ToolSchema
 
 
 class TurnContextBuilder:

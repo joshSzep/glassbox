@@ -4,24 +4,20 @@ from __future__ import annotations
 
 import asyncio
 
-from pydantic_ai.messages import (
-    FinalResultEvent,
-    ModelResponse,
-    PartDeltaEvent,
-    PartStartEvent,
-    TextPart,
-    TextPartDelta,
-)
+from pydantic_ai.messages import FinalResultEvent
+from pydantic_ai.messages import ModelResponse
+from pydantic_ai.messages import PartDeltaEvent
+from pydantic_ai.messages import PartStartEvent
+from pydantic_ai.messages import TextPart
+from pydantic_ai.messages import TextPartDelta
 from pydantic_ai.models import ModelRequestParameters
 
-from glassbox.llm import (
-    ModelFinalResult,
-    ModelProviderConfig,
-    ModelTextDelta,
-    PreparedModelTurn,
-    PydanticAIModelAdapter,
-    PydanticAIModelExecutor,
-)
+from glassbox.llm import ModelFinalResult
+from glassbox.llm import ModelProviderConfig
+from glassbox.llm import ModelTextDelta
+from glassbox.llm import PreparedModelTurn
+from glassbox.llm import PydanticAIModelAdapter
+from glassbox.llm import PydanticAIModelExecutor
 from glassbox.llm import executor as llm_executor
 
 

@@ -7,51 +7,42 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import cast
 
-from glassbox.core.events import (
-    ApprovalResolved,
-    AssistantMessageCompleted,
-    AssistantMessageDelta,
-    EventEnvelope,
-    ModelCallCompleted,
-    ModelCallStarted,
-    ModelToolCallRequested,
-    ReplayArtifactRecorded,
-    RuntimeNoteImported,
-    RuntimeNoteRecorded,
-    TranscriptMessageImported,
-    TurnCompleted,
-    TurnFailed,
-    UserAnswerProvided,
-    UserMessageReceived,
-)
+from glassbox.core.events import ApprovalResolved
+from glassbox.core.events import AssistantMessageCompleted
+from glassbox.core.events import AssistantMessageDelta
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import ModelCallCompleted
+from glassbox.core.events import ModelCallStarted
+from glassbox.core.events import ModelToolCallRequested
+from glassbox.core.events import ReplayArtifactRecorded
+from glassbox.core.events import RuntimeNoteImported
+from glassbox.core.events import RuntimeNoteRecorded
+from glassbox.core.events import TranscriptMessageImported
+from glassbox.core.events import TurnCompleted
+from glassbox.core.events import TurnFailed
+from glassbox.core.events import UserAnswerProvided
+from glassbox.core.events import UserMessageReceived
 from glassbox.core.ids import SessionId
-from glassbox.core.models import (
-    InheritedTranscriptMessage,
-    ResolvedForkPoint,
-    RuntimeNoteRecord,
-    SessionConfig,
-    SessionRecord,
-)
+from glassbox.core.models import InheritedTranscriptMessage
+from glassbox.core.models import ResolvedForkPoint
+from glassbox.core.models import RuntimeNoteRecord
+from glassbox.core.models import SessionConfig
+from glassbox.core.models import SessionRecord
 from glassbox.runtime.replay_compare import normalize_session
-from glassbox.runtime.replay_failures import (
-    ReplayFailure,
-    ReplayUnsupportedSession,
-)
-from glassbox.runtime.replay_manifests import (
-    ReplayModelCallManifest,
-    ReplayToolRequestManifest,
-    ReplayToolResultManifest,
-    ReplayTurnOutputManifest,
-    load_replay_manifest,
-)
-from glassbox.runtime.replay_models import (
-    REPLAY_BUNDLE_VERSION,
-    ReplayAction,
-    ReplayBundle,
-    ReplayRecordedModelCall,
-    ReplayRecordedToolCall,
-)
-from glassbox.services import ArtifactRepository, SessionRepository
+from glassbox.runtime.replay_failures import ReplayFailure
+from glassbox.runtime.replay_failures import ReplayUnsupportedSession
+from glassbox.runtime.replay_manifests import ReplayModelCallManifest
+from glassbox.runtime.replay_manifests import ReplayToolRequestManifest
+from glassbox.runtime.replay_manifests import ReplayToolResultManifest
+from glassbox.runtime.replay_manifests import ReplayTurnOutputManifest
+from glassbox.runtime.replay_manifests import load_replay_manifest
+from glassbox.runtime.replay_models import REPLAY_BUNDLE_VERSION
+from glassbox.runtime.replay_models import ReplayAction
+from glassbox.runtime.replay_models import ReplayBundle
+from glassbox.runtime.replay_models import ReplayRecordedModelCall
+from glassbox.runtime.replay_models import ReplayRecordedToolCall
+from glassbox.services import ArtifactRepository
+from glassbox.services import SessionRepository
 from glassbox.store.repositories import SQLiteSessionRepository
 
 

@@ -5,16 +5,15 @@ from __future__ import annotations
 from uuid import uuid4
 
 from glassbox.core.types import SessionStatus
-from glassbox.llm import build_system_prompt, build_tool_usage_prompt_fragment
-from glassbox.runtime.context_builder import (
-    ArtifactBackedContextSnapshot,
-    ArtifactBackedContextSummarySnapshot,
-    PolicyContext,
-    ToolSchema,
-    TurnContext,
-    WorkingSetItemSnapshot,
-    WorkingSetSnapshot,
-)
+from glassbox.llm import build_system_prompt
+from glassbox.llm import build_tool_usage_prompt_fragment
+from glassbox.runtime.context_builder import ArtifactBackedContextSnapshot
+from glassbox.runtime.context_builder import ArtifactBackedContextSummarySnapshot
+from glassbox.runtime.context_builder import PolicyContext
+from glassbox.runtime.context_builder import ToolSchema
+from glassbox.runtime.context_builder import TurnContext
+from glassbox.runtime.context_builder import WorkingSetItemSnapshot
+from glassbox.runtime.context_builder import WorkingSetSnapshot
 
 
 def test_build_system_prompt_includes_policy_tools_repo_and_memory() -> None:

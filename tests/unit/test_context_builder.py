@@ -1,65 +1,58 @@
 """Unit tests for the runtime turn context builder."""
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC
+from datetime import datetime
 from pathlib import Path
 from typing import Never
 
 import pytest
 from pydantic import BaseModel
 
-from glassbox.core import (
-    ApprovalStatus,
-    EventEnvelope,
-    MessagePart,
-    ModelToolCallRequested,
-    ReplayArtifactRecorded,
-    ResolvedForkPoint,
-    RuntimeNoteRecord,
-    RuntimeNoteRecorded,
-    SessionRecord,
-    SessionState,
-    SessionStatus,
-    ToolArtifactRecorded,
-    ToolCallRecord,
-    ToolExecutionStatus,
-    TranscriptMessage,
-    new_approval_id,
-    new_artifact_id,
-    new_message_id,
-    new_session_id,
-    new_tool_call_id,
-    new_turn_id,
-)
+from glassbox.core import ApprovalStatus
+from glassbox.core import EventEnvelope
+from glassbox.core import MessagePart
+from glassbox.core import ModelToolCallRequested
+from glassbox.core import ReplayArtifactRecorded
+from glassbox.core import ResolvedForkPoint
+from glassbox.core import RuntimeNoteRecord
+from glassbox.core import RuntimeNoteRecorded
+from glassbox.core import SessionRecord
+from glassbox.core import SessionState
+from glassbox.core import SessionStatus
+from glassbox.core import ToolArtifactRecorded
+from glassbox.core import ToolCallRecord
+from glassbox.core import ToolExecutionStatus
+from glassbox.core import TranscriptMessage
+from glassbox.core import new_approval_id
+from glassbox.core import new_artifact_id
+from glassbox.core import new_message_id
+from glassbox.core import new_session_id
+from glassbox.core import new_tool_call_id
+from glassbox.core import new_turn_id
 from glassbox.core.models import ApprovalRecord
-from glassbox.runtime.context_builder import (
-    PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
-    ArtifactBackedContextSnapshot,
-    ArtifactBackedContextSummarySnapshot,
-    PytestFailureDigestArtifact,
-    RepositoryContextSnapshot,
-    RuntimeContextNoteSnapshot,
-    RuntimeContextSnapshot,
-    ToolSchema,
-    TurnContextBuilder,
-    WorkingSetItemSnapshot,
-    WorkingSetSnapshot,
-)
-from glassbox.runtime.context_formatting import (
-    format_repository_context_for_prompt,
-    format_tool_schemas_for_prompt,
-    format_transcript_for_prompt,
-)
-from glassbox.runtime.context_snapshots import (
-    build_artifact_backed_context_snapshot,
-    build_pytest_failure_digest_artifact,
-    build_repository_context_snapshot,
-    build_runtime_context_snapshot,
-)
-from glassbox.runtime.context_working_set import (
-    build_working_set_snapshot,
-)
-from glassbox.tools import ToolRegistry, ToolRiskLevel, ToolSpec
+from glassbox.runtime.context_builder import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
+from glassbox.runtime.context_builder import ArtifactBackedContextSnapshot
+from glassbox.runtime.context_builder import ArtifactBackedContextSummarySnapshot
+from glassbox.runtime.context_builder import PytestFailureDigestArtifact
+from glassbox.runtime.context_builder import RepositoryContextSnapshot
+from glassbox.runtime.context_builder import RuntimeContextNoteSnapshot
+from glassbox.runtime.context_builder import RuntimeContextSnapshot
+from glassbox.runtime.context_builder import ToolSchema
+from glassbox.runtime.context_builder import TurnContextBuilder
+from glassbox.runtime.context_builder import WorkingSetItemSnapshot
+from glassbox.runtime.context_builder import WorkingSetSnapshot
+from glassbox.runtime.context_formatting import format_repository_context_for_prompt
+from glassbox.runtime.context_formatting import format_tool_schemas_for_prompt
+from glassbox.runtime.context_formatting import format_transcript_for_prompt
+from glassbox.runtime.context_snapshots import build_artifact_backed_context_snapshot
+from glassbox.runtime.context_snapshots import build_pytest_failure_digest_artifact
+from glassbox.runtime.context_snapshots import build_repository_context_snapshot
+from glassbox.runtime.context_snapshots import build_runtime_context_snapshot
+from glassbox.runtime.context_working_set import build_working_set_snapshot
+from glassbox.tools import ToolRegistry
+from glassbox.tools import ToolRiskLevel
+from glassbox.tools import ToolSpec
 
 
 class FakeSessionRepository:

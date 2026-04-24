@@ -9,7 +9,8 @@ from pathlib import Path
 import httpx
 
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
-from glassbox.store import initialize_database, open_database
+from glassbox.store import initialize_database
+from glassbox.store import open_database
 from glassbox.web import create_app
 
 

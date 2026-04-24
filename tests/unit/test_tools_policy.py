@@ -4,14 +4,12 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from glassbox.tools import (
-    ApprovalMode,
-    ToolPolicyContext,
-    ToolPolicyEngine,
-    ToolRegistry,
-    ToolRiskLevel,
-    ToolSpec,
-)
+from glassbox.tools import ApprovalMode
+from glassbox.tools import ToolPolicyContext
+from glassbox.tools import ToolPolicyEngine
+from glassbox.tools import ToolRegistry
+from glassbox.tools import ToolRiskLevel
+from glassbox.tools import ToolSpec
 
 
 class ReadFileArgs(BaseModel):

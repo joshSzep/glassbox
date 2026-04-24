@@ -19,12 +19,11 @@ import httpx
 from glassbox.core import SessionConfig
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.runtime.supervisor import SessionSupervisor
-from glassbox.store.sqlite import initialize_database, open_database
+from glassbox.store.sqlite import initialize_database
+from glassbox.store.sqlite import open_database
 from glassbox.web import create_app
-from glassbox.web.routes.events import (
-    _event_stream,  # noqa: PLC2701
-    stream_session_events,
-)
+from glassbox.web.routes.events import _event_stream  # noqa: PLC2701
+from glassbox.web.routes.events import stream_session_events
 
 # ---------------------------------------------------------------------------
 # Helpers

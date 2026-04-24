@@ -7,12 +7,9 @@ from pathlib import Path
 from typing import Any
 
 from glassbox.runtime.eval_runner import EvalSuiteResult
-
-from .eval_summary_annotations import (
-    annotation_level_for_case,
-    artifact_display_path,
-    normalized_artifact_root,
-)
+from glassbox.runtime.eval_summary_annotations import annotation_level_for_case
+from glassbox.runtime.eval_summary_annotations import artifact_display_path
+from glassbox.runtime.eval_summary_annotations import normalized_artifact_root
 
 
 def load_eval_suite_result(summary_path: Path) -> EvalSuiteResult:

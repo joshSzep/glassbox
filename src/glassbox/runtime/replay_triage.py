@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from glassbox.runtime.replay_models import ReplayResult, ReplayTriage
+from glassbox.runtime.replay_models import ReplayResult
+from glassbox.runtime.replay_models import ReplayTriage
 
 
 def build_replay_result(**kwargs: Any) -> ReplayResult:

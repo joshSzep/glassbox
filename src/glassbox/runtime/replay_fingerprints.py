@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any, Literal
+from typing import Any
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel
+from pydantic import ConfigDict
+from pydantic import Field
 
 from glassbox.runtime.context_builder import TurnContext
 

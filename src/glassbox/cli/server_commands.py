@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import argparse
 
-from glassbox.web import WebServerConfig, run_server
-
-from .path_helpers import resolve_runtime_location
+from glassbox.cli.path_helpers import resolve_runtime_location
+from glassbox.web import WebServerConfig
+from glassbox.web import run_server
 
 
 def _serve_command(args: argparse.Namespace) -> int:

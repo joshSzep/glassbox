@@ -5,7 +5,8 @@ from __future__ import annotations
 import argparse
 import sqlite3
 import sys
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
+from collections.abc import Sequence
 
 from glassbox.cli.parser import build_parser
 from glassbox.core.types import ApprovalDecision
@@ -46,26 +47,20 @@ def dispatch_command(
 
 
 def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
-    from glassbox.cli.interactive_commands import (
-        _answer_command,
-        _attach_command,
-        _chat_command,
-        _fork_command,
-        _message_command,
-        _resolve_approval_command,
-        _resume_command,
-        _run_command,
-    )
-    from glassbox.cli.replay_eval_commands import (
-        _eval_command,
-        _replay_command,
-        _replay_export_command,
-    )
+    from glassbox.cli.interactive_commands import _answer_command
+    from glassbox.cli.interactive_commands import _attach_command
+    from glassbox.cli.interactive_commands import _chat_command
+    from glassbox.cli.interactive_commands import _fork_command
+    from glassbox.cli.interactive_commands import _message_command
+    from glassbox.cli.interactive_commands import _resolve_approval_command
+    from glassbox.cli.interactive_commands import _resume_command
+    from glassbox.cli.interactive_commands import _run_command
+    from glassbox.cli.replay_eval_commands import _eval_command
+    from glassbox.cli.replay_eval_commands import _replay_command
+    from glassbox.cli.replay_eval_commands import _replay_export_command
     from glassbox.cli.server_commands import _serve_command
-    from glassbox.cli.session_state_commands import (
-        _rebuild_command,
-        _status_command,
-    )
+    from glassbox.cli.session_state_commands import _rebuild_command
+    from glassbox.cli.session_state_commands import _status_command
 
     command_handlers: dict[str, CommandHandler] = {
         "run": _run_command,

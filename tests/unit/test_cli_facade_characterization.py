@@ -6,12 +6,10 @@ from uuid import UUID
 
 from glassbox.cli.replay_eval_formatters import _print_replay_report
 from glassbox.cli.status_formatters import _print_session_status
-from glassbox.runtime.replay import (
-    ReplayFinalStateSnapshot,
-    ReplayNormalizedSession,
-    ReplayResult,
-    build_replay_triage,
-)
+from glassbox.runtime.replay import ReplayFinalStateSnapshot
+from glassbox.runtime.replay import ReplayNormalizedSession
+from glassbox.runtime.replay import ReplayResult
+from glassbox.runtime.replay import build_replay_triage
 from glassbox.runtime.session_queries import SessionStatusView
 
 

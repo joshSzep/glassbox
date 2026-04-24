@@ -5,33 +5,32 @@ from __future__ import annotations
 import asyncio
 import json
 import sqlite3
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 from uuid import UUID
 
 import httpx
 import pytest
-from pydantic_ai.messages import (
-    ModelRequest,
-    ModelResponse,
-    TextPart,
-    ToolCallPart,
-    ToolReturnPart,
-    UserPromptPart,
-)
+from pydantic_ai.messages import ModelRequest
+from pydantic_ai.messages import ModelResponse
+from pydantic_ai.messages import TextPart
+from pydantic_ai.messages import ToolCallPart
+from pydantic_ai.messages import ToolReturnPart
+from pydantic_ai.messages import UserPromptPart
 from pydantic_ai.models.function import FunctionModel
 
 from glassbox.cli import main
-from glassbox.core.events import (
-    ApprovalRequested,
-    SessionResumed,
-    ToolExecutionCompleted,
-)
+from glassbox.core.events import ApprovalRequested
+from glassbox.core.events import SessionResumed
+from glassbox.core.events import ToolExecutionCompleted
 from glassbox.llm import PydanticAIModelExecutor
 from glassbox.runtime import bootstrap as runtime_bootstrap
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
-from glassbox.store import SQLiteSessionRepository, initialize_database, open_database
+from glassbox.store import SQLiteSessionRepository
+from glassbox.store import initialize_database
+from glassbox.store import open_database
 from glassbox.web import create_app
 from glassbox.web.routes.events import _event_stream  # noqa: PLC2701
 

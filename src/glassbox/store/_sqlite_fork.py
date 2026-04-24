@@ -5,24 +5,23 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Sequence
 
-from glassbox.core.events import (
-    AssistantMessageCompleted,
-    AssistantMessageDelta,
-    AssistantMessageStarted,
-    EventEnvelope,
-    TranscriptMessageImported,
-    TurnCompleted,
-    UserMessageReceived,
-)
-from glassbox.core.ids import MessageId, SessionId, TurnId
-from glassbox.core.models import (
-    InheritedTranscriptMessage,
-    MessagePart,
-    ResolvedForkPoint,
-)
+from glassbox.core.events import AssistantMessageCompleted
+from glassbox.core.events import AssistantMessageDelta
+from glassbox.core.events import AssistantMessageStarted
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import TranscriptMessageImported
+from glassbox.core.events import TurnCompleted
+from glassbox.core.events import UserMessageReceived
+from glassbox.core.ids import MessageId
+from glassbox.core.ids import SessionId
+from glassbox.core.ids import TurnId
+from glassbox.core.models import InheritedTranscriptMessage
+from glassbox.core.models import MessagePart
+from glassbox.core.models import ResolvedForkPoint
 from glassbox.core.types import SessionStatus
 from glassbox.store._sqlite_events import read_session_events
-from glassbox.store._sqlite_sessions import get_session, get_session_state
+from glassbox.store._sqlite_sessions import get_session
+from glassbox.store._sqlite_sessions import get_session_state
 from glassbox.store._sqlite_utils import _derived_imported_message_id
 
 

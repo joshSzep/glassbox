@@ -5,18 +5,20 @@ from __future__ import annotations
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC
+from datetime import datetime
 
-from glassbox.core.events import ModelToolCallRequested, ToolArtifactRecorded
+from glassbox.core.events import ModelToolCallRequested
+from glassbox.core.events import ToolArtifactRecorded
 from glassbox.core.ids import SessionId
-from glassbox.core.models import (
-    ApprovalRecord,
-    RuntimeNoteRecord,
-    SessionRecord,
-    ToolCallRecord,
-)
-from glassbox.core.types import ApprovalStatus, ToolExecutionStatus
-from glassbox.runtime.context_models import WorkingSetItemSnapshot, WorkingSetSnapshot
+from glassbox.core.models import ApprovalRecord
+from glassbox.core.models import RuntimeNoteRecord
+from glassbox.core.models import SessionRecord
+from glassbox.core.models import ToolCallRecord
+from glassbox.core.types import ApprovalStatus
+from glassbox.core.types import ToolExecutionStatus
+from glassbox.runtime.context_models import WorkingSetItemSnapshot
+from glassbox.runtime.context_models import WorkingSetSnapshot
 from glassbox.services import SessionRepository
 
 _DEFAULT_WORKING_SET_LIMIT = 8

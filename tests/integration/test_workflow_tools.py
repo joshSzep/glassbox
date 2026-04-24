@@ -8,18 +8,14 @@ from pathlib import Path
 
 import pytest
 
-from glassbox.tools import (
-    ApprovalMode,
-    ToolPolicyContext,
-    ToolPolicyEngine,
-    build_workflow_tool_registry,
-)
-from glassbox.tools.workflow import (
-    GitStatusArgs,
-    GitStatusTool,
-    RunTestsArgs,
-    RunTestsTool,
-)
+from glassbox.tools import ApprovalMode
+from glassbox.tools import ToolPolicyContext
+from glassbox.tools import ToolPolicyEngine
+from glassbox.tools import build_workflow_tool_registry
+from glassbox.tools.workflow import GitStatusArgs
+from glassbox.tools.workflow import GitStatusTool
+from glassbox.tools.workflow import RunTestsArgs
+from glassbox.tools.workflow import RunTestsTool
 
 # ---------------------------------------------------------------------------
 # Fixtures

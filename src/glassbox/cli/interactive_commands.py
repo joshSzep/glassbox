@@ -5,17 +5,14 @@ from __future__ import annotations
 import argparse
 import asyncio
 
+from glassbox.cli.interactive_session import _interactive_session_loop
+from glassbox.cli.path_helpers import resolve_runtime_location
+from glassbox.cli.runtime_runner import _dashboard_session_url
+from glassbox.cli.runtime_runner import _run_with_renderer
+from glassbox.cli.runtime_runner import _start_chat_dashboard
 from glassbox.core import SessionConfig
 from glassbox.core.types import ApprovalDecision
 from glassbox.runtime.context import RuntimeContext
-
-from .interactive_session import _interactive_session_loop
-from .path_helpers import resolve_runtime_location
-from .runtime_runner import (
-    _dashboard_session_url,
-    _run_with_renderer,
-    _start_chat_dashboard,
-)
 
 
 def _run_command(args: argparse.Namespace) -> int:
@@ -115,7 +112,7 @@ async def _attach_command_async(args: argparse.Namespace) -> int:
         if state is None:
             raise ValueError(f"unknown session_id: {args.session_id}")
 
-        from .interactive_session import _ensure_session_can_attach
+        from glassbox.cli.interactive_session import _ensure_session_can_attach
 
         _ensure_session_can_attach(args.session_id, state)
         print(f"Attached to session {args.session_id}")

@@ -7,47 +7,39 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from pydantic_ai.messages import (
-    ModelRequest,
-    ModelResponse,
-    SystemPromptPart,
-    TextPart,
-    ToolCallPart,
-    ToolReturnPart,
-    UserPromptPart,
-)
+from pydantic_ai.messages import ModelRequest
+from pydantic_ai.messages import ModelResponse
+from pydantic_ai.messages import SystemPromptPart
+from pydantic_ai.messages import TextPart
+from pydantic_ai.messages import ToolCallPart
+from pydantic_ai.messages import ToolReturnPart
+from pydantic_ai.messages import UserPromptPart
 from pydantic_ai.models.function import FunctionModel
 
-from glassbox.core import EventEnvelope, SessionConfig
-from glassbox.core.events import (
-    ReplayArtifactRecorded,
-    TurnCompleted,
-    UserQuestionAsked,
-)
+from glassbox.core import EventEnvelope
+from glassbox.core import SessionConfig
+from glassbox.core.events import ReplayArtifactRecorded
+from glassbox.core.events import TurnCompleted
+from glassbox.core.events import UserQuestionAsked
 from glassbox.core.types import SessionStatus
-from glassbox.llm import (
-    ModelProviderConfig,
-    PydanticAIModelAdapter,
-    PydanticAIModelExecutor,
-)
+from glassbox.llm import ModelProviderConfig
+from glassbox.llm import PydanticAIModelAdapter
+from glassbox.llm import PydanticAIModelExecutor
 from glassbox.runtime.bus import EventBus
 from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.supervisor import SessionSupervisor
 from glassbox.runtime.turn_engine import TurnEngine
-from glassbox.store.repositories import (
-    FilesystemArtifactRepository,
-    SQLiteSessionRepository,
-)
-from glassbox.store.sqlite import initialize_database, open_database
-from glassbox.tools import (
-    ApprovalMode,
-    AskUserArgs,
-    AskUserTool,
-    ToolPolicyContext,
-    ToolPolicyEngine,
-    ToolRuntime,
-    build_ask_user_tool_registry,
-)
+from glassbox.store.repositories import FilesystemArtifactRepository
+from glassbox.store.repositories import SQLiteSessionRepository
+from glassbox.store.sqlite import initialize_database
+from glassbox.store.sqlite import open_database
+from glassbox.tools import ApprovalMode
+from glassbox.tools import AskUserArgs
+from glassbox.tools import AskUserTool
+from glassbox.tools import ToolPolicyContext
+from glassbox.tools import ToolPolicyEngine
+from glassbox.tools import ToolRuntime
+from glassbox.tools import build_ask_user_tool_registry
 
 # ---------------------------------------------------------------------------
 # Helpers

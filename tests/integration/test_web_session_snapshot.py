@@ -9,33 +9,30 @@ from pathlib import Path
 
 import httpx
 
-from glassbox.core import EventEnvelope, MessagePart, SessionConfig
-from glassbox.core.events import (
-    ApprovalRequested,
-    AssistantMessageCompleted,
-    ModelCallCompleted,
-    SessionFailed,
-    TurnCompleted,
-    TurnStarted,
-    UserMessageReceived,
-    UserQuestionAsked,
-)
-from glassbox.core.ids import (
-    new_approval_id,
-    new_message_id,
-    new_question_id,
-    new_tool_call_id,
-    new_turn_id,
-)
+from glassbox.core import EventEnvelope
+from glassbox.core import MessagePart
+from glassbox.core import SessionConfig
+from glassbox.core.events import ApprovalRequested
+from glassbox.core.events import AssistantMessageCompleted
+from glassbox.core.events import ModelCallCompleted
+from glassbox.core.events import SessionFailed
+from glassbox.core.events import TurnCompleted
+from glassbox.core.events import TurnStarted
+from glassbox.core.events import UserMessageReceived
+from glassbox.core.events import UserQuestionAsked
+from glassbox.core.ids import new_approval_id
+from glassbox.core.ids import new_message_id
+from glassbox.core.ids import new_question_id
+from glassbox.core.ids import new_tool_call_id
+from glassbox.core.ids import new_turn_id
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.runtime.bus import EventBus
-from glassbox.runtime.context_builder import (
-    PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
-    PytestFailureDigestArtifact,
-)
+from glassbox.runtime.context_builder import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
+from glassbox.runtime.context_builder import PytestFailureDigestArtifact
 from glassbox.runtime.supervisor import SessionSupervisor
 from glassbox.store.repositories import SQLiteSessionRepository
-from glassbox.store.sqlite import initialize_database, open_database
+from glassbox.store.sqlite import initialize_database
+from glassbox.store.sqlite import open_database
 from glassbox.web import create_app
 
 

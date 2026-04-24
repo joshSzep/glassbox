@@ -5,18 +5,15 @@ from __future__ import annotations
 from pathlib import Path
 
 from glassbox.runtime.eval_coverage import EvalCoverageAuditResult
-from glassbox.runtime.eval_runner import EvalCaseResult, EvalSuiteResult
-from glassbox.runtime.eval_summary import (
-    EvalReleaseSignoffProfileInput,
-    build_eval_release_signoff_report,
-    build_eval_release_signoff_summary,
-)
-from glassbox.runtime.evals import (
-    EvalCase,
-    EvalCaseSeverity,
-    EvalProfileDefinition,
-    EvalVerificationStage,
-)
+from glassbox.runtime.eval_runner import EvalCaseResult
+from glassbox.runtime.eval_runner import EvalSuiteResult
+from glassbox.runtime.eval_summary import EvalReleaseSignoffProfileInput
+from glassbox.runtime.eval_summary import build_eval_release_signoff_report
+from glassbox.runtime.eval_summary import build_eval_release_signoff_summary
+from glassbox.runtime.evals import EvalCase
+from glassbox.runtime.evals import EvalCaseSeverity
+from glassbox.runtime.evals import EvalProfileDefinition
+from glassbox.runtime.evals import EvalVerificationStage
 from glassbox.runtime.replay import ReplayOutcome
 
 

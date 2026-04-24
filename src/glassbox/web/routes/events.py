@@ -8,7 +8,9 @@ from collections.abc import AsyncIterator
 from typing import Protocol
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter
+from fastapi import HTTPException
+from fastapi import Request
 from fastapi.responses import StreamingResponse
 
 from glassbox.core.events import EventEnvelope

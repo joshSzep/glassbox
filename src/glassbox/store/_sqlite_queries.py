@@ -7,20 +7,18 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from glassbox.core.ids import SessionId
-from glassbox.core.models import (
-    ApprovalRecord,
-    MessagePart,
-    RuntimeNoteRecord,
-    ToolCallRecord,
-    TranscriptMessage,
-    TurnMetricsRecord,
-)
-from glassbox.core.types import ApprovalStatus, ToolExecutionStatus
-from glassbox.store._sqlite_sessions import _resolve_session_lineage, get_session
-from glassbox.store._sqlite_utils import (
-    _parse_optional_datetime,
-    _runtime_note_from_row,
-)
+from glassbox.core.models import ApprovalRecord
+from glassbox.core.models import MessagePart
+from glassbox.core.models import RuntimeNoteRecord
+from glassbox.core.models import ToolCallRecord
+from glassbox.core.models import TranscriptMessage
+from glassbox.core.models import TurnMetricsRecord
+from glassbox.core.types import ApprovalStatus
+from glassbox.core.types import ToolExecutionStatus
+from glassbox.store._sqlite_sessions import _resolve_session_lineage
+from glassbox.store._sqlite_sessions import get_session
+from glassbox.store._sqlite_utils import _parse_optional_datetime
+from glassbox.store._sqlite_utils import _runtime_note_from_row
 
 
 def list_transcript_messages(

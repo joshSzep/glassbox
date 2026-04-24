@@ -7,17 +7,17 @@ from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel
+from pydantic import ConfigDict
+from pydantic import Field
 
 from glassbox.runtime.eval_runner import EvalSuiteResult
-from glassbox.runtime.evals import (
-    EvalBaselineOperation,
-    EvalBaselineRefreshPolicy,
-    EvalCase,
-    EvalCaseSeverity,
-    EvalProfileDefinition,
-    EvalVerificationStage,
-)
+from glassbox.runtime.evals import EvalBaselineOperation
+from glassbox.runtime.evals import EvalBaselineRefreshPolicy
+from glassbox.runtime.evals import EvalCase
+from glassbox.runtime.evals import EvalCaseSeverity
+from glassbox.runtime.evals import EvalProfileDefinition
+from glassbox.runtime.evals import EvalVerificationStage
 from glassbox.runtime.replay import ReplayOutcome
 
 type AnnotationLevel = Literal["notice", "warning", "error"]

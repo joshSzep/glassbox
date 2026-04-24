@@ -6,22 +6,22 @@ import asyncio
 import sqlite3
 from pathlib import Path
 
-from glassbox.core import EventEnvelope, MessagePart, SessionConfig
-from glassbox.core.events import (
-    AssistantMessageCompleted,
-    TurnCompleted,
-    TurnStarted,
-    UserMessageReceived,
-)
-from glassbox.core.ids import new_message_id, new_turn_id
+from glassbox.core import EventEnvelope
+from glassbox.core import MessagePart
+from glassbox.core import SessionConfig
+from glassbox.core.events import AssistantMessageCompleted
+from glassbox.core.events import TurnCompleted
+from glassbox.core.events import TurnStarted
+from glassbox.core.events import UserMessageReceived
+from glassbox.core.ids import new_message_id
+from glassbox.core.ids import new_turn_id
 from glassbox.runtime.bus import EventBus
 from glassbox.runtime.session_queries import SessionQueryService
 from glassbox.runtime.supervisor import SessionSupervisor
-from glassbox.store.repositories import (
-    FilesystemArtifactRepository,
-    SQLiteSessionRepository,
-)
-from glassbox.store.sqlite import initialize_database, open_database
+from glassbox.store.repositories import FilesystemArtifactRepository
+from glassbox.store.repositories import SQLiteSessionRepository
+from glassbox.store.sqlite import initialize_database
+from glassbox.store.sqlite import open_database
 
 
 def _open_initialized_db(tmp_path: Path) -> sqlite3.Connection:

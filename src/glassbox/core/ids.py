@@ -1,6 +1,7 @@
 """Identifier aliases and factories for Glassbox domain objects."""
 
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid import uuid4
 
 type SessionId = UUID
 type TurnId = UUID

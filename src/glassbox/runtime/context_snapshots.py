@@ -7,20 +7,20 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from glassbox.core.events import ModelToolCallRequested, ToolArtifactRecorded
+from glassbox.core.events import ModelToolCallRequested
+from glassbox.core.events import ToolArtifactRecorded
 from glassbox.core.ids import SessionId
 from glassbox.core.models import RuntimeNoteRecord
-from glassbox.runtime.context_models import (
-    PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
-    ArtifactBackedContextSnapshot,
-    ArtifactBackedContextSummarySnapshot,
-    PytestFailureDigestArtifact,
-    RepositoryContextSnapshot,
-    RuntimeContextNoteSnapshot,
-    RuntimeContextSnapshot,
-    WorkingSetSnapshot,
-)
-from glassbox.services import ArtifactRepository, SessionRepository
+from glassbox.runtime.context_models import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
+from glassbox.runtime.context_models import ArtifactBackedContextSnapshot
+from glassbox.runtime.context_models import ArtifactBackedContextSummarySnapshot
+from glassbox.runtime.context_models import PytestFailureDigestArtifact
+from glassbox.runtime.context_models import RepositoryContextSnapshot
+from glassbox.runtime.context_models import RuntimeContextNoteSnapshot
+from glassbox.runtime.context_models import RuntimeContextSnapshot
+from glassbox.runtime.context_models import WorkingSetSnapshot
+from glassbox.services import ArtifactRepository
+from glassbox.services import SessionRepository
 
 _DEFAULT_REPOSITORY_CONTEXT_DIRECTORY_LIMIT = 8
 _DEFAULT_REPOSITORY_CONTEXT_FILE_LIMIT = 8

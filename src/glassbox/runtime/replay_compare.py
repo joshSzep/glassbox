@@ -5,26 +5,23 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from glassbox.core.events import (
-    EventEnvelope,
-    TranscriptMessageImported,
-    UserAnswerProvided,
-    UserQuestionAsked,
-)
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import TranscriptMessageImported
+from glassbox.core.events import UserAnswerProvided
+from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import SessionId
-from glassbox.core.models import SessionConfig, SessionRecord
+from glassbox.core.models import SessionConfig
+from glassbox.core.models import SessionRecord
 from glassbox.runtime.replay_failures import ReplayFailure
-from glassbox.runtime.replay_models import (
-    ReplayApprovalSnapshot,
-    ReplayBundle,
-    ReplayFinalStateSnapshot,
-    ReplayLineageSnapshot,
-    ReplayNormalizedSession,
-    ReplayQuestionSnapshot,
-    ReplayToolCallSnapshot,
-    ReplayTranscriptMessage,
-    ReplayTranscriptPart,
-)
+from glassbox.runtime.replay_models import ReplayApprovalSnapshot
+from glassbox.runtime.replay_models import ReplayBundle
+from glassbox.runtime.replay_models import ReplayFinalStateSnapshot
+from glassbox.runtime.replay_models import ReplayLineageSnapshot
+from glassbox.runtime.replay_models import ReplayNormalizedSession
+from glassbox.runtime.replay_models import ReplayQuestionSnapshot
+from glassbox.runtime.replay_models import ReplayToolCallSnapshot
+from glassbox.runtime.replay_models import ReplayTranscriptMessage
+from glassbox.runtime.replay_models import ReplayTranscriptPart
 from glassbox.services import SessionRepository
 
 

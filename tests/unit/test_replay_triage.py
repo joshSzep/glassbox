@@ -1,11 +1,9 @@
 """Focused replay comparison and triage regression coverage."""
 
-from glassbox.runtime.replay import (
-    ReplayFinalStateSnapshot,
-    ReplayNormalizedSession,
-    ReplayResult,
-    build_replay_triage,
-)
+from glassbox.runtime.replay import ReplayFinalStateSnapshot
+from glassbox.runtime.replay import ReplayNormalizedSession
+from glassbox.runtime.replay import ReplayResult
+from glassbox.runtime.replay import build_replay_triage
 from glassbox.runtime.replay_compare import collect_mismatches
 
 

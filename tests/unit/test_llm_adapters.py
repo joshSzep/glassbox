@@ -2,33 +2,34 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC
+from datetime import datetime
 from uuid import uuid4
 
 import pytest
-from pydantic_ai.messages import (
-    FinalResultEvent,
-    PartDeltaEvent,
-    PartEndEvent,
-    PartStartEvent,
-    SystemPromptPart,
-    TextPart,
-    ToolCallPart,
-    ToolCallPartDelta,
-    UserPromptPart,
-)
+from pydantic_ai.messages import FinalResultEvent
+from pydantic_ai.messages import PartDeltaEvent
+from pydantic_ai.messages import PartEndEvent
+from pydantic_ai.messages import PartStartEvent
+from pydantic_ai.messages import SystemPromptPart
+from pydantic_ai.messages import TextPart
+from pydantic_ai.messages import ToolCallPart
+from pydantic_ai.messages import ToolCallPartDelta
+from pydantic_ai.messages import UserPromptPart
 
-from glassbox.core.models import MessagePart, MessageRole, TranscriptMessage
+from glassbox.core.models import MessagePart
+from glassbox.core.models import MessageRole
+from glassbox.core.models import TranscriptMessage
 from glassbox.core.types import SessionStatus
-from glassbox.llm import (
-    ModelFinalResult,
-    ModelProviderConfig,
-    ModelTextDelta,
-    ModelToolCall,
-    ModelToolCallDelta,
-    PydanticAIModelAdapter,
-)
-from glassbox.runtime.context_builder import PolicyContext, ToolSchema, TurnContext
+from glassbox.llm import ModelFinalResult
+from glassbox.llm import ModelProviderConfig
+from glassbox.llm import ModelTextDelta
+from glassbox.llm import ModelToolCall
+from glassbox.llm import ModelToolCallDelta
+from glassbox.llm import PydanticAIModelAdapter
+from glassbox.runtime.context_builder import PolicyContext
+from glassbox.runtime.context_builder import ToolSchema
+from glassbox.runtime.context_builder import TurnContext
 
 
 def test_build_turn_request_splits_pending_user_prompt_from_history() -> None:

@@ -3,49 +3,40 @@
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from urllib.parse import urlparse
 
 from glassbox.core.models import SessionRecord
-from glassbox.llm.adapters import ModelProviderConfig, PydanticAIModelAdapter
-from glassbox.llm.executor import (
-    build_anthropic_model_executor,
-    build_local_text_model_executor,
-    build_openai_model_executor,
-)
+from glassbox.llm.adapters import ModelProviderConfig
+from glassbox.llm.adapters import PydanticAIModelAdapter
+from glassbox.llm.executor import build_anthropic_model_executor
+from glassbox.llm.executor import build_local_text_model_executor
+from glassbox.llm.executor import build_openai_model_executor
 from glassbox.runtime.bus import EventBus
-from glassbox.runtime.context import (
-    RuntimeContext,
-    RuntimeInfrastructure,
-    RuntimeRepositories,
-    RuntimeServices,
-)
+from glassbox.runtime.context import RuntimeContext
+from glassbox.runtime.context import RuntimeInfrastructure
+from glassbox.runtime.context import RuntimeRepositories
+from glassbox.runtime.context import RuntimeServices
 from glassbox.runtime.context_builder import TurnContextBuilder
-from glassbox.runtime.errors import (
-    ProviderRuntimeConfigFailure,
-    SessionRuntimeFailure,
-)
+from glassbox.runtime.errors import ProviderRuntimeConfigFailure
+from glassbox.runtime.errors import SessionRuntimeFailure
 from glassbox.runtime.logging import configure_runtime_logging
-from glassbox.runtime.provider_config import (
-    RuntimeProviderConfig,
-    load_runtime_provider_config,
-)
+from glassbox.runtime.provider_config import RuntimeProviderConfig
+from glassbox.runtime.provider_config import load_runtime_provider_config
 from glassbox.runtime.supervisor import SessionSupervisor
 from glassbox.runtime.turn_engine import TurnEngine
-from glassbox.store.repositories import (
-    FilesystemArtifactRepository,
-    SQLiteSessionRepository,
-)
-from glassbox.store.sqlite import initialize_database, open_database
-from glassbox.tools import (
-    ApprovalMode,
-    ToolPolicyContext,
-    ToolPolicyEngine,
-    ToolRuntime,
-    build_ask_user_tool_registry,
-)
+from glassbox.store.repositories import FilesystemArtifactRepository
+from glassbox.store.repositories import SQLiteSessionRepository
+from glassbox.store.sqlite import initialize_database
+from glassbox.store.sqlite import open_database
+from glassbox.tools import ApprovalMode
+from glassbox.tools import ToolPolicyContext
+from glassbox.tools import ToolPolicyEngine
+from glassbox.tools import ToolRuntime
+from glassbox.tools import build_ask_user_tool_registry
 
 
 def default_database_path(cwd: Path) -> Path:

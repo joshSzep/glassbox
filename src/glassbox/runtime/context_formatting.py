@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
+from collections.abc import Sequence
 
 from glassbox.core.models import TranscriptMessage
 from glassbox.runtime.context_models import RepositoryContextSnapshot

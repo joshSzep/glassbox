@@ -10,7 +10,8 @@ from pydantic import BaseModel
 
 from glassbox.core.models import ForkedSession
 from glassbox.runtime.context_builder import RuntimeContextSnapshot
-from glassbox.runtime.session_queries import SessionSnapshotView, SessionSummaryView
+from glassbox.runtime.session_queries import SessionSnapshotView
+from glassbox.runtime.session_queries import SessionSummaryView
 
 
 class MessagePartResponse(BaseModel):

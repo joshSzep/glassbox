@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel
+from pydantic import ConfigDict
+from pydantic import Field
 
 from glassbox.tools.patch import build_patch_tool_registry
-from glassbox.tools.registry import (
-    ToolRegistry,
-    ToolRiskLevel,
-    ToolSpec,
-)
+from glassbox.tools.registry import ToolRegistry
+from glassbox.tools.registry import ToolRiskLevel
+from glassbox.tools.registry import ToolSpec
 
 # ---------------------------------------------------------------------------
 # Models

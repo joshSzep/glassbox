@@ -6,14 +6,13 @@ from pathlib import Path
 import pytest
 
 from glassbox.cli import main
-from glassbox.core.events import EventEnvelope, ReplayArtifactRecorded, SessionCompleted
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import ReplayArtifactRecorded
+from glassbox.core.events import SessionCompleted
 from glassbox.store.repositories import SQLiteSessionRepository
 from glassbox.store.sqlite import open_database
-
-from .cli_test_support import (
-    _first_replay_artifact_path,
-    _run_baseline_session,
-)
+from tests.integration.cli_test_support import _first_replay_artifact_path
+from tests.integration.cli_test_support import _run_baseline_session
 
 
 def test_cli_replay_reports_exact_match_without_mutating_source_session(

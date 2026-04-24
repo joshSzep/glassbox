@@ -8,36 +8,27 @@ from uuid import UUID
 import pytest
 
 from glassbox.cli import main
-from glassbox.core.events import (
-    ApprovalResolved,
-    EventEnvelope,
-    RuntimeNoteRecorded,
-    SessionCompleted,
-    SessionFailed,
-    UserQuestionAsked,
-)
+from glassbox.core.events import ApprovalResolved
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import RuntimeNoteRecorded
+from glassbox.core.events import SessionCompleted
+from glassbox.core.events import SessionFailed
+from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import new_approval_id
 from glassbox.core.types import ApprovalDecision
-from glassbox.runtime.context_builder import (
-    PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
-    PytestFailureDigestArtifact,
-)
-from glassbox.store.repositories import (
-    FilesystemArtifactRepository,
-    SQLiteSessionRepository,
-)
+from glassbox.runtime.context_builder import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
+from glassbox.runtime.context_builder import PytestFailureDigestArtifact
+from glassbox.store.repositories import FilesystemArtifactRepository
+from glassbox.store.repositories import SQLiteSessionRepository
 from glassbox.store.sqlite import open_database
-
-from .cli_test_support import (
-    _completed_turn_ids,
-    _list_sessions,
-    _make_ask_user_runtime_context,
-    _read_session_events,
-    _run_baseline_session,
-    _seed_pending_approval,
-    _seed_pending_question_status,
-    _seed_status_projection_details,
-)
+from tests.integration.cli_test_support import _completed_turn_ids
+from tests.integration.cli_test_support import _list_sessions
+from tests.integration.cli_test_support import _make_ask_user_runtime_context
+from tests.integration.cli_test_support import _read_session_events
+from tests.integration.cli_test_support import _run_baseline_session
+from tests.integration.cli_test_support import _seed_pending_approval
+from tests.integration.cli_test_support import _seed_pending_question_status
+from tests.integration.cli_test_support import _seed_status_projection_details
 
 
 def test_cli_help_lists_session_oriented_commands(

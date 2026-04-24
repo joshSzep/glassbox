@@ -1,12 +1,12 @@
 """Curated public runtime package surface for Glassbox."""
 
-from glassbox.runtime.bus import EventBus, EventBusStats, EventBusSubscription
-from glassbox.runtime.context import (
-    RuntimeContext,
-    RuntimeInfrastructure,
-    RuntimeRepositories,
-    RuntimeServices,
-)
+from glassbox.runtime.bus import EventBus
+from glassbox.runtime.bus import EventBusStats
+from glassbox.runtime.bus import EventBusSubscription
+from glassbox.runtime.context import RuntimeContext
+from glassbox.runtime.context import RuntimeInfrastructure
+from glassbox.runtime.context import RuntimeRepositories
+from glassbox.runtime.context import RuntimeServices
 
 
 def __getattr__(name: str):

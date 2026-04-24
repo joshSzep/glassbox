@@ -6,22 +6,21 @@ from dataclasses import dataclass
 
 from pydantic_ai.messages import ModelMessage
 
-from glassbox.core.models import RuntimeNoteRecord, SessionRecord
-from glassbox.llm import (
-    ModelAdapter,
-    ModelExecutor,
-    PreparedModelTurn,
-    build_system_prompt,
-)
-from glassbox.runtime.context_builder import TurnContext, TurnContextBuilder
+from glassbox.core.models import RuntimeNoteRecord
+from glassbox.core.models import SessionRecord
+from glassbox.llm import ModelAdapter
+from glassbox.llm import ModelExecutor
+from glassbox.llm import PreparedModelTurn
+from glassbox.llm import build_system_prompt
+from glassbox.runtime.context_builder import TurnContext
+from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.context_formatting import format_repository_context_for_prompt
-from glassbox.runtime.context_snapshots import (
-    build_artifact_backed_context_snapshot,
-    build_repository_context_snapshot,
-)
+from glassbox.runtime.context_snapshots import build_artifact_backed_context_snapshot
+from glassbox.runtime.context_snapshots import build_repository_context_snapshot
 from glassbox.runtime.context_working_set import build_working_set_snapshot
 from glassbox.runtime.model_loop import initial_model_messages
-from glassbox.services import ArtifactRepository, SessionRepository
+from glassbox.services import ArtifactRepository
+from glassbox.services import SessionRepository
 from glassbox.tools import ToolRuntime
 
 

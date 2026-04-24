@@ -3,71 +3,65 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
+from collections.abc import Sequence
 from typing import cast
 
-from pydantic_ai.messages import (
-    ModelMessage,
-)
+from pydantic_ai.messages import ModelMessage
 
-from glassbox.core.events import (
-    ApprovalRequested,
-    ApprovalResolved,
-    AssistantMessageCompleted,
-    AssistantMessageDelta,
-    AssistantMessageStarted,
-    EventEnvelope,
-    ModelCallCompleted,
-    ModelCallStarted,
-    ModelToolCallRequested,
-    ReplayArtifactRecorded,
-    SessionFailed,
-    ToolArtifactRecorded,
-    ToolExecutionCompleted,
-    ToolExecutionStarted,
-    ToolOutputChunk,
-    TurnCompleted,
-    TurnFailed,
-    TurnStarted,
-    TurnStatusChanged,
-    UserAnswerProvided,
-    UserMessageReceived,
-    UserQuestionAsked,
-)
-from glassbox.core.ids import (
-    MessageId,
-    new_message_id,
-    new_turn_id,
-)
-from glassbox.core.models import MessagePart, SessionRecord
-from glassbox.core.types import ApprovalDecision, TurnStatus
-from glassbox.llm import (
-    ModelAdapter,
-    ModelExecutor,
-    ModelTextDelta,
-    ModelToolCall,
-    ModelToolCallDelta,
-    PreparedModelTurn,
-)
+from glassbox.core.events import ApprovalRequested
+from glassbox.core.events import ApprovalResolved
+from glassbox.core.events import AssistantMessageCompleted
+from glassbox.core.events import AssistantMessageDelta
+from glassbox.core.events import AssistantMessageStarted
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import ModelCallCompleted
+from glassbox.core.events import ModelCallStarted
+from glassbox.core.events import ModelToolCallRequested
+from glassbox.core.events import ReplayArtifactRecorded
+from glassbox.core.events import SessionFailed
+from glassbox.core.events import ToolArtifactRecorded
+from glassbox.core.events import ToolExecutionCompleted
+from glassbox.core.events import ToolExecutionStarted
+from glassbox.core.events import ToolOutputChunk
+from glassbox.core.events import TurnCompleted
+from glassbox.core.events import TurnFailed
+from glassbox.core.events import TurnStarted
+from glassbox.core.events import TurnStatusChanged
+from glassbox.core.events import UserAnswerProvided
+from glassbox.core.events import UserMessageReceived
+from glassbox.core.events import UserQuestionAsked
+from glassbox.core.ids import MessageId
+from glassbox.core.ids import new_message_id
+from glassbox.core.ids import new_turn_id
+from glassbox.core.models import MessagePart
+from glassbox.core.models import SessionRecord
+from glassbox.core.types import ApprovalDecision
+from glassbox.core.types import TurnStatus
+from glassbox.llm import ModelAdapter
+from glassbox.llm import ModelExecutor
+from glassbox.llm import ModelTextDelta
+from glassbox.llm import ModelToolCall
+from glassbox.llm import ModelToolCallDelta
+from glassbox.llm import PreparedModelTurn
 from glassbox.runtime.bus import EventBus
-from glassbox.runtime.context_builder import (
-    PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
-    TurnContext,
-    TurnContextBuilder,
-    build_pytest_failure_digest_artifact,
-)
+from glassbox.runtime.context_builder import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
+from glassbox.runtime.context_builder import TurnContext
+from glassbox.runtime.context_builder import TurnContextBuilder
+from glassbox.runtime.context_builder import build_pytest_failure_digest_artifact
 from glassbox.runtime.errors import SessionRuntimeFailure
-from glassbox.runtime.logging import get_runtime_logger, runtime_log_extra
-from glassbox.runtime.model_loop import (
-    ModelConversationState,
-    ModelLoopRunner,
-    ModelLoopSuspension,
-)
+from glassbox.runtime.logging import get_runtime_logger
+from glassbox.runtime.logging import runtime_log_extra
+from glassbox.runtime.model_loop import ModelConversationState
+from glassbox.runtime.model_loop import ModelLoopRunner
+from glassbox.runtime.model_loop import ModelLoopSuspension
 from glassbox.runtime.replay_capture import ReplayArtifactRecorder
 from glassbox.runtime.turn_preparation import LiveTurnPreparation
 from glassbox.runtime.turn_resumption import SuspendedTurnResumption
-from glassbox.runtime.turn_tool_executor import TurnToolExecutor, TurnToolExecutorHooks
-from glassbox.services import ArtifactRepository, SessionRepository
+from glassbox.runtime.turn_tool_executor import TurnToolExecutor
+from glassbox.runtime.turn_tool_executor import TurnToolExecutorHooks
+from glassbox.services import ArtifactRepository
+from glassbox.services import SessionRepository
 from glassbox.tools import ToolRuntime
 
 ModelAdapterFactory = Callable[[SessionRecord], ModelAdapter]

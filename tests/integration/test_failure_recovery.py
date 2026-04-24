@@ -4,19 +4,27 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
-from typing import Any, Never
+from typing import Any
+from typing import Never
 from uuid import UUID
 
 import pytest
-from pydantic_ai.messages import ModelRequest, ModelResponse, ToolCallPart
+from pydantic_ai.messages import ModelRequest
+from pydantic_ai.messages import ModelResponse
+from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.models.function import FunctionModel
 
 from glassbox.cli import main
-from glassbox.core import SessionConfig, SessionStatus
-from glassbox.core.events import SessionFailed, ToolExecutionCompleted, TurnFailed
+from glassbox.core import SessionConfig
+from glassbox.core import SessionStatus
+from glassbox.core.events import SessionFailed
+from glassbox.core.events import ToolExecutionCompleted
+from glassbox.core.events import TurnFailed
 from glassbox.llm import PydanticAIModelExecutor
 from glassbox.runtime import bootstrap as runtime_bootstrap
-from glassbox.store import SQLiteSessionRepository, initialize_database, open_database
+from glassbox.store import SQLiteSessionRepository
+from glassbox.store import initialize_database
+from glassbox.store import open_database
 
 
 def _default_db_path(tmp_path: Path) -> Path:

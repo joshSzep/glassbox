@@ -4,28 +4,27 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC
+from datetime import datetime
 from typing import Protocol
 
-from pydantic_ai.messages import (
-    ModelMessage,
-    ModelRequest,
-    ModelResponse,
-    ToolCallPart,
-    ToolReturnPart,
-)
+from pydantic_ai.messages import ModelMessage
+from pydantic_ai.messages import ModelRequest
+from pydantic_ai.messages import ModelResponse
+from pydantic_ai.messages import ToolCallPart
+from pydantic_ai.messages import ToolReturnPart
 
-from glassbox.core.events import (
-    ApprovalRequested,
-    ApprovalResolved,
-    AssistantMessageStarted,
-    EventEnvelope,
-    ModelCallStarted,
-    ModelToolCallRequested,
-    UserAnswerProvided,
-    UserQuestionAsked,
-)
-from glassbox.core.ids import MessageId, ToolCallId, new_message_id
+from glassbox.core.events import ApprovalRequested
+from glassbox.core.events import ApprovalResolved
+from glassbox.core.events import AssistantMessageStarted
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import ModelCallStarted
+from glassbox.core.events import ModelToolCallRequested
+from glassbox.core.events import UserAnswerProvided
+from glassbox.core.events import UserQuestionAsked
+from glassbox.core.ids import MessageId
+from glassbox.core.ids import ToolCallId
+from glassbox.core.ids import new_message_id
 from glassbox.llm import ModelToolCall
 
 

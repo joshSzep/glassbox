@@ -2,32 +2,38 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from datetime import UTC, datetime
-from typing import Any, Literal, Protocol, cast
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import UTC
+from datetime import datetime
+from typing import Any
+from typing import Literal
+from typing import Protocol
+from typing import cast
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic_ai.messages import (
-    FinalResultEvent,
-    ModelMessage,
-    ModelRequest,
-    ModelResponse,
-    ModelResponseStreamEvent,
-    PartDeltaEvent,
-    PartEndEvent,
-    PartStartEvent,
-    SystemPromptPart,
-    TextPart,
-    TextPartDelta,
-    ToolCallPart,
-    ToolCallPartDelta,
-    UserPromptPart,
-)
+from pydantic import BaseModel
+from pydantic import ConfigDict
+from pydantic import Field
+from pydantic_ai.messages import FinalResultEvent
+from pydantic_ai.messages import ModelMessage
+from pydantic_ai.messages import ModelRequest
+from pydantic_ai.messages import ModelResponse
+from pydantic_ai.messages import ModelResponseStreamEvent
+from pydantic_ai.messages import PartDeltaEvent
+from pydantic_ai.messages import PartEndEvent
+from pydantic_ai.messages import PartStartEvent
+from pydantic_ai.messages import SystemPromptPart
+from pydantic_ai.messages import TextPart
+from pydantic_ai.messages import TextPartDelta
+from pydantic_ai.messages import ToolCallPart
+from pydantic_ai.messages import ToolCallPartDelta
+from pydantic_ai.messages import UserPromptPart
 from pydantic_ai.models import ModelRequestParameters
 from pydantic_ai.tools import ToolDefinition
 
 from glassbox.core.models import TranscriptMessage
-from glassbox.runtime.context_builder import ToolSchema, TurnContext
+from glassbox.runtime.context_builder import ToolSchema
+from glassbox.runtime.context_builder import TurnContext
 
 
 class ModelProviderConfig(BaseModel):

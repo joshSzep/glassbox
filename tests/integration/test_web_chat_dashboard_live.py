@@ -5,57 +5,52 @@ from __future__ import annotations
 import argparse
 import asyncio
 import sqlite3
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator
+from collections.abc import Callable
 from contextlib import nullcontext
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
+from typing import cast
 from uuid import UUID
 
 import httpx
 import pytest
-from pydantic_ai.messages import (
-    ModelRequest,
-    ModelResponse,
-    TextPart,
-    ToolCallPart,
-    ToolReturnPart,
-    UserPromptPart,
-)
+from pydantic_ai.messages import ModelRequest
+from pydantic_ai.messages import ModelResponse
+from pydantic_ai.messages import TextPart
+from pydantic_ai.messages import ToolCallPart
+from pydantic_ai.messages import ToolReturnPart
+from pydantic_ai.messages import UserPromptPart
 from pydantic_ai.models.function import FunctionModel
 
 from glassbox.cli.interactive_commands import _chat_command_async
-from glassbox.core import EventEnvelope, SessionState
-from glassbox.llm import (
-    ModelProviderConfig,
-    PydanticAIModelAdapter,
-    PydanticAIModelExecutor,
-)
+from glassbox.core import EventEnvelope
+from glassbox.core import SessionState
+from glassbox.llm import ModelProviderConfig
+from glassbox.llm import PydanticAIModelAdapter
+from glassbox.llm import PydanticAIModelExecutor
 from glassbox.runtime.bus import EventBus
-from glassbox.runtime.context import (
-    RuntimeContext,
-    RuntimeInfrastructure,
-    RuntimeRepositories,
-    RuntimeServices,
-)
+from glassbox.runtime.context import RuntimeContext
+from glassbox.runtime.context import RuntimeInfrastructure
+from glassbox.runtime.context import RuntimeRepositories
+from glassbox.runtime.context import RuntimeServices
 from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.supervisor import SessionSupervisor
 from glassbox.runtime.turn_engine import TurnEngine
-from glassbox.store.repositories import (
-    FilesystemArtifactRepository,
-    SQLiteSessionRepository,
-)
-from glassbox.store.sqlite import initialize_database, open_database
-from glassbox.tools import (
-    ApprovalMode,
-    ToolPolicyContext,
-    ToolPolicyEngine,
-    ToolRuntime,
-    build_ask_user_tool_registry,
-    build_patch_tool_registry,
-    build_read_only_tool_registry,
-)
-from glassbox.web import WebServerConfig, create_app
+from glassbox.store.repositories import FilesystemArtifactRepository
+from glassbox.store.repositories import SQLiteSessionRepository
+from glassbox.store.sqlite import initialize_database
+from glassbox.store.sqlite import open_database
+from glassbox.tools import ApprovalMode
+from glassbox.tools import ToolPolicyContext
+from glassbox.tools import ToolPolicyEngine
+from glassbox.tools import ToolRuntime
+from glassbox.tools import build_ask_user_tool_registry
+from glassbox.tools import build_patch_tool_registry
+from glassbox.tools import build_read_only_tool_registry
+from glassbox.web import WebServerConfig
+from glassbox.web import create_app
 from glassbox.web.routes.events import stream_session_events
 
 ModelFn = Callable[[list[Any], Any], ModelResponse]

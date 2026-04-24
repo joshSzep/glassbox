@@ -36,7 +36,13 @@ src = ["src", "tests"]
 target-version = "py314"
 
 [tool.ruff.lint]
-select = ["B", "E", "F", "I", "UP"]
+select = ["B", "E", "F", "I", "TID", "UP"]
+
+[tool.ruff.lint.isort]
+force-single-line = true
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
 
 [tool.pytest.ini_options]
 addopts = ["-ra"]
@@ -44,7 +50,7 @@ testpaths = ["tests"]
 
 [tool.ty.environment]
 python-version = "3.14"
-root = ["./src", "./tests"]
+root = [".", "./src"]
 
 [tool.ty.src]
 include = ["src", "tests"]

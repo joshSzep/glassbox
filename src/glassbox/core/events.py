@@ -2,24 +2,30 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-from typing import Annotated, Any, Literal
+from datetime import UTC
+from datetime import datetime
+from typing import Annotated
+from typing import Any
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
+from pydantic import BaseModel
+from pydantic import ConfigDict
+from pydantic import Field
+from pydantic import TypeAdapter
+from pydantic import model_validator
 
-from glassbox.core.ids import (
-    ApprovalId,
-    ArtifactId,
-    EventId,
-    MessageId,
-    QuestionId,
-    SessionId,
-    ToolCallId,
-    TurnId,
-    new_event_id,
-)
+from glassbox.core.ids import ApprovalId
+from glassbox.core.ids import ArtifactId
+from glassbox.core.ids import EventId
+from glassbox.core.ids import MessageId
+from glassbox.core.ids import QuestionId
+from glassbox.core.ids import SessionId
+from glassbox.core.ids import ToolCallId
+from glassbox.core.ids import TurnId
+from glassbox.core.ids import new_event_id
 from glassbox.core.models import MessagePart
-from glassbox.core.types import ApprovalDecision, TurnStatus
+from glassbox.core.types import ApprovalDecision
+from glassbox.core.types import TurnStatus
 
 ToolOutputStream = Literal["stdout", "stderr", "structured"]
 TurnOutcome = Literal["completed", "awaiting_approval", "awaiting_user_input", "failed"]

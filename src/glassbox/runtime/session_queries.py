@@ -5,34 +5,33 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel
+from pydantic import ConfigDict
+from pydantic import Field
 
-from glassbox.core.events import (
-    EventEnvelope,
-    SessionFailed,
-    SessionStarted,
-    TurnCompleted,
-    TurnStarted,
-    UserMessageReceived,
-    UserQuestionAsked,
-)
-from glassbox.core.ids import SessionId, TurnId
-from glassbox.core.models import (
-    ApprovalRecord,
-    SessionRecord,
-    SessionState,
-    ToolCallRecord,
-    TranscriptMessage,
-    TurnMetricsRecord,
-)
-from glassbox.core.types import ApprovalStatus, ToolExecutionStatus
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import SessionFailed
+from glassbox.core.events import SessionStarted
+from glassbox.core.events import TurnCompleted
+from glassbox.core.events import TurnStarted
+from glassbox.core.events import UserMessageReceived
+from glassbox.core.events import UserQuestionAsked
+from glassbox.core.ids import SessionId
+from glassbox.core.ids import TurnId
+from glassbox.core.models import ApprovalRecord
+from glassbox.core.models import SessionRecord
+from glassbox.core.models import SessionState
+from glassbox.core.models import ToolCallRecord
+from glassbox.core.models import TranscriptMessage
+from glassbox.core.models import TurnMetricsRecord
+from glassbox.core.types import ApprovalStatus
+from glassbox.core.types import ToolExecutionStatus
 from glassbox.runtime.context_builder import RuntimeContextSnapshot
-from glassbox.runtime.context_snapshots import (
-    build_artifact_backed_context_snapshot,
-    build_runtime_context_snapshot,
-)
+from glassbox.runtime.context_snapshots import build_artifact_backed_context_snapshot
+from glassbox.runtime.context_snapshots import build_runtime_context_snapshot
 from glassbox.runtime.context_working_set import build_working_set_snapshot
-from glassbox.services import ArtifactRepository, SessionRepository
+from glassbox.services import ArtifactRepository
+from glassbox.services import SessionRepository
 
 
 class ChildSessionSummaryView(BaseModel):

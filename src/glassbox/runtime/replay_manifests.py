@@ -6,30 +6,31 @@ import json
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic_ai.messages import (
-    ModelMessage,
-    ModelRequest,
-    ModelResponse,
-    SystemPromptPart,
-    TextContent,
-    TextPart,
-    ToolCallPart,
-    ToolReturnPart,
-    UserPromptPart,
-)
+from pydantic import BaseModel
+from pydantic import ConfigDict
+from pydantic import Field
+from pydantic_ai.messages import ModelMessage
+from pydantic_ai.messages import ModelRequest
+from pydantic_ai.messages import ModelResponse
+from pydantic_ai.messages import SystemPromptPart
+from pydantic_ai.messages import TextContent
+from pydantic_ai.messages import TextPart
+from pydantic_ai.messages import ToolCallPart
+from pydantic_ai.messages import ToolReturnPart
+from pydantic_ai.messages import UserPromptPart
 
 from glassbox.core.ids import ToolCallId
 from glassbox.llm import PreparedModelTurn
 from glassbox.runtime.context_builder import TurnContext
+from glassbox.runtime.replay_fingerprints import ReplayEnrichedContextSourceManifest
 from glassbox.runtime.replay_fingerprints import (
-    ReplayEnrichedContextSourceManifest,
     build_replay_enriched_context_fingerprint,
-    build_replay_enriched_context_sources,
-    fingerprint_replay_payload,
 )
+from glassbox.runtime.replay_fingerprints import build_replay_enriched_context_sources
+from glassbox.runtime.replay_fingerprints import fingerprint_replay_payload
 from glassbox.tools import PreparedToolExecution
 
 REPLAY_MODEL_CALL_ARTIFACT = "replay_model_call"

@@ -8,14 +8,15 @@ from uuid import UUID
 import pytest
 
 from glassbox.cli import main
-from glassbox.core.events import (
-    ApprovalRequested,
-    EventEnvelope,
-    ToolExecutionCompleted,
-    ToolExecutionStarted,
-)
-from glassbox.core.ids import new_approval_id, new_tool_call_id, new_turn_id
-from glassbox.store import SQLiteSessionRepository, open_database
+from glassbox.core.events import ApprovalRequested
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import ToolExecutionCompleted
+from glassbox.core.events import ToolExecutionStarted
+from glassbox.core.ids import new_approval_id
+from glassbox.core.ids import new_tool_call_id
+from glassbox.core.ids import new_turn_id
+from glassbox.store import SQLiteSessionRepository
+from glassbox.store import open_database
 
 
 def test_cli_rebuild_restores_one_session_projections_only(

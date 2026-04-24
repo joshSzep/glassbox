@@ -9,25 +9,20 @@ from uuid import UUID
 import pytest
 
 from glassbox.cli import main
-from glassbox.core.events import (
-    ApprovalResolved,
-    EventEnvelope,
-    SessionCompleted,
-    SessionFailed,
-    SessionStarted,
-)
+from glassbox.core.events import ApprovalResolved
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import SessionCompleted
+from glassbox.core.events import SessionFailed
+from glassbox.core.events import SessionStarted
 from glassbox.core.types import ApprovalDecision
 from glassbox.store.repositories import SQLiteSessionRepository
 from glassbox.store.sqlite import open_database
 from glassbox.web import WebServerConfig
-
-from .cli_test_support import (
-    _make_approval_runtime_context,
-    _make_ask_user_runtime_context,
-    _read_session_events,
-    _run_baseline_session,
-    _seed_pending_approval,
-)
+from tests.integration.cli_test_support import _make_approval_runtime_context
+from tests.integration.cli_test_support import _make_ask_user_runtime_context
+from tests.integration.cli_test_support import _read_session_events
+from tests.integration.cli_test_support import _run_baseline_session
+from tests.integration.cli_test_support import _seed_pending_approval
 
 
 class FakeChatDashboardServer:

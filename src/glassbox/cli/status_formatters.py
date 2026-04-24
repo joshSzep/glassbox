@@ -5,13 +5,13 @@ from __future__ import annotations
 from collections.abc import Sequence
 from uuid import UUID
 
-from glassbox.core.events import (
-    EventEnvelope,
-    SessionFailed,
-    SessionStarted,
-    UserQuestionAsked,
-)
-from glassbox.core.models import ApprovalRecord, ToolCallRecord, TurnMetricsRecord
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import SessionFailed
+from glassbox.core.events import SessionStarted
+from glassbox.core.events import UserQuestionAsked
+from glassbox.core.models import ApprovalRecord
+from glassbox.core.models import ToolCallRecord
+from glassbox.core.models import TurnMetricsRecord
 from glassbox.runtime.session_queries import SessionStatusView
 
 

@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from dataclasses import field
 from pathlib import Path
 
 from glassbox.core.events import EventEnvelope
 from glassbox.runtime.bus import EventBus
 from glassbox.runtime.provider_config import RuntimeProviderConfig
-from glassbox.services import ArtifactRepository, SessionRepository, SessionService
+from glassbox.services import ArtifactRepository
+from glassbox.services import SessionRepository
+from glassbox.services import SessionService
 
 
 @dataclass(frozen=True, slots=True)

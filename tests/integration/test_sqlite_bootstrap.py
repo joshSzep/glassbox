@@ -3,13 +3,12 @@
 import sqlite3
 from pathlib import Path
 
-from glassbox.core import SessionStatus, new_session_id
-from glassbox.store.sqlite import (
-    SCHEMA_VERSION,
-    get_session,
-    initialize_database,
-    open_database,
-)
+from glassbox.core import SessionStatus
+from glassbox.core import new_session_id
+from glassbox.store.sqlite import SCHEMA_VERSION
+from glassbox.store.sqlite import get_session
+from glassbox.store.sqlite import initialize_database
+from glassbox.store.sqlite import open_database
 
 
 def _table_names(connection: sqlite3.Connection) -> set[str]:

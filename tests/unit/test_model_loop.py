@@ -5,18 +5,20 @@ from __future__ import annotations
 import asyncio
 from typing import cast
 
-from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, ToolCallPart
+from pydantic_ai.messages import ModelRequest
+from pydantic_ai.messages import ModelResponse
+from pydantic_ai.messages import TextPart
+from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.models import ModelRequestParameters
 
-from glassbox.llm import (
-    ModelExecutionResult,
-    ModelProviderConfig,
-    ModelTextDelta,
-    ModelToolCall,
-    PreparedModelTurn,
-    PydanticAIModelAdapter,
-)
-from glassbox.runtime.model_loop import ModelConversationState, ModelLoopRunner
+from glassbox.llm import ModelExecutionResult
+from glassbox.llm import ModelProviderConfig
+from glassbox.llm import ModelTextDelta
+from glassbox.llm import ModelToolCall
+from glassbox.llm import PreparedModelTurn
+from glassbox.llm import PydanticAIModelAdapter
+from glassbox.runtime.model_loop import ModelConversationState
+from glassbox.runtime.model_loop import ModelLoopRunner
 
 
 class _FakeExecutor:

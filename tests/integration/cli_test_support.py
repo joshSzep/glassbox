@@ -3,66 +3,54 @@
 import json
 import sqlite3
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
+from typing import cast
 from uuid import UUID
 
-from pydantic_ai.messages import (
-    ModelRequest,
-    ModelResponse,
-    TextPart,
-    ToolCallPart,
-    ToolReturnPart,
-)
+from pydantic_ai.messages import ModelRequest
+from pydantic_ai.messages import ModelResponse
+from pydantic_ai.messages import TextPart
+from pydantic_ai.messages import ToolCallPart
+from pydantic_ai.messages import ToolReturnPart
 from pydantic_ai.models.function import FunctionModel
 
 from glassbox.cli import main
-from glassbox.core.events import (
-    ApprovalRequested,
-    EventEnvelope,
-    ModelCallCompleted,
-    ReplayArtifactRecorded,
-    ToolExecutionCompleted,
-    ToolExecutionStarted,
-    TurnCompleted,
-    TurnStarted,
-    UserQuestionAsked,
-)
-from glassbox.core.ids import (
-    new_approval_id,
-    new_message_id,
-    new_question_id,
-    new_tool_call_id,
-    new_turn_id,
-)
-from glassbox.llm import (
-    ModelProviderConfig,
-    PydanticAIModelAdapter,
-    PydanticAIModelExecutor,
-)
+from glassbox.core.events import ApprovalRequested
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import ModelCallCompleted
+from glassbox.core.events import ReplayArtifactRecorded
+from glassbox.core.events import ToolExecutionCompleted
+from glassbox.core.events import ToolExecutionStarted
+from glassbox.core.events import TurnCompleted
+from glassbox.core.events import TurnStarted
+from glassbox.core.events import UserQuestionAsked
+from glassbox.core.ids import new_approval_id
+from glassbox.core.ids import new_message_id
+from glassbox.core.ids import new_question_id
+from glassbox.core.ids import new_tool_call_id
+from glassbox.core.ids import new_turn_id
+from glassbox.llm import ModelProviderConfig
+from glassbox.llm import PydanticAIModelAdapter
+from glassbox.llm import PydanticAIModelExecutor
 from glassbox.runtime.bus import EventBus
-from glassbox.runtime.context import (
-    RuntimeContext,
-    RuntimeInfrastructure,
-    RuntimeRepositories,
-    RuntimeServices,
-)
+from glassbox.runtime.context import RuntimeContext
+from glassbox.runtime.context import RuntimeInfrastructure
+from glassbox.runtime.context import RuntimeRepositories
+from glassbox.runtime.context import RuntimeServices
 from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.replay import ReplayRunner
 from glassbox.runtime.supervisor import SessionSupervisor
 from glassbox.runtime.turn_engine import TurnEngine
-from glassbox.store.repositories import (
-    FilesystemArtifactRepository,
-    SQLiteSessionRepository,
-)
-from glassbox.store.sqlite import initialize_database, open_database
-from glassbox.tools import (
-    ApprovalMode,
-    ToolPolicyContext,
-    ToolPolicyEngine,
-    ToolRuntime,
-    build_ask_user_tool_registry,
-    build_patch_tool_registry,
-)
+from glassbox.store.repositories import FilesystemArtifactRepository
+from glassbox.store.repositories import SQLiteSessionRepository
+from glassbox.store.sqlite import initialize_database
+from glassbox.store.sqlite import open_database
+from glassbox.tools import ApprovalMode
+from glassbox.tools import ToolPolicyContext
+from glassbox.tools import ToolPolicyEngine
+from glassbox.tools import ToolRuntime
+from glassbox.tools import build_ask_user_tool_registry
+from glassbox.tools import build_patch_tool_registry
 
 
 def _run_baseline_session(

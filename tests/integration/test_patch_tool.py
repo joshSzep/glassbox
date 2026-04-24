@@ -7,13 +7,12 @@ from pathlib import Path
 
 import pytest
 
-from glassbox.tools import (
-    ApprovalMode,
-    ToolPolicyContext,
-    ToolPolicyEngine,
-    build_patch_tool_registry,
-)
-from glassbox.tools.patch import ApplyPatchArgs, ApplyPatchTool
+from glassbox.tools import ApprovalMode
+from glassbox.tools import ToolPolicyContext
+from glassbox.tools import ToolPolicyEngine
+from glassbox.tools import build_patch_tool_registry
+from glassbox.tools.patch import ApplyPatchArgs
+from glassbox.tools.patch import ApplyPatchTool
 
 # ---------------------------------------------------------------------------
 # Targeted replacement (old_text non-empty)

@@ -6,24 +6,21 @@ import asyncio
 import sqlite3
 from pathlib import Path
 
-from pydantic_ai.messages import (
-    ModelRequest,
-    ModelResponse,
-    TextContent,
-    TextPart,
-    UserPromptPart,
-)
+from pydantic_ai.messages import ModelRequest
+from pydantic_ai.messages import ModelResponse
+from pydantic_ai.messages import TextContent
+from pydantic_ai.messages import TextPart
+from pydantic_ai.messages import UserPromptPart
 from pydantic_ai.models.function import FunctionModel
 
 from glassbox.core import SessionConfig
-from glassbox.core.events import (
-    AssistantMessageCompleted,
-    AssistantMessageDelta,
-    ModelCallStarted,
-)
+from glassbox.core.events import AssistantMessageCompleted
+from glassbox.core.events import AssistantMessageDelta
+from glassbox.core.events import ModelCallStarted
 from glassbox.llm import PydanticAIModelExecutor
 from glassbox.runtime import bootstrap as runtime_bootstrap
-from glassbox.store import initialize_database, open_database
+from glassbox.store import initialize_database
+from glassbox.store import open_database
 
 
 def _open_initialized_database(tmp_path: Path) -> sqlite3.Connection:

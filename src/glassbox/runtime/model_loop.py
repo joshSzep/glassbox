@@ -2,22 +2,25 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from collections.abc import Awaitable
+from collections.abc import Callable
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import UTC
+from datetime import datetime
 from time import perf_counter
 from typing import Literal
 
-from pydantic_ai.messages import ModelMessage, ModelRequest, UserPromptPart
+from pydantic_ai.messages import ModelMessage
+from pydantic_ai.messages import ModelRequest
+from pydantic_ai.messages import UserPromptPart
 
-from glassbox.llm import (
-    ModelAdapter,
-    ModelAdapterStreamEvent,
-    ModelExecutionResult,
-    ModelExecutor,
-    ModelToolCall,
-    PreparedModelTurn,
-)
+from glassbox.llm import ModelAdapter
+from glassbox.llm import ModelAdapterStreamEvent
+from glassbox.llm import ModelExecutionResult
+from glassbox.llm import ModelExecutor
+from glassbox.llm import ModelToolCall
+from glassbox.llm import PreparedModelTurn
 
 type ModelLoopSuspension = Literal["awaiting_approval", "awaiting_user_input"]
 

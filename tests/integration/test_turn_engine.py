@@ -7,31 +7,28 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-from pydantic_ai.messages import (
-    ModelRequest,
-    ModelResponse,
-    SystemPromptPart,
-    TextPart,
-    UserPromptPart,
-)
+from pydantic_ai.messages import ModelRequest
+from pydantic_ai.messages import ModelResponse
+from pydantic_ai.messages import SystemPromptPart
+from pydantic_ai.messages import TextPart
+from pydantic_ai.messages import UserPromptPart
 from pydantic_ai.models.function import FunctionModel
 
-from glassbox.core import EventEnvelope, SessionConfig, SessionStatus
+from glassbox.core import EventEnvelope
+from glassbox.core import SessionConfig
+from glassbox.core import SessionStatus
 from glassbox.core.events import ReplayArtifactRecorded
-from glassbox.llm import (
-    ModelProviderConfig,
-    PydanticAIModelAdapter,
-    PydanticAIModelExecutor,
-)
+from glassbox.llm import ModelProviderConfig
+from glassbox.llm import PydanticAIModelAdapter
+from glassbox.llm import PydanticAIModelExecutor
 from glassbox.runtime.bus import EventBus
 from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.supervisor import SessionSupervisor
 from glassbox.runtime.turn_engine import TurnEngine
-from glassbox.store.repositories import (
-    FilesystemArtifactRepository,
-    SQLiteSessionRepository,
-)
-from glassbox.store.sqlite import initialize_database, open_database
+from glassbox.store.repositories import FilesystemArtifactRepository
+from glassbox.store.repositories import SQLiteSessionRepository
+from glassbox.store.sqlite import initialize_database
+from glassbox.store.sqlite import open_database
 
 EXPECTED_COMPLETED_TURN_EVENT_TYPES = [
     "UserMessageReceived",

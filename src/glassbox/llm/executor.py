@@ -4,32 +4,32 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
-from typing import Any, Protocol, cast
+from datetime import UTC
+from datetime import datetime
+from typing import Any
+from typing import Protocol
+from typing import cast
 
-from pydantic_ai.messages import (
-    ModelMessage,
-    ModelRequest,
-    ModelResponse,
-    ModelResponseStreamEvent,
-    TextContent,
-    TextPart,
-    ToolCallPart,
-    UserPromptPart,
-)
-from pydantic_ai.models import Model, infer_model
+from pydantic_ai.messages import ModelMessage
+from pydantic_ai.messages import ModelRequest
+from pydantic_ai.messages import ModelResponse
+from pydantic_ai.messages import ModelResponseStreamEvent
+from pydantic_ai.messages import TextContent
+from pydantic_ai.messages import TextPart
+from pydantic_ai.messages import ToolCallPart
+from pydantic_ai.messages import UserPromptPart
+from pydantic_ai.models import Model
+from pydantic_ai.models import infer_model
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.anthropic import AnthropicProvider
 from pydantic_ai.providers.openai import OpenAIProvider
 
-from glassbox.llm.adapters import (
-    ModelAdapterStreamEvent,
-    ModelToolCall,
-    PreparedModelTurn,
-    PydanticAIStreamTranslator,
-)
+from glassbox.llm.adapters import ModelAdapterStreamEvent
+from glassbox.llm.adapters import ModelToolCall
+from glassbox.llm.adapters import PreparedModelTurn
+from glassbox.llm.adapters import PydanticAIStreamTranslator
 
 
 @dataclass(frozen=True, slots=True)

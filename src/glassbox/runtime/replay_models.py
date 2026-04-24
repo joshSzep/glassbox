@@ -2,23 +2,22 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel
+from pydantic import ConfigDict
+from pydantic import Field
 
 from glassbox.core.ids import SessionId
-from glassbox.core.models import (
-    InheritedTranscriptMessage,
-    RuntimeNoteRecord,
-    SessionConfig,
-)
+from glassbox.core.models import InheritedTranscriptMessage
+from glassbox.core.models import RuntimeNoteRecord
+from glassbox.core.models import SessionConfig
 from glassbox.core.types import ApprovalDecision
-from glassbox.runtime.replay_manifests import (
-    ReplayModelCallManifest,
-    ReplayToolRequestManifest,
-    ReplayToolResultManifest,
-    ReplayTurnOutputManifest,
-)
+from glassbox.runtime.replay_manifests import ReplayModelCallManifest
+from glassbox.runtime.replay_manifests import ReplayToolRequestManifest
+from glassbox.runtime.replay_manifests import ReplayToolResultManifest
+from glassbox.runtime.replay_manifests import ReplayTurnOutputManifest
 
 type ReplayOutcome = Literal[
     "exact_match",

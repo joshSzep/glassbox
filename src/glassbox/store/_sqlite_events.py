@@ -6,31 +6,27 @@ import sqlite3
 from collections.abc import Sequence
 from pathlib import Path
 
-from glassbox.core.events import (
-    EventEnvelope,
-    SessionCompleted,
-    SessionFailed,
-    SessionResumed,
-    SessionStarted,
-)
-from glassbox.core.ids import ApprovalId, MessageId, SessionId, ToolCallId, TurnId
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import SessionCompleted
+from glassbox.core.events import SessionFailed
+from glassbox.core.events import SessionResumed
+from glassbox.core.events import SessionStarted
+from glassbox.core.ids import ApprovalId
+from glassbox.core.ids import MessageId
+from glassbox.core.ids import SessionId
+from glassbox.core.ids import ToolCallId
+from glassbox.core.ids import TurnId
 from glassbox.core.models import SessionConfig
 from glassbox.core.types import SessionStatus
-from glassbox.store._sqlite_projections import (
-    _apply_projection_event,
-    _clear_session_projections,
-)
-from glassbox.store._sqlite_sessions import (
-    create_session,
-    get_session,
-    get_session_state,
-    update_session,
-)
-from glassbox.store._sqlite_utils import (
-    CorrelationValue,
-    _event_from_row,
-    _stringify_identifier,
-)
+from glassbox.store._sqlite_projections import _apply_projection_event
+from glassbox.store._sqlite_projections import _clear_session_projections
+from glassbox.store._sqlite_sessions import create_session
+from glassbox.store._sqlite_sessions import get_session
+from glassbox.store._sqlite_sessions import get_session_state
+from glassbox.store._sqlite_sessions import update_session
+from glassbox.store._sqlite_utils import CorrelationValue
+from glassbox.store._sqlite_utils import _event_from_row
+from glassbox.store._sqlite_utils import _stringify_identifier
 
 
 def append_event(

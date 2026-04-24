@@ -74,10 +74,10 @@ PYTHON_FACADE_RULES: tuple[
     (
         SRC_ROOT / "runtime" / "eval_summary.py",
         (
-            ".eval_summary_annotations",
-            ".eval_summary_models",
-            ".eval_summary_release",
-            ".eval_summary_suite",
+            "glassbox.runtime.eval_summary_annotations",
+            "glassbox.runtime.eval_summary_models",
+            "glassbox.runtime.eval_summary_release",
+            "glassbox.runtime.eval_summary_suite",
         ),
         80,
         "eval_summary should stay a thin facade over split reporting modules",

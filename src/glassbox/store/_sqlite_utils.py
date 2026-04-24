@@ -6,18 +6,18 @@ import json
 import sqlite3
 from datetime import datetime
 from typing import cast
-from uuid import UUID, uuid5
+from uuid import UUID
+from uuid import uuid5
 
 from glassbox.core.events import EventEnvelope
-from glassbox.core.ids import (
-    ApprovalId,
-    MessageId,
-    QuestionId,
-    SessionId,
-    ToolCallId,
-    TurnId,
-)
-from glassbox.core.models import RuntimeNoteRecord, SessionRecord
+from glassbox.core.ids import ApprovalId
+from glassbox.core.ids import MessageId
+from glassbox.core.ids import QuestionId
+from glassbox.core.ids import SessionId
+from glassbox.core.ids import ToolCallId
+from glassbox.core.ids import TurnId
+from glassbox.core.models import RuntimeNoteRecord
+from glassbox.core.models import SessionRecord
 
 IMPORTED_MESSAGE_NAMESPACE = UUID("2af6228d-37a0-4b62-9c58-7a4a2fdcb5fb")
 

@@ -5,15 +5,23 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
-from typing import Any, Protocol
+from datetime import UTC
+from datetime import datetime
+from typing import Any
+from typing import Protocol
 
 from pydantic import BaseModel
-from pydantic_ai.messages import ModelRequest, ToolReturnPart
+from pydantic_ai.messages import ModelRequest
+from pydantic_ai.messages import ToolReturnPart
 
-from glassbox.core import PolicyDecision, ToolCallId, new_tool_call_id
-from glassbox.tools.policy import ToolPolicyContext, ToolPolicyEngine
-from glassbox.tools.registry import StreamingTool, Tool, ToolRegistry
+from glassbox.core import PolicyDecision
+from glassbox.core import ToolCallId
+from glassbox.core import new_tool_call_id
+from glassbox.tools.policy import ToolPolicyContext
+from glassbox.tools.policy import ToolPolicyEngine
+from glassbox.tools.registry import StreamingTool
+from glassbox.tools.registry import Tool
+from glassbox.tools.registry import ToolRegistry
 
 
 class ToolCallRequest(Protocol):

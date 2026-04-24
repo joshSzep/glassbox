@@ -7,7 +7,8 @@ from pathlib import Path
 import pytest
 
 from glassbox.cli import main
-from glassbox.store import SQLiteSessionRepository, open_database
+from glassbox.store import SQLiteSessionRepository
+from glassbox.store import open_database
 
 
 def test_cli_help_prints_usage(capsys: pytest.CaptureFixture[str]) -> None:

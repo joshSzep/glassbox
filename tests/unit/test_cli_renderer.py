@@ -2,30 +2,25 @@
 
 from io import StringIO
 
-from glassbox.cli.renderer import (
-    CliEventRenderer,
-    CliRenderState,
-    InteractivePromptState,
-    format_event_for_terminal,
-)
-from glassbox.core import EventEnvelope, MessagePart
-from glassbox.core.events import (
-    ApprovalRequested,
-    AssistantMessageCompleted,
-    AssistantMessageDelta,
-    AssistantMessageStarted,
-    ToolExecutionCompleted,
-    ToolExecutionStarted,
-    UserAnswerProvided,
-    UserQuestionAsked,
-)
-from glassbox.core.ids import (
-    new_approval_id,
-    new_message_id,
-    new_session_id,
-    new_tool_call_id,
-    new_turn_id,
-)
+from glassbox.cli.renderer import CliEventRenderer
+from glassbox.cli.renderer import CliRenderState
+from glassbox.cli.renderer import InteractivePromptState
+from glassbox.cli.renderer import format_event_for_terminal
+from glassbox.core import EventEnvelope
+from glassbox.core import MessagePart
+from glassbox.core.events import ApprovalRequested
+from glassbox.core.events import AssistantMessageCompleted
+from glassbox.core.events import AssistantMessageDelta
+from glassbox.core.events import AssistantMessageStarted
+from glassbox.core.events import ToolExecutionCompleted
+from glassbox.core.events import ToolExecutionStarted
+from glassbox.core.events import UserAnswerProvided
+from glassbox.core.events import UserQuestionAsked
+from glassbox.core.ids import new_approval_id
+from glassbox.core.ids import new_message_id
+from glassbox.core.ids import new_session_id
+from glassbox.core.ids import new_tool_call_id
+from glassbox.core.ids import new_turn_id
 
 
 def test_renderer_buffers_assistant_deltas_until_completion() -> None:
