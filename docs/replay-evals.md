@@ -135,12 +135,12 @@ When commit-time eval fails:
 3. Open the failing `.glassbox/evals/pre-commit/CASE_ID.json` artifact.
 4. Fix the accidental drift or intentionally refresh the baseline.
 
-When push-time confirmation fails after local success:
+When GitHub pre-commit fails after local success:
 
-1. Open the failed `Push Smoke Evals` run for the pushed commit.
-2. Read the rendered job summary first.
-3. Download the retained artifact only if the summary is not enough.
-4. Fix the regression or update the baseline intentionally, then rerun the local smoke flow.
+1. Open the failed `Pre-commit` run for the pushed commit.
+2. Compare it against a fresh local `uv run pre-commit run --all-files` run.
+3. Inspect `.glassbox/evals/pre-commit/summary.json` if the failure is in the eval hook.
+4. Fix the regression or update the baseline intentionally, then rerun the full local pre-commit flow.
 
 ## Deterministic Vs Canary Tracks
 
