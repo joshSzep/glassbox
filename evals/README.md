@@ -36,6 +36,13 @@ Named profiles live in `evals/profiles.json` and make stage intent explicit for
 automation and local verification. Additional `CASE_ID` arguments and repeated
 `--tag` flags still work as narrower filters inside a selected profile.
 
+Profiles can now also declare a reviewable `budget` block with size and
+determinism guardrails such as maximum selected case count,
+maximum selected-invariant case count, a recorded-model-call cost proxy,
+case-artifact byte limits, allowance for advisory or unsupported cases, and
+promotion or demotion policy text for deciding when a case belongs in a
+stricter stage.
+
 Capability coverage expectations live in `evals/coverage.json`. Use
 `glassbox eval audit` to report which product behaviors are covered,
 which release-critical behaviors still lack a curated case, and which selected
@@ -70,7 +77,17 @@ Profile manifest shape:
       "title": "Commit-time smoke gate",
       "verification_stage": "commit-time",
       "tags": ["smoke"],
-      "blocking": true
+      "blocking": true,
+      "budget": {
+        "max_selected_case_count": 2,
+        "max_selected_invariant_case_count": 0,
+        "max_recorded_model_call_count": 4,
+        "max_case_artifact_bytes": 100000,
+        "allow_unsupported_cases": false,
+        "allow_advisory_cases": false,
+        "promotion_policy": "Promote only deterministic, low-cost smoke cases.",
+        "demotion_policy": "Demote cases that become noisy or too expensive for commit-time use."
+      }
     }
   ]
 }
@@ -165,6 +182,13 @@ The per-case artifact now includes compact triage fields such as
 pre-commit and push-time automation can point directly to the right detailed
 artifact without forcing full JSON archaeology first.
 
+When a named profile has a `budget`, `summary.json` also includes a
+`profile_budget` object with measured counts, configured limits, warning or
+enforced status, and any violations. The terminal and GitHub Actions summary
+renderers surface that budget health next to the replay outcomes so a suite can
+fail because it became too broad or too noisy, even if each individual case
+still replayed successfully.
+
 Case manifest shape:
 
 ```json
@@ -242,6 +266,11 @@ Troubleshooting flows:
   rerun `pre-commit run eval-smoke --all-files`, inspect
   `.glassbox/evals/pre-commit/summary.json`, then inspect the failing per-case
   JSON artifact in the same directory.
+1. Commit blocked by profile budget:
+  inspect the `profile_budget` section in `.glassbox/evals/pre-commit/summary.json`
+  or the terminal `Profile budget:` block to see whether selected case count,
+  selected-invariant count, recorded model calls, artifact volume, or advisory
+  eligibility exceeded the profile guardrails.
 2. Push confirmation failed after local success:
   read the GitHub Actions job summary first, then download the
   `push-smoke-evals-SHA` artifact only if the summary does not already explain

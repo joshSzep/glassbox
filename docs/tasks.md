@@ -2591,7 +2591,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-246: Add Verification Budget And Determinism Guardrails Per Profile
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-201`, `GBX-203`, `GBX-242`, `GBX-245`
 - Goal: keep blocking replay and eval profiles small, deterministic, and maintainable as the curated case portfolio grows
 - Deliverables:

@@ -247,6 +247,29 @@ class EvalCase(BaseModel):
     baseline_history: list[EvalBaselineHistoryEntry] = Field(default_factory=list)
 
 
+class EvalProfileBudget(BaseModel):
+    """Repository-owned size and determinism guardrails for one eval profile."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    max_selected_case_count: int | None = Field(default=None, ge=1)
+    max_selected_invariant_case_count: int | None = Field(default=None, ge=0)
+    max_recorded_model_call_count: int | None = Field(default=None, ge=0)
+    max_case_artifact_bytes: int | None = Field(default=None, ge=0)
+    allow_unsupported_cases: bool | None = None
+    allow_advisory_cases: bool | None = None
+    promotion_policy: str | None = None
+    demotion_policy: str | None = None
+
+    @field_validator("promotion_policy", "demotion_policy")
+    @classmethod
+    def validate_policy_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
+
+
 class EvalProfileDefinition(BaseModel):
     """Repository-owned selection rules for one named verification stage."""
 
@@ -259,6 +282,7 @@ class EvalProfileDefinition(BaseModel):
     tags: list[str] = Field(default_factory=list)
     case_ids: list[str] = Field(default_factory=list)
     blocking: bool = True
+    budget: EvalProfileBudget | None = None
 
     @field_validator("profile_id")
     @classmethod
@@ -598,28 +622,7 @@ def _select_cases_for_profile(
         for case in selected_cases
         if profile.verification_stage in case.release_contract.verification_stages
     ]
-    _validate_profile_selection(profile, selected_cases)
     return selected_cases
-
-
-def _validate_profile_selection(
-    profile: EvalProfileDefinition,
-    selected_cases: list[EvalCase],
-) -> None:
-    if not profile.blocking:
-        return
-    advisory_case_ids = [
-        case.case_id
-        for case in selected_cases
-        if case.release_contract.baseline_refresh_policy == "advisory"
-    ]
-    if advisory_case_ids:
-        raise ValueError(
-            f"blocking eval profile {profile.profile_id} cannot include advisory "
-            f"baseline case"
-            f"{'s' if len(advisory_case_ids) > 1 else ''}: "
-            + ", ".join(advisory_case_ids)
-        )
 
 
 def _filter_cases_by_case_ids(

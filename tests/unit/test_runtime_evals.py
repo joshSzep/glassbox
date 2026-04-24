@@ -11,6 +11,7 @@ from glassbox.runtime.evals import (
     DEFAULT_EVAL_BUNDLES_DIR,
     EvalCaseExpectation,
     EvalCaseReleaseContract,
+    EvalProfileBudget,
     EvalProfileDefinition,
     discover_eval_case_files,
     load_eval_case,
@@ -282,6 +283,51 @@ def test_load_eval_profile_reads_named_repository_profile(tmp_path: Path) -> Non
     )
 
 
+def test_load_eval_profile_reads_budget_metadata(tmp_path: Path) -> None:
+    _write_eval_profiles(
+        tmp_path,
+        [
+            {
+                "profile_id": "commit-smoke",
+                "title": "Commit smoke",
+                "verification_stage": "commit-time",
+                "tags": ["smoke"],
+                "blocking": True,
+                "budget": {
+                    "max_selected_case_count": 2,
+                    "max_selected_invariant_case_count": 1,
+                    "max_recorded_model_call_count": 4,
+                    "max_case_artifact_bytes": 50000,
+                    "allow_unsupported_cases": False,
+                    "allow_advisory_cases": False,
+                    "promotion_policy": (
+                        "Promote only cases that stay deterministic in pre-commit."
+                    ),
+                    "demotion_policy": (
+                        "Demote cases that need repeated baseline refreshes "
+                        "or relaxed invariants."
+                    ),
+                },
+            }
+        ],
+    )
+
+    profile = load_eval_profile(tmp_path, profile_id="commit-smoke")
+
+    assert profile.budget == EvalProfileBudget(
+        max_selected_case_count=2,
+        max_selected_invariant_case_count=1,
+        max_recorded_model_call_count=4,
+        max_case_artifact_bytes=50000,
+        allow_unsupported_cases=False,
+        allow_advisory_cases=False,
+        promotion_policy="Promote only cases that stay deterministic in pre-commit.",
+        demotion_policy=(
+            "Demote cases that need repeated baseline refreshes or relaxed invariants."
+        ),
+    )
+
+
 def test_resolve_eval_suite_selection_applies_profile_before_extra_tag_filter(
     tmp_path: Path,
 ) -> None:
@@ -385,7 +431,7 @@ def test_load_eval_suite_rejects_case_id_outside_selected_profile(
         )
 
 
-def test_load_eval_suite_rejects_blocking_profile_with_advisory_case(
+def test_load_eval_suite_allows_blocking_profile_selection_with_advisory_case(
     tmp_path: Path,
 ) -> None:
     _write_eval_case(
@@ -415,8 +461,9 @@ def test_load_eval_suite_rejects_blocking_profile_with_advisory_case(
         ],
     )
 
-    with pytest.raises(ValueError, match="blocking eval profile advisory-context"):
-        load_eval_suite(tmp_path, profile_id="advisory-context")
+    cases = load_eval_suite(tmp_path, profile_id="advisory-context")
+
+    assert [case.case_id for case in cases] == ["context.relaxed"]
 
 
 def test_load_eval_suite_profile_without_explicit_cases_filters_by_stage(

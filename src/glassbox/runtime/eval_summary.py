@@ -40,12 +40,20 @@ def build_eval_suite_summary_payload(
         "profile_id": result.profile_id,
         "profile_title": result.profile_title,
         "profile_verification_stage": result.profile_verification_stage,
+        "profile_budget": (
+            result.profile_budget.model_dump(mode="json")
+            if result.profile_budget is not None
+            else None
+        ),
         "coverage_audit": (
             result.coverage_audit.model_dump(mode="json")
             if result.coverage_audit is not None
             else None
         ),
-        "suite_status": "failed" if result.failed_case_count else "passed",
+        "suite_status": "failed" if result.exit_code else "passed",
+        "budget_status": (
+            result.profile_budget.status if result.profile_budget is not None else None
+        ),
         "selected_case_count": result.selected_case_count,
         "passed_case_count": result.passed_case_count,
         "failed_case_count": result.failed_case_count,
@@ -112,6 +120,21 @@ def build_eval_suite_job_summary(
             ]
         )
 
+    profile_budget = payload["profile_budget"]
+    unsupported_limit = None
+    advisory_limit = None
+    if profile_budget is not None:
+        unsupported_limit = (
+            "allowed" if profile_budget["allow_unsupported_cases"] else "0"
+        )
+        advisory_limit = "allowed" if profile_budget["allow_advisory_cases"] else "0"
+        lines.extend(
+            [
+                f"- Budget status: `{payload['budget_status']}`",
+                f"- Budget enforcement: `{profile_budget['enforcement']}`",
+            ]
+        )
+
     lines.extend(
         [
             f"- Suite status: `{payload['suite_status']}`",
@@ -130,6 +153,43 @@ def build_eval_suite_job_summary(
     )
     for outcome, count in payload["outcome_counts"].items():
         lines.append(f"| `{outcome}` | `{count}` |")
+
+    if profile_budget is not None:
+        lines.extend(
+            [
+                "",
+                "### Profile Budget",
+                "",
+                "| Measure | Actual | Limit |",
+                "| --- | ---: | ---: |",
+                "| `selected_case_count` | "
+                f"`{profile_budget['selected_case_count']}` | "
+                f"`{profile_budget['max_selected_case_count']}` |",
+                "| `selected_invariant_case_count` | "
+                f"`{profile_budget['selected_invariant_case_count']}` | "
+                f"`{profile_budget['max_selected_invariant_case_count']}` |",
+                "| `recorded_model_call_count` | "
+                f"`{profile_budget['recorded_model_call_count']}` | "
+                f"`{profile_budget['max_recorded_model_call_count']}` |",
+                "| `case_artifact_bytes` | "
+                f"`{profile_budget['case_artifact_bytes']}` | "
+                f"`{profile_budget['max_case_artifact_bytes']}` |",
+                "| `unsupported_case_count` | "
+                f"`{profile_budget['unsupported_case_count']}` | "
+                f"`{unsupported_limit}` |",
+                "| `advisory_case_count` | "
+                f"`{profile_budget['advisory_case_count']}` | "
+                f"`{advisory_limit}` |",
+            ]
+        )
+        if profile_budget["promotion_policy"] is not None:
+            lines.append("- Promotion policy: " + profile_budget["promotion_policy"])
+        if profile_budget["demotion_policy"] is not None:
+            lines.append("- Demotion policy: " + profile_budget["demotion_policy"])
+        if profile_budget["violations"]:
+            lines.append("- Budget violations:")
+            for violation in profile_budget["violations"]:
+                lines.append(f"  - {violation['message']}")
 
     coverage_audit = payload["coverage_audit"]
     if coverage_audit is not None:

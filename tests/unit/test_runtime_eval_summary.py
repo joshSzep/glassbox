@@ -5,7 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from glassbox.runtime.eval_coverage import EvalCoverageAuditResult
-from glassbox.runtime.eval_runner import EvalCaseResult, EvalSuiteResult
+from glassbox.runtime.eval_runner import (
+    EvalCaseResult,
+    EvalProfileBudgetHealth,
+    EvalSuiteResult,
+)
 from glassbox.runtime.eval_summary import (
     build_eval_suite_annotations,
     build_eval_suite_job_summary,
@@ -51,6 +55,8 @@ def test_build_eval_suite_job_summary_surfaces_counts_cases_and_artifacts() -> N
     assert "- Selected cases: `2`" in summary
     assert "- Passed: `1`" in summary
     assert "- Failed: `1`" in summary
+    assert "- Budget status: `violated`" in summary
+    assert "### Profile Budget" in summary
     assert "- Covered capabilities: `1` / `2`" in summary
     assert "- Uncovered release-critical capabilities: `approval_flow`" in summary
     assert "| `manifest_drift` | `1` |" in summary
@@ -162,11 +168,16 @@ def test_build_eval_suite_summary_payload_includes_triage_fields() -> None:
         "Inspect runtime note inputs and replay enriched-context capture for "
         "runtime_notes."
     )
+    assert payload["profile_budget"]["status"] == "violated"
+    assert payload["budget_status"] == "violated"
 
 
 def test_format_github_actions_annotation_escapes_control_characters() -> None:
     payload = build_eval_suite_summary_payload(
-        _suite_result([_case_result(case_id="smoke.hello")]),
+        _suite_result(
+            [_case_result(case_id="smoke.hello")],
+            include_profile_budget=False,
+        ),
         artifact_name="push-smoke-evals-deadbeef",
         artifact_root=".glassbox/evals/push-smoke",
     )
@@ -192,7 +203,11 @@ def test_format_github_actions_annotation_escapes_control_characters() -> None:
     assert "%0A" in command
 
 
-def _suite_result(cases: list[EvalCaseResult]) -> EvalSuiteResult:
+def _suite_result(
+    cases: list[EvalCaseResult],
+    *,
+    include_profile_budget: bool = True,
+) -> EvalSuiteResult:
     output_dir = Path("/tmp/push-smoke")
     outcome_counts: dict[ReplayOutcome, int] = {
         "exact_match": sum(1 for case in cases if case.replay_outcome == "exact_match"),
@@ -209,6 +224,44 @@ def _suite_result(cases: list[EvalCaseResult]) -> EvalSuiteResult:
             1 for case in cases if case.replay_outcome == "replay_failure"
         ),
     }
+    profile_budget = None
+    if include_profile_budget:
+        profile_budget = EvalProfileBudgetHealth.model_validate(
+            {
+                "status": "violated",
+                "enforcement": "enforced",
+                "max_selected_case_count": 1,
+                "selected_case_count": len(cases),
+                "max_selected_invariant_case_count": 0,
+                "selected_invariant_case_count": 0,
+                "max_recorded_model_call_count": 1,
+                "recorded_model_call_count": 2,
+                "max_case_artifact_bytes": 1024,
+                "case_artifact_bytes": 2048,
+                "allow_unsupported_cases": False,
+                "unsupported_case_count": 0,
+                "allow_advisory_cases": False,
+                "advisory_case_count": 0,
+                "promotion_policy": "Promote only deterministic low-cost smoke cases.",
+                "demotion_policy": (
+                    "Demote cases that bloat output or require relaxed invariants."
+                ),
+                "violations": [
+                    {
+                        "code": "selected_case_count",
+                        "message": "selected case count 2 exceeds profile budget 1",
+                        "actual": len(cases),
+                        "limit": 1,
+                        "case_ids": [case.case_id for case in cases],
+                    }
+                ],
+            }
+        )
+
+    exit_code = 11 if any(not case.passed for case in cases) else 0
+    if include_profile_budget and profile_budget is not None:
+        exit_code = 14 if exit_code == 0 else exit_code
+
     return EvalSuiteResult(
         workspace_root=Path("/workspace/glassbox"),
         output_dir=output_dir,
@@ -216,6 +269,7 @@ def _suite_result(cases: list[EvalCaseResult]) -> EvalSuiteResult:
         profile_id="push-confirmation",
         profile_title="Push confirmation",
         profile_verification_stage="push-time",
+        profile_budget=profile_budget,
         coverage_audit=EvalCoverageAuditResult.model_validate(
             {
                 "profile_id": "push-confirmation",
@@ -255,7 +309,7 @@ def _suite_result(cases: list[EvalCaseResult]) -> EvalSuiteResult:
         selected_case_count=len(cases),
         passed_case_count=sum(1 for case in cases if case.passed),
         failed_case_count=sum(1 for case in cases if not case.passed),
-        exit_code=11 if any(not case.passed for case in cases) else 0,
+        exit_code=exit_code,
         outcome_counts=outcome_counts,
         cases=cases,
     )

@@ -1689,6 +1689,11 @@ def _print_eval_suite_report(result: EvalSuiteResult) -> None:
     print(f"Eval workspace {result.workspace_root}")
     if result.profile_id is not None:
         print(f"Profile: {result.profile_id} ({result.profile_verification_stage})")
+    if result.profile_budget is not None:
+        print(
+            f"Budget: {result.profile_budget.status} "
+            f"({result.profile_budget.enforcement})"
+        )
     print(f"Selected cases: {result.selected_case_count}")
     print(f"Passed: {result.passed_case_count}")
     print(f"Failed: {result.failed_case_count}")
@@ -1699,6 +1704,47 @@ def _print_eval_suite_report(result: EvalSuiteResult) -> None:
     if result.coverage_audit is not None:
         for line in build_eval_coverage_summary_lines(result.coverage_audit):
             print(line)
+    if result.profile_budget is not None:
+        profile_budget = result.profile_budget
+        print("Profile budget:")
+        print(
+            "  Selected cases: "
+            f"{profile_budget.selected_case_count}"
+            + _format_budget_limit(profile_budget.max_selected_case_count)
+        )
+        print(
+            "  Selected-invariant cases: "
+            f"{profile_budget.selected_invariant_case_count}"
+            + _format_budget_limit(profile_budget.max_selected_invariant_case_count)
+        )
+        print(
+            "  Recorded model calls: "
+            f"{profile_budget.recorded_model_call_count}"
+            + _format_budget_limit(profile_budget.max_recorded_model_call_count)
+        )
+        print(
+            "  Case artifact bytes: "
+            f"{profile_budget.case_artifact_bytes}"
+            + _format_budget_limit(profile_budget.max_case_artifact_bytes)
+        )
+        print(
+            "  Unsupported cases: "
+            f"{profile_budget.unsupported_case_count}"
+            + (" (allowed)" if profile_budget.allow_unsupported_cases else "")
+        )
+        print(
+            "  Advisory cases: "
+            f"{profile_budget.advisory_case_count}"
+            + (" (allowed)" if profile_budget.allow_advisory_cases else "")
+        )
+        if profile_budget.promotion_policy:
+            print("  Promotion policy: " + profile_budget.promotion_policy)
+        if profile_budget.demotion_policy:
+            print("  Demotion policy: " + profile_budget.demotion_policy)
+        if profile_budget.violations:
+            print("  Budget violations:")
+            for violation in profile_budget.violations:
+                print("    - " + violation.message)
     print("Cases:")
     for case_result in result.cases:
         status = "passed" if case_result.passed else "failed"
@@ -1763,6 +1809,12 @@ def _print_eval_coverage_audit(*, workspace_root: Path, result) -> None:
 def _print_eval_baseline_update(report) -> None:
     for line in format_eval_baseline_update_report(report):
         print(line)
+
+
+def _format_budget_limit(limit: int | None) -> str:
+    if limit is None:
+        return " (no configured limit)"
+    return f" / {limit}"
 
 
 def _replay_detail_lines(result: ReplayResult) -> list[str]:

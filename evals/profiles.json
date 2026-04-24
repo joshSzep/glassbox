@@ -7,7 +7,17 @@
       "description": "Blocking deterministic smoke coverage for local pre-commit verification.",
       "verification_stage": "commit-time",
       "tags": ["smoke"],
-      "blocking": true
+      "blocking": true,
+      "budget": {
+        "max_selected_case_count": 2,
+        "max_selected_invariant_case_count": 0,
+        "max_recorded_model_call_count": 4,
+        "max_case_artifact_bytes": 100000,
+        "allow_unsupported_cases": false,
+        "allow_advisory_cases": false,
+        "promotion_policy": "Promote only deterministic, low-cost smoke cases that stay trustworthy at commit time.",
+        "demotion_policy": "Demote cases that require relaxed invariants, repeated baseline refreshes, or too much artifact output for pre-commit use."
+      }
     },
     {
       "profile_id": "push-confirmation",
@@ -15,14 +25,34 @@
       "description": "Blocking deterministic smoke coverage for post-push confirmation.",
       "verification_stage": "push-time",
       "tags": ["smoke"],
-      "blocking": true
+      "blocking": true,
+      "budget": {
+        "max_selected_case_count": 2,
+        "max_selected_invariant_case_count": 0,
+        "max_recorded_model_call_count": 4,
+        "max_case_artifact_bytes": 100000,
+        "allow_unsupported_cases": false,
+        "allow_advisory_cases": false,
+        "promotion_policy": "Promote only deterministic smoke cases that add clear post-push confidence without slowing feedback too much.",
+        "demotion_policy": "Demote cases that become noisy, expensive, or dependent on advisory-only tolerances."
+      }
     },
     {
       "profile_id": "release-candidate",
       "title": "Release-candidate deterministic suite",
       "description": "Repository-owned replay coverage intended for release candidate sign-off.",
       "verification_stage": "release-candidate",
-      "blocking": true
+      "blocking": true,
+      "budget": {
+        "max_selected_case_count": 3,
+        "max_selected_invariant_case_count": 1,
+        "max_recorded_model_call_count": 8,
+        "max_case_artifact_bytes": 200000,
+        "allow_unsupported_cases": false,
+        "allow_advisory_cases": false,
+        "promotion_policy": "Promote cases that stay stable enough to act as release-signoff evidence across core capabilities.",
+        "demotion_policy": "Demote cases that keep drifting or require exploratory-only interpretation instead of release-candidate confidence."
+      }
     },
     {
       "profile_id": "advisory-context",
@@ -30,7 +60,17 @@
       "description": "Non-blocking context-heavy replay coverage for exploratory drift review.",
       "verification_stage": "advisory",
       "tags": ["context"],
-      "blocking": false
+      "blocking": false,
+      "budget": {
+        "max_selected_case_count": 2,
+        "max_selected_invariant_case_count": 2,
+        "max_recorded_model_call_count": 6,
+        "max_case_artifact_bytes": 200000,
+        "allow_unsupported_cases": true,
+        "allow_advisory_cases": true,
+        "promotion_policy": "Promote context cases into stricter profiles only after the drift they watch becomes deterministic enough for a blocking gate.",
+        "demotion_policy": "Keep exploratory or noisy context cases in advisory review until they stop requiring relaxed interpretation."
+      }
     }
   ]
 }

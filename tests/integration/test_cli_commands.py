@@ -1250,6 +1250,13 @@ def test_cli_eval_run_rejects_blocking_profile_with_advisory_case(
                 "verification_stage": "advisory",
                 "tags": ["context"],
                 "blocking": True,
+                "budget": {
+                    "allow_advisory_cases": False,
+                    "promotion_policy": "Promote only deterministic commit-time cases.",
+                    "demotion_policy": (
+                        "Demote advisory-only cases out of blocking profiles."
+                    ),
+                },
             }
         ],
     )
@@ -1266,8 +1273,167 @@ def test_cli_eval_run_rejects_blocking_profile_with_advisory_case(
     )
     captured = capsys.readouterr()
 
-    assert exit_code == 1
-    assert "blocking eval profile bad-blocking-context" in captured.err
+    assert exit_code == 14
+    assert "Budget: violated (enforced)" in captured.out
+    assert (
+        "profile budget disallows advisory baseline cases: context.relaxed"
+        in captured.out
+    )
+
+
+def test_cli_eval_run_reports_budget_warning_for_non_blocking_profile(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    bundle_path, _session_id = _export_eval_bundle(tmp_path, "context.branch")
+    second_bundle_path = tmp_path / "evals" / "bundles" / "context.extra.json"
+    shutil.copyfile(bundle_path, second_bundle_path)
+
+    _write_eval_case(
+        tmp_path,
+        case_id="context.branch",
+        title="Context branch",
+        bundle_name=bundle_path.name,
+        tags=["context"],
+        release_contract={
+            "verification_stages": ["advisory"],
+            "baseline_refresh_policy": "advisory",
+        },
+    )
+    _write_eval_case(
+        tmp_path,
+        case_id="context.extra",
+        title="Context extra",
+        bundle_name=second_bundle_path.name,
+        tags=["context"],
+        release_contract={
+            "verification_stages": ["advisory"],
+            "baseline_refresh_policy": "advisory",
+        },
+    )
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "advisory-context",
+                "title": "Advisory context",
+                "verification_stage": "advisory",
+                "tags": ["context"],
+                "blocking": False,
+                "budget": {
+                    "max_selected_case_count": 1,
+                    "allow_advisory_cases": True,
+                    "allow_unsupported_cases": True,
+                    "promotion_policy": (
+                        "Promote only when the case becomes deterministic "
+                        "enough for a blocking stage."
+                    ),
+                    "demotion_policy": (
+                        "Keep exploratory or noisy context cases out of "
+                        "blocking profiles."
+                    ),
+                },
+            }
+        ],
+    )
+    output_dir = tmp_path / "advisory-budget-output"
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "run",
+            "--profile",
+            "advisory-context",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["profile_budget"]["status"] == "warning"
+    assert payload["profile_budget"]["violations"][0]["code"] == "selected_case_count"
+
+
+def test_cli_eval_run_enforces_blocking_profile_selected_case_budget(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    bundle_path, _session_id = _export_eval_bundle(tmp_path, "smoke.readme")
+    second_bundle_path = tmp_path / "evals" / "bundles" / "smoke.extra.json"
+    shutil.copyfile(bundle_path, second_bundle_path)
+
+    _write_eval_case(
+        tmp_path,
+        case_id="smoke.readme",
+        title="README smoke",
+        bundle_name=bundle_path.name,
+        tags=["smoke"],
+        release_contract={
+            "verification_stages": ["commit-time"],
+        },
+    )
+    _write_eval_case(
+        tmp_path,
+        case_id="smoke.extra",
+        title="Extra smoke",
+        bundle_name=second_bundle_path.name,
+        tags=["smoke"],
+        release_contract={
+            "verification_stages": ["commit-time"],
+        },
+    )
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "commit-smoke",
+                "title": "Commit smoke",
+                "verification_stage": "commit-time",
+                "tags": ["smoke"],
+                "blocking": True,
+                "budget": {
+                    "max_selected_case_count": 1,
+                    "allow_advisory_cases": False,
+                    "allow_unsupported_cases": False,
+                    "promotion_policy": (
+                        "Promote only the smallest deterministic smoke checks."
+                    ),
+                    "demotion_policy": (
+                        "Demote broad or noisy cases out of commit-time smoke."
+                    ),
+                },
+            }
+        ],
+    )
+    output_dir = tmp_path / "blocking-budget-output"
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "run",
+            "--profile",
+            "commit-smoke",
+            "--cwd",
+            str(tmp_path),
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads((output_dir / "summary.json").read_text(encoding="utf-8"))
+
+    assert exit_code == 14
+    assert "Budget: violated (enforced)" in captured.out
+    assert "selected case count 2 exceeds profile budget 1" in captured.out
+    assert payload["profile_budget"]["status"] == "violated"
+    assert payload["profile_budget"]["violations"][0]["code"] == "selected_case_count"
 
 
 def test_cli_eval_run_allows_selected_invariants_to_ignore_behavioral_drift(
