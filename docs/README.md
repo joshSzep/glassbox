@@ -25,6 +25,7 @@ Use this page to jump to the right level of detail.
 
 - [architecture.md](./architecture.md): event-sourced runtime architecture, turn flow, branching model, replay/eval contract, and system boundaries
 - [database.md](./database.md): SQLite event store, projection tables, artifact storage, and query patterns
+- [refactor-v1.md](./refactor-v1.md): architecture-first refactor roadmap for decomposing oversized modules and repairing implementation seams in the current v1 codebase
 - [tasks-v1.md](./tasks-v1.md): implementation history, completed v1 task graph, and roadmap context
 - [tasks-v2.md](./tasks-v2.md): concrete v2 task graph and milestone plan for persistent runtime ownership, operator-console evolution, upgrade safety, and long-lived workflow hardening
 
