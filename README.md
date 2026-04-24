@@ -90,7 +90,8 @@ Start here based on what you need:
 - [docs/tool-policy.md](docs/tool-policy.md)
 - [docs/architecture.md](docs/architecture.md)
 - [docs/database.md](docs/database.md)
-- [docs/tasks.md](docs/tasks.md)
+- [docs/tasks-v1.md](docs/tasks-v1.md)
+- [docs/tasks-v2.md](docs/tasks-v2.md)
 
 ## Local Validation
 
