@@ -153,11 +153,11 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R101: Extract Shared Model-Loop Boundary For Live Turns And Replay
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R100`
 - Goal: remove duplicated model-loop control flow between live turn execution and replay by introducing one shared execution boundary
 - Deliverables:
-  - shared model-loop abstraction used by both [turn_engine.py](./../src/glassbox/runtime/turn_engine.py) and [replay.py](./../src/glassbox/runtime/replay.py)
+  - shared model-loop abstraction used by both [turn_engine.py](./../src/glassbox/runtime/turn_engine.py) and [replay.py](./../src/glassbox/runtime/replay.py): [model_loop.py](./../src/glassbox/runtime/model_loop.py)
   - explicit interfaces for conversation state, tool-call continuation, streamed assistant deltas, and suspension points
   - compatibility path that preserves existing replay outcomes and live event ordering during migration
 - Implementation notes:

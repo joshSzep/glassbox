@@ -82,6 +82,7 @@ The `runtime` package should not become a catch-all for transport formatting, ra
 - `supervisor` owns session lifecycle and delegates turn execution
 - `turn_engine` owns turn-level coordination, but not every detail of model looping or resumption mechanics
 - shared model-loop logic should be reusable by live turn execution and replay
+- the shared model-loop boundary currently lives in `src/glassbox/runtime/model_loop.py` and is consumed by `turn_engine.py` plus replay runtime wiring
 - context-building logic should separate structured snapshot derivation, working-set derivation, and prompt rendering
 - runtime query code should provide session summaries and snapshots to both CLI and web consumers without embedding HTTP concerns
 - bootstrap should wire public collaborators together, not hide ownership behind broad transitive re-exports

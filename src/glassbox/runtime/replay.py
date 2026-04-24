@@ -51,6 +51,7 @@ from glassbox.llm import (
 )
 from glassbox.runtime.bus import EventBus
 from glassbox.runtime.context_builder import TurnContextBuilder
+from glassbox.runtime.model_loop import ModelLoopRunner
 from glassbox.runtime.replay_capture import (
     ReplayModelCallManifest,
     ReplayToolRequestManifest,
@@ -562,6 +563,7 @@ class ReplayRunner:
                         else None
                     ),
                     artifact_repository=artifact_repository,
+                    model_loop_runner=ModelLoopRunner(),
                 )
                 supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
                 replay_state = await supervisor.start_session(replay_session_config)
