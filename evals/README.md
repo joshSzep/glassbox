@@ -157,6 +157,14 @@ Each run writes one JSON artifact per case plus `summary.json` into the selected
 output directory. If `--output-dir` is omitted, Glassbox creates a timestamped
 directory under `.glassbox/evals/`.
 
+The per-case artifact now includes compact triage fields such as
+`triage_classification`, `triage_headline`,
+`triage_first_relevant_change`, `triage_drift_sources`, and
+`triage_recommended_inspection_path` alongside the full nested
+`replay_result`. `summary.json` keeps the same per-case triage fields so
+pre-commit and push-time automation can point directly to the right detailed
+artifact without forcing full JSON archaeology first.
+
 Case manifest shape:
 
 ```json
@@ -210,11 +218,19 @@ Reading context-related failures:
   pytest_failure_digest` means replay detected a semantic change in one
   specific context source. Treat that as a replay-contract failure, not as a
   generic transcript mismatch.
+1. Failure artifacts now distinguish the replay `outcome` from the more precise
+  triage `classification`. For example, a replay may still report
+  `manifest_drift` while classifying the case as `context_source_drift` with a
+  drift source such as `runtime_notes` or `pytest_failure_digest`.
 2. `behavioral_drift` on a `selected_invariants` case can still be a pass when
   the case artifact reports only `ignored_mismatches`. This is how
   `context.artifact` and `context.artifact-relaxed` tolerate known transcript
   or event-family noise while still failing if approvals, tool calls, final
   state, or context manifests drift.
+2. The selected-invariant artifact now records a
+  `selected_invariant_interpretation` string so the operator can tell at a
+  glance whether ignored drift was acceptable or whether one of the curated
+  dimensions actually failed.
 3. `event_families drift` on `run_tests`-backed cases currently comes from live
   `ToolOutputChunk` events that offline replay does not reproduce. That drift
   is expected for the artifact cases and should not be mistaken for context

@@ -29,6 +29,15 @@ def test_build_eval_suite_job_summary_surfaces_counts_cases_and_artifacts() -> N
                 replay_outcome="manifest_drift",
                 passed=False,
                 message="prepared turn no longer matches recorded manifest",
+                triage_classification="manifest_drift",
+                triage_headline="prepared turn drifted before model execution",
+                triage_first_relevant_change=(
+                    "prepared turn no longer matches recorded manifest"
+                ),
+                triage_recommended_inspection_path=(
+                    "Inspect the recorded prepared turn manifest and the current "
+                    "prompt and turn-context inputs."
+                ),
             ),
         ]
     )
@@ -49,6 +58,11 @@ def test_build_eval_suite_job_summary_surfaces_counts_cases_and_artifacts() -> N
         "| `manifest.case` | `runtime.replay` | `failed` | `manifest_drift` | `high` | "
         "`.glassbox/evals/push-smoke/manifest.case.json` |"
     ) in summary
+    assert "prepared turn drifted before model execution" in summary
+    assert (
+        "First change: `prepared turn no longer matches recorded manifest`" in summary
+    )
+    assert "Next inspect: Inspect the recorded prepared turn manifest" in summary
     assert "push-smoke-evals-deadbeef" in summary
     assert (
         '"summary_artifact_path": ".glassbox/evals/push-smoke/summary.json"' in summary
@@ -64,6 +78,12 @@ def test_build_eval_suite_annotations_marks_failed_cases_by_severity() -> None:
                 passed=False,
                 message="transcript drift",
                 severity="medium",
+                triage_headline="behavioral drift detected in transcript",
+                first_relevant_mismatch="transcript drift",
+                triage_recommended_inspection_path=(
+                    "Inspect transcript messages and the last recorded model "
+                    "response in the retained replay artifact."
+                ),
             ),
             _case_result(
                 case_id="broken.case",
@@ -71,6 +91,11 @@ def test_build_eval_suite_annotations_marks_failed_cases_by_severity() -> None:
                 passed=False,
                 message="missing replay bundle file",
                 severity="high",
+                triage_headline="missing replay bundle file",
+                triage_recommended_inspection_path=(
+                    "Inspect the replay bundle, retained replay artifacts, and "
+                    "runtime error surface for missing or invalid inputs."
+                ),
             ),
         ]
     )
@@ -84,11 +109,58 @@ def test_build_eval_suite_annotations_marks_failed_cases_by_severity() -> None:
     assert annotations[0].title == "behavior.case: behavioral_drift"
     assert (
         annotations[0].message
-        == "transcript drift Artifact: .glassbox/evals/push-smoke/behavior.case.json"
+        == "behavioral drift detected in transcript First change: transcript "
+        "drift. Next inspect: Inspect transcript messages and the last recorded "
+        "model response in the retained replay artifact.. Artifact: "
+        ".glassbox/evals/push-smoke/behavior.case.json"
     )
     assert annotations[1].message == (
-        "missing replay bundle file Artifact: "
+        "missing replay bundle file Next inspect: Inspect the replay bundle, "
+        "retained replay artifacts, and runtime error surface for missing or "
+        "invalid inputs.. Artifact: "
         ".glassbox/evals/push-smoke/broken.case.json"
+    )
+
+
+def test_build_eval_suite_summary_payload_includes_triage_fields() -> None:
+    payload = build_eval_suite_summary_payload(
+        _suite_result(
+            [
+                _case_result(
+                    case_id="context.case",
+                    replay_outcome="manifest_drift",
+                    passed=False,
+                    triage_classification="context_source_drift",
+                    triage_headline=(
+                        "recorded enriched context drifted for runtime_notes"
+                    ),
+                    triage_first_relevant_change=(
+                        "recorded enriched context source drifted: runtime_notes"
+                    ),
+                    triage_drift_sources=["runtime_notes"],
+                    triage_recommended_inspection_path=(
+                        "Inspect runtime note inputs and replay enriched-context "
+                        "capture for runtime_notes."
+                    ),
+                    first_relevant_mismatch=None,
+                    selected_invariant_interpretation=None,
+                )
+            ]
+        ),
+        artifact_name="push-smoke-evals-deadbeef",
+        artifact_root=".glassbox/evals/push-smoke",
+    )
+
+    case_payload = payload["cases"][0]
+
+    assert case_payload["triage_classification"] == "context_source_drift"
+    assert case_payload["triage_headline"] == (
+        "recorded enriched context drifted for runtime_notes"
+    )
+    assert case_payload["triage_drift_sources"] == ["runtime_notes"]
+    assert case_payload["recommended_inspection_path"] == (
+        "Inspect runtime note inputs and replay enriched-context capture for "
+        "runtime_notes."
     )
 
 
@@ -196,6 +268,13 @@ def _case_result(
     passed: bool = True,
     message: str | None = None,
     severity: EvalCaseSeverity | None = None,
+    first_relevant_mismatch: str | None = None,
+    triage_classification: str | None = None,
+    triage_headline: str | None = None,
+    triage_first_relevant_change: str | None = None,
+    triage_drift_sources: list[str] | None = None,
+    triage_recommended_inspection_path: str | None = None,
+    selected_invariant_interpretation: str | None = None,
 ) -> EvalCaseResult:
     return EvalCaseResult(
         case_id=case_id,
@@ -214,5 +293,12 @@ def _case_result(
         mismatches=[],
         relevant_mismatches=[],
         ignored_mismatches=[],
+        first_relevant_mismatch=first_relevant_mismatch,
+        triage_classification=triage_classification,
+        triage_headline=triage_headline,
+        triage_first_relevant_change=triage_first_relevant_change,
+        triage_drift_sources=list(triage_drift_sources or []),
+        triage_recommended_inspection_path=triage_recommended_inspection_path,
+        selected_invariant_interpretation=selected_invariant_interpretation,
         artifact_path=Path("/tmp/push-smoke") / f"{case_id}.json",
     )

@@ -2569,7 +2569,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-245: Improve Replay And Eval Failure Artifacts For Fast Triage
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-193`, `GBX-204`, `GBX-233`, `GBX-240`, `GBX-241`
 - Goal: reduce the time from a failing replay or eval run to a useful hypothesis about what changed and where to inspect next
 - Deliverables:

@@ -502,6 +502,12 @@ def test_replay_runner_preserves_artifact_backed_context_under_replay(
 
         assert result.outcome == "behavioral_drift"
         assert result.mismatches == ["event_families drift"]
+        assert result.triage is not None
+        assert result.triage.classification == "behavioral_drift"
+        assert result.triage.first_relevant_change == "event_families drift"
+        assert result.triage.impacted_dimensions == ["event_families"]
+        assert result.triage.recommended_inspection_path is not None
+        assert "event stream" in result.triage.recommended_inspection_path
 
     asyncio.run(scenario())
 
@@ -549,6 +555,11 @@ def test_replay_runner_reports_manifest_drift(tmp_path: Path) -> None:
 
         assert result.outcome == "manifest_drift"
         assert result.message is not None
+        assert result.triage is not None
+        assert result.triage.classification == "manifest_drift"
+        assert result.triage.drift_sources == ["prepared_turn"]
+        assert result.triage.recommended_inspection_path is not None
+        assert "prepared turn manifest" in result.triage.recommended_inspection_path
 
     asyncio.run(scenario())
 
@@ -608,6 +619,11 @@ def test_replay_runner_reports_enriched_context_manifest_drift(
         assert (
             "recorded enriched context source drifted: runtime_notes" in result.message
         )
+        assert result.triage is not None
+        assert result.triage.classification == "context_source_drift"
+        assert result.triage.drift_sources == ["runtime_notes"]
+        assert result.triage.recommended_inspection_path is not None
+        assert "runtime note inputs" in result.triage.recommended_inspection_path
 
     asyncio.run(scenario())
 
@@ -693,6 +709,14 @@ def test_replay_runner_reports_artifact_backed_context_manifest_drift(
         assert (
             "recorded enriched context source drifted: pytest_failure_digest"
             in result.message
+        )
+        assert result.triage is not None
+        assert result.triage.classification == "context_source_drift"
+        assert result.triage.drift_sources == ["pytest_failure_digest"]
+        assert result.triage.recommended_inspection_path is not None
+        assert (
+            "pytest failure digest artifact"
+            in result.triage.recommended_inspection_path
         )
 
     asyncio.run(scenario())
@@ -1341,7 +1365,12 @@ def test_eval_runner_allows_selected_invariants_for_context_sensitive_bundle(
             "transcript drift",
         ]
         assert result.cases[0].message == (
-            "selected invariants matched; mismatches were limited to ignored dimensions"
+            "selected invariants matched; ignored drift was limited to "
+            "transcript drift, event_families drift"
+        )
+        assert result.cases[0].selected_invariant_interpretation == (
+            "selected invariants matched; ignored drift was limited to "
+            "transcript drift, event_families drift"
         )
 
     asyncio.run(scenario())

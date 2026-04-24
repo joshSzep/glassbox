@@ -69,6 +69,15 @@ def build_eval_suite_summary_payload(
                     output_dir=result.output_dir,
                     artifact_path=case.artifact_path,
                 ),
+                "triage_classification": case.triage_classification,
+                "triage_headline": case.triage_headline,
+                "triage_first_relevant_change": case.triage_first_relevant_change,
+                "triage_drift_sources": list(case.triage_drift_sources),
+                "recommended_inspection_path": case.triage_recommended_inspection_path,
+                "first_relevant_mismatch": case.first_relevant_mismatch,
+                "selected_invariant_interpretation": (
+                    case.selected_invariant_interpretation
+                ),
                 "message": case.message,
             }
             for case in result.cases
@@ -180,13 +189,30 @@ def build_eval_suite_job_summary(
     if failed_cases:
         lines.extend(["", "### Failed Cases", ""])
         for case in failed_cases:
-            detail = case["message"] or "See retained case artifact for details."
+            detail = (
+                case["triage_headline"]
+                or case["message"]
+                or "See retained case artifact for details."
+            )
             owner_suffix = f" owner `{case['owner']}`" if case["owner"] else ""
+            first_change = (
+                case["first_relevant_mismatch"] or case["triage_first_relevant_change"]
+            )
+            next_inspect = case["recommended_inspection_path"]
+            classification_suffix = ""
+            if case["triage_classification"] not in {None, case["replay_outcome"]}:
+                classification_suffix = (
+                    f" classified as `{case['triage_classification']}`"
+                )
             lines.append(
                 f"- `{case['case_id']}`: `{case['replay_outcome']}` "
-                f"(`{case['severity']}`{owner_suffix}) at "
+                f"(`{case['severity']}`{owner_suffix}){classification_suffix} at "
                 f"`{case['artifact_path']}`. {detail}"
             )
+            if first_change is not None:
+                lines[-1] += f" First change: `{first_change}`."
+            if next_inspect is not None:
+                lines[-1] += f" Next inspect: {next_inspect}"
 
     lines.extend(
         [
@@ -220,7 +246,17 @@ def build_eval_suite_annotations(
             output_dir=result.output_dir,
             artifact_path=case.artifact_path,
         )
-        detail = case.message or "See retained case artifact for details."
+        detail = (
+            case.triage_headline
+            or case.message
+            or "See retained case artifact for details."
+        )
+        first_change = case.first_relevant_mismatch or case.triage_first_relevant_change
+        next_inspect = case.triage_recommended_inspection_path
+        if first_change is not None:
+            detail += f" First change: {first_change}."
+        if next_inspect is not None:
+            detail += f" Next inspect: {next_inspect}."
         annotations.append(
             EvalAutomationAnnotation(
                 level=_annotation_level_for_case(case),

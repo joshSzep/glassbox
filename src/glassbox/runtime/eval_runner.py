@@ -22,7 +22,12 @@ from glassbox.runtime.evals import (
     EvalVerificationStage,
     resolve_eval_suite_selection,
 )
-from glassbox.runtime.replay import ReplayOutcome, ReplayResult, ReplayRunner
+from glassbox.runtime.replay import (
+    ReplayOutcome,
+    ReplayResult,
+    ReplayRunner,
+    build_replay_triage,
+)
 
 _REPLAY_EXIT_CODES: dict[ReplayOutcome, int] = {
     "exact_match": 0,
@@ -54,6 +59,13 @@ class EvalCaseResult(BaseModel):
     mismatches: list[str] = Field(default_factory=list)
     relevant_mismatches: list[str] = Field(default_factory=list)
     ignored_mismatches: list[str] = Field(default_factory=list)
+    first_relevant_mismatch: str | None = None
+    triage_classification: str | None = None
+    triage_headline: str | None = None
+    triage_first_relevant_change: str | None = None
+    triage_drift_sources: list[str] = Field(default_factory=list)
+    triage_recommended_inspection_path: str | None = None
+    selected_invariant_interpretation: str | None = None
     artifact_path: Path
 
 
@@ -169,6 +181,13 @@ class EvalRunner:
             replay_result.mismatches,
             selected_invariants=set(eval_case.expectation.selected_invariants()),
         )
+        replay_triage = replay_result.triage or build_replay_triage(replay_result)
+        selected_invariant_interpretation = _selected_invariant_interpretation(
+            replay_result,
+            selected_invariants=list(eval_case.expectation.selected_invariants()),
+            relevant_mismatches=relevant_mismatches,
+            ignored_mismatches=ignored_mismatches,
+        )
         case_result = EvalCaseResult(
             case_id=eval_case.case_id,
             title=eval_case.title,
@@ -186,12 +205,25 @@ class EvalRunner:
             passed=_case_passed(replay_result, relevant_mismatches),
             message=_case_message(
                 replay_result,
+                triage_headline=replay_triage.headline,
                 relevant_mismatches=relevant_mismatches,
                 ignored_mismatches=ignored_mismatches,
+                selected_invariant_interpretation=selected_invariant_interpretation,
             ),
             mismatches=list(replay_result.mismatches),
             relevant_mismatches=relevant_mismatches,
             ignored_mismatches=ignored_mismatches,
+            first_relevant_mismatch=(
+                relevant_mismatches[0] if relevant_mismatches else None
+            ),
+            triage_classification=replay_triage.classification,
+            triage_headline=replay_triage.headline,
+            triage_first_relevant_change=replay_triage.first_relevant_change,
+            triage_drift_sources=list(replay_triage.drift_sources),
+            triage_recommended_inspection_path=(
+                replay_triage.recommended_inspection_path
+            ),
+            selected_invariant_interpretation=selected_invariant_interpretation,
             artifact_path=output_dir / f"{eval_case.case_id}.json",
         )
         case_result.artifact_path.write_text(
@@ -273,16 +305,42 @@ def _case_passed(
 def _case_message(
     replay_result: ReplayResult,
     *,
+    triage_headline: str,
     relevant_mismatches: list[str],
     ignored_mismatches: list[str],
+    selected_invariant_interpretation: str | None,
 ) -> str | None:
     if replay_result.outcome != "behavioral_drift":
         return replay_result.message
+    if not relevant_mismatches and selected_invariant_interpretation is not None:
+        return selected_invariant_interpretation
+    if relevant_mismatches and triage_headline.strip() != "":
+        return triage_headline
     if not relevant_mismatches and ignored_mismatches:
-        return (
-            "selected invariants matched; mismatches were limited to ignored dimensions"
-        )
+        return selected_invariant_interpretation
     return replay_result.message
+
+
+def _selected_invariant_interpretation(
+    replay_result: ReplayResult,
+    *,
+    selected_invariants: list[EvalInvariant],
+    relevant_mismatches: list[str],
+    ignored_mismatches: list[str],
+) -> str | None:
+    if not selected_invariants:
+        return None
+    if replay_result.outcome == "exact_match":
+        return "selected invariants matched with no observed drift"
+    if replay_result.outcome != "behavioral_drift":
+        return None
+    if not relevant_mismatches and ignored_mismatches:
+        return "selected invariants matched; ignored drift was limited to " + ", ".join(
+            ignored_mismatches
+        )
+    if relevant_mismatches:
+        return "selected invariants failed on " + ", ".join(relevant_mismatches)
+    return "selected invariants matched"
 
 
 def _outcome_counts(

@@ -1654,6 +1654,21 @@ def _print_replay_report(result: ReplayResult) -> None:
     if result.message:
         print(f"Summary: {result.message}")
 
+    if result.triage is not None:
+        if result.triage.classification != result.outcome:
+            print(
+                "Classification: "
+                + _format_replay_outcome(result.triage.classification)
+            )
+        if result.triage.headline not in {"", result.message, None}:
+            print(f"Triage: {result.triage.headline}")
+        if result.triage.first_relevant_change not in {None, result.triage.headline}:
+            print(f"First change: {result.triage.first_relevant_change}")
+        if result.triage.drift_sources:
+            print("Drift sources: " + ", ".join(result.triage.drift_sources))
+        if result.triage.recommended_inspection_path:
+            print(f"Next inspect: {result.triage.recommended_inspection_path}")
+
     if result.outcome == "exact_match":
         print(
             "Matched: transcript, tool calls, approval flow, question flow, "
@@ -1691,8 +1706,24 @@ def _print_eval_suite_report(result: EvalSuiteResult) -> None:
             f"  - {case_result.case_id}: "
             f"{_format_replay_outcome(case_result.replay_outcome)} ({status})"
         )
+        if (
+            case_result.triage_classification is not None
+            and case_result.triage_classification != case_result.replay_outcome
+        ):
+            print(
+                "    Classification: "
+                + _format_replay_outcome(case_result.triage_classification)
+            )
+        if case_result.triage_headline:
+            print(f"    Triage: {case_result.triage_headline}")
         if case_result.message:
             print(f"    Summary: {case_result.message}")
+        if case_result.first_relevant_mismatch:
+            print("    First relevant mismatch: " + case_result.first_relevant_mismatch)
+        elif case_result.triage_first_relevant_change:
+            print(
+                "    First reported change: " + case_result.triage_first_relevant_change
+            )
         if case_result.relevant_mismatches:
             print(
                 "    Relevant mismatches: " + ", ".join(case_result.relevant_mismatches)
@@ -1701,6 +1732,15 @@ def _print_eval_suite_report(result: EvalSuiteResult) -> None:
             print(
                 "    Ignored mismatches: " + ", ".join(case_result.ignored_mismatches)
             )
+        if case_result.selected_invariant_interpretation:
+            print(
+                "    Selected invariants: "
+                + case_result.selected_invariant_interpretation
+            )
+        if case_result.triage_drift_sources:
+            print("    Drift sources: " + ", ".join(case_result.triage_drift_sources))
+        if case_result.triage_recommended_inspection_path:
+            print("    Next inspect: " + case_result.triage_recommended_inspection_path)
         print(f"    Artifact: {case_result.artifact_path}")
 
 

@@ -462,6 +462,35 @@ def test_cli_replay_reports_manifest_drift_and_exit_code(
     assert exit_code == 11
     assert "Outcome: manifest drift" in captured.out
     assert "Summary:" in captured.out
+    assert "Triage: prepared turn drifted before model execution" in captured.out
+    assert (
+        "First change: prepared turn no longer matches recorded manifest"
+        in captured.out
+    )
+    assert "Next inspect: Inspect the recorded prepared turn manifest" in captured.out
+
+
+def test_cli_replay_missing_bundle_reports_replay_failure_and_next_inspection(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    missing_bundle = tmp_path / "missing-bundle.json"
+
+    exit_code = main(
+        [
+            "replay",
+            "--bundle",
+            str(missing_bundle),
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 13
+    assert "Outcome: replay failure" in captured.out
+    assert "Summary: missing replay bundle file" in captured.out
+    assert "Next inspect:" in captured.out
 
 
 def test_cli_replay_json_output_contains_structured_report(
@@ -613,12 +642,26 @@ def test_cli_eval_run_reports_mixed_outcomes_and_writes_artifacts(
     )
     captured = capsys.readouterr()
     summary = json.loads((output_dir / "summary.json").read_text(encoding="utf-8"))
+    manifest_case = next(
+        case_payload
+        for case_payload in summary["cases"]
+        if case_payload["case_id"] == "drift.manifest"
+    )
+    manifest_artifact = json.loads(
+        (output_dir / "drift.manifest.json").read_text(encoding="utf-8")
+    )
 
     assert exit_code == 11
     assert "Selected cases: 2" in captured.out
     assert "Passed: 1" in captured.out
     assert "Failed: 1" in captured.out
     assert "drift.manifest: manifest drift (failed)" in captured.out
+    assert "Triage: prepared turn drifted before model execution" in captured.out
+    assert (
+        "First reported change: prepared turn no longer matches recorded manifest"
+        in captured.out
+    )
+    assert "Next inspect: Inspect the recorded prepared turn manifest" in captured.out
     assert str(output_dir.resolve()) in captured.out
     assert summary["selected_case_count"] == 2
     assert summary["passed_case_count"] == 1
@@ -626,6 +669,22 @@ def test_cli_eval_run_reports_mixed_outcomes_and_writes_artifacts(
     assert summary["exit_code"] == 11
     assert summary["outcome_counts"]["exact_match"] == 1
     assert summary["outcome_counts"]["manifest_drift"] == 1
+    assert (
+        manifest_case["triage_headline"]
+        == "prepared turn drifted before model execution"
+    )
+    assert manifest_case["triage_first_relevant_change"] == (
+        "prepared turn no longer matches recorded manifest"
+    )
+    assert manifest_case["triage_recommended_inspection_path"].startswith(
+        "Inspect the recorded prepared turn manifest"
+    )
+    assert manifest_artifact["triage_headline"] == (
+        "prepared turn drifted before model execution"
+    )
+    assert manifest_artifact["replay_result"]["triage"]["classification"] == (
+        "manifest_drift"
+    )
     for case_payload in summary["cases"]:
         assert Path(case_payload["artifact_path"]).is_file()
 
@@ -1255,9 +1314,16 @@ def test_cli_eval_run_allows_selected_invariants_to_ignore_behavioral_drift(
     assert exit_code == 0
     assert "transcript.only: behavioral drift (passed)" in captured.out
     assert "Ignored mismatches: final_state drift" in captured.out
+    assert (
+        "Selected invariants: selected invariants matched; ignored drift was "
+        "limited to final_state drift" in captured.out
+    )
     assert summary["cases"][0]["replay_outcome"] == "behavioral_drift"
     assert summary["cases"][0]["passed"] is True
     assert summary["cases"][0]["ignored_mismatches"] == ["final_state drift"]
+    assert summary["cases"][0]["selected_invariant_interpretation"] == (
+        "selected invariants matched; ignored drift was limited to final_state drift"
+    )
 
 
 def test_cli_eval_run_refreshes_managed_output_dir_for_repeated_runs(
