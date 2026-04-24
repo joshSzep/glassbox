@@ -1148,6 +1148,18 @@ required to stay advisory and non-blocking. That keeps the future canary path
 code-aligned without letting release-signoff workflows quietly absorb
 non-deterministic evidence.
 
+The governance model around those deterministic profiles is now explicit:
+
+- eval cases carry release-contract ownership metadata such as `owner`, `capabilities`, `severity`, `verification_stages`, and `baseline_refresh_policy`
+- eval profiles define the stage boundary for those cases through `verification_stage`, deterministic-versus-canary `track`, optional tags or explicit case IDs, blocking intent, and optional budget guardrails
+- capability coverage manifests declare which repository-owned behaviors are expected to be covered at each stage so sign-off can fail on missing release-critical coverage instead of only on raw replay mismatches
+- release sign-off aggregates deterministic profile summaries into one retained artifact that reports suite outcomes, advisory drift, unsupported cases, budget health, capability coverage, and baseline freshness cues without replacing the underlying per-case evidence
+
+That structure is deliberate. The deterministic contract needs typed ownership,
+selection, and sign-off surfaces so contributors can reason about why a case is
+present, where it should run, when it should block, and what evidence should be
+reviewed before a baseline is refreshed or a release is considered trustworthy.
+
 ### Replay Baseline Capture
 
 Replay should be grounded in recorded turn manifests rather than inferred after

@@ -2657,7 +2657,7 @@ uv run ty check src/glassbox/path.py
 
 ### GBX-249: Document Replay And Eval Release Discipline, Governance, And Sign-Off Workflow
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-240`, `GBX-241`, `GBX-242`, `GBX-243`, `GBX-244`, `GBX-245`, `GBX-246`, `GBX-247`, `GBX-248`, `GBX-121`
 - Goal: explain how replay and eval now function as a maintained release contract so contributors can use the full governance workflow without reverse-engineering conventions from CI config and JSON files
 - Deliverables:

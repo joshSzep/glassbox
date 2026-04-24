@@ -256,6 +256,33 @@ status or deterministic profile budgets as a source of shipping confidence.
 It is a repository-owned place to stage future comparison work while keeping
 the local-first deterministic contract honest.
 
+End-to-end governed example:
+
+```text
+uv run glassbox run "Inspect the repository" --cwd .
+uv run glassbox eval promote SESSION_ID tooling.readme --title "README inspection stays stable" --tag smoke --tag tooling --owner runtime.replay --capability repository_inspection --capability replay_portability --severity high --verification-stage commit-time --verification-stage push-time --reason "Initial promotion for repository inspection contract" --cwd . --db-path .glassbox/glassbox.sqlite3
+uv run glassbox eval run --profile commit-smoke --output-dir .glassbox/evals/pre-commit --refresh-output-dir --cwd .
+uv run glassbox eval refresh tooling.readme SESSION_ID --reason "Intentional baseline update after README contract change" --acknowledge-policy --cwd . --db-path .glassbox/glassbox.sqlite3
+uv run glassbox eval report commit-smoke push-confirmation release-candidate --output-dir .glassbox/evals/release-signoff --cwd .
+```
+
+Use that flow when a replayable session should become a maintained repository
+contract rather than a one-off local check.
+
+Governance decisions:
+
+- Add a new case when the behavior is important enough to protect across branches, CI runs, and contributors instead of only in one local session.
+- Refresh an existing baseline only when the drift is intentional and the same underlying contract should continue to exist.
+- Promote a case into a stricter profile when repeated advisory or push-time drift proves that the regression signal belongs earlier and the case fits the tighter budget.
+- Demote a case out of a stricter profile when it becomes noisy, too expensive, or dependent on relaxed selected-invariant interpretation.
+
+Severity guidance:
+
+- `critical`: treat as release-signoff or operator-trust blocking until understood.
+- `high`: important product or operator workflow that should normally block the deterministic stage it belongs to.
+- `medium`: meaningful contract worth review, but not as central as the blocking core.
+- `low`: exploratory or advisory signal that should not quietly become shipping confidence on its own.
+
 Case manifest shape:
 
 ```json
@@ -326,6 +353,11 @@ Reading context-related failures:
   `ToolOutputChunk` events that offline replay does not reproduce. That drift
   is expected for the artifact cases and should not be mistaken for context
   source drift.
+4. `unsupported_session` means the retained baseline itself needs migration or
+   refresh work before deterministic replay can be trusted again.
+5. Profile-budget violations are governance failures about suite shape,
+   determinism, or artifact volume. They can block a stage even when every
+   individual case technically replayed successfully.
 
 Troubleshooting flows:
 
@@ -343,6 +375,11 @@ Troubleshooting flows:
   machine-readable profile, capability, or freshness details are needed before
   drilling into `profiles/PROFILE_ID/summary.json` or the retained per-case
   artifacts.
+1. Live-provider canary exploration:
+  use `glassbox eval profiles --track live-provider-canary` to discover the
+  reserved canary scaffold, but keep that work out of deterministic
+  `glassbox eval report` runs because canary evidence is intentionally not part
+  of release sign-off.
 2. Push confirmation failed after local success:
   read the GitHub Actions job summary first, then download the
   `push-smoke-evals-SHA` artifact only if the summary does not already explain

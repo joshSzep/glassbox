@@ -48,6 +48,11 @@ glassbox replay SESSION_ID [--json]
 glassbox replay --bundle BUNDLE_PATH [--json]
 glassbox replay-export SESSION_ID [OUTPUT]
 glassbox eval run [CASE_ID ...] [--tag TAG] [--json] [--output-dir DIR]
+glassbox eval audit [CASE_ID ...] [--profile PROFILE_ID] [--tag TAG] [--json]
+glassbox eval profiles [--track deterministic|live-provider-canary] [--json]
+glassbox eval report PROFILE_ID [PROFILE_ID ...] [--tag TAG] [--json] [--output-dir DIR]
+glassbox eval promote SESSION_ID CASE_ID --title TITLE [...]
+glassbox eval refresh CASE_ID SESSION_ID --reason REASON [...]
 glassbox approve SESSION_ID APPROVAL_ID
 glassbox deny SESSION_ID APPROVAL_ID
 glassbox rebuild [SESSION_ID | --all]
@@ -328,6 +333,10 @@ Replay and eval commands answer a different question from the live session CLI:
 not "what should this session do next?" but "does the current codebase still
 reproduce the recorded behavior I care about?"
 
+They complement format, lint, type checking, `pytest`, and other verification
+layers. Replay and eval are the checked-in behavior contract for high-value
+flows, not a replacement for the rest of the validation stack.
+
 Use the workflow that matches the problem you are solving:
 
 - Use `glassbox status`, `attach`, `answer`, `approve`, and `message` when you are operating a live or paused session.
@@ -335,6 +344,17 @@ Use the workflow that matches the problem you are solving:
 - Use `glassbox replay SESSION_ID` when you want to re-check one historical session stored in the local SQLite database.
 - Use `glassbox replay-export SESSION_ID` when you want a portable baseline that can move across branches, repositories, or CI machines.
 - Use `glassbox eval run` when you want a curated regression suite from checked-in replay bundles under `evals/`.
+- Use `glassbox eval audit` when you want to compare the selected case portfolio against the declared capability coverage manifest.
+- Use `glassbox eval report` when you want one deterministic release-signoff artifact aggregated from named profiles.
+- Use `glassbox eval profiles` when you want to inspect the repository-owned profile catalog or separate deterministic profiles from the optional `live-provider-canary` track.
+
+The repository-owned profile manifest now carries two explicit tracks:
+
+- `deterministic` profiles participate in offline replay-backed eval, budget enforcement, and release sign-off.
+- `live-provider-canary` profiles are reserved for optional future provider comparison work and must stay advisory and non-blocking.
+
+`glassbox eval report` is intentionally deterministic-only so optional canary
+research cannot be mistaken for release evidence.
 
 ### Forked Sessions In Replay And Eval
 
@@ -366,48 +386,50 @@ behavior outside the captured baseline.
 
 ### End-To-End Baseline Flow
 
-The typical promotion flow is:
+The full governed flow is:
 
-1. Capture or identify a replayable session.
-2. Export its portable bundle.
-3. Add an eval case manifest that declares the expected invariants.
-4. Run the eval suite locally before checking in the baseline.
+1. Capture a replayable session.
+2. Promote it into a curated case with ownership, severity, and verification-stage metadata.
+3. Run the relevant deterministic profile locally.
+4. Refresh the baseline intentionally when the contract changes.
+5. Emit a deterministic release-signoff report from named profiles.
 
-Export a portable baseline from a recorded session:
+One end-to-end example looks like this:
 
 ```bash
-uv run glassbox replay-export SESSION_ID evals/bundles/tooling.readme.json --cwd .
+uv run glassbox run "Inspect the repository" --cwd .
+uv run glassbox eval promote SESSION_ID tooling.readme \
+  --title "README inspection stays stable" \
+  --tag smoke \
+  --tag tooling \
+  --owner runtime.replay \
+  --capability repository_inspection \
+  --capability replay_portability \
+  --severity high \
+  --verification-stage commit-time \
+  --verification-stage push-time \
+  --reason "Initial promotion for repository inspection contract" \
+  --cwd . \
+  --db-path .glassbox/glassbox.sqlite3
+uv run glassbox eval run --profile commit-smoke --output-dir .glassbox/evals/pre-commit --refresh-output-dir --cwd .
+uv run glassbox eval refresh tooling.readme SESSION_ID \
+  --reason "Intentional baseline update after README contract change" \
+  --acknowledge-policy \
+  --cwd . \
+  --db-path .glassbox/glassbox.sqlite3
+uv run glassbox eval report commit-smoke push-confirmation release-candidate \
+  --output-dir .glassbox/evals/release-signoff \
+  --cwd .
 ```
 
-Add the matching eval case manifest:
-
-```json
-{
-	"manifest_version": 1,
-	"case_id": "tooling.readme",
-	"title": "README inspection stays stable",
-	"bundle_path": "../bundles/tooling.readme.json",
-	"tags": ["smoke", "tooling"],
-	"expectation": {
-		"mode": "exact_match"
-	}
-}
-```
-
-Run the case directly:
+Useful related commands during that flow:
 
 ```bash
 uv run glassbox eval run tooling.readme --cwd .
-```
-
-Or run a tagged or profiled suite and emit machine-readable output:
-
-```bash
 uv run glassbox eval run --tag smoke --json --cwd .
-uv run glassbox eval run --profile commit-smoke --cwd .
 uv run glassbox eval audit --profile release-candidate --json --cwd .
-uv run glassbox eval promote SESSION_ID CASE_ID --title "Case title" --cwd . --db-path .glassbox/glassbox.sqlite3
-uv run glassbox eval refresh CASE_ID SESSION_ID --reason "Intentional baseline update" --acknowledge-policy --cwd . --db-path .glassbox/glassbox.sqlite3
+uv run glassbox eval profiles --json --cwd .
+uv run glassbox eval profiles --track live-provider-canary --json --cwd .
 ```
 
 Each `glassbox eval run` invocation writes one JSON artifact per executed case
@@ -419,6 +441,15 @@ Guided baseline management is available through `glassbox eval promote` and
 and refresh writes a review artifact under `.glassbox/evals/baseline-updates/`
 that summarizes the bundle and manifest changes before you accept the updated
 baseline.
+
+Curated case metadata is part of the release contract, not decoration. A case
+should normally declare:
+
+- `owner` for the repository-owned area responsible for the contract
+- `capabilities` for the operator-facing or product-facing behavior being protected
+- `severity` for how hard a failure should weigh on triage and sign-off
+- `verification_stages` for where the case belongs in the deterministic workflow
+- `baseline_refresh_policy` for how cautious refresh review needs to be
 
 ### Local-First Verification Policy
 
@@ -506,6 +537,20 @@ Use these rules for the blocking `smoke` tag set:
 - Promote a non-blocking case into `smoke` when a post-push failure shows that
   the repo needs that regression signal earlier.
 
+Use these governance rules for case lifecycle decisions:
+
+- Add a new replay or eval case when a behavior has become important enough to protect in-repo across branches, contributors, and CI machines.
+- Refresh a baseline only when the observed drift is intentional and the case should continue protecting the same underlying contract.
+- Promote a case into a stricter profile when repeated advisory or push-time drift proves the repo needs that signal earlier and the case is deterministic enough for the tighter stage budget.
+- Demote a case out of a stricter profile when it becomes noisy, too expensive, or dependent on relaxed invariants or advisory-only interpretation.
+
+Severity is a triage tool, not just report decoration:
+
+- `critical` means release-signoff or core operator trust should stop until the case is understood.
+- `high` means an important workflow or contract drifted and should normally block the deterministic stage it belongs to.
+- `medium` means the case protects useful behavior that still deserves review, but it is less central than the blocking core.
+- `low` means the case is mostly exploratory or advisory and should not quietly escalate into shipping confidence on its own.
+
 ### Targeted Expectations And Baseline Refresh
 
 The default expectation is strict `exact_match`. Use a narrower
@@ -532,11 +577,15 @@ Use this baseline refresh playbook:
 ### Replay And Eval Troubleshooting
 
 - If replay reports `manifest drift`, inspect the current prompt/context/tool preparation before refreshing the baseline. This usually means the runtime contract changed before any tool execution or transcript comparison happened.
+- If replay or eval triage classifies a failure as `context_source_drift`, inspect the named drift source and the recommended inspection path in the retained artifact before treating it like generic transcript noise.
 - If replay reports `behavioral drift`, read the mismatch list and the per-case artifact JSON to see which normalized dimensions changed.
 - If replay reports `unsupported session`, refresh or migrate the baseline instead of trusting a partial replay from an older manifest or bundle version.
 - If replay reports `replay failure`, check for missing or corrupted replay artifacts, a missing bundle file, or a damaged checked-in baseline.
+- If a suite fails on profile budget health, inspect `summary.json` or the terminal `Profile budget:` block before demoting or widening the profile; that failure is governance drift, not necessarily behavioral drift.
+- If release sign-off returns `warning` or `failed`, read `.glassbox/evals/.../release-signoff.md` first, then drill into `release-signoff.json`, `profiles/PROFILE_ID/summary.json`, and the retained per-case artifacts.
 - If a child-session replay or eval case fails unexpectedly, confirm that you exported the child session itself. Child bundles are self-contained once exported, but replaying the wrong parent bundle will of course validate the wrong history.
 - If a provider-backed baseline drifts unexpectedly, remember that Glassbox is replaying the recorded manifests and outputs offline. The replay signal says the current code no longer matches that recorded baseline, not that the live provider has become deterministic.
+- If you are exploring provider behavior that is intentionally outside the deterministic contract, keep that work on the `live-provider-canary` track and out of `glassbox eval report`.
 - If you only need one historical check, use `glassbox replay`. Promote to `evals/` only when the scenario should become a curated regression contract for the repository.
 
 ## Real Provider Setup
