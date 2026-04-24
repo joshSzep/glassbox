@@ -663,7 +663,7 @@ These follow-on tasks stay within the same behavior-preserving contract as the o
 
 ### GBX-R171: Split Runtime Bootstrap Into Storage, Provider, And Service Assembly Layers
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R104`, `GBX-R160`, `GBX-R170`
 - Goal: reduce [bootstrap.py](./../src/glassbox/runtime/bootstrap.py) to a thin public composition surface by separating workspace/database bootstrap, provider/executor wiring, and service/repository assembly
 - Deliverables:

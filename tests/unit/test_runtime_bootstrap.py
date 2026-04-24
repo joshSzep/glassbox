@@ -1,8 +1,10 @@
 """Unit tests for runtime bootstrap model executor selection."""
 
+import sqlite3
 from datetime import UTC
 from datetime import datetime
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -13,6 +15,7 @@ from glassbox.runtime import bootstrap as runtime_bootstrap
 from glassbox.runtime.errors import ProviderRuntimeConfigFailure
 from glassbox.runtime.provider_config import ProviderSecretConfig
 from glassbox.runtime.provider_config import RuntimeProviderConfig
+from glassbox.runtime.supervisor import SessionSupervisor
 
 
 def _session_record(model_name: str) -> SessionRecord:
@@ -172,3 +175,40 @@ def test_model_executor_factory_redacts_secret_on_invalid_provider_base_url() ->
         executor_factory(_session_record("openai:gpt-5.4"))
 
     assert secret not in str(exc_info.value)
+
+
+def test_open_runtime_context_initializes_database_at_default_path(
+    tmp_path: Path,
+) -> None:
+    with runtime_bootstrap.open_runtime_context(tmp_path) as runtime_context:
+        repository = runtime_context.repositories.sessions
+
+        assert runtime_bootstrap.default_database_path(tmp_path.resolve()).exists()
+        assert repository.list_sessions() == []
+        assert runtime_context.infrastructure.artifacts_root == tmp_path.resolve()
+
+
+def test_build_runtime_context_keeps_bootstrap_executor_factory_patchable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    connection = sqlite3.connect(":memory:")
+    monkeypatch.setattr(
+        runtime_bootstrap,
+        "_build_model_executor",
+        lambda session: f"patched:{session.model_name}",
+    )
+
+    try:
+        runtime_context = runtime_bootstrap._build_runtime_context(connection, tmp_path)
+        session_service = cast(
+            SessionSupervisor,
+            runtime_context.services.session_service,
+        )
+        assert session_service._turn_engine is not None
+        build_executor = session_service._turn_engine._model_executor_factory
+        executor = build_executor(_session_record("openai:gpt-5.4"))
+
+        assert executor == "patched:openai:gpt-5.4"
+    finally:
+        connection.close()
