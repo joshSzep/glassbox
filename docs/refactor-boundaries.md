@@ -149,6 +149,7 @@ The `cli` package should not build its own parallel session-query logic when the
 - command handlers should depend on service and query contracts, not on raw SQLite helpers
 - the CLI entry split now keeps parser registration and argument helpers in `src/glassbox/cli/parser.py`, top-level dispatch and error handling in `cli/entry.py`, and preserves `glassbox.cli:main` as a thin compatibility wrapper
 - workflow-family command handlers now live in `cli/interactive_commands.py`, `session_state_commands.py`, `replay_eval_commands.py`, and `server_commands.py`, with shared path resolution in `cli/path_helpers.py` and package-root forwards retained only as compatibility shims
+- long-lived terminal prompt routing, blocked-state messaging, prompt redraw context, and attach-session gating now live in `cli/interactive_session.py`, while `cli/__init__.py` retains package-root forwards for interactive compatibility seams such as `_read_interactive_input*`
 
 ### Web
 

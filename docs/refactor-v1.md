@@ -353,7 +353,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R122: Extract Interactive Terminal Session Controller And Prompt Routing
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R121`, `GBX-R102`
 - Goal: separate long-lived terminal session control from one-shot command handling and reporting code
 - Deliverables:
