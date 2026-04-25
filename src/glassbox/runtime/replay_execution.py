@@ -18,7 +18,6 @@ from glassbox.llm import ModelToolCall
 from glassbox.llm import PreparedModelTurn
 from glassbox.llm import PydanticAIModelAdapter
 from glassbox.llm import PydanticAIStreamTranslator
-from glassbox.runtime.bus import EventBus
 from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.model_loop import ModelLoopRunner
 from glassbox.runtime.replay_bundle_io import build_replay_import_events
@@ -41,6 +40,7 @@ from glassbox.runtime.replay_manifests import build_replay_tool_request_manifest
 from glassbox.runtime.replay_models import ReplayBundle
 from glassbox.runtime.replay_models import ReplayNormalizedSession
 from glassbox.runtime.supervisor import SessionSupervisor
+from glassbox.runtime.transport import InProcessEventTransport
 from glassbox.runtime.turn_engine import TurnEngine
 from glassbox.store.repositories import FilesystemArtifactRepository
 from glassbox.store.repositories import SQLiteSessionRepository
@@ -88,10 +88,10 @@ async def execute_replay_bundle(
                 connection,
                 replay_root,
             )
-            bus: EventBus = EventBus()
+            event_transport = InProcessEventTransport()
             turn_engine = TurnEngine(
                 repository,
-                bus,
+                event_transport,
                 TurnContextBuilder(repository),
                 lambda _session: build_replay_model_adapter(bundle),
                 lambda _session: model_executor,
@@ -99,7 +99,11 @@ async def execute_replay_bundle(
                 artifact_repository=artifact_repository,
                 model_loop_runner=ModelLoopRunner(),
             )
-            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+            supervisor = SessionSupervisor(
+                repository,
+                event_transport,
+                turn_engine=turn_engine,
+            )
             replay_state = await supervisor.start_session(replay_session_config)
             restored_import_events = build_replay_import_events(
                 bundle,
@@ -108,7 +112,7 @@ async def execute_replay_bundle(
             )
             if restored_import_events:
                 for event in repository.append_events(restored_import_events):
-                    bus.publish(event)
+                    event_transport.publish(event)
 
             restored_runtime_note_events = build_replay_runtime_note_import_events(
                 bundle,
@@ -116,7 +120,7 @@ async def execute_replay_bundle(
             )
             if restored_runtime_note_events:
                 for event in repository.append_events(restored_runtime_note_events):
-                    bus.publish(event)
+                    event_transport.publish(event)
 
             for action in bundle.actions:
                 if action.action_type == "user_message":
