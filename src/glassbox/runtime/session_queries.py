@@ -26,6 +26,7 @@ from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TranscriptMessage
 from glassbox.core.models import TurnMetricsRecord
 from glassbox.core.types import ApprovalStatus
+from glassbox.core.types import SessionStatus
 from glassbox.core.types import ToolExecutionStatus
 from glassbox.runtime.context_builder import RuntimeContextSnapshot
 from glassbox.runtime.context_builder import build_repository_context_snapshot
@@ -242,16 +243,26 @@ class SessionQueryService:
         self._session_repository = session_repository
         self._artifact_repository = artifact_repository
 
-    def list_session_summaries(self) -> list[SessionSummaryView]:
+    def list_session_summaries(
+        self,
+        *,
+        status: SessionStatus | None = None,
+        limit: int | None = None,
+    ) -> list[SessionSummaryView]:
         records = self._session_repository.list_sessions()
         child_counts_by_parent = _child_counts_by_parent(records)
-        return [
+        summaries = [
             self._build_session_summary(
                 record,
                 child_count=child_counts_by_parent.get(str(record.session_id), 0),
             )
             for record in records
         ]
+        if status is not None:
+            summaries = [summary for summary in summaries if summary.status == status]
+        if limit is not None:
+            summaries = summaries[:limit]
+        return summaries
 
     def get_session_snapshot(
         self,

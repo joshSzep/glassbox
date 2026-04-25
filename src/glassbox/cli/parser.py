@@ -4,6 +4,15 @@ import argparse
 from uuid import UUID
 
 _APPROVAL_MODE_CHOICES = ("confirm", "review", "on-request", "never")
+_SESSION_STATUS_CHOICES = (
+    "idle",
+    "running",
+    "awaiting_approval",
+    "awaiting_user_input",
+    "completed",
+    "failed",
+    "cancelled",
+)
 _EVAL_EXPECTATION_MODE_CHOICES = ("exact_match", "selected_invariants")
 _EVAL_SEVERITY_CHOICES = ("critical", "high", "medium", "low")
 _EVAL_VERIFICATION_STAGE_CHOICES = (
@@ -98,6 +107,30 @@ def _add_session_workflow_parsers(
         dest="session_command",
         required=True,
     )
+
+    session_list_parser = session_subparsers.add_parser(
+        "list",
+        help="list persisted sessions",
+        description="List persisted sessions by recent activity.",
+    )
+    session_list_parser.add_argument(
+        "--status",
+        choices=_SESSION_STATUS_CHOICES,
+        default=None,
+        help="only list sessions with this projected status",
+    )
+    session_list_parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="maximum number of recent sessions to list",
+    )
+    session_list_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print session summaries as JSON",
+    )
+    _add_runtime_location_arguments(session_list_parser)
 
     attach_parser = session_subparsers.add_parser(
         "attach",

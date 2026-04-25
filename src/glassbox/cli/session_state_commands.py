@@ -11,10 +11,35 @@ from glassbox.cli.status_formatters import _print_session_status
 from glassbox.core.models import ProjectionHealth
 from glassbox.core.models import SessionRecord
 from glassbox.core.types import ApprovalDecision
+from glassbox.core.types import SessionStatus
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.session_export import export_session_package
 from glassbox.runtime.session_import import import_session_package
 from glassbox.runtime.session_queries import SessionQueryService
+from glassbox.runtime.session_queries import SessionSummaryView
+
+
+def _session_list_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    if args.limit is not None and args.limit < 1:
+        raise ValueError("--limit must be greater than zero")
+    status = None if args.status is None else SessionStatus(args.status)
+
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        query_service = SessionQueryService(
+            runtime_context.repositories.sessions,
+            runtime_context.repositories.artifacts,
+        )
+        summaries = query_service.list_session_summaries(
+            status=status,
+            limit=args.limit,
+        )
+
+    if args.json:
+        print_json_output([summary.model_dump(mode="json") for summary in summaries])
+    else:
+        _print_session_summaries(summaries)
+    return 0
 
 
 def _status_command(args: argparse.Namespace) -> int:
@@ -38,6 +63,8 @@ def _session_command(args: argparse.Namespace) -> int:
     from glassbox.cli.interactive_commands import _resolve_approval_command
     from glassbox.cli.interactive_commands import _resume_command
 
+    if args.session_command == "list":
+        return _session_list_command(args)
     if args.session_command == "attach":
         return _attach_command(args)
     if args.session_command == "message":
@@ -59,6 +86,24 @@ def _session_command(args: argparse.Namespace) -> int:
     if args.session_command == "import":
         return _session_import_command(args)
     raise ValueError("specify a session subcommand")
+
+
+def _print_session_summaries(summaries: list[SessionSummaryView]) -> None:
+    if not summaries:
+        print("No sessions found")
+        return
+
+    print(f"Sessions: {len(summaries)}")
+    for summary in summaries:
+        print(
+            f"{summary.session_id}  {summary.status}  "
+            f"updated {summary.updated_at.isoformat()}"
+        )
+        print(f"  Next: {summary.next_action_summary}")
+        if summary.latest_message_summary:
+            print(f"  Latest: {summary.latest_message_summary}")
+        if summary.branch_label is not None:
+            print(f"  Branch: {summary.branch_label}")
 
 
 def _session_export_command(args: argparse.Namespace) -> int:

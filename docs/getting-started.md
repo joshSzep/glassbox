@@ -62,6 +62,7 @@ Glassbox stores runtime state under `.glassbox/` in the selected workspace by de
 ```text
 glassbox run [PROMPT]
 glassbox chat [PROMPT]
+glassbox session list [--status STATUS] [--limit N] [--json]
 glassbox session attach SESSION_ID
 glassbox session message SESSION_ID PROMPT
 glassbox session answer SESSION_ID QUESTION_ID ANSWER

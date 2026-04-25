@@ -83,6 +83,105 @@ def test_cli_replay_help_lists_replay_subcommands(
     assert "export" in captured.out
 
 
+def test_cli_session_list_reports_recent_sessions(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    first_db_path, first_session_id = _run_baseline_session(
+        tmp_path,
+        prompt="First prompt",
+    )
+    _ = capsys.readouterr()
+    second_exit_code = main(
+        [
+            "run",
+            "Second prompt",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(first_db_path),
+        ]
+    )
+    second_session_id = next(
+        session.session_id
+        for session in _list_sessions(first_db_path)
+        if session.session_id != first_session_id
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "session",
+            "list",
+            "--status",
+            "running",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(first_db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert second_exit_code == 0
+    assert exit_code == 0
+    assert "Sessions: 2" in captured.out
+    assert str(second_session_id) in captured.out
+    assert str(first_session_id) in captured.out
+    assert captured.out.index(str(second_session_id)) < captured.out.index(
+        str(first_session_id)
+    )
+    assert "running" in captured.out
+    assert "Next:" in captured.out
+
+
+def test_cli_session_list_supports_json_and_limit(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, first_session_id = _run_baseline_session(tmp_path, prompt="First prompt")
+    _ = capsys.readouterr()
+    second_exit_code = main(
+        [
+            "run",
+            "Second prompt",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    second_session_id = next(
+        session.session_id
+        for session in _list_sessions(db_path)
+        if session.session_id != first_session_id
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "session",
+            "list",
+            "--limit",
+            "1",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert second_exit_code == 0
+    assert exit_code == 0
+    assert [session["session_id"] for session in payload] == [str(second_session_id)]
+    assert payload[0]["latest_message_summary"] == (
+        "assistant: I received your request: Second prompt"
+    )
+
+
 def test_cli_answer_resumes_pending_ask_user_turn(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
