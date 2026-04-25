@@ -605,6 +605,66 @@ def _add_operations_parsers(
         help="port to bind the server to",
     )
 
+    daemon_parser = subparsers.add_parser(
+        "daemon",
+        help="manage the workspace background runtime owner",
+        description=(
+            "Start, inspect, or stop the persistent background runtime owner "
+            "for the selected workspace."
+        ),
+    )
+    daemon_subparsers = daemon_parser.add_subparsers(dest="daemon_command")
+
+    daemon_start_parser = daemon_subparsers.add_parser(
+        "start",
+        help="start the workspace daemon",
+        description="Start the persistent workspace runtime owner.",
+    )
+    _add_runtime_location_arguments(daemon_start_parser)
+    daemon_start_parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="host address to bind the daemon dashboard to",
+    )
+    daemon_start_parser.add_argument(
+        "--port",
+        type=_parse_port,
+        default=8765,
+        help="port to bind the daemon dashboard to",
+    )
+
+    daemon_stop_parser = daemon_subparsers.add_parser(
+        "stop",
+        help="stop the workspace daemon",
+        description="Stop the persistent workspace runtime owner.",
+    )
+    _add_runtime_location_arguments(daemon_stop_parser)
+
+    daemon_status_parser = daemon_subparsers.add_parser(
+        "status",
+        help="inspect the workspace daemon",
+        description="Inspect the persistent workspace runtime owner.",
+    )
+    _add_runtime_location_arguments(daemon_status_parser)
+
+    daemon_run_owner_parser = daemon_subparsers.add_parser(
+        "run-owner",
+        help=argparse.SUPPRESS,
+        description=argparse.SUPPRESS,
+    )
+    _add_runtime_location_arguments(daemon_run_owner_parser)
+    daemon_run_owner_parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help=argparse.SUPPRESS,
+    )
+    daemon_run_owner_parser.add_argument(
+        "--port",
+        type=_parse_port,
+        default=8765,
+        help=argparse.SUPPRESS,
+    )
+
 
 def _add_runtime_location_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(

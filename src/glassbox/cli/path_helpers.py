@@ -4,12 +4,24 @@ from datetime import UTC
 from datetime import datetime
 from pathlib import Path
 
+from glassbox.runtime.daemon import ensure_runtime_owner_absent
 
-def resolve_runtime_location(args) -> tuple[Path, Path | None]:
+
+def resolve_runtime_location(
+    args,
+    *,
+    require_daemon_unowned_for: str | None = None,
+) -> tuple[Path, Path | None]:
     """Resolve the selected workspace and optional database path."""
 
     cwd = Path(args.cwd).resolve()
     db_path = Path(args.db_path).resolve() if args.db_path is not None else None
+    if require_daemon_unowned_for is not None:
+        ensure_runtime_owner_absent(
+            cwd,
+            db_path=db_path,
+            action_description=require_daemon_unowned_for,
+        )
     return cwd, db_path
 
 

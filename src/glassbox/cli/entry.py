@@ -45,6 +45,7 @@ def dispatch_command(
 
 
 def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
+    from glassbox.cli.daemon_commands import _daemon_command
     from glassbox.cli.interactive_commands import _answer_command
     from glassbox.cli.interactive_commands import _attach_command
     from glassbox.cli.interactive_commands import _chat_command
@@ -82,6 +83,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
         ),
         "rebuild": _rebuild_command,
         "serve": _serve_command,
+        "daemon": _daemon_command,
     }
     command = getattr(args, "command", None)
     if not isinstance(command, str):

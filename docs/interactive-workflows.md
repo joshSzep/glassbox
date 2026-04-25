@@ -115,7 +115,16 @@ final cross-process live attach UX.
 
 ## Persistent Runtime Semantics For V2
 
-When the daemon-backed path lands, operators should expect these semantics:
+The first daemon-backed ownership slice now ships with these semantics:
+
+- `glassbox daemon start` backgrounds one workspace-scoped runtime owner and
+	hosts the dashboard for that workspace
+- `glassbox daemon status` reads the workspace-local owner metadata and checks
+	`/healthz` on the hosted dashboard
+- `glassbox daemon stop` terminates the active owner and releases the
+	workspace-local lock under `.glassbox/`
+
+Operators should expect these runtime semantics:
 
 - only one background runtime owner exists per workspace
 - the owner process is responsible for live turn execution, event fanout,
@@ -124,6 +133,10 @@ When the daemon-backed path lands, operators should expect these semantics:
 	surfaces even when they ultimately talk to the same owner
 - if the owner becomes unavailable, Glassbox should say so explicitly instead of
 	silently pretending a historical snapshot is still a live session
+
+Until cross-process attach lands, local mutating CLI flows such as `run`,
+`chat`, `attach`, `message`, `answer`, `approve`, `deny`, `fork`, `resume`, and
+`rebuild` reject execution while a daemon owns the same workspace runtime.
 
 The first persistent-runtime slice is intentionally still local-first. It does
 not imply remote orchestration, browser-native terminal control, or multi-user

@@ -22,7 +22,10 @@ def _status_command(args: argparse.Namespace) -> int:
 
 
 def _rebuild_command(args: argparse.Namespace) -> int:
-    cwd, db_path = resolve_runtime_location(args)
+    cwd, db_path = resolve_runtime_location(
+        args,
+        require_daemon_unowned_for="rebuild projections locally",
+    )
 
     if args.all == (args.session_id is not None):
         raise ValueError("specify exactly one of session_id or --all")

@@ -18,7 +18,10 @@ def _run_command(args: argparse.Namespace) -> int:
 
 
 async def _run_command_async(args: argparse.Namespace) -> int:
-    cwd, db_path = resolve_runtime_location(args)
+    cwd, db_path = resolve_runtime_location(
+        args,
+        require_daemon_unowned_for="start a local session runner",
+    )
     config = SessionConfig(
         model_name=args.model_name,
         cwd=cwd,
@@ -48,7 +51,10 @@ def _chat_command(args: argparse.Namespace) -> int:
 
 
 async def _chat_command_async(args: argparse.Namespace) -> int:
-    cwd, db_path = resolve_runtime_location(args)
+    cwd, db_path = resolve_runtime_location(
+        args,
+        require_daemon_unowned_for="start an interactive chat session",
+    )
     base_config = SessionConfig(
         model_name=args.model_name,
         cwd=cwd,
@@ -102,7 +108,10 @@ def _attach_command(args: argparse.Namespace) -> int:
 
 
 async def _attach_command_async(args: argparse.Namespace) -> int:
-    cwd, db_path = resolve_runtime_location(args)
+    cwd, db_path = resolve_runtime_location(
+        args,
+        require_daemon_unowned_for="attach to a live session locally",
+    )
 
     async def action(runtime_context: RuntimeContext, prompt_state) -> None:
         repository = runtime_context.repositories.sessions
@@ -128,7 +137,10 @@ def _resume_command(args: argparse.Namespace) -> int:
 
 
 async def _resume_command_async(args: argparse.Namespace) -> int:
-    cwd, db_path = resolve_runtime_location(args)
+    cwd, db_path = resolve_runtime_location(
+        args,
+        require_daemon_unowned_for="resume a session locally",
+    )
 
     async def action(runtime_context: RuntimeContext, _prompt_state) -> None:
         await runtime_context.services.session_service.resume_session(args.session_id)
@@ -142,7 +154,10 @@ def _message_command(args: argparse.Namespace) -> int:
 
 
 async def _message_command_async(args: argparse.Namespace) -> int:
-    cwd, db_path = resolve_runtime_location(args)
+    cwd, db_path = resolve_runtime_location(
+        args,
+        require_daemon_unowned_for="submit a message locally",
+    )
 
     async def action(runtime_context: RuntimeContext, _prompt_state) -> None:
         await runtime_context.services.session_service.submit_user_message(
@@ -159,7 +174,10 @@ def _fork_command(args: argparse.Namespace) -> int:
 
 
 async def _fork_command_async(args: argparse.Namespace) -> int:
-    cwd, db_path = resolve_runtime_location(args)
+    cwd, db_path = resolve_runtime_location(
+        args,
+        require_daemon_unowned_for="fork a session locally",
+    )
 
     async def action(runtime_context: RuntimeContext, _prompt_state) -> None:
         forked_session = await runtime_context.services.session_service.fork_session(
@@ -197,7 +215,10 @@ def _answer_command(args: argparse.Namespace) -> int:
 
 
 async def _answer_command_async(args: argparse.Namespace) -> int:
-    cwd, db_path = resolve_runtime_location(args)
+    cwd, db_path = resolve_runtime_location(
+        args,
+        require_daemon_unowned_for="answer a question locally",
+    )
 
     async def action(runtime_context: RuntimeContext, _prompt_state) -> None:
         await runtime_context.services.session_service.provide_user_answer(
@@ -221,7 +242,10 @@ async def _resolve_approval_command_async(
     args: argparse.Namespace,
     decision: ApprovalDecision,
 ) -> int:
-    cwd, db_path = resolve_runtime_location(args)
+    cwd, db_path = resolve_runtime_location(
+        args,
+        require_daemon_unowned_for="resolve an approval locally",
+    )
 
     async def action(runtime_context: RuntimeContext, _prompt_state) -> None:
         await runtime_context.services.session_service.resolve_approval(

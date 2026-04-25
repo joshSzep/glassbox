@@ -167,11 +167,11 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-302: Implement Workspace-Scoped Persistent Runtime Process
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-300`, `GBX-301`
 - Goal: allow Glassbox to run as a long-lived workspace runtime that survives terminal exit and can continue owning actionable sessions
 - Deliverables:
-  - `glassbox daemon` background runtime command surface
+  - `glassbox daemon start|status|stop` background runtime command surface
   - workspace-local runtime discovery and lock semantics
   - start, stop, and health behavior for the persistent runtime owner
   - session ownership rules that prevent conflicting concurrent writers
@@ -184,6 +184,7 @@ Each phase below corresponds to one concrete milestone.
   - recovery tests for stale lock or abandoned runtime ownership after process interruption
 - Done when:
   - Glassbox can host a persistent local runtime process that owns workspace sessions safely across terminal lifecycles
+  - local mutating CLI flows reject execution while a daemon owns the same workspace runtime
 
 ### GBX-303: Add Cross-Process Interactive Attach And Reconnect Flow
 

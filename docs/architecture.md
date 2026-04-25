@@ -55,6 +55,8 @@ The repository has moved beyond the earliest architecture slices. Treat the
 following as the implemented baseline that v2 extends:
 
 - `glassbox chat` owns the live in-process conversational workflow
+- `glassbox daemon start|status|stop` now provides a workspace-scoped
+    background runtime owner with health and lock metadata under `.glassbox/`
 - `glassbox attach` reopens persisted actionable sessions from projections, but
     does not yet provide live terminal attach to a runtime owned by another
     process
@@ -71,9 +73,11 @@ them as if they are still only design intent.
 
 ## Runtime Model
 
-The current shipped implementation is a single async process.
+The current shipped implementation still centers on one runtime owner per
+workspace, but that owner can now be either a foreground interactive CLI
+process or the background `glassbox daemon` process.
 
-That process hosts:
+That owner process hosts:
 
 - the CLI session entrypoint
 - the agent runtime
@@ -82,17 +86,17 @@ That process hosts:
 - the event store
 - the dashboard web server
 
-This avoids premature service decomposition. A single-process design is easier to build, test, and reason about while preserving the same core abstractions needed for a future split-process or persistent-runtime architecture.
+This avoids premature service decomposition. A single-owner process is easier to
+build, test, and reason about while preserving the same core abstractions needed
+for a future split-process or richer persistent-runtime architecture.
 
-For interactive terminal UX, this means the first-class conversational experience
-should also live inside that same process. A long-lived CLI session can keep an
-event subscription open, render runtime activity continuously, and submit
-follow-up operator input through the existing session service. In the shipped
-baseline, that interactive experience is intentionally process-local rather
-than daemon-backed. An attached terminal can reopen and continue a persisted
-paused or idle session, but it should not claim to stream live events from
-another already-running process until the runtime grows an explicit
-cross-process attach mechanism.
+For interactive terminal UX, the first-class conversational experience still
+lives inside the foreground CLI process today. A long-lived CLI session can keep
+an event subscription open, render runtime activity continuously, and submit
+follow-up operator input through the existing session service. The new daemon
+owner is the durable runtime host for one workspace, but terminal attach does
+not yet stream live events from that daemon-owned process until the explicit
+cross-process attach mechanism lands.
 
 That boundary was the starting point for v2 planning. `GBX-300` in
 [tasks-v2.md](./tasks-v2.md) now resolves the ownership model choice, and
