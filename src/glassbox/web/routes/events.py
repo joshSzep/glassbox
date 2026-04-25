@@ -57,13 +57,13 @@ async def _event_stream(
     """Yield SSE frames: first replay historical events, then stream live ones."""
 
     repo = context.repositories.sessions
-    bus = context.infrastructure.event_bus
+    transport = context.infrastructure.event_transport
 
     # Verify session exists before opening a subscription.
     if repo.get_session(session_id) is None:
         raise HTTPException(status_code=404, detail=f"session {session_id} not found")
 
-    async with bus.subscribe() as subscription:
+    async with transport.subscribe() as subscription:
         # Replay all persisted events after the requested sequence.
         historical = repo.read_session_events_after(session_id, after_sequence)
         for event in historical:

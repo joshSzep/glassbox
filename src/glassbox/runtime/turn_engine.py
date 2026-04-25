@@ -18,7 +18,6 @@ from glassbox.llm import ModelAdapter
 from glassbox.llm import ModelExecutor
 from glassbox.llm import ModelToolCall
 from glassbox.llm import PreparedModelTurn
-from glassbox.runtime.bus import EventBus
 from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.logging import get_runtime_logger
 from glassbox.runtime.logging import runtime_log_extra
@@ -26,6 +25,7 @@ from glassbox.runtime.model_loop import ModelConversationState
 from glassbox.runtime.model_loop import ModelLoopRunner
 from glassbox.runtime.model_loop import ModelLoopSuspension
 from glassbox.runtime.replay_capture import ReplayArtifactRecorder
+from glassbox.runtime.transport import RuntimeEventTransport
 from glassbox.runtime.turn_event_recorder import TurnEventRecorder
 from glassbox.runtime.turn_preparation import LiveTurnPreparation
 from glassbox.runtime.turn_preparation import PreparedTurnRun
@@ -49,7 +49,7 @@ class TurnEngine:
     def __init__(
         self,
         session_repository: SessionRepository,
-        event_bus: EventBus[EventEnvelope],
+        event_bus: RuntimeEventTransport[EventEnvelope],
         context_builder: TurnContextBuilder,
         model_adapter_factory: ModelAdapterFactory,
         model_executor_factory: ModelExecutorFactory,

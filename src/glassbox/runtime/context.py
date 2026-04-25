@@ -5,8 +5,8 @@ from dataclasses import field
 from pathlib import Path
 
 from glassbox.core.events import EventEnvelope
-from glassbox.runtime.bus import EventBus
 from glassbox.runtime.provider_config import RuntimeProviderConfig
+from glassbox.runtime.transport import RuntimeEventTransport
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
 from glassbox.services import SessionService
@@ -31,11 +31,17 @@ class RuntimeServices:
 class RuntimeInfrastructure:
     """Shared runtime primitives that are not repositories or services."""
 
-    event_bus: EventBus[EventEnvelope]
+    event_bus: RuntimeEventTransport[EventEnvelope]
     artifacts_root: Path
     provider_config: RuntimeProviderConfig = field(
         default_factory=RuntimeProviderConfig
     )
+
+    @property
+    def event_transport(self) -> RuntimeEventTransport[EventEnvelope]:
+        """Transport-oriented alias over the compatibility event_bus field."""
+
+        return self.event_bus
 
 
 @dataclass(frozen=True, slots=True)

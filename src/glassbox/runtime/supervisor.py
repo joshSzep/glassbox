@@ -22,9 +22,9 @@ from glassbox.core.models import SessionConfig
 from glassbox.core.models import SessionState
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import SessionStatus
-from glassbox.runtime.bus import EventBus
 from glassbox.runtime.logging import get_runtime_logger
 from glassbox.runtime.logging import runtime_log_extra
+from glassbox.runtime.transport import RuntimeEventTransport
 from glassbox.runtime.turn_engine import TurnEngine
 from glassbox.services import SessionRepository
 from glassbox.services import SessionService
@@ -38,7 +38,7 @@ class SessionSupervisor(SessionService):
     def __init__(
         self,
         session_repository: SessionRepository,
-        event_bus: EventBus[EventEnvelope],
+        event_bus: RuntimeEventTransport[EventEnvelope],
         turn_engine: TurnEngine | None = None,
     ) -> None:
         self._session_repository = session_repository

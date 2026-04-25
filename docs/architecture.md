@@ -164,13 +164,21 @@ Responsible for:
 - capturing artifacts such as diffs, stdout, and stderr
 - returning structured results to the turn engine
 
-### Event Bus
+### Event Transport
 
 Responsible for:
 
-- in-process publish and subscribe
+- live publish and subscribe behind one explicit transport boundary
 - fanout to CLI renderer and dashboard stream endpoints
-- decoupling producers from projections
+- preserving the current in-process compatibility path while later tasks add
+    cross-process consumers
+- decoupling producers from projections and UI-specific delivery details
+
+The current implementation now depends on a transport abstraction rather than
+having the runtime, CLI renderer, and SSE route reach directly into one concrete
+bus type. The shipped implementation remains an in-process transport adapter,
+but `GBX-301` makes the live-delivery boundary explicit so later daemon-backed
+or cross-process consumers can reuse the same runtime logic.
 
 ### Event Store
 

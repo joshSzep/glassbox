@@ -27,7 +27,7 @@ from glassbox.core.events import UserMessageReceived
 from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import ToolCallId
-from glassbox.runtime import EventBusSubscription
+from glassbox.runtime.transport import RuntimeEventSubscription
 
 
 @dataclass(slots=True)
@@ -169,7 +169,7 @@ class CliEventRenderer:
 
     async def render_subscription(
         self,
-        subscription: EventBusSubscription[EventEnvelope],
+        subscription: RuntimeEventSubscription[EventEnvelope],
     ) -> None:
         with suppress(asyncio.CancelledError):
             async for event in subscription:

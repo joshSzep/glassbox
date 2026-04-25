@@ -26,7 +26,9 @@ async def _run_with_renderer(
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
         prompt_state = InteractivePromptState()
         renderer = CliEventRenderer(sys.stdout, prompt_state=prompt_state)
-        async with runtime_context.infrastructure.event_bus.subscribe() as subscription:
+        async with (
+            runtime_context.infrastructure.event_transport.subscribe() as subscription
+        ):
             render_task = asyncio.create_task(
                 renderer.render_subscription(subscription)
             )

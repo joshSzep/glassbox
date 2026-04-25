@@ -147,7 +147,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-301: Introduce Transport Abstraction For In-Process And Cross-Process Event Delivery
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-300`
 - Goal: decouple event fanout from the current process-local bus so Glassbox can support persistent-runtime clients without duplicating runtime logic
 - Deliverables:

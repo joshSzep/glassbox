@@ -24,7 +24,6 @@ from glassbox.llm import ModelTextDelta
 from glassbox.llm import ModelToolCall
 from glassbox.llm import ModelToolCallDelta
 from glassbox.llm import PreparedModelTurn
-from glassbox.runtime.bus import EventBus
 from glassbox.runtime.context_builder import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
 from glassbox.runtime.context_builder import TurnContext
 from glassbox.runtime.context_builder import build_pytest_failure_digest_artifact
@@ -32,6 +31,7 @@ from glassbox.runtime.errors import SessionRuntimeFailure
 from glassbox.runtime.logging import get_runtime_logger
 from glassbox.runtime.logging import runtime_log_extra
 from glassbox.runtime.replay_capture import ReplayArtifactRecorder
+from glassbox.runtime.transport import RuntimeEventTransport
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
 
@@ -44,7 +44,7 @@ class TurnEventRecorder:
     def __init__(
         self,
         session_repository: SessionRepository,
-        event_bus: EventBus[EventEnvelope],
+        event_bus: RuntimeEventTransport[EventEnvelope],
         *,
         replay_recorder: ReplayArtifactRecorder | None = None,
         artifact_repository: ArtifactRepository | None = None,
