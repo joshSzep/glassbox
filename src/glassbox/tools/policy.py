@@ -11,6 +11,7 @@ from pydantic import Field
 
 from glassbox.core import ApprovalMode
 from glassbox.core import PolicyDecision
+from glassbox.tools.policy_config import ToolPolicyAction
 from glassbox.tools.policy_config import ToolPolicyManifest
 from glassbox.tools.policy_config import ToolPolicyRule
 from glassbox.tools.registry import ToolRegistry
@@ -30,9 +31,17 @@ class ToolPolicyContext(BaseModel):
 
 @dataclass(frozen=True, slots=True)
 class _ResolvedPolicyOutcome:
-    action: str
+    action: ToolPolicyAction
     source_kind: str
     source_label: str
+
+
+@dataclass(frozen=True, slots=True)
+class _PolicyDecisionMessages:
+    allow_reason: str
+    deny_reason: str
+    approval_reason: str
+    blocked_reason: str
 
 
 class ToolPolicyEngine:
@@ -295,7 +304,7 @@ def _is_within_workspace_prefix(candidate: Path, prefix: Path) -> bool:
 def _default_policy_action(
     risk_level: ToolRiskLevel,
     policy_manifest: ToolPolicyManifest,
-) -> str:
+) -> ToolPolicyAction:
     if risk_level is ToolRiskLevel.READ_ONLY:
         return policy_manifest.defaults.read_only
     if risk_level is ToolRiskLevel.WORKSPACE_WRITE:
@@ -312,122 +321,107 @@ def _decision_from_outcome(
     approval_mode: ApprovalMode,
 ) -> PolicyDecision:
     if outcome.source_kind == "default":
-        return _default_policy_decision(
-            outcome,
-            tool_spec=tool_spec,
+        return _decision_from_action(
+            outcome.action,
             approval_mode=approval_mode,
+            messages=_default_policy_messages(tool_spec.risk_level),
         )
 
-    if outcome.action == "allow":
-        return PolicyDecision(
-            allowed=True,
-            requires_approval=False,
-            reason=(
+    return _decision_from_action(
+        outcome.action,
+        approval_mode=approval_mode,
+        messages=_PolicyDecisionMessages(
+            allow_reason=(
                 f"allowed: workspace policy rule '{outcome.source_label}' "
                 f"matched tool '{tool_spec.name}'"
             ),
-        )
-    if outcome.action == "deny":
-        return PolicyDecision(
-            allowed=False,
-            requires_approval=False,
-            reason=(
+            deny_reason=(
                 f"blocked: workspace policy rule '{outcome.source_label}' "
                 f"denied tool '{tool_spec.name}'"
             ),
-        )
-    return _approval_gate(
-        approval_mode=approval_mode,
-        blocked_reason=(
-            f"blocked: workspace policy rule '{outcome.source_label}' requires "
-            f"approval but approval mode is never"
-        ),
-        approval_reason=(
-            f"approval required: workspace policy rule '{outcome.source_label}' "
-            f"matched tool '{tool_spec.name}'"
+            approval_reason=(
+                f"approval required: workspace policy rule '{outcome.source_label}' "
+                f"matched tool '{tool_spec.name}'"
+            ),
+            blocked_reason=(
+                f"blocked: workspace policy rule '{outcome.source_label}' "
+                f"requires approval but approval mode is never"
+            ),
         ),
     )
 
 
-def _default_policy_decision(
-    outcome: _ResolvedPolicyOutcome,
+def _decision_from_action(
+    action: ToolPolicyAction,
     *,
-    tool_spec: ToolSpec,
     approval_mode: ApprovalMode,
+    messages: _PolicyDecisionMessages,
 ) -> PolicyDecision:
-    if tool_spec.risk_level is ToolRiskLevel.READ_ONLY:
-        if outcome.action == "allow":
-            return PolicyDecision(
-                allowed=True,
-                requires_approval=False,
-                reason="allowed: read-only tool within workspace scope",
-            )
-        if outcome.action == "deny":
-            return PolicyDecision(
-                allowed=False,
-                requires_approval=False,
-                reason="blocked: read-only tool denied by workspace policy default",
-            )
-        return _approval_gate(
-            approval_mode=approval_mode,
-            blocked_reason=(
-                "blocked: read-only tool requires approval but approval mode is never"
-            ),
+    if action == "allow":
+        return PolicyDecision(
+            allowed=True,
+            requires_approval=False,
+            reason=messages.allow_reason,
+        )
+    if action == "deny":
+        return PolicyDecision(
+            allowed=False,
+            requires_approval=False,
+            reason=messages.deny_reason,
+        )
+
+    return _approval_gate(
+        approval_mode=approval_mode,
+        blocked_reason=messages.blocked_reason,
+        approval_reason=messages.approval_reason,
+    )
+
+
+def _default_policy_messages(
+    risk_level: ToolRiskLevel,
+) -> _PolicyDecisionMessages:
+    if risk_level is ToolRiskLevel.READ_ONLY:
+        return _PolicyDecisionMessages(
+            allow_reason="allowed: read-only tool within workspace scope",
+            deny_reason="blocked: read-only tool denied by workspace policy default",
             approval_reason=(
                 "approval required: read-only tool is gated by workspace policy default"
             ),
+            blocked_reason=(
+                "blocked: read-only tool requires approval but approval mode is never"
+            ),
         )
 
-    if tool_spec.risk_level is ToolRiskLevel.WORKSPACE_WRITE:
-        if outcome.action == "allow":
-            return PolicyDecision(
-                allowed=True,
-                requires_approval=False,
-                reason="allowed: workspace write permitted by workspace policy default",
-            )
-        if outcome.action == "deny":
-            return PolicyDecision(
-                allowed=False,
-                requires_approval=False,
-                reason="blocked: workspace write denied by workspace policy default",
-            )
-        return _approval_gate(
-            approval_mode=approval_mode,
+    if risk_level is ToolRiskLevel.WORKSPACE_WRITE:
+        return _PolicyDecisionMessages(
+            allow_reason=(
+                "allowed: workspace write permitted by workspace policy default"
+            ),
+            deny_reason=("blocked: workspace write denied by workspace policy default"),
+            approval_reason="approval required: workspace write inside workspace scope",
             blocked_reason=(
                 "blocked: workspace write requires approval but approval mode is never"
             ),
-            approval_reason=(
-                "approval required: workspace write inside workspace scope"
-            ),
         )
 
-    if tool_spec.risk_level is ToolRiskLevel.COMMAND:
-        if outcome.action == "allow":
-            return PolicyDecision(
-                allowed=True,
-                requires_approval=False,
-                reason=(
-                    "allowed: command execution permitted by workspace policy default"
-                ),
-            )
-        if outcome.action == "deny":
-            return PolicyDecision(
-                allowed=False,
-                requires_approval=False,
-                reason="blocked: command execution denied by workspace policy default",
-            )
-        return _approval_gate(
-            approval_mode=approval_mode,
-            blocked_reason=(
-                "blocked: command execution requires approval but approval "
-                "mode is never"
+    if risk_level is ToolRiskLevel.COMMAND:
+        return _PolicyDecisionMessages(
+            allow_reason=(
+                "allowed: command execution permitted by workspace policy default"
+            ),
+            deny_reason=(
+                "blocked: command execution denied by workspace policy default"
             ),
             approval_reason=(
                 "approval required: command execution is gated by local policy"
             ),
+            blocked_reason=(
+                "blocked: command execution requires approval but approval mode is "
+                "never"
+            ),
         )
 
-    raise ValueError(f"unsupported tool risk level: {tool_spec.risk_level}")
+    raise ValueError(f"unsupported tool risk level: {risk_level}")
 
 
 _DESTRUCTIVE_COMMAND_PATTERNS = (
