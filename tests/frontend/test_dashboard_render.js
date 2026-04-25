@@ -638,8 +638,154 @@ test("renderSelectedSessionSummary explains actionable and historical states", (
   assert.match(completedHtml, /Historical snapshot/);
   assert.match(completedHtml, /Parent session/);
   assert.match(completedHtml, /Open session-/);
+  assert.match(completedHtml, /Compare/);
   assert.match(completedHtml, /Child sessions/);
   assert.match(completedHtml, /Forked from turn turn-2/);
+});
+
+test("renderSelectedSessionSummary shows lineage compare and drift cues", () => {
+  const html = renderSelectedSessionSummary({
+    sessionId: "session-child",
+    status: "completed",
+    approvalMode: "confirm",
+    parentSessionId: "session-parent",
+    forkedFromTurnId: "turn-2",
+    forkedFromSequence: 8,
+    branchLabel: "alt-path",
+    childSessions: [],
+    compareSessionId: "session-parent",
+    compareSessionLoadState: "loaded",
+    compareSessionLoadError: null,
+    pendingQuestionText: null,
+    pendingApprovals: [],
+    currentTurn: null,
+    transcript: [
+      {
+        message_id: "message-1",
+        role: "assistant",
+        parts: [{ kind: "text", text: "Child branch changed the runtime notes." }],
+      },
+    ],
+    runtimeContext: {
+      repository_context: {
+        workspace_name: "workspace",
+        high_signal_paths: ["src/glassbox/runtime/replay.py"],
+        top_level_directories: ["src/"],
+        additional_directory_count: 0,
+        top_level_files: ["README.md"],
+        additional_file_count: 0,
+        project_markers: ["src_layout"],
+      },
+      runtime_notes: [],
+      additional_runtime_note_count: 0,
+      working_set: { items: [], additional_item_count: 0 },
+      artifact_context: {
+        summaries: [
+          {
+            summary_kind: "replay_manifest_drift",
+            source_tool_name: "replay",
+            artifact_kind: "replay_turn_output",
+            artifact_path: ".glassbox/sessions/session-child/artifacts/replay.json",
+            summary: "Manifest drift: repository context fingerprint changed.",
+            freshness: "fresh",
+            target_paths: ["src/glassbox/runtime/replay.py"],
+            keyword_filter: null,
+            failing_tests: [],
+            failure_count: 0,
+            error_count: 0,
+            timed_out: false,
+            inherited: false,
+            source_tool_call_id: "tool-replay-1",
+          },
+        ],
+        additional_summary_count: 0,
+      },
+    },
+    turnMetrics: [],
+    streamState: "historical",
+    streamRetryCount: 0,
+    streamError: null,
+    compareSession: {
+      sessionId: "session-parent",
+      status: "completed",
+      modelName: "openai:gpt-5.4",
+      cwd: "/tmp/workspace",
+      approvalMode: "confirm",
+      parentSessionId: null,
+      forkedFromTurnId: null,
+      forkedFromSequence: null,
+      branchLabel: null,
+      childSessions: [],
+      branchableTurns: [{ turn_id: "turn-2", sequence: 8, created_at: "2026-04-23T00:00:02Z", label: "Inspect the repository" }],
+      canFork: true,
+      latestForkPointTurnId: "turn-2",
+      latestForkPointSequence: 8,
+      forkBlockedReason: null,
+      dashboardUrl: null,
+      createdAt: "2026-04-23T00:00:00Z",
+      updatedAt: "2026-04-23T00:00:04Z",
+      lastSequence: 12,
+      pendingApprovalId: null,
+      pendingQuestionId: null,
+      pendingQuestionText: null,
+      sessionFailureMessage: null,
+      sessionFailureRetryable: null,
+      runtimeContext: {
+        repository_context: {
+          workspace_name: "workspace",
+          high_signal_paths: ["src/glassbox/runtime/replay.py"],
+          top_level_directories: ["src/"],
+          additional_directory_count: 0,
+          top_level_files: ["README.md"],
+          additional_file_count: 0,
+          project_markers: ["src_layout"],
+        },
+        runtime_notes: [],
+        additional_runtime_note_count: 0,
+        working_set: { items: [], additional_item_count: 0 },
+        artifact_context: {
+          summaries: [
+            {
+              summary_kind: "eval_behavioral_drift",
+              source_tool_name: "eval",
+              artifact_kind: "replay_turn_output",
+              artifact_path: ".glassbox/evals/parent.json",
+              summary: "Behavioral drift: transcript output diverged after the fork point.",
+              freshness: "fresh",
+              target_paths: ["src/glassbox/runtime/replay.py"],
+              keyword_filter: null,
+              failing_tests: [],
+              failure_count: 0,
+              error_count: 0,
+              timed_out: false,
+              inherited: false,
+              source_tool_call_id: "tool-eval-1",
+            },
+          ],
+          additional_summary_count: 0,
+        },
+      },
+      currentTurn: null,
+      turnMetrics: [],
+      transcript: [
+        {
+          message_id: "message-2",
+          role: "assistant",
+          parts: [{ kind: "text", text: "Parent branch kept the original runtime notes." }],
+        },
+      ],
+      activeToolCalls: [],
+      pendingApprovals: [],
+      projectionHealth: { state: "ok", degraded: false },
+    },
+  });
+
+  assert.match(html, /Lineage compare/);
+  assert.match(html, /Comparing the selected child session against its parent branch/);
+  assert.match(html, /Replay \/ eval cues/);
+  assert.match(html, /Manifest drift: repository context fingerprint changed/);
+  assert.match(html, /Behavioral drift: transcript output diverged after the fork point/);
+  assert.match(html, /Clear comparison/);
 });
 
 test("renderLandingPane shows no-session, loading, and failed selection states", () => {

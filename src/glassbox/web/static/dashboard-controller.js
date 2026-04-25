@@ -1,12 +1,16 @@
 import {
   applyEvent,
+  beginCompareSessionSelection,
   beginLiveStreamConnection,
   beginSessionAggregateLoad,
   beginSessionSelection,
+  clearCompareSessionSelection,
   clearSessionSelection,
+  failCompareSessionSelection,
   createState,
   failSessionAggregateLoad,
   failSessionSelection,
+  hydrateCompareSession,
   hydrateFromSnapshot,
   hydrateSessionAggregate,
   markHistoricalSnapshot,
@@ -188,6 +192,43 @@ export function createDashboardController({
     return true;
   }
 
+  async function compareSession(sessionId) {
+    if (!state.sessionId) {
+      return false;
+    }
+    if (!sessionId || sessionId === state.sessionId) {
+      syncState(current => clearCompareSessionSelection(current));
+      return false;
+    }
+
+    const selectedSessionId = state.sessionId;
+    syncState(current => beginCompareSessionSelection(current, sessionId));
+
+    const response = await transport.fetchSessionSnapshot(sessionId);
+    if (state.sessionId !== selectedSessionId) {
+      return false;
+    }
+    if (!response.ok) {
+      syncState(current => failCompareSessionSelection(
+        current,
+        `Comparison session unavailable (${response.status})`,
+      ));
+      return false;
+    }
+
+    const snapshot = await response.json();
+    if (state.sessionId !== selectedSessionId) {
+      return false;
+    }
+
+    syncState(current => hydrateCompareSession(current, snapshot));
+    return true;
+  }
+
+  function clearCompareSession() {
+    syncState(current => clearCompareSessionSelection(current));
+  }
+
   async function openSession(sessionId, { replaceHistory = false } = {}) {
     updateLocation({
       sessionId,
@@ -314,6 +355,8 @@ export function createDashboardController({
 
   return {
     destroy,
+    compareSession,
+    clearCompareSession,
     forkCurrentSession,
     getState,
     handleResolveApproval,

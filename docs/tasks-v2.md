@@ -385,7 +385,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-323: Add Session Compare, Lineage, And Drift-Inspection Views
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-322`, `GBX-216`, `GBX-245`
 - Goal: make branch comparison, replay drift, and child-session inspection faster from the browser
 - Deliverables:
@@ -402,6 +402,7 @@ Each phase below corresponds to one concrete milestone.
   - integration tests for compare views backed by forked sessions and replay artifacts
 - Done when:
   - the operator console makes branching and drift triage materially easier than raw snapshot browsing alone
+  - the selected-session dashboard can load a second persisted lineage snapshot for parent or child comparison, render snapshot-backed compare summaries without disturbing the live session view, and surface replay or eval drift cues from artifact-backed runtime context so operators can inspect likely drift causes before leaving the browser
 
 ---
 

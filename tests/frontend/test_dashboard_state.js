@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   applyEvent,
+  beginCompareSessionSelection,
   beginSessionAggregateLoad,
   beginSessionIndexLoad,
   beginLiveStreamConnection,
@@ -15,12 +16,15 @@ import {
   confirmForkSubmission,
   confirmInteractionSubmission,
   createState,
+  clearCompareSessionSelection,
   failSessionIndexLoad,
+  failCompareSessionSelection,
   failSessionSelection,
   failApprovalResolution,
   failForkSubmission,
   failInteractionSubmission,
   hydrateFromSnapshot,
+  hydrateCompareSession,
   hydrateSessionAggregate,
   hydrateSessionIndex,
   markHistoricalSnapshot,
@@ -498,6 +502,155 @@ test("session aggregate helpers hydrate queue counts and runtime summary", () =>
   assert.equal(hydrated.queueCounts.approvals, 1);
   assert.equal(hydrated.projectionHealthCounts.degraded, 1);
   assert.equal(hydrated.runtimeSummary.state, "running");
+});
+
+test("compare session helpers hydrate and clear lineage snapshots", () => {
+  const selected = hydrateFromSnapshot({
+    session_id: "session-child",
+    status: "completed",
+    current_turn_id: null,
+    model_name: "openai:gpt-5.4",
+    cwd: "/tmp/workspace",
+    approval_mode: "confirm",
+    parent_session_id: "session-parent",
+    forked_from_turn_id: "turn-2",
+    forked_from_sequence: 8,
+    branch_label: "alt-path",
+    child_sessions: [],
+    branchable_turns: [],
+    can_fork: true,
+    latest_fork_point_turn_id: "turn-2",
+    latest_fork_point_sequence: 8,
+    fork_blocked_reason: null,
+    dashboard_url: null,
+    last_sequence: 9,
+    pending_approval_id: null,
+    pending_question_id: null,
+    pending_question_text: null,
+    session_failure_message: null,
+    session_failure_retryable: null,
+    runtime_context: {
+      repository_context: {
+        workspace_name: "workspace",
+        high_signal_paths: ["src/glassbox/runtime/replay.py"],
+        top_level_directories: ["src/"],
+        additional_directory_count: 0,
+        top_level_files: ["README.md"],
+        additional_file_count: 0,
+        project_markers: ["src_layout"],
+      },
+      runtime_notes: [],
+      additional_runtime_note_count: 0,
+      working_set: { items: [], additional_item_count: 0 },
+      artifact_context: { summaries: [], additional_summary_count: 0 },
+    },
+    transcript: [],
+    active_tool_calls: [],
+    pending_approvals: [],
+    turn_metrics: [],
+  });
+  const compareLoading = beginCompareSessionSelection(selected, "session-parent");
+  const compareHydrated = hydrateCompareSession(compareLoading, {
+    session_id: "session-parent",
+    status: "completed",
+    current_turn_id: null,
+    model_name: "openai:gpt-5.4",
+    cwd: "/tmp/workspace",
+    approval_mode: "confirm",
+    parent_session_id: null,
+    forked_from_turn_id: null,
+    forked_from_sequence: null,
+    branch_label: null,
+    child_sessions: [
+      {
+        session_id: "session-child",
+        status: "completed",
+        branch_label: "alt-path",
+        updated_at: "2026-04-23T00:00:03Z",
+        latest_message_summary: "assistant: ready",
+      },
+    ],
+    branchable_turns: [
+      {
+        turn_id: "turn-2",
+        sequence: 8,
+        created_at: "2026-04-23T00:00:02Z",
+        label: "Inspect the repository",
+      },
+    ],
+    can_fork: true,
+    latest_fork_point_turn_id: "turn-2",
+    latest_fork_point_sequence: 8,
+    fork_blocked_reason: null,
+    dashboard_url: null,
+    created_at: "2026-04-23T00:00:00Z",
+    updated_at: "2026-04-23T00:00:04Z",
+    last_sequence: 12,
+    pending_approval_id: null,
+    pending_question_id: null,
+    pending_question_text: null,
+    session_failure_message: null,
+    session_failure_retryable: null,
+    runtime_context: {
+      repository_context: {
+        workspace_name: "workspace",
+        high_signal_paths: ["src/glassbox/runtime/replay.py"],
+        top_level_directories: ["src/"],
+        additional_directory_count: 0,
+        top_level_files: ["README.md"],
+        additional_file_count: 0,
+        project_markers: ["src_layout"],
+      },
+      runtime_notes: [],
+      additional_runtime_note_count: 0,
+      working_set: { items: [], additional_item_count: 0 },
+      artifact_context: {
+        summaries: [
+          {
+            summary_kind: "replay_manifest_drift",
+            source_tool_name: "replay",
+            artifact_kind: "replay_turn_output",
+            artifact_path: ".glassbox/sessions/session-parent/artifacts/replay.json",
+            summary: "Manifest drift: repository context fingerprint changed.",
+            freshness: "fresh",
+            target_paths: ["src/glassbox/runtime/replay.py"],
+            keyword_filter: null,
+            failing_tests: [],
+            failure_count: 0,
+            error_count: 0,
+            timed_out: false,
+            inherited: false,
+            source_tool_call_id: "tool-replay-1",
+          },
+        ],
+        additional_summary_count: 0,
+      },
+    },
+    transcript: [
+      {
+        message_id: "message-1",
+        role: "user",
+        parts: [{ kind: "text", text: "Inspect the repository" }],
+      },
+    ],
+    active_tool_calls: [],
+    pending_approvals: [],
+    turn_metrics: [],
+    projection_health: { state: "ok", degraded: false },
+  });
+  const compareFailed = failCompareSessionSelection(compareLoading, "Session not found (404)");
+  const compareCleared = clearCompareSessionSelection(compareHydrated);
+
+  assert.equal(compareLoading.compareSessionId, "session-parent");
+  assert.equal(compareLoading.compareSessionLoadState, "loading");
+  assert.equal(compareHydrated.compareSession?.sessionId, "session-parent");
+  assert.equal(compareHydrated.compareSession?.childSessions.length, 1);
+  assert.equal(compareHydrated.compareSession?.runtimeContext?.artifact_context.summaries[0].summary_kind, "replay_manifest_drift");
+  assert.equal(compareHydrated.compareSession?.updatedAt, "2026-04-23T00:00:04Z");
+  assert.equal(compareFailed.compareSessionLoadState, "failed");
+  assert.equal(compareFailed.compareSessionLoadError, "Session not found (404)");
+  assert.equal(compareCleared.compareSession, null);
+  assert.equal(compareCleared.compareSessionId, null);
 });
 
 test("session selection failures preserve session browser state for recovery", () => {

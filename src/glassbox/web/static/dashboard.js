@@ -31,6 +31,8 @@ export function createDashboardApp({
   const domBindings = createDashboardDomBindings({
     documentImpl,
     onOpenSession: (sessionId) => controller.openSession(sessionId),
+    onCompareSession: (sessionId) => controller.compareSession(sessionId),
+    onClearCompareSession: () => controller.clearCompareSession(),
     onSelectQueue: (queue) => controller.selectQueue(queue),
     onResolveApproval: (approvalId, decision) => controller.handleResolveApproval(approvalId, decision),
     onSelectForkTurn: (turnId) => controller.handleSelectForkTurn(turnId),
@@ -46,6 +48,8 @@ export function createDashboardApp({
 
   return {
     init: () => controller.init(),
+    compareSession: (sessionId) => controller.compareSession(sessionId),
+    clearCompareSession: () => controller.clearCompareSession(),
     openSession: (sessionId, options) => controller.openSession(sessionId, options),
     selectQueue: (queue, options) => controller.selectQueue(queue, options),
     forkCurrentSession: (params) => controller.forkCurrentSession(params),

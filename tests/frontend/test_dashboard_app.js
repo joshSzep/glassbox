@@ -448,3 +448,89 @@ test("dashboard app queue selection updates the URL and reloads aggregate data",
   assert.match(harness.elements.get("session-browser-list").innerHTML, /Approvals/);
   assert.match(harness.elements.get("session-browser-list").innerHTML, /Resolve pending approval/);
 });
+
+test("dashboard app compares the selected session against a lineage snapshot", async () => {
+  const harness = createHarness({
+    responses: {
+      "/sessions/aggregate": okJson(makeSessionAggregate([
+        makeSummary("session-child", {
+          status: "completed",
+          parent_session_id: "session-parent",
+          forked_from_turn_id: "turn-2",
+          forked_from_sequence: 8,
+          branch_label: "alt-path",
+          next_action_summary: "Inspect completed session",
+        }),
+      ])),
+      "/sessions/session-child": okJson({
+        ...makeHistoricalSnapshot("session-child"),
+        parent_session_id: "session-parent",
+        forked_from_turn_id: "turn-2",
+        forked_from_sequence: 8,
+        branch_label: "alt-path",
+      }),
+      "/sessions/session-parent": okJson({
+        ...makeHistoricalSnapshot("session-parent"),
+        child_sessions: [
+          {
+            session_id: "session-child",
+            status: "completed",
+            branch_label: "alt-path",
+            updated_at: "2026-04-23T00:00:03Z",
+            latest_message_summary: "assistant: ready",
+          },
+        ],
+        runtime_context: {
+          repository_context: {
+            workspace_name: "workspace",
+            high_signal_paths: ["src/glassbox/runtime/replay.py"],
+            top_level_directories: ["src/"],
+            additional_directory_count: 0,
+            top_level_files: ["README.md"],
+            additional_file_count: 0,
+            project_markers: ["src_layout"],
+          },
+          runtime_notes: [],
+          additional_runtime_note_count: 0,
+          working_set: { items: [], additional_item_count: 0 },
+          artifact_context: {
+            summaries: [
+              {
+                summary_kind: "replay_manifest_drift",
+                source_tool_name: "replay",
+                artifact_kind: "replay_turn_output",
+                artifact_path: ".glassbox/sessions/session-parent/artifacts/replay.json",
+                summary: "Manifest drift: repository context fingerprint changed.",
+                freshness: "fresh",
+                target_paths: ["src/glassbox/runtime/replay.py"],
+                keyword_filter: null,
+                failing_tests: [],
+                failure_count: 0,
+                error_count: 0,
+                timed_out: false,
+                inherited: false,
+                source_tool_call_id: "tool-replay-1",
+              },
+            ],
+            additional_summary_count: 0,
+          },
+        },
+      }),
+    },
+  });
+
+  await harness.app.init();
+  await harness.app.openSession("session-child");
+  await harness.app.compareSession("session-parent");
+
+  assert.deepEqual(harness.fetchCalls, [
+    "/sessions/aggregate",
+    "/sessions/session-child",
+    "/sessions/session-parent",
+  ]);
+  assert.equal(harness.app.getState().compareSessionId, "session-parent");
+  assert.equal(harness.app.getState().compareSession?.sessionId, "session-parent");
+  assert.match(harness.elements.get("transcript-list").innerHTML, /Lineage compare/);
+  assert.match(harness.elements.get("transcript-list").innerHTML, /Comparison session/);
+  assert.match(harness.elements.get("transcript-list").innerHTML, /Manifest drift: repository context fingerprint changed/);
+});

@@ -32,6 +32,7 @@
  * @typedef {{total: number, approvals: number, questions: number, failures: number, degraded: number, active: number, action_needed: number, historical: number}} QueueCounts
  * @typedef {{ok: number, stale: number, unavailable: number, degraded: number}} ProjectionHealthCounts
  * @typedef {{workspace_root: string | null, state: string, health: string | null, pid: number | null, dashboard_url: string | null, health_url: string | null, session_index_url: string | null, started_at: string | null}} RuntimeSummary
+ * @typedef {{sessionId: string, status: string, modelName: string, cwd: string, approvalMode: string, parentSessionId: string | null, forkedFromTurnId: string | null, forkedFromSequence: number | null, branchLabel: string | null, childSessions: ChildSessionSummary[], branchableTurns: BranchableTurn[], canFork: boolean, latestForkPointTurnId: string | null, latestForkPointSequence: number | null, forkBlockedReason: string | null, dashboardUrl: string | null, createdAt: string | null, updatedAt: string | null, lastSequence: number, pendingApprovalId: string | null, pendingQuestionId: string | null, pendingQuestionText: string | null, sessionFailureMessage: string | null, sessionFailureRetryable: boolean | null, runtimeContext: RuntimeContextSummary | null, currentTurn: CurrentTurn | null, turnMetrics: TurnMetrics[], transcript: TranscriptMessage[], activeToolCalls: ActiveToolCall[], pendingApprovals: PendingApproval[], projectionHealth?: ProjectionHealthSummary | null}} CompareSessionState
  *
  * @typedef {Object} DashboardState
  * @property {string | null} sessionId
@@ -78,6 +79,10 @@
  * @property {string | null} selectedSessionId
  * @property {"idle" | "loading" | "loaded" | "failed"} sessionLoadState
  * @property {string | null} sessionLoadError
+ * @property {string | null} compareSessionId
+ * @property {CompareSessionState | null} compareSession
+ * @property {"idle" | "loading" | "loaded" | "failed"} compareSessionLoadState
+ * @property {string | null} compareSessionLoadError
  * @property {"idle" | "index" | "loading" | "connecting" | "live" | "reconnecting" | "unavailable" | "historical"} streamState
  * @property {string | null} streamError
  * @property {number} streamRetryCount
@@ -124,7 +129,7 @@
  */
 
 export { createState } from "./state-core.js";
-export { hydrateFromSnapshot, selectForkTurn } from "./state-snapshot.js";
+export { hydrateCompareSession, hydrateFromSnapshot, selectForkTurn } from "./state-snapshot.js";
 export {
   beginSessionAggregateLoad,
   hydrateSessionAggregate,
@@ -133,7 +138,10 @@ export {
   hydrateSessionIndex,
   failSessionIndexLoad,
   beginSessionSelection,
+  beginCompareSessionSelection,
+  clearCompareSessionSelection,
   clearSessionSelection,
+  failCompareSessionSelection,
   failSessionSelection,
   beginLiveStreamConnection,
   markLiveStreamConnected,

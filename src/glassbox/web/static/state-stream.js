@@ -69,10 +69,34 @@ export function beginSessionSelection(state, sessionId) {
     selectedSessionId: sessionId,
     sessionLoadState: sessionId ? "loading" : "idle",
     sessionLoadError: null,
+    compareSessionId: null,
+    compareSession: null,
+    compareSessionLoadState: "idle",
+    compareSessionLoadError: null,
     streamState: sessionId ? "loading" : "index",
     streamError: null,
     streamRetryCount: 0,
     sessionId: sessionId ? state.sessionId : null,
+  };
+}
+
+export function beginCompareSessionSelection(state, sessionId) {
+  return {
+    ...state,
+    compareSessionId: sessionId,
+    compareSession: null,
+    compareSessionLoadState: sessionId ? "loading" : "idle",
+    compareSessionLoadError: null,
+  };
+}
+
+export function clearCompareSessionSelection(state) {
+  return {
+    ...state,
+    compareSessionId: null,
+    compareSession: null,
+    compareSessionLoadState: "idle",
+    compareSessionLoadError: null,
   };
 }
 
@@ -113,11 +137,24 @@ export function failSessionSelection(state, errorMessage) {
       state: "idle",
       error: null,
     },
+    compareSessionId: null,
+    compareSession: null,
+    compareSessionLoadState: "idle",
+    compareSessionLoadError: null,
     sessionLoadState: "failed",
     sessionLoadError: errorMessage,
     streamState: "index",
     streamError: null,
     streamRetryCount: 0,
+  };
+}
+
+export function failCompareSessionSelection(state, errorMessage) {
+  return {
+    ...state,
+    compareSession: null,
+    compareSessionLoadState: "failed",
+    compareSessionLoadError: errorMessage,
   };
 }
 

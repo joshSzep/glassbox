@@ -88,6 +88,8 @@ The dashboard lets the operator:
 
 - browse recent sessions from the root index
 - open one selected session and inspect lineage, transcript, metrics, tools, approvals, and runtime context
+- compare the selected session against its parent or child lineage snapshots without leaving the browser
+- inspect replay or eval drift cues when snapshot-backed artifact context includes that evidence
 - submit the next prompt for an idle running session
 - answer a pending `ask_user` question
 - resolve a pending approval

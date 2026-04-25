@@ -205,6 +205,16 @@ dashboard shell, rendering:
 - a timeline-oriented turn pane that stays grounded in snapshot metrics and the
   existing SSE/event-log stream rather than browser-only inferred state
 
+The next console slice for `GBX-323` builds on the same boundaries by fetching a
+second `GET /sessions/{session_id}` snapshot only when the operator requests a
+lineage comparison. The browser now supports:
+
+- parent or child snapshot comparison from the selected-session lineage navigator
+- compare summaries anchored in persisted lineage fields, branch source metadata,
+  transcript deltas, and snapshot-backed forkability state
+- replay or eval drift cues rendered from artifact-backed runtime-context
+  summaries when the selected or compared snapshot already carries that evidence
+
 ## Non-Goals For The First Console Slice
 
 The first v2 console should not:

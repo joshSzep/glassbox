@@ -35,6 +35,8 @@ function indicatorPresentation(state) {
 export function createDashboardDomBindings({
   documentImpl,
   onOpenSession,
+  onCompareSession,
+  onClearCompareSession,
   onSelectQueue,
   onResolveApproval,
   onSelectForkTurn,
@@ -107,6 +109,16 @@ export function createDashboardDomBindings({
       element.querySelectorAll("[data-open-session-id]").forEach(button => {
         button.addEventListener("click", () => {
           void onOpenSession(button.dataset.openSessionId);
+        });
+      });
+      element.querySelectorAll("[data-compare-session-id]").forEach(button => {
+        button.addEventListener("click", () => {
+          void onCompareSession(button.dataset.compareSessionId);
+        });
+      });
+      element.querySelectorAll("[data-clear-compare]").forEach(button => {
+        button.addEventListener("click", () => {
+          onClearCompareSession();
         });
       });
       element.scrollTop = element.scrollHeight;

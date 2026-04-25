@@ -84,6 +84,50 @@ function inferCurrentTurn(snapshot) {
   return null;
 }
 
+function normalizeSnapshotSessionFields(snapshot) {
+  const branchableTurns = normalizeBranchableTurns(snapshot.branchable_turns);
+  return {
+    sessionId: snapshot.session_id,
+    status: snapshot.status,
+    modelName: snapshot.model_name,
+    cwd: snapshot.cwd,
+    approvalMode: snapshot.approval_mode,
+    parentSessionId: snapshot.parent_session_id ?? null,
+    forkedFromTurnId: snapshot.forked_from_turn_id ?? null,
+    forkedFromSequence: snapshot.forked_from_sequence ?? null,
+    branchLabel: snapshot.branch_label ?? null,
+    childSessions: [...(snapshot.child_sessions ?? [])],
+    branchableTurns,
+    canFork: Boolean(snapshot.can_fork),
+    latestForkPointTurnId: snapshot.latest_fork_point_turn_id ?? null,
+    latestForkPointSequence: snapshot.latest_fork_point_sequence ?? null,
+    forkBlockedReason: snapshot.fork_blocked_reason ?? null,
+    selectedForkTurnId: defaultSelectedForkTurnId(snapshot),
+    dashboardUrl: snapshot.dashboard_url ?? null,
+    lastSequence: snapshot.last_sequence ?? 0,
+    pendingApprovalId: snapshot.pending_approval_id ?? null,
+    pendingQuestionId: snapshot.pending_question_id ?? null,
+    pendingQuestionText: snapshot.pending_question_text ?? null,
+    sessionFailureMessage: snapshot.session_failure_message ?? null,
+    sessionFailureRetryable: snapshot.session_failure_retryable ?? null,
+    runtimeContext: normalizeRuntimeContext(snapshot.runtime_context),
+    currentTurn: inferCurrentTurn(snapshot),
+    turnMetrics: [...(snapshot.turn_metrics ?? [])],
+    transcript: [...(snapshot.transcript ?? [])],
+    activeToolCalls: [...(snapshot.active_tool_calls ?? [])],
+    pendingApprovals: [...(snapshot.pending_approvals ?? [])],
+  };
+}
+
+function normalizeComparableSession(snapshot) {
+  return {
+    ...normalizeSnapshotSessionFields(snapshot),
+    createdAt: snapshot.created_at ?? null,
+    updatedAt: snapshot.updated_at ?? null,
+    projectionHealth: snapshot.projection_health ?? null,
+  };
+}
+
 function normalizeRuntimeContext(snapshotRuntimeContext) {
   if (!snapshotRuntimeContext || !snapshotRuntimeContext.repository_context) {
     return null;
@@ -222,44 +266,25 @@ export function upsertRuntimeContextNote(runtimeContext, note) {
 }
 
 export function hydrateFromSnapshot(snapshot) {
-  const branchableTurns = normalizeBranchableTurns(snapshot.branchable_turns);
   return {
     ...createState(),
-    sessionId: snapshot.session_id,
+    ...normalizeSnapshotSessionFields(snapshot),
     selectedSessionId: snapshot.session_id,
-    status: snapshot.status,
-    modelName: snapshot.model_name,
-    cwd: snapshot.cwd,
-    approvalMode: snapshot.approval_mode,
-    parentSessionId: snapshot.parent_session_id ?? null,
-    forkedFromTurnId: snapshot.forked_from_turn_id ?? null,
-    forkedFromSequence: snapshot.forked_from_sequence ?? null,
-    branchLabel: snapshot.branch_label ?? null,
-    childSessions: [...(snapshot.child_sessions ?? [])],
-    branchableTurns,
-    canFork: Boolean(snapshot.can_fork),
-    latestForkPointTurnId: snapshot.latest_fork_point_turn_id ?? null,
-    latestForkPointSequence: snapshot.latest_fork_point_sequence ?? null,
-    forkBlockedReason: snapshot.fork_blocked_reason ?? null,
-    selectedForkTurnId: defaultSelectedForkTurnId(snapshot),
-    dashboardUrl: snapshot.dashboard_url ?? null,
-    lastSequence: snapshot.last_sequence ?? 0,
-    pendingApprovalId: snapshot.pending_approval_id ?? null,
-    pendingQuestionId: snapshot.pending_question_id ?? null,
-    pendingQuestionText: snapshot.pending_question_text ?? null,
-    sessionFailureMessage: snapshot.session_failure_message ?? null,
-    sessionFailureRetryable: snapshot.session_failure_retryable ?? null,
-    runtimeContext: normalizeRuntimeContext(snapshot.runtime_context),
-    currentTurn: inferCurrentTurn(snapshot),
-    turnMetrics: [...(snapshot.turn_metrics ?? [])],
-    transcript: [...(snapshot.transcript ?? [])],
-    activeToolCalls: [...(snapshot.active_tool_calls ?? [])],
     liveOutput: [],
-    pendingApprovals: [...(snapshot.pending_approvals ?? [])],
     eventLog: [],
     interactionSubmission: createIdleInteractionSubmission(),
     forkSubmission: createIdleForkSubmission(),
     sessionLoadState: "loaded",
+  };
+}
+
+export function hydrateCompareSession(state, snapshot) {
+  return {
+    ...state,
+    compareSessionId: snapshot.session_id,
+    compareSession: normalizeComparableSession(snapshot),
+    compareSessionLoadState: "loaded",
+    compareSessionLoadError: null,
   };
 }
 
