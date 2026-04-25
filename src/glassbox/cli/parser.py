@@ -417,26 +417,35 @@ def _add_eval_parsers(
     )
     _add_runtime_location_arguments(eval_audit_parser)
 
-    eval_profiles_parser = eval_subparsers.add_parser(
-        "profiles",
+    eval_profile_parser = eval_subparsers.add_parser(
+        "profile",
+        help="work with repository-owned eval profiles",
+        description="Inspect repository-owned eval profiles and tracks.",
+    )
+    eval_profile_subparsers = eval_profile_parser.add_subparsers(
+        dest="eval_profile_command"
+    )
+
+    eval_profile_list_parser = eval_profile_subparsers.add_parser(
+        "list",
         help="list repository-owned eval profiles",
         description=(
             "List repository-owned eval profiles and optionally narrow them by "
             "deterministic or live-provider-canary track."
         ),
     )
-    eval_profiles_parser.add_argument(
+    eval_profile_list_parser.add_argument(
         "--track",
         choices=_EVAL_PROFILE_TRACK_CHOICES,
         default=None,
         help="optional profile track filter",
     )
-    eval_profiles_parser.add_argument(
+    eval_profile_list_parser.add_argument(
         "--json",
         action="store_true",
         help="print the structured profile listing as JSON",
     )
-    _add_runtime_location_arguments(eval_profiles_parser)
+    _add_runtime_location_arguments(eval_profile_list_parser)
 
     eval_recommend_parser = eval_subparsers.add_parser(
         "recommend",

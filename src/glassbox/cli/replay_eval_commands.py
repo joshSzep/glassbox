@@ -129,7 +129,9 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
             _print_eval_coverage_audit(result=audit_result, workspace_root=cwd)
         return 0
 
-    if args.eval_command == "profiles":
+    if args.eval_command == "profile":
+        if args.eval_profile_command != "list":
+            raise ValueError("specify an eval profile subcommand")
         cwd, _db_path = resolve_runtime_location(args)
         del _db_path
         profiles = load_eval_profiles(cwd, track=args.track)
@@ -188,7 +190,7 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
                 raise ValueError(
                     "eval report only supports deterministic profiles; "
                     f"{profile.profile_id} is track {profile.track}. "
-                    "Use 'glassbox eval profiles --track live-provider-canary' "
+                    "Use 'glassbox eval profile list --track live-provider-canary' "
                     "for optional canary scaffolding instead."
                 )
             if not selection.cases:

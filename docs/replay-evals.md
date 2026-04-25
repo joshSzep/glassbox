@@ -17,7 +17,7 @@ Use replay and eval as repository-owned behavioral contracts, not as a replaceme
 - Use `eval audit` when you want coverage and contract-gap reporting.
 - Use `eval recommend` when you want suggested replay cases or eval profiles for a changed path set.
 - Use `eval report` when you want deterministic release-signoff evidence from named profiles.
-- Use `eval profiles` when you want to inspect repository-owned profiles and tracks.
+- Use `eval profile list` when you want to inspect repository-owned profiles and tracks.
 
 ## Single-Session Replay
 
@@ -62,8 +62,8 @@ uv run glassbox eval run --profile commit-smoke --cwd .
 Inspect profiles:
 
 ```bash
-uv run glassbox eval profiles --json --cwd .
-uv run glassbox eval profiles --track live-provider-canary --json --cwd .
+uv run glassbox eval profile list --json --cwd .
+uv run glassbox eval profile list --track live-provider-canary --json --cwd .
 ```
 
 Recommend replay or eval follow-up from touched paths:

@@ -445,7 +445,8 @@ def test_cli_eval_profiles_lists_live_provider_canary_track(
     exit_code = main(
         [
             "eval",
-            "profiles",
+            "profile",
+            "list",
             "--track",
             "live-provider-canary",
             "--json",

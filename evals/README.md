@@ -28,8 +28,8 @@ glassbox eval run --profile commit-smoke
 glassbox eval run CASE_ID
 glassbox eval run --tag smoke --json
 glassbox eval recommend PATH [PATH ...]
-glassbox eval profiles
-glassbox eval profiles --track live-provider-canary --json
+glassbox eval profile list
+glassbox eval profile list --track live-provider-canary --json
 glassbox eval run --output-dir .glassbox/evals/manual
 glassbox eval report release-candidate advisory-context
 glassbox eval report commit-smoke push-confirmation release-candidate --output-dir .glassbox/evals/release-signoff
@@ -46,8 +46,8 @@ normal replay, eval, budget, and release-signoff workflow. The separate
 `live-provider-canary` track is reserved for future optional live-provider
 comparison work and must remain advisory and non-blocking.
 
-Use `glassbox eval profiles` to inspect the repository-owned profile catalog and
-`glassbox eval profiles --track live-provider-canary` to find the non-blocking
+Use `glassbox eval profile list` to inspect the repository-owned profile catalog and
+`glassbox eval profile list --track live-provider-canary` to find the non-blocking
 canary scaffold without mixing it into deterministic release commands.
 
 Profiles can now also declare a reviewable `budget` block with size and
@@ -381,7 +381,7 @@ Troubleshooting flows:
   drilling into `profiles/PROFILE_ID/summary.json` or the retained per-case
   artifacts.
 1. Live-provider canary exploration:
-  use `glassbox eval profiles --track live-provider-canary` to discover the
+  use `glassbox eval profile list --track live-provider-canary` to discover the
   reserved canary scaffold, but keep that work out of deterministic
   `glassbox eval report` runs because canary evidence is intentionally not part
   of release sign-off.
