@@ -2,6 +2,7 @@
 
 import argparse
 import asyncio
+from pathlib import Path
 
 from glassbox.cli.daemon_attach import attach_via_daemon
 from glassbox.cli.interactive_session import _interactive_session_loop
@@ -10,6 +11,7 @@ from glassbox.cli.runtime_runner import _dashboard_session_url
 from glassbox.cli.runtime_runner import _run_with_renderer
 from glassbox.cli.runtime_runner import _start_chat_dashboard
 from glassbox.core import SessionConfig
+from glassbox.core.ids import SessionId
 from glassbox.core.types import ApprovalDecision
 from glassbox.runtime.context import RuntimeContext
 from glassbox.runtime.daemon import clear_stale_runtime_owner
@@ -25,11 +27,7 @@ async def _run_command_async(args: argparse.Namespace) -> int:
         args,
         require_daemon_unowned_for="start a local session runner",
     )
-    config = SessionConfig(
-        model_name=args.model_name,
-        cwd=cwd,
-        approval_mode=args.approval_mode,
-    )
+    config = _build_start_session_config(args, cwd)
 
     async def action(
         runtime_context: RuntimeContext,
@@ -39,12 +37,11 @@ async def _run_command_async(args: argparse.Namespace) -> int:
             config
         )
         await asyncio.sleep(0)
-        if args.prompt:
-            await runtime_context.services.session_service.submit_user_message(
-                session_state.session_id,
-                args.prompt,
-            )
-            await asyncio.sleep(0)
+        await _submit_prompt_if_present(
+            runtime_context,
+            session_state.session_id,
+            args.prompt,
+        )
 
     return await _run_with_renderer(cwd, db_path, action)
 
@@ -58,11 +55,7 @@ async def _chat_command_async(args: argparse.Namespace) -> int:
         args,
         require_daemon_unowned_for="start an interactive chat session",
     )
-    base_config = SessionConfig(
-        model_name=args.model_name,
-        cwd=cwd,
-        approval_mode=args.approval_mode,
-    )
+    base_config = _build_start_session_config(args, cwd)
 
     async def action(runtime_context: RuntimeContext, prompt_state) -> None:
         dashboard_server = None
@@ -79,12 +72,11 @@ async def _chat_command_async(args: argparse.Namespace) -> int:
                 await runtime_context.services.session_service.start_session(config)
             )
             await asyncio.sleep(0)
-            if args.prompt:
-                await runtime_context.services.session_service.submit_user_message(
-                    session_state.session_id,
-                    args.prompt,
-                )
-                await asyncio.sleep(0)
+            await _submit_prompt_if_present(
+                runtime_context,
+                session_state.session_id,
+                args.prompt,
+            )
             print(f"Attached to session {session_state.session_id}")
             if dashboard_url is not None:
                 print(
@@ -222,13 +214,38 @@ async def _fork_command_async(args: argparse.Namespace) -> int:
         if forked_session.branch_label is not None:
             print(f"Branch label: {forked_session.branch_label}")
         if args.prompt:
-            await runtime_context.services.session_service.submit_user_message(
+            await _submit_prompt_if_present(
+                runtime_context,
                 forked_session.child_session_id,
                 args.prompt,
             )
-            await asyncio.sleep(0)
 
     return await _run_with_renderer(cwd, db_path, action)
+
+
+def _build_start_session_config(
+    args: argparse.Namespace,
+    cwd: Path,
+) -> SessionConfig:
+    return SessionConfig(
+        model_name=args.model_name,
+        cwd=cwd,
+        approval_mode=args.approval_mode,
+    )
+
+
+async def _submit_prompt_if_present(
+    runtime_context: RuntimeContext,
+    session_id: SessionId,
+    prompt: str | None,
+) -> None:
+    if not prompt:
+        return
+    await runtime_context.services.session_service.submit_user_message(
+        session_id,
+        prompt,
+    )
+    await asyncio.sleep(0)
 
 
 def _answer_command(args: argparse.Namespace) -> int:
