@@ -463,6 +463,92 @@ def test_cli_eval_profiles_lists_live_provider_canary_track(
     assert payload[0]["blocking"] is False
 
 
+def test_cli_eval_case_list_filters_by_tag_and_json(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _write_eval_case(
+        tmp_path,
+        case_id="smoke.readme",
+        title="README smoke",
+        bundle_name="readme.json",
+        tags=["smoke", "tooling"],
+        release_contract={
+            "owner": "runtime.replay",
+            "capabilities": ["replay_portability"],
+            "severity": "high",
+            "verification_stages": ["commit-time"],
+        },
+    )
+    _write_eval_case(
+        tmp_path,
+        case_id="approval.patch",
+        title="Patch approval",
+        bundle_name="patch.json",
+        tags=["approval", "tooling"],
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "case",
+            "list",
+            "--tag",
+            "smoke",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert [case["case_id"] for case in payload] == ["smoke.readme"]
+    assert payload[0]["title"] == "README smoke"
+    assert payload[0]["release_contract"]["severity"] == "high"
+
+
+def test_cli_eval_case_show_reports_manifest_details(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _write_eval_case(
+        tmp_path,
+        case_id="smoke.readme",
+        title="README smoke",
+        bundle_name="readme.json",
+        tags=["smoke", "tooling"],
+        release_contract={
+            "owner": "runtime.replay",
+            "capabilities": ["replay_portability"],
+            "severity": "high",
+            "verification_stages": ["commit-time", "push-time"],
+        },
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "case",
+            "show",
+            "smoke.readme",
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Case: smoke.readme" in captured.out
+    assert "Title: README smoke" in captured.out
+    assert "Owner: runtime.replay" in captured.out
+    assert "Capabilities: replay_portability" in captured.out
+    assert "Verification stages: commit-time, push-time" in captured.out
+
+
 def test_cli_eval_recommend_reports_cases_profiles_and_reasons(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

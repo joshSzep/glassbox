@@ -29,7 +29,9 @@ from glassbox.runtime.eval_summary import EvalReleaseSignoffProfileInput
 from glassbox.runtime.eval_summary import EvalReleaseSignoffSkippedProfileInput
 from glassbox.runtime.eval_summary import build_eval_release_signoff_report
 from glassbox.runtime.eval_summary import build_eval_release_signoff_summary
+from glassbox.runtime.evals import EvalCase
 from glassbox.runtime.evals import load_eval_profiles
+from glassbox.runtime.evals import load_eval_suite
 from glassbox.runtime.replay import ReplayRunner
 from glassbox.runtime.workspace_profile import resolve_eval_profile_default
 
@@ -243,6 +245,10 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
         return report.exit_code
 
     if args.eval_command == "case":
+        if args.eval_case_command == "list":
+            return _eval_case_list_command(args)
+        if args.eval_case_command == "show":
+            return _eval_case_show_command(args)
         if args.eval_case_command == "promote":
             return _eval_case_promote_command(args)
         if args.eval_case_command == "refresh":
@@ -250,6 +256,74 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
         raise ValueError("specify an eval case subcommand")
 
     raise ValueError("specify an eval subcommand")
+
+
+def _eval_case_list_command(args: argparse.Namespace) -> int:
+    cwd, _db_path = resolve_runtime_location(args)
+    del _db_path
+    cases = load_eval_suite(
+        cwd,
+        tags=list(args.tags) or None,
+        validate_bundle_exists=False,
+    )
+
+    if args.json:
+        print_json_output([case.model_dump(mode="json") for case in cases])
+    else:
+        _print_eval_cases(cases)
+    return 0
+
+
+def _eval_case_show_command(args: argparse.Namespace) -> int:
+    cwd, _db_path = resolve_runtime_location(args)
+    del _db_path
+    cases = load_eval_suite(
+        cwd,
+        case_ids=[args.case_id],
+        validate_bundle_exists=False,
+    )
+    eval_case = cases[0]
+
+    if args.json:
+        print_json_output(eval_case.model_dump(mode="json"))
+    else:
+        _print_eval_case(eval_case)
+    return 0
+
+
+def _print_eval_cases(cases: list[EvalCase]) -> None:
+    if not cases:
+        print("No eval cases found")
+        return
+
+    print(f"Eval cases: {len(cases)}")
+    for eval_case in cases:
+        tags = ", ".join(eval_case.tags) if eval_case.tags else "none"
+        stages = ", ".join(eval_case.release_contract.verification_stages)
+        print(
+            f"{eval_case.case_id}  {eval_case.release_contract.severity}  "
+            f"stages {stages}  tags {tags}"
+        )
+        print(f"  Title: {eval_case.title}")
+
+
+def _print_eval_case(eval_case: EvalCase) -> None:
+    release_contract = eval_case.release_contract
+    print(f"Case: {eval_case.case_id}")
+    print(f"Title: {eval_case.title}")
+    print(f"Tags: {', '.join(eval_case.tags) if eval_case.tags else 'none'}")
+    print(f"Expectation: {eval_case.expectation.mode}")
+    if eval_case.expectation.invariants:
+        print(f"Invariants: {', '.join(eval_case.expectation.invariants)}")
+    print(f"Severity: {release_contract.severity}")
+    print(f"Verification stages: {', '.join(release_contract.verification_stages)}")
+    print(f"Baseline refresh policy: {release_contract.baseline_refresh_policy}")
+    if release_contract.owner is not None:
+        print(f"Owner: {release_contract.owner}")
+    if release_contract.capabilities:
+        print(f"Capabilities: {', '.join(release_contract.capabilities)}")
+    print(f"Case manifest: {eval_case.case_path}")
+    print(f"Replay bundle: {eval_case.bundle_path}")
 
 
 def _eval_case_promote_command(args: argparse.Namespace) -> int:

@@ -30,6 +30,8 @@ glassbox eval run --tag smoke --json
 glassbox eval recommend PATH [PATH ...]
 glassbox eval profile list
 glassbox eval profile list --track live-provider-canary --json
+glassbox eval case list
+glassbox eval case show CASE_ID
 glassbox eval run --output-dir .glassbox/evals/manual
 glassbox eval report release-candidate advisory-context
 glassbox eval report commit-smoke push-confirmation release-candidate --output-dir .glassbox/evals/release-signoff

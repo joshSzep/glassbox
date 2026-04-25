@@ -552,12 +552,44 @@ def _add_eval_parsers(
     eval_case_parser = eval_subparsers.add_parser(
         "case",
         help="work with repository-owned eval cases",
-        description="Promote or refresh repository-owned eval cases.",
+        description="Inspect, promote, or refresh repository-owned eval cases.",
     )
     eval_case_subparsers = eval_case_parser.add_subparsers(
         dest="eval_case_command",
         required=True,
     )
+
+    eval_case_list_parser = eval_case_subparsers.add_parser(
+        "list",
+        help="list repository-owned eval cases",
+        description="List repository-owned eval case manifests.",
+    )
+    eval_case_list_parser.add_argument(
+        "--tag",
+        dest="tags",
+        action="append",
+        default=[],
+        help="require a tag on listed eval cases; repeat to require multiple tags",
+    )
+    eval_case_list_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print eval case summaries as JSON",
+    )
+    _add_runtime_location_arguments(eval_case_list_parser)
+
+    eval_case_show_parser = eval_case_subparsers.add_parser(
+        "show",
+        help="show one repository-owned eval case",
+        description="Show one repository-owned eval case manifest.",
+    )
+    eval_case_show_parser.add_argument("case_id")
+    eval_case_show_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the eval case manifest as JSON",
+    )
+    _add_runtime_location_arguments(eval_case_show_parser)
 
     eval_promote_parser = eval_case_subparsers.add_parser(
         "promote",

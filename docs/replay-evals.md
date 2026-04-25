@@ -66,6 +66,13 @@ uv run glassbox eval profile list --json --cwd .
 uv run glassbox eval profile list --track live-provider-canary --json --cwd .
 ```
 
+Inspect eval cases:
+
+```bash
+uv run glassbox eval case list --cwd .
+uv run glassbox eval case show CASE_ID --json --cwd .
+```
+
 Recommend replay or eval follow-up from touched paths:
 
 ```bash
