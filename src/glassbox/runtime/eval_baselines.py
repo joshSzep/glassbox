@@ -71,6 +71,26 @@ class EvalBaselineProfileImpact(BaseModel):
     selection_reasons: list[str] = Field(default_factory=list)
 
 
+class EvalBaselineImpactSummary(BaseModel):
+    """Resolved impact context for one baseline promotion or refresh."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    likely_change_owners: list[str] = Field(default_factory=list)
+    impacted_verification_stages: list[EvalVerificationStage] = Field(
+        default_factory=list
+    )
+    impacted_capabilities: list[EvalBaselineCapabilityImpact] = Field(
+        default_factory=list
+    )
+    impacted_profiles: list[EvalBaselineProfileImpact] = Field(default_factory=list)
+
+    def blocking_profile_ids(self) -> list[str]:
+        return [
+            profile.profile_id for profile in self.impacted_profiles if profile.blocking
+        ]
+
+
 class EvalBaselineUpdateReport(BaseModel):
     """Review artifact for one promoted or refreshed eval baseline."""
 
@@ -253,15 +273,14 @@ def refresh_eval_case(
     )
     _validate_curated_release_contract(normalized_case_id, release_contract_after)
     if requires_acknowledgement and not acknowledge_policy:
-        impacted_profiles = _resolve_impacted_profiles(
+        impact_summary = _build_baseline_impact_summary_from_inputs(
             resolved_workspace_root,
+            before_owner=manifest_before.release_contract.owner,
             case_id=normalized_case_id,
             tags=list(tags) if tags is not None else list(manifest_before.tags),
             release_contract=release_contract_after,
         )
-        blocking_profile_ids = [
-            profile.profile_id for profile in impacted_profiles if profile.blocking
-        ]
+        blocking_profile_ids = impact_summary.blocking_profile_ids()
         scope_suffix = ""
         if blocking_profile_ids:
             scope_suffix = (
@@ -602,11 +621,11 @@ def _build_update_report(
             len(manifest_before.baseline_history) if manifest_before is not None else 0
         ),
         baseline_history_count_after=len(manifest_after.baseline_history),
-        likely_change_owners=impact_summary["likely_change_owners"],
-        impacted_verification_stages=impact_summary["impacted_verification_stages"],
-        impacted_capabilities=impact_summary["impacted_capabilities"],
-        impacted_profiles=impact_summary["impacted_profiles"],
-        impacted_blocking_profile_ids=impact_summary["impacted_blocking_profile_ids"],
+        likely_change_owners=impact_summary.likely_change_owners,
+        impacted_verification_stages=impact_summary.impacted_verification_stages,
+        impacted_capabilities=impact_summary.impacted_capabilities,
+        impacted_profiles=impact_summary.impacted_profiles,
+        impacted_blocking_profile_ids=impact_summary.blocking_profile_ids(),
     )
 
 
@@ -666,35 +685,47 @@ def _build_baseline_impact_summary(
     *,
     manifest_before: EvalCaseManifest | None,
     manifest_after: EvalCaseManifest,
-) -> dict[str, Any]:
-    likely_change_owners = _collect_likely_change_owners(
+) -> EvalBaselineImpactSummary:
+    return _build_baseline_impact_summary_from_inputs(
+        workspace_root,
         before_owner=(
             None if manifest_before is None else manifest_before.release_contract.owner
         ),
-        after_owner=manifest_after.release_contract.owner,
-    )
-    impacted_capabilities = _resolve_impacted_capabilities(
-        workspace_root,
-        case_id=manifest_after.case_id,
-        release_contract=manifest_after.release_contract,
-    )
-    impacted_profiles = _resolve_impacted_profiles(
-        workspace_root,
         case_id=manifest_after.case_id,
         tags=list(manifest_after.tags),
         release_contract=manifest_after.release_contract,
     )
-    return {
-        "likely_change_owners": likely_change_owners,
-        "impacted_verification_stages": list(
-            manifest_after.release_contract.verification_stages
-        ),
-        "impacted_capabilities": impacted_capabilities,
-        "impacted_profiles": impacted_profiles,
-        "impacted_blocking_profile_ids": [
-            profile.profile_id for profile in impacted_profiles if profile.blocking
-        ],
-    }
+
+
+def _build_baseline_impact_summary_from_inputs(
+    workspace_root: Path,
+    *,
+    before_owner: str | None,
+    case_id: str,
+    tags: list[str],
+    release_contract: EvalCaseReleaseContract,
+) -> EvalBaselineImpactSummary:
+    likely_change_owners = _collect_likely_change_owners(
+        before_owner=before_owner,
+        after_owner=release_contract.owner,
+    )
+    impacted_capabilities = _resolve_impacted_capabilities(
+        workspace_root,
+        case_id=case_id,
+        release_contract=release_contract,
+    )
+    impacted_profiles = _resolve_impacted_profiles(
+        workspace_root,
+        case_id=case_id,
+        tags=tags,
+        release_contract=release_contract,
+    )
+    return EvalBaselineImpactSummary(
+        likely_change_owners=likely_change_owners,
+        impacted_verification_stages=list(release_contract.verification_stages),
+        impacted_capabilities=impacted_capabilities,
+        impacted_profiles=impacted_profiles,
+    )
 
 
 def _collect_likely_change_owners(
