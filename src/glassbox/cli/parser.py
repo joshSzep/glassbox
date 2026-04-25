@@ -821,7 +821,7 @@ def _add_operations_parsers(
     dashboard_parser = subparsers.add_parser(
         "dashboard",
         help="work with the browser dashboard",
-        description="Start or inspect browser dashboard surfaces.",
+        description="Start the browser dashboard for the selected workspace.",
     )
     dashboard_subparsers = dashboard_parser.add_subparsers(
         dest="dashboard_command",

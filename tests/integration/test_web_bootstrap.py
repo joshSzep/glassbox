@@ -128,6 +128,8 @@ def test_cli_dashboard_help_lists_serve_subcommand(
 
     assert exc_info.value.code == 0
     assert "serve" in captured.out
+    assert "Start the browser dashboard" in captured.out
+    assert "inspect browser dashboard" not in captured.out
 
 
 def test_cli_help_lists_chat_dashboard_flags(
