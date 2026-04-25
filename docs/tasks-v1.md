@@ -1455,7 +1455,7 @@ uv run ty check src/glassbox/path.py
   - architecture and operator-workflow updates describing a co-hosted dashboard for `glassbox chat`
   - explicit semantics for whether dashboard startup is default, opt-in, or suppressible from the CLI
   - command-surface proposal for dashboard-related `chat` flags such as host, port, or `--no-dashboard` if justified
-  - explicit positioning of co-hosted dashboard behavior versus the existing standalone `glassbox serve` command
+  - explicit positioning of co-hosted dashboard behavior versus the existing standalone `glassbox dashboard serve` command
 - Implementation notes:
   - keep this inside the current single-process architecture; do not introduce a second runtime or daemon-backed owner process
   - treat the embedded dashboard as a sidecar over the same runtime context and event bus that `chat` already owns
@@ -1474,7 +1474,7 @@ uv run ty check src/glassbox/path.py
 - Goal: make the existing web server startable and stoppable from inside an already-running CLI process without duplicating runtime bootstrap
 - Deliverables:
   - reusable web server lifecycle abstraction for start, readiness, and shutdown
-  - shared startup path that can be used by both `glassbox serve` and an embedded `chat` sidecar
+  - shared startup path that can be used by both `glassbox dashboard serve` and an embedded `chat` sidecar
   - server configuration model or equivalent typed inputs for host, port, and runtime context reuse
 - Implementation notes:
   - do not open a second `RuntimeContext` when embedding the dashboard into `chat`
@@ -1483,7 +1483,7 @@ uv run ty check src/glassbox/path.py
   - keep shutdown deterministic so the server does not outlive the owning interactive process
 - Tests and validation included in task:
   - integration tests for server startup, readiness, and shutdown using the reusable lifecycle path
-  - regression tests proving `glassbox serve` still starts the dashboard correctly after the refactor
+  - regression tests proving `glassbox dashboard serve` still starts the dashboard correctly after the refactor
 - Done when:
   - the web server can be hosted either standalone or as an embedded component without duplicating runtime ownership
 
@@ -1554,7 +1554,7 @@ uv run ty check src/glassbox/path.py
 - Goal: document how the dashboard fits into the interactive chat workflow without confusing it with daemon-backed attach or standalone dashboard use
 - Deliverables:
   - README updates covering dashboard availability during `glassbox chat`
-  - operator guidance for when to rely on chat-hosted dashboard behavior versus `glassbox serve`
+  - operator guidance for when to rely on chat-hosted dashboard behavior versus `glassbox dashboard serve`
   - troubleshooting notes for dashboard-disabled mode, port conflicts, and session shutdown behavior
   - explicit reminder that co-hosting the dashboard does not make interactive attach cross-process or daemon-backed
 - Implementation notes:
@@ -1577,7 +1577,7 @@ uv run ty check src/glassbox/path.py
 - Depends on: `GBX-081`, `GBX-083`, `GBX-093`, `GBX-100`, `GBX-166`, `GBX-175`, `GBX-121`
 - Goal: define what the standalone dashboard should optimize for once the co-hosted `chat` dashboard flow is complete
 - Deliverables:
-  - architecture and operator-workflow updates positioning `glassbox serve` as the persisted-session browser console rather than a low-level transport surface
+  - architecture and operator-workflow updates positioning `glassbox dashboard serve` as the persisted-session browser console rather than a low-level transport surface
   - explicit semantics for browsing recent sessions without already knowing a session ID
   - explicit scope boundary for browser-based recovery and observation versus unsupported browser-based terminal attach or daemon-backed runtime control
   - clear operator semantics for live, paused, completed, failed, and historical-only sessions when viewed through the standalone dashboard
@@ -1627,7 +1627,7 @@ uv run ty check src/glassbox/path.py
   - frontend reducer and component tests for index hydration, session selection, and no-session states
   - integration tests for loading the landing page, selecting a session, and preserving deep-link navigation
 - Done when:
-  - an operator can start `glassbox serve`, open the root dashboard URL, and navigate to a useful session without copying a session ID first
+  - an operator can start `glassbox dashboard serve`, open the root dashboard URL, and navigate to a useful session without copying a session ID first
 
 ### GBX-183: Improve Standalone Session Summaries And Next-Action Guidance
 
@@ -1673,12 +1673,12 @@ uv run ty check src/glassbox/path.py
 - Depends on: `GBX-180`, `GBX-181`, `GBX-182`, `GBX-183`, `GBX-184`, `GBX-121`
 - Goal: document the standalone dashboard as the durable operator console for persisted sessions and recovery flows
 - Deliverables:
-  - README updates covering how to use `glassbox serve` when no active `chat` process is owning the dashboard
+  - README updates covering how to use `glassbox dashboard serve` when no active `chat` process is owning the dashboard
   - operator guidance for browsing recent sessions, reopening actionable sessions in the browser, and distinguishing live versus historical inspection
   - troubleshooting notes for invalid session IDs, disconnected SSE state, and post-`chat` session inspection
 - Implementation notes:
   - keep docs explicit that standalone browser ergonomics improve discovery and recovery, but do not introduce daemon-backed terminal attach
-  - show at least one example flow that begins from `glassbox serve` with no preselected session ID
+  - show at least one example flow that begins from `glassbox dashboard serve` with no preselected session ID
   - align examples with the actual landing page, routing, and session-summary behavior implemented in this phase
 - Tests and validation included in task:
   - doc review against the implemented standalone dashboard routes, index behavior, and browser affordances

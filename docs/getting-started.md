@@ -81,7 +81,7 @@ glassbox session approve SESSION_ID APPROVAL_ID
 glassbox session deny SESSION_ID APPROVAL_ID
 glassbox projection check [SESSION_ID | --all]
 glassbox projection rebuild [SESSION_ID | --all]
-glassbox serve
+glassbox dashboard serve
 ```
 
 Use the dedicated guides for workflow detail:

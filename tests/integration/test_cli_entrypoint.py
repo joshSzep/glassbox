@@ -36,7 +36,7 @@ def test_python_module_entrypoint_prints_help(
 
     assert exc_info.value.code == 0
     assert "usage: glassbox" in captured.out
-    assert "serve" in captured.out
+    assert "dashboard" in captured.out
 
 
 def test_cli_unknown_command_exits_with_parser_error(
@@ -56,12 +56,12 @@ def test_cli_invalid_port_exits_with_parser_error(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     with pytest.raises(SystemExit) as exc_info:
-        main(["serve", "--port", "70000"])
+        main(["dashboard", "serve", "--port", "70000"])
 
     captured = capsys.readouterr()
 
     assert exc_info.value.code == 2
-    assert "usage: glassbox serve" in captured.err
+    assert "usage: glassbox dashboard serve" in captured.err
     assert "invalid port: 70000" in captured.err
 
 

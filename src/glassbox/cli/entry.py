@@ -51,7 +51,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
     from glassbox.cli.interactive_commands import _run_command
     from glassbox.cli.replay_eval_commands import _eval_command
     from glassbox.cli.replay_eval_commands import _replay_command
-    from glassbox.cli.server_commands import _serve_command
+    from glassbox.cli.server_commands import _dashboard_command
     from glassbox.cli.session_state_commands import _projection_command
     from glassbox.cli.session_state_commands import _session_command
 
@@ -64,7 +64,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
         "artifacts": _artifacts_command,
         "backup": _backup_command,
         "projection": _projection_command,
-        "serve": _serve_command,
+        "dashboard": _dashboard_command,
         "daemon": _daemon_command,
     }
     command = getattr(args, "command", None)

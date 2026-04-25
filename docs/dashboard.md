@@ -3,7 +3,7 @@
 Glassbox has two dashboard modes:
 
 - a co-hosted dashboard started by `glassbox chat`
-- a standalone dashboard started by `glassbox serve`
+- a standalone dashboard started by `glassbox dashboard serve`
 
 Both read the same persisted session state and the same event stream model.
 
@@ -32,7 +32,7 @@ If you explicitly set `--dashboard-host` or `--dashboard-port` and startup fails
 Use `serve` when browser access should outlive a particular `chat` process or when you want to inspect persisted sessions without an active interactive terminal session.
 
 ```bash
-uv run glassbox serve --cwd . --host 127.0.0.1 --port 8765
+uv run glassbox dashboard serve --cwd . --host 127.0.0.1 --port 8765
 ```
 
 Then open:
@@ -97,7 +97,7 @@ The dashboard lets the operator:
 
 ## Troubleshooting
 
-- If you used `glassbox chat --no-dashboard`, start `glassbox serve` and open `/`.
+- If you used `glassbox chat --no-dashboard`, start `glassbox dashboard serve` and open `/`.
 - If the co-hosted dashboard was unavailable, the session may still be running normally in the terminal.
 - If the selected session shows `live unavailable`, treat the snapshot as persisted history unless another runtime is known to be driving it.
 - If a direct `?session=...` URL is stale or invalid, the dashboard returns to the session index instead of leaving the browser stuck.

@@ -56,7 +56,7 @@ In either mode, `attach` is for sessions that are actionable from the operator s
 - sessions awaiting `ask_user` input
 - sessions awaiting approval resolution
 
-It does not automatically start the dashboard. If you want browser observation after re-entering a session, run `glassbox serve` separately and use the session index in the dashboard.
+It does not automatically start the dashboard. If you want browser observation after re-entering a session, run `glassbox dashboard serve` separately and use the session index in the dashboard.
 
 ## State-Driven Commands
 
@@ -126,7 +126,7 @@ The intended ownership split is:
 - background mode: `glassbox daemon start` owns the live runtime for one
   workspace when the operator wants runtime continuity beyond a single terminal
   process
-- browser mode: `glassbox serve` remains the operator console and session
+- browser mode: `glassbox dashboard serve` remains the operator console and session
   browser; it is not the authoritative runtime owner
 
 This means `attach` now resolves one of two explicit behaviors:

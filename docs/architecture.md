@@ -59,7 +59,7 @@ following as the implemented baseline that v2 extends:
     background runtime owner with health and lock metadata under `.glassbox/`
 - `glassbox session attach` now chooses between persisted local reopen and live
     terminal attach to a healthy daemon-owned runtime for the same workspace
-- `glassbox serve` exposes the standalone browser console over persisted
+- `glassbox dashboard serve` exposes the standalone browser console over persisted
     sessions, recent-session discovery, snapshot reads, HTTP actions, and SSE
     live tails
 - the dashboard already behaves as a session-index-plus-deep-link operator
@@ -1515,7 +1515,7 @@ glassbox session approve SESSION_ID APPROVAL_ID
 glassbox session deny SESSION_ID APPROVAL_ID
 glassbox projection check [SESSION_ID | --all]
 glassbox projection rebuild [SESSION_ID | --all]
-glassbox serve
+glassbox dashboard serve
 ```
 
 `glassbox session status` should read persisted projections and summarize the current turn,
@@ -1847,7 +1847,7 @@ This does not change the attach boundary from `GBX-166`. A co-hosted dashboard
 for `chat` improves same-process visibility only; it does not create true
 cross-process terminal attach or a daemon-backed resident runtime.
 
-`glassbox serve` remains the standalone dashboard path for cases where the
+`glassbox dashboard serve` remains the standalone dashboard path for cases where the
 operator wants a browser view outside an active `chat` session, wants to inspect
 persisted sessions from another process, or needs explicit control over the
 server lifecycle. `attach` should not automatically start the dashboard in v1;
@@ -1856,7 +1856,7 @@ it remains an interactive terminal re-entry path over existing persisted state.
 For operator docs, the key positioning should stay explicit:
 
 - the co-hosted dashboard is a convenience surface for the same live `chat` process and should shut down with that process
-- `glassbox serve` is the durable observation path for persisted sessions and for browser access that should survive beyond a single `chat` invocation
+- `glassbox dashboard serve` is the durable observation path for persisted sessions and for browser access that should survive beyond a single `chat` invocation
 - the printed `chat` URL can point directly at the active session with `?session=SESSION_ID`, while `serve` should start at the root session browser and keep `?session=SESSION_ID` as a direct-open path
 
 ### Standalone Dashboard Operator Model
@@ -1887,7 +1887,7 @@ This operator model also needs an explicit state boundary:
 - standalone browser UX should surface `connecting`, `live`, `reconnecting`, `live unavailable`, and `historical snapshot` as distinct operator signals rather than a single ambiguous disconnected state
 - browser interaction in standalone mode must not imply terminal-native attach, daemon-backed runtime ownership, or cross-process prompt streaming beyond the existing HTTP and SSE surfaces
 
-For follow-on implementation work, `glassbox serve` should optimize for session
+For follow-on implementation work, `glassbox dashboard serve` should optimize for session
 discovery, recovery, and inspection. It should not compete with `chat` for the
 same-process conversational UX; it should complement `chat` by becoming the
 durable cross-process operator console over persisted sessions.
@@ -1988,13 +1988,13 @@ Costs:
 
 Decision outcome for v2: adopt Option 2 in a constrained local-first form.
 Glassbox should introduce a workspace-scoped background runtime owner through a
-new `glassbox daemon` command surface rather than overloading `glassbox serve`.
+new `glassbox daemon` command surface rather than overloading `glassbox dashboard serve`.
 
 This command-surface choice is deliberate:
 
 - `glassbox daemon` owns live session mutation, runtime lifecycle, health, and
     workspace locking
-- `glassbox serve` remains the browser-facing observation and operator-console
+- `glassbox dashboard serve` remains the browser-facing observation and operator-console
     surface rather than becoming the authoritative runtime owner
 - `glassbox chat` remains the embedded convenience path for same-process work
     and should continue to work without a background owner when the operator wants

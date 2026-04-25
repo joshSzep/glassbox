@@ -7,6 +7,12 @@ from glassbox.web import WebServerConfig
 from glassbox.web import run_server
 
 
+def _dashboard_command(args: argparse.Namespace) -> int:
+    if args.dashboard_command == "serve":
+        return _serve_command(args)
+    raise ValueError("specify a dashboard subcommand")
+
+
 def _serve_command(args: argparse.Namespace) -> int:
     cwd, db_path = resolve_runtime_location(args)
     dashboard_url = WebServerConfig(host=args.host, port=args.port).dashboard_url

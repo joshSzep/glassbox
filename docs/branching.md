@@ -52,7 +52,7 @@ The fork command prints the new child session ID, the historical turn, and the i
 
 Use the browser workflow when you want to inspect lineage before branching:
 
-1. Open the session in the dashboard from the co-hosted `chat` URL or from `glassbox serve`.
+1. Open the session in the dashboard from the co-hosted `chat` URL or from `glassbox dashboard serve`.
 2. Inspect the lineage summary and `branchable_turns`.
 3. Keep the default latest completed turn or choose an older completed turn explicitly.
 4. Create the fork and let the dashboard navigate into the child session.

@@ -692,7 +692,14 @@ def _add_operations_parsers(
     )
     _add_runtime_location_arguments(projection_rebuild_parser)
 
-    serve_parser = subparsers.add_parser(
+    dashboard_parser = subparsers.add_parser(
+        "dashboard",
+        help="work with the browser dashboard",
+        description="Start or inspect browser dashboard surfaces.",
+    )
+    dashboard_subparsers = dashboard_parser.add_subparsers(dest="dashboard_command")
+
+    serve_parser = dashboard_subparsers.add_parser(
         "serve",
         help="start the dashboard server",
         description=(

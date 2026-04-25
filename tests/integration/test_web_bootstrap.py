@@ -99,14 +99,30 @@ def test_unknown_route_returns_404(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
-def test_cli_help_lists_serve_command(capsys: pytest.CaptureFixture[str]) -> None:
-    """The `serve` subcommand appears in CLI help output."""
+def test_cli_help_lists_dashboard_command(capsys: pytest.CaptureFixture[str]) -> None:
+    """The `dashboard` command appears in CLI help output."""
     import pytest
 
     from glassbox.cli import main
 
     with pytest.raises(SystemExit) as exc_info:
         main(["--help"])
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 0
+    assert "dashboard" in captured.out
+
+
+def test_cli_dashboard_help_lists_serve_subcommand(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    import pytest
+
+    from glassbox.cli import main
+
+    with pytest.raises(SystemExit) as exc_info:
+        main(["dashboard", "--help"])
 
     captured = capsys.readouterr()
 
@@ -154,6 +170,7 @@ def test_serve_command_prints_dashboard_url_and_passes_runtime_args(
     db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
     exit_code = main(
         [
+            "dashboard",
             "serve",
             "--cwd",
             str(tmp_path),
