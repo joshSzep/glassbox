@@ -463,6 +463,96 @@ def test_cli_eval_profiles_lists_live_provider_canary_track(
     assert payload[0]["blocking"] is False
 
 
+def test_cli_eval_profile_show_reports_one_profile(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "commit-smoke",
+                "title": "Commit smoke",
+                "description": "Fast blocking smoke coverage.",
+                "verification_stage": "commit-time",
+                "tags": ["smoke"],
+                "blocking": True,
+                "budget": {
+                    "max_selected_case_count": 2,
+                    "allow_unsupported_cases": False,
+                    "promotion_policy": "Promote only cheap deterministic cases.",
+                },
+            },
+            {
+                "profile_id": "advisory-context",
+                "title": "Advisory context",
+                "verification_stage": "advisory",
+                "blocking": False,
+            },
+        ],
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "profile",
+            "show",
+            "commit-smoke",
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Profile: commit-smoke" in captured.out
+    assert "Title: Commit smoke" in captured.out
+    assert "Budget:" in captured.out
+    assert "Max selected cases: 2" in captured.out
+    assert "Promote only cheap deterministic cases." in captured.out
+    assert "advisory-context" not in captured.out
+
+
+def test_cli_eval_profile_show_supports_json_output(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "live-provider-canary",
+                "title": "Live provider canary",
+                "verification_stage": "advisory",
+                "track": "live-provider-canary",
+                "blocking": False,
+                "tags": ["live-provider"],
+            }
+        ],
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "profile",
+            "show",
+            "live-provider-canary",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["profile_id"] == "live-provider-canary"
+    assert payload["track"] == "live-provider-canary"
+    assert payload["blocking"] is False
+
+
 def test_cli_eval_case_list_filters_by_tag_and_json(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

@@ -216,6 +216,55 @@ def _print_eval_profiles(*, workspace_root: Path, profiles) -> None:
             print("    Description: " + profile.description)
 
 
+def _print_eval_profile(*, workspace_root: Path, profile) -> None:
+    print(f"Eval workspace {workspace_root.resolve()}")
+    print(f"Profile: {profile.profile_id}")
+    print(f"Title: {profile.title}")
+    print(f"Track: {profile.track}")
+    print(f"Verification stage: {profile.verification_stage}")
+    print(f"Blocking: {'yes' if profile.blocking else 'no'}")
+    if profile.description:
+        print("Description: " + profile.description)
+    if profile.tags:
+        print("Tags: " + ", ".join(profile.tags))
+    if profile.case_ids:
+        print("Case IDs: " + ", ".join(profile.case_ids))
+    if profile.budget is None:
+        return
+
+    budget = profile.budget
+    print("Budget:")
+    _print_optional_budget_value("  Max selected cases", budget.max_selected_case_count)
+    _print_optional_budget_value(
+        "  Max selected-invariant cases", budget.max_selected_invariant_case_count
+    )
+    _print_optional_budget_value(
+        "  Max recorded model calls", budget.max_recorded_model_call_count
+    )
+    _print_optional_budget_value(
+        "  Max case artifact bytes", budget.max_case_artifact_bytes
+    )
+    if budget.allow_unsupported_cases is not None:
+        print(
+            "  Allow unsupported cases: "
+            + ("yes" if budget.allow_unsupported_cases else "no")
+        )
+    if budget.allow_advisory_cases is not None:
+        print(
+            "  Allow advisory cases: "
+            + ("yes" if budget.allow_advisory_cases else "no")
+        )
+    if budget.promotion_policy:
+        print("  Promotion policy: " + budget.promotion_policy)
+    if budget.demotion_policy:
+        print("  Demotion policy: " + budget.demotion_policy)
+
+
+def _print_optional_budget_value(label: str, value: int | None) -> None:
+    if value is not None:
+        print(f"{label}: {value}")
+
+
 def _print_eval_recommendations(result: EvalRecommendationReport) -> None:
     print(f"Eval workspace {result.workspace_root}")
     print("Touched paths:")

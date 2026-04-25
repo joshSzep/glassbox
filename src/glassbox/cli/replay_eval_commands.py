@@ -12,6 +12,7 @@ from glassbox.cli.path_helpers import resolve_optional_output_path
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.cli.replay_eval_formatters import _print_eval_baseline_update
 from glassbox.cli.replay_eval_formatters import _print_eval_coverage_audit
+from glassbox.cli.replay_eval_formatters import _print_eval_profile
 from glassbox.cli.replay_eval_formatters import _print_eval_profiles
 from glassbox.cli.replay_eval_formatters import _print_eval_recommendations
 from glassbox.cli.replay_eval_formatters import _print_eval_suite_report
@@ -132,17 +133,39 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
         return 0
 
     if args.eval_command == "profile":
-        if args.eval_profile_command != "list":
-            raise ValueError("specify an eval profile subcommand")
         cwd, _db_path = resolve_runtime_location(args)
         del _db_path
-        profiles = load_eval_profiles(cwd, track=args.track)
+        if args.eval_profile_command == "list":
+            profiles = load_eval_profiles(cwd, track=args.track)
 
-        if args.json:
-            print_json_output([profile.model_dump(mode="json") for profile in profiles])
-        else:
-            _print_eval_profiles(workspace_root=cwd, profiles=profiles)
-        return 0
+            if args.json:
+                print_json_output(
+                    [profile.model_dump(mode="json") for profile in profiles]
+                )
+            else:
+                _print_eval_profiles(workspace_root=cwd, profiles=profiles)
+            return 0
+
+        if args.eval_profile_command == "show":
+            profiles = load_eval_profiles(cwd)
+            profile = next(
+                (
+                    candidate
+                    for candidate in profiles
+                    if candidate.profile_id == args.profile_id
+                ),
+                None,
+            )
+            if profile is None:
+                raise ValueError(f"unknown eval profile: {args.profile_id}")
+
+            if args.json:
+                print_json_output(profile.model_dump(mode="json"))
+            else:
+                _print_eval_profile(workspace_root=cwd, profile=profile)
+            return 0
+
+        raise ValueError("specify an eval profile subcommand")
 
     if args.eval_command == "recommend":
         cwd, _db_path = resolve_runtime_location(args)

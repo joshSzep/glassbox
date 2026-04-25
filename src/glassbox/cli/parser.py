@@ -490,6 +490,19 @@ def _add_eval_parsers(
     )
     _add_runtime_location_arguments(eval_profile_list_parser)
 
+    eval_profile_show_parser = eval_profile_subparsers.add_parser(
+        "show",
+        help="show one repository-owned eval profile",
+        description="Show one repository-owned eval profile definition.",
+    )
+    eval_profile_show_parser.add_argument("profile_id")
+    eval_profile_show_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the eval profile definition as JSON",
+    )
+    _add_runtime_location_arguments(eval_profile_show_parser)
+
     eval_recommend_parser = eval_subparsers.add_parser(
         "recommend",
         help="recommend replay or eval scope for a change set",
