@@ -62,6 +62,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
     from glassbox.cli.server_commands import _serve_command
     from glassbox.cli.session_state_commands import _rebuild_command
     from glassbox.cli.session_state_commands import _session_export_command
+    from glassbox.cli.session_state_commands import _session_import_command
     from glassbox.cli.session_state_commands import _status_command
 
     command_handlers: dict[str, CommandHandler] = {
@@ -73,6 +74,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
         "fork": _fork_command,
         "status": _status_command,
         "session-export": _session_export_command,
+        "session-import": _session_import_command,
         "replay": _replay_command,
         "replay-export": _replay_export_command,
         "eval": _eval_command,

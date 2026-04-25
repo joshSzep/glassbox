@@ -152,6 +152,18 @@ uv run glassbox session-export SESSION_ID handoff.json \
 The exporter replaces absolute workspace paths with `<workspace-root>` and
 redacts common secret-like key assignments or tokens in operator-facing text.
 
+Import a package into another local workspace for inspection with:
+
+```bash
+uv run glassbox session-import handoff.json --cwd .
+```
+
+Import creates a new local session ID and records imported transcript/history as
+canonical import events. The imported session is historical and inspection-only;
+it does not silently merge with an existing session or become live mutable
+state. `--mode resumable` is reserved for a future package format and currently
+fails visibly, so operators have to choose inspection semantics explicitly.
+
 ## Attach, Approval, Answer, And Branching Review
 
 The contract aligns with current semantics as follows:

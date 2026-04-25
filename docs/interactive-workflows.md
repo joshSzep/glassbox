@@ -64,6 +64,7 @@ Use the command that matches the current actionable state:
 - `glassbox resume SESSION_ID` reloads a persisted session after restart without sending a new prompt
 - `glassbox status SESSION_ID` prints the current state and the next valid operator action
 - `glassbox session-export SESSION_ID OUTPUT` writes a portable handoff package for review without copying the workspace database
+- `glassbox session-import PACKAGE` imports a handoff package into a new local historical session for inspection
 
 Example:
 

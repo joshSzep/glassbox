@@ -234,6 +234,31 @@ def _add_session_workflow_parsers(
     )
     _add_runtime_location_arguments(session_export_parser)
 
+    session_import_parser = subparsers.add_parser(
+        "session-import",
+        help="import a portable session handoff package",
+        description=(
+            "Import a session-export package into local inspectable session "
+            "state without silently merging it with existing sessions."
+        ),
+    )
+    session_import_parser.add_argument(
+        "package",
+        help="path to a package written by session-export",
+    )
+    session_import_parser.add_argument(
+        "--mode",
+        choices=("inspect", "resumable"),
+        default="inspect",
+        help="import semantics; only inspect is currently supported",
+    )
+    session_import_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the import result as JSON",
+    )
+    _add_runtime_location_arguments(session_import_parser)
+
     approve_parser = subparsers.add_parser(
         "approve",
         help="approve a pending action",

@@ -4,6 +4,7 @@ import argparse
 from collections.abc import Sequence
 
 from glassbox.cli.json_output import print_json_output
+from glassbox.cli.path_helpers import resolve_optional_explicit_path
 from glassbox.cli.path_helpers import resolve_optional_output_path
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.cli.status_formatters import _print_session_status
@@ -11,6 +12,7 @@ from glassbox.core.models import ProjectionHealth
 from glassbox.core.models import SessionRecord
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.session_export import export_session_package
+from glassbox.runtime.session_import import import_session_package
 from glassbox.runtime.session_queries import SessionQueryService
 
 
@@ -58,6 +60,34 @@ def _session_export_command(args: argparse.Namespace) -> int:
         print(
             f"Exported session handoff package for {args.session_id}: {exported_path}"
         )
+    return 0
+
+
+def _session_import_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(
+        args,
+        require_daemon_unowned_for="import a session handoff package locally",
+    )
+    package_path = resolve_optional_explicit_path(cwd, args.package)
+    assert package_path is not None
+
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        result = import_session_package(
+            package_path,
+            session_repository=runtime_context.repositories.sessions,
+            workspace_root=cwd,
+            mode=args.mode,
+        )
+
+    if args.json:
+        print_json_output(result.model_dump(mode="json"))
+    else:
+        print(
+            "Imported session handoff package "
+            f"{result.source_session_id} as {result.imported_session_id} "
+            f"({result.import_mode}, {result.imported_status})"
+        )
+        print("Resumable: no")
     return 0
 
 

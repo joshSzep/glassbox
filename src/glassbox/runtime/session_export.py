@@ -19,6 +19,7 @@ from glassbox.core.events import ToolArtifactRecorded
 from glassbox.core.ids import SessionId
 from glassbox.core.models import ApprovalRecord
 from glassbox.core.models import MessagePart
+from glassbox.core.models import MessageRole
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TranscriptMessage
 from glassbox.core.models import TurnMetricsRecord
@@ -112,7 +113,7 @@ class SessionExportTranscriptMessage(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     message_id: str
-    role: str
+    role: MessageRole
     parts: list[MessagePart] = Field(default_factory=list)
     created_at: datetime
 

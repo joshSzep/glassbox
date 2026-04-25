@@ -619,7 +619,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-352: Implement Session Import And Handoff Rehydration Flow
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-351`
 - Goal: let Glassbox reopen supported exported sessions for inspection or resumed work under clear, auditable rules
 - Deliverables:
