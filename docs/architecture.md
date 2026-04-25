@@ -1505,6 +1505,7 @@ The CLI should expose two complementary layers:
 ### Scriptable Command Surface
 
 ```text
+glassbox command tree
 glassbox session run [PROMPT]
 glassbox session fork SESSION_ID [--turn TURN_ID] [--branch-label LABEL] [--prompt PROMPT]
 glassbox session message SESSION_ID PROMPT

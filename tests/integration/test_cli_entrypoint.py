@@ -7,6 +7,9 @@ from pathlib import Path
 import pytest
 
 from glassbox.cli import main
+from glassbox.cli.parser import CommandTreeColorTheme
+from glassbox.cli.parser import build_parser
+from glassbox.cli.parser import format_command_tree
 from glassbox.store import SQLiteSessionRepository
 from glassbox.store import open_database
 
@@ -20,8 +23,68 @@ def test_cli_help_prints_usage(capsys: pytest.CaptureFixture[str]) -> None:
     assert exc_info.value.code == 0
     assert "usage: glassbox" in captured.out
     assert "Run the Glassbox local-first CLI agent" in captured.out
+    assert "command" in captured.out
     assert "session" in captured.out
     assert "replay" in captured.out
+    assert "command tree:" not in captured.out
+    assert "|-- session" not in captured.out
+
+
+def test_cli_command_tree_prints_command_tree(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = main(["command", "tree"])
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert captured.out.startswith("glassbox  Run the Glassbox local-first CLI agent")
+    assert "|-- command" in captured.out
+    assert "inspect the Glassbox command surface" in captured.out
+    assert "|   `-- tree  print the command tree" in captured.out
+    assert "|-- session" in captured.out
+    assert "work with sessions" in captured.out
+    assert "|   |-- run" in captured.out
+    assert "start a new session" in captured.out
+    assert "|   `-- bundle" in captured.out
+    assert "work with portable replay bundles" in captured.out
+    assert "|       |-- export" in captured.out
+    assert "|   |-- profile" in captured.out
+    assert "|   |   |-- list" in captured.out
+    assert "|   `-- case" in captured.out
+    assert "|       |-- promote" in captured.out
+    assert "`-- daemon" in captured.out
+    assert "    `-- status" in captured.out
+    assert "run-owner" not in captured.out
+
+
+def test_cli_command_tree_can_color_command_names() -> None:
+    command_tree = format_command_tree(
+        build_parser(),
+        color_theme=CommandTreeColorTheme(
+            prog="\x1b[1;35m",
+            action="\x1b[1;32m",
+            reset="\x1b[0m",
+        ),
+    )
+
+    assert "\x1b[1;35mglassbox\x1b[0m" in command_tree
+    assert "\x1b[1;32mcommand" in command_tree
+    assert "\x1b[1;32msession" in command_tree
+    assert "Run the Glassbox local-first CLI agent" in command_tree
+
+
+def test_cli_command_help_lists_tree_subcommand(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["command", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 0
+    assert "usage: glassbox command" in captured.out
+    assert "tree" in captured.out
 
 
 def test_python_module_entrypoint_prints_help(

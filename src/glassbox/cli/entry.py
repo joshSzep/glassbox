@@ -1,12 +1,16 @@
 """CLI entrypoint and command dispatch for Glassbox."""
 
 import argparse
+import os
 import sqlite3
 import sys
 from collections.abc import Callable
 from collections.abc import Sequence
+from typing import TextIO
 
+from glassbox.cli.parser import CommandTreeColorTheme
 from glassbox.cli.parser import build_parser
+from glassbox.cli.parser import format_command_tree
 
 CommandHandler = Callable[[argparse.Namespace], int]
 
@@ -54,6 +58,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
     from glassbox.cli.session_state_commands import _session_command
 
     command_handlers: dict[str, CommandHandler] = {
+        "command": _command_command,
         "session": _session_command,
         "replay": _replay_command,
         "eval": _eval_command,
@@ -67,3 +72,36 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
     if not isinstance(command, str):
         return None
     return command_handlers.get(command)
+
+
+def _command_command(args: argparse.Namespace) -> int:
+    command_command = getattr(args, "command_command", None)
+    if command_command == "tree":
+        print(format_command_tree(build_parser(), color_theme=_argparse_color_theme()))
+        return 0
+    raise ValueError(f"unsupported command subcommand: {command_command}")
+
+
+def _argparse_color_theme() -> CommandTreeColorTheme | None:
+    if not _can_colorize(sys.stdout):
+        return None
+    return CommandTreeColorTheme(
+        prog="\x1b[1;35m",
+        action="\x1b[1;32m",
+        reset="\x1b[0m",
+    )
+
+
+def _can_colorize(file: TextIO) -> bool:
+    python_colors = os.environ.get("PYTHON_COLORS")
+    if python_colors == "0":
+        return False
+    if python_colors == "1":
+        return True
+    if os.environ.get("NO_COLOR"):
+        return False
+    if os.environ.get("FORCE_COLOR"):
+        return True
+    if os.environ.get("TERM") == "dumb":
+        return False
+    return file.isatty()
