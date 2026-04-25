@@ -153,6 +153,8 @@ class ReplayArtifactRecorder:
                         artifact_id=stored_artifact.artifact_id,
                         artifact_kind=manifest.artifact_kind,
                         path=stored_artifact.relative_path.as_posix(),
+                        content_sha256=stored_artifact.content_sha256,
+                        size_bytes=stored_artifact.size_bytes,
                     ),
                 )
             ]

@@ -1,5 +1,6 @@
 """File-backed artifact storage helpers for Glassbox sessions."""
 
+import hashlib
 import sqlite3
 from pathlib import Path
 
@@ -49,7 +50,7 @@ def write_text_artifact(
         artifact_id=artifact_id,
     )
     stored_artifact.absolute_path.write_text(content, encoding=encoding)
-    return stored_artifact
+    return _with_integrity_metadata(stored_artifact)
 
 
 def write_binary_artifact(
@@ -69,7 +70,7 @@ def write_binary_artifact(
         artifact_id=artifact_id,
     )
     stored_artifact.absolute_path.write_bytes(content)
-    return stored_artifact
+    return _with_integrity_metadata(stored_artifact)
 
 
 def read_text_artifact(
@@ -123,6 +124,8 @@ def record_text_artifact(
                 artifact_id=stored_artifact.artifact_id,
                 artifact_kind=artifact_kind,
                 path=stored_artifact.relative_path.as_posix(),
+                content_sha256=stored_artifact.content_sha256,
+                size_bytes=stored_artifact.size_bytes,
             ),
         ),
     )
@@ -161,6 +164,8 @@ def record_binary_artifact(
                 artifact_id=stored_artifact.artifact_id,
                 artifact_kind=artifact_kind,
                 path=stored_artifact.relative_path.as_posix(),
+                content_sha256=stored_artifact.content_sha256,
+                size_bytes=stored_artifact.size_bytes,
             ),
         ),
     )
@@ -183,4 +188,16 @@ def _prepare_artifact_path(
         session_id=session_id,
         relative_path=relative_path,
         absolute_path=absolute_path,
+    )
+
+
+def _with_integrity_metadata(stored_artifact: StoredArtifact) -> StoredArtifact:
+    content = stored_artifact.absolute_path.read_bytes()
+    return StoredArtifact(
+        artifact_id=stored_artifact.artifact_id,
+        session_id=stored_artifact.session_id,
+        relative_path=stored_artifact.relative_path,
+        absolute_path=stored_artifact.absolute_path,
+        content_sha256=hashlib.sha256(content).hexdigest(),
+        size_bytes=len(content),
     )

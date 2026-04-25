@@ -40,6 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_session_workflow_parsers(subparsers)
     _add_replay_parsers(subparsers)
     _add_eval_parsers(subparsers)
+    _add_artifact_parsers(subparsers)
     _add_operations_parsers(subparsers)
 
     return parser
@@ -673,6 +674,46 @@ def _add_operations_parsers(
         type=_parse_port,
         default=8765,
         help=argparse.SUPPRESS,
+    )
+
+
+def _add_artifact_parsers(
+    subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    artifacts_parser = subparsers.add_parser(
+        "artifacts",
+        help="inspect and clean managed artifact files",
+        description=(
+            "Inspect managed Glassbox artifact files and remove stale derived "
+            "outputs without touching canonical event data."
+        ),
+    )
+    artifacts_subparsers = artifacts_parser.add_subparsers(dest="artifacts_command")
+
+    gc_parser = artifacts_subparsers.add_parser(
+        "gc",
+        help="garbage collect stale managed artifacts",
+        description=(
+            "Report or remove stale .glassbox artifacts. Event-referenced "
+            "session artifacts and source-controlled eval bundles are protected."
+        ),
+    )
+    _add_runtime_location_arguments(gc_parser)
+    gc_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="report cleanup actions without deleting files",
+    )
+    gc_parser.add_argument(
+        "--max-age-days",
+        type=int,
+        default=30,
+        help="age threshold for managed .glassbox/evals artifacts",
+    )
+    gc_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the artifact retention report as JSON",
     )
 
 

@@ -45,6 +45,7 @@ def dispatch_command(
 
 
 def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
+    from glassbox.cli.artifact_commands import _artifacts_command
     from glassbox.cli.daemon_commands import _daemon_command
     from glassbox.cli.interactive_commands import _answer_command
     from glassbox.cli.interactive_commands import _attach_command
@@ -72,6 +73,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
         "replay": _replay_command,
         "replay-export": _replay_export_command,
         "eval": _eval_command,
+        "artifacts": _artifacts_command,
         "answer": _answer_command,
         "approve": lambda namespace: _resolve_approval_command(
             namespace,

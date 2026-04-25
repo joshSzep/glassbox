@@ -167,6 +167,8 @@ class ToolArtifactRecorded(EventPayload):
     artifact_id: ArtifactId
     artifact_kind: str
     path: str | None = None
+    content_sha256: str | None = None
+    size_bytes: int | None = Field(default=None, ge=0)
 
 
 class ReplayArtifactRecorded(EventPayload):
@@ -176,6 +178,8 @@ class ReplayArtifactRecorded(EventPayload):
     artifact_kind: str
     path: str | None = None
     tool_call_id: ToolCallId | None = None
+    content_sha256: str | None = None
+    size_bytes: int | None = Field(default=None, ge=0)
 
 
 class ToolExecutionCompleted(EventPayload):

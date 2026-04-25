@@ -276,7 +276,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-312: Add Artifact Integrity, Retention, And Garbage-Collection Policy
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-310`
 - Goal: keep `.glassbox` artifact growth bounded and trustworthy as replay, eval, and long-lived runtime use increase
 - Deliverables:
@@ -292,6 +292,8 @@ Each phase below corresponds to one concrete milestone.
   - negative-path tests ensuring protected artifact classes are never removed accidentally
 - Done when:
   - Glassbox can explain what artifact state exists, what is stale, and what cleanup would do before it mutates local storage
+  - newly recorded file-backed artifacts include size and SHA-256 metadata in their canonical artifact events
+  - `glassbox artifacts gc --dry-run` reports protected, stale, missing, and would-delete artifact state, while mutation mode only deletes managed stale `.glassbox` artifacts
 
 ### GBX-313: Add Workspace Backup And State Export For Recovery
 

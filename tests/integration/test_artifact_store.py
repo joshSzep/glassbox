@@ -1,5 +1,6 @@
 """Integration tests for file-backed artifact storage."""
 
+import hashlib
 from pathlib import Path
 
 from glassbox.core import EventEnvelope
@@ -65,6 +66,11 @@ def test_record_text_artifact_writes_session_scoped_file_and_links_event(
     assert isinstance(linked_events[-1].payload, ToolArtifactRecorded)
 
     assert stored_artifact.absolute_path.exists()
+    assert (
+        stored_artifact.content_sha256
+        == hashlib.sha256(b"command output\n").hexdigest()
+    )
+    assert stored_artifact.size_bytes == len(b"command output\n")
     assert stored_artifact.relative_path.parts[:3] == (
         ".glassbox",
         "sessions",
@@ -72,8 +78,12 @@ def test_record_text_artifact_writes_session_scoped_file_and_links_event(
     )
     assert restored_text == "command output\n"
     assert artifact_event.payload.path == stored_artifact.relative_path.as_posix()
+    assert artifact_event.payload.content_sha256 == stored_artifact.content_sha256
+    assert artifact_event.payload.size_bytes == stored_artifact.size_bytes
     assert linked_events[-1].payload.event_type == "ToolArtifactRecorded"
     assert linked_events[-1].payload.path == stored_artifact.relative_path.as_posix()
+    assert linked_events[-1].payload.content_sha256 == stored_artifact.content_sha256
+    assert linked_events[-1].payload.size_bytes == stored_artifact.size_bytes
 
 
 def test_write_and_read_binary_artifact_round_trip(tmp_path: Path) -> None:
@@ -88,4 +98,9 @@ def test_write_and_read_binary_artifact_round_trip(tmp_path: Path) -> None:
     restored_bytes = read_binary_artifact(tmp_path, stored_artifact.relative_path)
 
     assert stored_artifact.absolute_path.exists()
+    assert (
+        stored_artifact.content_sha256
+        == hashlib.sha256(b"\x00\x01glassbox").hexdigest()
+    )
+    assert stored_artifact.size_bytes == len(b"\x00\x01glassbox")
     assert restored_bytes == b"\x00\x01glassbox"

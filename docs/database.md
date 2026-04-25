@@ -409,10 +409,12 @@ Good artifact candidates for filesystem storage:
 - replay manifests containing normalized turn baselines and tool-result fixtures
 - exported replay bundles used for portable eval cases
 
-The event log should reference those artifacts by path or artifact ID.
-Replay manifests and bundles should remain redacted, versioned, and portable
-enough that deterministic replay can run offline without live provider
-credentials or ad hoc filesystem reconstruction.
+The event log references those artifacts by path and artifact ID. Newly recorded
+tool and replay artifact events also include the file size and SHA-256 digest so
+operators can compare persisted metadata with local filesystem state during
+retention and recovery workflows. Replay manifests and bundles should remain
+redacted, versioned, and portable enough that deterministic replay can run
+offline without live provider credentials or ad hoc filesystem reconstruction.
 
 Recommended layout:
 
@@ -425,6 +427,21 @@ Recommended layout:
                 {artifact_id}.patch
                 {artifact_id}.log
 ```
+
+### Artifact Retention And GC
+
+Artifact garbage collection is intentionally narrower than schema migration or
+projection rebuild. `glassbox artifacts gc --dry-run` inspects managed artifact
+state, reports SHA-256 digests for candidate files, and explains what cleanup
+would do before deleting anything. Running the same command without `--dry-run`
+may delete only managed stale files under `.glassbox/sessions/*/artifacts/` that
+are not referenced by canonical artifact events, and aged derived eval outputs
+under `.glassbox/evals/`.
+
+The GC path must not delete canonical SQLite event data, event-referenced session
+artifacts, source-controlled replay bundles under `evals/`, or curated eval
+baselines. Missing event-referenced artifact files are reported as integrity
+gaps rather than silently repaired or removed from the event log.
 
 ## Query Patterns This Design Optimizes
 

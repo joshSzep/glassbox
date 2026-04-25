@@ -40,6 +40,8 @@ class StoredArtifact:
     session_id: SessionId
     relative_path: Path
     absolute_path: Path
+    content_sha256: str | None = None
+    size_bytes: int | None = None
 
 
 @runtime_checkable

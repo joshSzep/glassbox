@@ -47,6 +47,7 @@ def test_cli_help_lists_session_oriented_commands(
     assert "resume" in captured.out
     assert "fork" in captured.out
     assert "status" in captured.out
+    assert "artifacts" in captured.out
     assert "rebuild" in captured.out
     assert "replay" in captured.out
     assert "replay-export" in captured.out
