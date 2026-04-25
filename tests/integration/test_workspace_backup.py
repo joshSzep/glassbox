@@ -126,6 +126,94 @@ def test_backup_restore_into_clean_workspace_preserves_discovery_and_replay(
     assert "Outcome: exact match" in replay_capture.out
 
 
+def test_backup_inspect_validates_archive_without_restoring(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, _session_id = _run_baseline_session(
+        tmp_path,
+        prompt="Inspect the repository",
+    )
+    backup_path = tmp_path / "state.zip"
+    _ = capsys.readouterr()
+    assert (
+        main(
+            [
+                "backup",
+                "create",
+                str(backup_path),
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+            ]
+        )
+        == 0
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "backup",
+            "inspect",
+            str(backup_path),
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Inspected workspace backup:" in captured.out
+    assert "Contains 1 session(s)" in captured.out
+    assert not (tmp_path / "restored-workspace").exists()
+
+
+def test_backup_inspect_supports_json_output(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, _session_id = _run_baseline_session(tmp_path, prompt="Inspect")
+    backup_path = tmp_path / "state.zip"
+    _ = capsys.readouterr()
+    assert (
+        main(
+            [
+                "backup",
+                "create",
+                str(backup_path),
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+            ]
+        )
+        == 0
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "backup",
+            "inspect",
+            str(backup_path),
+            "--json",
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["archive_path"] == str(backup_path.resolve())
+    assert payload["session_count"] == 1
+    assert payload["file_count"] == len(payload["files"])
+    assert ".glassbox/glassbox.sqlite3" in [
+        file_payload["path"] for file_payload in payload["files"]
+    ]
+
+
 def test_backup_restore_refuses_existing_files_without_force(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

@@ -968,6 +968,22 @@ def _add_backup_parsers(
     )
     _add_runtime_location_arguments(create_parser)
 
+    inspect_parser = backup_subparsers.add_parser(
+        "inspect",
+        help="inspect a workspace backup archive",
+        description=(
+            "Inspect and validate a Glassbox workspace backup archive without "
+            "restoring it."
+        ),
+    )
+    inspect_parser.add_argument("archive", help="backup archive to inspect")
+    inspect_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the inspection report as JSON",
+    )
+    _add_runtime_location_arguments(inspect_parser)
+
     restore_parser = backup_subparsers.add_parser(
         "restore",
         help="restore a workspace backup archive",

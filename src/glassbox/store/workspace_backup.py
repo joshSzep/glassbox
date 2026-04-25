@@ -94,6 +94,36 @@ class WorkspaceRestoreReport:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class WorkspaceBackupInspectionReport:
+    """Result of inspecting and validating a workspace backup archive."""
+
+    archive_path: Path
+    source_workspace_root: str
+    source_database_path: str
+    created_at: str
+    session_count: int
+    artifact_count: int
+    files: list[WorkspaceBackupFile]
+
+    @property
+    def total_size_bytes(self) -> int:
+        return sum(file.size_bytes for file in self.files)
+
+    def to_json_payload(self) -> dict[str, object]:
+        return {
+            "archive_path": str(self.archive_path),
+            "source_workspace_root": self.source_workspace_root,
+            "source_database_path": self.source_database_path,
+            "created_at": self.created_at,
+            "session_count": self.session_count,
+            "artifact_count": self.artifact_count,
+            "file_count": len(self.files),
+            "total_size_bytes": self.total_size_bytes,
+            "files": [file.to_json_payload() for file in self.files],
+        }
+
+
 def default_backup_path(workspace_root: Path) -> Path:
     """Return the default backup archive path for a workspace."""
 
@@ -204,6 +234,29 @@ def restore_workspace_backup(
         restored_files=[
             _display_path(path, resolved_workspace) for path in target_paths
         ],
+    )
+
+
+def inspect_workspace_backup(archive_path: Path) -> WorkspaceBackupInspectionReport:
+    """Inspect and validate a workspace backup archive without restoring it."""
+
+    resolved_archive = archive_path.resolve()
+    if not resolved_archive.is_file():
+        raise ValueError(f"backup archive does not exist: {resolved_archive}")
+
+    with zipfile.ZipFile(resolved_archive) as archive:
+        manifest = _load_manifest(archive)
+        files = _manifest_files(manifest)
+        _validate_archive_files(archive, files)
+
+    return WorkspaceBackupInspectionReport(
+        archive_path=resolved_archive,
+        source_workspace_root=_manifest_str(manifest, "source_workspace_root"),
+        source_database_path=_manifest_str(manifest, "source_database_path"),
+        created_at=_manifest_str(manifest, "created_at"),
+        session_count=_manifest_int(manifest, "session_count"),
+        artifact_count=_manifest_int(manifest, "artifact_count"),
+        files=files,
     )
 
 
