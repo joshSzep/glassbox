@@ -117,7 +117,7 @@ status and daemon status:
   should be checked or rebuilt
 
 The panel should point operators to the same repair commands used elsewhere,
-such as `glassbox daemon status` and `glassbox rebuild --check`.
+such as `glassbox daemon status` and `glassbox projection check`.
 
 ## Priority Model
 

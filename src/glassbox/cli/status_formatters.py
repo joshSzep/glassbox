@@ -341,7 +341,7 @@ def _format_next_action_line(
     if projection_health is not None and projection_health.degraded:
         return (
             "Next action: rebuild derived projections with "
-            f"'glassbox rebuild {session_id}'"
+            f"'glassbox projection rebuild {session_id}'"
         )
 
     if status == "awaiting_approval" and pending_approval_id is not None:

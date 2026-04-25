@@ -79,7 +79,8 @@ glassbox eval promote SESSION_ID CASE_ID --title TITLE [...]
 glassbox eval refresh CASE_ID SESSION_ID --reason REASON [...]
 glassbox session approve SESSION_ID APPROVAL_ID
 glassbox session deny SESSION_ID APPROVAL_ID
-glassbox rebuild [SESSION_ID | --all]
+glassbox projection check [SESSION_ID | --all]
+glassbox projection rebuild [SESSION_ID | --all]
 glassbox serve
 ```
 

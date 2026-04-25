@@ -44,7 +44,7 @@ def test_cli_help_lists_session_oriented_commands(
     assert "session" in captured.out
     assert "artifacts" in captured.out
     assert "backup" in captured.out
-    assert "rebuild" in captured.out
+    assert "projection" in captured.out
     assert "replay" in captured.out
     assert "eval" in captured.out
 

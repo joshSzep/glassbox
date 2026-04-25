@@ -52,7 +52,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
     from glassbox.cli.replay_eval_commands import _eval_command
     from glassbox.cli.replay_eval_commands import _replay_command
     from glassbox.cli.server_commands import _serve_command
-    from glassbox.cli.session_state_commands import _rebuild_command
+    from glassbox.cli.session_state_commands import _projection_command
     from glassbox.cli.session_state_commands import _session_command
 
     command_handlers: dict[str, CommandHandler] = {
@@ -63,7 +63,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
         "eval": _eval_command,
         "artifacts": _artifacts_command,
         "backup": _backup_command,
-        "rebuild": _rebuild_command,
+        "projection": _projection_command,
         "serve": _serve_command,
         "daemon": _daemon_command,
     }

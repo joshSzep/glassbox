@@ -656,23 +656,41 @@ def _add_eval_parsers(
 def _add_operations_parsers(
     subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
 ) -> None:
-    rebuild_parser = subparsers.add_parser(
+    projection_parser = subparsers.add_parser(
+        "projection",
+        help="inspect or rebuild derived projections",
+        description=(
+            "Inspect projection health or rebuild projection tables from "
+            "canonical persisted events."
+        ),
+    )
+    projection_subparsers = projection_parser.add_subparsers(dest="projection_command")
+
+    projection_check_parser = projection_subparsers.add_parser(
+        "check",
+        help="inspect projection health without rebuilding",
+        description="Inspect projection health without rebuilding derived tables.",
+    )
+    projection_check_parser.add_argument("session_id", nargs="?", type=_parse_uuid)
+    projection_check_parser.add_argument(
+        "--all",
+        action="store_true",
+        help="check projections for all sessions in the database",
+    )
+    _add_runtime_location_arguments(projection_check_parser)
+
+    projection_rebuild_parser = projection_subparsers.add_parser(
         "rebuild",
         help="rebuild derived projections",
         description="Rebuild projection tables from canonical persisted events.",
     )
-    rebuild_parser.add_argument("session_id", nargs="?", type=_parse_uuid)
-    rebuild_parser.add_argument(
+    projection_rebuild_parser.add_argument("session_id", nargs="?", type=_parse_uuid)
+    projection_rebuild_parser.add_argument(
         "--all",
         action="store_true",
         help="rebuild projections for all sessions in the database",
     )
-    rebuild_parser.add_argument(
-        "--check",
-        action="store_true",
-        help="inspect projection health without rebuilding",
-    )
-    _add_runtime_location_arguments(rebuild_parser)
+    _add_runtime_location_arguments(projection_rebuild_parser)
 
     serve_parser = subparsers.add_parser(
         "serve",

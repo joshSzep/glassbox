@@ -449,6 +449,7 @@ def test_cli_rebuild_surfaces_projection_failure(
 
     exit_code = main(
         [
+            "projection",
             "rebuild",
             str(session_id),
             "--cwd",

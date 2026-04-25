@@ -123,7 +123,17 @@ def _session_import_command(args: argparse.Namespace) -> int:
     return 0
 
 
-def _rebuild_command(args: argparse.Namespace) -> int:
+def _projection_command(args: argparse.Namespace) -> int:
+    if args.projection_command == "check":
+        args.check = True
+        return _projection_rebuild_command(args)
+    if args.projection_command == "rebuild":
+        args.check = False
+        return _projection_rebuild_command(args)
+    raise ValueError("specify a projection subcommand")
+
+
+def _projection_rebuild_command(args: argparse.Namespace) -> int:
     cwd, db_path = resolve_runtime_location(
         args,
         require_daemon_unowned_for="rebuild projections locally",

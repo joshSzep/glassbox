@@ -37,6 +37,7 @@ def test_cli_rebuild_restores_one_session_projections_only(
 
     exit_code = main(
         [
+            "projection",
             "rebuild",
             str(rebuilt_session_id),
             "--cwd",
@@ -87,6 +88,7 @@ def test_cli_rebuild_all_restores_all_sessions(
 
     exit_code = main(
         [
+            "projection",
             "rebuild",
             "--all",
             "--cwd",
@@ -128,6 +130,7 @@ def test_cli_rebuild_requires_exactly_one_target(
 
     exit_code = main(
         [
+            "projection",
             "rebuild",
             str(session_id),
             "--all",
@@ -153,9 +156,9 @@ def test_cli_rebuild_check_reports_projection_lag_without_mutation(
 
     exit_code = main(
         [
-            "rebuild",
+            "projection",
+            "check",
             str(session_id),
-            "--check",
             "--cwd",
             str(tmp_path),
             "--db-path",

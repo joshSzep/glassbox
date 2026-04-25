@@ -229,12 +229,12 @@ These tables should always be treated as rebuildable derived state.
 
 Projection health is inspected by comparing canonical event progress with the
 derived `session_state.last_sequence` projection and by checking that projection
-tables are readable. CLI status, session snapshots, and `glassbox rebuild
---check` report whether projections are `ok`, `stale`, or `unavailable`, along
+tables are readable. CLI status, session snapshots, and `glassbox projection
+check` report whether projections are `ok`, `stale`, or `unavailable`, along
 with canonical sequence, projected sequence, lag, and repair guidance. This keeps
 canonical event integrity distinct from derived-state corruption: degraded
-projections should be repaired with `glassbox rebuild`, not treated as event-log
-loss.
+projections should be repaired with `glassbox projection rebuild`, not treated as
+event-log loss.
 
 ### Session State Projection
 
