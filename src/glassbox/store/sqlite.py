@@ -8,6 +8,7 @@ from glassbox.store._sqlite_events import read_session_events_after
 from glassbox.store._sqlite_events import rebuild_session_projections
 from glassbox.store._sqlite_fork import build_imported_transcript_events
 from glassbox.store._sqlite_fork import resolve_fork_point
+from glassbox.store._sqlite_projection_health import inspect_session_projection_health
 from glassbox.store._sqlite_queries import list_approvals
 from glassbox.store._sqlite_queries import list_runtime_notes
 from glassbox.store._sqlite_queries import list_tool_calls
@@ -35,6 +36,7 @@ __all__ = [
     "get_session",
     "get_session_state",
     "initialize_database",
+    "inspect_session_projection_health",
     "list_approvals",
     "list_runtime_notes",
     "list_sessions",

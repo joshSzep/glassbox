@@ -52,6 +52,8 @@ def test_cli_rebuild_restores_one_session_projections_only(
 
     assert exit_code == 0
     assert f"Rebuilt projections for session {rebuilt_session_id}" in captured.out
+    assert "Before: stale" in captured.out
+    assert "After: ok" in captured.out
     assert rebuilt_counts == {
         "session_state": 1,
         "transcript_messages": 2,
@@ -102,6 +104,7 @@ def test_cli_rebuild_all_restores_all_sessions(
     assert f"Rebuilt projections for session {first_session_id}" in captured.out
     assert f"Rebuilt projections for session {second_session_id}" in captured.out
     assert "Rebuilt projections for 2 session(s)" in captured.out
+    assert "0 degraded" in captured.out
     assert first_counts == {
         "session_state": 1,
         "transcript_messages": 2,
@@ -138,6 +141,61 @@ def test_cli_rebuild_requires_exactly_one_target(
 
     assert exit_code == 1
     assert captured.err.strip() == "specify exactly one of session_id or --all"
+
+
+def test_cli_rebuild_check_reports_projection_lag_without_mutation(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _seed_session_with_projections(tmp_path)
+    _ = capsys.readouterr()
+    _wipe_session_state_projection(db_path, session_id)
+
+    exit_code = main(
+        [
+            "rebuild",
+            str(session_id),
+            "--check",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    counts = _projection_counts(db_path, session_id)
+
+    assert exit_code == 0
+    assert f"Session {session_id}: stale" in captured.out
+    assert "projected sequence none" in captured.out
+    assert "Projection health: 0 ok, 1 degraded" in captured.out
+    assert counts["session_state"] == 0
+
+
+def test_cli_status_reports_degraded_projection_health(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _seed_session_with_projections(tmp_path)
+    _ = capsys.readouterr()
+    _wipe_session_state_projection(db_path, session_id)
+
+    exit_code = main(
+        [
+            "status",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Projection health: stale" in captured.out
+    assert "session_state projection row is missing" in captured.out
+    assert "Next action: rebuild derived projections" in captured.out
 
 
 def _seed_session_with_projections(
@@ -238,6 +296,18 @@ def _wipe_session_projections(db_path: Path, session_id: UUID) -> None:
             )
             connection.execute(
                 "delete from approvals where session_id = ?",
+                (str(session_id),),
+            )
+    finally:
+        connection.close()
+
+
+def _wipe_session_state_projection(db_path: Path, session_id: UUID) -> None:
+    connection = open_database(db_path)
+    try:
+        with connection:
+            connection.execute(
+                "delete from session_state where session_id = ?",
                 (str(session_id),),
             )
     finally:

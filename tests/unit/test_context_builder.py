@@ -13,6 +13,7 @@ from glassbox.core import ApprovalStatus
 from glassbox.core import EventEnvelope
 from glassbox.core import MessagePart
 from glassbox.core import ModelToolCallRequested
+from glassbox.core import ProjectionHealth
 from glassbox.core import ReplayArtifactRecorded
 from glassbox.core import ResolvedForkPoint
 from glassbox.core import RuntimeNoteRecord
@@ -165,6 +166,13 @@ class FakeSessionRepository:
 
     def rebuild_session_projections(self, session_id) -> None:
         return None
+
+    def inspect_session_projection_health(self, session_id) -> ProjectionHealth:
+        return ProjectionHealth(
+            state="ok",
+            canonical_last_sequence=0,
+            projected_last_sequence=0,
+        )
 
     def list_tool_calls(self, session_id, *, status=None):
         if self._session.session_id != session_id:

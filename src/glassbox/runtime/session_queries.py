@@ -17,6 +17,7 @@ from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import TurnId
 from glassbox.core.models import ApprovalRecord
+from glassbox.core.models import ProjectionHealth
 from glassbox.core.models import SessionRecord
 from glassbox.core.models import SessionState
 from glassbox.core.models import ToolCallRecord
@@ -25,6 +26,7 @@ from glassbox.core.models import TurnMetricsRecord
 from glassbox.core.types import ApprovalStatus
 from glassbox.core.types import ToolExecutionStatus
 from glassbox.runtime.context_builder import RuntimeContextSnapshot
+from glassbox.runtime.context_builder import build_repository_context_snapshot
 from glassbox.runtime.runtime_context_derivation import derive_runtime_context_snapshot
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
@@ -82,6 +84,7 @@ class SessionSummaryView(BaseModel):
     session_failure_message: str | None = None
     session_failure_retryable: bool | None = None
     latest_message_summary: str | None = None
+    projection_health: ProjectionHealth
     next_action_summary: str
 
 
@@ -120,6 +123,7 @@ class SessionSnapshotView(BaseModel):
     pending_approvals: list[ApprovalRecord] = Field(default_factory=list)
     turn_metrics: list[TurnMetricsRecord] = Field(default_factory=list)
     runtime_context: RuntimeContextSnapshot
+    projection_health: ProjectionHealth
 
 
 class SessionStatusView(BaseModel):
@@ -167,20 +171,44 @@ class SessionQueryService:
         if record is None:
             raise ValueError(f"session {session_id} not found")
 
-        state = self._session_repository.get_session_state(session_id)
+        projection_health = self._session_repository.inspect_session_projection_health(
+            session_id
+        )
+        projections_available = projection_health.state != "unavailable"
+        state = (
+            self._session_repository.get_session_state(session_id)
+            if projections_available
+            else None
+        )
         session_events = self._session_repository.read_session_events(session_id)
-        transcript = self._session_repository.list_transcript_messages(session_id)
-        active_tool_calls = self._session_repository.list_tool_calls(
-            session_id,
-            status=ToolExecutionStatus.RUNNING,
+        transcript = (
+            self._session_repository.list_transcript_messages(session_id)
+            if projections_available
+            else []
         )
-        pending_approvals = self._session_repository.list_approvals(
-            session_id,
-            status=ApprovalStatus.PENDING,
+        active_tool_calls = (
+            self._session_repository.list_tool_calls(
+                session_id,
+                status=ToolExecutionStatus.RUNNING,
+            )
+            if projections_available
+            else []
         )
-        turn_metrics = self._session_repository.list_turn_metrics(
-            session_id,
-            limit=turn_metrics_limit,
+        pending_approvals = (
+            self._session_repository.list_approvals(
+                session_id,
+                status=ApprovalStatus.PENDING,
+            )
+            if projections_available
+            else []
+        )
+        turn_metrics = (
+            self._session_repository.list_turn_metrics(
+                session_id,
+                limit=turn_metrics_limit,
+            )
+            if projections_available
+            else []
         )
         dashboard_url = _dashboard_url_from_events(session_events)
         latest_session_failure = _latest_session_failure(session_events)
@@ -189,13 +217,22 @@ class SessionQueryService:
             session_events,
             pending_question_id,
         )
-        (
-            can_fork,
-            latest_fork_point_turn_id,
-            latest_fork_point_sequence,
-            fork_blocked_reason,
-        ) = _fork_capability(self._session_repository, session_id)
-        runtime_context = self._build_runtime_context(record, session_id)
+        if projections_available:
+            (
+                can_fork,
+                latest_fork_point_turn_id,
+                latest_fork_point_sequence,
+                fork_blocked_reason,
+            ) = _fork_capability(self._session_repository, session_id)
+            runtime_context = self._build_runtime_context(record, session_id)
+            child_sessions = self._child_session_summaries(session_id)
+        else:
+            can_fork = False
+            latest_fork_point_turn_id = None
+            latest_fork_point_sequence = None
+            fork_blocked_reason = projection_health.detail
+            runtime_context = self._build_degraded_runtime_context(record)
+            child_sessions = []
 
         return SessionSnapshotView(
             session_id=record.session_id,
@@ -208,7 +245,7 @@ class SessionQueryService:
             forked_from_turn_id=record.forked_from_turn_id,
             forked_from_sequence=record.forked_from_sequence,
             branch_label=record.branch_label,
-            child_sessions=self._child_session_summaries(session_id),
+            child_sessions=child_sessions,
             branchable_turns=(
                 _branchable_turns_from_events(session_events) if can_fork else []
             ),
@@ -246,6 +283,7 @@ class SessionQueryService:
             pending_approvals=pending_approvals,
             turn_metrics=turn_metrics,
             runtime_context=runtime_context,
+            projection_health=projection_health,
         )
 
     def get_session_status_view(
@@ -259,7 +297,11 @@ class SessionQueryService:
             session_id,
             turn_metrics_limit=turn_metrics_limit,
         )
-        all_tool_calls = self._session_repository.list_tool_calls(session_id)
+        all_tool_calls = (
+            self._session_repository.list_tool_calls(session_id)
+            if snapshot.projection_health.state != "unavailable"
+            else []
+        )
         effective_current_turn_id = _effective_current_turn_id(
             snapshot.current_turn_id,
             snapshot.status,
@@ -291,10 +333,20 @@ class SessionQueryService:
         *,
         child_count: int,
     ) -> SessionSummaryView:
-        state = self._session_repository.get_session_state(record.session_id)
-        session_events = self._session_repository.read_session_events(record.session_id)
-        transcript = self._session_repository.list_transcript_messages(
+        projection_health = self._session_repository.inspect_session_projection_health(
             record.session_id
+        )
+        projections_available = projection_health.state != "unavailable"
+        state = (
+            self._session_repository.get_session_state(record.session_id)
+            if projections_available
+            else None
+        )
+        session_events = self._session_repository.read_session_events(record.session_id)
+        transcript = (
+            self._session_repository.list_transcript_messages(record.session_id)
+            if projections_available
+            else []
         )
         dashboard_url = _dashboard_url_from_events(session_events)
         latest_session_failure = _latest_session_failure(session_events)
@@ -303,12 +355,18 @@ class SessionQueryService:
             session_events,
             pending_question_id,
         )
-        (
-            can_fork,
-            latest_fork_point_turn_id,
-            latest_fork_point_sequence,
-            fork_blocked_reason,
-        ) = _fork_capability(self._session_repository, record.session_id)
+        if projections_available:
+            (
+                can_fork,
+                latest_fork_point_turn_id,
+                latest_fork_point_sequence,
+                fork_blocked_reason,
+            ) = _fork_capability(self._session_repository, record.session_id)
+        else:
+            can_fork = False
+            latest_fork_point_turn_id = None
+            latest_fork_point_sequence = None
+            fork_blocked_reason = projection_health.detail
         status = _session_status(record, state)
 
         return SessionSummaryView(
@@ -352,8 +410,10 @@ class SessionQueryService:
                 else None
             ),
             latest_message_summary=_latest_message_summary(transcript),
+            projection_health=projection_health,
             next_action_summary=_next_action_summary(
                 status,
+                projection_health=projection_health,
                 pending_question_text=pending_question_text,
                 session_failure=latest_session_failure,
                 current_turn_id=state.current_turn_id if state is not None else None,
@@ -370,6 +430,14 @@ class SessionQueryService:
             session_id,
             record.cwd,
             artifact_repository=self._artifact_repository,
+        )
+
+    def _build_degraded_runtime_context(
+        self,
+        record: SessionRecord,
+    ) -> RuntimeContextSnapshot:
+        return RuntimeContextSnapshot(
+            repository_context=build_repository_context_snapshot(record.cwd),
         )
 
     def _child_session_summaries(
@@ -509,10 +577,14 @@ def _pending_question_text_from_events(
 def _next_action_summary(
     status: str,
     *,
+    projection_health: ProjectionHealth,
     pending_question_text: str | None,
     session_failure: SessionFailed | None,
     current_turn_id,
 ) -> str:
+    if projection_health.degraded:
+        return "Rebuild derived projections from canonical events"
+
     if status == "awaiting_user_input":
         if pending_question_text is not None:
             return f"Answer pending question: {pending_question_text}"

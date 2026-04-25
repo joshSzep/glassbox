@@ -583,6 +583,11 @@ def _add_operations_parsers(
         action="store_true",
         help="rebuild projections for all sessions in the database",
     )
+    rebuild_parser.add_argument(
+        "--check",
+        action="store_true",
+        help="inspect projection health without rebuilding",
+    )
     _add_runtime_location_arguments(rebuild_parser)
 
     serve_parser = subparsers.add_parser(

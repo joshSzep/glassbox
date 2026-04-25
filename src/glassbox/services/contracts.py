@@ -17,6 +17,7 @@ from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.models import ApprovalRecord
 from glassbox.core.models import ForkedSession
+from glassbox.core.models import ProjectionHealth
 from glassbox.core.models import ResolvedForkPoint
 from glassbox.core.models import RuntimeNoteRecord
 from glassbox.core.models import SessionConfig
@@ -129,6 +130,11 @@ class SessionRepository(Protocol):
     ) -> list[EventEnvelope]: ...
 
     def rebuild_session_projections(self, session_id: SessionId) -> None: ...
+
+    def inspect_session_projection_health(
+        self,
+        session_id: SessionId,
+    ) -> ProjectionHealth: ...
 
     def list_tool_calls(
         self,

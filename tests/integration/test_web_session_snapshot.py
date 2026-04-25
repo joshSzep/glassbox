@@ -612,8 +612,50 @@ def test_get_session_snapshot_response_schema(tmp_path: Path) -> None:
                 "active_tool_calls",
                 "pending_approvals",
                 "turn_metrics",
+                "runtime_context",
+                "projection_health",
             }
             assert expected_keys <= body.keys()
+            assert body["projection_health"]["state"] == "ok"
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_get_session_snapshot_reports_unavailable_projection_state(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app, runtime_context = _make_app(tmp_path, connection)
+            bus: EventBus[EventEnvelope] = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(runtime_context.repositories.sessions, bus)
+            state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+            with connection:
+                connection.execute("drop table session_state")
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get(f"/sessions/{state.session_id}")
+
+            assert response.status_code == 200
+            body = response.json()
+            assert body["projection_health"]["state"] == "unavailable"
+            assert body["projection_health"]["degraded"] is True
+            assert "projection read failed" in body["projection_health"]["detail"]
+            assert body["transcript"] == []
+            assert body["pending_approvals"] == []
+            assert body["can_fork"] is False
         finally:
             connection.close()
 

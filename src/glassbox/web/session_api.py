@@ -55,6 +55,15 @@ class TurnMetricsResponse(BaseModel):
     failed_tool_call_count: int
 
 
+class ProjectionHealthResponse(BaseModel):
+    state: str
+    canonical_last_sequence: int
+    projected_last_sequence: int | None
+    lag: int
+    degraded: bool
+    detail: str | None
+
+
 class ChildSessionSummaryResponse(BaseModel):
     session_id: str
     status: str
@@ -122,6 +131,7 @@ class SessionSummaryResponse(BaseModel):
     session_failure_message: str | None
     session_failure_retryable: bool | None
     latest_message_summary: str | None
+    projection_health: ProjectionHealthResponse
     next_action_summary: str
 
 
@@ -156,6 +166,7 @@ class SessionSnapshotResponse(BaseModel):
     pending_approvals: list[PendingApprovalResponse]
     turn_metrics: list[TurnMetricsResponse]
     runtime_context: RuntimeContextSnapshot
+    projection_health: ProjectionHealthResponse
 
 
 def build_fork_session_response(forked_session: ForkedSession) -> ForkSessionResponse:

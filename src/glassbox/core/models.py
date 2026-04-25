@@ -76,6 +76,19 @@ class SessionRecord(BaseModel):
     branch_label: str | None = None
 
 
+class ProjectionHealth(BaseModel):
+    """Health summary for derived session projection state."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    state: Literal["ok", "stale", "unavailable"]
+    canonical_last_sequence: int = Field(ge=0)
+    projected_last_sequence: int | None = Field(default=None, ge=0)
+    lag: int = Field(default=0, ge=0)
+    degraded: bool = False
+    detail: str | None = None
+
+
 class MessagePart(BaseModel):
     """A typed part of a transcript message."""
 

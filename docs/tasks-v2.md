@@ -255,7 +255,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-311: Add Projection-Recovery, Lag Inspection, And Rebuild Safety Improvements
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-310`
 - Goal: make projection failure and rebuild behavior more predictable under long-lived runtimes and larger event histories
 - Deliverables:
@@ -272,6 +272,7 @@ Each phase below corresponds to one concrete milestone.
   - tests proving session snapshots return truthful degraded-state signals when projections are stale or unavailable
 - Done when:
   - Glassbox can recover derived state predictably and tell the operator when projections are unhealthy
+  - `glassbox rebuild --check`, CLI status, and session snapshots report projection health, lag, degraded state, and rebuild guidance without treating canonical events as corrupt
 
 ### GBX-312: Add Artifact Integrity, Retention, And Garbage-Collection Policy
 

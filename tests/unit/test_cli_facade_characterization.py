@@ -113,6 +113,14 @@ def test_print_session_status_preserves_status_output_contract(
                         "additional_summary_count": 0,
                     },
                 },
+                "projection_health": {
+                    "state": "ok",
+                    "canonical_last_sequence": 8,
+                    "projected_last_sequence": 8,
+                    "lag": 0,
+                    "degraded": False,
+                    "detail": None,
+                },
             },
             "effective_current_turn_id": "00000000-0000-0000-0000-000000000222",
             "current_turn_metrics": {

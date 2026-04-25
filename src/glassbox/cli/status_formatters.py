@@ -24,6 +24,7 @@ def _print_session_status(status_view: SessionStatusView) -> None:
     print(f"Workspace: {snapshot.cwd}")
     print(f"Model: {snapshot.model_name}")
     print(f"Approval mode: {snapshot.approval_mode}")
+    print(_format_projection_health_line(snapshot.projection_health))
     if snapshot.dashboard_url is not None:
         print(f"Dashboard URL: {snapshot.dashboard_url}")
     print(f"Transcript messages: {len(snapshot.transcript)}")
@@ -54,6 +55,7 @@ def _print_session_status(status_view: SessionStatusView) -> None:
             snapshot.pending_approval_id,
             snapshot.pending_question_id,
             _session_failure_from_status_view(status_view),
+            snapshot.projection_health,
         )
     )
 
@@ -170,6 +172,25 @@ def _print_runtime_context_summary(runtime_context) -> None:
         print("  Artifact-backed context: none")
 
 
+def _format_projection_health_line(projection_health) -> str:
+    line = (
+        "Projection health: "
+        f"{projection_health.state}; "
+        f"canonical sequence {projection_health.canonical_last_sequence}; "
+        f"projected sequence {_format_projection_sequence(projection_health)}; "
+        f"lag {projection_health.lag}"
+    )
+    if projection_health.detail is not None:
+        line += f" ({projection_health.detail})"
+    return line
+
+
+def _format_projection_sequence(projection_health) -> str:
+    if projection_health.projected_last_sequence is None:
+        return "none"
+    return str(projection_health.projected_last_sequence)
+
+
 def _format_current_turn_line(turn_id: UUID | None, status: str) -> str:
     if turn_id is None:
         return "Current turn: none"
@@ -278,7 +299,14 @@ def _format_next_action_line(
     pending_approval_id,
     pending_question_id,
     latest_session_failure: SessionFailed | None,
+    projection_health=None,
 ) -> str:
+    if projection_health is not None and projection_health.degraded:
+        return (
+            "Next action: rebuild derived projections with "
+            f"'glassbox rebuild {session_id}'"
+        )
+
     if status == "awaiting_approval" and pending_approval_id is not None:
         return (
             "Next action: resolve approval "

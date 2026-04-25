@@ -7,6 +7,7 @@ from pathlib import Path
 
 import glassbox.store._sqlite_events as event_store
 import glassbox.store._sqlite_fork as fork_store
+import glassbox.store._sqlite_projection_health as projection_health_store
 import glassbox.store._sqlite_queries as query_store
 import glassbox.store._sqlite_sessions as session_store
 import glassbox.store.artifacts as artifact_store
@@ -18,6 +19,7 @@ from glassbox.core.ids import SessionId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.models import ApprovalRecord
+from glassbox.core.models import ProjectionHealth
 from glassbox.core.models import ResolvedForkPoint
 from glassbox.core.models import RuntimeNoteRecord
 from glassbox.core.models import SessionConfig
@@ -191,6 +193,15 @@ class SQLiteSessionRepository:
 
     def rebuild_session_projections(self, session_id: SessionId) -> None:
         event_store.rebuild_session_projections(self._connection, session_id)
+
+    def inspect_session_projection_health(
+        self,
+        session_id: SessionId,
+    ) -> ProjectionHealth:
+        return projection_health_store.inspect_session_projection_health(
+            self._connection,
+            session_id,
+        )
 
     def list_tool_calls(
         self,
