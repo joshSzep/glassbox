@@ -655,8 +655,8 @@ def _add_eval_parsers(
             "repository-local eval case manifest in one guided step."
         ),
     )
-    eval_promote_parser.add_argument("session_id", type=_parse_uuid)
     eval_promote_parser.add_argument("case_id")
+    eval_promote_parser.add_argument("session_id", type=_parse_uuid)
     eval_promote_parser.add_argument("--title", required=True)
     eval_promote_parser.add_argument(
         "--tag",

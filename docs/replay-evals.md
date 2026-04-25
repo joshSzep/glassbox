@@ -99,7 +99,7 @@ uv run glassbox eval report commit-smoke push-confirmation release-candidate \
 Promote a recorded session into a checked-in eval case:
 
 ```bash
-uv run glassbox eval case promote SESSION_ID tooling.readme \
+uv run glassbox eval case promote tooling.readme SESSION_ID \
   --title "README inspection stays stable" \
   --tag smoke \
   --tag tooling \
