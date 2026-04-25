@@ -609,7 +609,7 @@ Each phase below corresponds to one concrete milestone.
   - redaction and portability rules for session-sharing workflows
 - Implementation notes:
   - keep the exported package inspectable and intentionally scoped to operator handoff use cases
-  - avoid conflating session export with the existing deterministic `replay-export` evidence path unless the workflows deliberately overlap
+  - avoid conflating session export with the existing deterministic `replay export` evidence path unless the workflows deliberately overlap
   - preserve local-path and secret redaction guarantees
 - Tests and validation included in task:
   - integration tests for session export of representative live, paused, and branched sessions
