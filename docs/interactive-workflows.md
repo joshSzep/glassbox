@@ -63,6 +63,7 @@ Use the command that matches the current actionable state:
 - `glassbox approve SESSION_ID APPROVAL_ID` or `glassbox deny SESSION_ID APPROVAL_ID` resolves a pending approval when the session is awaiting approval
 - `glassbox resume SESSION_ID` reloads a persisted session after restart without sending a new prompt
 - `glassbox status SESSION_ID` prints the current state and the next valid operator action
+- `glassbox session-export SESSION_ID OUTPUT` writes a portable handoff package for review without copying the workspace database
 
 Example:
 

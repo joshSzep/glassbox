@@ -3,11 +3,14 @@
 import argparse
 from collections.abc import Sequence
 
+from glassbox.cli.json_output import print_json_output
+from glassbox.cli.path_helpers import resolve_optional_output_path
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.cli.status_formatters import _print_session_status
 from glassbox.core.models import ProjectionHealth
 from glassbox.core.models import SessionRecord
 from glassbox.runtime.bootstrap import open_runtime_context
+from glassbox.runtime.session_export import export_session_package
 from glassbox.runtime.session_queries import SessionQueryService
 
 
@@ -21,6 +24,40 @@ def _status_command(args: argparse.Namespace) -> int:
         )
         _print_session_status(query_service.get_session_status_view(args.session_id))
 
+    return 0
+
+
+def _session_export_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    output_path = resolve_optional_output_path(
+        cwd,
+        args.output,
+        default_name=f"glassbox-session-{args.session_id}.json",
+    )
+
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        exported_path = export_session_package(
+            args.session_id,
+            output_path,
+            session_repository=runtime_context.repositories.sessions,
+            artifact_repository=runtime_context.repositories.artifacts,
+            workspace_root=cwd,
+            exported_by=args.exported_by,
+            expected_custodian=args.expected_custodian,
+            note=args.note,
+        )
+
+    if args.json:
+        print_json_output(
+            {
+                "session_id": str(args.session_id),
+                "path": str(exported_path),
+            }
+        )
+    else:
+        print(
+            f"Exported session handoff package for {args.session_id}: {exported_path}"
+        )
     return 0
 
 

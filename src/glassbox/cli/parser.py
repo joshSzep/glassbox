@@ -198,6 +198,42 @@ def _add_session_workflow_parsers(
     status_parser.add_argument("session_id", type=_parse_uuid)
     _add_runtime_location_arguments(status_parser)
 
+    session_export_parser = subparsers.add_parser(
+        "session-export",
+        help="export a portable session handoff package",
+        description=(
+            "Export a persisted session into an inspectable handoff package for "
+            "review or debugging without copying the full workspace database."
+        ),
+    )
+    session_export_parser.add_argument("session_id", type=_parse_uuid)
+    session_export_parser.add_argument(
+        "output",
+        nargs="?",
+        help="optional output path for the exported session handoff package",
+    )
+    session_export_parser.add_argument(
+        "--exported-by",
+        default=None,
+        help="optional acting-operator label to include in the handoff package",
+    )
+    session_export_parser.add_argument(
+        "--expected-custodian",
+        default=None,
+        help="optional operator label expected to take custody after export",
+    )
+    session_export_parser.add_argument(
+        "--note",
+        default=None,
+        help="optional handoff note to include in the package",
+    )
+    session_export_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the export command result as JSON",
+    )
+    _add_runtime_location_arguments(session_export_parser)
+
     approve_parser = subparsers.add_parser(
         "approve",
         help="approve a pending action",

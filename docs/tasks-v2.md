@@ -600,7 +600,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-351: Implement Portable Session Export For Review And Handoff
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-313`, `GBX-350`
 - Goal: let operators share a session for debugging, review, or handoff without exposing the whole local workspace database
 - Deliverables:
