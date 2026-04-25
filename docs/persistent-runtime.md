@@ -98,6 +98,12 @@ uv run glassbox daemon stop --cwd .
   it without starting a new owner.
 - If `attach` reports that a session is historical-only, use the dashboard
   session index or `glassbox status SESSION_ID --cwd .` for inspection.
+- If a handoff recipient cannot mutate a session, confirm whether they imported
+  an inspection-only package. Imported handoff packages create historical local
+  sessions; use `fork` for alternate follow-up work rather than expecting the
+  imported ID to be live.
+- If runtime defaults differ between operators, inspect `glassbox.profile.json`
+  in the selected `--cwd` and remember that explicit CLI flags override it.
 - If the dashboard cannot find a direct `?session=...` URL, open the root
   session index printed by `daemon status` and select the session there.
 
@@ -106,4 +112,5 @@ uv run glassbox daemon stop --cwd .
 - [interactive-workflows.md](./interactive-workflows.md)
 - [team-workflows.md](./team-workflows.md)
 - [dashboard.md](./dashboard.md)
+- [workspace-profiles.md](./workspace-profiles.md)
 - [tasks-v2.md](./tasks-v2.md)

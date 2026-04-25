@@ -59,6 +59,10 @@ Runtime-only provider configuration remains separate. `.env` and process
 environment variables provide provider credentials and base URLs, but they do
 not override model selection, approval mode, or eval profile routing.
 
+For provider settings only, precedence is different: process environment values
+override `.env`, and both remain runtime-only local configuration. Profiles do
+not read or write provider secrets.
+
 ## Safety Rules
 
 Profiles are reviewable repository files. They intentionally do not support API
@@ -67,3 +71,23 @@ keys, provider secrets, local database paths, or workspace-owner state.
 Invalid profiles fail visibly before the command starts a session or eval run.
 Unknown fields are rejected so misspelled or risky-looking configuration does
 not get ignored silently.
+
+## Troubleshooting
+
+- A command used the wrong model or approval mode: check whether the command
+  passed `--model-name` or `--approval-mode`; explicit flags override the
+  profile for that invocation.
+- `eval run` selected an unexpected profile: check whether `--profile` was
+  passed. If not, inspect `verification.eval_profile` in `glassbox.profile.json`.
+- Provider credentials were not picked up: keep them in the process environment
+  or `.env` at the selected `--cwd`; workspace profiles do not contain secrets.
+- Profile validation failed: remove unknown fields, confirm `profile_version` is
+  `1`, and use only supported approval modes.
+
+## Team Scope
+
+A workspace profile is a shared convention file. It is not an owner lock, a
+permission model, a credential store, or a remote coordination mechanism. The
+runtime-owner boundary described in [team-workflows.md](./team-workflows.md) and
+[persistent-runtime.md](./persistent-runtime.md) still decides who may append
+live session events.

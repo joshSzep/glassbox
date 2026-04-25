@@ -164,6 +164,30 @@ it does not silently merge with an existing session or become live mutable
 state. `--mode resumable` is reserved for a future package format and currently
 fails visibly, so operators have to choose inspection semantics explicitly.
 
+## Daily Team Workflow
+
+Use this order when a session needs to move between people or terminals:
+
+1. Check the live writer boundary with `glassbox daemon status --cwd .` or by
+   noting whether the current `chat` process owns the session.
+2. Inspect the session with `glassbox status SESSION_ID --cwd .` or the
+   dashboard session view.
+3. If the session is actionable and the daemon owns the workspace, use
+   `glassbox attach SESSION_ID --cwd .` to reconnect instead of starting a
+   second local writer.
+4. If the next operator only needs review context, export a handoff package with
+   `glassbox session-export SESSION_ID handoff.json --cwd .` and include
+   `--exported-by`, `--expected-custodian`, and `--note` when those labels help.
+5. In the receiving workspace, import with `glassbox session-import handoff.json
+   --cwd .` and inspect the new historical session ID. Fork from stable history
+   when alternate work is needed.
+
+Workspace defaults help teams keep routine commands consistent. A repository can
+declare `glassbox.profile.json` with default model, approval mode, and eval
+profile routing. Those values apply only when the operator does not pass an
+explicit CLI flag. Provider credentials, base URLs, local database paths, and
+runtime-owner metadata remain runtime-only local configuration.
+
 ## Attach, Approval, Answer, And Branching Review
 
 The contract aligns with current semantics as follows:
@@ -190,9 +214,34 @@ The v2 team workflow intentionally does not include:
 - browser-local state as an authority for ownership, approval, or custody
 - hidden custody transfer based only on who last opened a dashboard page
 - background notification delivery outside the local workspace process model
+- importing another operator's package as a live resumable session with hidden
+  state mutation
+- using `glassbox.profile.json` as a permissions, credential, or remote-policy
+  mechanism
 
 These features can be designed later, but they should not be implied by portable
 session export, import, or workspace-profile work.
+
+## Troubleshooting Team Workflows
+
+- Ownership conflict: if a mutating command reports that a daemon owns the
+  workspace, use `glassbox attach SESSION_ID --cwd .` for live work or
+  `glassbox daemon stop --cwd .` when you deliberately want local commands to
+  take ownership again.
+- Stale owner metadata: run `glassbox daemon status --cwd .` to confirm the
+  state, then use `glassbox daemon start --cwd .` to replace stale metadata or
+  `glassbox daemon stop --cwd .` to clear it.
+- Unsupported import: `session-import --mode resumable` currently fails by
+  design for `session-export` packages. Re-run with default inspection mode and
+  fork from the imported historical session when work needs to continue.
+- Malformed or secret-looking package: import rejects ambiguous JSON,
+  unsupported versions, and apparent unredacted secret material. Ask the
+  exporting operator to regenerate the package from the current CLI instead of
+  editing it by hand.
+- Profile precedence surprise: run commands with explicit `--model-name`,
+  `--approval-mode`, or `--profile` when one invocation should differ from
+  `glassbox.profile.json`. Remember that `.env` only supplies runtime provider
+  credentials and base URLs.
 
 ## Validation Checklist
 
@@ -210,6 +259,8 @@ proposed change preserves this contract:
 - runtime ownership remains the writer-safety mechanism; session custody remains
   operator guidance
 - collaboration copy stays honest about local-first scope
+- workspace profiles are reviewable defaults, not secrets, locks, or remote
+  policy controls
 
 ## Related Guides
 
@@ -218,3 +269,4 @@ proposed change preserves this contract:
 - [branching.md](./branching.md)
 - [tool-policy.md](./tool-policy.md)
 - [runtime-context.md](./runtime-context.md)
+- [workspace-profiles.md](./workspace-profiles.md)

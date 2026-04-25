@@ -16,6 +16,7 @@ It is built for operator-visible agent workflows: terminal-first sessions, event
 - approval and `ask_user` suspension paths with explicit operator control
 - historical branching without mutating parent session history
 - replay and eval workflows for portable behavioral regression baselines
+- portable session handoff and repository-owned workspace defaults for teams
 
 ## Quick Start
 
@@ -70,9 +71,13 @@ Use Glassbox in a few distinct modes:
 - explicit state-driven control with `message`, `answer`, `approve`, `deny`, `resume`, and `status`
 - browser-based inspection and action through the dashboard
 - historical branching with `fork`
+- portable handoff with `session-export` and inspection-only `session-import`
+- repository defaults through `glassbox.profile.json`
 - replay and eval verification with `replay`, `replay-export`, and `eval`
 
 Persistence is local to the selected workspace by default. Glassbox stores runtime state under `.glassbox/`, with the SQLite database at `.glassbox/glassbox.sqlite3` unless you override `--db-path`.
+
+Glassbox team workflows remain local-first. A foreground `chat` process or workspace daemon owns live mutation for one workspace, while session custody and handoff metadata are operator guidance rather than cloud authority or multi-user access control.
 
 ## Documentation
 
@@ -86,6 +91,8 @@ Start here based on what you need:
 - [docs/branching.md](docs/branching.md)
 - [docs/replay-evals.md](docs/replay-evals.md)
 - [docs/runtime-context.md](docs/runtime-context.md)
+- [docs/team-workflows.md](docs/team-workflows.md)
+- [docs/workspace-profiles.md](docs/workspace-profiles.md)
 - [docs/providers.md](docs/providers.md)
 - [docs/tool-policy.md](docs/tool-policy.md)
 - [docs/architecture.md](docs/architecture.md)

@@ -657,7 +657,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-354: Document Team Workflow, Handoff, And Workspace Defaults
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-350`, `GBX-351`, `GBX-352`, `GBX-353`, `GBX-121`
 - Goal: explain the v2 team-oriented workflow clearly without implying a cloud control plane or remote multi-tenant platform
 - Deliverables:

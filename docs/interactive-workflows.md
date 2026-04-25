@@ -45,10 +45,10 @@ uv run glassbox attach SESSION_ID --cwd .
 `attach` now has two explicit modes:
 
 - live daemon attach: if a healthy workspace daemon owns the runtime, `attach`
-	reconnects the terminal to that live owner over the daemon's HTTP plus SSE
-	surfaces
+  reconnects the terminal to that live owner over the daemon's HTTP plus SSE
+  surfaces
 - persisted local reopen: if no daemon owns the workspace, `attach` reopens the
-	persisted actionable session from local state
+  persisted actionable session from local state
 
 In either mode, `attach` is for sessions that are actionable from the operator side:
 
@@ -90,16 +90,29 @@ uv run glassbox approve SESSION_ID APPROVAL_ID --cwd .
 uv run glassbox deny SESSION_ID APPROVAL_ID --cwd .
 ```
 
+For handoff across workspaces, export from the source workspace, import in the
+receiving workspace, then inspect the new imported session ID:
+
+```bash
+uv run glassbox session-export SESSION_ID handoff.json --cwd .
+uv run glassbox session-import handoff.json --cwd ../other-workspace
+```
+
+Imported sessions are historical and inspection-only. They are not silently
+attached to a live runtime owner.
+
 ## Current Shipped Boundary
 
-The shipped interactive terminal UX now has two honest boundaries:
+The shipped interactive terminal UX now has these honest boundaries:
 
 - `chat` owns the live in-process event stream for the session it starts
 - `attach` can either reopen a persisted actionable session locally or live
-	reconnect to a healthy daemon-owned session
+  reconnect to a healthy daemon-owned session
 - terminal attach does not silently pretend a terminal is still live when the
-	workspace daemon is stale, unavailable, or the session is only historically
-	inspectable
+  workspace daemon is stale, unavailable, or the session is only historically
+  inspectable
+- imported handoff packages create inspectable local history rather than a live
+  multi-user continuation
 
 ## V2 Ownership Decision
 
@@ -109,19 +122,19 @@ the current embedded workflow as a valid local mode.
 The intended ownership split is:
 
 - embedded mode: `glassbox chat` continues to own the live session inside the
-	current process for operators who want an ephemeral terminal-first workflow
-- background mode: a future `glassbox daemon` command will own the live runtime
-	for one workspace when the operator wants runtime continuity beyond a single
-	terminal process
+  current process for operators who want an ephemeral terminal-first workflow
+- background mode: `glassbox daemon start` owns the live runtime for one
+  workspace when the operator wants runtime continuity beyond a single terminal
+  process
 - browser mode: `glassbox serve` remains the operator console and session
-	browser; it is not the authoritative runtime owner
+  browser; it is not the authoritative runtime owner
 
 This means `attach` now resolves one of two explicit behaviors:
 
 - persisted local attach: reopen a session from stored state when no daemon owns
-	the workspace
+  the workspace
 - live daemon attach: reconnect a terminal UI to a session actively owned by a
-	background runtime
+  background runtime
 
 ## Persistent Runtime Semantics For V2
 
@@ -131,21 +144,21 @@ For the command-by-command daemon operating guide, see
 The first daemon-backed ownership slice now ships with these semantics:
 
 - `glassbox daemon start` backgrounds one workspace-scoped runtime owner and
-	hosts the dashboard for that workspace
+  hosts the dashboard for that workspace
 - `glassbox daemon status` reads the workspace-local owner metadata and checks
-	`/healthz` on the hosted dashboard
+  `/healthz` on the hosted dashboard
 - `glassbox daemon stop` terminates the active owner and releases the
-	workspace-local lock under `.glassbox/`
+  workspace-local lock under `.glassbox/`
 
 Operators should expect these runtime semantics:
 
 - only one background runtime owner exists per workspace
 - the owner process is responsible for live turn execution, event fanout,
-	approval resumption, and shutdown behavior
+  approval resumption, and shutdown behavior
 - browser observation, health inspection, and terminal attach remain separate
-	surfaces even when they ultimately talk to the same owner
+  surfaces even when they ultimately talk to the same owner
 - if the owner becomes unavailable, Glassbox should say so explicitly instead of
-	silently pretending a historical snapshot is still a live session
+  silently pretending a historical snapshot is still a live session
 
 With cross-process attach in place, local mutating CLI flows such as `run`,
 `chat`, `message`, `answer`, `approve`, `deny`, `fork`, `resume`, and `rebuild`
@@ -155,14 +168,14 @@ still reject execution while a daemon owns the same workspace runtime, while
 Operators should also expect explicit messaging for these states:
 
 - live: the terminal is attached to the daemon-owned session and receives live
-	event updates
+  event updates
 - reconnecting: the live stream is retrying after a transport interruption
 - unavailable: the daemon owner exists but the runtime cannot be reached for
-	live attach
+  live attach
 - stale: stale owner metadata is reported before Glassbox reopens the persisted
-	session locally
+  session locally
 - historical-only: completed, failed, or cancelled sessions remain inspectable
-	but do not pretend to support live attach
+  but do not pretend to support live attach
 
 The first persistent-runtime slice is intentionally still local-first. It does
 not imply remote orchestration, browser-native terminal control, or multi-user
