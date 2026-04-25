@@ -124,14 +124,10 @@ def create_workspace_backup(
             resolved_workspace,
             resolved_database,
         )
-        files = [
-            _build_backup_file(
-                snapshot_path, BACKUP_DATABASE_ARCHIVE_PATH, _DATABASE_ROLE
-            )
-        ]
-        files.extend(
-            _build_backup_file(resolved_workspace / path, path, _ARTIFACT_ROLE)
-            for path in artifact_paths
+        files = _backup_files(
+            snapshot_path,
+            workspace_root=resolved_workspace,
+            artifact_paths=artifact_paths,
         )
         manifest = _build_manifest(
             workspace_root=resolved_workspace,
@@ -267,6 +263,22 @@ def _normalize_artifact_path(path: str) -> Path | None:
     return artifact_path
 
 
+def _backup_files(
+    snapshot_path: Path,
+    *,
+    workspace_root: Path,
+    artifact_paths: list[Path],
+) -> list[WorkspaceBackupFile]:
+    files = [
+        _build_backup_file(snapshot_path, BACKUP_DATABASE_ARCHIVE_PATH, _DATABASE_ROLE)
+    ]
+    files.extend(
+        _build_backup_file(workspace_root / path, path, _ARTIFACT_ROLE)
+        for path in artifact_paths
+    )
+    return files
+
+
 def _build_backup_file(
     source_path: Path,
     archive_path: Path,
@@ -331,30 +343,33 @@ def _manifest_files(manifest: dict[str, object]) -> list[WorkspaceBackupFile]:
     raw_files = manifest.get("files")
     if not isinstance(raw_files, list):
         raise ValueError("backup manifest files must be a list")
-    files: list[WorkspaceBackupFile] = []
-    for raw_file in raw_files:
-        if not isinstance(raw_file, dict):
-            raise ValueError("backup manifest file entries must be objects")
-        file_payload = cast(dict[str, object], raw_file)
-        archive_path = _safe_archive_path(str(file_payload.get("path", "")))
-        role = file_payload.get("role")
-        content_sha256 = file_payload.get("content_sha256")
-        if not isinstance(role, str) or role not in {_DATABASE_ROLE, _ARTIFACT_ROLE}:
-            raise ValueError(f"unsupported backup file role: {role!r}")
-        if not isinstance(content_sha256, str) or not content_sha256:
-            raise ValueError("backup file entry is missing content_sha256")
-        files.append(
-            WorkspaceBackupFile(
-                archive_path=archive_path,
-                source_path=Path(),
-                role=role,
-                size_bytes=_manifest_int(file_payload, "size_bytes"),
-                content_sha256=content_sha256,
-            )
-        )
+    files = [_manifest_file(raw_file) for raw_file in raw_files]
     if not any(file.role == _DATABASE_ROLE for file in files):
         raise ValueError("backup archive is missing its SQLite database entry")
     return files
+
+
+def _manifest_file(raw_file: object) -> WorkspaceBackupFile:
+    if not isinstance(raw_file, dict):
+        raise ValueError("backup manifest file entries must be objects")
+    file_payload = cast(dict[str, object], raw_file)
+    archive_path = _safe_archive_path(str(file_payload.get("path", "")))
+    role = _manifest_file_role(file_payload)
+    content_sha256 = _manifest_str(file_payload, "content_sha256")
+    return WorkspaceBackupFile(
+        archive_path=archive_path,
+        source_path=Path(),
+        role=role,
+        size_bytes=_manifest_int(file_payload, "size_bytes"),
+        content_sha256=content_sha256,
+    )
+
+
+def _manifest_file_role(payload: dict[str, object]) -> str:
+    role = payload.get("role")
+    if not isinstance(role, str) or role not in {_DATABASE_ROLE, _ARTIFACT_ROLE}:
+        raise ValueError(f"unsupported backup file role: {role!r}")
+    return role
 
 
 def _validate_archive_files(
@@ -408,6 +423,13 @@ def _display_path(path: Path, workspace_root: Path) -> Path:
         return path.relative_to(workspace_root)
     except ValueError:
         return path
+
+
+def _manifest_str(payload: dict[str, object], key: str) -> str:
+    value = payload.get(key)
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"backup manifest field {key!r} must be a non-empty string")
+    return value
 
 
 def _manifest_int(payload: dict[str, object], key: str) -> int:
