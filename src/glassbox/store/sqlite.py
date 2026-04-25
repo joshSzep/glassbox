@@ -14,6 +14,7 @@ from glassbox.store._sqlite_queries import list_tool_calls
 from glassbox.store._sqlite_queries import list_transcript_messages
 from glassbox.store._sqlite_queries import list_turn_metrics
 from glassbox.store._sqlite_schema import BOOTSTRAP_STATEMENTS
+from glassbox.store._sqlite_schema import MIGRATIONS
 from glassbox.store._sqlite_schema import SCHEMA_VERSION
 from glassbox.store._sqlite_schema import initialize_database
 from glassbox.store._sqlite_schema import open_database
@@ -25,6 +26,7 @@ from glassbox.store._sqlite_sessions import update_session
 
 __all__ = [
     "BOOTSTRAP_STATEMENTS",
+    "MIGRATIONS",
     "SCHEMA_VERSION",
     "append_event",
     "append_events",

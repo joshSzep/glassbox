@@ -234,7 +234,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-310: Replace Bootstrap-And-Ad-Hoc Schema Patching With Versioned Migrations
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-302`
 - Goal: make Glassbox workspace state safely upgradeable across runtime and schema evolution
 - Deliverables:
@@ -251,6 +251,7 @@ Each phase below corresponds to one concrete milestone.
   - regression tests for sessions created before the migration system lands
 - Done when:
   - a persisted Glassbox workspace can move between supported versions without manual SQLite intervention
+  - runtime bootstrap applies ordered migration metadata for the v3 baseline, session-lineage upgrade, and runtime-note provenance upgrade
 
 ### GBX-311: Add Projection-Recovery, Lag Inspection, And Rebuild Safety Improvements
 

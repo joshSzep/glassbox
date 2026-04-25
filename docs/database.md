@@ -34,9 +34,8 @@ the following as the starting point for v2 storage work:
 - the SQLite schema already includes `sessions`, `events`, `session_state`,
     `transcript_messages`, `tool_calls`, `approvals`, `runtime_notes`, and
     `turn_metrics`
-- schema bootstrap already records a schema version row and applies a small
-    amount of ad hoc schema patching during initialization for newer lineage and
-    runtime-note columns
+- schema bootstrap now records ordered migration rows and applies explicit
+    versioned migrations for newer lineage and runtime-note columns
 - projection rebuild already exists as an implemented repository and CLI path
     over canonical events
 - session discovery, lineage-aware snapshots, approval queues, runtime context,
@@ -100,12 +99,30 @@ This refactor changed internal ownership, not the operator-visible storage model
 Schema bootstrap, append ordering, projection rebuild semantics, and artifact
 layout remain aligned with the tables and rules documented here.
 
-What is not yet complete is the migration and recovery story. The current
-bootstrap still mixes explicit schema version stamping with targeted patch
-helpers during initialization. That is sufficient for the shipped baseline, but
-v2 should replace it with ordered, inspectable migrations and clearer
-projection-health and recovery surfaces as described in
-[tasks-v2.md](./tasks-v2.md).
+The schema upgrade story now starts with an explicit v3 baseline and applies
+ordered migrations to the current schema version during runtime bootstrap. The
+remaining recovery work is projection-health and rebuild observability as
+described in [tasks-v2.md](./tasks-v2.md).
+
+## Schema Migrations
+
+Schema migrations are tracked in `schema_migrations` with one row per applied
+version. Fresh workspaces are initialized by ensuring the v3 baseline table set,
+recording the baseline, and then applying each later migration in order. Older
+workspaces that already have migration metadata reuse the same ordered path:
+baseline tables are ensured with `create table if not exists`, migration shape
+checks run idempotently, and missing version rows are recorded.
+
+The current migration sequence is:
+
+- `3`: baseline event store and projection tables
+- `4`: session lineage columns and parent-session index
+- `5`: runtime-note source columns and provenance backfill
+
+Glassbox refuses to open a database with a schema version newer than the running
+build supports. Schema upgrade is distinct from projection rebuild: migrations
+change table shape and metadata, while rebuild commands repopulate derived state
+from canonical events.
 
 ## Canonical Tables
 

@@ -5,6 +5,7 @@ from pathlib import Path
 
 from glassbox.core import SessionStatus
 from glassbox.core import new_session_id
+from glassbox.store.sqlite import MIGRATIONS
 from glassbox.store.sqlite import SCHEMA_VERSION
 from glassbox.store.sqlite import get_session
 from glassbox.store.sqlite import initialize_database
@@ -30,6 +31,12 @@ def _column_names(connection: sqlite3.Connection, table_name: str) -> set[str]:
     return {row[1] for row in rows}
 
 
+def _migration_rows(connection: sqlite3.Connection) -> list[sqlite3.Row]:
+    return connection.execute(
+        "select version, name from schema_migrations order by version"
+    ).fetchall()
+
+
 def test_open_database_configures_sqlite_connection(tmp_path: Path) -> None:
     database_path = tmp_path / "glassbox.sqlite3"
 
@@ -51,9 +58,7 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         initialize_database(connection)
         tables = _table_names(connection)
         indexes = _index_names(connection)
-        migration_versions = connection.execute(
-            "select version from schema_migrations"
-        ).fetchall()
+        migration_rows = _migration_rows(connection)
     finally:
         connection.close()
 
@@ -80,7 +85,12 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         "idx_tool_calls_session_turn",
         "idx_approvals_session_status",
     }.issubset(indexes)
-    assert [row[0] for row in migration_versions] == [SCHEMA_VERSION]
+    assert [row[0] for row in migration_rows] == [3, 4, SCHEMA_VERSION]
+    assert [row[1] for row in migration_rows] == [
+        "baseline event store and projections",
+        "add session lineage columns",
+        "add runtime note source columns",
+    ]
 
 
 def test_initialize_database_is_idempotent(tmp_path: Path) -> None:
@@ -88,14 +98,11 @@ def test_initialize_database_is_idempotent(tmp_path: Path) -> None:
     try:
         initialize_database(connection)
         initialize_database(connection)
-        migration_count = connection.execute(
-            "select count(*) from schema_migrations where version = ?",
-            (SCHEMA_VERSION,),
-        ).fetchone()[0]
+        migration_rows = _migration_rows(connection)
     finally:
         connection.close()
 
-    assert migration_count == 1
+    assert [row[0] for row in migration_rows] == [3, 4, SCHEMA_VERSION]
 
 
 def test_initialize_database_migrates_existing_sessions_table_for_lineage(
@@ -156,9 +163,7 @@ def test_initialize_database_migrates_existing_sessions_table_for_lineage(
         initialize_database(connection)
         session = get_session(connection, session_id)
         columns = _column_names(connection, "sessions")
-        migration_versions = connection.execute(
-            "select version from schema_migrations order by version"
-        ).fetchall()
+        migration_rows = _migration_rows(connection)
     finally:
         connection.close()
 
@@ -173,4 +178,193 @@ def test_initialize_database_migrates_existing_sessions_table_for_lineage(
     assert session.forked_from_turn_id is None
     assert session.forked_from_sequence is None
     assert session.branch_label is None
-    assert [row[0] for row in migration_versions] == [3, SCHEMA_VERSION]
+    assert [row[0] for row in migration_rows] == [3, 4, SCHEMA_VERSION]
+
+
+def test_initialize_database_migrates_runtime_note_source_columns(
+    tmp_path: Path,
+) -> None:
+    session_id = new_session_id()
+    connection = open_database(tmp_path / "glassbox.sqlite3")
+    try:
+        with connection:
+            connection.execute(
+                """
+                create table schema_migrations (
+                    version integer primary key,
+                    name text not null default '',
+                    applied_at text not null default current_timestamp
+                )
+                """
+            )
+            connection.execute(
+                "insert into schema_migrations(version, name) values (3, 'baseline')"
+            )
+            connection.execute(
+                """
+                insert into schema_migrations(version, name)
+                values (4, 'add session lineage columns')
+                """
+            )
+            connection.execute(
+                """
+                create table sessions (
+                    session_id text primary key,
+                    status text not null,
+                    created_at text not null,
+                    updated_at text not null,
+                    cwd text not null,
+                    model_name text not null,
+                    approval_mode text not null,
+                    parent_session_id text,
+                    forked_from_turn_id text,
+                    forked_from_sequence integer,
+                    branch_label text,
+                    last_sequence integer not null default 0
+                )
+                """
+            )
+            connection.execute(
+                """
+                create table runtime_notes (
+                    session_id text not null,
+                    sequence integer not null,
+                    category text not null,
+                    message text not null,
+                    created_at text not null,
+                    primary key (session_id, sequence),
+                    foreign key (session_id) references sessions(session_id)
+                )
+                """
+            )
+            connection.execute(
+                """
+                insert into sessions (
+                    session_id,
+                    status,
+                    created_at,
+                    updated_at,
+                    cwd,
+                    model_name,
+                    approval_mode,
+                    last_sequence
+                ) values (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    str(session_id),
+                    SessionStatus.RUNNING,
+                    "2026-04-16T12:00:00+00:00",
+                    "2026-04-16T12:05:00+00:00",
+                    "/tmp/glassbox",
+                    "openai:gpt-5.4",
+                    "confirm",
+                    4,
+                ),
+            )
+            connection.execute(
+                """
+                insert into runtime_notes (
+                    session_id,
+                    sequence,
+                    category,
+                    message,
+                    created_at
+                ) values (?, ?, ?, ?, ?)
+                """,
+                (
+                    str(session_id),
+                    2,
+                    "summary",
+                    "Existing note",
+                    "2026-04-16T12:06:00+00:00",
+                ),
+            )
+
+        initialize_database(connection)
+        columns = _column_names(connection, "runtime_notes")
+        note_row = connection.execute(
+            """
+            select source_session_id, source_sequence
+            from runtime_notes
+            where session_id = ? and sequence = 2
+            """,
+            (str(session_id),),
+        ).fetchone()
+        migration_rows = _migration_rows(connection)
+    finally:
+        connection.close()
+
+    assert {"source_session_id", "source_sequence"}.issubset(columns)
+    assert note_row[0] == str(session_id)
+    assert note_row[1] == 2
+    assert [row[0] for row in migration_rows] == [3, 4, SCHEMA_VERSION]
+
+
+def test_initialize_database_normalizes_legacy_current_version_stamp(
+    tmp_path: Path,
+) -> None:
+    connection = open_database(tmp_path / "glassbox.sqlite3")
+    try:
+        with connection:
+            connection.execute(
+                """
+                create table schema_migrations (
+                    version integer primary key,
+                    applied_at text not null default current_timestamp
+                )
+                """
+            )
+            connection.execute(
+                "insert into schema_migrations(version) values (?)",
+                (SCHEMA_VERSION,),
+            )
+
+        initialize_database(connection)
+        migration_rows = _migration_rows(connection)
+        session_columns = _column_names(connection, "sessions")
+        note_columns = _column_names(connection, "runtime_notes")
+    finally:
+        connection.close()
+
+    assert [row[0] for row in migration_rows] == [3, 4, SCHEMA_VERSION]
+    assert [row[1] for row in migration_rows] == [
+        "baseline event store and projections",
+        "add session lineage columns",
+        "add runtime note source columns",
+    ]
+    assert "parent_session_id" in session_columns
+    assert "source_session_id" in note_columns
+
+
+def test_initialize_database_rejects_newer_schema_version(tmp_path: Path) -> None:
+    connection = open_database(tmp_path / "glassbox.sqlite3")
+    try:
+        with connection:
+            connection.execute(
+                """
+                create table schema_migrations (
+                    version integer primary key,
+                    name text not null default '',
+                    applied_at text not null default current_timestamp
+                )
+                """
+            )
+            connection.execute(
+                "insert into schema_migrations(version, name) values (?, ?)",
+                (SCHEMA_VERSION + 1, "future migration"),
+            )
+
+        try:
+            initialize_database(connection)
+        except ValueError as exc:
+            message = str(exc)
+        else:
+            raise AssertionError("newer schema version was accepted")
+    finally:
+        connection.close()
+
+    assert f"database schema version {SCHEMA_VERSION + 1} is newer" in message
+
+
+def test_migrations_are_ordered_to_current_schema_version() -> None:
+    assert [migration.version for migration in MIGRATIONS] == [4, SCHEMA_VERSION]
