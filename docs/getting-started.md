@@ -65,23 +65,32 @@ glassbox chat [PROMPT]
 glassbox session attach SESSION_ID
 glassbox session message SESSION_ID PROMPT
 glassbox session answer SESSION_ID QUESTION_ID ANSWER
+glassbox session approve SESSION_ID APPROVAL_ID
+glassbox session deny SESSION_ID APPROVAL_ID
 glassbox session resume SESSION_ID
 glassbox session fork SESSION_ID [--turn TURN_ID] [--branch-label LABEL] [--prompt PROMPT]
 glassbox session status SESSION_ID
+glassbox session export SESSION_ID [OUTPUT]
+glassbox session import PACKAGE
 glassbox replay run SESSION_ID [--json]
 glassbox replay run --bundle BUNDLE_PATH [--json]
 glassbox replay export SESSION_ID [OUTPUT]
 glassbox eval run [CASE_ID ...] [--tag TAG] [--json] [--output-dir DIR]
 glassbox eval audit [CASE_ID ...] [--profile PROFILE_ID] [--tag TAG] [--json]
 glassbox eval profile list [--track deterministic|live-provider-canary] [--json]
+glassbox eval recommend PATH [PATH ...] [--json]
 glassbox eval report PROFILE_ID [PROFILE_ID ...] [--tag TAG] [--json] [--output-dir DIR]
 glassbox eval case promote SESSION_ID CASE_ID --title TITLE [...]
 glassbox eval case refresh CASE_ID SESSION_ID --reason REASON [...]
-glassbox session approve SESSION_ID APPROVAL_ID
-glassbox session deny SESSION_ID APPROVAL_ID
+glassbox artifacts prune [--dry-run] [--max-age-days DAYS] [--json]
+glassbox backup create [OUTPUT] [--json]
+glassbox backup restore ARCHIVE [--force] [--json]
 glassbox projection check [SESSION_ID | --all]
 glassbox projection rebuild [SESSION_ID | --all]
 glassbox dashboard serve
+glassbox daemon start
+glassbox daemon status [--json]
+glassbox daemon stop
 ```
 
 Use the dedicated guides for workflow detail:
