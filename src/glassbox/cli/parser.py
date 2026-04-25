@@ -307,8 +307,8 @@ def _add_replay_parsers(
         "replay",
         help="run or export replay-backed baselines",
         description=(
-            "Run replay verification against recorded sessions or portable "
-            "bundles, and export portable replay bundles."
+            "Run replay verification against recorded sessions, export portable "
+            "replay bundles, or replay portable bundles offline."
         ),
     )
     replay_subparsers = replay_parser.add_subparsers(
@@ -318,19 +318,13 @@ def _add_replay_parsers(
 
     replay_run_parser = replay_subparsers.add_parser(
         "run",
-        help="replay a recorded session or portable bundle offline",
+        help="replay a recorded session offline",
         description=(
-            "Replay a recorded session or portable replay bundle against the "
-            "current codebase and report whether behavior still matches the "
-            "recorded baseline."
+            "Replay a recorded session against the current codebase and report "
+            "whether behavior still matches the recorded baseline."
         ),
     )
-    replay_run_parser.add_argument("session_id", nargs="?", type=_parse_uuid)
-    replay_run_parser.add_argument(
-        "--bundle",
-        default=None,
-        help="path to a portable replay bundle exported with replay export",
-    )
+    replay_run_parser.add_argument("session_id", type=_parse_uuid)
     replay_run_parser.add_argument(
         "--json",
         action="store_true",
@@ -353,6 +347,34 @@ def _add_replay_parsers(
         help="optional output path for the exported replay bundle",
     )
     _add_runtime_location_arguments(replay_export_parser)
+
+    replay_bundle_parser = replay_subparsers.add_parser(
+        "bundle",
+        help="work with portable replay bundles",
+        description="Run portable replay bundles without the source session database.",
+    )
+    replay_bundle_subparsers = replay_bundle_parser.add_subparsers(
+        dest="replay_bundle_command",
+        required=True,
+    )
+    replay_bundle_run_parser = replay_bundle_subparsers.add_parser(
+        "run",
+        help="replay a portable replay bundle offline",
+        description=(
+            "Replay a portable replay bundle against the current codebase and "
+            "report whether behavior still matches the recorded baseline."
+        ),
+    )
+    replay_bundle_run_parser.add_argument(
+        "bundle_path",
+        help="path to a portable replay bundle exported with replay export",
+    )
+    replay_bundle_run_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the structured replay report as JSON",
+    )
+    _add_runtime_location_arguments(replay_bundle_run_parser)
 
 
 def _add_eval_parsers(

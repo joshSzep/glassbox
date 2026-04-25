@@ -42,29 +42,43 @@ def _replay_command(args: argparse.Namespace) -> int:
         return asyncio.run(_replay_run_command_async(args))
     if args.replay_command == "export":
         return _replay_export_command(args)
+    if args.replay_command == "bundle":
+        return _replay_bundle_command(args)
     raise ValueError("specify a replay subcommand")
 
 
 async def _replay_run_command_async(args: argparse.Namespace) -> int:
     cwd, db_path = resolve_runtime_location(args)
+    session_id = args.session_id
 
-    if (args.session_id is None) == (args.bundle is None):
-        raise ValueError("specify exactly one of session_id or --bundle")
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        result = await ReplayRunner(
+            runtime_context.repositories.sessions,
+            runtime_context.repositories.artifacts,
+        ).replay_session(session_id)
 
-    if args.bundle is not None:
-        result = await ReplayRunner().replay_bundle_file(
-            Path(args.bundle),
-            workspace_root=cwd,
-        )
+    if args.json:
+        print_json_output(_replay_result_payload(result))
     else:
-        session_id = args.session_id
-        assert session_id is not None
+        _print_replay_report(result)
 
-        with open_runtime_context(cwd, db_path=db_path) as runtime_context:
-            result = await ReplayRunner(
-                runtime_context.repositories.sessions,
-                runtime_context.repositories.artifacts,
-            ).replay_session(session_id)
+    return _replay_exit_code(result)
+
+
+def _replay_bundle_command(args: argparse.Namespace) -> int:
+    if args.replay_bundle_command == "run":
+        return asyncio.run(_replay_bundle_run_command_async(args))
+    raise ValueError("specify a replay bundle subcommand")
+
+
+async def _replay_bundle_run_command_async(args: argparse.Namespace) -> int:
+    cwd, _db_path = resolve_runtime_location(args)
+    del _db_path
+
+    result = await ReplayRunner().replay_bundle_file(
+        Path(args.bundle_path),
+        workspace_root=cwd,
+    )
 
     if args.json:
         print_json_output(_replay_result_payload(result))

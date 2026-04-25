@@ -162,8 +162,8 @@ def test_cli_replay_missing_bundle_reports_replay_failure_and_next_inspection(
     exit_code = main(
         [
             "replay",
+            "bundle",
             "run",
-            "--bundle",
             str(missing_bundle),
             "--cwd",
             str(tmp_path),
@@ -239,8 +239,8 @@ def test_cli_replay_export_writes_bundle_and_bundle_replay_succeeds(
     replay_exit_code = main(
         [
             "replay",
+            "bundle",
             "run",
-            "--bundle",
             str(bundle_path),
             "--cwd",
             str(portable_root),
@@ -259,28 +259,26 @@ def test_cli_replay_export_writes_bundle_and_bundle_replay_succeeds(
     assert "Outcome: exact match" in replay_capture.out
 
 
-def test_cli_replay_requires_exactly_one_session_or_bundle_input(
-    tmp_path: Path,
+def test_cli_replay_run_help_does_not_expose_bundle_flag(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    db_path, session_id = _run_baseline_session(tmp_path)
-    bundle_path = tmp_path / "baseline.json"
-    _ = capsys.readouterr()
+    with pytest.raises(SystemExit) as exc_info:
+        main(["replay", "run", "--help"])
 
-    exit_code = main(
-        [
-            "replay",
-            "run",
-            str(session_id),
-            "--bundle",
-            str(bundle_path),
-            "--cwd",
-            str(tmp_path),
-            "--db-path",
-            str(db_path),
-        ]
-    )
     captured = capsys.readouterr()
 
-    assert exit_code == 1
-    assert captured.err.strip() == "specify exactly one of session_id or --bundle"
+    assert exc_info.value.code == 0
+    assert "--bundle" not in captured.out
+
+
+def test_cli_replay_bundle_run_help_lists_bundle_path(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["replay", "bundle", "run", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 0
+    assert "bundle_path" in captured.out
+    assert "--json" in captured.out

@@ -30,7 +30,7 @@ uv run glassbox replay run SESSION_ID --cwd .
 Replay a portable bundle:
 
 ```bash
-uv run glassbox replay run --bundle evals/bundles/CASE_ID.json --cwd .
+uv run glassbox replay bundle run evals/bundles/CASE_ID.json --cwd .
 ```
 
 Export a portable bundle:
