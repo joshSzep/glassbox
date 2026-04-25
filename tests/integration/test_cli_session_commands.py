@@ -82,7 +82,8 @@ def test_cli_replay_help_lists_replay_subcommands(
 
     assert exc_info.value.code == 0
     assert "run" in captured.out
-    assert "export" in captured.out
+    assert "bundle" in captured.out
+    assert "export" not in captured.out
 
 
 def test_cli_session_list_reports_recent_sessions(

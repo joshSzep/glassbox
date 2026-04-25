@@ -225,6 +225,7 @@ def test_cli_replay_export_writes_bundle_and_bundle_replay_succeeds(
     export_exit_code = main(
         [
             "replay",
+            "bundle",
             "export",
             str(session_id),
             str(bundle_path),
@@ -273,6 +274,7 @@ def test_cli_replay_bundle_inspect_reports_validated_bundle_summary(
         main(
             [
                 "replay",
+                "bundle",
                 "export",
                 str(session_id),
                 str(bundle_path),
@@ -311,6 +313,7 @@ def test_cli_replay_bundle_inspect_supports_json_output(
         main(
             [
                 "replay",
+                "bundle",
                 "export",
                 str(session_id),
                 str(bundle_path),
@@ -350,6 +353,33 @@ def test_cli_replay_run_help_does_not_expose_bundle_flag(
     assert "--bundle" not in captured.out
 
 
+def test_cli_replay_help_lists_run_and_bundle_only(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["replay", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 0
+    assert "run" in captured.out
+    assert "bundle" in captured.out
+    assert "export" not in captured.out
+
+
+def test_cli_replay_bundle_export_help_lists_session_id(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["replay", "bundle", "export", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 0
+    assert "session_id" in captured.out
+    assert "output" in captured.out
+
+
 def test_cli_replay_bundle_run_help_lists_bundle_path(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -372,5 +402,6 @@ def test_cli_replay_bundle_help_lists_inspect_and_run(
     captured = capsys.readouterr()
 
     assert exc_info.value.code == 0
+    assert "export" in captured.out
     assert "inspect" in captured.out
     assert "run" in captured.out

@@ -313,10 +313,10 @@ def _add_replay_parsers(
 ) -> None:
     replay_parser = subparsers.add_parser(
         "replay",
-        help="run or export replay-backed baselines",
+        help="run replay-backed baselines or work with portable bundles",
         description=(
-            "Run replay verification against recorded sessions, export portable "
-            "replay bundles, or replay portable bundles offline."
+            "Run replay verification against recorded sessions or work with "
+            "portable replay bundles."
         ),
     )
     replay_subparsers = replay_parser.add_subparsers(
@@ -340,7 +340,19 @@ def _add_replay_parsers(
     )
     _add_runtime_location_arguments(replay_run_parser)
 
-    replay_export_parser = replay_subparsers.add_parser(
+    replay_bundle_parser = replay_subparsers.add_parser(
+        "bundle",
+        help="work with portable replay bundles",
+        description=(
+            "Export, inspect, or run portable replay bundles without the source "
+            "session database."
+        ),
+    )
+    replay_bundle_subparsers = replay_bundle_parser.add_subparsers(
+        dest="replay_bundle_command",
+        required=True,
+    )
+    replay_bundle_export_parser = replay_bundle_subparsers.add_parser(
         "export",
         help="export a portable replay bundle",
         description=(
@@ -348,26 +360,14 @@ def _add_replay_parsers(
             "checked in or replayed without the source SQLite session database."
         ),
     )
-    replay_export_parser.add_argument("session_id", type=_parse_uuid)
-    replay_export_parser.add_argument(
+    replay_bundle_export_parser.add_argument("session_id", type=_parse_uuid)
+    replay_bundle_export_parser.add_argument(
         "output",
         nargs="?",
         help="optional output path for the exported replay bundle",
     )
-    _add_runtime_location_arguments(replay_export_parser)
+    _add_runtime_location_arguments(replay_bundle_export_parser)
 
-    replay_bundle_parser = replay_subparsers.add_parser(
-        "bundle",
-        help="work with portable replay bundles",
-        description=(
-            "Inspect or run portable replay bundles without the source session "
-            "database."
-        ),
-    )
-    replay_bundle_subparsers = replay_bundle_parser.add_subparsers(
-        dest="replay_bundle_command",
-        required=True,
-    )
     replay_bundle_inspect_parser = replay_bundle_subparsers.add_parser(
         "inspect",
         help="inspect a portable replay bundle",
@@ -377,7 +377,7 @@ def _add_replay_parsers(
     )
     replay_bundle_inspect_parser.add_argument(
         "bundle_path",
-        help="path to a portable replay bundle exported with replay export",
+        help="path to a portable replay bundle exported with replay bundle export",
     )
     replay_bundle_inspect_parser.add_argument(
         "--json",
@@ -394,7 +394,7 @@ def _add_replay_parsers(
     )
     replay_bundle_run_parser.add_argument(
         "bundle_path",
-        help="path to a portable replay bundle exported with replay export",
+        help="path to a portable replay bundle exported with replay bundle export",
     )
     replay_bundle_run_parser.add_argument(
         "--json",

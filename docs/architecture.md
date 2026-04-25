@@ -1540,9 +1540,9 @@ Current command surface:
 
 ```text
 glassbox replay run SESSION_ID [--json]
+glassbox replay bundle export SESSION_ID [OUTPUT]
 glassbox replay bundle inspect BUNDLE_PATH [--json]
 glassbox replay bundle run BUNDLE_PATH [--json]
-glassbox replay export SESSION_ID [OUTPUT]
 glassbox eval run [CASE_ID ...] [--tag TAG] [--json] [--output-dir DIR]
 ```
 
@@ -1553,8 +1553,8 @@ The semantics should stay narrow:
 - `glassbox replay bundle run` consumes a portable replay bundle directly, so exported baselines can be replayed without the original session database and can run against the current workspace root instead of the source machine path
 - `glassbox replay run` uses stable exit codes so scripts can distinguish exact match from drift and replay errors without scraping terminal text
 - `glassbox replay run` does not mutate the source session metadata or recorded replay artifacts; replay runs against an isolated temporary session store
-- `glassbox replay export` turns a replayable session into a portable baseline bundle that can move across branches, repositories, or CI machines without the original SQLite database
-- `glassbox replay export` for a forked child session includes the lineage metadata and imported transcript prefix required to replay that child independently of its parent database rows
+- `glassbox replay bundle export` turns a replayable session into a portable baseline bundle that can move across branches, repositories, or CI machines without the original SQLite database
+- `glassbox replay bundle export` for a forked child session includes the lineage metadata and imported transcript prefix required to replay that child independently of its parent database rows
 - `glassbox eval run` executes curated replay cases serially from the repository-local `evals/` layout, returns a CI-friendly suite summary, and does not require live provider credentials for deterministic cases
 - `glassbox eval run --tag ...` narrows the suite to tagged cases, while explicit `CASE_ID` arguments preserve an operator-controlled selection order for focused validation
 - `glassbox eval run --json` emits a machine-readable suite report including per-case outcomes, expectation-aware pass/fail state, and artifact paths
