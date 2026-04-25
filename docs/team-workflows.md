@@ -1,0 +1,182 @@
+# Team Workflow And Session Handoff
+
+Glassbox v2 remains local-first: one workspace, one event-sourced session store,
+and one authoritative runtime owner for live mutation. Team workflow support does
+not turn Glassbox into a remote multi-user platform. It defines how operators can
+inspect, act on, and hand off persisted sessions without losing auditability.
+
+This document is the `GBX-350` contract for ownership, identity, and handoff. It
+is the baseline for portable session export/import and workspace defaults work.
+
+## Vocabulary
+
+- **runtime owner**: the foreground `chat` process or workspace daemon that may
+  execute live turns, resume suspended tool calls, and append canonical events
+  for a live session.
+- **acting operator**: the local human or automation identity that submits an
+  intervention such as a prompt, answer, approval decision, denial, fork request,
+  or handoff note.
+- **session custodian**: the operator currently expected to notice and resolve
+  actionable states for a session. Custody is a workflow expectation, not an
+  exclusive lock.
+- **handoff**: an explicit transfer of custodial context for a paused,
+  actionable, failed, or historical session.
+- **intervention**: any operator-originated action that can affect subsequent
+  session behavior or reviewer interpretation.
+
+Runtime ownership and session custody are different concerns. Runtime ownership
+prevents conflicting writers. Session custody tells operators who is expected to
+act next.
+
+## Identity Model
+
+Operator identity is local, inspectable metadata. It is not authentication,
+authorization, or a cloud account.
+
+The v2 identity contract is:
+
+- every operator-originated intervention should be attributable when that
+  attribution affects audit or handoff reasoning
+- the identity value should be stable enough for humans to recognize in local
+  artifacts, CLI output, dashboard rows, and exported session packages
+- the default identity may be inferred from the local environment, but command
+  surfaces that create portable handoff artifacts should allow an explicit
+  operator label
+- identity metadata must not grant permissions by itself; policy and approval
+  semantics remain separate
+
+The canonical shape for future event or artifact metadata is:
+
+```text
+operator_id: stable local identifier, for example alice or alice@example.test
+operator_display_name: optional human label
+operator_source: cli, dashboard, daemon, imported, or automation
+```
+
+Current single-operator workflows remain compatible by treating interventions as
+coming from the implicit local operator when no explicit identity is supplied.
+
+## Session Ownership Model
+
+Glassbox keeps one authoritative mutation path for a workspace at a time:
+
+- embedded mode: `glassbox chat` owns the live runtime in the current process
+- daemon mode: `glassbox daemon start` owns live mutation for the workspace
+- historical mode: completed, failed, cancelled, and exported sessions are
+  inspectable from persisted events, but they do not have a live runtime owner
+
+Mutating commands must continue to respect the runtime-owner boundary described
+in [interactive-workflows.md](./interactive-workflows.md) and
+[persistent-runtime.md](./persistent-runtime.md). When a daemon owns the
+workspace, local commands that would append or resume session state should route
+through `attach` or fail visibly rather than creating a second writer.
+
+Session custody is softer:
+
+- an actionable session may have an expected custodian in docs, dashboard copy,
+  export metadata, or future handoff notes
+- custody does not override runtime-owner checks
+- changing custody should be auditable when it changes who is expected to
+  resolve a pending approval, answer a question, triage a failure, or continue a
+  branch
+
+## Intervention Attribution
+
+The following operator actions materially affect audit reasoning and should carry
+operator identity metadata in future event payloads or associated metadata:
+
+- sending a prompt with `chat`, `message`, browser actions, or daemon-backed
+  `attach`
+- answering an `ask_user` question
+- approving or denying a pending approval
+- resuming a paused session after inspection
+- forking a session or creating a child branch
+- adding a handoff note or changing session custody
+- importing a portable session package as inspectable or resumable local state
+
+Read-only inspection does not need per-event attribution. Opening a dashboard,
+running `status`, inspecting replay artifacts, or viewing historical transcripts
+does not change session behavior and should not add noise to the event log.
+
+## Handoff Model
+
+A useful handoff should answer four questions without requiring access to the
+originating terminal:
+
+1. What session is being handed off?
+2. Why does it need attention?
+3. Who last acted, and who is expected to act next?
+4. Is the recipient inspecting history, resolving a pause, or continuing live
+   work?
+
+Supported v2 handoff states are:
+
+- **paused for approval**: include the pending approval ID, subject, policy
+  reason, last acting operator, and expected next custodian
+- **paused for answer**: include the pending question ID, prompt text or summary,
+  last acting operator, and expected next custodian
+- **idle running**: include the next-work summary and whether a live runtime
+  owner is reachable
+- **failed**: include failure summary, retryability, relevant artifacts, and the
+  expected triage owner
+- **historical-only**: include lineage, branchability, replay or eval relevance,
+  and whether the recipient should fork instead of mutate the original session
+
+Handoff should be explicit. A recipient should not have to infer from a copied
+session ID whether they are expected to approve a command, answer a question,
+inspect a failed turn, fork a branch, or merely review history.
+
+## Attach, Approval, Answer, And Branching Review
+
+The contract aligns with current semantics as follows:
+
+| Surface | Current behavior | Team-workflow rule |
+| --- | --- | --- |
+| `attach` | Reconnects to a daemon-owned actionable session or locally reopens one when no daemon owns the workspace. | Preserve the runtime-owner boundary; attached operators are acting operators, not new runtime owners. |
+| approvals | `approve` and `deny` resolve one pending approval ID and resume or deny the suspended tool call. | Record who made the decision when attribution is added; resolved approvals remain single-use. |
+| `ask_user` answers | `answer` resolves one pending question and resumes the suspended turn. | Record who answered when attribution is added; answers are operator input, not policy approval. |
+| branching | `fork` creates a child at a stable completed-turn boundary. | Forking is the preferred handoff path for alternate work on historical sessions. |
+| dashboard actions | Browser actions call the same session APIs used by CLI flows. | Browser identity should be explicit metadata, not browser-local authority. |
+
+This review preserves the single-operator compatibility baseline: existing
+commands can keep working without requiring identity flags, while future handoff
+and export/import features have a clear place to store attribution.
+
+## Out Of Scope For V2
+
+The v2 team workflow intentionally does not include:
+
+- remote authentication, authorization, roles, or organization membership
+- simultaneous multi-writer editing of one session
+- cloud-hosted session coordination
+- browser-local state as an authority for ownership, approval, or custody
+- hidden custody transfer based only on who last opened a dashboard page
+- background notification delivery outside the local workspace process model
+
+These features can be designed later, but they should not be implied by portable
+session export, import, or workspace-profile work.
+
+## Validation Checklist
+
+Before extending code for portable sessions or workspace defaults, check that a
+proposed change preserves this contract:
+
+- current single-operator `chat`, `attach`, `answer`, `approve`, `deny`, `fork`,
+  and dashboard workflows still work without an explicit identity flag
+- any new operator-originated mutation has a place to carry acting-operator
+  metadata
+- exported handoff artifacts distinguish last actor, expected custodian, runtime
+  availability, and historical-only state
+- imported sessions do not silently become live mutable sessions without an
+  explicit resumability decision
+- runtime ownership remains the writer-safety mechanism; session custody remains
+  operator guidance
+- collaboration copy stays honest about local-first scope
+
+## Related Guides
+
+- [interactive-workflows.md](./interactive-workflows.md)
+- [persistent-runtime.md](./persistent-runtime.md)
+- [branching.md](./branching.md)
+- [tool-policy.md](./tool-policy.md)
+- [runtime-context.md](./runtime-context.md)

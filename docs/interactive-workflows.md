@@ -162,9 +162,16 @@ The first persistent-runtime slice is intentionally still local-first. It does
 not imply remote orchestration, browser-native terminal control, or multi-user
 coordination.
 
+For v2 team handoff semantics, Glassbox treats runtime ownership and session
+custody as separate concerns. Runtime ownership prevents conflicting writers;
+session custody names who is expected to resolve a paused, failed, or historical
+workflow next. See [team-workflows.md](./team-workflows.md) for the identity and
+handoff contract.
+
 ## Related Guides
 
 - [dashboard.md](./dashboard.md)
 - [persistent-runtime.md](./persistent-runtime.md)
+- [team-workflows.md](./team-workflows.md)
 - [branching.md](./branching.md)
 - [tool-policy.md](./tool-policy.md)

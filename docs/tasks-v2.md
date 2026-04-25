@@ -581,7 +581,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-350: Define Team-Oriented Session Ownership, Handoff, And Identity Model
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-303`, `GBX-320`, `GBX-321`
 - Goal: define how Glassbox should behave when more than one operator may inspect, resolve, or hand off work around the same persisted sessions
 - Deliverables:

@@ -3,6 +3,10 @@
 Use the persistent runtime when a workspace should have one long-lived Glassbox
 owner that survives terminal exit and can accept later terminal reattachments.
 
+For team workflows, this runtime owner is the writer-safety boundary. It is not
+the same as the session custodian or acting operator described in
+[team-workflows.md](./team-workflows.md).
+
 ## Start The Workspace Runtime
 
 Start one background owner for the workspace:
@@ -100,5 +104,6 @@ uv run glassbox daemon stop --cwd .
 ## Related Guides
 
 - [interactive-workflows.md](./interactive-workflows.md)
+- [team-workflows.md](./team-workflows.md)
 - [dashboard.md](./dashboard.md)
 - [tasks-v2.md](./tasks-v2.md)
