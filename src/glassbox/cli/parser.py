@@ -829,6 +829,7 @@ def _add_operations_parsers(
     )
     daemon_subparsers = daemon_parser.add_subparsers(
         dest="daemon_command",
+        metavar="{start,stop,status}",
         required=True,
     )
 
@@ -874,6 +875,7 @@ def _add_operations_parsers(
         help=argparse.SUPPRESS,
         description=argparse.SUPPRESS,
     )
+    _hide_subparser_from_help(daemon_subparsers, "run-owner")
     _add_runtime_location_arguments(daemon_run_owner_parser)
     daemon_run_owner_parser.add_argument(
         "--host",
@@ -886,6 +888,17 @@ def _add_operations_parsers(
         default=8765,
         help=argparse.SUPPRESS,
     )
+
+
+def _hide_subparser_from_help(
+    subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+    command_name: str,
+) -> None:
+    subparsers._choices_actions = [
+        action
+        for action in subparsers._choices_actions
+        if getattr(action, "dest", None) != command_name
+    ]
 
 
 def _add_artifact_parsers(

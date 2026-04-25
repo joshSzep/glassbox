@@ -55,6 +55,18 @@ def test_daemon_status_help_lists_json_flag(
     assert "--json" in captured.out
 
 
+def test_daemon_help_hides_internal_run_owner_command(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["daemon", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 0
+    assert "run-owner" not in captured.out
+
+
 def test_daemon_start_status_duplicate_rejection_and_stop(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
