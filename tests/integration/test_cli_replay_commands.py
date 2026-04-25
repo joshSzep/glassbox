@@ -259,6 +259,85 @@ def test_cli_replay_export_writes_bundle_and_bundle_replay_succeeds(
     assert "Outcome: exact match" in replay_capture.out
 
 
+def test_cli_replay_bundle_inspect_reports_validated_bundle_summary(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(
+        tmp_path,
+        prompt="Inspect the repository",
+    )
+    bundle_path = tmp_path / "exports" / "baseline.json"
+    _ = capsys.readouterr()
+    assert (
+        main(
+            [
+                "replay",
+                "export",
+                str(session_id),
+                str(bundle_path),
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+            ]
+        )
+        == 0
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(["replay", "bundle", "inspect", str(bundle_path)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert f"Replay bundle: {bundle_path.resolve()}" in captured.out
+    assert f"Source session: {session_id}" in captured.out
+    assert "Bundle: glassbox_replay_bundle v1" in captured.out
+    assert "Contains " in captured.out
+    assert "Baseline: " in captured.out
+
+
+def test_cli_replay_bundle_inspect_supports_json_output(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(
+        tmp_path,
+        prompt="Inspect the repository",
+    )
+    bundle_path = tmp_path / "baseline.json"
+    _ = capsys.readouterr()
+    assert (
+        main(
+            [
+                "replay",
+                "export",
+                str(session_id),
+                str(bundle_path),
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+            ]
+        )
+        == 0
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(["replay", "bundle", "inspect", str(bundle_path), "--json"])
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["bundle_path"] == str(bundle_path.resolve())
+    assert payload["bundle_kind"] == "glassbox_replay_bundle"
+    assert payload["bundle_version"] == 1
+    assert payload["source_session_id"] == str(session_id)
+    assert payload["model_call_count"] >= 1
+    assert payload["baseline_transcript_message_count"] == 2
+    assert payload["final_state_status"] == "running"
+
+
 def test_cli_replay_run_help_does_not_expose_bundle_flag(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -282,3 +361,16 @@ def test_cli_replay_bundle_run_help_lists_bundle_path(
     assert exc_info.value.code == 0
     assert "bundle_path" in captured.out
     assert "--json" in captured.out
+
+
+def test_cli_replay_bundle_help_lists_inspect_and_run(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["replay", "bundle", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 0
+    assert "inspect" in captured.out
+    assert "run" in captured.out

@@ -1540,6 +1540,7 @@ Current command surface:
 
 ```text
 glassbox replay run SESSION_ID [--json]
+glassbox replay bundle inspect BUNDLE_PATH [--json]
 glassbox replay bundle run BUNDLE_PATH [--json]
 glassbox replay export SESSION_ID [OUTPUT]
 glassbox eval run [CASE_ID ...] [--tag TAG] [--json] [--output-dir DIR]
@@ -1548,6 +1549,7 @@ glassbox eval run [CASE_ID ...] [--tag TAG] [--json] [--output-dir DIR]
 The semantics should stay narrow:
 
 - `glassbox replay run` compares the current codebase against a recorded session baseline offline, returns concise human output by default, supports machine-readable JSON output, and reports exact match, manifest drift, behavioral drift, unsupported session, or replay failure
+- `glassbox replay bundle inspect` validates a portable replay bundle and reports its source session, runtime configuration, lineage presence, retained action/model/tool counts, and baseline summary without executing replay
 - `glassbox replay bundle run` consumes a portable replay bundle directly, so exported baselines can be replayed without the original session database and can run against the current workspace root instead of the source machine path
 - `glassbox replay run` uses stable exit codes so scripts can distinguish exact match from drift and replay errors without scraping terminal text
 - `glassbox replay run` does not mutate the source session metadata or recorded replay artifacts; replay runs against an isolated temporary session store

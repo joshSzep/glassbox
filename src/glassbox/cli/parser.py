@@ -351,11 +351,30 @@ def _add_replay_parsers(
     replay_bundle_parser = replay_subparsers.add_parser(
         "bundle",
         help="work with portable replay bundles",
-        description="Run portable replay bundles without the source session database.",
+        description=(
+            "Inspect or run portable replay bundles without the source session "
+            "database."
+        ),
     )
     replay_bundle_subparsers = replay_bundle_parser.add_subparsers(
         dest="replay_bundle_command",
         required=True,
+    )
+    replay_bundle_inspect_parser = replay_bundle_subparsers.add_parser(
+        "inspect",
+        help="inspect a portable replay bundle",
+        description=(
+            "Inspect and validate a portable replay bundle without running it."
+        ),
+    )
+    replay_bundle_inspect_parser.add_argument(
+        "bundle_path",
+        help="path to a portable replay bundle exported with replay export",
+    )
+    replay_bundle_inspect_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the replay bundle inspection summary as JSON",
     )
     replay_bundle_run_parser = replay_bundle_subparsers.add_parser(
         "run",

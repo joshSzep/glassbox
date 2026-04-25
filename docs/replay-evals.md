@@ -33,6 +33,12 @@ Replay a portable bundle:
 uv run glassbox replay bundle run evals/bundles/CASE_ID.json --cwd .
 ```
 
+Inspect a portable bundle without running it:
+
+```bash
+uv run glassbox replay bundle inspect evals/bundles/CASE_ID.json --json
+```
+
 Export a portable bundle:
 
 ```bash

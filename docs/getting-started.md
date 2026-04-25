@@ -74,6 +74,7 @@ glassbox session status SESSION_ID
 glassbox session export SESSION_ID [OUTPUT]
 glassbox session import PACKAGE
 glassbox replay run SESSION_ID [--json]
+glassbox replay bundle inspect BUNDLE_PATH [--json]
 glassbox replay bundle run BUNDLE_PATH [--json]
 glassbox replay export SESSION_ID [OUTPUT]
 glassbox eval run [CASE_ID ...] [--tag TAG] [--json] [--output-dir DIR]
