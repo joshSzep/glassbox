@@ -75,8 +75,8 @@ glassbox eval run [CASE_ID ...] [--tag TAG] [--json] [--output-dir DIR]
 glassbox eval audit [CASE_ID ...] [--profile PROFILE_ID] [--tag TAG] [--json]
 glassbox eval profile list [--track deterministic|live-provider-canary] [--json]
 glassbox eval report PROFILE_ID [PROFILE_ID ...] [--tag TAG] [--json] [--output-dir DIR]
-glassbox eval promote SESSION_ID CASE_ID --title TITLE [...]
-glassbox eval refresh CASE_ID SESSION_ID --reason REASON [...]
+glassbox eval case promote SESSION_ID CASE_ID --title TITLE [...]
+glassbox eval case refresh CASE_ID SESSION_ID --reason REASON [...]
 glassbox session approve SESSION_ID APPROVAL_ID
 glassbox session deny SESSION_ID APPROVAL_ID
 glassbox projection check [SESSION_ID | --all]

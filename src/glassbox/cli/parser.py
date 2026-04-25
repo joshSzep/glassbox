@@ -506,7 +506,14 @@ def _add_eval_parsers(
     )
     _add_runtime_location_arguments(eval_report_parser)
 
-    eval_promote_parser = eval_subparsers.add_parser(
+    eval_case_parser = eval_subparsers.add_parser(
+        "case",
+        help="work with repository-owned eval cases",
+        description="Promote or refresh repository-owned eval cases.",
+    )
+    eval_case_subparsers = eval_case_parser.add_subparsers(dest="eval_case_command")
+
+    eval_promote_parser = eval_case_subparsers.add_parser(
         "promote",
         help="promote one recorded session into a new eval case",
         description=(
@@ -581,7 +588,7 @@ def _add_eval_parsers(
     )
     _add_runtime_location_arguments(eval_promote_parser)
 
-    eval_refresh_parser = eval_subparsers.add_parser(
+    eval_refresh_parser = eval_case_subparsers.add_parser(
         "refresh",
         help="refresh one existing eval baseline from a new source session",
         description=(

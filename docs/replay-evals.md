@@ -86,7 +86,7 @@ uv run glassbox eval report commit-smoke push-confirmation release-candidate \
 Promote a recorded session into a checked-in eval case:
 
 ```bash
-uv run glassbox eval promote SESSION_ID tooling.readme \
+uv run glassbox eval case promote SESSION_ID tooling.readme \
   --title "README inspection stays stable" \
   --tag smoke \
   --tag tooling \
@@ -104,7 +104,7 @@ uv run glassbox eval promote SESSION_ID tooling.readme \
 Refresh an existing baseline intentionally:
 
 ```bash
-uv run glassbox eval refresh tooling.readme SESSION_ID \
+uv run glassbox eval case refresh tooling.readme SESSION_ID \
   --reason "Intentional baseline update after README contract change" \
   --acknowledge-policy \
   --cwd . \

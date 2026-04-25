@@ -242,78 +242,85 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
             print(build_eval_release_signoff_summary(report), end="")
         return report.exit_code
 
-    if args.eval_command == "promote":
-        cwd, db_path = resolve_runtime_location(args)
-        report_output = resolve_optional_explicit_path(cwd, args.report_output)
-        with open_runtime_context(cwd, db_path=db_path) as runtime_context:
-            report = promote_eval_case(
-                cwd,
-                replay_runner=ReplayRunner(
-                    runtime_context.repositories.sessions,
-                    runtime_context.repositories.artifacts,
-                ),
-                session_id=args.session_id,
-                case_id=args.case_id,
-                title=args.title,
-                tags=list(args.tags),
-                notes=args.notes,
-                expectation_mode=args.expectation_mode,
-                invariants=list(args.invariants),
-                owner=args.owner,
-                capabilities=list(args.capabilities),
-                severity=args.severity,
-                verification_stages=None
-                if args.verification_stages is None
-                else list(args.verification_stages),
-                baseline_refresh_policy=args.baseline_refresh_policy,
-                rationale=args.reason,
-                report_path=report_output,
-            )
-
-        if args.json:
-            print_json_output(report.model_dump(mode="json"))
-        else:
-            _print_eval_baseline_update(report)
-        return 0
-
-    if args.eval_command == "refresh":
-        cwd, db_path = resolve_runtime_location(args)
-        report_output = resolve_optional_explicit_path(cwd, args.report_output)
-        with open_runtime_context(cwd, db_path=db_path) as runtime_context:
-            report = refresh_eval_case(
-                cwd,
-                replay_runner=ReplayRunner(
-                    runtime_context.repositories.sessions,
-                    runtime_context.repositories.artifacts,
-                ),
-                session_id=args.session_id,
-                case_id=args.case_id,
-                rationale=args.reason,
-                acknowledge_policy=args.acknowledge_policy,
-                title=args.title,
-                tags=None if args.tags is None else list(args.tags),
-                notes=args.notes,
-                expectation_mode=args.expectation_mode,
-                invariants=None if args.invariants is None else list(args.invariants),
-                owner=args.owner,
-                capabilities=None
-                if args.capabilities is None
-                else list(args.capabilities),
-                severity=args.severity,
-                verification_stages=None
-                if args.verification_stages is None
-                else list(args.verification_stages),
-                baseline_refresh_policy=args.baseline_refresh_policy,
-                report_path=report_output,
-            )
-
-        if args.json:
-            print_json_output(report.model_dump(mode="json"))
-        else:
-            _print_eval_baseline_update(report)
-        return 0
+    if args.eval_command == "case":
+        if args.eval_case_command == "promote":
+            return _eval_case_promote_command(args)
+        if args.eval_case_command == "refresh":
+            return _eval_case_refresh_command(args)
+        raise ValueError("specify an eval case subcommand")
 
     raise ValueError("specify an eval subcommand")
+
+
+def _eval_case_promote_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    report_output = resolve_optional_explicit_path(cwd, args.report_output)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        report = promote_eval_case(
+            cwd,
+            replay_runner=ReplayRunner(
+                runtime_context.repositories.sessions,
+                runtime_context.repositories.artifacts,
+            ),
+            session_id=args.session_id,
+            case_id=args.case_id,
+            title=args.title,
+            tags=list(args.tags),
+            notes=args.notes,
+            expectation_mode=args.expectation_mode,
+            invariants=list(args.invariants),
+            owner=args.owner,
+            capabilities=list(args.capabilities),
+            severity=args.severity,
+            verification_stages=None
+            if args.verification_stages is None
+            else list(args.verification_stages),
+            baseline_refresh_policy=args.baseline_refresh_policy,
+            rationale=args.reason,
+            report_path=report_output,
+        )
+
+    if args.json:
+        print_json_output(report.model_dump(mode="json"))
+    else:
+        _print_eval_baseline_update(report)
+    return 0
+
+
+def _eval_case_refresh_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    report_output = resolve_optional_explicit_path(cwd, args.report_output)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        report = refresh_eval_case(
+            cwd,
+            replay_runner=ReplayRunner(
+                runtime_context.repositories.sessions,
+                runtime_context.repositories.artifacts,
+            ),
+            session_id=args.session_id,
+            case_id=args.case_id,
+            rationale=args.reason,
+            acknowledge_policy=args.acknowledge_policy,
+            title=args.title,
+            tags=None if args.tags is None else list(args.tags),
+            notes=args.notes,
+            expectation_mode=args.expectation_mode,
+            invariants=None if args.invariants is None else list(args.invariants),
+            owner=args.owner,
+            capabilities=None if args.capabilities is None else list(args.capabilities),
+            severity=args.severity,
+            verification_stages=None
+            if args.verification_stages is None
+            else list(args.verification_stages),
+            baseline_refresh_policy=args.baseline_refresh_policy,
+            report_path=report_output,
+        )
+
+    if args.json:
+        print_json_output(report.model_dump(mode="json"))
+    else:
+        _print_eval_baseline_update(report)
+    return 0
 
 
 def _resolve_eval_profile_id(

@@ -750,6 +750,7 @@ def test_cli_eval_promote_creates_case_bundle_and_review_artifact(
     exit_code = main(
         [
             "eval",
+            "case",
             "promote",
             str(session_id),
             "smoke.promoted",
@@ -880,6 +881,7 @@ def test_cli_eval_refresh_requires_acknowledgement_for_blocking_case(
     exit_code = main(
         [
             "eval",
+            "case",
             "refresh",
             "smoke.readme",
             str(refresh_session_id),
@@ -935,6 +937,7 @@ def test_cli_eval_refresh_rejects_blocking_case_without_release_metadata(
     exit_code = main(
         [
             "eval",
+            "case",
             "refresh",
             "smoke.readme",
             str(refresh_session_id),
@@ -991,6 +994,7 @@ def test_cli_eval_refresh_updates_bundle_manifest_history_and_review_artifact(
     promote_exit_code = main(
         [
             "eval",
+            "case",
             "promote",
             str(initial_session_id),
             "smoke.promoted",
@@ -1036,6 +1040,7 @@ def test_cli_eval_refresh_updates_bundle_manifest_history_and_review_artifact(
     refresh_exit_code = main(
         [
             "eval",
+            "case",
             "refresh",
             "smoke.promoted",
             str(refresh_session_id),

@@ -16,9 +16,9 @@ evals/
 
 Promotion workflow:
 
-1. Promote a replayable session into a curated case with `glassbox eval promote SESSION_ID CASE_ID --title ...`.
+1. Promote a replayable session into a curated case with `glassbox eval case promote SESSION_ID CASE_ID --title ...`.
 2. Review the generated bundle, case manifest, and review artifact together.
-3. Refresh an existing case with `glassbox eval refresh CASE_ID SESSION_ID --reason ...` whenever a baseline change is intentional.
+3. Refresh an existing case with `glassbox eval case refresh CASE_ID SESSION_ID --reason ...` whenever a baseline change is intentional.
 
 Run the resulting suite with:
 
@@ -33,8 +33,8 @@ glassbox eval profile list --track live-provider-canary --json
 glassbox eval run --output-dir .glassbox/evals/manual
 glassbox eval report release-candidate advisory-context
 glassbox eval report commit-smoke push-confirmation release-candidate --output-dir .glassbox/evals/release-signoff
-glassbox eval promote SESSION_ID CASE_ID --title "Case title"
-glassbox eval refresh CASE_ID SESSION_ID --reason "Why this baseline changed"
+glassbox eval case promote SESSION_ID CASE_ID --title "Case title"
+glassbox eval case refresh CASE_ID SESSION_ID --reason "Why this baseline changed"
 ```
 
 Named profiles live in `evals/profiles.json` and make stage intent explicit for
@@ -188,10 +188,10 @@ selected-invariant contracts matter independently.
 
 Guided baseline updates:
 
-- `glassbox eval promote` exports the replay bundle into `evals/bundles/`,
+- `glassbox eval case promote` exports the replay bundle into `evals/bundles/`,
   creates `evals/cases/CASE_ID.json`, and records an initial `baseline_history`
   entry inside the case manifest.
-- `glassbox eval refresh` reuses the existing case manifest and bundle path,
+- `glassbox eval case refresh` reuses the existing case manifest and bundle path,
   requires `--reason`, appends a `baseline_history` entry, and writes a
   diff-friendly review artifact under `.glassbox/evals/baseline-updates/` by
   default.
@@ -265,9 +265,9 @@ End-to-end governed example:
 
 ```text
 uv run glassbox run "Inspect the repository" --cwd .
-uv run glassbox eval promote SESSION_ID tooling.readme --title "README inspection stays stable" --tag smoke --tag tooling --owner runtime.replay --capability repository_inspection --capability replay_portability --severity high --verification-stage commit-time --verification-stage push-time --reason "Initial promotion for repository inspection contract" --cwd . --db-path .glassbox/glassbox.sqlite3
+uv run glassbox eval case promote SESSION_ID tooling.readme --title "README inspection stays stable" --tag smoke --tag tooling --owner runtime.replay --capability repository_inspection --capability replay_portability --severity high --verification-stage commit-time --verification-stage push-time --reason "Initial promotion for repository inspection contract" --cwd . --db-path .glassbox/glassbox.sqlite3
 uv run glassbox eval run --profile commit-smoke --output-dir .glassbox/evals/pre-commit --refresh-output-dir --cwd .
-uv run glassbox eval refresh tooling.readme SESSION_ID --reason "Intentional baseline update after README contract change" --acknowledge-policy --cwd . --db-path .glassbox/glassbox.sqlite3
+uv run glassbox eval case refresh tooling.readme SESSION_ID --reason "Intentional baseline update after README contract change" --acknowledge-policy --cwd . --db-path .glassbox/glassbox.sqlite3
 uv run glassbox eval report commit-smoke push-confirmation release-candidate --output-dir .glassbox/evals/release-signoff --cwd .
 ```
 
@@ -390,7 +390,7 @@ Troubleshooting flows:
   `push-smoke-evals-SHA` artifact only if the summary does not already explain
   the failing case.
 3. Intentional baseline refresh:
-  use `glassbox eval refresh CASE_ID SESSION_ID --reason ...`, review the
+  use `glassbox eval case refresh CASE_ID SESSION_ID --reason ...`, review the
   generated `.glassbox/evals/baseline-updates/CASE_ID.json` artifact alongside
   the checked-in bundle and case manifest changes, then rerun the targeted case
   or tagged suite before committing.
