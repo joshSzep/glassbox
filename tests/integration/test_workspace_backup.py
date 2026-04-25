@@ -15,6 +15,19 @@ from tests.integration.cli_test_support import _read_session_events
 from tests.integration.cli_test_support import _run_baseline_session
 
 
+def test_backup_help_mentions_inspection(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["backup", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 0
+    assert "create, inspect, or restore" in captured.out.lower()
+    assert "inspect" in captured.out
+
+
 def test_backup_create_writes_manifest_database_and_referenced_artifacts(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

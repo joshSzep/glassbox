@@ -1000,9 +1000,9 @@ def _add_backup_parsers(
 ) -> None:
     backup_parser = subparsers.add_parser(
         "backup",
-        help="create or restore workspace state backups",
+        help="create, inspect, or restore workspace state backups",
         description=(
-            "Create or restore inspectable workspace-local Glassbox backups. "
+            "Create, inspect, or restore workspace-local Glassbox backups. "
             "Backups include the canonical SQLite database and event-referenced "
             ".glassbox artifacts, not portable replay or eval baseline bundles."
         ),
