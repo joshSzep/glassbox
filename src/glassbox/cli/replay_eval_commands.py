@@ -93,13 +93,9 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
     if args.eval_command == "run":
         cwd, _db_path = resolve_runtime_location(args)
         del _db_path
-        profile_default = resolve_eval_profile_default(
-            cwd,
-            explicit_profile=args.profile,
-        )
         suite_result = await EvalRunner().run_suite(
             cwd,
-            profile_id=profile_default.profile_id,
+            profile_id=_resolve_eval_profile_id(cwd, args),
             case_ids=list(args.case_ids) or None,
             tags=list(args.tags) or None,
             output_dir=resolve_optional_explicit_path(cwd, args.output_dir),
@@ -116,13 +112,9 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
     if args.eval_command == "audit":
         cwd, _db_path = resolve_runtime_location(args)
         del _db_path
-        profile_default = resolve_eval_profile_default(
-            cwd,
-            explicit_profile=args.profile,
-        )
         audit_result = audit_eval_coverage(
             cwd,
-            profile_id=profile_default.profile_id,
+            profile_id=_resolve_eval_profile_id(cwd, args),
             case_ids=list(args.case_ids) or None,
             tags=list(args.tags) or None,
         )
@@ -316,3 +308,13 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
         return 0
 
     raise ValueError("specify an eval subcommand")
+
+
+def _resolve_eval_profile_id(
+    cwd: Path,
+    args: argparse.Namespace,
+) -> str | None:
+    return resolve_eval_profile_default(
+        cwd,
+        explicit_profile=args.profile,
+    ).profile_id
