@@ -679,7 +679,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-360: Build Fault-Injection Matrix For Runtime, Store, And Transport Boundaries
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-303`, `GBX-311`, `GBX-333`
 - Goal: make v2 recovery guarantees credible by testing realistic interruption and corruption scenarios deliberately
 - Deliverables:
@@ -690,6 +690,7 @@ Each phase below corresponds to one concrete milestone.
   - prioritize realistic local-use failures over synthetic platform chaos for its own sake
   - keep failure handling visible; do not hide partial-failure states to force a green-looking UX
   - use the existing event and artifact model to preserve debugging evidence where practical
+  - `tests/integration/test_fault_injection_matrix.py` covers rollback and recovery for projection failures during canonical append, explicit projection corruption and rebuild recovery, artifact write failure before event recording with retry, and runtime transport backpressure plus reconnect diagnostics
 - Tests and validation included in task:
   - integration tests for targeted injected failures and validated recovery outcomes
   - regression tests ensuring recovery tooling does not mutate canonical events incorrectly
