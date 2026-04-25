@@ -3,12 +3,13 @@
 from collections.abc import Sequence
 from uuid import UUID
 
+from glassbox.cli.policy_formatters import format_policy_suffix
+from glassbox.cli.policy_formatters import format_policy_summary
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import SessionFailed
 from glassbox.core.events import SessionStarted
 from glassbox.core.events import UserQuestionAsked
 from glassbox.core.models import ApprovalRecord
-from glassbox.core.models import PolicyActivitySummary
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TurnMetricsRecord
 from glassbox.runtime.session_queries import SessionStatusView
@@ -72,7 +73,7 @@ def _print_session_status(status_view: SessionStatusView) -> None:
 
     print(
         "Session policy summary: "
-        + _format_policy_summary(snapshot.session_policy_summary)
+        + format_policy_summary(snapshot.session_policy_summary)
     )
     if status_view.latest_turn_policy_summary is not None:
         label = (
@@ -81,7 +82,7 @@ def _print_session_status(status_view: SessionStatusView) -> None:
             else "Latest turn policy summary"
         )
         print(
-            f"{label}: {_format_policy_summary(status_view.latest_turn_policy_summary)}"
+            f"{label}: {format_policy_summary(status_view.latest_turn_policy_summary)}"
         )
     else:
         print("Latest turn policy summary: none")
@@ -236,11 +237,11 @@ def _format_duration(duration_ms: int | None) -> str:
 
 
 def _format_approval_summary(approval: ApprovalRecord) -> str:
-    policy_suffix = _format_policy_detail_suffix(
-        approval.policy_outcome,
-        approval.policy_risk_level,
-        approval.policy_source_kind,
-        approval.policy_source_label,
+    policy_suffix = format_policy_suffix(
+        outcome=approval.policy_outcome,
+        risk_level=approval.policy_risk_level,
+        source_kind=approval.policy_source_kind,
+        source_label=approval.policy_source_label,
     )
     return (
         f"{approval.approval_id} for turn {approval.turn_id}: "
@@ -286,11 +287,11 @@ def _session_failure_from_status_view(
 
 def _format_tool_call_summary(tool_call: ToolCallRecord) -> str:
     summary_suffix = f": {tool_call.summary}" if tool_call.summary else ""
-    policy_suffix = _format_policy_detail_suffix(
-        tool_call.policy_outcome,
-        tool_call.policy_risk_level,
-        tool_call.policy_source_kind,
-        tool_call.policy_source_label,
+    policy_suffix = format_policy_suffix(
+        outcome=tool_call.policy_outcome,
+        risk_level=tool_call.policy_risk_level,
+        source_kind=tool_call.policy_source_kind,
+        source_label=tool_call.policy_source_label,
     )
     reason_suffix = ""
     if tool_call.policy_reason and tool_call.policy_reason != tool_call.summary:
@@ -299,36 +300,6 @@ def _format_tool_call_summary(tool_call: ToolCallRecord) -> str:
         f"{tool_call.tool_name} {tool_call.status} "
         f"(turn {tool_call.turn_id}){policy_suffix}{summary_suffix}{reason_suffix}"
     )
-
-
-def _format_policy_summary(summary: PolicyActivitySummary) -> str:
-    if summary.total_decisions == 0:
-        return "none"
-
-    highest_risk = summary.highest_risk_level or "n/a"
-    return (
-        f"{summary.total_decisions} decision(s); "
-        f"allow {summary.allow_count}, approve {summary.approve_count}, "
-        f"deny {summary.deny_count}, blocked {summary.blocked_count}; "
-        f"risk read_only {summary.read_only_count}, "
-        f"workspace_write {summary.workspace_write_count}, "
-        f"command {summary.command_count}; highest {highest_risk}"
-    )
-
-
-def _format_policy_detail_suffix(
-    outcome: str | None,
-    risk_level: str | None,
-    source_kind: str | None,
-    source_label: str | None,
-) -> str:
-    if outcome is None or risk_level is None:
-        return ""
-
-    source_text = ""
-    if source_kind is not None and source_label is not None:
-        source_text = f" via {source_kind}:{source_label}"
-    return f" [{outcome} {risk_level}{source_text}]"
 
 
 def _pending_question_text_from_events(

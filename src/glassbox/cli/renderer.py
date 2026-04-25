@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from typing import TextIO
 
+from glassbox.cli.policy_formatters import format_policy_suffix
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import AssistantMessageCompleted
@@ -52,22 +53,6 @@ class InteractivePromptState:
     def clear(self) -> None:
         self.prompt_label = None
         self.context_lines = ()
-
-
-def _format_policy_suffix(
-    *,
-    outcome: str | None,
-    risk_level: str | None,
-    source_kind: str | None,
-    source_label: str | None,
-) -> str:
-    if outcome is None or risk_level is None:
-        return ""
-
-    source_suffix = ""
-    if source_kind is not None and source_label is not None:
-        source_suffix = f" via {source_kind}:{source_label}"
-    return f" [{outcome} {risk_level}{source_suffix}]"
 
 
 def format_event_for_terminal(
@@ -122,7 +107,7 @@ def format_event_for_terminal(
 
     if isinstance(payload, ModelToolCallRequested):
         state.tool_names[payload.tool_call_id] = payload.tool_name
-        policy_suffix = _format_policy_suffix(
+        policy_suffix = format_policy_suffix(
             outcome=payload.policy_outcome,
             risk_level=payload.policy_risk_level,
             source_kind=payload.policy_source_kind,
@@ -132,7 +117,7 @@ def format_event_for_terminal(
 
     if isinstance(payload, ToolExecutionStarted):
         state.tool_names[payload.tool_call_id] = payload.tool_name
-        policy_suffix = _format_policy_suffix(
+        policy_suffix = format_policy_suffix(
             outcome=payload.policy_outcome,
             risk_level=payload.policy_risk_level,
             source_kind=payload.policy_source_kind,
@@ -156,7 +141,7 @@ def format_event_for_terminal(
         return f"Tool completed: {tool_name} {status}: {payload.summary}{exit_suffix}"
 
     if isinstance(payload, ApprovalRequested):
-        policy_suffix = _format_policy_suffix(
+        policy_suffix = format_policy_suffix(
             outcome=payload.policy_outcome,
             risk_level=payload.policy_risk_level,
             source_kind=payload.policy_source_kind,
