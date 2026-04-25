@@ -89,16 +89,7 @@ def inspect_runtime_owner(
     """Inspect the workspace runtime owner metadata and current health."""
 
     paths = resolve_runtime_owner_paths(cwd, db_path=db_path)
-    record = _read_runtime_owner_record(paths.metadata_path)
-    if record is None:
-        return RuntimeOwnerStatus(state="not_running")
-    if not _process_is_alive(record.pid):
-        return RuntimeOwnerStatus(state="stale", record=record)
-    return RuntimeOwnerStatus(
-        state="running",
-        record=record,
-        health=_probe_healthz(record.dashboard_url),
-    )
+    return _inspect_runtime_owner_paths(paths)
 
 
 def ensure_runtime_owner_absent(
@@ -132,11 +123,7 @@ def clear_stale_runtime_owner(
     """Remove stale owner metadata for a dead background runtime process."""
 
     paths = resolve_runtime_owner_paths(cwd, db_path=db_path)
-    record = _read_runtime_owner_record(paths.metadata_path)
-    if record is None or _process_is_alive(record.pid):
-        return False
-    paths.metadata_path.unlink(missing_ok=True)
-    return True
+    return _clear_stale_runtime_owner_paths(paths)
 
 
 def start_runtime_owner(
@@ -200,25 +187,25 @@ def stop_runtime_owner(
 ) -> RuntimeOwnerStatus:
     """Stop the active persistent runtime owner for a workspace."""
 
-    status = inspect_runtime_owner(cwd, db_path=db_path)
+    paths = resolve_runtime_owner_paths(cwd, db_path=db_path)
+    status = _inspect_runtime_owner_paths(paths)
     if status.state == "not_running":
         raise ValueError("no workspace daemon is running")
     if status.state == "stale":
-        clear_stale_runtime_owner(cwd, db_path=db_path)
+        _clear_stale_runtime_owner_paths(paths)
         return status
 
     assert status.record is not None
-    paths = resolve_runtime_owner_paths(cwd, db_path=db_path)
     os.kill(status.record.pid, signal.SIGTERM)
 
     deadline = time.monotonic() + shutdown_timeout_seconds
     while time.monotonic() < deadline:
         if not paths.metadata_path.exists():
             return status
-        if clear_stale_runtime_owner(cwd, db_path=db_path):
+        if _clear_stale_runtime_owner_paths(paths):
             return status
         if not _process_is_alive(status.record.pid):
-            clear_stale_runtime_owner(cwd, db_path=db_path)
+            _clear_stale_runtime_owner_paths(paths)
             return status
         time.sleep(0.05)
 
@@ -280,9 +267,10 @@ def _wait_for_healthy_runtime_owner(
     process: subprocess.Popen[bytes],
     startup_timeout_seconds: float,
 ) -> RuntimeOwnerRecord:
+    paths = resolve_runtime_owner_paths(cwd, db_path=db_path)
     deadline = time.monotonic() + startup_timeout_seconds
     while time.monotonic() < deadline:
-        status = inspect_runtime_owner(cwd, db_path=db_path)
+        status = _inspect_runtime_owner_paths(paths)
         if (
             status.state == "running"
             and status.record is not None
@@ -299,7 +287,7 @@ def _wait_for_healthy_runtime_owner(
 
 def _startup_failure_message(cwd: Path, *, db_path: Path | None) -> str:
     paths = resolve_runtime_owner_paths(cwd, db_path=db_path)
-    clear_stale_runtime_owner(cwd, db_path=db_path)
+    _clear_stale_runtime_owner_paths(paths)
     log_tail = _tail_text(paths.stderr_log_path)
     if log_tail:
         return (
@@ -350,6 +338,27 @@ def _release_runtime_owner(paths: RuntimeOwnerPaths, *, pid: int) -> None:
     if record is None or record.pid != pid:
         return
     paths.metadata_path.unlink(missing_ok=True)
+
+
+def _inspect_runtime_owner_paths(paths: RuntimeOwnerPaths) -> RuntimeOwnerStatus:
+    record = _read_runtime_owner_record(paths.metadata_path)
+    if record is None:
+        return RuntimeOwnerStatus(state="not_running")
+    if not _process_is_alive(record.pid):
+        return RuntimeOwnerStatus(state="stale", record=record)
+    return RuntimeOwnerStatus(
+        state="running",
+        record=record,
+        health=_probe_healthz(record.dashboard_url),
+    )
+
+
+def _clear_stale_runtime_owner_paths(paths: RuntimeOwnerPaths) -> bool:
+    status = _inspect_runtime_owner_paths(paths)
+    if status.state != "stale":
+        return False
+    paths.metadata_path.unlink(missing_ok=True)
+    return True
 
 
 def _read_runtime_owner_record(path: Path) -> RuntimeOwnerRecord | None:

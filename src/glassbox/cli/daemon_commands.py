@@ -53,21 +53,8 @@ def _daemon_stop_command(args: argparse.Namespace) -> int:
 def _daemon_status_command(args: argparse.Namespace) -> int:
     cwd, db_path = resolve_runtime_location(args)
     status = inspect_runtime_owner(cwd, db_path=db_path)
-    if status.state == "not_running":
-        print("Status: not running")
-        return 0
-    if status.state == "stale":
-        assert status.record is not None
-        print("Status: stale")
-        print(f"Pid: {status.record.pid}")
-        print(f"Dashboard: {status.record.dashboard_url}")
-        return 0
-
-    assert status.record is not None
-    print("Status: running")
-    print(f"Pid: {status.record.pid}")
-    print(f"Dashboard: {status.record.dashboard_url}")
-    print(f"Health: {status.health}")
+    for line in _render_runtime_owner_status(status):
+        print(line)
     return 0
 
 
@@ -80,3 +67,18 @@ def _daemon_run_owner_command(args: argparse.Namespace) -> int:
         db_path=db_path,
     )
     return 0
+
+
+def _render_runtime_owner_status(status) -> list[str]:
+    if status.state == "not_running":
+        return ["Status: not running"]
+
+    assert status.record is not None
+    lines = [
+        f"Status: {status.state}",
+        f"Pid: {status.record.pid}",
+        f"Dashboard: {status.record.dashboard_url}",
+    ]
+    if status.state == "running":
+        lines.append(f"Health: {status.health}")
+    return lines
