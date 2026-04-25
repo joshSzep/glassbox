@@ -40,7 +40,7 @@ def test_cli_help_lists_session_oriented_commands(
     captured = capsys.readouterr()
 
     assert exc_info.value.code == 0
-    assert "chat" in captured.out
+    assert "chat" not in captured.out
     assert "session" in captured.out
     assert "artifacts" in captured.out
     assert "backup" in captured.out
@@ -67,6 +67,8 @@ def test_cli_session_help_lists_session_subcommands(
     assert "import" in captured.out
     assert "message" in captured.out
     assert "resume" in captured.out
+    assert "run" in captured.out
+    assert "chat" in captured.out
     assert "status" in captured.out
 
 
@@ -94,6 +96,7 @@ def test_cli_session_list_reports_recent_sessions(
     _ = capsys.readouterr()
     second_exit_code = main(
         [
+            "session",
             "run",
             "Second prompt",
             "--cwd",
@@ -143,6 +146,7 @@ def test_cli_session_list_supports_json_and_limit(
     _ = capsys.readouterr()
     second_exit_code = main(
         [
+            "session",
             "run",
             "Second prompt",
             "--cwd",
@@ -198,6 +202,7 @@ def test_cli_answer_resumes_pending_ask_user_turn(
     try:
         exit_code = main(
             [
+                "session",
                 "run",
                 "Pick a colour.",
                 "--cwd",
@@ -268,6 +273,7 @@ def test_cli_answer_rejects_unknown_question_id(
     try:
         exit_code = main(
             [
+                "session",
                 "run",
                 "Pick a colour.",
                 "--cwd",
@@ -949,7 +955,7 @@ def test_cli_status_includes_session_failure_details(
     assert "Session failure: dashboard wiring failed (retryable)" in captured.out
     assert (
         "Next action: inspect the retryable failure details above, or start a "
-        "new session with 'glassbox run PROMPT'" in captured.out
+        "new session with 'glassbox session run PROMPT'" in captured.out
     )
 
 

@@ -212,7 +212,15 @@ def _seed_session_with_projections(
     existing_session_ids = {
         session.session_id for session in _list_sessions(resolved_db_path)
     }
-    argv = ["run", prompt, "--cwd", str(tmp_path), "--db-path", str(resolved_db_path)]
+    argv = [
+        "session",
+        "run",
+        prompt,
+        "--cwd",
+        str(tmp_path),
+        "--db-path",
+        str(resolved_db_path),
+    ]
     exit_code = main(argv)
     assert exit_code == 0
 

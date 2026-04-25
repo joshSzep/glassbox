@@ -140,7 +140,7 @@ def test_cli_help_lists_chat_dashboard_flags(
     from glassbox.cli import main
 
     with pytest.raises(SystemExit) as exc_info:
-        main(["chat", "--help"])
+        main(["session", "chat", "--help"])
 
     captured = capsys.readouterr()
 

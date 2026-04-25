@@ -2,27 +2,27 @@
 
 Glassbox has two main operator modes:
 
-- `glassbox chat` starts a new interactive session
+- `glassbox session chat` starts a new interactive session
 - `glassbox session attach SESSION_ID` reopens an existing actionable session in the terminal
 
 Use the lower-level commands when you need scripting, recovery, or precise control of a session state.
 
-## Default Entry Point: `chat`
+## Default Entry Point: `session chat`
 
 Start an interactive session:
 
 ```bash
-uv run glassbox chat --cwd .
+uv run glassbox session chat --cwd .
 ```
 
-`chat` and `run` read optional repository defaults from
+`session chat` and `session run` read optional repository defaults from
 `glassbox.profile.json` at the selected `--cwd`. Use `--model-name` or
 `--approval-mode` when one invocation needs to override those defaults.
 
 Or start with an initial prompt:
 
 ```bash
-uv run glassbox chat "Inspect the repository" --cwd .
+uv run glassbox session chat "Inspect the repository" --cwd .
 ```
 
 Inside the interactive session:
@@ -121,7 +121,7 @@ the current embedded workflow as a valid local mode.
 
 The intended ownership split is:
 
-- embedded mode: `glassbox chat` continues to own the live session inside the
+- embedded mode: `glassbox session chat` continues to own the live session inside the
   current process for operators who want an ephemeral terminal-first workflow
 - background mode: `glassbox daemon start` owns the live runtime for one
   workspace when the operator wants runtime continuity beyond a single terminal

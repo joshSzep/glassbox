@@ -20,7 +20,8 @@ def test_cli_help_prints_usage(capsys: pytest.CaptureFixture[str]) -> None:
     assert exc_info.value.code == 0
     assert "usage: glassbox" in captured.out
     assert "Run the Glassbox local-first CLI agent" in captured.out
-    assert "run" in captured.out
+    assert "session" in captured.out
+    assert "replay" in captured.out
 
 
 def test_python_module_entrypoint_prints_help(
@@ -89,7 +90,7 @@ def test_cli_invalid_port_exits_with_parser_error(
     assert "invalid port: 70000" in captured.err
 
 
-def test_cli_run_creates_a_baseline_session_and_initial_prompt(
+def test_cli_session_run_creates_a_baseline_session_and_initial_prompt(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -97,6 +98,7 @@ def test_cli_run_creates_a_baseline_session_and_initial_prompt(
 
     exit_code = main(
         [
+            "session",
             "run",
             "Inspect the repository",
             "--cwd",

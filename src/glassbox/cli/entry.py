@@ -47,8 +47,6 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
     from glassbox.cli.artifact_commands import _artifacts_command
     from glassbox.cli.backup_commands import _backup_command
     from glassbox.cli.daemon_commands import _daemon_command
-    from glassbox.cli.interactive_commands import _chat_command
-    from glassbox.cli.interactive_commands import _run_command
     from glassbox.cli.replay_eval_commands import _eval_command
     from glassbox.cli.replay_eval_commands import _replay_command
     from glassbox.cli.server_commands import _dashboard_command
@@ -56,8 +54,6 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
     from glassbox.cli.session_state_commands import _session_command
 
     command_handlers: dict[str, CommandHandler] = {
-        "run": _run_command,
-        "chat": _chat_command,
         "session": _session_command,
         "replay": _replay_command,
         "eval": _eval_command,

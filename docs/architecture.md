@@ -54,7 +54,7 @@ That architecture provides:
 The repository has moved beyond the earliest architecture slices. Treat the
 following as the implemented baseline that v2 extends:
 
-- `glassbox chat` owns the live in-process conversational workflow
+- `glassbox session chat` owns the live in-process conversational workflow
 - `glassbox daemon start|status|stop` now provides a workspace-scoped
     background runtime owner with health and lock metadata under `.glassbox/`
 - `glassbox session attach` now chooses between persisted local reopen and live
@@ -1505,7 +1505,7 @@ The CLI should expose two complementary layers:
 ### Scriptable Command Surface
 
 ```text
-glassbox run [PROMPT]
+glassbox session run [PROMPT]
 glassbox session fork SESSION_ID [--turn TURN_ID] [--branch-label LABEL] [--prompt PROMPT]
 glassbox session message SESSION_ID PROMPT
 glassbox session answer SESSION_ID QUESTION_ID ANSWER
@@ -1798,11 +1798,11 @@ The primary conversational UX should move toward a persistent terminal session
 rather than repeated one-shot command invocations.
 
 ```text
-glassbox chat [PROMPT]
+glassbox session chat [PROMPT]
 glassbox session attach SESSION_ID
 ```
 
-`glassbox chat` starts a new session and keeps the operator inside a long-lived
+`glassbox session chat` starts a new session and keeps the operator inside a long-lived
 terminal loop. `glassbox session attach` opens that same interactive terminal workflow
 for an existing persisted session.
 
@@ -1812,10 +1812,10 @@ and other paused states that can be continued from persisted projections. It
 should not promise live streaming from another already-running process, because
 the current event bus is in-process only.
 
-### Co-Hosted Dashboard During `chat`
+### Co-Hosted Dashboard During `session chat`
 
-The interactive `chat` workflow should also be able to expose the dashboard from
-the same owning process.
+The interactive `session chat` workflow should also be able to expose the
+dashboard from the same owning process.
 
 This should be treated as a co-hosted sidecar over the existing runtime context,
 not as a second runtime stack. The same process should continue to own:
@@ -1829,12 +1829,12 @@ not as a second runtime stack. The same process should continue to own:
 The intended command surface is:
 
 ```text
-glassbox chat [PROMPT] [--dashboard-host HOST] [--dashboard-port PORT] [--no-dashboard]
+glassbox session chat [PROMPT] [--dashboard-host HOST] [--dashboard-port PORT] [--no-dashboard]
 ```
 
 Semantics:
 
-- `glassbox chat` should attempt to start a dashboard by default so the browser view is available while the interactive session is in progress
+- `glassbox session chat` should attempt to start a dashboard by default so the browser view is available while the interactive session is in progress
 - `--no-dashboard` should suppress the co-hosted dashboard when the operator wants a terminal-only session
 - `--dashboard-host` and `--dashboard-port` should configure the bind target for the co-hosted dashboard
 - a successfully started co-hosted dashboard should print its URL during chat startup and make that URL available through session metadata
@@ -1941,7 +1941,7 @@ protocol.
 This is the current stance because the existing surfaces already cover most of
 the operator value at materially lower complexity:
 
-- `glassbox chat` provides the primary conversational workflow inside the owning CLI process
+- `glassbox session chat` provides the primary conversational workflow inside the owning CLI process
 - `glassbox session attach` can reopen persisted sessions that are actionable from projections
 - `GET /sessions/{session_id}` already provides cross-process snapshot recovery
 - `GET /sessions/{session_id}/events` already provides cross-process live event streaming to the dashboard
@@ -1998,7 +1998,7 @@ This command-surface choice is deliberate:
     workspace locking
 - `glassbox dashboard serve` remains the browser-facing observation and operator-console
     surface rather than becoming the authoritative runtime owner
-- `glassbox chat` remains the embedded convenience path for same-process work
+- `glassbox session chat` remains the embedded convenience path for same-process work
     and should continue to work without a background owner when the operator wants
     an ephemeral local session
 
@@ -2022,7 +2022,7 @@ The v2 ownership model should be:
 
 The attach model should distinguish three operator surfaces explicitly:
 
-- embedded terminal ownership: `glassbox chat` owns the live session inside the
+- embedded terminal ownership: `glassbox session chat` owns the live session inside the
     current process and may co-host the dashboard for that same runtime
 - terminal attach to a background owner: the attach client reconnects to the
     daemon-owned session, restores prompt and suspension state from snapshot

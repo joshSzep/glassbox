@@ -25,34 +25,34 @@ python -m glassbox --help
 
 ## Start The First Session
 
-The default conversational entrypoint is `glassbox chat`.
+The default conversational entrypoint is `glassbox session chat`.
 
 ```bash
-uv run glassbox chat --cwd .
+uv run glassbox session chat --cwd .
 ```
 
 Or start with an initial prompt:
 
 ```bash
-uv run glassbox chat "Inspect the repository" --cwd .
+uv run glassbox session chat "Inspect the repository" --cwd .
 ```
 
-`chat` starts a new session, keeps the terminal attached to the live event stream, and by default also starts a co-hosted dashboard for the same session.
+`session chat` starts a new session, keeps the terminal attached to the live event stream, and by default also starts a co-hosted dashboard for the same session.
 
-When dashboard startup succeeds, `chat` prints a URL like:
+When dashboard startup succeeds, `session chat` prints a URL like:
 
 ```text
 http://127.0.0.1:8765/?session=SESSION_ID
 ```
 
-Open that URL while the `chat` process is still running to watch the same session in the browser.
+Open that URL while the `session chat` process is still running to watch the same session in the browser.
 
 ## Use The One-Shot CLI
 
-If you want a one-shot command instead of the long-lived interactive shell, use `glassbox run`.
+If you want a one-shot command instead of the long-lived interactive shell, use `glassbox session run`.
 
 ```bash
-uv run glassbox run "Inspect the repository" --cwd .
+uv run glassbox session run "Inspect the repository" --cwd .
 ```
 
 Glassbox stores runtime state under `.glassbox/` in the selected workspace by default. The SQLite database lives at `.glassbox/glassbox.sqlite3` unless you override it with `--db-path`.
@@ -60,8 +60,8 @@ Glassbox stores runtime state under `.glassbox/` in the selected workspace by de
 ## Basic Commands
 
 ```text
-glassbox run [PROMPT]
-glassbox chat [PROMPT]
+glassbox session run [PROMPT]
+glassbox session chat [PROMPT]
 glassbox session list [--status STATUS] [--limit N] [--json]
 glassbox session attach SESSION_ID
 glassbox session message SESSION_ID PROMPT

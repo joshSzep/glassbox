@@ -23,8 +23,8 @@ workspace root.
 
 ## Runtime Defaults
 
-`runtime.model_name` supplies the default model recorded when `glassbox run` or
-`glassbox chat` starts a session.
+`runtime.model_name` supplies the default model recorded when `glassbox session run` or
+`glassbox session chat` starts a session.
 
 `runtime.approval_mode` supplies the default approval posture for risky tool
 actions. Supported values are:

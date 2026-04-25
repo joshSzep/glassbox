@@ -1015,6 +1015,7 @@ def test_cli_eval_refresh_requires_acknowledgement_for_blocking_case(
     db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
     second_exit_code = main(
         [
+            "session",
             "run",
             "Inspect the repository again",
             "--cwd",
@@ -1085,6 +1086,7 @@ def test_cli_eval_refresh_rejects_blocking_case_without_release_metadata(
     db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
     second_exit_code = main(
         [
+            "session",
             "run",
             "Inspect the repository again",
             "--cwd",
@@ -1198,6 +1200,7 @@ def test_cli_eval_refresh_updates_bundle_manifest_history_and_review_artifact(
 
     second_exit_code = main(
         [
+            "session",
             "run",
             "Summarize the tests.",
             "--cwd",

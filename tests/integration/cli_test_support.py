@@ -59,7 +59,7 @@ def _run_baseline_session(
     prompt: str | None = None,
 ) -> tuple[Path, UUID]:
     db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
-    argv = ["run"]
+    argv = ["session", "run"]
     if prompt is not None:
         argv.append(prompt)
     argv.extend(["--cwd", str(tmp_path), "--db-path", str(db_path)])

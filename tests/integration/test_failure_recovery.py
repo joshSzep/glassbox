@@ -105,7 +105,9 @@ def test_cli_run_surfaces_model_failure_and_persists_turn_failed(
 ) -> None:
     _patch_model_executor(monkeypatch, _raise_model_error)
 
-    exit_code, db_path = _run_cli(tmp_path, ["run", "Inspect the repository"])
+    exit_code, db_path = _run_cli(
+        tmp_path, ["session", "run", "Inspect the repository"]
+    )
     captured = capsys.readouterr()
     session_id = _only_session_id(db_path)
 
@@ -132,7 +134,7 @@ def test_cli_run_records_failed_tool_execution_and_turn_failure(
 ) -> None:
     _patch_model_executor(monkeypatch, _missing_file_tool_response)
 
-    exit_code, db_path = _run_cli(tmp_path, ["run", "Read the missing file"])
+    exit_code, db_path = _run_cli(tmp_path, ["session", "run", "Read the missing file"])
     captured = capsys.readouterr()
     session_id = _only_session_id(db_path)
 
@@ -182,7 +184,9 @@ def test_cli_run_surfaces_database_write_failure_without_traceback(
         flaky_append_event,
     )
 
-    exit_code, db_path = _run_cli(tmp_path, ["run", "Inspect the repository"])
+    exit_code, db_path = _run_cli(
+        tmp_path, ["session", "run", "Inspect the repository"]
+    )
     captured = capsys.readouterr()
     session_id = _only_session_id(db_path)
 
@@ -260,7 +264,9 @@ def test_cli_run_with_partial_provider_config_emits_session_failed(
 ) -> None:
     (tmp_path / ".env").write_text("OPENAI_BASE_URL=https://api.openai.example/v1\n")
 
-    exit_code, db_path = _run_cli(tmp_path, ["run", "Inspect the repository"])
+    exit_code, db_path = _run_cli(
+        tmp_path, ["session", "run", "Inspect the repository"]
+    )
     captured = capsys.readouterr()
     session_id = _only_session_id(db_path)
 
@@ -310,6 +316,7 @@ def test_cli_chat_with_unsupported_provider_emits_session_failed(
     exit_code, db_path = _run_cli(
         tmp_path,
         [
+            "session",
             "chat",
             "Inspect the repository",
             "--model-name",
@@ -355,7 +362,7 @@ def test_cli_run_with_unsupported_provider_emits_session_failed(
 ) -> None:
     exit_code, db_path = _run_cli(
         tmp_path,
-        ["run", "Inspect the repository", "--model-name", "other:model"],
+        ["session", "run", "Inspect the repository", "--model-name", "other:model"],
     )
     captured = capsys.readouterr()
     session_id = _only_session_id(db_path)
@@ -398,7 +405,9 @@ def test_cli_run_redacts_provider_secrets_from_surfaced_config_errors(
         f"OPENAI_API_KEY={secret}\nOPENAI_BASE_URL=not-a-url\n"
     )
 
-    exit_code, db_path = _run_cli(tmp_path, ["run", "Inspect the repository"])
+    exit_code, db_path = _run_cli(
+        tmp_path, ["session", "run", "Inspect the repository"]
+    )
     captured = capsys.readouterr()
     session_id = _only_session_id(db_path)
 
@@ -433,7 +442,9 @@ def test_cli_rebuild_surfaces_projection_failure(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    exit_code, db_path = _run_cli(tmp_path, ["run", "Inspect the repository"])
+    exit_code, db_path = _run_cli(
+        tmp_path, ["session", "run", "Inspect the repository"]
+    )
     assert exit_code == 0
     _ = capsys.readouterr()
     session_id = _only_session_id(db_path)

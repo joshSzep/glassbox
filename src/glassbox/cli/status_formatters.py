@@ -375,7 +375,7 @@ def _format_next_action_line(
     if status == "completed":
         return (
             "Next action: this session is complete; start a new session with "
-            "'glassbox run PROMPT'"
+            "'glassbox session run PROMPT'"
         )
 
     if status == "failed":
@@ -384,7 +384,8 @@ def _format_next_action_line(
             failure_guidance = "inspect the retryable failure details above"
         return (
             "Next action: "
-            f"{failure_guidance}, or start a new session with 'glassbox run PROMPT'"
+            f"{failure_guidance}, or start a new session with "
+            "'glassbox session run PROMPT'"
         )
 
     return "Next action: inspect the session details above before taking another step"

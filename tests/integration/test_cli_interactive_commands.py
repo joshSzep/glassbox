@@ -65,6 +65,7 @@ def test_cli_chat_keeps_session_open_for_multiple_prompts(
 
     exit_code = main(
         [
+            "session",
             "chat",
             "--no-dashboard",
             "--cwd",
@@ -129,6 +130,7 @@ def test_cli_run_uses_workspace_profile_runtime_defaults(
 
     exit_code = main(
         [
+            "session",
             "run",
             "--cwd",
             str(tmp_path),
@@ -159,6 +161,7 @@ def test_cli_run_explicit_flags_override_workspace_profile_defaults(
 
     exit_code = main(
         [
+            "session",
             "run",
             "--model-name",
             "openai:gpt-5.4",
@@ -184,7 +187,7 @@ def test_cli_run_rejects_invalid_workspace_profile(
 ) -> None:
     _write_workspace_profile(tmp_path, runtime={"approval_mode": "always"})
 
-    exit_code = main(["run", "--cwd", str(tmp_path)])
+    exit_code = main(["session", "run", "--cwd", str(tmp_path)])
     captured = capsys.readouterr()
 
     assert exit_code == 1
@@ -265,6 +268,7 @@ def test_cli_attach_answers_pending_question_for_existing_session(
     try:
         exit_code = main(
             [
+                "session",
                 "run",
                 "Pick a colour.",
                 "--cwd",
@@ -333,6 +337,7 @@ def test_cli_chat_routes_pending_question_answers_without_question_id(
     try:
         exit_code = main(
             [
+                "session",
                 "chat",
                 "--no-dashboard",
                 "--cwd",
@@ -473,6 +478,7 @@ def test_cli_chat_redraws_prompt_and_routes_answer_after_question_arrives_mid_pr
     try:
         exit_code = main(
             [
+                "session",
                 "chat",
                 "--no-dashboard",
                 "--cwd",
@@ -541,6 +547,7 @@ def test_cli_chat_redraws_prompt_and_routes_approval_after_request_arrives_mid_p
     try:
         exit_code = main(
             [
+                "session",
                 "chat",
                 "--no-dashboard",
                 "--cwd",
@@ -599,6 +606,7 @@ def test_cli_chat_starts_dashboard_sidecar_and_records_live_dashboard_url(
 
     exit_code = main(
         [
+            "session",
             "chat",
             "--cwd",
             str(tmp_path),
@@ -654,6 +662,7 @@ def test_cli_chat_continues_without_dashboard_when_default_startup_fails(
 
     exit_code = main(
         [
+            "session",
             "chat",
             "--cwd",
             str(tmp_path),
@@ -707,6 +716,7 @@ def test_cli_chat_fails_when_explicit_dashboard_binding_fails(
 
     exit_code = main(
         [
+            "session",
             "chat",
             "--dashboard-port",
             "9876",
@@ -750,6 +760,7 @@ def test_cli_chat_can_disable_dashboard_sidecar(
 
     exit_code = main(
         [
+            "session",
             "chat",
             "--no-dashboard",
             "--cwd",

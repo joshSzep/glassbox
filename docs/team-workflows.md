@@ -60,7 +60,7 @@ coming from the implicit local operator when no explicit identity is supplied.
 
 Glassbox keeps one authoritative mutation path for a workspace at a time:
 
-- embedded mode: `glassbox chat` owns the live runtime in the current process
+- embedded mode: `glassbox session chat` owns the live runtime in the current process
 - daemon mode: `glassbox daemon start` owns live mutation for the workspace
 - historical mode: completed, failed, cancelled, and exported sessions are
   inspectable from persisted events, but they do not have a live runtime owner

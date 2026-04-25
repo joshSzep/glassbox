@@ -2,17 +2,17 @@
 
 Glassbox has two dashboard modes:
 
-- a co-hosted dashboard started by `glassbox chat`
+- a co-hosted dashboard started by `glassbox session chat`
 - a standalone dashboard started by `glassbox dashboard serve`
 
 Both read the same persisted session state and the same event stream model.
 
-## Co-Hosted Dashboard During `chat`
+## Co-Hosted Dashboard During `session chat`
 
-`glassbox chat` starts a dashboard by default in the same process unless you pass `--no-dashboard`.
+`glassbox session chat` starts a dashboard by default in the same process unless you pass `--no-dashboard`.
 
 ```bash
-uv run glassbox chat --cwd .
+uv run glassbox session chat --cwd .
 ```
 
 When startup succeeds, the terminal prints a session-specific URL like:
@@ -97,7 +97,7 @@ The dashboard lets the operator:
 
 ## Troubleshooting
 
-- If you used `glassbox chat --no-dashboard`, start `glassbox dashboard serve` and open `/`.
+- If you used `glassbox session chat --no-dashboard`, start `glassbox dashboard serve` and open `/`.
 - If the co-hosted dashboard was unavailable, the session may still be running normally in the terminal.
 - If the selected session shows `live unavailable`, treat the snapshot as persisted history unless another runtime is known to be driving it.
 - If a direct `?session=...` URL is stale or invalid, the dashboard returns to the session index instead of leaving the browser stuck.

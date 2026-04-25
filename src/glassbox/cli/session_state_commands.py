@@ -58,11 +58,17 @@ def _status_command(args: argparse.Namespace) -> int:
 def _session_command(args: argparse.Namespace) -> int:
     from glassbox.cli.interactive_commands import _answer_command
     from glassbox.cli.interactive_commands import _attach_command
+    from glassbox.cli.interactive_commands import _chat_command
     from glassbox.cli.interactive_commands import _fork_command
     from glassbox.cli.interactive_commands import _message_command
     from glassbox.cli.interactive_commands import _resolve_approval_command
     from glassbox.cli.interactive_commands import _resume_command
+    from glassbox.cli.interactive_commands import _run_command
 
+    if args.session_command == "run":
+        return _run_command(args)
+    if args.session_command == "chat":
+        return _chat_command(args)
     if args.session_command == "list":
         return _session_list_command(args)
     if args.session_command == "attach":

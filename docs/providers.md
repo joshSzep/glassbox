@@ -15,8 +15,8 @@ The current real-provider scope is:
 Examples:
 
 ```bash
-uv run glassbox run "Inspect the repository" --cwd . --model-name openai:gpt-5.4
-uv run glassbox run "Inspect the repository" --cwd . --model-name anthropic:claude-sonnet-4
+uv run glassbox session run "Inspect the repository" --cwd . --model-name openai:gpt-5.4
+uv run glassbox session run "Inspect the repository" --cwd . --model-name anthropic:claude-sonnet-4
 ```
 
 If provider config is absent, Glassbox preserves the deterministic local
@@ -43,14 +43,14 @@ Set them in your shell:
 ```bash
 export OPENAI_API_KEY="..."
 export OPENAI_BASE_URL="https://api.openai.com/v1"
-uv run glassbox run "Inspect the repository" --cwd . --model-name openai:gpt-5.4
+uv run glassbox session run "Inspect the repository" --cwd . --model-name openai:gpt-5.4
 ```
 
 Or with Anthropic:
 
 ```bash
 export ANTHROPIC_API_KEY="..."
-uv run glassbox run "Inspect the repository" --cwd . --model-name anthropic:claude-sonnet-4
+uv run glassbox session run "Inspect the repository" --cwd . --model-name anthropic:claude-sonnet-4
 ```
 
 ## `.env` Support

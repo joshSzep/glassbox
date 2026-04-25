@@ -426,7 +426,7 @@ uv run ty check src/glassbox/path.py
 - Depends on: `GBX-032`
 - Goal: expose a working `glassbox` command with at least one executable path
 - Deliverables:
-  - `glassbox run`
+  - `glassbox session run`
   - minimal argument parsing
   - runtime wiring bootstrap
 - Implementation notes:
@@ -1306,7 +1306,7 @@ uv run ty check src/glassbox/path.py
 - Goal: define the first-class interactive terminal workflow so Glassbox can behave like a persistent conversational agent without breaking the current event-sourced architecture
 - Deliverables:
   - architecture and operator-workflow updates covering an interactive terminal mode for new and existing sessions
-  - explicit command surface proposal for `glassbox chat` and `glassbox session attach SESSION_ID`
+  - explicit command surface proposal for `glassbox session chat` and `glassbox session attach SESSION_ID`
   - documented semantics for how interactive input maps onto existing session actions such as new prompt submission, `ask_user` answers, and approval resolution
   - explicit scope boundary for v1 interactive mode versus later cross-process or daemon-backed attach behavior
 - Implementation notes:
@@ -1320,13 +1320,13 @@ uv run ty check src/glassbox/path.py
 - Done when:
   - the repo has a clear, code-aligned design for interactive terminal sessions and an explicit v1/v2 scope boundary
 
-### GBX-161: Add Persistent `glassbox chat` Command For New Interactive Sessions
+### GBX-161: Add Persistent `glassbox session chat` Command For New Interactive Sessions
 
 - Status: `DONE`
 - Depends on: `GBX-160`
 - Goal: let an operator start a session and stay inside a long-lived terminal conversation instead of restarting the CLI for each turn
 - Deliverables:
-  - `glassbox chat [PROMPT]` command or equivalent interactive entrypoint for new sessions
+  - `glassbox session chat [PROMPT]` command or equivalent interactive entrypoint for new sessions
   - persistent terminal loop that keeps the renderer subscription alive across multiple turns
   - prompt/read-eval loop that accepts operator input after the session becomes actionable again
   - exit path that leaves session state persisted and resumable
@@ -1334,7 +1334,7 @@ uv run ty check src/glassbox/path.py
   - reuse the existing renderer and session service rather than inventing a second terminal output path
   - keep the first interactive prompt model simple: when the session is idle and running, freeform user input should submit a new user message
   - avoid requiring a second terminal or manual session ID copying during the normal interactive flow
-  - do not remove or overload `glassbox run`; `chat` should be the interactive UX layer, while `run` remains a simple non-interactive primitive
+  - do not remove or overload `glassbox session run`; `chat` should be the interactive UX layer, while `run` remains a simple non-interactive primitive
 - Tests and validation included in task:
   - CLI integration tests for starting a new interactive session, submitting multiple prompts, and exiting cleanly
   - tests that assistant output, tool progress, and terminal prompts remain readable together
@@ -1410,7 +1410,7 @@ uv run ty check src/glassbox/path.py
 - Depends on: `GBX-160`, `GBX-161`, `GBX-162`, `GBX-163`, `GBX-164`, `GBX-121`
 - Goal: explain the new interactive CLI clearly and position the existing one-shot commands as complementary primitives instead of the primary conversational UX
 - Deliverables:
-  - README updates covering `glassbox chat` and `glassbox session attach SESSION_ID`
+  - README updates covering `glassbox session chat` and `glassbox session attach SESSION_ID`
   - operator guidance for when to use interactive mode versus `run`, `message`, `answer`, `approve`, `deny`, and `resume`
   - explicit documentation for slash commands and interactive approval / pending-question flows
   - notes describing the v1 limitation that interactive streaming is process-local rather than a daemon-backed cross-process attach mechanism
@@ -1446,13 +1446,13 @@ uv run ty check src/glassbox/path.py
 
 ## Phase 17: Co-Hosted Dashboard During Interactive Chat
 
-### GBX-170: Define Co-Hosted Dashboard Semantics For `glassbox chat`
+### GBX-170: Define Co-Hosted Dashboard Semantics For `glassbox session chat`
 
 - Status: `DONE`
 - Depends on: `GBX-080`, `GBX-161`, `GBX-166`, `GBX-121`
 - Goal: define how an interactive chat session can expose the dashboard from the same owning process without contradicting the current process-local runtime model
 - Deliverables:
-  - architecture and operator-workflow updates describing a co-hosted dashboard for `glassbox chat`
+  - architecture and operator-workflow updates describing a co-hosted dashboard for `glassbox session chat`
   - explicit semantics for whether dashboard startup is default, opt-in, or suppressible from the CLI
   - command-surface proposal for dashboard-related `chat` flags such as host, port, or `--no-dashboard` if justified
   - explicit positioning of co-hosted dashboard behavior versus the existing standalone `glassbox dashboard serve` command
@@ -1506,13 +1506,13 @@ uv run ty check src/glassbox/path.py
 - Done when:
   - session metadata, CLI status output, and dashboard snapshot fields agree about whether a dashboard is live
 
-### GBX-173: Start The Dashboard Automatically During `glassbox chat`
+### GBX-173: Start The Dashboard Automatically During `glassbox session chat`
 
 - Status: `DONE`
 - Depends on: `GBX-161`, `GBX-164`, `GBX-170`, `GBX-171`, `GBX-172`
 - Goal: make the web dashboard available while an interactive chat session is in progress without requiring a second terminal command
 - Deliverables:
-  - `glassbox chat` startup path that launches the dashboard sidecar in the owning process
+  - `glassbox session chat` startup path that launches the dashboard sidecar in the owning process
   - operator-visible dashboard URL output during interactive startup
   - support for the dashboard control flags defined in `GBX-170`
   - shutdown wiring that stops the co-hosted server when the interactive chat session exits
@@ -1522,11 +1522,11 @@ uv run ty check src/glassbox/path.py
   - if dashboard startup is optional or can fail softly, define the exact fallback behavior and keep it explicit in terminal output
   - do not make `attach` implicitly claim the same behavior unless a later task adds it deliberately
 - Tests and validation included in task:
-  - CLI integration tests for `glassbox chat` with successful dashboard startup and clean shutdown
+  - CLI integration tests for `glassbox session chat` with successful dashboard startup and clean shutdown
   - negative-path tests for port conflicts, startup failure, or dashboard-disabled modes
   - tests that interactive prompt routing still works while the sidecar server is running
 - Done when:
-  - a user can start `glassbox chat` once and immediately open the dashboard for that same live session
+  - a user can start `glassbox session chat` once and immediately open the dashboard for that same live session
 
 ### GBX-174: Validate Snapshot And SSE Behavior Against An Active Chat-Owned Dashboard
 
@@ -1553,7 +1553,7 @@ uv run ty check src/glassbox/path.py
 - Depends on: `GBX-173`, `GBX-174`, `GBX-121`, `GBX-165`
 - Goal: document how the dashboard fits into the interactive chat workflow without confusing it with daemon-backed attach or standalone dashboard use
 - Deliverables:
-  - README updates covering dashboard availability during `glassbox chat`
+  - README updates covering dashboard availability during `glassbox session chat`
   - operator guidance for when to rely on chat-hosted dashboard behavior versus `glassbox dashboard serve`
   - troubleshooting notes for dashboard-disabled mode, port conflicts, and session shutdown behavior
   - explicit reminder that co-hosting the dashboard does not make interactive attach cross-process or daemon-backed

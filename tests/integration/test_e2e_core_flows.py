@@ -86,6 +86,7 @@ def _run_cli_session(
     db_path = _default_db_path(tmp_path)
     exit_code = main(
         [
+            "session",
             "run",
             prompt,
             "--cwd",

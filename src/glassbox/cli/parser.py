@@ -59,16 +59,32 @@ def build_parser() -> argparse.ArgumentParser:
 def _add_session_workflow_parsers(
     subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
 ) -> None:
-    run_parser = subparsers.add_parser(
+    session_parser = subparsers.add_parser(
+        "session",
+        help="work with sessions",
+        description=(
+            "Start, inspect, mutate, branch, resume, and hand off persisted sessions."
+        ),
+    )
+    session_subparsers = session_parser.add_subparsers(
+        dest="session_command",
+        required=True,
+    )
+
+    session_run_parser = session_subparsers.add_parser(
         "run",
         help="start a new session",
         description="Start a new session and optionally submit an initial prompt.",
     )
-    run_parser.add_argument("prompt", nargs="?", help="optional initial user prompt")
-    _add_runtime_location_arguments(run_parser)
-    _add_session_start_default_arguments(run_parser)
+    session_run_parser.add_argument(
+        "prompt",
+        nargs="?",
+        help="optional initial user prompt",
+    )
+    _add_runtime_location_arguments(session_run_parser)
+    _add_session_start_default_arguments(session_run_parser)
 
-    chat_parser = subparsers.add_parser(
+    session_chat_parser = session_subparsers.add_parser(
         "chat",
         help="start a new interactive session",
         description=(
@@ -76,36 +92,28 @@ def _add_session_workflow_parsers(
             "prompts. Type /exit to leave the interactive session."
         ),
     )
-    chat_parser.add_argument("prompt", nargs="?", help="optional initial user prompt")
-    _add_runtime_location_arguments(chat_parser)
-    _add_session_start_default_arguments(chat_parser)
-    chat_parser.add_argument(
+    session_chat_parser.add_argument(
+        "prompt",
+        nargs="?",
+        help="optional initial user prompt",
+    )
+    _add_runtime_location_arguments(session_chat_parser)
+    _add_session_start_default_arguments(session_chat_parser)
+    session_chat_parser.add_argument(
         "--dashboard-host",
         default=None,
         help="host address for the co-hosted dashboard server",
     )
-    chat_parser.add_argument(
+    session_chat_parser.add_argument(
         "--dashboard-port",
         type=_parse_port,
         default=None,
         help="port for the co-hosted dashboard server",
     )
-    chat_parser.add_argument(
+    session_chat_parser.add_argument(
         "--no-dashboard",
         action="store_true",
         help="disable the co-hosted dashboard during interactive chat",
-    )
-
-    session_parser = subparsers.add_parser(
-        "session",
-        help="work with sessions",
-        description=(
-            "Inspect, mutate, branch, resume, and hand off persisted sessions."
-        ),
-    )
-    session_subparsers = session_parser.add_subparsers(
-        dest="session_command",
-        required=True,
     )
 
     session_list_parser = session_subparsers.add_parser(
