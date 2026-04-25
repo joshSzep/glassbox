@@ -13,6 +13,7 @@ from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.cli.replay_eval_formatters import _print_eval_baseline_update
 from glassbox.cli.replay_eval_formatters import _print_eval_coverage_audit
 from glassbox.cli.replay_eval_formatters import _print_eval_profiles
+from glassbox.cli.replay_eval_formatters import _print_eval_recommendations
 from glassbox.cli.replay_eval_formatters import _print_eval_suite_report
 from glassbox.cli.replay_eval_formatters import _print_replay_report
 from glassbox.cli.replay_eval_formatters import _replay_exit_code
@@ -22,6 +23,7 @@ from glassbox.runtime.eval_baselines import promote_eval_case
 from glassbox.runtime.eval_baselines import refresh_eval_case
 from glassbox.runtime.eval_coverage import audit_eval_coverage
 from glassbox.runtime.eval_inputs import resolve_eval_suite_input
+from glassbox.runtime.eval_recommendations import recommend_eval_change_impact
 from glassbox.runtime.eval_runner import EvalRunner
 from glassbox.runtime.eval_summary import EvalReleaseSignoffProfileInput
 from glassbox.runtime.eval_summary import EvalReleaseSignoffSkippedProfileInput
@@ -131,6 +133,20 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
             print_json_output([profile.model_dump(mode="json") for profile in profiles])
         else:
             _print_eval_profiles(workspace_root=cwd, profiles=profiles)
+        return 0
+
+    if args.eval_command == "recommend":
+        cwd, _db_path = resolve_runtime_location(args)
+        del _db_path
+        recommendation = recommend_eval_change_impact(
+            cwd,
+            touched_paths=list(args.paths),
+        )
+
+        if args.json:
+            print_json_output(recommendation.model_dump(mode="json"))
+        else:
+            _print_eval_recommendations(recommendation)
         return 0
 
     if args.eval_command == "report":

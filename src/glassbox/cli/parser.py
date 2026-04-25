@@ -377,6 +377,27 @@ def _add_eval_parsers(
     )
     _add_runtime_location_arguments(eval_profiles_parser)
 
+    eval_recommend_parser = eval_subparsers.add_parser(
+        "recommend",
+        help="recommend replay or eval scope for a change set",
+        description=(
+            "Recommend repository-owned replay cases and eval profiles from a set "
+            "of touched workspace paths using the eval impact manifest and "
+            "existing case, coverage, and profile metadata."
+        ),
+    )
+    eval_recommend_parser.add_argument(
+        "paths",
+        nargs="+",
+        help="one or more changed workspace paths to analyze",
+    )
+    eval_recommend_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the structured recommendation report as JSON",
+    )
+    _add_runtime_location_arguments(eval_recommend_parser)
+
     eval_report_parser = eval_subparsers.add_parser(
         "report",
         help="generate a release sign-off report from named eval profiles",

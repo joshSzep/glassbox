@@ -518,7 +518,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-341: Implement Change-Impact Recommendations For Profiles And Cases
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-340`
 - Goal: help contributors answer what they should rerun after a change without reading the whole eval portfolio manually
 - Deliverables:

@@ -327,6 +327,21 @@ def _write_eval_coverage(
     return coverage_path
 
 
+def _write_eval_impact(
+    tmp_path: Path,
+    *,
+    rules: list[dict[str, object]],
+) -> Path:
+    impact_path = tmp_path / "evals" / "impact.json"
+    impact_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "manifest_version": 1,
+        "rules": rules,
+    }
+    impact_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return impact_path
+
+
 def _ask_user_then_text_response(
     messages: list,
     _agent_info: Any,

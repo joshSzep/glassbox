@@ -27,6 +27,7 @@ glassbox eval run
 glassbox eval run --profile commit-smoke
 glassbox eval run CASE_ID
 glassbox eval run --tag smoke --json
+glassbox eval recommend PATH [PATH ...]
 glassbox eval profiles
 glassbox eval profiles --track live-provider-canary --json
 glassbox eval run --output-dir .glassbox/evals/manual
@@ -60,6 +61,11 @@ Capability coverage expectations live in `evals/coverage.json`. Use
 `glassbox eval audit` to report which product behaviors are covered,
 which release-critical behaviors still lack a curated case, and which selected
 cases are not mapped to a declared product contract.
+
+Change-impact rules now live in `evals/impact.json`. `glassbox eval recommend`
+uses those repository-owned path heuristics together with case ownership,
+capability coverage, and verification-stage metadata to suggest practical
+follow-up cases or profiles for a change set while still showing its reasoning.
 
 The `eval` pre-commit hook runs the full curated eval suite with a stable
 local output directory:

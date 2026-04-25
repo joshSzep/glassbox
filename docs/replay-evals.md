@@ -15,6 +15,7 @@ Use replay and eval as repository-owned behavioral contracts, not as a replaceme
 - Use `replay-export` when you want a portable replay bundle.
 - Use `eval run` when you want curated checked-in regression cases.
 - Use `eval audit` when you want coverage and contract-gap reporting.
+- Use `eval recommend` when you want suggested replay cases or eval profiles for a changed path set.
 - Use `eval report` when you want deterministic release-signoff evidence from named profiles.
 - Use `eval profiles` when you want to inspect repository-owned profiles and tracks.
 
@@ -63,6 +64,13 @@ Inspect profiles:
 ```bash
 uv run glassbox eval profiles --json --cwd .
 uv run glassbox eval profiles --track live-provider-canary --json --cwd .
+```
+
+Recommend replay or eval follow-up from touched paths:
+
+```bash
+uv run glassbox eval recommend src/glassbox/runtime/replay_execution.py --cwd .
+uv run glassbox eval recommend src/glassbox/runtime/context_builder.py evals/coverage.json --json --cwd .
 ```
 
 Generate release-signoff evidence:

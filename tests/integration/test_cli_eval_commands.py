@@ -12,6 +12,7 @@ from tests.integration.cli_test_support import _list_sessions
 from tests.integration.cli_test_support import _run_baseline_session
 from tests.integration.cli_test_support import _write_eval_case
 from tests.integration.cli_test_support import _write_eval_coverage
+from tests.integration.cli_test_support import _write_eval_impact
 from tests.integration.cli_test_support import _write_eval_profiles
 
 
@@ -381,6 +382,186 @@ def test_cli_eval_profiles_lists_live_provider_canary_track(
     assert [profile["profile_id"] for profile in payload] == ["live-provider-canary"]
     assert payload[0]["track"] == "live-provider-canary"
     assert payload[0]["blocking"] is False
+
+
+def test_cli_eval_recommend_reports_cases_profiles_and_reasons(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    smoke_bundle_path, _session_id = _export_eval_bundle(tmp_path, "smoke.readme")
+    context_bundle_path = tmp_path / "evals" / "bundles" / "context.branch.json"
+    shutil.copyfile(smoke_bundle_path, context_bundle_path)
+
+    _write_eval_case(
+        tmp_path,
+        case_id="smoke.readme",
+        title="README smoke",
+        bundle_name=smoke_bundle_path.name,
+        tags=["smoke", "tooling"],
+        release_contract={
+            "owner": "runtime.replay",
+            "capabilities": ["smoke_validation", "replay_portability"],
+            "verification_stages": ["commit-time", "push-time"],
+        },
+    )
+    _write_eval_case(
+        tmp_path,
+        case_id="context.branch",
+        title="Context branch",
+        bundle_name=context_bundle_path.name,
+        tags=["context"],
+        release_contract={
+            "owner": "runtime.context",
+            "capabilities": ["branching"],
+            "verification_stages": ["release-candidate"],
+        },
+    )
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "commit-smoke",
+                "title": "Commit smoke",
+                "verification_stage": "commit-time",
+                "tags": ["smoke"],
+                "blocking": True,
+            },
+            {
+                "profile_id": "push-confirmation",
+                "title": "Push confirmation",
+                "verification_stage": "push-time",
+                "tags": ["smoke"],
+                "blocking": True,
+            },
+            {
+                "profile_id": "release-candidate",
+                "title": "Release candidate",
+                "verification_stage": "release-candidate",
+                "blocking": True,
+            },
+        ],
+    )
+    _write_eval_coverage(
+        tmp_path,
+        profiles=[
+            {
+                "capability_id": "replay_portability",
+                "title": "Replay portability",
+                "criticality": "release-critical",
+                "verification_stages": ["commit-time", "push-time"],
+                "expected_case_ids": ["smoke.readme"],
+            },
+            {
+                "capability_id": "branching",
+                "title": "Branching",
+                "criticality": "release-critical",
+                "verification_stages": ["release-candidate"],
+                "expected_case_ids": ["context.branch"],
+            },
+        ],
+    )
+    _write_eval_impact(
+        tmp_path,
+        rules=[
+            {
+                "rule_id": "runtime-replay",
+                "title": "Replay runtime",
+                "path_globs": ["src/glassbox/runtime/replay*.py"],
+                "owners": ["runtime.replay"],
+                "capabilities": ["replay_portability"],
+            }
+        ],
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "recommend",
+            "src/glassbox/runtime/replay_execution.py",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["matched_rule_ids"] == ["runtime-replay"]
+    assert payload["unmatched_paths"] == []
+    assert [case["case_id"] for case in payload["cases"]] == ["smoke.readme"]
+    assert payload["cases"][0]["confidence"] == "owner-derived"
+    assert payload["cases"][0]["reasons"][0]["confidence"] == "owner-derived"
+    assert "owner runtime.replay" in payload["cases"][0]["reasons"][0]["summary"]
+    assert [profile["profile_id"] for profile in payload["profiles"]] == [
+        "commit-smoke",
+        "push-confirmation",
+    ]
+    assert all(
+        profile["confidence"] == "stage-derived" for profile in payload["profiles"]
+    )
+    assert (
+        "uv run glassbox eval run smoke.readme --cwd ." in payload["suggested_commands"]
+    )
+    assert (
+        "uv run glassbox eval run --profile commit-smoke --cwd ."
+        in payload["suggested_commands"]
+    )
+
+
+def test_cli_eval_recommend_reports_coverage_manifest_warning(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "commit-smoke",
+                "title": "Commit smoke",
+                "verification_stage": "commit-time",
+                "blocking": True,
+            }
+        ],
+    )
+    _write_eval_coverage(
+        tmp_path,
+        profiles=[
+            {
+                "capability_id": "smoke_validation",
+                "title": "Smoke validation",
+                "criticality": "release-critical",
+                "verification_stages": ["commit-time"],
+                "expected_case_ids": [],
+            }
+        ],
+    )
+    _write_eval_impact(tmp_path, rules=[])
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "recommend",
+            "evals/coverage.json",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["coverage_audit_recommended"] is True
+    assert payload["cases"] == []
+    assert payload["profiles"] == []
+    assert payload["warnings"] == [
+        "Touched eval coverage manifest; run eval audit because "
+        "capability-to-case expectations may have changed."
+    ]
+    assert payload["suggested_commands"] == ["uv run glassbox eval audit --cwd ."]
 
 
 def test_cli_eval_report_rejects_live_provider_canary_profile(

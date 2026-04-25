@@ -1,0 +1,74 @@
+{
+    "manifest_version": 1,
+    "rules": [
+        {
+            "rule_id": "runtime-replay",
+            "title": "Replay and eval runtime core",
+            "path_globs": [
+                "src/glassbox/runtime/replay*.py",
+                "src/glassbox/runtime/eval*.py",
+                "src/glassbox/cli/replay_eval_*.py",
+            ],
+            "owners": ["runtime.replay"],
+            "capabilities": ["smoke_validation", "replay_portability"],
+        },
+        {
+            "rule_id": "runtime-context",
+            "title": "Runtime context derivation",
+            "path_globs": [
+                "src/glassbox/runtime/context*.py",
+                "src/glassbox/runtime/runtime_context_derivation.py",
+            ],
+            "owners": ["runtime.context"],
+            "capabilities": [
+                "context_inheritance",
+                "context_drift_detection",
+                "artifact_backed_context",
+                "selected_invariant_contract",
+            ],
+        },
+        {
+            "rule_id": "runtime-branching",
+            "title": "Branching and lineage workflows",
+            "path_globs": [
+                "src/glassbox/runtime/*fork*.py",
+                "src/glassbox/cli/*fork*.py",
+                "docs/branching.md",
+            ],
+            "owners": ["runtime.context"],
+            "capabilities": ["branching", "context_inheritance"],
+        },
+        {
+            "rule_id": "runtime-approval-flow",
+            "title": "Approval workflow surfaces",
+            "path_globs": [
+                "src/glassbox/runtime/*approval*.py",
+                "src/glassbox/cli/*approval*.py",
+                "src/glassbox/web/*approval*.py",
+            ],
+            "capabilities": ["approval_flow"],
+        },
+        {
+            "rule_id": "runtime-ask-user",
+            "title": "Ask-user workflow surfaces",
+            "path_globs": [
+                "src/glassbox/tools/ask_user.py",
+                "src/glassbox/runtime/*question*.py",
+                "src/glassbox/runtime/*ask*.py",
+                "src/glassbox/cli/*answer*.py",
+            ],
+            "capabilities": ["ask_user_flow"],
+        },
+        {
+            "rule_id": "eval-profile-governance",
+            "title": "Eval profile governance metadata",
+            "path_globs": ["evals/profiles.json"],
+            "profile_ids": [
+                "commit-smoke",
+                "push-confirmation",
+                "release-candidate",
+                "advisory-context",
+            ],
+        },
+    ],
+}

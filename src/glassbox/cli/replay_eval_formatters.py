@@ -4,6 +4,7 @@ from pathlib import Path
 
 from glassbox.runtime.eval_baselines import format_eval_baseline_update_report
 from glassbox.runtime.eval_coverage import build_eval_coverage_summary_lines
+from glassbox.runtime.eval_recommendations import EvalRecommendationReport
 from glassbox.runtime.eval_runner import EvalSuiteResult
 from glassbox.runtime.replay import ReplayResult
 
@@ -200,6 +201,46 @@ def _print_eval_profiles(*, workspace_root: Path, profiles) -> None:
             print("    Case IDs: " + ", ".join(profile.case_ids))
         if profile.description:
             print("    Description: " + profile.description)
+
+
+def _print_eval_recommendations(result: EvalRecommendationReport) -> None:
+    print(f"Eval workspace {result.workspace_root}")
+    print("Touched paths:")
+    for touched_path in result.touched_paths:
+        print(f"  - {touched_path}")
+    if result.matched_rule_ids:
+        print("Matched impact rules: " + ", ".join(result.matched_rule_ids))
+    if result.unmatched_paths:
+        print("Unmatched paths:")
+        for path in result.unmatched_paths:
+            print(f"  - {path}")
+    if result.warnings:
+        print("Warnings:")
+        for warning in result.warnings:
+            print(f"  - {warning}")
+    if result.cases:
+        print("Recommended cases:")
+        for case in result.cases:
+            print(f"  - {case.case_id}: {case.title} ({case.confidence})")
+            for reason in case.reasons:
+                print(f"    Reason: {reason.summary}")
+    else:
+        print("Recommended cases: none")
+    if result.profiles:
+        print("Recommended profiles:")
+        for profile in result.profiles:
+            print(
+                f"  - {profile.profile_id}: {profile.title} "
+                f"({profile.confidence}, {profile.verification_stage})"
+            )
+            for reason in profile.reasons:
+                print(f"    Reason: {reason.summary}")
+    else:
+        print("Recommended profiles: none")
+    if result.suggested_commands:
+        print("Suggested commands:")
+        for command in result.suggested_commands:
+            print(f"  - {command}")
 
 
 def _format_budget_limit(limit: int | None) -> str:
