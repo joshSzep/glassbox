@@ -11,8 +11,7 @@ from pydantic import ConfigDict
 from pydantic import Field
 
 from glassbox.tools._subprocess import DEFAULT_MAX_OUTPUT_BYTES
-from glassbox.tools._subprocess import CommandExecutionEnvelope
-from glassbox.tools._subprocess import CommandFailureCategory
+from glassbox.tools._subprocess import CommandExecutionResult
 from glassbox.tools._subprocess import build_command_execution_envelope
 from glassbox.tools._subprocess import capture_streaming_subprocess
 from glassbox.tools._subprocess import resolve_workspace_cwd
@@ -197,23 +196,13 @@ class RunTestsArgs(BaseModel):
     )
 
 
-class RunTestsResult(BaseModel):
+class RunTestsResult(CommandExecutionResult):
     """Structured result from one pytest invocation."""
-
-    model_config = ConfigDict(extra="forbid")
 
     passed: int = 0
     failed: int = 0
     errors: int = 0
     warnings: int = 0
-    exit_code: int = -1
-    stdout: str = ""
-    stderr: str = ""
-    truncated: bool = False
-    timed_out: bool = False
-    execution_envelope: CommandExecutionEnvelope
-    failure_category: CommandFailureCategory | None = None
-    termination_signal: int | None = None
 
 
 class RunTestsTool:

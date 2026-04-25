@@ -35,6 +35,21 @@ class CommandExecutionEnvelope(BaseModel):
     output_limit_bytes: int = Field(ge=1)
 
 
+class CommandExecutionResult(BaseModel):
+    """Shared result fields for command-style tools with subprocess output."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    exit_code: int
+    stdout: str
+    stderr: str
+    truncated: bool = False
+    timed_out: bool = False
+    execution_envelope: CommandExecutionEnvelope
+    failure_category: CommandFailureCategory | None = None
+    termination_signal: int | None = None
+
+
 @dataclass(frozen=True, slots=True)
 class CapturedSubprocessOutput:
     """Captured subprocess output plus classified termination metadata."""
