@@ -153,7 +153,6 @@ def _session_import_command(args: argparse.Namespace) -> int:
             package_path,
             session_repository=runtime_context.repositories.sessions,
             workspace_root=cwd,
-            mode=args.mode,
         )
 
     if args.json:

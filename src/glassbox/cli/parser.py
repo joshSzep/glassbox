@@ -293,12 +293,6 @@ def _add_session_workflow_parsers(
         help="path to a package written by session export",
     )
     session_import_parser.add_argument(
-        "--mode",
-        choices=("inspect", "resumable"),
-        default="inspect",
-        help="import semantics; only inspect is currently supported",
-    )
-    session_import_parser.add_argument(
         "--json",
         action="store_true",
         help="print the import result as JSON",

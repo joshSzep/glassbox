@@ -662,7 +662,7 @@ Each phase below corresponds to one concrete milestone.
 - Goal: explain the v2 team-oriented workflow clearly without implying a cloud control plane or remote multi-tenant platform
 - Deliverables:
   - README and operator-guide updates for session handoff, export or import, and workspace defaults
-  - troubleshooting guidance for ownership conflicts, unsupported imports, and profile-precedence surprises
+  - troubleshooting guidance for ownership conflicts, unsupported package imports, and profile-precedence surprises
   - explicit scope notes for what collaboration features Glassbox still does not claim to support
 - Implementation notes:
   - keep docs honest about the local-first and workspace-scoped operating model

@@ -167,35 +167,17 @@ def test_cli_session_import_preserves_branch_lineage_metadata(
     assert imported_session.branch_label == "handoff-import"
 
 
-def test_cli_session_import_rejects_resumable_mode(
-    tmp_path: Path,
+def test_cli_session_import_help_does_not_expose_unsupported_modes(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    source_root = tmp_path / "source"
-    import_root = tmp_path / "imported"
-    source_root.mkdir()
-    import_root.mkdir()
-    package_path, _source_session_id = _export_session_package(
-        source_root,
-        tmp_path / "handoff.json",
-        capsys,
-    )
+    with pytest.raises(SystemExit) as exc_info:
+        main(["session", "import", "--help"])
 
-    exit_code = main(
-        [
-            "session",
-            "import",
-            str(package_path),
-            "--mode",
-            "resumable",
-            "--cwd",
-            str(import_root),
-        ]
-    )
     captured = capsys.readouterr()
 
-    assert exit_code == 1
-    assert "resumable session import is not supported" in captured.err
+    assert exc_info.value.code == 0
+    assert "--mode" not in captured.out
+    assert "resumable" not in captured.out
 
 
 def test_cli_session_import_rejects_unsupported_package_version(

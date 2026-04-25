@@ -161,8 +161,7 @@ uv run glassbox session import handoff.json --cwd .
 Import creates a new local session ID and records imported transcript/history as
 canonical import events. The imported session is historical and inspection-only;
 it does not silently merge with an existing session or become live mutable
-state. `--mode resumable` is reserved for a future package format and currently
-fails visibly, so operators have to choose inspection semantics explicitly.
+state.
 
 ## Daily Team Workflow
 
@@ -231,9 +230,9 @@ session export, import, or workspace-profile work.
 - Stale owner metadata: run `glassbox daemon status --cwd .` to confirm the
   state, then use `glassbox daemon start --cwd .` to replace stale metadata or
   `glassbox daemon stop --cwd .` to clear it.
-- Unsupported import: `session import --mode resumable` currently fails by
-  design for `session export` packages. Re-run with default inspection mode and
-  fork from the imported historical session when work needs to continue.
+- Unsupported package: `session import` rejects ambiguous JSON, unsupported
+  versions, partially redacted payloads, and package formats that cannot be
+  reopened safely for inspection.
 - Malformed or secret-looking package: import rejects ambiguous JSON,
   unsupported versions, and apparent unredacted secret material. Ask the
   exporting operator to regenerate the package from the current CLI instead of
