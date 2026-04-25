@@ -94,10 +94,10 @@ paused or idle session, but it should not claim to stream live events from
 another already-running process until the runtime grows an explicit
 cross-process attach mechanism.
 
-That boundary is the starting point for v2, not necessarily the final answer.
-`GBX-300` through `GBX-304` in [tasks-v2.md](./tasks-v2.md) deliberately reopen
-the question of persistent runtime ownership, transport, and live cross-process
-terminal attach.
+That boundary was the starting point for v2 planning. `GBX-300` in
+[tasks-v2.md](./tasks-v2.md) now resolves the ownership model choice, and
+`GBX-301` through `GBX-304` are the follow-on implementation tasks for the
+chosen persistent-runtime path.
 
 ## Top-Level Subsystems
 
@@ -1826,10 +1826,10 @@ resident background runtime.
 
 ### Cross-Process Attach Decision
 
-Current baseline decision: keep the interactive terminal UX process-local for
-the shipped architecture. Do not treat the current CLI and dashboard surfaces
-as if they already imply a daemon-backed runtime or a cross-process terminal
-attach protocol.
+`GBX-166` established the shipped baseline: keep the interactive terminal UX
+process-local and do not treat the current CLI and dashboard surfaces as if
+they already imply a daemon-backed runtime or a cross-process terminal attach
+protocol.
 
 This is the current stance because the existing surfaces already cover most of
 the operator value at materially lower complexity:
@@ -1841,12 +1841,8 @@ the operator value at materially lower complexity:
 - approval and question flows are already resumable from persisted events rather than process-local memory
 
 The remaining gap is specifically terminal-native live attach to a runtime that
-is still owned by another process. That is real operator value, but it remains
-future work rather than an accidental promise of the current surfaces.
-
-For v2 planning, this section should be read as the current baseline and
-tradeoff record that `GBX-300` may intentionally revise, not as a permanent
-architectural ban on persistent runtime ownership.
+is still owned by another process. That is the operator gap v2 now chooses to
+address deliberately.
 
 #### Tradeoff Analysis
 
@@ -1885,29 +1881,72 @@ Costs:
 - new failure modes around daemon drift, stale sockets, and split-brain ownership
 - a more complex local security story once commands can target a resident process
 
-Decision outcome: stay with Option 1 for now. Use the dashboard snapshot and
-SSE surfaces for cross-process visibility, and reserve daemon-backed attach for
-later only if observed operator pain clearly exceeds the added complexity.
+Decision outcome for v2: adopt Option 2 in a constrained local-first form.
+Glassbox should introduce a workspace-scoped background runtime owner through a
+new `glassbox daemon` command surface rather than overloading `glassbox serve`.
 
-#### Revisit Criteria
+This command-surface choice is deliberate:
 
-Reopen this decision only if at least one of the following becomes a repeated
-operator need rather than a hypothetical capability:
+- `glassbox daemon` owns live session mutation, runtime lifecycle, health, and
+    workspace locking
+- `glassbox serve` remains the browser-facing observation and operator-console
+    surface rather than becoming the authoritative runtime owner
+- `glassbox chat` remains the embedded convenience path for same-process work
+    and should continue to work without a background owner when the operator wants
+    an ephemeral local session
 
-- users frequently lose useful long-running terminal sessions because the owning CLI process exits
-- dashboard observation proves insufficient because operators specifically need terminal-native reattachment rather than browser-based live visibility
-- multiple local entrypoints need to coordinate a single active runtime instead of reopening persisted state after the fact
+#### V2 Ownership Contract
 
-If this decision is revisited later, the first executable slices should be:
+The v2 ownership model should be:
 
-1. define runtime ownership and attach semantics explicitly, including single-client versus multi-client rules
-2. introduce a supervised background runtime process with health and shutdown behavior
-3. expose an attach transport that can replay prompt context and then stream live events to a terminal client
-4. add terminal rehydration rules for prompt mode, pending approvals, and pending questions after reconnect
+- at most one background runtime owner per workspace
+- the owner process is responsible for live event fanout, turn execution,
+    approval resumption, and orderly runtime shutdown
+- live session mutation must funnel through the owner process once a daemon is
+    active for that workspace; other processes do not race it by writing directly
+    to the same live session state
+- persisted events remain canonical; the owner coordinates mutation, but it does
+    not become a hidden state store outside the event log and derived projections
+- if the owner is unavailable, the operator may still inspect persisted state,
+    but live ownership must be treated as unavailable rather than silently
+    simulated from stale projections
 
-Those slices are intentionally not on the roadmap yet. They become valid only if
-the current process-local plus dashboard model is shown to be insufficient in
-practice.
+#### Attach Model
+
+The attach model should distinguish three operator surfaces explicitly:
+
+- embedded terminal ownership: `glassbox chat` owns the live session inside the
+    current process and may co-host the dashboard for that same runtime
+- terminal attach to a background owner: a later attach client should reconnect
+    to the daemon-owned session, replay enough prompt and suspension state to
+    restore the terminal UX, and then continue with live updates
+- browser observation and action: the browser continues to use snapshot, action,
+    and event-stream surfaces as an operator console whether the runtime is
+    embedded, background-owned, reconnecting, or unavailable
+
+The browser and terminal may observe the same owned session concurrently, but
+they are different operator surfaces. Browser visibility must not be treated as
+equivalent to terminal-native attach semantics.
+
+#### First-Slice Scope Boundary
+
+The first v2 persistent-runtime slice should include:
+
+1. a workspace-scoped daemon owner with explicit lifecycle and health semantics
+2. runtime discovery and locking rules that prevent conflicting owners
+3. a transport abstraction that preserves the current embedded event bus path
+     while allowing daemon-backed clients later
+4. explicit runtime-state terminology for live, reconnecting, unavailable, and
+     historical-only sessions
+
+The first v2 slice should stay out of scope for:
+
+- remote or multi-tenant orchestration
+- multiple concurrent live writers for one session
+- browser-native terminal emulation or browser-owned session mutation rules
+- hidden mutable state outside persisted events and explicit derived read models
+- broad collaboration semantics beyond single-workspace operator attachment;
+    team handoff stays in later tasks
 
 ## Concurrency Model
 

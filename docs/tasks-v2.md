@@ -124,7 +124,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-300: Define Persistent Runtime Ownership And Attach Model
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-166`, `GBX-175`, `GBX-185`, `GBX-249`
 - Goal: define how Glassbox should support a long-lived runtime process and cross-process operator attachment without violating the current event-sourced architecture
 - Deliverables:
@@ -135,6 +135,7 @@ Each phase below corresponds to one concrete milestone.
   - scope boundary for what remains intentionally out of scope for the first v2 slice
 - Implementation notes:
   - start from the current baseline: `chat` owns the live in-process session loop, `attach` reopens persisted actionable sessions, `serve` exposes standalone browser inspection, SSE provides browser live tails, and the event bus is still process-local
+  - GBX-300 chooses a new `glassbox daemon` command surface as the future persistent runtime owner; `serve` stays the browser-facing observation surface rather than becoming the owner itself
   - preserve the current single-runtime-per-workspace assumption unless a stronger multi-owner model is justified explicitly
   - define how live event delivery, session mutation, and runtime shutdown interact across processes
   - treat CLI attach, browser observation, and health inspection as separate operator surfaces even if they share a transport
@@ -170,7 +171,7 @@ Each phase below corresponds to one concrete milestone.
 - Depends on: `GBX-300`, `GBX-301`
 - Goal: allow Glassbox to run as a long-lived workspace runtime that survives terminal exit and can continue owning actionable sessions
 - Deliverables:
-  - background runtime command surface such as `glassbox daemon`, an explicit extension of `serve`, or another concrete control path chosen in `GBX-300`
+  - `glassbox daemon` background runtime command surface
   - workspace-local runtime discovery and lock semantics
   - start, stop, and health behavior for the persistent runtime owner
   - session ownership rules that prevent conflicting concurrent writers

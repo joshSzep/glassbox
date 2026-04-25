@@ -76,15 +76,58 @@ uv run glassbox approve SESSION_ID APPROVAL_ID --cwd .
 uv run glassbox deny SESSION_ID APPROVAL_ID --cwd .
 ```
 
-## Scope Boundary
+## Current Shipped Boundary
 
-The interactive terminal UX is intentionally process-local in v1.
+The current interactive terminal UX is intentionally process-local.
 
 - `chat` owns the live in-process event stream for the session it starts
 - `attach` can reopen a persisted actionable session later
-- Glassbox does not yet claim cross-process terminal attach to another already-running session owner
+- Glassbox does not yet claim that today's `attach` command can stream live
+	terminal updates from another already-running session owner
 
-For cross-process observation, use the dashboard.
+For the shipped cross-process observation path, use the dashboard.
+
+## V2 Ownership Decision
+
+`GBX-300` chooses a stronger persistent-runtime model for v2 while preserving
+the current embedded workflow as a valid local mode.
+
+The intended ownership split is:
+
+- embedded mode: `glassbox chat` continues to own the live session inside the
+	current process for operators who want an ephemeral terminal-first workflow
+- background mode: a future `glassbox daemon` command will own the live runtime
+	for one workspace when the operator wants runtime continuity beyond a single
+	terminal process
+- browser mode: `glassbox serve` remains the operator console and session
+	browser; it is not the authoritative runtime owner
+
+This means the current `attach` command and the future daemon attach path are
+not the same thing:
+
+- current `attach`: reopen a persisted actionable session from stored state
+- future live attach: reconnect a terminal UI to a session actively owned by a
+	background runtime
+
+Until the later persistent-runtime tasks land, the shipped `attach` command
+should still be understood as the persisted-state re-entry path rather than the
+final cross-process live attach UX.
+
+## Persistent Runtime Semantics For V2
+
+When the daemon-backed path lands, operators should expect these semantics:
+
+- only one background runtime owner exists per workspace
+- the owner process is responsible for live turn execution, event fanout,
+	approval resumption, and shutdown behavior
+- browser observation, health inspection, and terminal attach remain separate
+	surfaces even when they ultimately talk to the same owner
+- if the owner becomes unavailable, Glassbox should say so explicitly instead of
+	silently pretending a historical snapshot is still a live session
+
+The first persistent-runtime slice is intentionally still local-first. It does
+not imply remote orchestration, browser-native terminal control, or multi-user
+coordination.
 
 ## Related Guides
 
