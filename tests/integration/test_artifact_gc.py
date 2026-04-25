@@ -1,4 +1,4 @@
-"""Integration tests for artifact retention and garbage collection."""
+"""Integration tests for artifact retention and pruning."""
 
 import json
 import os
@@ -19,7 +19,7 @@ from glassbox.store.sqlite import initialize_database
 from glassbox.store.sqlite import open_database
 
 
-def test_artifact_gc_dry_run_reports_without_deleting_protected_or_stale_files(
+def test_artifact_prune_dry_run_reports_without_deleting_protected_or_stale_files(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -30,7 +30,7 @@ def test_artifact_gc_dry_run_reports_without_deleting_protected_or_stale_files(
     exit_code = main(
         [
             "artifacts",
-            "gc",
+            "prune",
             "--dry-run",
             "--max-age-days",
             "7",
@@ -43,7 +43,7 @@ def test_artifact_gc_dry_run_reports_without_deleting_protected_or_stale_files(
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert "Artifact GC: 1 protected, 2 stale, 2 would be deleted" in captured.out
+    assert "Artifact prune: 1 protected, 2 stale, 2 would be deleted" in captured.out
     assert (
         f"Would delete: {orphan_path.relative_to(tmp_path).as_posix()}" in captured.out
     )
@@ -57,7 +57,7 @@ def test_artifact_gc_dry_run_reports_without_deleting_protected_or_stale_files(
     assert curated_bundle_path.exists()
 
 
-def test_artifact_gc_deletes_only_unreferenced_and_managed_stale_files(
+def test_artifact_prune_deletes_only_unreferenced_and_managed_stale_files(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -68,7 +68,7 @@ def test_artifact_gc_deletes_only_unreferenced_and_managed_stale_files(
     exit_code = main(
         [
             "artifacts",
-            "gc",
+            "prune",
             "--max-age-days",
             "7",
             "--cwd",
@@ -80,14 +80,14 @@ def test_artifact_gc_deletes_only_unreferenced_and_managed_stale_files(
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert "Artifact GC: 1 protected, 2 stale, 2 deleted" in captured.out
+    assert "Artifact prune: 1 protected, 2 stale, 2 deleted" in captured.out
     assert protected_path.exists()
     assert not orphan_path.exists()
     assert not stale_eval_path.exists()
     assert curated_bundle_path.exists()
 
 
-def test_artifact_gc_json_reports_hashes_and_missing_references(
+def test_artifact_prune_json_reports_hashes_and_missing_references(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -99,7 +99,7 @@ def test_artifact_gc_json_reports_hashes_and_missing_references(
     exit_code = main(
         [
             "artifacts",
-            "gc",
+            "prune",
             "--dry-run",
             "--json",
             "--max-age-days",

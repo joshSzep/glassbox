@@ -807,27 +807,27 @@ def _add_artifact_parsers(
     )
     artifacts_subparsers = artifacts_parser.add_subparsers(dest="artifacts_command")
 
-    gc_parser = artifacts_subparsers.add_parser(
-        "gc",
-        help="garbage collect stale managed artifacts",
+    prune_parser = artifacts_subparsers.add_parser(
+        "prune",
+        help="prune stale managed artifacts",
         description=(
             "Report or remove stale .glassbox artifacts. Event-referenced "
             "session artifacts and source-controlled eval bundles are protected."
         ),
     )
-    _add_runtime_location_arguments(gc_parser)
-    gc_parser.add_argument(
+    _add_runtime_location_arguments(prune_parser)
+    prune_parser.add_argument(
         "--dry-run",
         action="store_true",
         help="report cleanup actions without deleting files",
     )
-    gc_parser.add_argument(
+    prune_parser.add_argument(
         "--max-age-days",
         type=int,
         default=30,
         help="age threshold for managed .glassbox/evals artifacts",
     )
-    gc_parser.add_argument(
+    prune_parser.add_argument(
         "--json",
         action="store_true",
         help="print the artifact retention report as JSON",

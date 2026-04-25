@@ -11,15 +11,15 @@ from glassbox.store.artifact_retention import run_artifact_gc
 
 
 def _artifacts_command(args: argparse.Namespace) -> int:
-    if args.artifacts_command == "gc":
-        return _artifact_gc_command(args)
+    if args.artifacts_command == "prune":
+        return _artifact_prune_command(args)
     raise ValueError("unknown artifacts command")
 
 
-def _artifact_gc_command(args: argparse.Namespace) -> int:
+def _artifact_prune_command(args: argparse.Namespace) -> int:
     cwd, db_path = resolve_runtime_location(
         args,
-        require_daemon_unowned_for="garbage collect artifacts locally",
+        require_daemon_unowned_for="prune artifacts locally",
     )
     if args.max_age_days < 0:
         raise ValueError("--max-age-days must be zero or greater")
@@ -36,11 +36,11 @@ def _artifact_gc_command(args: argparse.Namespace) -> int:
         print_json_output(report.to_json_payload())
         return 0
 
-    _print_artifact_gc_report(report, dry_run=args.dry_run)
+    _print_artifact_prune_report(report, dry_run=args.dry_run)
     return 0
 
 
-def _print_artifact_gc_report(
+def _print_artifact_prune_report(
     report: ArtifactGcReport,
     *,
     dry_run: bool,
@@ -49,7 +49,7 @@ def _print_artifact_gc_report(
     action_count = len(report.candidates) if dry_run else len(report.deleted)
     action_size = report.candidate_size_bytes if dry_run else report.deleted_size_bytes
     print(
-        "Artifact GC: "
+        "Artifact prune: "
         f"{len(report.protected)} protected, "
         f"{len(report.candidates)} stale, "
         f"{action_count} {'would be deleted' if dry_run else 'deleted'} "

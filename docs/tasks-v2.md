@@ -293,7 +293,7 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - Glassbox can explain what artifact state exists, what is stale, and what cleanup would do before it mutates local storage
   - newly recorded file-backed artifacts include size and SHA-256 metadata in their canonical artifact events
-  - `glassbox artifacts gc --dry-run` reports protected, stale, missing, and would-delete artifact state, while mutation mode only deletes managed stale `.glassbox` artifacts
+  - `glassbox artifacts prune --dry-run` reports protected, stale, missing, and would-delete artifact state, while mutation mode only deletes managed stale `.glassbox` artifacts
 
 ### GBX-313: Add Workspace Backup And State Export For Recovery
 

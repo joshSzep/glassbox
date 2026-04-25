@@ -431,7 +431,7 @@ Recommended layout:
 ### Artifact Retention And GC
 
 Artifact garbage collection is intentionally narrower than schema migration or
-projection rebuild. `glassbox artifacts gc --dry-run` inspects managed artifact
+projection rebuild. `glassbox artifacts prune --dry-run` inspects managed artifact
 state, reports SHA-256 digests for candidate files, and explains what cleanup
 would do before deleting anything. Running the same command without `--dry-run`
 may delete only managed stale files under `.glassbox/sessions/*/artifacts/` that
