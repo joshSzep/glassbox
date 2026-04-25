@@ -22,12 +22,12 @@ import {
   submitSessionMessage,
 } from "./interaction-actions.js";
 
-function selectedSessionIdFromLocation(location) {
-  return new URLSearchParams(location.search).get("session");
-}
-
-function selectedQueueFromLocation(location) {
-  return new URLSearchParams(location.search).get("queue") ?? "all";
+function dashboardLocationState(location) {
+  const params = new URLSearchParams(location.search);
+  return {
+    sessionId: params.get("session"),
+    queue: params.get("queue") ?? "all",
+  };
 }
 
 function nextDashboardUrl(location, { sessionId, queue }) {
@@ -73,6 +73,15 @@ export function createDashboardController({
   function syncState(updater) {
     state = updater(state);
     renderAll();
+  }
+
+  function updateLocation({ sessionId, queue }, { replaceHistory = false } = {}) {
+    const historyMethod = replaceHistory ? "replaceState" : "pushState";
+    windowImpl.history[historyMethod](
+      {},
+      "",
+      nextDashboardUrl(windowImpl.location, { sessionId, queue }),
+    );
   }
 
   function applySelectedSnapshot(snapshot) {
@@ -180,28 +189,23 @@ export function createDashboardController({
   }
 
   async function openSession(sessionId, { replaceHistory = false } = {}) {
-    const nextUrl = nextDashboardUrl(windowImpl.location, {
+    updateLocation({
       sessionId,
       queue: state.selectedQueue,
-    });
-    const historyMethod = replaceHistory ? "replaceState" : "pushState";
-    windowImpl.history[historyMethod]({}, "", nextUrl);
+    }, { replaceHistory });
     return loadSnapshot(sessionId);
   }
 
   async function selectQueue(queue, { replaceHistory = false } = {}) {
-    const nextUrl = nextDashboardUrl(windowImpl.location, {
+    updateLocation({
       sessionId: state.selectedSessionId ?? state.sessionId,
       queue,
-    });
-    const historyMethod = replaceHistory ? "replaceState" : "pushState";
-    windowImpl.history[historyMethod]({}, "", nextUrl);
+    }, { replaceHistory });
     await loadSessionAggregate(queue);
   }
 
   async function syncFromLocation({ replaceHistory = true } = {}) {
-    const requestedSessionId = selectedSessionIdFromLocation(windowImpl.location);
-    const requestedQueue = selectedQueueFromLocation(windowImpl.location);
+    const { sessionId: requestedSessionId, queue: requestedQueue } = dashboardLocationState(windowImpl.location);
 
     if (
       state.sessionIndexState === "idle"
@@ -215,10 +219,9 @@ export function createDashboardController({
       state = clearSessionSelection(state);
       renderAll();
       if (replaceHistory) {
-        windowImpl.history.replaceState(
-          {},
-          "",
-          nextDashboardUrl(windowImpl.location, { sessionId: null, queue: requestedQueue }),
+        updateLocation(
+          { sessionId: null, queue: requestedQueue },
+          { replaceHistory: true },
         );
       }
       return;
@@ -226,10 +229,9 @@ export function createDashboardController({
 
     const loaded = await loadSnapshot(requestedSessionId);
     if (!loaded && replaceHistory) {
-      windowImpl.history.replaceState(
-        {},
-        "",
-        nextDashboardUrl(windowImpl.location, { sessionId: null, queue: requestedQueue }),
+      updateLocation(
+        { sessionId: null, queue: requestedQueue },
+        { replaceHistory: true },
       );
     }
   }
