@@ -63,6 +63,10 @@ The dashboard shell exposes the operator surfaces backed by the snapshot and SSE
 
 The browser first reads `GET /sessions/{session_id}` and then subscribes to `GET /sessions/{session_id}/events`.
 
+The v2 operator-console model builds on this shell rather than replacing it. See
+[operator-console.md](./operator-console.md) for the multi-session overview,
+queue, health, and priority contract that future dashboard tasks should follow.
+
 ## Live-State Meanings
 
 Interpret the browser state this way:

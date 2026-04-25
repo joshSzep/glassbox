@@ -12,6 +12,7 @@ Use this page to jump to the right level of detail.
 - [getting-started.md](./getting-started.md): install the project, run the first session, understand the local workspace layout, and use the default validation commands
 - [interactive-workflows.md](./interactive-workflows.md): work through `chat`, `attach`, `message`, `answer`, `approve`, `deny`, `resume`, and `status`
 - [dashboard.md](./dashboard.md): use the co-hosted dashboard from `chat` or the standalone dashboard from `serve`
+- [operator-console.md](./operator-console.md): understand the v2 multi-session console model, action queues, runtime-health semantics, and backend/frontend contracts
 - [persistent-runtime.md](./persistent-runtime.md): run a workspace daemon, inspect runtime health, attach from another terminal, and recover stale ownership
 
 ## Operator Guides
@@ -20,6 +21,7 @@ Use this page to jump to the right level of detail.
 - [replay-evals.md](./replay-evals.md): replay historical sessions, export bundles, run eval suites, and work through local-first regression gates
 - [runtime-context.md](./runtime-context.md): inspect repository context, runtime notes, working-set context, and artifact-backed summaries
 - [persistent-runtime.md](./persistent-runtime.md): operate the daemon-backed workspace runtime and troubleshoot attach or health states
+- [operator-console.md](./operator-console.md): plan and reason about the v2 multi-session console, action queues, and runtime-health semantics
 - [providers.md](./providers.md): configure OpenAI or Anthropic credentials for real provider execution
 - [tool-policy.md](./tool-policy.md): understand risk buckets, approval gating, blocked commands, and `ask_user` semantics
 
@@ -28,6 +30,7 @@ Use this page to jump to the right level of detail.
 - [architecture.md](./architecture.md): current runtime, bootstrap, store, CLI, web, replay, and eval ownership boundaries on top of the event-sourced system design
 - [database.md](./database.md): SQLite event store, projection tables, artifact storage, branching lineage fields, and the split store implementation map
 - [dashboard-frontend-boundaries.md](./dashboard-frontend-boundaries.md): target reducer, renderer, transport, and DOM-binding boundaries for the no-framework dashboard frontend refactor
+- [operator-console.md](./operator-console.md): v2 operator-console information architecture and queue/health semantics for multi-session inspection
 - [refactor-boundaries.md](./refactor-boundaries.md): code-aligned boundary map, dependency-direction rules, and guardrails that explain why the current facades and module splits look the way they do
 - [refactor-v1.md](./refactor-v1.md): architecture-first refactor roadmap, completed follow-on queue, and status tracker for the v1 decomposition work
 - [tasks-v1.md](./tasks-v1.md): implementation history, completed v1 task graph, and roadmap context

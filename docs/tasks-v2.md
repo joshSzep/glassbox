@@ -323,7 +323,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-320: Define Multi-Session Operator Console Model
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-304`, `GBX-184`, `GBX-185`, `GBX-225`
 - Goal: define how the dashboard should evolve from the current session-index-plus-deep-link inspector into an operator console for live, paused, and historical sessions
 - Deliverables:
@@ -340,6 +340,7 @@ Each phase below corresponds to one concrete milestone.
   - manual validation that the proposed console model stays within the local-first architecture
 - Done when:
   - the repo has a clear, code-aligned design for a multi-session Glassbox operator console
+  - [operator-console.md](./operator-console.md) defines the v2 overview, queue, health, priority, live-versus-historical, backend, and frontend contracts against the current dashboard/session API baseline
 
 ### GBX-321: Add Aggregate Session, Queue, And Health Read Models
 

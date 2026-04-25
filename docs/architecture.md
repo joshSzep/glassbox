@@ -64,6 +64,9 @@ following as the implemented baseline that v2 extends:
     live tails
 - the dashboard already behaves as a session-index-plus-deep-link operator
     surface rather than a single hard-coded session view
+- the v2 operator console is defined as an extension of that dashboard shell,
+    adding multi-session queues, aggregate health, and priority semantics while
+    preserving the same event-sourced snapshot plus stream authority model
 - replay, eval, branching, lineage-aware snapshots, and runtime-context
     inspection are existing product surfaces, not future placeholders
 
