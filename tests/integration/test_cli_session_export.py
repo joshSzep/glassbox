@@ -28,7 +28,8 @@ def test_cli_session_export_writes_redacted_live_handoff_package(
 
     exit_code = main(
         [
-            "session-export",
+            "session",
+            "export",
             str(session_id),
             str(output_path),
             "--exported-by",
@@ -74,7 +75,8 @@ def test_cli_session_export_captures_paused_approval_handoff(
 
     exit_code = main(
         [
-            "session-export",
+            "session",
+            "export",
             str(session_id),
             str(output_path),
             "--note",
@@ -136,7 +138,8 @@ def test_cli_session_export_captures_branched_session_lineage(
 
     export_exit_code = main(
         [
-            "session-export",
+            "session",
+            "export",
             str(child_session_id),
             str(output_path),
             "--cwd",

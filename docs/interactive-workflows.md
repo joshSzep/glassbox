@@ -67,8 +67,8 @@ Use the command that matches the current actionable state:
 - `glassbox approve SESSION_ID APPROVAL_ID` or `glassbox deny SESSION_ID APPROVAL_ID` resolves a pending approval when the session is awaiting approval
 - `glassbox resume SESSION_ID` reloads a persisted session after restart without sending a new prompt
 - `glassbox status SESSION_ID` prints the current state and the next valid operator action
-- `glassbox session-export SESSION_ID OUTPUT` writes a portable handoff package for review without copying the workspace database
-- `glassbox session-import PACKAGE` imports a handoff package into a new local historical session for inspection
+- `glassbox session export SESSION_ID OUTPUT` writes a portable handoff package for review without copying the workspace database
+- `glassbox session import PACKAGE` imports a handoff package into a new local historical session for inspection
 
 Example:
 
@@ -94,8 +94,8 @@ For handoff across workspaces, export from the source workspace, import in the
 receiving workspace, then inspect the new imported session ID:
 
 ```bash
-uv run glassbox session-export SESSION_ID handoff.json --cwd .
-uv run glassbox session-import handoff.json --cwd ../other-workspace
+uv run glassbox session export SESSION_ID handoff.json --cwd .
+uv run glassbox session import handoff.json --cwd ../other-workspace
 ```
 
 Imported sessions are historical and inspection-only. They are not silently

@@ -178,8 +178,18 @@ def _add_session_workflow_parsers(
     status_parser.add_argument("session_id", type=_parse_uuid)
     _add_runtime_location_arguments(status_parser)
 
-    session_export_parser = subparsers.add_parser(
-        "session-export",
+    session_parser = subparsers.add_parser(
+        "session",
+        help="work with portable session handoff packages",
+        description=(
+            "Export or import portable session handoff packages without copying "
+            "the full workspace database."
+        ),
+    )
+    session_subparsers = session_parser.add_subparsers(dest="session_command")
+
+    session_export_parser = session_subparsers.add_parser(
+        "export",
         help="export a portable session handoff package",
         description=(
             "Export a persisted session into an inspectable handoff package for "
@@ -214,17 +224,17 @@ def _add_session_workflow_parsers(
     )
     _add_runtime_location_arguments(session_export_parser)
 
-    session_import_parser = subparsers.add_parser(
-        "session-import",
+    session_import_parser = session_subparsers.add_parser(
+        "import",
         help="import a portable session handoff package",
         description=(
-            "Import a session-export package into local inspectable session "
+            "Import a session export package into local inspectable session "
             "state without silently merging it with existing sessions."
         ),
     )
     session_import_parser.add_argument(
         "package",
-        help="path to a package written by session-export",
+        help="path to a package written by session export",
     )
     session_import_parser.add_argument(
         "--mode",

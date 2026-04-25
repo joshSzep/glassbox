@@ -47,8 +47,7 @@ def test_cli_help_lists_session_oriented_commands(
     assert "resume" in captured.out
     assert "fork" in captured.out
     assert "status" in captured.out
-    assert "session-export" in captured.out
-    assert "session-import" in captured.out
+    assert "session" in captured.out
     assert "artifacts" in captured.out
     assert "backup" in captured.out
     assert "rebuild" in captured.out
@@ -57,6 +56,19 @@ def test_cli_help_lists_session_oriented_commands(
     assert "eval" in captured.out
     assert "approve" in captured.out
     assert "deny" in captured.out
+
+
+def test_cli_session_help_lists_handoff_subcommands(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["session", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 0
+    assert "export" in captured.out
+    assert "import" in captured.out
 
 
 def test_cli_answer_resumes_pending_ask_user_turn(

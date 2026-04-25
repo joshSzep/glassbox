@@ -29,6 +29,14 @@ def _status_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def _session_command(args: argparse.Namespace) -> int:
+    if args.session_command == "export":
+        return _session_export_command(args)
+    if args.session_command == "import":
+        return _session_import_command(args)
+    raise ValueError("specify a session subcommand")
+
+
 def _session_export_command(args: argparse.Namespace) -> int:
     cwd, db_path = resolve_runtime_location(args)
     output_path = resolve_optional_output_path(

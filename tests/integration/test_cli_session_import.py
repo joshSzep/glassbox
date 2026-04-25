@@ -31,7 +31,8 @@ def test_cli_session_import_rehydrates_export_for_inspection_in_clean_workspace(
 
     exit_code = main(
         [
-            "session-import",
+            "session",
+            "import",
             str(package_path),
             "--json",
             "--cwd",
@@ -120,7 +121,8 @@ def test_cli_session_import_preserves_branch_lineage_metadata(
     package_path = tmp_path / "branched-handoff.json"
     export_exit_code = main(
         [
-            "session-export",
+            "session",
+            "export",
             str(child_session_id),
             str(package_path),
             "--cwd",
@@ -134,7 +136,8 @@ def test_cli_session_import_preserves_branch_lineage_metadata(
 
     import_exit_code = main(
         [
-            "session-import",
+            "session",
+            "import",
             str(package_path),
             "--json",
             "--cwd",
@@ -178,7 +181,8 @@ def test_cli_session_import_rejects_resumable_mode(
 
     exit_code = main(
         [
-            "session-import",
+            "session",
+            "import",
             str(package_path),
             "--mode",
             "resumable",
@@ -211,7 +215,8 @@ def test_cli_session_import_rejects_unsupported_package_version(
 
     exit_code = main(
         [
-            "session-import",
+            "session",
+            "import",
             str(package_path),
             "--cwd",
             str(import_root),
@@ -245,7 +250,8 @@ def test_cli_session_import_rejects_invalid_packages(
 
     exit_code = main(
         [
-            "session-import",
+            "session",
+            "import",
             str(package_path),
             "--cwd",
             str(tmp_path),
@@ -268,7 +274,8 @@ def _export_session_package(
     _ = capsys.readouterr()
     exit_code = main(
         [
-            "session-export",
+            "session",
+            "export",
             str(session_id),
             str(package_path),
             "--cwd",

@@ -64,7 +64,7 @@ def import_session_package(
     package = load_session_export_package(package_path)
     if mode == "resumable":
         raise ValueError(
-            "resumable session import is not supported for session-export "
+            "resumable session import is not supported for session export "
             "packages; use --mode inspect"
         )
 
@@ -162,7 +162,7 @@ def _build_inspection_import_events(
             created_at=imported_at,
             payload=SessionCompleted(
                 reason=(
-                    "imported for inspection from session-export package; "
+                    "imported for inspection from session export package; "
                     f"original status was {package.metadata.status}"
                 ),
             ),

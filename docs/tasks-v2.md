@@ -604,7 +604,7 @@ Each phase below corresponds to one concrete milestone.
 - Depends on: `GBX-313`, `GBX-350`
 - Goal: let operators share a session for debugging, review, or handoff without exposing the whole local workspace database
 - Deliverables:
-  - portable session-export format distinct from full-workspace backup and replay bundle export
+  - portable session export format distinct from full-workspace backup and replay bundle export
   - export command covering transcript, key metadata, lineage, and relevant retained artifacts where justified
   - redaction and portability rules for session-sharing workflows
 - Implementation notes:

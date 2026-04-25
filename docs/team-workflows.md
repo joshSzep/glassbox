@@ -129,7 +129,7 @@ inspect a failed turn, fork a branch, or merely review history.
 Export a handoff package with:
 
 ```bash
-uv run glassbox session-export SESSION_ID handoff.json --cwd .
+uv run glassbox session export SESSION_ID handoff.json --cwd .
 ```
 
 The package is an inspectable JSON file for review and handoff. It is distinct
@@ -142,7 +142,7 @@ or embed artifact contents.
 For explicit handoff context, add local operator labels:
 
 ```bash
-uv run glassbox session-export SESSION_ID handoff.json \
+uv run glassbox session export SESSION_ID handoff.json \
   --exported-by alice \
   --expected-custodian bob \
   --note "waiting on approval review" \
@@ -155,7 +155,7 @@ redacts common secret-like key assignments or tokens in operator-facing text.
 Import a package into another local workspace for inspection with:
 
 ```bash
-uv run glassbox session-import handoff.json --cwd .
+uv run glassbox session import handoff.json --cwd .
 ```
 
 Import creates a new local session ID and records imported transcript/history as
@@ -176,9 +176,9 @@ Use this order when a session needs to move between people or terminals:
    `glassbox attach SESSION_ID --cwd .` to reconnect instead of starting a
    second local writer.
 4. If the next operator only needs review context, export a handoff package with
-   `glassbox session-export SESSION_ID handoff.json --cwd .` and include
+  `glassbox session export SESSION_ID handoff.json --cwd .` and include
    `--exported-by`, `--expected-custodian`, and `--note` when those labels help.
-5. In the receiving workspace, import with `glassbox session-import handoff.json
+5. In the receiving workspace, import with `glassbox session import handoff.json
    --cwd .` and inspect the new historical session ID. Fork from stable history
    when alternate work is needed.
 
@@ -231,8 +231,8 @@ session export, import, or workspace-profile work.
 - Stale owner metadata: run `glassbox daemon status --cwd .` to confirm the
   state, then use `glassbox daemon start --cwd .` to replace stale metadata or
   `glassbox daemon stop --cwd .` to clear it.
-- Unsupported import: `session-import --mode resumable` currently fails by
-  design for `session-export` packages. Re-run with default inspection mode and
+- Unsupported import: `session import --mode resumable` currently fails by
+  design for `session export` packages. Re-run with default inspection mode and
   fork from the imported historical session when work needs to continue.
 - Malformed or secret-looking package: import rejects ambiguous JSON,
   unsupported versions, and apparent unredacted secret material. Ask the

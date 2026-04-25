@@ -71,7 +71,7 @@ Use Glassbox in a few distinct modes:
 - explicit state-driven control with `message`, `answer`, `approve`, `deny`, `resume`, and `status`
 - browser-based inspection and action through the dashboard
 - historical branching with `fork`
-- portable handoff with `session-export` and inspection-only `session-import`
+- portable handoff with `session export` and inspection-only `session import`
 - repository defaults through `glassbox.profile.json`
 - replay and eval verification with `replay`, `replay-export`, and `eval`
 

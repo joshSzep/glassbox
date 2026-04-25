@@ -146,7 +146,7 @@ class SessionExportEventSummary(BaseModel):
 
 
 class SessionExportPayload(BaseModel):
-    """Inspectable portable session-export package."""
+    """Inspectable portable session export package."""
 
     model_config = ConfigDict(extra="forbid")
     export_kind: Literal["glassbox_session_export"] = SESSION_EXPORT_KIND
