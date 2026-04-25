@@ -68,9 +68,9 @@ glassbox answer SESSION_ID QUESTION_ID ANSWER
 glassbox resume SESSION_ID
 glassbox fork SESSION_ID [--turn TURN_ID] [--branch-label LABEL] [--prompt PROMPT]
 glassbox status SESSION_ID
-glassbox replay SESSION_ID [--json]
-glassbox replay --bundle BUNDLE_PATH [--json]
-glassbox replay-export SESSION_ID [OUTPUT]
+glassbox replay run SESSION_ID [--json]
+glassbox replay run --bundle BUNDLE_PATH [--json]
+glassbox replay export SESSION_ID [OUTPUT]
 glassbox eval run [CASE_ID ...] [--tag TAG] [--json] [--output-dir DIR]
 glassbox eval audit [CASE_ID ...] [--profile PROFILE_ID] [--tag TAG] [--json]
 glassbox eval profiles [--track deterministic|live-provider-canary] [--json]

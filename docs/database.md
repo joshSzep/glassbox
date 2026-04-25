@@ -446,7 +446,7 @@ gaps rather than silently repaired or removed from the event log.
 ## Workspace Backup And Restore
 
 Workspace backup is the recovery path for local Glassbox state. It is separate
-from `replay-export` and eval baseline promotion: replay bundles are portable
+from `replay export` and eval baseline promotion: replay bundles are portable
 session fixtures, while workspace backups are operational snapshots of the local
 runtime state needed to recover the same workspace history.
 

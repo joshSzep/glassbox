@@ -43,6 +43,7 @@ def test_cli_replay_reports_exact_match_without_mutating_source_session(
     exit_code = main(
         [
             "replay",
+            "run",
             str(session_id),
             "--cwd",
             str(tmp_path),
@@ -100,6 +101,7 @@ def test_cli_replay_reports_behavioral_drift_and_exit_code(
     exit_code = main(
         [
             "replay",
+            "run",
             str(session_id),
             "--cwd",
             str(tmp_path),
@@ -130,6 +132,7 @@ def test_cli_replay_reports_manifest_drift_and_exit_code(
     exit_code = main(
         [
             "replay",
+            "run",
             str(session_id),
             "--cwd",
             str(tmp_path),
@@ -159,6 +162,7 @@ def test_cli_replay_missing_bundle_reports_replay_failure_and_next_inspection(
     exit_code = main(
         [
             "replay",
+            "run",
             "--bundle",
             str(missing_bundle),
             "--cwd",
@@ -186,6 +190,7 @@ def test_cli_replay_json_output_contains_structured_report(
     exit_code = main(
         [
             "replay",
+            "run",
             str(session_id),
             "--json",
             "--cwd",
@@ -219,7 +224,8 @@ def test_cli_replay_export_writes_bundle_and_bundle_replay_succeeds(
 
     export_exit_code = main(
         [
-            "replay-export",
+            "replay",
+            "export",
             str(session_id),
             str(bundle_path),
             "--cwd",
@@ -233,6 +239,7 @@ def test_cli_replay_export_writes_bundle_and_bundle_replay_succeeds(
     replay_exit_code = main(
         [
             "replay",
+            "run",
             "--bundle",
             str(bundle_path),
             "--cwd",
@@ -263,6 +270,7 @@ def test_cli_replay_requires_exactly_one_session_or_bundle_input(
     exit_code = main(
         [
             "replay",
+            "run",
             str(session_id),
             "--bundle",
             str(bundle_path),

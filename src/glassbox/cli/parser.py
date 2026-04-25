@@ -276,27 +276,38 @@ def _add_replay_parsers(
 ) -> None:
     replay_parser = subparsers.add_parser(
         "replay",
-        help="replay a recorded session offline",
+        help="run or export replay-backed baselines",
         description=(
-            "Replay a recorded session offline against the current codebase and "
-            "report whether behavior still matches the recorded baseline."
+            "Run replay verification against recorded sessions or portable "
+            "bundles, and export portable replay bundles."
         ),
     )
-    replay_parser.add_argument("session_id", nargs="?", type=_parse_uuid)
-    replay_parser.add_argument(
+    replay_subparsers = replay_parser.add_subparsers(dest="replay_command")
+
+    replay_run_parser = replay_subparsers.add_parser(
+        "run",
+        help="replay a recorded session or portable bundle offline",
+        description=(
+            "Replay a recorded session or portable replay bundle against the "
+            "current codebase and report whether behavior still matches the "
+            "recorded baseline."
+        ),
+    )
+    replay_run_parser.add_argument("session_id", nargs="?", type=_parse_uuid)
+    replay_run_parser.add_argument(
         "--bundle",
         default=None,
-        help="path to a portable replay bundle exported with replay-export",
+        help="path to a portable replay bundle exported with replay export",
     )
-    replay_parser.add_argument(
+    replay_run_parser.add_argument(
         "--json",
         action="store_true",
         help="print the structured replay report as JSON",
     )
-    _add_runtime_location_arguments(replay_parser)
+    _add_runtime_location_arguments(replay_run_parser)
 
-    replay_export_parser = subparsers.add_parser(
-        "replay-export",
+    replay_export_parser = replay_subparsers.add_parser(
+        "export",
         help="export a portable replay bundle",
         description=(
             "Export a recorded session into a portable replay bundle that can be "

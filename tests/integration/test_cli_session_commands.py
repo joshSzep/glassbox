@@ -52,7 +52,6 @@ def test_cli_help_lists_session_oriented_commands(
     assert "backup" in captured.out
     assert "rebuild" in captured.out
     assert "replay" in captured.out
-    assert "replay-export" in captured.out
     assert "eval" in captured.out
     assert "approve" in captured.out
     assert "deny" in captured.out
@@ -69,6 +68,19 @@ def test_cli_session_help_lists_handoff_subcommands(
     assert exc_info.value.code == 0
     assert "export" in captured.out
     assert "import" in captured.out
+
+
+def test_cli_replay_help_lists_replay_subcommands(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["replay", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 0
+    assert "run" in captured.out
+    assert "export" in captured.out
 
 
 def test_cli_answer_resumes_pending_ask_user_turn(

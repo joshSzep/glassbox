@@ -35,10 +35,14 @@ from glassbox.runtime.workspace_profile import resolve_eval_profile_default
 
 
 def _replay_command(args: argparse.Namespace) -> int:
-    return asyncio.run(_replay_command_async(args))
+    if args.replay_command == "run":
+        return asyncio.run(_replay_run_command_async(args))
+    if args.replay_command == "export":
+        return _replay_export_command(args)
+    raise ValueError("specify a replay subcommand")
 
 
-async def _replay_command_async(args: argparse.Namespace) -> int:
+async def _replay_run_command_async(args: argparse.Namespace) -> int:
     cwd, db_path = resolve_runtime_location(args)
 
     if (args.session_id is None) == (args.bundle is None):

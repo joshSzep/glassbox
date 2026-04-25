@@ -11,8 +11,8 @@ Use replay and eval as repository-owned behavioral contracts, not as a replaceme
 
 - Use `status`, `attach`, `message`, `answer`, `approve`, and `deny` for live or paused sessions.
 - Use `fork` when you want a new child session from a stable historical turn.
-- Use `replay` when you want to re-check one recorded session.
-- Use `replay-export` when you want a portable replay bundle.
+- Use `replay run` when you want to re-check one recorded session or portable bundle.
+- Use `replay export` when you want a portable replay bundle.
 - Use `eval run` when you want curated checked-in regression cases.
 - Use `eval audit` when you want coverage and contract-gap reporting.
 - Use `eval recommend` when you want suggested replay cases or eval profiles for a changed path set.
@@ -24,19 +24,19 @@ Use replay and eval as repository-owned behavioral contracts, not as a replaceme
 Replay one recorded session:
 
 ```bash
-uv run glassbox replay SESSION_ID --cwd .
+uv run glassbox replay run SESSION_ID --cwd .
 ```
 
 Replay a portable bundle:
 
 ```bash
-uv run glassbox replay --bundle evals/bundles/CASE_ID.json --cwd .
+uv run glassbox replay run --bundle evals/bundles/CASE_ID.json --cwd .
 ```
 
 Export a portable bundle:
 
 ```bash
-uv run glassbox replay-export SESSION_ID
+uv run glassbox replay export SESSION_ID
 ```
 
 ## Eval Suite Commands

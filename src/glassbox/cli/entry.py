@@ -58,7 +58,6 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
     from glassbox.cli.interactive_commands import _run_command
     from glassbox.cli.replay_eval_commands import _eval_command
     from glassbox.cli.replay_eval_commands import _replay_command
-    from glassbox.cli.replay_eval_commands import _replay_export_command
     from glassbox.cli.server_commands import _serve_command
     from glassbox.cli.session_state_commands import _rebuild_command
     from glassbox.cli.session_state_commands import _session_command
@@ -74,7 +73,6 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
         "status": _status_command,
         "session": _session_command,
         "replay": _replay_command,
-        "replay-export": _replay_export_command,
         "eval": _eval_command,
         "artifacts": _artifacts_command,
         "backup": _backup_command,

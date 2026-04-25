@@ -1764,7 +1764,7 @@ uv run ty check src/glassbox/path.py
 - Depends on: `GBX-111`, `GBX-192`
 - Goal: give operators a practical command for replaying a session and understanding where current behavior diverges from the recorded baseline
 - Deliverables:
-  - `glassbox replay SESSION_ID` command or equivalent CLI surface for deterministic replay of a persisted session
+  - `glassbox replay run SESSION_ID` command or equivalent CLI surface for deterministic replay of a persisted session
   - structured replay diff report covering at least transcript output, tool calls, approval / question flow, and final session-state differences
   - machine-readable replay result output such as JSON for downstream automation, plus concise human-readable terminal rendering
   - meaningful exit-code semantics for match, drift, unsupported session, and replay failure outcomes

@@ -109,6 +109,7 @@ def test_backup_restore_into_clean_workspace_preserves_discovery_and_replay(
     replay_exit_code = main(
         [
             "replay",
+            "run",
             str(session_id),
             "--cwd",
             str(restored_root),

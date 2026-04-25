@@ -70,7 +70,7 @@ Read those summaries with this mental model:
 - `resume` recomputes repository context, reloads runtime notes, rebuilds the working set, and reloads artifact-backed summaries when available
 - `fork` imports active parent runtime notes as inherited notes and rebuilds replay-safe working-set context for the child session
 - `replay` records per-source enriched-context metadata and can report source-level drift
-- `replay-export` and `eval` preserve inherited notes, lineage, and artifact-backed dependencies in portable form
+- `replay export` and `eval` preserve inherited notes, lineage, and artifact-backed dependencies in portable form
 
 ## Troubleshooting
 

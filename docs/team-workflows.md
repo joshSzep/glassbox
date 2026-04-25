@@ -133,7 +133,7 @@ uv run glassbox session export SESSION_ID handoff.json --cwd .
 ```
 
 The package is an inspectable JSON file for review and handoff. It is distinct
-from `replay-export`: session export carries redacted session metadata,
+from `replay export`: session export carries redacted session metadata,
 transcript, lineage, pending-action context, event summaries, and retained
 artifact references, while replay export carries deterministic execution
 fixtures for offline replay. Session export does not include the SQLite database

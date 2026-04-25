@@ -73,7 +73,7 @@ Use Glassbox in a few distinct modes:
 - historical branching with `fork`
 - portable handoff with `session export` and inspection-only `session import`
 - repository defaults through `glassbox.profile.json`
-- replay and eval verification with `replay`, `replay-export`, and `eval`
+- replay and eval verification with `replay run`, `replay export`, and `eval`
 
 Persistence is local to the selected workspace by default. Glassbox stores runtime state under `.glassbox/`, with the SQLite database at `.glassbox/glassbox.sqlite3` unless you override `--db-path`.
 
