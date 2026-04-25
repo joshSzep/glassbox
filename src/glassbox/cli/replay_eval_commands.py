@@ -2,9 +2,10 @@
 
 import argparse
 import asyncio
-import json
 from pathlib import Path
 
+from glassbox.cli.json_output import format_json_output
+from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_eval_report_output_dir
 from glassbox.cli.path_helpers import resolve_optional_explicit_path
 from glassbox.cli.path_helpers import resolve_optional_output_path
@@ -56,13 +57,7 @@ async def _replay_command_async(args: argparse.Namespace) -> int:
             ).replay_session(session_id)
 
     if args.json:
-        print(
-            json.dumps(
-                _replay_result_payload(result),
-                indent=2,
-                sort_keys=True,
-            )
-        )
+        print_json_output(_replay_result_payload(result))
     else:
         _print_replay_report(result)
 
@@ -105,13 +100,7 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
         )
 
         if args.json:
-            print(
-                json.dumps(
-                    suite_result.model_dump(mode="json"),
-                    indent=2,
-                    sort_keys=True,
-                )
-            )
+            print_json_output(suite_result.model_dump(mode="json"))
         else:
             _print_eval_suite_report(suite_result)
 
@@ -128,13 +117,7 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
         )
 
         if args.json:
-            print(
-                json.dumps(
-                    audit_result.model_dump(mode="json"),
-                    indent=2,
-                    sort_keys=True,
-                )
-            )
+            print_json_output(audit_result.model_dump(mode="json"))
         else:
             _print_eval_coverage_audit(result=audit_result, workspace_root=cwd)
         return 0
@@ -145,13 +128,7 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
         profiles = load_eval_profiles(cwd, track=args.track)
 
         if args.json:
-            print(
-                json.dumps(
-                    [profile.model_dump(mode="json") for profile in profiles],
-                    indent=2,
-                    sort_keys=True,
-                )
-            )
+            print_json_output([profile.model_dump(mode="json") for profile in profiles])
         else:
             _print_eval_profiles(workspace_root=cwd, profiles=profiles)
         return 0
@@ -228,7 +205,7 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
         report_json_path = root_output_dir / "release-signoff.json"
         report_summary_path = root_output_dir / "release-signoff.md"
         report_json_path.write_text(
-            json.dumps(report.model_dump(mode="json"), indent=2, sort_keys=True) + "\n",
+            format_json_output(report.model_dump(mode="json")) + "\n",
             encoding="utf-8",
         )
         report_summary_path.write_text(
@@ -237,7 +214,7 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
         )
 
         if args.json:
-            print(json.dumps(report.model_dump(mode="json"), indent=2, sort_keys=True))
+            print_json_output(report.model_dump(mode="json"))
         else:
             print(build_eval_release_signoff_summary(report), end="")
         return report.exit_code
@@ -271,7 +248,7 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
             )
 
         if args.json:
-            print(json.dumps(report.model_dump(mode="json"), indent=2, sort_keys=True))
+            print_json_output(report.model_dump(mode="json"))
         else:
             _print_eval_baseline_update(report)
         return 0
@@ -308,7 +285,7 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
             )
 
         if args.json:
-            print(json.dumps(report.model_dump(mode="json"), indent=2, sort_keys=True))
+            print_json_output(report.model_dump(mode="json"))
         else:
             _print_eval_baseline_update(report)
         return 0

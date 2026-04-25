@@ -1,11 +1,11 @@
 """CLI command handlers for the persistent workspace runtime owner."""
 
 import argparse
-import json
 import shlex
 from dataclasses import dataclass
 from pathlib import Path
 
+from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.runtime.daemon import RuntimeOwnerStatus
 from glassbox.runtime.daemon import clear_stale_runtime_owner
@@ -118,7 +118,7 @@ def _daemon_status_command(args: argparse.Namespace) -> int:
     paths = resolve_runtime_owner_paths(cwd, db_path=db_path)
     report = _runtime_owner_status_report(status, paths.workspace_root, db_path)
     if args.json:
-        print(json.dumps(report.as_json(), indent=2, sort_keys=True))
+        print_json_output(report.as_json())
         return 0
     for line in _render_runtime_owner_status(report):
         print(line)

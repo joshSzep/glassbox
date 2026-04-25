@@ -1,8 +1,8 @@
 """CLI command handlers for workspace backup and restore."""
 
 import argparse
-import json
 
+from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_optional_output_path
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.runtime.bootstrap_storage import default_database_path
@@ -39,7 +39,7 @@ def _backup_create_command(args: argparse.Namespace) -> int:
         output_path=output_path,
     )
     if args.json:
-        print(json.dumps(report.to_json_payload(), indent=2, sort_keys=True))
+        print_json_output(report.to_json_payload())
         return 0
     _print_backup_report(report)
     return 0
@@ -63,7 +63,7 @@ def _backup_restore_command(args: argparse.Namespace) -> int:
         force=args.force,
     )
     if args.json:
-        print(json.dumps(report.to_json_payload(), indent=2, sort_keys=True))
+        print_json_output(report.to_json_payload())
         return 0
     _print_restore_report(report)
     return 0

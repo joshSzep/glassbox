@@ -1,8 +1,8 @@
 """CLI command handlers for artifact retention operations."""
 
 import argparse
-import json
 
+from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.store.artifact_retention import ArtifactGcReport
@@ -33,7 +33,7 @@ def _artifact_gc_command(args: argparse.Namespace) -> int:
         )
 
     if args.json:
-        print(json.dumps(report.to_json_payload(), indent=2, sort_keys=True))
+        print_json_output(report.to_json_payload())
         return 0
 
     _print_artifact_gc_report(report, dry_run=args.dry_run)
