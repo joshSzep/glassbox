@@ -52,6 +52,30 @@ def test_cli_unknown_command_exits_with_parser_error(
     assert "invalid choice: 'not-a-command'" in captured.err
 
 
+@pytest.mark.parametrize(
+    ("argv", "usage"),
+    [
+        (["session"], "usage: glassbox session"),
+        (["eval", "profile"], "usage: glassbox eval profile"),
+        (["eval", "case"], "usage: glassbox eval case"),
+        (["backup"], "usage: glassbox backup"),
+    ],
+)
+def test_cli_missing_nested_subcommand_exits_with_parser_error(
+    argv: list[str],
+    usage: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(argv)
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 2
+    assert usage in captured.err
+    assert "the following arguments are required" in captured.err
+
+
 def test_cli_invalid_port_exits_with_parser_error(
     capsys: pytest.CaptureFixture[str],
 ) -> None:

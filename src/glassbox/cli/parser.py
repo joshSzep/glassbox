@@ -94,7 +94,10 @@ def _add_session_workflow_parsers(
             "Inspect, mutate, branch, resume, and hand off persisted sessions."
         ),
     )
-    session_subparsers = session_parser.add_subparsers(dest="session_command")
+    session_subparsers = session_parser.add_subparsers(
+        dest="session_command",
+        required=True,
+    )
 
     attach_parser = session_subparsers.add_parser(
         "attach",
@@ -281,7 +284,10 @@ def _add_replay_parsers(
             "bundles, and export portable replay bundles."
         ),
     )
-    replay_subparsers = replay_parser.add_subparsers(dest="replay_command")
+    replay_subparsers = replay_parser.add_subparsers(
+        dest="replay_command",
+        required=True,
+    )
 
     replay_run_parser = replay_subparsers.add_parser(
         "run",
@@ -333,7 +339,10 @@ def _add_eval_parsers(
             "summary suitable for local validation or CI."
         ),
     )
-    eval_subparsers = eval_parser.add_subparsers(dest="eval_command")
+    eval_subparsers = eval_parser.add_subparsers(
+        dest="eval_command",
+        required=True,
+    )
 
     eval_run_parser = eval_subparsers.add_parser(
         "run",
@@ -423,7 +432,8 @@ def _add_eval_parsers(
         description="Inspect repository-owned eval profiles and tracks.",
     )
     eval_profile_subparsers = eval_profile_parser.add_subparsers(
-        dest="eval_profile_command"
+        dest="eval_profile_command",
+        required=True,
     )
 
     eval_profile_list_parser = eval_profile_subparsers.add_parser(
@@ -511,7 +521,10 @@ def _add_eval_parsers(
         help="work with repository-owned eval cases",
         description="Promote or refresh repository-owned eval cases.",
     )
-    eval_case_subparsers = eval_case_parser.add_subparsers(dest="eval_case_command")
+    eval_case_subparsers = eval_case_parser.add_subparsers(
+        dest="eval_case_command",
+        required=True,
+    )
 
     eval_promote_parser = eval_case_subparsers.add_parser(
         "promote",
@@ -680,7 +693,10 @@ def _add_operations_parsers(
             "canonical persisted events."
         ),
     )
-    projection_subparsers = projection_parser.add_subparsers(dest="projection_command")
+    projection_subparsers = projection_parser.add_subparsers(
+        dest="projection_command",
+        required=True,
+    )
 
     projection_check_parser = projection_subparsers.add_parser(
         "check",
@@ -713,7 +729,10 @@ def _add_operations_parsers(
         help="work with the browser dashboard",
         description="Start or inspect browser dashboard surfaces.",
     )
-    dashboard_subparsers = dashboard_parser.add_subparsers(dest="dashboard_command")
+    dashboard_subparsers = dashboard_parser.add_subparsers(
+        dest="dashboard_command",
+        required=True,
+    )
 
     serve_parser = dashboard_subparsers.add_parser(
         "serve",
@@ -743,7 +762,10 @@ def _add_operations_parsers(
             "for the selected workspace."
         ),
     )
-    daemon_subparsers = daemon_parser.add_subparsers(dest="daemon_command")
+    daemon_subparsers = daemon_parser.add_subparsers(
+        dest="daemon_command",
+        required=True,
+    )
 
     daemon_start_parser = daemon_subparsers.add_parser(
         "start",
@@ -812,7 +834,10 @@ def _add_artifact_parsers(
             "outputs without touching canonical event data."
         ),
     )
-    artifacts_subparsers = artifacts_parser.add_subparsers(dest="artifacts_command")
+    artifacts_subparsers = artifacts_parser.add_subparsers(
+        dest="artifacts_command",
+        required=True,
+    )
 
     prune_parser = artifacts_subparsers.add_parser(
         "prune",
@@ -853,7 +878,10 @@ def _add_backup_parsers(
             ".glassbox artifacts, not portable replay or eval baseline bundles."
         ),
     )
-    backup_subparsers = backup_parser.add_subparsers(dest="backup_command")
+    backup_subparsers = backup_parser.add_subparsers(
+        dest="backup_command",
+        required=True,
+    )
 
     create_parser = backup_subparsers.add_parser(
         "create",
