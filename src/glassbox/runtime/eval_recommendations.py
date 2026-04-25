@@ -17,6 +17,7 @@ from glassbox.runtime.eval_coverage import load_eval_coverage_manifest
 from glassbox.runtime.evals import EvalCase
 from glassbox.runtime.evals import EvalProfileDefinition
 from glassbox.runtime.evals import EvalProfileTrack
+from glassbox.runtime.evals import EvalVerificationStage
 from glassbox.runtime.evals import _ensure_path_within_root
 from glassbox.runtime.evals import _normalize_identifier
 from glassbox.runtime.evals import discover_eval_case_files
@@ -44,6 +45,11 @@ _CONFIDENCE_PRIORITY: dict[EvalRecommendationConfidence, int] = {
     "stage-derived": 2,
     "fallback": 1,
 }
+_DAILY_RELEASE_STAGES: tuple[EvalVerificationStage, ...] = (
+    "commit-time",
+    "push-time",
+    "release-candidate",
+)
 
 
 class EvalImpactRule(BaseModel):
@@ -213,6 +219,21 @@ class EvalProfileRecommendation(BaseModel):
     reasons: list[EvalRecommendationReason] = Field(default_factory=list)
 
 
+class EvalReleaseSurfaceRecommendation(BaseModel):
+    """Daily-development view of one release verification surface."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    verification_stage: EvalVerificationStage
+    impacted: bool = False
+    recommended_case_ids: list[str] = Field(default_factory=list)
+    recommended_profile_ids: list[str] = Field(default_factory=list)
+    blocking_profile_ids: list[str] = Field(default_factory=list)
+    impacted_capability_ids: list[str] = Field(default_factory=list)
+    owner_ids: list[str] = Field(default_factory=list)
+    profile_budget_notes: list[str] = Field(default_factory=list)
+
+
 class EvalRecommendationReport(BaseModel):
     """Structured replay/eval recommendation report for one change set."""
 
@@ -224,6 +245,9 @@ class EvalRecommendationReport(BaseModel):
     unmatched_paths: list[str] = Field(default_factory=list)
     coverage_audit_recommended: bool = False
     warnings: list[str] = Field(default_factory=list)
+    release_surfaces: list[EvalReleaseSurfaceRecommendation] = Field(
+        default_factory=list
+    )
     cases: list[EvalCaseRecommendation] = Field(default_factory=list)
     profiles: list[EvalProfileRecommendation] = Field(default_factory=list)
     suggested_commands: list[str] = Field(default_factory=list)
@@ -343,6 +367,11 @@ def recommend_eval_change_impact(
         profile_recommendations,
         coverage_audit_recommended=coverage_audit_recommended,
     )
+    release_surfaces = _build_release_surface_recommendations(
+        case_recommendations=case_recommendations,
+        profile_recommendations=profile_recommendations,
+        profiles_by_id=profiles_by_id,
+    )
 
     return EvalRecommendationReport(
         workspace_root=resolved_workspace_root,
@@ -351,6 +380,7 @@ def recommend_eval_change_impact(
         unmatched_paths=unmatched_paths,
         coverage_audit_recommended=coverage_audit_recommended,
         warnings=_dedupe_strings(warnings),
+        release_surfaces=release_surfaces,
         cases=case_recommendations,
         profiles=profile_recommendations,
         suggested_commands=suggested_commands,
@@ -858,6 +888,93 @@ def _build_suggested_commands(
     if coverage_audit_recommended:
         commands.append("uv run glassbox eval audit --cwd .")
     return _dedupe_strings(commands)
+
+
+def _build_release_surface_recommendations(
+    *,
+    case_recommendations: list[EvalCaseRecommendation],
+    profile_recommendations: list[EvalProfileRecommendation],
+    profiles_by_id: dict[str, EvalProfileDefinition],
+) -> list[EvalReleaseSurfaceRecommendation]:
+    surfaces: list[EvalReleaseSurfaceRecommendation] = []
+    for stage in _DAILY_RELEASE_STAGES:
+        stage_cases = [
+            recommendation
+            for recommendation in case_recommendations
+            if stage in recommendation.verification_stages
+        ]
+        stage_profiles = [
+            recommendation
+            for recommendation in profile_recommendations
+            if recommendation.verification_stage == stage
+        ]
+        surfaces.append(
+            EvalReleaseSurfaceRecommendation(
+                verification_stage=stage,
+                impacted=bool(stage_cases or stage_profiles),
+                recommended_case_ids=[case.case_id for case in stage_cases],
+                recommended_profile_ids=[
+                    profile.profile_id for profile in stage_profiles
+                ],
+                blocking_profile_ids=[
+                    profile.profile_id for profile in stage_profiles if profile.blocking
+                ],
+                impacted_capability_ids=_stage_capability_ids(stage_cases),
+                owner_ids=_stage_owner_ids(stage_cases),
+                profile_budget_notes=_stage_profile_budget_notes(
+                    stage_profiles,
+                    profiles_by_id=profiles_by_id,
+                ),
+            )
+        )
+    return surfaces
+
+
+def _stage_capability_ids(
+    stage_cases: list[EvalCaseRecommendation],
+) -> list[str]:
+    capability_ids: list[str] = []
+    for case in stage_cases:
+        for capability_id in case.capabilities:
+            if capability_id not in capability_ids:
+                capability_ids.append(capability_id)
+    return capability_ids
+
+
+def _stage_owner_ids(stage_cases: list[EvalCaseRecommendation]) -> list[str]:
+    owner_ids: list[str] = []
+    for case in stage_cases:
+        if case.owner is None or case.owner in owner_ids:
+            continue
+        owner_ids.append(case.owner)
+    return owner_ids
+
+
+def _stage_profile_budget_notes(
+    stage_profiles: list[EvalProfileRecommendation],
+    *,
+    profiles_by_id: dict[str, EvalProfileDefinition],
+) -> list[str]:
+    notes: list[str] = []
+    for profile_recommendation in stage_profiles:
+        profile = profiles_by_id.get(profile_recommendation.profile_id)
+        if profile is None or profile.budget is None:
+            continue
+        budget = profile.budget
+        fragments: list[str] = []
+        if budget.max_selected_case_count is not None:
+            fragments.append(f"case limit {budget.max_selected_case_count}")
+        if budget.max_selected_invariant_case_count is not None:
+            fragments.append(
+                f"selected-invariant limit {budget.max_selected_invariant_case_count}"
+            )
+        if budget.max_recorded_model_call_count is not None:
+            fragments.append(f"model-call limit {budget.max_recorded_model_call_count}")
+        if budget.allow_advisory_cases is False:
+            fragments.append("advisory cases disallowed")
+        if fragments:
+            notes.append(f"{profile.profile_id}: " + "; ".join(fragments))
+    return notes
 
 
 def _dedupe_strings(values: list[str]) -> list[str]:

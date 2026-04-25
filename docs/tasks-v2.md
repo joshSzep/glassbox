@@ -557,7 +557,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-343: Add Release-Oriented Replay And Eval Workflow Surfaces For Daily Development
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-247`, `GBX-341`, `GBX-342`
 - Goal: connect the existing release-discipline model more tightly to everyday contributor workflows
 - Deliverables:

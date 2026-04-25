@@ -44,6 +44,11 @@ def test_cli_eval_run_reports_mixed_outcomes_and_writes_artifacts(
         title="Manifest drift",
         bundle_name=manifest_bundle_path.name,
         tags=["smoke", "provider-mode"],
+        release_contract={
+            "owner": "runtime.replay",
+            "capabilities": ["replay_portability"],
+            "verification_stages": ["release-candidate"],
+        },
     )
     output_dir = tmp_path / "eval-output"
     _ = capsys.readouterr()
@@ -80,6 +85,9 @@ def test_cli_eval_run_reports_mixed_outcomes_and_writes_artifacts(
         in captured.out
     )
     assert "Next inspect: Inspect the recorded prepared turn manifest" in captured.out
+    assert "Owner: runtime.replay" in captured.out
+    assert "Capabilities: replay_portability" in captured.out
+    assert "Release stages: release-candidate" in captured.out
     assert str(output_dir.resolve()) in captured.out
     assert summary["selected_case_count"] == 2
     assert summary["passed_case_count"] == 1
@@ -425,6 +433,10 @@ def test_cli_eval_recommend_reports_cases_profiles_and_reasons(
                 "verification_stage": "commit-time",
                 "tags": ["smoke"],
                 "blocking": True,
+                "budget": {
+                    "max_selected_case_count": 2,
+                    "allow_advisory_cases": False,
+                },
             },
             {
                 "profile_id": "push-confirmation",
@@ -432,6 +444,11 @@ def test_cli_eval_recommend_reports_cases_profiles_and_reasons(
                 "verification_stage": "push-time",
                 "tags": ["smoke"],
                 "blocking": True,
+                "budget": {
+                    "max_selected_case_count": 2,
+                    "max_recorded_model_call_count": 4,
+                    "allow_advisory_cases": False,
+                },
             },
             {
                 "profile_id": "release-candidate",
@@ -498,6 +515,26 @@ def test_cli_eval_recommend_reports_cases_profiles_and_reasons(
         "commit-smoke",
         "push-confirmation",
     ]
+    assert [
+        surface["verification_stage"] for surface in payload["release_surfaces"]
+    ] == [
+        "commit-time",
+        "push-time",
+        "release-candidate",
+    ]
+    assert payload["release_surfaces"][0] == {
+        "verification_stage": "commit-time",
+        "impacted": True,
+        "recommended_case_ids": ["smoke.readme"],
+        "recommended_profile_ids": ["commit-smoke"],
+        "blocking_profile_ids": ["commit-smoke"],
+        "impacted_capability_ids": ["smoke_validation", "replay_portability"],
+        "owner_ids": ["runtime.replay"],
+        "profile_budget_notes": [
+            "commit-smoke: case limit 2; advisory cases disallowed"
+        ],
+    }
+    assert payload["release_surfaces"][2]["impacted"] is False
     assert all(
         profile["confidence"] == "stage-derived" for profile in payload["profiles"]
     )

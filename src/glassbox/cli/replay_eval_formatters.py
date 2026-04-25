@@ -159,6 +159,12 @@ def _print_eval_suite_report(result: EvalSuiteResult) -> None:
             print("    Drift sources: " + ", ".join(case_result.triage_drift_sources))
         if case_result.triage_recommended_inspection_path:
             print("    Next inspect: " + case_result.triage_recommended_inspection_path)
+        if case_result.owner:
+            print("    Owner: " + case_result.owner)
+        if case_result.capabilities:
+            print("    Capabilities: " + ", ".join(case_result.capabilities))
+        if case_result.verification_stages:
+            print("    Release stages: " + ", ".join(case_result.verification_stages))
         print(f"    Artifact: {case_result.artifact_path}")
 
 
@@ -218,6 +224,25 @@ def _print_eval_recommendations(result: EvalRecommendationReport) -> None:
         print("Warnings:")
         for warning in result.warnings:
             print(f"  - {warning}")
+    if result.release_surfaces:
+        print("Release surfaces:")
+        for surface in result.release_surfaces:
+            status = "impacted" if surface.impacted else "not impacted"
+            print(f"  - {surface.verification_stage}: {status}")
+            if surface.recommended_profile_ids:
+                print("    Profiles: " + ", ".join(surface.recommended_profile_ids))
+            if surface.blocking_profile_ids:
+                print("    Blocking: " + ", ".join(surface.blocking_profile_ids))
+            if surface.recommended_case_ids:
+                print("    Cases: " + ", ".join(surface.recommended_case_ids))
+            if surface.impacted_capability_ids:
+                print("    Capabilities: " + ", ".join(surface.impacted_capability_ids))
+            if surface.owner_ids:
+                print("    Owners: " + ", ".join(surface.owner_ids))
+            if surface.profile_budget_notes:
+                print("    Budget notes:")
+                for note in surface.profile_budget_notes:
+                    print("      - " + note)
     if result.cases:
         print("Recommended cases:")
         for case in result.cases:

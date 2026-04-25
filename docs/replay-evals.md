@@ -155,6 +155,12 @@ The recommendation steps are:
   - `evals/profiles.json` contributes stage-specific profile recommendations, deterministic-versus-canary track, and budget expectations
 4. Rank and explain recommendations by confidence rather than flattening them into one opaque list.
 
+`eval recommend` also prints a compact daily-development release-surface view for
+`commit-time`, `push-time`, and `release-candidate`. Each row shows whether that
+surface is impacted, which deterministic profiles and cases are recommended,
+which blocking profiles are involved, and any profile-budget notes that matter
+for local verification scope.
+
 Recommendation confidence should be visible in output:
 
 - `direct`: the touched path matched a rule that named the case, capability, or profile explicitly
