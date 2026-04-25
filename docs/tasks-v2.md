@@ -297,7 +297,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-313: Add Workspace Backup And State Export For Recovery
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-310`, `GBX-312`
 - Goal: provide a first-class recovery path for workspace-local Glassbox state beyond manual SQLite and artifact copying
 - Deliverables:
@@ -313,6 +313,9 @@ Each phase below corresponds to one concrete milestone.
   - regression tests proving restored state preserves replayability and session discoverability
 - Done when:
   - an operator has a supported way to back up and restore Glassbox workspace state without ad hoc filesystem surgery
+  - `glassbox backup create` writes an inspectable archive containing a manifest, canonical SQLite snapshot, and event-referenced `.glassbox` artifacts
+  - `glassbox backup restore` validates manifest file hashes and refuses to overwrite existing restored files unless explicitly forced
+  - restored workspaces preserve session discovery and deterministic replay for backed-up sessions
 
 ---
 

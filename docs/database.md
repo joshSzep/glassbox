@@ -443,6 +443,33 @@ artifacts, source-controlled replay bundles under `evals/`, or curated eval
 baselines. Missing event-referenced artifact files are reported as integrity
 gaps rather than silently repaired or removed from the event log.
 
+## Workspace Backup And Restore
+
+Workspace backup is the recovery path for local Glassbox state. It is separate
+from `replay-export` and eval baseline promotion: replay bundles are portable
+session fixtures, while workspace backups are operational snapshots of the local
+runtime state needed to recover the same workspace history.
+
+`glassbox backup create [output]` writes an inspectable zip archive with:
+
+- `glassbox-backup.json`, a manifest with format version, source paths, file
+    roles, byte sizes, and SHA-256 hashes
+- a SQLite snapshot of the canonical database stored as `.glassbox/glassbox.sqlite3`
+- event-referenced local artifacts under `.glassbox/sessions/*/artifacts/`
+
+The backup scope intentionally excludes source-controlled `evals/` bundles,
+curated eval baselines, provider credentials, runtime owner metadata, logs, and
+orphaned or stale artifacts that are not referenced by canonical events. If a
+canonical artifact event points at a missing local file, backup creation fails so
+the operator sees the integrity gap instead of creating an incomplete recovery
+archive.
+
+`glassbox backup restore <archive>` validates the manifest and every archived
+file hash before writing. Restore writes the database to the selected runtime
+database path and restores event-referenced artifacts under the target
+workspace's `.glassbox` directory. Existing target files are not overwritten
+unless `--force` is supplied.
+
 ## Query Patterns This Design Optimizes
 
 ### Rebuild A Session Transcript Snapshot

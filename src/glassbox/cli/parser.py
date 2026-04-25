@@ -41,6 +41,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_replay_parsers(subparsers)
     _add_eval_parsers(subparsers)
     _add_artifact_parsers(subparsers)
+    _add_backup_parsers(subparsers)
     _add_operations_parsers(subparsers)
 
     return parser
@@ -715,6 +716,62 @@ def _add_artifact_parsers(
         action="store_true",
         help="print the artifact retention report as JSON",
     )
+
+
+def _add_backup_parsers(
+    subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    backup_parser = subparsers.add_parser(
+        "backup",
+        help="create or restore workspace state backups",
+        description=(
+            "Create or restore inspectable workspace-local Glassbox backups. "
+            "Backups include the canonical SQLite database and event-referenced "
+            ".glassbox artifacts, not portable replay or eval baseline bundles."
+        ),
+    )
+    backup_subparsers = backup_parser.add_subparsers(dest="backup_command")
+
+    create_parser = backup_subparsers.add_parser(
+        "create",
+        help="create a workspace backup archive",
+        description=(
+            "Create an inspectable zip archive containing the canonical SQLite "
+            "database and event-referenced workspace artifacts."
+        ),
+    )
+    create_parser.add_argument(
+        "output",
+        nargs="?",
+        help="optional output path for the backup archive",
+    )
+    create_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the backup report as JSON",
+    )
+    _add_runtime_location_arguments(create_parser)
+
+    restore_parser = backup_subparsers.add_parser(
+        "restore",
+        help="restore a workspace backup archive",
+        description=(
+            "Restore a Glassbox workspace backup into the selected workspace. "
+            "The archive manifest and file hashes are validated before writing."
+        ),
+    )
+    restore_parser.add_argument("archive", help="backup archive to restore")
+    restore_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="overwrite existing restored files in the target workspace",
+    )
+    restore_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the restore report as JSON",
+    )
+    _add_runtime_location_arguments(restore_parser)
 
 
 def _add_runtime_location_arguments(parser: argparse.ArgumentParser) -> None:
