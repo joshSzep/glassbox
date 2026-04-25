@@ -18,6 +18,7 @@ from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import TurnId
 from glassbox.core.models import ApprovalRecord
+from glassbox.core.models import PolicyActivitySummary
 from glassbox.core.models import ProjectionHealth
 from glassbox.core.models import SessionRecord
 from glassbox.core.models import SessionState
@@ -207,6 +208,10 @@ class SessionSnapshotView(BaseModel):
     transcript: list[TranscriptMessage] = Field(default_factory=list)
     active_tool_calls: list[ToolCallRecord] = Field(default_factory=list)
     pending_approvals: list[ApprovalRecord] = Field(default_factory=list)
+    session_policy_summary: PolicyActivitySummary = Field(
+        default_factory=PolicyActivitySummary
+    )
+    current_turn_policy_summary: PolicyActivitySummary | None = None
     turn_metrics: list[TurnMetricsRecord] = Field(default_factory=list)
     runtime_context: RuntimeContextSnapshot
     projection_health: ProjectionHealth
@@ -221,6 +226,7 @@ class SessionStatusView(BaseModel):
     effective_current_turn_id: TurnId | None = None
     current_turn_metrics: TurnMetricsRecord | None = None
     latest_turn_metrics: TurnMetricsRecord | None = None
+    latest_turn_policy_summary: PolicyActivitySummary | None = None
     recent_tool_calls: list[ToolCallRecord] = Field(default_factory=list)
     latest_message_summary: str | None = None
 
@@ -272,14 +278,16 @@ class SessionQueryService:
             if projections_available
             else []
         )
-        active_tool_calls = (
-            self._session_repository.list_tool_calls(
-                session_id,
-                status=ToolExecutionStatus.RUNNING,
-            )
+        all_tool_calls = (
+            self._session_repository.list_tool_calls(session_id)
             if projections_available
             else []
         )
+        active_tool_calls = [
+            tool_call
+            for tool_call in all_tool_calls
+            if tool_call.status == ToolExecutionStatus.RUNNING
+        ]
         pending_approvals = (
             self._session_repository.list_approvals(
                 session_id,
@@ -320,9 +328,16 @@ class SessionQueryService:
             runtime_context = self._build_degraded_runtime_context(record)
             child_sessions = []
 
+        snapshot_status = _session_status(record, state)
+        effective_current_turn_id = _effective_current_turn_id(
+            state.current_turn_id if state is not None else None,
+            snapshot_status,
+            pending_approvals,
+        )
+
         return SessionSnapshotView(
             session_id=record.session_id,
-            status=_session_status(record, state),
+            status=snapshot_status,
             current_turn_id=state.current_turn_id if state is not None else None,
             model_name=record.model_name,
             cwd=str(record.cwd),
@@ -367,6 +382,15 @@ class SessionQueryService:
             transcript=transcript,
             active_tool_calls=active_tool_calls,
             pending_approvals=pending_approvals,
+            session_policy_summary=_summarize_policy_activity(all_tool_calls),
+            current_turn_policy_summary=(
+                _summarize_policy_activity(
+                    all_tool_calls,
+                    turn_id=effective_current_turn_id,
+                )
+                if effective_current_turn_id is not None
+                else None
+            ),
             turn_metrics=turn_metrics,
             runtime_context=runtime_context,
             projection_health=projection_health,
@@ -400,12 +424,21 @@ class SessionQueryService:
         latest_turn_metrics = current_turn_metrics or (
             snapshot.turn_metrics[0] if snapshot.turn_metrics else None
         )
+        latest_turn_policy_summary = snapshot.current_turn_policy_summary
+        if latest_turn_policy_summary is None:
+            latest_policy_turn_id = _latest_policy_turn_id(all_tool_calls)
+            if latest_policy_turn_id is not None:
+                latest_turn_policy_summary = _summarize_policy_activity(
+                    all_tool_calls,
+                    turn_id=latest_policy_turn_id,
+                )
 
         return SessionStatusView(
             snapshot=snapshot,
             effective_current_turn_id=effective_current_turn_id,
             current_turn_metrics=current_turn_metrics,
             latest_turn_metrics=latest_turn_metrics,
+            latest_turn_policy_summary=latest_turn_policy_summary,
             recent_tool_calls=_recent_tool_calls(
                 all_tool_calls,
                 limit=recent_tool_call_limit,
@@ -773,6 +806,59 @@ def _recent_tool_calls(
         return tool_call.completed_at or tool_call.started_at or datetime.min
 
     return sorted(tool_calls, key=sort_key, reverse=True)[:limit]
+
+
+def _latest_policy_turn_id(tool_calls: Sequence[ToolCallRecord]) -> TurnId | None:
+    recent_tool_calls = _recent_tool_calls(tool_calls, limit=1)
+    if not recent_tool_calls:
+        return None
+    return recent_tool_calls[0].turn_id
+
+
+def _summarize_policy_activity(
+    tool_calls: Sequence[ToolCallRecord],
+    *,
+    turn_id: TurnId | None = None,
+) -> PolicyActivitySummary:
+    summary = PolicyActivitySummary()
+    highest_rank = -1
+    highest_risk_level = None
+    risk_ranks = {
+        "read_only": 0,
+        "workspace_write": 1,
+        "command": 2,
+    }
+
+    for tool_call in tool_calls:
+        if turn_id is not None and tool_call.turn_id != turn_id:
+            continue
+        if tool_call.policy_outcome is None or tool_call.policy_risk_level is None:
+            continue
+
+        summary.total_decisions += 1
+        if tool_call.policy_outcome == "allow":
+            summary.allow_count += 1
+        elif tool_call.policy_outcome == "approve":
+            summary.approve_count += 1
+        elif tool_call.policy_outcome == "deny":
+            summary.deny_count += 1
+        elif tool_call.policy_outcome == "blocked":
+            summary.blocked_count += 1
+
+        if tool_call.policy_risk_level == "read_only":
+            summary.read_only_count += 1
+        elif tool_call.policy_risk_level == "workspace_write":
+            summary.workspace_write_count += 1
+        elif tool_call.policy_risk_level == "command":
+            summary.command_count += 1
+
+        current_rank = risk_ranks.get(tool_call.policy_risk_level, -1)
+        if current_rank > highest_rank:
+            highest_rank = current_rank
+            highest_risk_level = tool_call.policy_risk_level
+
+    summary.highest_risk_level = highest_risk_level
+    return summary
 
 
 def _build_operator_session_summary(

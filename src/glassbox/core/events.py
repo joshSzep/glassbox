@@ -22,6 +22,9 @@ from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.ids import new_event_id
 from glassbox.core.models import MessagePart
+from glassbox.core.models import PolicyDecisionOutcome
+from glassbox.core.models import PolicyDecisionSourceKind
+from glassbox.core.models import PolicyRiskLevel
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import TurnStatus
 
@@ -143,6 +146,11 @@ class ModelToolCallRequested(EventPayload):
     tool_call_id: ToolCallId
     tool_name: str
     arguments_json: str
+    policy_outcome: PolicyDecisionOutcome | None = None
+    policy_risk_level: PolicyRiskLevel | None = None
+    policy_source_kind: PolicyDecisionSourceKind | None = None
+    policy_source_label: str | None = None
+    policy_reason: str | None = None
 
 
 class ToolExecutionStarted(EventPayload):
@@ -150,6 +158,11 @@ class ToolExecutionStarted(EventPayload):
     turn_id: TurnId
     tool_call_id: ToolCallId
     tool_name: str
+    policy_outcome: PolicyDecisionOutcome | None = None
+    policy_risk_level: PolicyRiskLevel | None = None
+    policy_source_kind: PolicyDecisionSourceKind | None = None
+    policy_source_label: str | None = None
+    policy_reason: str | None = None
 
 
 class ToolOutputChunk(EventPayload):
@@ -197,6 +210,10 @@ class ApprovalRequested(EventPayload):
     turn_id: TurnId
     reason: str
     subject: str
+    policy_outcome: PolicyDecisionOutcome | None = None
+    policy_risk_level: PolicyRiskLevel | None = None
+    policy_source_kind: PolicyDecisionSourceKind | None = None
+    policy_source_label: str | None = None
     # Optional fields — set when the approval is linked to a specific tool call so
     # the turn can be correctly resumed after a decision is made.
     tool_call_id: ToolCallId | None = None

@@ -5,7 +5,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 BASELINE_SCHEMA_VERSION = 3
 BASELINE_MIGRATION_NAME = "baseline event store and projections"
 
@@ -129,6 +129,11 @@ BOOTSTRAP_STATEMENTS = (
         completed_at text,
         summary text,
         exit_code integer,
+        policy_outcome text,
+        policy_risk_level text,
+        policy_source_kind text,
+        policy_source_label text,
+        policy_reason text,
         foreign key (session_id) references sessions(session_id)
     )
     """,
@@ -147,6 +152,10 @@ BOOTSTRAP_STATEMENTS = (
         turn_id text not null,
         subject text not null,
         reason text not null,
+        policy_outcome text,
+        policy_risk_level text,
+        policy_source_kind text,
+        policy_source_label text,
         status text not null,
         requested_at text not null,
         resolved_at text,
@@ -526,6 +535,30 @@ def _ensure_runtime_notes_schema(connection: sqlite3.Connection) -> None:
     )
 
 
+def _ensure_policy_metadata_projection_schema(connection: sqlite3.Connection) -> None:
+    tool_call_columns = _column_names(connection, "tool_calls")
+    if "policy_outcome" not in tool_call_columns:
+        connection.execute("alter table tool_calls add column policy_outcome text")
+    if "policy_risk_level" not in tool_call_columns:
+        connection.execute("alter table tool_calls add column policy_risk_level text")
+    if "policy_source_kind" not in tool_call_columns:
+        connection.execute("alter table tool_calls add column policy_source_kind text")
+    if "policy_source_label" not in tool_call_columns:
+        connection.execute("alter table tool_calls add column policy_source_label text")
+    if "policy_reason" not in tool_call_columns:
+        connection.execute("alter table tool_calls add column policy_reason text")
+
+    approval_columns = _column_names(connection, "approvals")
+    if "policy_outcome" not in approval_columns:
+        connection.execute("alter table approvals add column policy_outcome text")
+    if "policy_risk_level" not in approval_columns:
+        connection.execute("alter table approvals add column policy_risk_level text")
+    if "policy_source_kind" not in approval_columns:
+        connection.execute("alter table approvals add column policy_source_kind text")
+    if "policy_source_label" not in approval_columns:
+        connection.execute("alter table approvals add column policy_source_label text")
+
+
 MIGRATIONS = (
     SchemaMigration(
         version=4,
@@ -536,6 +569,11 @@ MIGRATIONS = (
         version=5,
         name="add runtime note source columns",
         apply=_ensure_runtime_notes_schema,
+    ),
+    SchemaMigration(
+        version=6,
+        name="add policy metadata projection columns",
+        apply=_ensure_policy_metadata_projection_schema,
     ),
 )
 

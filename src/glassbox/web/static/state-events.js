@@ -88,6 +88,62 @@ function durationBetween(startedAt, endedAt) {
   return Math.max(ended - started, 0);
 }
 
+function createEmptyPolicySummary() {
+  return {
+    total_decisions: 0,
+    allow_count: 0,
+    approve_count: 0,
+    deny_count: 0,
+    blocked_count: 0,
+    read_only_count: 0,
+    workspace_write_count: 0,
+    command_count: 0,
+    highest_risk_level: null,
+  };
+}
+
+function incrementPolicySummary(summary, outcome, riskLevel) {
+  if (typeof outcome !== "string" || typeof riskLevel !== "string") {
+    return summary;
+  }
+
+  const next = {
+    ...(summary ?? createEmptyPolicySummary()),
+    total_decisions: (summary?.total_decisions ?? 0) + 1,
+  };
+
+  if (outcome === "allow") {
+    next.allow_count += 1;
+  } else if (outcome === "approve") {
+    next.approve_count += 1;
+  } else if (outcome === "deny") {
+    next.deny_count += 1;
+  } else if (outcome === "blocked") {
+    next.blocked_count += 1;
+  }
+
+  if (riskLevel === "read_only") {
+    next.read_only_count += 1;
+  } else if (riskLevel === "workspace_write") {
+    next.workspace_write_count += 1;
+  } else if (riskLevel === "command") {
+    next.command_count += 1;
+  }
+
+  const riskRanks = {
+    read_only: 0,
+    workspace_write: 1,
+    command: 2,
+  };
+  const currentRank = riskRanks[next.highest_risk_level] ?? -1;
+  const nextRank = riskRanks[riskLevel] ?? -1;
+  if (nextRank > currentRank) {
+    next.highest_risk_level = riskLevel;
+  }
+
+  return next;
+}
+
 export function applyEvent(state, envelope) {
   const payload = envelope.payload ?? {};
   const next = {
@@ -209,6 +265,7 @@ export function applyEvent(state, envelope) {
               : undefined
           ),
         },
+        currentTurnPolicySummary: createEmptyPolicySummary(),
         turnMetrics: upsertTurnMetrics(
           next.turnMetrics,
           makeTurnMetrics(payload.turn_id, {
@@ -270,6 +327,24 @@ export function applyEvent(state, envelope) {
         turn_id: typeof payload.turn_id === "string" ? payload.turn_id : undefined,
         subject: typeof payload.subject === "string" ? payload.subject : "",
         reason: typeof payload.reason === "string" ? payload.reason : "",
+        policy_outcome: (
+          typeof payload.policy_outcome === "string" ? payload.policy_outcome : null
+        ),
+        policy_risk_level: (
+          typeof payload.policy_risk_level === "string"
+            ? payload.policy_risk_level
+            : null
+        ),
+        policy_source_kind: (
+          typeof payload.policy_source_kind === "string"
+            ? payload.policy_source_kind
+            : null
+        ),
+        policy_source_label: (
+          typeof payload.policy_source_label === "string"
+            ? payload.policy_source_label
+            : null
+        ),
         resolution_state: "idle",
         resolution_decision: null,
         resolution_error: null,
@@ -475,6 +550,27 @@ export function applyEvent(state, envelope) {
         tool_name: payload.tool_name,
         status: "running",
         started_at: typeof envelope.created_at === "string" ? envelope.created_at : undefined,
+        policy_outcome: (
+          typeof payload.policy_outcome === "string" ? payload.policy_outcome : null
+        ),
+        policy_risk_level: (
+          typeof payload.policy_risk_level === "string"
+            ? payload.policy_risk_level
+            : null
+        ),
+        policy_source_kind: (
+          typeof payload.policy_source_kind === "string"
+            ? payload.policy_source_kind
+            : null
+        ),
+        policy_source_label: (
+          typeof payload.policy_source_label === "string"
+            ? payload.policy_source_label
+            : null
+        ),
+        policy_reason: (
+          typeof payload.policy_reason === "string" ? payload.policy_reason : null
+        ),
       };
       const existing = next.activeToolCalls.find(
         item => item.tool_call_id === toolCall.tool_call_id,
@@ -489,6 +585,16 @@ export function applyEvent(state, envelope) {
           turn_id: payload.turn_id,
           status: next.currentTurn?.status ?? "running",
         },
+        sessionPolicySummary: incrementPolicySummary(
+          next.sessionPolicySummary,
+          toolCall.policy_outcome,
+          toolCall.policy_risk_level,
+        ),
+        currentTurnPolicySummary: incrementPolicySummary(
+          next.currentTurnPolicySummary,
+          toolCall.policy_outcome,
+          toolCall.policy_risk_level,
+        ),
         activeToolCalls: existing
           ? next.activeToolCalls.map(item =>
               item.tool_call_id === toolCall.tool_call_id ? toolCall : item,

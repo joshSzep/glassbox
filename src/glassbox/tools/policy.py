@@ -11,6 +11,7 @@ from pydantic import Field
 
 from glassbox.core import ApprovalMode
 from glassbox.core import PolicyDecision
+from glassbox.core.models import PolicyDecisionSourceKind
 from glassbox.tools.policy_config import ToolPolicyAction
 from glassbox.tools.policy_config import ToolPolicyManifest
 from glassbox.tools.policy_config import ToolPolicyRule
@@ -32,7 +33,7 @@ class ToolPolicyContext(BaseModel):
 @dataclass(frozen=True, slots=True)
 class _ResolvedPolicyOutcome:
     action: ToolPolicyAction
-    source_kind: str
+    source_kind: PolicyDecisionSourceKind
     source_label: str
 
 
@@ -71,6 +72,10 @@ class ToolPolicyEngine:
                     f"blocked: path '{blocked_path}' is outside workspace "
                     f"'{workspace_root}'"
                 ),
+                outcome="blocked",
+                risk_level=tool_spec.risk_level.value,
+                source_kind="invariant",
+                source_label="workspace_scope",
             )
 
         if tool_spec.risk_level is ToolRiskLevel.COMMAND:
@@ -79,6 +84,10 @@ class ToolPolicyEngine:
                     allowed=False,
                     requires_approval=False,
                     reason="blocked: destructive command pattern is not allowed",
+                    outcome="blocked",
+                    risk_level=tool_spec.risk_level.value,
+                    source_kind="invariant",
+                    source_label="destructive_command",
                 )
 
         outcome = _resolve_policy_outcome(
@@ -180,18 +189,29 @@ def _approval_gate(
     approval_mode: ApprovalMode,
     blocked_reason: str,
     approval_reason: str,
+    risk_level: ToolRiskLevel,
+    source_kind: PolicyDecisionSourceKind,
+    source_label: str,
 ) -> PolicyDecision:
     if approval_mode is ApprovalMode.NEVER:
         return PolicyDecision(
             allowed=False,
             requires_approval=False,
             reason=blocked_reason,
+            outcome="blocked",
+            risk_level=risk_level.value,
+            source_kind=source_kind,
+            source_label=source_label,
         )
 
     return PolicyDecision(
         allowed=True,
         requires_approval=True,
         reason=f"{approval_reason} ({approval_mode.value})",
+        outcome="approve",
+        risk_level=risk_level.value,
+        source_kind=source_kind,
+        source_label=source_label,
     )
 
 
@@ -324,12 +344,18 @@ def _decision_from_outcome(
         return _decision_from_action(
             outcome.action,
             approval_mode=approval_mode,
+            risk_level=tool_spec.risk_level,
+            source_kind=outcome.source_kind,
+            source_label=outcome.source_label,
             messages=_default_policy_messages(tool_spec.risk_level),
         )
 
     return _decision_from_action(
         outcome.action,
         approval_mode=approval_mode,
+        risk_level=tool_spec.risk_level,
+        source_kind=outcome.source_kind,
+        source_label=outcome.source_label,
         messages=_PolicyDecisionMessages(
             allow_reason=(
                 f"allowed: workspace policy rule '{outcome.source_label}' "
@@ -355,6 +381,9 @@ def _decision_from_action(
     action: ToolPolicyAction,
     *,
     approval_mode: ApprovalMode,
+    risk_level: ToolRiskLevel,
+    source_kind: PolicyDecisionSourceKind,
+    source_label: str,
     messages: _PolicyDecisionMessages,
 ) -> PolicyDecision:
     if action == "allow":
@@ -362,18 +391,29 @@ def _decision_from_action(
             allowed=True,
             requires_approval=False,
             reason=messages.allow_reason,
+            outcome="allow",
+            risk_level=risk_level.value,
+            source_kind=source_kind,
+            source_label=source_label,
         )
     if action == "deny":
         return PolicyDecision(
             allowed=False,
             requires_approval=False,
             reason=messages.deny_reason,
+            outcome="deny",
+            risk_level=risk_level.value,
+            source_kind=source_kind,
+            source_label=source_label,
         )
 
     return _approval_gate(
         approval_mode=approval_mode,
         blocked_reason=messages.blocked_reason,
         approval_reason=messages.approval_reason,
+        risk_level=risk_level,
+        source_kind=source_kind,
+        source_label=source_label,
     )
 
 

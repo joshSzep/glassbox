@@ -54,6 +54,22 @@ class InteractivePromptState:
         self.context_lines = ()
 
 
+def _format_policy_suffix(
+    *,
+    outcome: str | None,
+    risk_level: str | None,
+    source_kind: str | None,
+    source_label: str | None,
+) -> str:
+    if outcome is None or risk_level is None:
+        return ""
+
+    source_suffix = ""
+    if source_kind is not None and source_label is not None:
+        source_suffix = f" via {source_kind}:{source_label}"
+    return f" [{outcome} {risk_level}{source_suffix}]"
+
+
 def format_event_for_terminal(
     event: EventEnvelope,
     state: CliRenderState,
@@ -106,11 +122,23 @@ def format_event_for_terminal(
 
     if isinstance(payload, ModelToolCallRequested):
         state.tool_names[payload.tool_call_id] = payload.tool_name
-        return f"Tool requested: {payload.tool_name}"
+        policy_suffix = _format_policy_suffix(
+            outcome=payload.policy_outcome,
+            risk_level=payload.policy_risk_level,
+            source_kind=payload.policy_source_kind,
+            source_label=payload.policy_source_label,
+        )
+        return f"Tool requested: {payload.tool_name}{policy_suffix}"
 
     if isinstance(payload, ToolExecutionStarted):
         state.tool_names[payload.tool_call_id] = payload.tool_name
-        return f"Tool started: {payload.tool_name}"
+        policy_suffix = _format_policy_suffix(
+            outcome=payload.policy_outcome,
+            risk_level=payload.policy_risk_level,
+            source_kind=payload.policy_source_kind,
+            source_label=payload.policy_source_label,
+        )
+        return f"Tool started: {payload.tool_name}{policy_suffix}"
 
     if isinstance(payload, ToolArtifactRecorded):
         artifact_location = f" at {payload.path}" if payload.path else ""
@@ -128,7 +156,15 @@ def format_event_for_terminal(
         return f"Tool completed: {tool_name} {status}: {payload.summary}{exit_suffix}"
 
     if isinstance(payload, ApprovalRequested):
-        return f"Approval requested: {payload.subject} ({payload.reason})"
+        policy_suffix = _format_policy_suffix(
+            outcome=payload.policy_outcome,
+            risk_level=payload.policy_risk_level,
+            source_kind=payload.policy_source_kind,
+            source_label=payload.policy_source_label,
+        )
+        return (
+            f"Approval requested: {payload.subject} ({payload.reason}){policy_suffix}"
+        )
 
     if isinstance(payload, ApprovalResolved):
         return f"Approval resolved: {payload.decision} by {payload.decided_by}"

@@ -108,7 +108,12 @@ def list_tool_calls(
             status,
             started_at,
             completed_at,
-            summary
+            summary,
+            policy_outcome,
+            policy_risk_level,
+            policy_source_kind,
+            policy_source_label,
+            policy_reason
         from tool_calls
         where session_id = ?
     """
@@ -128,6 +133,11 @@ def list_tool_calls(
             started_at=_parse_optional_datetime(row["started_at"]),
             completed_at=_parse_optional_datetime(row["completed_at"]),
             summary=row["summary"],
+            policy_outcome=row["policy_outcome"],
+            policy_risk_level=row["policy_risk_level"],
+            policy_source_kind=row["policy_source_kind"],
+            policy_source_label=row["policy_source_label"],
+            policy_reason=row["policy_reason"],
         )
         for row in rows
     ]
@@ -147,6 +157,10 @@ def list_approvals(
             turn_id,
             subject,
             reason,
+            policy_outcome,
+            policy_risk_level,
+            policy_source_kind,
+            policy_source_label,
             status,
             requested_at,
             resolved_at,
@@ -167,6 +181,10 @@ def list_approvals(
             turn_id=row["turn_id"],
             subject=row["subject"],
             reason=row["reason"],
+            policy_outcome=row["policy_outcome"],
+            policy_risk_level=row["policy_risk_level"],
+            policy_source_kind=row["policy_source_kind"],
+            policy_source_label=row["policy_source_label"],
             status=ApprovalStatus(row["status"]),
             requested_at=datetime.fromisoformat(row["requested_at"]),
             resolved_at=_parse_optional_datetime(row["resolved_at"]),

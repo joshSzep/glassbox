@@ -116,6 +116,8 @@ function normalizeSnapshotSessionFields(snapshot) {
     transcript: [...(snapshot.transcript ?? [])],
     activeToolCalls: [...(snapshot.active_tool_calls ?? [])],
     pendingApprovals: [...(snapshot.pending_approvals ?? [])],
+    sessionPolicySummary: snapshot.session_policy_summary ?? null,
+    currentTurnPolicySummary: snapshot.current_turn_policy_summary ?? null,
   };
 }
 

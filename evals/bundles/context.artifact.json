@@ -1360,8 +1360,12 @@
       "manifest_version": 1,
       "policy_decision": {
         "allowed": true,
+        "outcome": "approve",
         "reason": "approval required: command execution is gated by local policy (confirm)",
-        "requires_approval": true
+        "requires_approval": true,
+        "risk_level": "command",
+        "source_kind": "default",
+        "source_label": "command"
       },
       "provider_tool_call_id": "provider-call-run-tests-1",
       "tool_call_id": "eae6a2aa-03f3-441b-bd31-2251a4b9fa05",

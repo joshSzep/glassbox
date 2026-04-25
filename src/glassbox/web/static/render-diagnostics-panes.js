@@ -1,5 +1,17 @@
 import { escHtml, renderEmpty, shortId } from "./render-utils.js";
 
+function renderPolicyMeta(item) {
+  if (!item?.policy_outcome || !item?.policy_risk_level) {
+    return "";
+  }
+
+  const source = item.policy_source_kind && item.policy_source_label
+    ? ` via ${item.policy_source_kind}:${item.policy_source_label}`
+    : "";
+  const reason = item.policy_reason ? `<div class="tool-policy-reason">${escHtml(item.policy_reason)}</div>` : "";
+  return `<div class="tool-meta">policy ${escHtml(item.policy_outcome)} ${escHtml(item.policy_risk_level)}${escHtml(source)}</div>${reason}`;
+}
+
 function formatMetricValue(value, suffix = "") {
   if (value === null || value === undefined) {
     return "-";
@@ -48,6 +60,7 @@ export function renderToolCallsPane(state) {
       <div class="tool-meta">call ${escHtml(shortId(tool.tool_call_id))}</div>
       <div class="tool-meta">turn ${escHtml(shortId(tool.turn_id))}</div>
       <div class="tool-status">${escHtml(tool.status)}</div>
+      ${renderPolicyMeta(tool)}
     </div>
   `).join("");
 }

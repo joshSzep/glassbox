@@ -120,6 +120,15 @@ class TurnToolExecutor:
                             ),
                             sort_keys=True,
                         ),
+                        policy_outcome=prepared_tool_call.policy_decision.outcome,
+                        policy_risk_level=prepared_tool_call.policy_decision.risk_level,
+                        policy_source_kind=(
+                            prepared_tool_call.policy_decision.source_kind
+                        ),
+                        policy_source_label=(
+                            prepared_tool_call.policy_decision.source_label
+                        ),
+                        policy_reason=prepared_tool_call.policy_decision.reason,
                     )
                 ],
             )
@@ -197,6 +206,14 @@ class TurnToolExecutor:
                         turn_id=turn_id,
                         reason=prepared_tool_call.policy_decision.reason,
                         subject=prepared_tool_call.tool_name,
+                        policy_outcome=prepared_tool_call.policy_decision.outcome,
+                        policy_risk_level=prepared_tool_call.policy_decision.risk_level,
+                        policy_source_kind=(
+                            prepared_tool_call.policy_decision.source_kind
+                        ),
+                        policy_source_label=(
+                            prepared_tool_call.policy_decision.source_label
+                        ),
                         tool_call_id=prepared_tool_call.event_tool_call_id,
                         provider_tool_call_id=prepared_tool_call.provider_tool_call_id,
                     ),
@@ -317,6 +334,11 @@ class TurnToolExecutor:
                     turn_id=turn_id,
                     tool_call_id=prepared_tool_call.event_tool_call_id,
                     tool_name=prepared_tool_call.tool_name,
+                    policy_outcome=prepared_tool_call.policy_decision.outcome,
+                    policy_risk_level=prepared_tool_call.policy_decision.risk_level,
+                    policy_source_kind=prepared_tool_call.policy_decision.source_kind,
+                    policy_source_label=prepared_tool_call.policy_decision.source_label,
+                    policy_reason=prepared_tool_call.policy_decision.reason,
                 ),
             ],
         )

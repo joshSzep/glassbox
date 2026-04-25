@@ -832,10 +832,18 @@ def test_cli_status_includes_turn_approvals_tool_activity_and_metrics(
     assert "Current turn metrics: turn" in captured.out
     assert "model 1 call(s), 42 input / 13 output tokens, 600 ms" in captured.out
     assert "tools 1 call(s)," in captured.out
+    assert (
+        "Session policy summary: 1 decision(s); allow 1, approve 0, deny 0, blocked 0;"
+        in captured.out
+    )
+    assert (
+        "Current turn policy summary: 1 decision(s); allow 1, approve 0, "
+        "deny 0, blocked 0;" in captured.out
+    )
     assert "Pending approvals: 1" in captured.out
     assert (
-        f"{approval_id} for turn {turn_id}: run shell command (needs confirmation)"
-        in captured.out
+        f"{approval_id} for turn {turn_id}: run shell command "
+        "[approve command via default:command] (needs confirmation)" in captured.out
     )
     assert (
         f"Next action: resolve approval {approval_id} with 'glassbox approve "
@@ -843,7 +851,10 @@ def test_cli_status_includes_turn_approvals_tool_activity_and_metrics(
         f"{approval_id}', or use the dashboard approvals pane" in captured.out
     )
     assert "Recent tool activity:" in captured.out
-    assert "read_file succeeded" in captured.out
+    assert (
+        f"read_file succeeded (turn {turn_id}) [allow read_only via default:read_only]"
+        in captured.out
+    )
     assert "done" in captured.out
 
 

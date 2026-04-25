@@ -31,6 +31,13 @@ class ActiveToolCallResponse(BaseModel):
     tool_name: str
     status: str
     started_at: datetime | None
+    completed_at: datetime | None = None
+    summary: str | None = None
+    policy_outcome: str | None = None
+    policy_risk_level: str | None = None
+    policy_source_kind: str | None = None
+    policy_source_label: str | None = None
+    policy_reason: str | None = None
 
 
 class PendingApprovalResponse(BaseModel):
@@ -39,6 +46,22 @@ class PendingApprovalResponse(BaseModel):
     subject: str
     reason: str
     requested_at: datetime
+    policy_outcome: str | None = None
+    policy_risk_level: str | None = None
+    policy_source_kind: str | None = None
+    policy_source_label: str | None = None
+
+
+class PolicyActivitySummaryResponse(BaseModel):
+    total_decisions: int
+    allow_count: int
+    approve_count: int
+    deny_count: int
+    blocked_count: int
+    read_only_count: int
+    workspace_write_count: int
+    command_count: int
+    highest_risk_level: str | None = None
 
 
 class TurnMetricsResponse(BaseModel):
@@ -215,6 +238,8 @@ class SessionSnapshotResponse(BaseModel):
     transcript: list[TranscriptMessageResponse]
     active_tool_calls: list[ActiveToolCallResponse]
     pending_approvals: list[PendingApprovalResponse]
+    session_policy_summary: PolicyActivitySummaryResponse
+    current_turn_policy_summary: PolicyActivitySummaryResponse | None
     turn_metrics: list[TurnMetricsResponse]
     runtime_context: RuntimeContextSnapshot
     projection_health: ProjectionHealthResponse

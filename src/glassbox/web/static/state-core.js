@@ -30,6 +30,8 @@ export function createState() {
     activeToolCalls: [],
     liveOutput: [],
     pendingApprovals: [],
+    sessionPolicySummary: null,
+    currentTurnPolicySummary: null,
     eventLog: [],
     interactionSubmission: createIdleInteractionSubmission(),
     forkSubmission: createIdleForkSubmission(),

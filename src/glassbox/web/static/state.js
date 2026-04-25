@@ -9,8 +9,9 @@
 /**
  * @typedef {{kind: string, text: string}} MessagePart
  * @typedef {{message_id: string, role: string, parts: MessagePart[], created_at?: string}} TranscriptMessage
- * @typedef {{tool_call_id: string, turn_id: string, tool_name: string, status: string, started_at?: string | null}} ActiveToolCall
- * @typedef {{approval_id: string, turn_id?: string, subject: string, reason: string, requested_at?: string, resolution_state?: string, resolution_decision?: string | null, resolution_error?: string | null}} PendingApproval
+ * @typedef {{tool_call_id: string, turn_id: string, tool_name: string, status: string, started_at?: string | null, summary?: string | null, policy_outcome?: string | null, policy_risk_level?: string | null, policy_source_kind?: string | null, policy_source_label?: string | null, policy_reason?: string | null}} ActiveToolCall
+ * @typedef {{approval_id: string, turn_id?: string, subject: string, reason: string, requested_at?: string, policy_outcome?: string | null, policy_risk_level?: string | null, policy_source_kind?: string | null, policy_source_label?: string | null, resolution_state?: string, resolution_decision?: string | null, resolution_error?: string | null}} PendingApproval
+ * @typedef {{total_decisions: number, allow_count: number, approve_count: number, deny_count: number, blocked_count: number, read_only_count: number, workspace_write_count: number, command_count: number, highest_risk_level?: string | null}} PolicyActivitySummary
  * @typedef {{turn_id: string, status: string, trigger_message_id?: string, outcome?: string, error_message?: string}} CurrentTurn
  * @typedef {{turn_id: string, started_at?: string | null, completed_at?: string | null, turn_duration_ms?: number | null, model_call_count: number, model_duration_ms_total: number, model_input_tokens_total: number, model_output_tokens_total: number, tool_call_count: number, tool_duration_ms_total: number, succeeded_tool_call_count: number, failed_tool_call_count: number}} TurnMetrics
  * @typedef {{turn_id: string, tool_call_id: string, stream: string, chunk: string}} LiveOutputEntry
@@ -32,7 +33,7 @@
  * @typedef {{total: number, approvals: number, questions: number, failures: number, degraded: number, active: number, action_needed: number, historical: number}} QueueCounts
  * @typedef {{ok: number, stale: number, unavailable: number, degraded: number}} ProjectionHealthCounts
  * @typedef {{workspace_root: string | null, state: string, health: string | null, pid: number | null, dashboard_url: string | null, health_url: string | null, session_index_url: string | null, started_at: string | null}} RuntimeSummary
- * @typedef {{sessionId: string, status: string, modelName: string, cwd: string, approvalMode: string, parentSessionId: string | null, forkedFromTurnId: string | null, forkedFromSequence: number | null, branchLabel: string | null, childSessions: ChildSessionSummary[], branchableTurns: BranchableTurn[], canFork: boolean, latestForkPointTurnId: string | null, latestForkPointSequence: number | null, forkBlockedReason: string | null, dashboardUrl: string | null, createdAt: string | null, updatedAt: string | null, lastSequence: number, pendingApprovalId: string | null, pendingQuestionId: string | null, pendingQuestionText: string | null, sessionFailureMessage: string | null, sessionFailureRetryable: boolean | null, runtimeContext: RuntimeContextSummary | null, currentTurn: CurrentTurn | null, turnMetrics: TurnMetrics[], transcript: TranscriptMessage[], activeToolCalls: ActiveToolCall[], pendingApprovals: PendingApproval[], projectionHealth?: ProjectionHealthSummary | null}} CompareSessionState
+ * @typedef {{sessionId: string, status: string, modelName: string, cwd: string, approvalMode: string, parentSessionId: string | null, forkedFromTurnId: string | null, forkedFromSequence: number | null, branchLabel: string | null, childSessions: ChildSessionSummary[], branchableTurns: BranchableTurn[], canFork: boolean, latestForkPointTurnId: string | null, latestForkPointSequence: number | null, forkBlockedReason: string | null, dashboardUrl: string | null, createdAt: string | null, updatedAt: string | null, lastSequence: number, pendingApprovalId: string | null, pendingQuestionId: string | null, pendingQuestionText: string | null, sessionFailureMessage: string | null, sessionFailureRetryable: boolean | null, runtimeContext: RuntimeContextSummary | null, currentTurn: CurrentTurn | null, turnMetrics: TurnMetrics[], transcript: TranscriptMessage[], activeToolCalls: ActiveToolCall[], pendingApprovals: PendingApproval[], sessionPolicySummary?: PolicyActivitySummary | null, currentTurnPolicySummary?: PolicyActivitySummary | null, projectionHealth?: ProjectionHealthSummary | null}} CompareSessionState
  *
  * @typedef {Object} DashboardState
  * @property {string | null} sessionId
@@ -65,6 +66,8 @@
  * @property {ActiveToolCall[]} activeToolCalls
  * @property {LiveOutputEntry[]} liveOutput
  * @property {PendingApproval[]} pendingApprovals
+ * @property {PolicyActivitySummary | null} sessionPolicySummary
+ * @property {PolicyActivitySummary | null} currentTurnPolicySummary
  * @property {EventLogEntry[]} eventLog
  * @property {InteractionSubmission} interactionSubmission
  * @property {ForkSubmission} forkSubmission
@@ -116,6 +119,8 @@
  * @property {TranscriptMessage[]} transcript
  * @property {ActiveToolCall[]} active_tool_calls
  * @property {PendingApproval[]} pending_approvals
+ * @property {PolicyActivitySummary | null} session_policy_summary
+ * @property {PolicyActivitySummary | null} current_turn_policy_summary
  * @property {TurnMetrics[]} turn_metrics
  * @property {RuntimeContextSummary | null} runtime_context
  */

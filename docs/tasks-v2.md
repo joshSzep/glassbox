@@ -455,7 +455,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-332: Add Richer Policy Decisions, Tool Risk Summaries, And Audit Surfaces
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-331`, `GBX-321`
 - Goal: make policy outcomes more explainable and more visible across CLI, dashboard, and replay artifacts
 - Deliverables:

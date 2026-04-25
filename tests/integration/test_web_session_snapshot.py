@@ -355,6 +355,10 @@ def test_get_session_includes_pending_approvals(tmp_path: Path) -> None:
                         turn_id=new_turn_id(),
                         reason="needs operator sign-off",
                         subject="apply_patch",
+                        policy_outcome="approve",
+                        policy_risk_level="workspace_write",
+                        policy_source_kind="default",
+                        policy_source_label="workspace_write",
                     ),
                 )
             )
@@ -374,6 +378,10 @@ def test_get_session_includes_pending_approvals(tmp_path: Path) -> None:
             assert pending[0]["approval_id"] == str(approval_id)
             assert pending[0]["subject"] == "apply_patch"
             assert pending[0]["reason"] == "needs operator sign-off"
+            assert pending[0]["policy_outcome"] == "approve"
+            assert pending[0]["policy_risk_level"] == "workspace_write"
+            assert pending[0]["policy_source_kind"] == "default"
+            assert pending[0]["policy_source_label"] == "workspace_write"
         finally:
             connection.close()
 

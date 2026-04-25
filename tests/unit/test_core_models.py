@@ -174,6 +174,10 @@ def test_policy_decision_round_trip() -> None:
         allowed=True,
         requires_approval=False,
         reason="Read-only operation within workspace",
+        outcome="allow",
+        risk_level="read_only",
+        source_kind="default",
+        source_label="read_only",
     )
 
     restored = PolicyDecision.model_validate(decision.model_dump(mode="python"))

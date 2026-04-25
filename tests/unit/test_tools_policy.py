@@ -101,6 +101,10 @@ def test_policy_allows_read_only_tool_inside_workspace_without_approval() -> Non
     assert decision.allowed is True
     assert decision.requires_approval is False
     assert decision.reason == "allowed: read-only tool within workspace scope"
+    assert decision.outcome == "allow"
+    assert decision.risk_level == "read_only"
+    assert decision.source_kind == "default"
+    assert decision.source_label == "read_only"
 
 
 def test_policy_requires_approval_for_workspace_write_in_confirm_mode() -> None:
@@ -118,6 +122,9 @@ def test_policy_requires_approval_for_workspace_write_in_confirm_mode() -> None:
     assert decision.allowed is True
     assert decision.requires_approval is True
     assert "workspace write inside workspace scope" in decision.reason
+    assert decision.outcome == "approve"
+    assert decision.risk_level == "workspace_write"
+    assert decision.source_kind == "default"
 
 
 def test_policy_blocks_workspace_write_when_approval_mode_is_never() -> None:
@@ -135,6 +142,8 @@ def test_policy_blocks_workspace_write_when_approval_mode_is_never() -> None:
     assert decision.allowed is False
     assert decision.requires_approval is False
     assert "approval mode is never" in decision.reason
+    assert decision.outcome == "blocked"
+    assert decision.risk_level == "workspace_write"
 
 
 def test_policy_blocks_out_of_scope_path_requests() -> None:
@@ -152,6 +161,9 @@ def test_policy_blocks_out_of_scope_path_requests() -> None:
     assert decision.allowed is False
     assert decision.requires_approval is False
     assert "outside workspace" in decision.reason
+    assert decision.outcome == "blocked"
+    assert decision.source_kind == "invariant"
+    assert decision.source_label == "workspace_scope"
 
 
 def test_policy_blocks_destructive_commands() -> None:
@@ -169,6 +181,10 @@ def test_policy_blocks_destructive_commands() -> None:
     assert decision.allowed is False
     assert decision.requires_approval is False
     assert decision.reason == "blocked: destructive command pattern is not allowed"
+    assert decision.outcome == "blocked"
+    assert decision.risk_level == "command"
+    assert decision.source_kind == "invariant"
+    assert decision.source_label == "destructive_command"
 
 
 def test_policy_evaluates_registered_tools_consistently() -> None:
@@ -188,6 +204,9 @@ def test_policy_evaluates_registered_tools_consistently() -> None:
     assert decision.allowed is True
     assert decision.requires_approval is True
     assert "command execution is gated by local policy" in decision.reason
+    assert decision.outcome == "approve"
+    assert decision.risk_level == "command"
+    assert decision.source_kind == "default"
 
 
 def test_load_tool_policy_manifest_returns_defaults_when_missing(
@@ -236,6 +255,9 @@ def test_policy_rule_can_allow_workspace_write_without_approval(tmp_path: Path) 
     assert decision.allowed is True
     assert decision.requires_approval is False
     assert "allow-docs-write" in decision.reason
+    assert decision.outcome == "allow"
+    assert decision.source_kind == "rule"
+    assert decision.source_label == "allow-docs-write"
 
 
 def test_policy_rule_can_allow_command_prefix_without_approval(tmp_path: Path) -> None:
@@ -263,3 +285,6 @@ def test_policy_rule_can_allow_command_prefix_without_approval(tmp_path: Path) -
     assert decision.allowed is True
     assert decision.requires_approval is False
     assert "allow-git-status" in decision.reason
+    assert decision.outcome == "allow"
+    assert decision.source_kind == "rule"
+    assert decision.source_label == "allow-git-status"

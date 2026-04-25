@@ -149,9 +149,17 @@ export function renderApprovalsPane(state) {
       statusHtml = `<div class="approval-status approval-status-error">${escHtml(approval.resolution_error ?? "Resolution failed")}</div>`;
     }
 
+    const policySource = approval.policy_source_kind && approval.policy_source_label
+      ? ` via ${approval.policy_source_kind}:${approval.policy_source_label}`
+      : "";
+    const policyHtml = approval.policy_outcome && approval.policy_risk_level
+      ? `<div class="approval-policy">Policy: ${escHtml(approval.policy_outcome)} ${escHtml(approval.policy_risk_level)}${escHtml(policySource)}</div>`
+      : "";
+
     return `
     <div class="approval-card approval-${escHtml(resolutionState)}" id="approval-${escHtml(approval.approval_id)}">
       <div class="approval-subject">${escHtml(approval.subject)}</div>
+      ${policyHtml}
       <div class="approval-reason">${escHtml(approval.reason)}</div>
       ${statusHtml}
       <div class="approval-actions">

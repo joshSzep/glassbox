@@ -89,9 +89,36 @@ test("renderToolCallsPane and renderLiveOutputPane show realistic entries", () =
         turn_id: "turn-1",
         tool_name: "read_file",
         status: "running",
+        policy_outcome: "allow",
+        policy_risk_level: "read_only",
+        policy_source_kind: "default",
+        policy_source_label: "read_only",
+        policy_reason: "allowed: read-only tool within workspace scope",
       },
     ],
     pending_approvals: [],
+    session_policy_summary: {
+      total_decisions: 1,
+      allow_count: 1,
+      approve_count: 0,
+      deny_count: 0,
+      blocked_count: 0,
+      read_only_count: 1,
+      workspace_write_count: 0,
+      command_count: 0,
+      highest_risk_level: "read_only",
+    },
+    current_turn_policy_summary: {
+      total_decisions: 1,
+      allow_count: 1,
+      approve_count: 0,
+      deny_count: 0,
+      blocked_count: 0,
+      read_only_count: 1,
+      workspace_write_count: 0,
+      command_count: 0,
+      highest_risk_level: "read_only",
+    },
   });
   const withOutput = applyEvent(snapshotState, {
     session_id: "session-123",
@@ -105,7 +132,7 @@ test("renderToolCallsPane and renderLiveOutputPane show realistic entries", () =
     },
   });
 
-  assert.match(renderToolCallsPane(withOutput), /read_file|tool-1/i);
+  assert.match(renderToolCallsPane(withOutput), /read_file|tool-1|allow read_only|workspace scope/i);
   assert.match(renderLiveOutputPane(withOutput), /stdout|README\.md/i);
 });
 
@@ -149,6 +176,11 @@ test("synthetic event stream updates multiple panes together", () => {
         turn_id: "turn-1",
         tool_call_id: "tool-1",
         tool_name: "apply_patch",
+        policy_outcome: "approve",
+        policy_risk_level: "workspace_write",
+        policy_source_kind: "default",
+        policy_source_label: "workspace_write",
+        policy_reason: "approval required: workspace write inside workspace scope",
       },
     },
     {
@@ -169,6 +201,10 @@ test("synthetic event stream updates multiple panes together", () => {
         turn_id: "turn-1",
         subject: "apply_patch",
         reason: "needs sign-off",
+        policy_outcome: "approve",
+        policy_risk_level: "workspace_write",
+        policy_source_kind: "default",
+        policy_source_label: "workspace_write",
       },
     },
     {
@@ -186,13 +222,25 @@ test("synthetic event stream updates multiple panes together", () => {
     snapshot,
   );
 
+  state.sessionPolicySummary = {
+    total_decisions: 1,
+    allow_count: 0,
+    approve_count: 1,
+    deny_count: 0,
+    blocked_count: 0,
+    read_only_count: 0,
+    workspace_write_count: 1,
+    command_count: 0,
+    highest_risk_level: "workspace_write",
+  };
+
   const panes = renderDashboardPanes(state);
   assert.match(panes.transcript, /Patch the repo\.|Waiting for approval\./);
-  assert.match(panes.turn, /awaiting_approval|turn-1/);
+  assert.match(panes.turn, /awaiting_approval|turn-1|Policy decisions|Highest risk/i);
   assert.match(panes.metrics, /Model latency|Input tokens|Tool runtime/);
-  assert.match(panes.toolCalls, /apply_patch/);
+  assert.match(panes.toolCalls, /apply_patch|approve workspace_write/i);
   assert.match(panes.liveOutput, /patched file/);
-  assert.match(panes.approvals, /needs sign-off|Approve/);
+  assert.match(panes.approvals, /needs sign-off|Approve|Policy: approve workspace_write/i);
   assert.match(panes.eventLog, /ApprovalRequested|ToolOutputChunk/);
 });
 

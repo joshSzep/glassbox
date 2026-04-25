@@ -1,5 +1,18 @@
 import { escHtml, renderEmpty, shortId } from "./render-utils.js";
 
+function renderPolicySummary(summary) {
+  if (!summary || summary.total_decisions === 0) {
+    return "";
+  }
+
+  const highestRisk = summary.highest_risk_level ?? "n/a";
+  return `<div class="turn-policy-summary">
+    <div class="detail-row"><span class="detail-label">Policy decisions</span><span class="detail-value">${escHtml(String(summary.total_decisions))}</span></div>
+    <div class="detail-row"><span class="detail-label">Allow / approve / blocked</span><span class="detail-value">${escHtml(`${summary.allow_count} / ${summary.approve_count} / ${summary.blocked_count}`)}</span></div>
+    <div class="detail-row"><span class="detail-label">Highest risk</span><span class="detail-value">${escHtml(highestRisk)}</span></div>
+  </div>`;
+}
+
 function eventLabel(eventType) {
   switch (eventType) {
     case "TurnStarted":
@@ -123,11 +136,13 @@ export function renderTurnPane(state) {
         <div class="detail-row"><span class="detail-label">Token total</span><span class="detail-value">${escHtml(String((latestMetrics.model_input_tokens_total ?? 0) + (latestMetrics.model_output_tokens_total ?? 0)))}</span></div>
       </div>`
     : "";
+  const policyHtml = renderPolicySummary(state.currentTurnPolicySummary);
 
   return `<div class="turn-card status-${escHtml(turn.status)}">
     ${detailHtml}
     ${errorHtml}
     ${metricsHtml}
+    ${policyHtml}
     ${renderTurnTimeline(state)}
   </div>`;
 }

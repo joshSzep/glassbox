@@ -135,6 +135,11 @@ def _seed_status_projection_details(
                         turn_id=turn_id,
                         tool_call_id=tool_call_id,
                         tool_name="read_file",
+                        policy_outcome="allow",
+                        policy_risk_level="read_only",
+                        policy_source_kind="default",
+                        policy_source_label="read_only",
+                        policy_reason="allowed: read-only tool within workspace scope",
                     ),
                 ),
                 EventEnvelope(
@@ -155,6 +160,10 @@ def _seed_status_projection_details(
                         turn_id=turn_id,
                         reason="needs confirmation",
                         subject="run shell command",
+                        policy_outcome="approve",
+                        policy_risk_level="command",
+                        policy_source_kind="default",
+                        policy_source_label="command",
                     ),
                 ),
             ]

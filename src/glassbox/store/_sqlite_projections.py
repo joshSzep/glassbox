@@ -359,12 +359,37 @@ def _apply_tool_call_projection(
                 started_at,
                 completed_at,
                 summary,
-                exit_code
-            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                exit_code,
+                policy_outcome,
+                policy_risk_level,
+                policy_source_kind,
+                policy_source_label,
+                policy_reason
+            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             on conflict(tool_call_id) do update set
                 turn_id = excluded.turn_id,
                 tool_name = excluded.tool_name,
-                status = excluded.status
+                status = excluded.status,
+                policy_outcome = coalesce(
+                    excluded.policy_outcome,
+                    tool_calls.policy_outcome
+                ),
+                policy_risk_level = coalesce(
+                    excluded.policy_risk_level,
+                    tool_calls.policy_risk_level
+                ),
+                policy_source_kind = coalesce(
+                    excluded.policy_source_kind,
+                    tool_calls.policy_source_kind
+                ),
+                policy_source_label = coalesce(
+                    excluded.policy_source_label,
+                    tool_calls.policy_source_label
+                ),
+                policy_reason = coalesce(
+                    excluded.policy_reason,
+                    tool_calls.policy_reason
+                )
             """,
             (
                 str(payload.tool_call_id),
@@ -376,6 +401,11 @@ def _apply_tool_call_projection(
                 None,
                 None,
                 None,
+                payload.policy_outcome,
+                payload.policy_risk_level,
+                payload.policy_source_kind,
+                payload.policy_source_label,
+                payload.policy_reason,
             ),
         )
         return
@@ -392,13 +422,38 @@ def _apply_tool_call_projection(
                 started_at,
                 completed_at,
                 summary,
-                exit_code
-            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                exit_code,
+                policy_outcome,
+                policy_risk_level,
+                policy_source_kind,
+                policy_source_label,
+                policy_reason
+            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             on conflict(tool_call_id) do update set
                 turn_id = excluded.turn_id,
                 tool_name = excluded.tool_name,
                 status = excluded.status,
-                started_at = excluded.started_at
+                started_at = excluded.started_at,
+                policy_outcome = coalesce(
+                    excluded.policy_outcome,
+                    tool_calls.policy_outcome
+                ),
+                policy_risk_level = coalesce(
+                    excluded.policy_risk_level,
+                    tool_calls.policy_risk_level
+                ),
+                policy_source_kind = coalesce(
+                    excluded.policy_source_kind,
+                    tool_calls.policy_source_kind
+                ),
+                policy_source_label = coalesce(
+                    excluded.policy_source_label,
+                    tool_calls.policy_source_label
+                ),
+                policy_reason = coalesce(
+                    excluded.policy_reason,
+                    tool_calls.policy_reason
+                )
             """,
             (
                 str(payload.tool_call_id),
@@ -410,6 +465,11 @@ def _apply_tool_call_projection(
                 None,
                 None,
                 None,
+                payload.policy_outcome,
+                payload.policy_risk_level,
+                payload.policy_source_kind,
+                payload.policy_source_label,
+                payload.policy_reason,
             ),
         )
         return
@@ -449,15 +509,35 @@ def _apply_approval_projection(
                 turn_id,
                 subject,
                 reason,
+                policy_outcome,
+                policy_risk_level,
+                policy_source_kind,
+                policy_source_label,
                 status,
                 requested_at,
                 resolved_at,
                 decided_by
-            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             on conflict(approval_id) do update set
                 turn_id = excluded.turn_id,
                 subject = excluded.subject,
                 reason = excluded.reason,
+                policy_outcome = coalesce(
+                    excluded.policy_outcome,
+                    approvals.policy_outcome
+                ),
+                policy_risk_level = coalesce(
+                    excluded.policy_risk_level,
+                    approvals.policy_risk_level
+                ),
+                policy_source_kind = coalesce(
+                    excluded.policy_source_kind,
+                    approvals.policy_source_kind
+                ),
+                policy_source_label = coalesce(
+                    excluded.policy_source_label,
+                    approvals.policy_source_label
+                ),
                 status = excluded.status,
                 requested_at = excluded.requested_at
             """,
@@ -467,6 +547,10 @@ def _apply_approval_projection(
                 str(payload.turn_id),
                 payload.subject,
                 payload.reason,
+                payload.policy_outcome,
+                payload.policy_risk_level,
+                payload.policy_source_kind,
+                payload.policy_source_label,
                 "pending",
                 event.created_at.isoformat(),
                 None,

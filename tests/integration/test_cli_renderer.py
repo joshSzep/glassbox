@@ -28,9 +28,12 @@ def test_renderer_renders_representative_fake_event_stream() -> None:
     output = asyncio.run(_render_fake_stream())
 
     assert "Started session" in output
-    assert "Tool started: search" in output
+    assert "Tool started: search [allow read_only via default:read_only]" in output
     assert "Tool completed: search succeeded: found 3 results (exit code 0)" in output
-    assert "Approval requested: run shell command (needs confirmation)" in output
+    assert (
+        "Approval requested: run shell command (needs confirmation) "
+        "[approve command via default:command]" in output
+    )
     assert "Assistant: Here is the answer." in output
 
 
@@ -76,6 +79,11 @@ async def _render_fake_stream() -> str:
                         turn_id=turn_id,
                         tool_call_id=tool_call_id,
                         tool_name="search",
+                        policy_outcome="allow",
+                        policy_risk_level="read_only",
+                        policy_source_kind="default",
+                        policy_source_label="read_only",
+                        policy_reason="allowed: read-only tool within workspace scope",
                     ),
                 )
             )
@@ -101,6 +109,10 @@ async def _render_fake_stream() -> str:
                         turn_id=turn_id,
                         reason="needs confirmation",
                         subject="run shell command",
+                        policy_outcome="approve",
+                        policy_risk_level="command",
+                        policy_source_kind="default",
+                        policy_source_label="command",
                     ),
                 )
             )

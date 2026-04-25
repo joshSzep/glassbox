@@ -57,6 +57,28 @@ def test_print_session_status_preserves_status_output_contract(
                 ],
                 "active_tool_calls": [],
                 "pending_approvals": [],
+                "session_policy_summary": {
+                    "total_decisions": 1,
+                    "allow_count": 1,
+                    "approve_count": 0,
+                    "deny_count": 0,
+                    "blocked_count": 0,
+                    "read_only_count": 1,
+                    "workspace_write_count": 0,
+                    "command_count": 0,
+                    "highest_risk_level": "read_only",
+                },
+                "current_turn_policy_summary": {
+                    "total_decisions": 1,
+                    "allow_count": 1,
+                    "approve_count": 0,
+                    "deny_count": 0,
+                    "blocked_count": 0,
+                    "read_only_count": 1,
+                    "workspace_write_count": 0,
+                    "command_count": 0,
+                    "highest_risk_level": "read_only",
+                },
                 "turn_metrics": [
                     {
                         "turn_id": "00000000-0000-0000-0000-000000000222",
@@ -151,6 +173,17 @@ def test_print_session_status_preserves_status_output_contract(
                 "succeeded_tool_call_count": 1,
                 "failed_tool_call_count": 0,
             },
+            "latest_turn_policy_summary": {
+                "total_decisions": 1,
+                "allow_count": 1,
+                "approve_count": 0,
+                "deny_count": 0,
+                "blocked_count": 0,
+                "read_only_count": 1,
+                "workspace_write_count": 0,
+                "command_count": 0,
+                "highest_risk_level": "read_only",
+            },
             "recent_tool_calls": [
                 {
                     "tool_call_id": "00000000-0000-0000-0000-000000000555",
@@ -160,6 +193,11 @@ def test_print_session_status_preserves_status_output_contract(
                     "started_at": "2026-04-24T00:00:00Z",
                     "completed_at": "2026-04-24T00:00:01Z",
                     "summary": "README.md",
+                    "policy_outcome": "allow",
+                    "policy_risk_level": "read_only",
+                    "policy_source_kind": "default",
+                    "policy_source_label": "read_only",
+                    "policy_reason": "allowed: read-only tool within workspace scope",
                 }
             ],
             "latest_message_summary": "assistant: Waiting for your answer.",
@@ -175,8 +213,19 @@ def test_print_session_status_preserves_status_output_contract(
     assert "Pending question: 00000000-0000-0000-0000-000000000333" in captured.out
     assert "Which branch should I inspect?" in captured.out
     assert "answer question 00000000-0000-0000-0000-000000000333" in captured.out
+    assert (
+        "Session policy summary: 1 decision(s); allow 1, approve 0, deny 0, "
+        "blocked 0;" in captured.out
+    )
+    assert (
+        "Current turn policy summary: 1 decision(s); allow 1, approve 0, "
+        "deny 0, blocked 0;" in captured.out
+    )
     assert "Recent tool activity:" in captured.out
-    assert "read_file succeeded" in captured.out
+    assert (
+        "read_file succeeded (turn 00000000-0000-0000-0000-000000000222) "
+        "[allow read_only via default:read_only]" in captured.out
+    )
 
 
 def test_print_replay_report_preserves_triage_guidance_contract(capsys) -> None:

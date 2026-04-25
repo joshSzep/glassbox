@@ -22,6 +22,9 @@ from glassbox.core.types import ToolExecutionStatus
 
 MessagePartKind = Literal["text", "tool_result", "reasoning_summary"]
 MessageRole = Literal["user", "assistant", "system"]
+PolicyDecisionOutcome = Literal["allow", "approve", "deny", "blocked"]
+PolicyRiskLevel = Literal["read_only", "workspace_write", "command"]
+PolicyDecisionSourceKind = Literal["default", "rule", "invariant"]
 
 
 class SessionConfig(BaseModel):
@@ -171,6 +174,11 @@ class ToolCallRecord(BaseModel):
     started_at: datetime | None = None
     completed_at: datetime | None = None
     summary: str | None = None
+    policy_outcome: PolicyDecisionOutcome | None = None
+    policy_risk_level: PolicyRiskLevel | None = None
+    policy_source_kind: PolicyDecisionSourceKind | None = None
+    policy_source_label: str | None = None
+    policy_reason: str | None = None
 
 
 class ApprovalRecord(BaseModel):
@@ -182,6 +190,10 @@ class ApprovalRecord(BaseModel):
     turn_id: TurnId
     subject: str
     reason: str
+    policy_outcome: PolicyDecisionOutcome | None = None
+    policy_risk_level: PolicyRiskLevel | None = None
+    policy_source_kind: PolicyDecisionSourceKind | None = None
+    policy_source_label: str | None = None
     status: ApprovalStatus
     requested_at: datetime
     resolved_at: datetime | None = None
@@ -215,3 +227,23 @@ class PolicyDecision(BaseModel):
     allowed: bool
     requires_approval: bool
     reason: str
+    outcome: PolicyDecisionOutcome
+    risk_level: PolicyRiskLevel
+    source_kind: PolicyDecisionSourceKind
+    source_label: str
+
+
+class PolicyActivitySummary(BaseModel):
+    """Concise session or turn summary of policy decisions."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    total_decisions: int = Field(default=0, ge=0)
+    allow_count: int = Field(default=0, ge=0)
+    approve_count: int = Field(default=0, ge=0)
+    deny_count: int = Field(default=0, ge=0)
+    blocked_count: int = Field(default=0, ge=0)
+    read_only_count: int = Field(default=0, ge=0)
+    workspace_write_count: int = Field(default=0, ge=0)
+    command_count: int = Field(default=0, ge=0)
+    highest_risk_level: PolicyRiskLevel | None = None

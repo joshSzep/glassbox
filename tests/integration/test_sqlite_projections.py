@@ -69,7 +69,17 @@ def _projection_snapshot(
             tuple(row)
             for row in connection.execute(
                 """
-                select tool_call_id, tool_name, status, summary, exit_code
+                select
+                    tool_call_id,
+                    tool_name,
+                    status,
+                    summary,
+                    exit_code,
+                    policy_outcome,
+                    policy_risk_level,
+                    policy_source_kind,
+                    policy_source_label,
+                    policy_reason
                 from tool_calls
                 where session_id = ?
                 """,
@@ -80,7 +90,14 @@ def _projection_snapshot(
             tuple(row)
             for row in connection.execute(
                 """
-                select approval_id, status, decided_by
+                select
+                    approval_id,
+                    status,
+                    decided_by,
+                    policy_outcome,
+                    policy_risk_level,
+                    policy_source_kind,
+                    policy_source_label
                 from approvals
                 where session_id = ?
                 """,
@@ -148,6 +165,11 @@ def test_append_events_updates_projection_tables(tmp_path: Path) -> None:
                         tool_call_id=tool_call_id,
                         tool_name="read_file",
                         arguments_json="{}",
+                        policy_outcome="allow",
+                        policy_risk_level="read_only",
+                        policy_source_kind="default",
+                        policy_source_label="read_only",
+                        policy_reason="allowed: read-only tool within workspace scope",
                     ),
                 ),
                 EventEnvelope(
@@ -157,6 +179,11 @@ def test_append_events_updates_projection_tables(tmp_path: Path) -> None:
                         turn_id=turn_id,
                         tool_call_id=tool_call_id,
                         tool_name="read_file",
+                        policy_outcome="allow",
+                        policy_risk_level="read_only",
+                        policy_source_kind="default",
+                        policy_source_label="read_only",
+                        policy_reason="allowed: read-only tool within workspace scope",
                     ),
                 ),
                 EventEnvelope(
@@ -167,6 +194,10 @@ def test_append_events_updates_projection_tables(tmp_path: Path) -> None:
                         turn_id=turn_id,
                         reason="Need permission",
                         subject="read_file",
+                        policy_outcome="approve",
+                        policy_risk_level="workspace_write",
+                        policy_source_kind="default",
+                        policy_source_label="workspace_write",
                     ),
                 ),
                 EventEnvelope(
@@ -227,7 +258,16 @@ def test_append_events_updates_projection_tables(tmp_path: Path) -> None:
         ).fetchall()
         tool_call_row = connection.execute(
             """
-            select tool_name, status, summary, exit_code
+            select
+                tool_name,
+                status,
+                summary,
+                exit_code,
+                policy_outcome,
+                policy_risk_level,
+                policy_source_kind,
+                policy_source_label,
+                policy_reason
             from tool_calls
             where tool_call_id = ?
             """,
@@ -235,7 +275,13 @@ def test_append_events_updates_projection_tables(tmp_path: Path) -> None:
         ).fetchone()
         approval_row = connection.execute(
             """
-            select status, decided_by
+            select
+                status,
+                decided_by,
+                policy_outcome,
+                policy_risk_level,
+                policy_source_kind,
+                policy_source_label
             from approvals
             where approval_id = ?
             """,
@@ -249,8 +295,25 @@ def test_append_events_updates_projection_tables(tmp_path: Path) -> None:
         ("user", "completed", "inspect the repository"),
         ("assistant", "completed", "Inspecting complete"),
     ]
-    assert tuple(tool_call_row) == ("read_file", "succeeded", "read complete", 0)
-    assert tuple(approval_row) == ("approved", "user")
+    assert tuple(tool_call_row) == (
+        "read_file",
+        "succeeded",
+        "read complete",
+        0,
+        "allow",
+        "read_only",
+        "default",
+        "read_only",
+        "allowed: read-only tool within workspace scope",
+    )
+    assert tuple(approval_row) == (
+        "approved",
+        "user",
+        "approve",
+        "workspace_write",
+        "default",
+        "workspace_write",
+    )
 
 
 def test_rebuild_session_projections_reproduces_projection_state(
