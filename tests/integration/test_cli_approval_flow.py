@@ -4,8 +4,8 @@ These tests use a two-phase approach:
   1. Phase 1 — service layer: run a real turn with a FunctionModel whose first
      response is a risky tool call, causing the turn to pause at
      SessionStatus.AWAITING_APPROVAL.
-  2. Phase 2 — CLI layer: call `main(["approve"/"deny", ...])` against the same
-     database to complete the workflow and verify rendered output.
+      2. Phase 2 — CLI layer: call `main(["session", "approve"/"deny", ...])`
+          against the same database to complete the workflow and verify rendered output.
 """
 
 import asyncio
@@ -197,6 +197,7 @@ def test_cli_approve_command_resumes_suspended_turn_and_executes_tool(
 
     exit_code = main(
         [
+            "session",
             "approve",
             str(session_id),
             str(approval_id),
@@ -249,6 +250,7 @@ def test_cli_deny_command_resumes_suspended_turn_without_executing_tool(
 
     exit_code = main(
         [
+            "session",
             "deny",
             str(session_id),
             str(approval_id),
@@ -294,6 +296,7 @@ def test_cli_approve_renders_tool_execution_events(
 
     main(
         [
+            "session",
             "approve",
             str(session_id),
             str(approval_id),

@@ -291,6 +291,7 @@ def test_e2e_approval_required_turn_round_trip(
 
     exit_code = main(
         [
+            "session",
             "status",
             str(session_id),
             "--cwd",
@@ -307,6 +308,7 @@ def test_e2e_approval_required_turn_round_trip(
 
     exit_code = main(
         [
+            "session",
             "approve",
             str(session_id),
             str(approval_id),
@@ -355,6 +357,7 @@ def test_e2e_resume_reopens_existing_session(
 
     exit_code = main(
         [
+            "session",
             "resume",
             str(session_id),
             "--cwd",

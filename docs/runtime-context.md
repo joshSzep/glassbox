@@ -52,7 +52,7 @@ Artifact-backed summaries are included in prompt assembly only while they remain
 
 You can inspect runtime context through:
 
-- `glassbox status SESSION_ID --cwd .`
+- `glassbox session status SESSION_ID --cwd .`
 - the dashboard selected-session summary
 - `GET /sessions/{session_id}`
 - replay artifacts and exported replay bundles

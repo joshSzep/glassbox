@@ -120,6 +120,7 @@ def test_cli_session_export_captures_branched_session_lineage(
 
     fork_exit_code = main(
         [
+            "session",
             "fork",
             str(parent_session_id),
             "--turn",

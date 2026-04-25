@@ -218,7 +218,7 @@ def _runtime_owner_commands(cwd: Path, db_path: Path | None) -> RuntimeOwnerComm
         start=f"glassbox daemon start {quoted_location}",
         status=f"glassbox daemon status {quoted_location}",
         status_json=f"glassbox daemon status {quoted_location} --json",
-        attach=f"glassbox attach SESSION_ID {quoted_location}",
+        attach=f"glassbox session attach SESSION_ID {quoted_location}",
         stop=f"glassbox daemon stop {quoted_location}",
     )
 

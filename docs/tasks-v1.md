@@ -460,10 +460,10 @@ uv run ty check src/glassbox/path.py
 - Depends on: `GBX-040`, `GBX-041`
 - Goal: add the operator command surface described in the architecture doc
 - Deliverables:
-  - `glassbox resume`
-  - `glassbox status`
-  - `glassbox approve`
-  - `glassbox deny`
+  - `glassbox session resume`
+  - `glassbox session status`
+  - `glassbox session approve`
+  - `glassbox session deny`
 - Implementation notes:
   - wire commands through services, not directly to DB code
   - keep output stable enough for humans, but avoid making it parse-first unless there is a requirement
@@ -956,7 +956,7 @@ uv run ty check src/glassbox/path.py
 - Depends on: `GBX-042`, `GBX-110`
 - Goal: make terminal inspection useful even without the dashboard
 - Deliverables:
-  - richer `glassbox status`
+  - richer `glassbox session status`
   - current turn, approvals, and recent tool activity summaries
 - Implementation notes:
   - this should read from projections or services, not reconstruct state ad hoc
@@ -1283,7 +1283,7 @@ uv run ty check src/glassbox/path.py
 - Depends on: `GBX-150`, `GBX-151`, `GBX-152`, `GBX-153`, `GBX-121`
 - Goal: make the available next action obvious in both terminal and dashboard workflows, and document the supported interaction model clearly
 - Deliverables:
-  - richer `glassbox status` output for actionable next steps such as pending approvals, pending questions, or ready-for-next-prompt sessions
+  - richer `glassbox session status` output for actionable next steps such as pending approvals, pending questions, or ready-for-next-prompt sessions
   - dashboard copy or affordance refinements where state is currently implicit
   - docs covering the multi-turn operator workflow across CLI and dashboard
 - Implementation notes:
@@ -1306,7 +1306,7 @@ uv run ty check src/glassbox/path.py
 - Goal: define the first-class interactive terminal workflow so Glassbox can behave like a persistent conversational agent without breaking the current event-sourced architecture
 - Deliverables:
   - architecture and operator-workflow updates covering an interactive terminal mode for new and existing sessions
-  - explicit command surface proposal for `glassbox chat` and `glassbox attach SESSION_ID`
+  - explicit command surface proposal for `glassbox chat` and `glassbox session attach SESSION_ID`
   - documented semantics for how interactive input maps onto existing session actions such as new prompt submission, `ask_user` answers, and approval resolution
   - explicit scope boundary for v1 interactive mode versus later cross-process or daemon-backed attach behavior
 - Implementation notes:
@@ -1342,13 +1342,13 @@ uv run ty check src/glassbox/path.py
 - Done when:
   - a user can start Glassbox once and continue a multi-turn session from the same terminal process without re-running the CLI for each prompt
 
-### GBX-162: Add `glassbox attach SESSION_ID` For Interactive Control Of Existing Sessions
+### GBX-162: Add `glassbox session attach SESSION_ID` For Interactive Control Of Existing Sessions
 
 - Status: `DONE`
 - Depends on: `GBX-160`, `GBX-161`
 - Goal: let an operator attach an interactive terminal UI to an existing actionable session instead of using one-shot `message` or `answer` commands
 - Deliverables:
-  - `glassbox attach SESSION_ID` command for interactive control of an existing session
+  - `glassbox session attach SESSION_ID` command for interactive control of an existing session
   - attach-time session inspection so the terminal loop knows whether the next operator input should be treated as a new prompt, an `ask_user` answer, or a blocked action
   - clear terminal messaging for sessions that are completed, failed, cancelled, or otherwise not attachable
 - Implementation notes:
@@ -1410,7 +1410,7 @@ uv run ty check src/glassbox/path.py
 - Depends on: `GBX-160`, `GBX-161`, `GBX-162`, `GBX-163`, `GBX-164`, `GBX-121`
 - Goal: explain the new interactive CLI clearly and position the existing one-shot commands as complementary primitives instead of the primary conversational UX
 - Deliverables:
-  - README updates covering `glassbox chat` and `glassbox attach SESSION_ID`
+  - README updates covering `glassbox chat` and `glassbox session attach SESSION_ID`
   - operator guidance for when to use interactive mode versus `run`, `message`, `answer`, `approve`, `deny`, and `resume`
   - explicit documentation for slash commands and interactive approval / pending-question flows
   - notes describing the v1 limitation that interactive streaming is process-local rather than a daemon-backed cross-process attach mechanism
@@ -2071,7 +2071,7 @@ uv run ty check src/glassbox/path.py
 - Goal: let operators create a new child session from a stable historical point entirely through supported service and CLI paths
 - Deliverables:
   - service-layer fork API for creating a child session from a parent session and selected fork point
-  - CLI command surface such as `glassbox fork SESSION_ID` with options for explicit turn selection, optional branch label, and optional immediate child-session prompt submission if justified
+  - CLI command surface such as `glassbox session fork SESSION_ID` with options for explicit turn selection, optional branch label, and optional immediate child-session prompt submission if justified
   - operator-visible CLI output describing the new child session ID and the parent/cut-point relationship
 - Implementation notes:
   - route the fork behavior through the session service boundary rather than direct CLI-to-repository code

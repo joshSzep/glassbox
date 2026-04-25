@@ -56,7 +56,7 @@ After the daemon is running, attach to an actionable session from another
 terminal:
 
 ```bash
-uv run glassbox attach SESSION_ID --cwd .
+uv run glassbox session attach SESSION_ID --cwd .
 ```
 
 When the workspace daemon is healthy, `attach` reconnects to the daemon-owned
@@ -97,7 +97,7 @@ uv run glassbox daemon stop --cwd .
   recover by replacing stale metadata, or `glassbox daemon stop --cwd .` to clear
   it without starting a new owner.
 - If `attach` reports that a session is historical-only, use the dashboard
-  session index or `glassbox status SESSION_ID --cwd .` for inspection.
+  session index or `glassbox session status SESSION_ID --cwd .` for inspection.
 - If a handoff recipient cannot mutate a session, confirm whether they imported
   an inspection-only package. Imported handoff packages create historical local
   sessions; use `fork` for alternate follow-up work rather than expecting the

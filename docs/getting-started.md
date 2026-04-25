@@ -62,12 +62,12 @@ Glassbox stores runtime state under `.glassbox/` in the selected workspace by de
 ```text
 glassbox run [PROMPT]
 glassbox chat [PROMPT]
-glassbox attach SESSION_ID
-glassbox message SESSION_ID PROMPT
-glassbox answer SESSION_ID QUESTION_ID ANSWER
-glassbox resume SESSION_ID
-glassbox fork SESSION_ID [--turn TURN_ID] [--branch-label LABEL] [--prompt PROMPT]
-glassbox status SESSION_ID
+glassbox session attach SESSION_ID
+glassbox session message SESSION_ID PROMPT
+glassbox session answer SESSION_ID QUESTION_ID ANSWER
+glassbox session resume SESSION_ID
+glassbox session fork SESSION_ID [--turn TURN_ID] [--branch-label LABEL] [--prompt PROMPT]
+glassbox session status SESSION_ID
 glassbox replay run SESSION_ID [--json]
 glassbox replay run --bundle BUNDLE_PATH [--json]
 glassbox replay export SESSION_ID [OUTPUT]
@@ -77,8 +77,8 @@ glassbox eval profiles [--track deterministic|live-provider-canary] [--json]
 glassbox eval report PROFILE_ID [PROFILE_ID ...] [--tag TAG] [--json] [--output-dir DIR]
 glassbox eval promote SESSION_ID CASE_ID --title TITLE [...]
 glassbox eval refresh CASE_ID SESSION_ID --reason REASON [...]
-glassbox approve SESSION_ID APPROVAL_ID
-glassbox deny SESSION_ID APPROVAL_ID
+glassbox session approve SESSION_ID APPROVAL_ID
+glassbox session deny SESSION_ID APPROVAL_ID
 glassbox rebuild [SESSION_ID | --all]
 glassbox serve
 ```

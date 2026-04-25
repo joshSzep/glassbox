@@ -87,7 +87,16 @@ def _add_session_workflow_parsers(
         help="disable the co-hosted dashboard during interactive chat",
     )
 
-    attach_parser = subparsers.add_parser(
+    session_parser = subparsers.add_parser(
+        "session",
+        help="work with sessions",
+        description=(
+            "Inspect, mutate, branch, resume, and hand off persisted sessions."
+        ),
+    )
+    session_subparsers = session_parser.add_subparsers(dest="session_command")
+
+    attach_parser = session_subparsers.add_parser(
         "attach",
         help="attach to an existing interactive session",
         description=(
@@ -98,7 +107,7 @@ def _add_session_workflow_parsers(
     attach_parser.add_argument("session_id", type=_parse_uuid)
     _add_runtime_location_arguments(attach_parser)
 
-    message_parser = subparsers.add_parser(
+    message_parser = session_subparsers.add_parser(
         "message",
         help="submit a new prompt to an existing session",
         description="Submit a new user message into an existing session.",
@@ -107,7 +116,7 @@ def _add_session_workflow_parsers(
     message_parser.add_argument("prompt", help="user prompt to submit")
     _add_runtime_location_arguments(message_parser)
 
-    answer_parser = subparsers.add_parser(
+    answer_parser = session_subparsers.add_parser(
         "answer",
         help="answer a pending ask_user question",
         description=(
@@ -129,7 +138,28 @@ def _add_session_workflow_parsers(
     answer_parser.add_argument("answer", help="answer text to provide")
     _add_runtime_location_arguments(answer_parser)
 
-    resume_parser = subparsers.add_parser(
+    approve_parser = session_subparsers.add_parser(
+        "approve",
+        help="approve a pending action",
+        description="Approve a pending tool action and resume the suspended turn.",
+    )
+    approve_parser.add_argument("session_id", type=_parse_uuid)
+    approve_parser.add_argument("approval_id", type=_parse_uuid)
+    _add_runtime_location_arguments(approve_parser)
+
+    deny_parser = session_subparsers.add_parser(
+        "deny",
+        help="deny a pending action",
+        description=(
+            "Deny a pending tool action and resume the suspended turn "
+            "without running it."
+        ),
+    )
+    deny_parser.add_argument("session_id", type=_parse_uuid)
+    deny_parser.add_argument("approval_id", type=_parse_uuid)
+    _add_runtime_location_arguments(deny_parser)
+
+    resume_parser = session_subparsers.add_parser(
         "resume",
         help="resume an existing session",
         description="Replay the resume event for an existing session.",
@@ -137,7 +167,7 @@ def _add_session_workflow_parsers(
     resume_parser.add_argument("session_id", type=_parse_uuid)
     _add_runtime_location_arguments(resume_parser)
 
-    fork_parser = subparsers.add_parser(
+    fork_parser = session_subparsers.add_parser(
         "fork",
         help="create a child session from a historical turn",
         description=(
@@ -167,7 +197,7 @@ def _add_session_workflow_parsers(
     )
     _add_runtime_location_arguments(fork_parser)
 
-    status_parser = subparsers.add_parser(
+    status_parser = session_subparsers.add_parser(
         "status",
         help="inspect session state",
         description=(
@@ -177,16 +207,6 @@ def _add_session_workflow_parsers(
     )
     status_parser.add_argument("session_id", type=_parse_uuid)
     _add_runtime_location_arguments(status_parser)
-
-    session_parser = subparsers.add_parser(
-        "session",
-        help="work with portable session handoff packages",
-        description=(
-            "Export or import portable session handoff packages without copying "
-            "the full workspace database."
-        ),
-    )
-    session_subparsers = session_parser.add_subparsers(dest="session_command")
 
     session_export_parser = session_subparsers.add_parser(
         "export",
@@ -248,27 +268,6 @@ def _add_session_workflow_parsers(
         help="print the import result as JSON",
     )
     _add_runtime_location_arguments(session_import_parser)
-
-    approve_parser = subparsers.add_parser(
-        "approve",
-        help="approve a pending action",
-        description="Approve a pending tool action and resume the suspended turn.",
-    )
-    approve_parser.add_argument("session_id", type=_parse_uuid)
-    approve_parser.add_argument("approval_id", type=_parse_uuid)
-    _add_runtime_location_arguments(approve_parser)
-
-    deny_parser = subparsers.add_parser(
-        "deny",
-        help="deny a pending action",
-        description=(
-            "Deny a pending tool action and resume the suspended turn "
-            "without running it."
-        ),
-    )
-    deny_parser.add_argument("session_id", type=_parse_uuid)
-    deny_parser.add_argument("approval_id", type=_parse_uuid)
-    _add_runtime_location_arguments(deny_parser)
 
 
 def _add_replay_parsers(

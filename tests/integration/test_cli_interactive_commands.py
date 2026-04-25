@@ -207,6 +207,7 @@ def test_cli_attach_keeps_existing_idle_session_open_for_new_prompts(
     _ = capsys.readouterr()
     exit_code = main(
         [
+            "session",
             "attach",
             str(session_id),
             "--cwd",
@@ -281,6 +282,7 @@ def test_cli_attach_answers_pending_question_for_existing_session(
 
         exit_code = main(
             [
+                "session",
                 "attach",
                 str(session_id),
                 "--cwd",
@@ -378,6 +380,7 @@ def test_cli_attach_approval_mode_requires_slash_commands_and_supports_status_he
     _ = capsys.readouterr()
     exit_code = main(
         [
+            "session",
             "attach",
             str(session_id),
             "--cwd",
@@ -415,6 +418,7 @@ def test_cli_attach_supports_deny_slash_command(
     _ = capsys.readouterr()
     exit_code = main(
         [
+            "session",
             "attach",
             str(session_id),
             "--cwd",
@@ -782,6 +786,7 @@ def test_cli_attach_rejects_unknown_session_id(
 
     exit_code = main(
         [
+            "session",
             "attach",
             str(unknown_session_id),
             "--cwd",
@@ -817,6 +822,7 @@ def test_cli_attach_rejects_completed_session(
     _ = capsys.readouterr()
     exit_code = main(
         [
+            "session",
             "attach",
             str(session_id),
             "--cwd",
@@ -857,6 +863,7 @@ def test_cli_attach_rejects_failed_session(
     _ = capsys.readouterr()
     exit_code = main(
         [
+            "session",
             "attach",
             str(session_id),
             "--cwd",

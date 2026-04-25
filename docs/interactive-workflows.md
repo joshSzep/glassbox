@@ -3,7 +3,7 @@
 Glassbox has two main operator modes:
 
 - `glassbox chat` starts a new interactive session
-- `glassbox attach SESSION_ID` reopens an existing actionable session in the terminal
+- `glassbox session attach SESSION_ID` reopens an existing actionable session in the terminal
 
 Use the lower-level commands when you need scripting, recovery, or precise control of a session state.
 
@@ -39,7 +39,7 @@ The terminal prompt changes with the session state, so the shell tells you wheth
 Use `attach` when you already have a session ID and want to reopen an actionable session:
 
 ```bash
-uv run glassbox attach SESSION_ID --cwd .
+uv run glassbox session attach SESSION_ID --cwd .
 ```
 
 `attach` now has two explicit modes:
@@ -62,32 +62,32 @@ It does not automatically start the dashboard. If you want browser observation a
 
 Use the command that matches the current actionable state:
 
-- `glassbox message SESSION_ID PROMPT` sends a fresh user prompt when the session is idle and running
-- `glassbox answer SESSION_ID QUESTION_ID ANSWER` answers a pending `ask_user` question when the session is awaiting user input
-- `glassbox approve SESSION_ID APPROVAL_ID` or `glassbox deny SESSION_ID APPROVAL_ID` resolves a pending approval when the session is awaiting approval
-- `glassbox resume SESSION_ID` reloads a persisted session after restart without sending a new prompt
-- `glassbox status SESSION_ID` prints the current state and the next valid operator action
+- `glassbox session message SESSION_ID PROMPT` sends a fresh user prompt when the session is idle and running
+- `glassbox session answer SESSION_ID QUESTION_ID ANSWER` answers a pending `ask_user` question when the session is awaiting user input
+- `glassbox session approve SESSION_ID APPROVAL_ID` or `glassbox session deny SESSION_ID APPROVAL_ID` resolves a pending approval when the session is awaiting approval
+- `glassbox session resume SESSION_ID` reloads a persisted session after restart without sending a new prompt
+- `glassbox session status SESSION_ID` prints the current state and the next valid operator action
 - `glassbox session export SESSION_ID OUTPUT` writes a portable handoff package for review without copying the workspace database
 - `glassbox session import PACKAGE` imports a handoff package into a new local historical session for inspection
 
 Example:
 
 ```bash
-uv run glassbox status SESSION_ID --cwd .
-uv run glassbox message SESSION_ID "Continue with the next step" --cwd .
+uv run glassbox session status SESSION_ID --cwd .
+uv run glassbox session message SESSION_ID "Continue with the next step" --cwd .
 ```
 
 Answer a pending `ask_user` question:
 
 ```bash
-uv run glassbox answer SESSION_ID QUESTION_ID "blue" --cwd .
+uv run glassbox session answer SESSION_ID QUESTION_ID "blue" --cwd .
 ```
 
 Resolve a pending approval:
 
 ```bash
-uv run glassbox approve SESSION_ID APPROVAL_ID --cwd .
-uv run glassbox deny SESSION_ID APPROVAL_ID --cwd .
+uv run glassbox session approve SESSION_ID APPROVAL_ID --cwd .
+uv run glassbox session deny SESSION_ID APPROVAL_ID --cwd .
 ```
 
 For handoff across workspaces, export from the source workspace, import in the

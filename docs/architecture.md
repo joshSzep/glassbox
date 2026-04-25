@@ -57,7 +57,7 @@ following as the implemented baseline that v2 extends:
 - `glassbox chat` owns the live in-process conversational workflow
 - `glassbox daemon start|status|stop` now provides a workspace-scoped
     background runtime owner with health and lock metadata under `.glassbox/`
-- `glassbox attach` now chooses between persisted local reopen and live
+- `glassbox session attach` now chooses between persisted local reopen and live
     terminal attach to a healthy daemon-owned runtime for the same workspace
 - `glassbox serve` exposes the standalone browser console over persisted
     sessions, recent-session discovery, snapshot reads, HTTP actions, and SSE
@@ -1140,7 +1140,7 @@ original path. The child session becomes the audit record of the alternate path.
 
 The first intended operator surface should stay explicit:
 
-- CLI should expose a dedicated fork action such as `glassbox fork SESSION_ID`
+- CLI should expose a dedicated fork action such as `glassbox session fork SESSION_ID`
 - the CLI should support an explicit historical turn selector such as `--turn TURN_ID`
 - the CLI may attach an operator-visible branch label and an immediate follow-up prompt as adjacent options, rather than collapsing forking and continuation into one implicit action
 - the dashboard should treat forking as a persisted session action over a selected historical cut point, not as a browser-local state transformation
@@ -1506,18 +1506,18 @@ The CLI should expose two complementary layers:
 
 ```text
 glassbox run [PROMPT]
-glassbox fork SESSION_ID [--turn TURN_ID] [--branch-label LABEL] [--prompt PROMPT]
-glassbox message SESSION_ID PROMPT
-glassbox answer SESSION_ID QUESTION_ID ANSWER
-glassbox resume SESSION_ID
-glassbox status SESSION_ID
-glassbox approve SESSION_ID APPROVAL_ID
-glassbox deny SESSION_ID APPROVAL_ID
+glassbox session fork SESSION_ID [--turn TURN_ID] [--branch-label LABEL] [--prompt PROMPT]
+glassbox session message SESSION_ID PROMPT
+glassbox session answer SESSION_ID QUESTION_ID ANSWER
+glassbox session resume SESSION_ID
+glassbox session status SESSION_ID
+glassbox session approve SESSION_ID APPROVAL_ID
+glassbox session deny SESSION_ID APPROVAL_ID
 glassbox rebuild [SESSION_ID | --all]
 glassbox serve
 ```
 
-`glassbox status` should read persisted projections and summarize the current turn,
+`glassbox session status` should read persisted projections and summarize the current turn,
 pending approvals, recent tool activity, and recent turn metrics without replaying
 raw events ad hoc in the CLI.
 
@@ -1796,11 +1796,11 @@ rather than repeated one-shot command invocations.
 
 ```text
 glassbox chat [PROMPT]
-glassbox attach SESSION_ID
+glassbox session attach SESSION_ID
 ```
 
 `glassbox chat` starts a new session and keeps the operator inside a long-lived
-terminal loop. `glassbox attach` opens that same interactive terminal workflow
+terminal loop. `glassbox session attach` opens that same interactive terminal workflow
 for an existing persisted session.
 
 In v1, `attach` should support reopening sessions that are actionable from the
@@ -1939,7 +1939,7 @@ This is the current stance because the existing surfaces already cover most of
 the operator value at materially lower complexity:
 
 - `glassbox chat` provides the primary conversational workflow inside the owning CLI process
-- `glassbox attach` can reopen persisted sessions that are actionable from projections
+- `glassbox session attach` can reopen persisted sessions that are actionable from projections
 - `GET /sessions/{session_id}` already provides cross-process snapshot recovery
 - `GET /sessions/{session_id}/events` already provides cross-process live event streaming to the dashboard
 - approval and question flows are already resumable from persisted events rather than process-local memory

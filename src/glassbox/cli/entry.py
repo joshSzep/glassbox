@@ -7,7 +7,6 @@ from collections.abc import Callable
 from collections.abc import Sequence
 
 from glassbox.cli.parser import build_parser
-from glassbox.core.types import ApprovalDecision
 
 CommandHandler = Callable[[argparse.Namespace], int]
 
@@ -48,43 +47,22 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
     from glassbox.cli.artifact_commands import _artifacts_command
     from glassbox.cli.backup_commands import _backup_command
     from glassbox.cli.daemon_commands import _daemon_command
-    from glassbox.cli.interactive_commands import _answer_command
-    from glassbox.cli.interactive_commands import _attach_command
     from glassbox.cli.interactive_commands import _chat_command
-    from glassbox.cli.interactive_commands import _fork_command
-    from glassbox.cli.interactive_commands import _message_command
-    from glassbox.cli.interactive_commands import _resolve_approval_command
-    from glassbox.cli.interactive_commands import _resume_command
     from glassbox.cli.interactive_commands import _run_command
     from glassbox.cli.replay_eval_commands import _eval_command
     from glassbox.cli.replay_eval_commands import _replay_command
     from glassbox.cli.server_commands import _serve_command
     from glassbox.cli.session_state_commands import _rebuild_command
     from glassbox.cli.session_state_commands import _session_command
-    from glassbox.cli.session_state_commands import _status_command
 
     command_handlers: dict[str, CommandHandler] = {
         "run": _run_command,
         "chat": _chat_command,
-        "attach": _attach_command,
-        "message": _message_command,
-        "resume": _resume_command,
-        "fork": _fork_command,
-        "status": _status_command,
         "session": _session_command,
         "replay": _replay_command,
         "eval": _eval_command,
         "artifacts": _artifacts_command,
         "backup": _backup_command,
-        "answer": _answer_command,
-        "approve": lambda namespace: _resolve_approval_command(
-            namespace,
-            ApprovalDecision.APPROVED,
-        ),
-        "deny": lambda namespace: _resolve_approval_command(
-            namespace,
-            ApprovalDecision.DENIED,
-        ),
         "rebuild": _rebuild_command,
         "serve": _serve_command,
         "daemon": _daemon_command,

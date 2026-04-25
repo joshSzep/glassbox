@@ -144,11 +144,11 @@ resolved again.
 The CLI exposes approval handling through:
 
 ```text
-glassbox approve SESSION_ID APPROVAL_ID
-glassbox deny SESSION_ID APPROVAL_ID
+glassbox session approve SESSION_ID APPROVAL_ID
+glassbox session deny SESSION_ID APPROVAL_ID
 ```
 
-`glassbox status SESSION_ID` shows pending approvals and current turn context so
+`glassbox session status SESSION_ID` shows pending approvals and current turn context so
 an operator can inspect the situation before deciding.
 
 ### Dashboard Flow

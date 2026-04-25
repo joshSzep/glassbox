@@ -10,6 +10,7 @@ from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.cli.status_formatters import _print_session_status
 from glassbox.core.models import ProjectionHealth
 from glassbox.core.models import SessionRecord
+from glassbox.core.types import ApprovalDecision
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.session_export import export_session_package
 from glassbox.runtime.session_import import import_session_package
@@ -30,6 +31,29 @@ def _status_command(args: argparse.Namespace) -> int:
 
 
 def _session_command(args: argparse.Namespace) -> int:
+    from glassbox.cli.interactive_commands import _answer_command
+    from glassbox.cli.interactive_commands import _attach_command
+    from glassbox.cli.interactive_commands import _fork_command
+    from glassbox.cli.interactive_commands import _message_command
+    from glassbox.cli.interactive_commands import _resolve_approval_command
+    from glassbox.cli.interactive_commands import _resume_command
+
+    if args.session_command == "attach":
+        return _attach_command(args)
+    if args.session_command == "message":
+        return _message_command(args)
+    if args.session_command == "answer":
+        return _answer_command(args)
+    if args.session_command == "approve":
+        return _resolve_approval_command(args, ApprovalDecision.APPROVED)
+    if args.session_command == "deny":
+        return _resolve_approval_command(args, ApprovalDecision.DENIED)
+    if args.session_command == "resume":
+        return _resume_command(args)
+    if args.session_command == "fork":
+        return _fork_command(args)
+    if args.session_command == "status":
+        return _status_command(args)
     if args.session_command == "export":
         return _session_export_command(args)
     if args.session_command == "import":

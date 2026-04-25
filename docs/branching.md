@@ -31,15 +31,15 @@ Fork creation is rejected for:
 Inspect the historical session, create a child branch, then continue in the child:
 
 ```bash
-uv run glassbox status PARENT_SESSION_ID --cwd .
-uv run glassbox fork PARENT_SESSION_ID --turn TURN_ID --branch-label alt-path --cwd .
-uv run glassbox message CHILD_SESSION_ID "Try the alternate fix" --cwd .
+uv run glassbox session status PARENT_SESSION_ID --cwd .
+uv run glassbox session fork PARENT_SESSION_ID --turn TURN_ID --branch-label alt-path --cwd .
+uv run glassbox session message CHILD_SESSION_ID "Try the alternate fix" --cwd .
 ```
 
 Or create the fork and submit the first child prompt immediately:
 
 ```bash
-uv run glassbox fork PARENT_SESSION_ID \
+uv run glassbox session fork PARENT_SESSION_ID \
   --turn TURN_ID \
   --branch-label alt-path \
   --prompt "Try the alternate fix" \

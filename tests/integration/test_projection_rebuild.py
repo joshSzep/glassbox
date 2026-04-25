@@ -182,6 +182,7 @@ def test_cli_status_reports_degraded_projection_health(
 
     exit_code = main(
         [
+            "session",
             "status",
             str(session_id),
             "--cwd",

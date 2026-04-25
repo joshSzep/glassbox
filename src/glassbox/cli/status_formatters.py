@@ -347,22 +347,22 @@ def _format_next_action_line(
     if status == "awaiting_approval" and pending_approval_id is not None:
         return (
             "Next action: resolve approval "
-            f"{pending_approval_id} with 'glassbox approve {session_id} "
-            f"{pending_approval_id}' or 'glassbox deny {session_id} "
+            f"{pending_approval_id} with 'glassbox session approve {session_id} "
+            f"{pending_approval_id}' or 'glassbox session deny {session_id} "
             f"{pending_approval_id}', or use the dashboard approvals pane"
         )
 
     if status == "awaiting_user_input" and pending_question_id is not None:
         return (
             "Next action: answer question "
-            f"{pending_question_id} with 'glassbox answer {session_id} "
+            f"{pending_question_id} with 'glassbox session answer {session_id} "
             f"{pending_question_id} ANSWER', or use the dashboard Next Action "
             "pane"
         )
 
     if status == "running" and current_turn_id is None:
         return (
-            "Next action: submit a new prompt with 'glassbox message "
+            "Next action: submit a new prompt with 'glassbox session message "
             f"{session_id} PROMPT', or use the dashboard Next Action pane"
         )
 

@@ -40,24 +40,16 @@ def test_cli_help_lists_session_oriented_commands(
     captured = capsys.readouterr()
 
     assert exc_info.value.code == 0
-    assert "answer" in captured.out
-    assert "attach" in captured.out
     assert "chat" in captured.out
-    assert "message" in captured.out
-    assert "resume" in captured.out
-    assert "fork" in captured.out
-    assert "status" in captured.out
     assert "session" in captured.out
     assert "artifacts" in captured.out
     assert "backup" in captured.out
     assert "rebuild" in captured.out
     assert "replay" in captured.out
     assert "eval" in captured.out
-    assert "approve" in captured.out
-    assert "deny" in captured.out
 
 
-def test_cli_session_help_lists_handoff_subcommands(
+def test_cli_session_help_lists_session_subcommands(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     with pytest.raises(SystemExit) as exc_info:
@@ -66,8 +58,16 @@ def test_cli_session_help_lists_handoff_subcommands(
     captured = capsys.readouterr()
 
     assert exc_info.value.code == 0
+    assert "answer" in captured.out
+    assert "approve" in captured.out
+    assert "attach" in captured.out
+    assert "deny" in captured.out
     assert "export" in captured.out
+    assert "fork" in captured.out
     assert "import" in captured.out
+    assert "message" in captured.out
+    assert "resume" in captured.out
+    assert "status" in captured.out
 
 
 def test_cli_replay_help_lists_replay_subcommands(
@@ -125,6 +125,7 @@ def test_cli_answer_resumes_pending_ask_user_turn(
 
         exit_code = main(
             [
+                "session",
                 "answer",
                 str(session_id),
                 str(question.question_id),
@@ -185,6 +186,7 @@ def test_cli_answer_rejects_unknown_question_id(
         unknown_question_id = UUID("00000000-0000-0000-0000-000000000042")
         exit_code = main(
             [
+                "session",
                 "answer",
                 str(session_id),
                 str(unknown_question_id),
@@ -212,6 +214,7 @@ def test_cli_answer_rejects_session_not_awaiting_user_input(
 
     exit_code = main(
         [
+            "session",
             "answer",
             str(session_id),
             str(UUID("00000000-0000-0000-0000-000000000042")),
@@ -273,6 +276,7 @@ def test_cli_status_includes_runtime_context_summary(
     _ = capsys.readouterr()
     exit_code = main(
         [
+            "session",
             "status",
             str(session_id),
             "--cwd",
@@ -309,6 +313,7 @@ def test_cli_message_submits_new_user_turn_to_existing_session(
 
     exit_code = main(
         [
+            "session",
             "message",
             str(session_id),
             "Now summarize the tests.",
@@ -367,6 +372,7 @@ def test_cli_message_rejects_unknown_session_id(
 
     exit_code = main(
         [
+            "session",
             "message",
             str(unknown_session_id),
             "Hello",
@@ -403,6 +409,7 @@ def test_cli_message_rejects_non_interactive_session_state(
     _ = capsys.readouterr()
     exit_code = main(
         [
+            "session",
             "message",
             str(session_id),
             "Hello again",
@@ -429,6 +436,7 @@ def test_cli_resume_replays_resume_event(
 
     exit_code = main(
         [
+            "session",
             "resume",
             str(session_id),
             "--cwd",
@@ -454,6 +462,7 @@ def test_cli_resume_preserves_awaiting_approval_session_state(
 
     exit_code = main(
         [
+            "session",
             "resume",
             str(session_id),
             "--cwd",
@@ -493,6 +502,7 @@ def test_cli_resume_preserves_mid_transcript_running_session(
 
     exit_code = main(
         [
+            "session",
             "resume",
             str(session_id),
             "--cwd",
@@ -541,6 +551,7 @@ def test_cli_resume_rejects_completed_session(
     _ = capsys.readouterr()
     exit_code = main(
         [
+            "session",
             "resume",
             str(session_id),
             "--cwd",
@@ -570,6 +581,7 @@ def test_cli_fork_creates_child_session_from_latest_completed_turn(
 
     exit_code = main(
         [
+            "session",
             "fork",
             str(parent_session_id),
             "--branch-label",
@@ -626,6 +638,7 @@ def test_cli_fork_supports_explicit_completed_turn_selection(
 
     second_exit_code = main(
         [
+            "session",
             "message",
             str(parent_session_id),
             "Second prompt",
@@ -642,6 +655,7 @@ def test_cli_fork_supports_explicit_completed_turn_selection(
 
     exit_code = main(
         [
+            "session",
             "fork",
             str(parent_session_id),
             "--turn",
@@ -685,6 +699,7 @@ def test_cli_fork_rejects_unknown_session_id(
 
     exit_code = main(
         [
+            "session",
             "fork",
             str(unknown_session_id),
             "--cwd",
@@ -712,6 +727,7 @@ def test_cli_fork_rejects_invalid_turn_identifier(
 
     exit_code = main(
         [
+            "session",
             "fork",
             str(session_id),
             "--turn",
@@ -737,6 +753,7 @@ def test_cli_fork_rejects_non_branchable_session_state(
 
     exit_code = main(
         [
+            "session",
             "fork",
             str(session_id),
             "--cwd",
@@ -763,6 +780,7 @@ def test_cli_status_prints_human_session_summary(
 
     exit_code = main(
         [
+            "session",
             "status",
             str(session_id),
             "--cwd",
@@ -781,7 +799,10 @@ def test_cli_status_prints_human_session_summary(
     assert "Recent tool activity: none" in captured.out
     assert "Dashboard URL:" not in captured.out
     assert "Transcript messages: 2" in captured.out
-    assert "Next action: submit a new prompt with 'glassbox message " in captured.out
+    assert (
+        "Next action: submit a new prompt with 'glassbox session message "
+        in captured.out
+    )
     assert (
         "Latest message: assistant: I received your request: Inspect the repository"
         in captured.out
@@ -812,6 +833,7 @@ def test_cli_status_includes_session_failure_details(
     _ = capsys.readouterr()
     exit_code = main(
         [
+            "session",
             "status",
             str(session_id),
             "--cwd",
@@ -843,6 +865,7 @@ def test_cli_status_includes_turn_approvals_tool_activity_and_metrics(
 
     exit_code = main(
         [
+            "session",
             "status",
             str(session_id),
             "--cwd",
@@ -872,8 +895,8 @@ def test_cli_status_includes_turn_approvals_tool_activity_and_metrics(
         "[approve command via default:command] (needs confirmation)" in captured.out
     )
     assert (
-        f"Next action: resolve approval {approval_id} with 'glassbox approve "
-        f"{session_id} {approval_id}' or 'glassbox deny {session_id} "
+        f"Next action: resolve approval {approval_id} with 'glassbox session approve "
+        f"{session_id} {approval_id}' or 'glassbox session deny {session_id} "
         f"{approval_id}', or use the dashboard approvals pane" in captured.out
     )
     assert "Recent tool activity:" in captured.out
@@ -893,6 +916,7 @@ def test_cli_status_includes_pending_question_and_answer_next_action(
 
     exit_code = main(
         [
+            "session",
             "status",
             str(session_id),
             "--cwd",
@@ -907,7 +931,7 @@ def test_cli_status_includes_pending_question_and_answer_next_action(
     assert "Status: awaiting_user_input" in captured.out
     assert f"Pending question: {question_id}: What colour should I use?" in captured.out
     assert (
-        f"Next action: answer question {question_id} with 'glassbox answer "
+        f"Next action: answer question {question_id} with 'glassbox session answer "
         f"{session_id} {question_id} ANSWER', or use the dashboard Next Action pane"
         in captured.out
     )
@@ -922,6 +946,7 @@ def test_cli_approve_resolves_pending_approval(
 
     exit_code = main(
         [
+            "session",
             "approve",
             str(session_id),
             str(approval_id),
@@ -950,6 +975,7 @@ def test_cli_deny_resolves_pending_approval(
 
     exit_code = main(
         [
+            "session",
             "deny",
             str(session_id),
             str(approval_id),
@@ -978,6 +1004,7 @@ def test_cli_rejects_unknown_session_id(
 
     exit_code = main(
         [
+            "session",
             "resume",
             str(unknown_session_id),
             "--cwd",
@@ -1001,6 +1028,7 @@ def test_cli_rejects_invalid_approval_state(
 
     exit_code = main(
         [
+            "session",
             "approve",
             str(session_id),
             str(new_approval_id()),

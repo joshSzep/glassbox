@@ -170,10 +170,10 @@ Use this order when a session needs to move between people or terminals:
 
 1. Check the live writer boundary with `glassbox daemon status --cwd .` or by
    noting whether the current `chat` process owns the session.
-2. Inspect the session with `glassbox status SESSION_ID --cwd .` or the
+2. Inspect the session with `glassbox session status SESSION_ID --cwd .` or the
    dashboard session view.
 3. If the session is actionable and the daemon owns the workspace, use
-   `glassbox attach SESSION_ID --cwd .` to reconnect instead of starting a
+   `glassbox session attach SESSION_ID --cwd .` to reconnect instead of starting a
    second local writer.
 4. If the next operator only needs review context, export a handoff package with
   `glassbox session export SESSION_ID handoff.json --cwd .` and include
@@ -225,7 +225,7 @@ session export, import, or workspace-profile work.
 ## Troubleshooting Team Workflows
 
 - Ownership conflict: if a mutating command reports that a daemon owns the
-  workspace, use `glassbox attach SESSION_ID --cwd .` for live work or
+  workspace, use `glassbox session attach SESSION_ID --cwd .` for live work or
   `glassbox daemon stop --cwd .` when you deliberately want local commands to
   take ownership again.
 - Stale owner metadata: run `glassbox daemon status --cwd .` to confirm the

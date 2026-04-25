@@ -71,6 +71,7 @@ def test_cli_session_import_rehydrates_export_for_inspection_in_clean_workspace(
 
     status_exit_code = main(
         [
+            "session",
             "status",
             str(imported_session_id),
             "--cwd",
@@ -104,6 +105,7 @@ def test_cli_session_import_preserves_branch_lineage_metadata(
 
     fork_exit_code = main(
         [
+            "session",
             "fork",
             str(parent_session_id),
             "--turn",

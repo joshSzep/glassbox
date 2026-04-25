@@ -86,7 +86,7 @@ def test_daemon_start_status_duplicate_rejection_and_stop(
         assert "Workspace:" in status_capture.out
         assert "Owner metadata:" in status_capture.out
         assert "Session index:" in status_capture.out
-        assert "Attach: glassbox attach SESSION_ID" in status_capture.out
+        assert "Attach: glassbox session attach SESSION_ID" in status_capture.out
         assert "Stop: glassbox daemon stop" in status_capture.out
 
         exit_code = main(
@@ -106,6 +106,7 @@ def test_daemon_start_status_duplicate_rejection_and_stop(
 
         exit_code = main(
             [
+                "session",
                 "message",
                 str(uuid4()),
                 "hello",
@@ -168,7 +169,7 @@ def test_daemon_status_json_reports_discovery_and_health(
         assert payload["stdout_log_path"].endswith(".glassbox/runtime-owner.stdout.log")
         assert payload["stderr_log_path"].endswith(".glassbox/runtime-owner.stderr.log")
         assert payload["commands"]["attach"].startswith(
-            "glassbox attach SESSION_ID --cwd "
+            "glassbox session attach SESSION_ID --cwd "
         )
         assert payload["commands"]["status_json"].endswith(" --json")
     finally:
@@ -309,6 +310,7 @@ def test_cli_attach_routes_live_session_through_daemon_and_can_reattach(
 
         exit_code = main(
             [
+                "session",
                 "attach",
                 str(session_id),
                 "--cwd",
@@ -330,6 +332,7 @@ def test_cli_attach_routes_live_session_through_daemon_and_can_reattach(
 
         exit_code = main(
             [
+                "session",
                 "attach",
                 str(session_id),
                 "--cwd",
@@ -397,6 +400,7 @@ def test_cli_attach_reports_live_runtime_unavailable(
 
     exit_code = main(
         [
+            "session",
             "attach",
             str(session_id),
             "--cwd",
@@ -453,6 +457,7 @@ def test_cli_attach_reports_historical_only_session_when_daemon_is_running(
 
         exit_code = main(
             [
+                "session",
                 "attach",
                 str(session_id),
                 "--cwd",
@@ -501,6 +506,7 @@ def test_cli_attach_reports_stale_runtime_owner_then_falls_back_locally(
 
     exit_code = main(
         [
+            "session",
             "attach",
             str(session_id),
             "--cwd",
