@@ -32,6 +32,23 @@ from glassbox.runtime.runtime_context_derivation import derive_runtime_context_s
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
 
+OperatorQueueName = (
+    str  # kept broad at runtime; concrete values are constrained at the web boundary
+)
+OperatorSortName = str
+
+OPERATOR_QUEUE_ALL = "all"
+OPERATOR_QUEUE_APPROVALS = "approvals"
+OPERATOR_QUEUE_QUESTIONS = "questions"
+OPERATOR_QUEUE_FAILURES = "failures"
+OPERATOR_QUEUE_DEGRADED = "degraded"
+OPERATOR_QUEUE_ACTIVE = "active"
+OPERATOR_QUEUE_ACTION_NEEDED = "action-needed"
+OPERATOR_QUEUE_HISTORICAL = "historical"
+
+OPERATOR_SORT_PRIORITY = "priority"
+OPERATOR_SORT_UPDATED_AT = "updated_at"
+
 
 class ChildSessionSummaryView(BaseModel):
     """Read-model summary for child sessions in a snapshot."""
@@ -400,9 +417,9 @@ class SessionQueryService:
         self,
         *,
         runtime: WorkspaceRuntimeSummaryView,
-        queue: str | None = None,
+        queue: OperatorQueueName | None = None,
         status: str | None = None,
-        sort: str = "priority",
+        sort: OperatorSortName = OPERATOR_SORT_PRIORITY,
         limit: int | None = None,
     ) -> SessionAggregateView:
         rows = [
@@ -772,28 +789,18 @@ def _build_operator_session_summary(
     }
     historical_only = not live_actionable
     priority_bucket, priority_rank = _operator_priority(summary, has_active_turn)
-
-    queue_memberships: list[str] = []
-    if summary.pending_approval_id is not None:
-        queue_memberships.append("approvals")
-    if summary.pending_question_id is not None:
-        queue_memberships.append("questions")
-    if summary.status == "failed":
-        queue_memberships.append("failures")
-    if summary.projection_health.degraded:
-        queue_memberships.append("degraded")
-    if live_actionable:
-        queue_memberships.append("active")
     action_needed = bool(
         summary.pending_approval_id is not None
         or summary.pending_question_id is not None
         or summary.status == "failed"
         or summary.projection_health.degraded
     )
-    if action_needed:
-        queue_memberships.append("action-needed")
-    if historical_only:
-        queue_memberships.append("historical")
+    queue_memberships = _operator_queue_memberships(
+        summary,
+        live_actionable=live_actionable,
+        historical_only=historical_only,
+        action_needed=action_needed,
+    )
 
     payload = summary.model_dump()
     payload.update(
@@ -831,9 +838,9 @@ def _operator_priority(
 
 def _matches_operator_queue(
     row: OperatorSessionSummaryView,
-    queue: str | None,
+    queue: OperatorQueueName | None,
 ) -> bool:
-    if queue is None or queue == "all":
+    if queue is None or queue == OPERATOR_QUEUE_ALL:
         return True
     return queue in row.queue_memberships
 
@@ -848,9 +855,9 @@ def _matches_operator_status(
 def _sort_operator_rows(
     rows: Sequence[OperatorSessionSummaryView],
     *,
-    sort: str,
+    sort: OperatorSortName,
 ) -> list[OperatorSessionSummaryView]:
-    if sort == "updated_at":
+    if sort == OPERATOR_SORT_UPDATED_AT:
         return sorted(
             rows,
             key=lambda row: (
@@ -870,18 +877,50 @@ def _sort_operator_rows(
     )
 
 
+def _operator_queue_memberships(
+    summary: SessionSummaryView,
+    *,
+    live_actionable: bool,
+    historical_only: bool,
+    action_needed: bool,
+) -> list[str]:
+    queue_memberships: list[str] = []
+    if summary.pending_approval_id is not None:
+        queue_memberships.append(OPERATOR_QUEUE_APPROVALS)
+    if summary.pending_question_id is not None:
+        queue_memberships.append(OPERATOR_QUEUE_QUESTIONS)
+    if summary.status == "failed":
+        queue_memberships.append(OPERATOR_QUEUE_FAILURES)
+    if summary.projection_health.degraded:
+        queue_memberships.append(OPERATOR_QUEUE_DEGRADED)
+    if live_actionable:
+        queue_memberships.append(OPERATOR_QUEUE_ACTIVE)
+    if action_needed:
+        queue_memberships.append(OPERATOR_QUEUE_ACTION_NEEDED)
+    if historical_only:
+        queue_memberships.append(OPERATOR_QUEUE_HISTORICAL)
+    return queue_memberships
+
+
+def _queue_count(
+    rows: Sequence[OperatorSessionSummaryView],
+    queue_name: str,
+) -> int:
+    return sum(queue_name in row.queue_memberships for row in rows)
+
+
 def _session_queue_counts(
     rows: Sequence[OperatorSessionSummaryView],
 ) -> SessionQueueCountsView:
     return SessionQueueCountsView(
         total=len(rows),
-        approvals=sum("approvals" in row.queue_memberships for row in rows),
-        questions=sum("questions" in row.queue_memberships for row in rows),
-        failures=sum("failures" in row.queue_memberships for row in rows),
-        degraded=sum("degraded" in row.queue_memberships for row in rows),
-        active=sum("active" in row.queue_memberships for row in rows),
-        action_needed=sum("action-needed" in row.queue_memberships for row in rows),
-        historical=sum("historical" in row.queue_memberships for row in rows),
+        approvals=_queue_count(rows, OPERATOR_QUEUE_APPROVALS),
+        questions=_queue_count(rows, OPERATOR_QUEUE_QUESTIONS),
+        failures=_queue_count(rows, OPERATOR_QUEUE_FAILURES),
+        degraded=_queue_count(rows, OPERATOR_QUEUE_DEGRADED),
+        active=_queue_count(rows, OPERATOR_QUEUE_ACTIVE),
+        action_needed=_queue_count(rows, OPERATOR_QUEUE_ACTION_NEEDED),
+        historical=_queue_count(rows, OPERATOR_QUEUE_HISTORICAL),
     )
 
 

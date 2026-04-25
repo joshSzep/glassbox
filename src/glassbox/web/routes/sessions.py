@@ -1,5 +1,6 @@
 """Session snapshot API route: GET /sessions/{session_id}."""
 
+from pathlib import Path
 from typing import Annotated
 from typing import Literal
 from uuid import UUID
@@ -8,7 +9,9 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import Query
 
+from glassbox.runtime.daemon import RuntimeOwnerStatus
 from glassbox.runtime.daemon import inspect_runtime_owner
+from glassbox.runtime.session_queries import OPERATOR_SORT_PRIORITY
 from glassbox.runtime.session_queries import SessionQueryService
 from glassbox.runtime.session_queries import WorkspaceRuntimeSummaryView
 from glassbox.web.app import RuntimeContextDep
@@ -28,16 +31,34 @@ from glassbox.web.session_api import build_session_summary_responses
 router = APIRouter(prefix="/sessions")
 
 
+AggregateQueueParam = Literal[
+    "all",
+    "approvals",
+    "questions",
+    "failures",
+    "degraded",
+    "active",
+    "action-needed",
+    "historical",
+]
+
+AggregateSortParam = Literal["priority", "updated_at"]
+
+
+def _query_service(context: RuntimeContextDep) -> SessionQueryService:
+    return SessionQueryService(
+        context.repositories.sessions,
+        context.repositories.artifacts,
+    )
+
+
 @router.get("", response_model=list[SessionSummaryResponse])
 async def list_session_summaries(
     context: RuntimeContextDep,
 ) -> list[SessionSummaryResponse]:
     """Return recent session summaries for standalone dashboard discovery."""
 
-    query_service = SessionQueryService(
-        context.repositories.sessions,
-        context.repositories.artifacts,
-    )
+    query_service = _query_service(context)
     return build_session_summary_responses(query_service.list_session_summaries())
 
 
@@ -45,29 +66,16 @@ async def list_session_summaries(
 async def get_session_aggregate(
     context: RuntimeContextDep,
     queue: Annotated[
-        Literal[
-            "all",
-            "approvals",
-            "questions",
-            "failures",
-            "degraded",
-            "active",
-            "action-needed",
-            "historical",
-        ]
-        | None,
+        AggregateQueueParam | None,
         Query(),
     ] = None,
     status: str | None = None,
-    sort: Annotated[Literal["priority", "updated_at"], Query()] = "priority",
+    sort: Annotated[AggregateSortParam, Query()] = OPERATOR_SORT_PRIORITY,
     limit: Annotated[int | None, Query(ge=1)] = None,
 ) -> SessionAggregateResponse:
     """Return operator-console queue, health, and priority data."""
 
-    query_service = SessionQueryService(
-        context.repositories.sessions,
-        context.repositories.artifacts,
-    )
+    query_service = _query_service(context)
     workspace_root = context.infrastructure.artifacts_root
     owner_status = inspect_runtime_owner(workspace_root)
     aggregate = query_service.get_session_aggregate(
@@ -171,10 +179,7 @@ async def get_session_snapshot(
 ) -> SessionSnapshotResponse:
     """Return a full snapshot of the current session state."""
 
-    query_service = SessionQueryService(
-        context.repositories.sessions,
-        context.repositories.artifacts,
-    )
+    query_service = _query_service(context)
     try:
         snapshot = query_service.get_session_snapshot(session_id)
     except ValueError as exc:
@@ -184,8 +189,8 @@ async def get_session_snapshot(
 
 
 def _build_workspace_runtime_summary(
-    workspace_root,
-    owner_status,
+    workspace_root: Path,
+    owner_status: RuntimeOwnerStatus,
 ) -> WorkspaceRuntimeSummaryView:
     record = owner_status.record
     dashboard_url = record.dashboard_url if record is not None else None

@@ -8,13 +8,9 @@ from pydantic import BaseModel
 
 from glassbox.core.models import ForkedSession
 from glassbox.runtime.context_builder import RuntimeContextSnapshot
-from glassbox.runtime.session_queries import OperatorSessionSummaryView
-from glassbox.runtime.session_queries import ProjectionHealthCountsView
 from glassbox.runtime.session_queries import SessionAggregateView
-from glassbox.runtime.session_queries import SessionQueueCountsView
 from glassbox.runtime.session_queries import SessionSnapshotView
 from glassbox.runtime.session_queries import SessionSummaryView
-from glassbox.runtime.session_queries import WorkspaceRuntimeSummaryView
 
 
 class MessagePartResponse(BaseModel):
@@ -247,7 +243,7 @@ def build_session_summary_responses(
 
 
 def build_operator_session_summary_response(
-    summary: OperatorSessionSummaryView,
+    summary: SessionSummaryView,
 ) -> OperatorSessionSummaryResponse:
     """Serialize an operator-console session summary into the HTTP model."""
 
@@ -256,48 +252,12 @@ def build_operator_session_summary_response(
     )
 
 
-def build_session_queue_counts_response(
-    counts: SessionQueueCountsView,
-) -> SessionQueueCountsResponse:
-    return SessionQueueCountsResponse.model_validate(counts.model_dump(mode="json"))
-
-
-def build_projection_health_counts_response(
-    counts: ProjectionHealthCountsView,
-) -> ProjectionHealthCountsAggregateResponse:
-    return ProjectionHealthCountsAggregateResponse.model_validate(
-        counts.model_dump(mode="json")
-    )
-
-
-def build_workspace_runtime_summary_response(
-    runtime: WorkspaceRuntimeSummaryView,
-) -> WorkspaceRuntimeSummaryResponse:
-    return WorkspaceRuntimeSummaryResponse.model_validate(
-        runtime.model_dump(mode="json")
-    )
-
-
 def build_session_aggregate_response(
     aggregate: SessionAggregateView,
 ) -> SessionAggregateResponse:
     """Serialize the operator-console aggregate response into HTTP payloads."""
 
-    return SessionAggregateResponse(
-        queue=aggregate.queue,
-        status=aggregate.status,
-        sort=aggregate.sort,
-        limit=aggregate.limit,
-        queue_counts=build_session_queue_counts_response(aggregate.queue_counts),
-        projection_health_counts=build_projection_health_counts_response(
-            aggregate.projection_health_counts
-        ),
-        runtime=build_workspace_runtime_summary_response(aggregate.runtime),
-        sessions=[
-            build_operator_session_summary_response(summary)
-            for summary in aggregate.sessions
-        ],
-    )
+    return SessionAggregateResponse.model_validate(aggregate.model_dump(mode="json"))
 
 
 def build_session_snapshot_response(
