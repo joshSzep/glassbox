@@ -475,7 +475,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-333: Harden Command-Execution Envelopes And Failure Classification
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-331`, `GBX-332`
 - Goal: make command-style tools safer and easier to reason about under v2 governance
 - Deliverables:

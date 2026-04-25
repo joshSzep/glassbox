@@ -28,6 +28,10 @@ def test_run_command_captures_stdout(tmp_path: Path) -> None:
         assert "hello" in result.stdout
         assert result.timed_out is False
         assert result.truncated is False
+        assert result.failure_category is None
+        assert result.execution_envelope.requested_cwd == "."
+        assert result.execution_envelope.resolved_cwd == "."
+        assert result.execution_envelope.directory_policy == "workspace_root"
 
     asyncio.run(scenario())
 
@@ -56,6 +60,7 @@ def test_run_command_captures_non_zero_exit_code(tmp_path: Path) -> None:
         result = await tool.execute(RunCommandArgs(command="exit 42"))
         assert result.exit_code == 42
         assert result.timed_out is False
+        assert result.failure_category == "execution_error"
 
     asyncio.run(scenario())
 
@@ -78,6 +83,39 @@ def test_run_command_times_out(tmp_path: Path) -> None:
         result = await tool.execute(RunCommandArgs(command="sleep 60", timeout=1))
         assert result.timed_out is True
         assert result.exit_code != 0
+        assert result.failure_category == "timed_out"
+        assert result.execution_envelope.timeout_seconds == 1
+
+    asyncio.run(scenario())
+
+
+def test_run_command_classifies_signal_interruption(tmp_path: Path) -> None:
+    tool = RunCommandTool(tmp_path)
+
+    async def scenario() -> None:
+        result = await tool.execute(
+            RunCommandArgs(
+                command=(
+                    "python -c 'import os, signal; "
+                    "os.kill(os.getpid(), signal.SIGTERM)'"
+                )
+            )
+        )
+        assert result.failure_category == "interrupted"
+        assert result.termination_signal == 15
+
+    asyncio.run(scenario())
+
+
+def test_run_command_records_subdirectory_execution_envelope(tmp_path: Path) -> None:
+    (tmp_path / "nested").mkdir()
+    tool = RunCommandTool(tmp_path)
+
+    async def scenario() -> None:
+        result = await tool.execute(RunCommandArgs(command="pwd", cwd="nested"))
+        assert result.execution_envelope.requested_cwd == "nested"
+        assert result.execution_envelope.resolved_cwd == "nested"
+        assert result.execution_envelope.directory_policy == "workspace_subdirectory"
 
     asyncio.run(scenario())
 

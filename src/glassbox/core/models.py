@@ -174,6 +174,7 @@ class ToolCallRecord(BaseModel):
     started_at: datetime | None = None
     completed_at: datetime | None = None
     summary: str | None = None
+    exit_code: int | None = None
     policy_outcome: PolicyDecisionOutcome | None = None
     policy_risk_level: PolicyRiskLevel | None = None
     policy_source_kind: PolicyDecisionSourceKind | None = None

@@ -23,6 +23,7 @@ from glassbox.core import SessionConfig
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import ReplayArtifactRecorded
 from glassbox.core.events import ToolArtifactRecorded
+from glassbox.core.events import ToolExecutionCompleted
 from glassbox.llm import ModelProviderConfig
 from glassbox.llm import PydanticAIModelAdapter
 from glassbox.llm import PydanticAIModelExecutor
@@ -39,6 +40,7 @@ from glassbox.tools import ApprovalMode
 from glassbox.tools import ToolPolicyContext
 from glassbox.tools import ToolPolicyEngine
 from glassbox.tools import ToolRuntime
+from glassbox.tools import build_command_tool_registry
 from glassbox.tools import build_read_only_tool_registry
 from glassbox.tools import build_workflow_tool_registry
 
@@ -360,6 +362,179 @@ def test_turn_engine_records_replay_tool_request_and_result_artifacts(
     asyncio.run(scenario())
 
 
+def test_turn_engine_classifies_blocked_command_tool_request(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = TurnEngine(
+                repository,
+                bus,
+                TurnContextBuilder(repository),
+                lambda _session: PydanticAIModelAdapter(
+                    ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+                ),
+                lambda _session: PydanticAIModelExecutor(
+                    FunctionModel(
+                        function=_blocked_command_response,
+                        model_name="openai:gpt-5.4",
+                    )
+                ),
+                lambda session: ToolRuntime(
+                    build_command_tool_registry(session.cwd),
+                    ToolPolicyEngine(),
+                    ToolPolicyContext(
+                        workspace_root=session.cwd,
+                        approval_mode=ApprovalMode.NEVER,
+                    ),
+                ),
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="never",
+            )
+
+            async with bus.subscribe() as subscription:
+                started_state = await supervisor.start_session(config)
+                await subscription.get()
+                with pytest.raises(ValueError, match="blocked:|denied"):
+                    await supervisor.submit_user_message(
+                        started_state.session_id,
+                        "Run the dangerous command",
+                    )
+
+                events: list[EventEnvelope] = []
+                while not events or events[-1].event_type != "TurnFailed":
+                    events.append(await subscription.get())
+        finally:
+            connection.close()
+
+        tool_completed = next(
+            event.payload
+            for event in events
+            if event.event_type == "ToolExecutionCompleted"
+        )
+        assert isinstance(tool_completed, ToolExecutionCompleted)
+        assert tool_completed.success is False
+        assert "blocked" in tool_completed.summary
+
+    asyncio.run(scenario())
+
+
+def test_turn_engine_records_failed_command_result_for_replay(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = TurnEngine(
+                repository,
+                bus,
+                TurnContextBuilder(repository),
+                lambda _session: PydanticAIModelAdapter(
+                    ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+                ),
+                lambda _session: PydanticAIModelExecutor(
+                    FunctionModel(
+                        function=_failing_command_then_text_response,
+                        model_name="openai:gpt-5.4",
+                    )
+                ),
+                lambda session: ToolRuntime(
+                    build_command_tool_registry(session.cwd),
+                    ToolPolicyEngine(),
+                    ToolPolicyContext(
+                        workspace_root=session.cwd,
+                        approval_mode=ApprovalMode.CONFIRM,
+                    ),
+                ),
+                artifact_repository=artifact_repository,
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+
+            async with bus.subscribe() as subscription:
+                state = await supervisor.start_session(config)
+                await subscription.get()
+
+                await supervisor.submit_user_message(
+                    state.session_id,
+                    "Run the failing command",
+                )
+                first_turn_events: list[EventEnvelope] = []
+                while (
+                    not first_turn_events
+                    or first_turn_events[-1].event_type != "TurnCompleted"
+                ):
+                    first_turn_events.append(await subscription.get())
+
+                approval_payloads = [
+                    event.payload
+                    for event in repository.read_session_events(state.session_id)
+                    if isinstance(event.payload, ApprovalRequested)
+                ]
+                assert len(approval_payloads) == 1
+
+                await supervisor.resolve_approval(
+                    state.session_id,
+                    approval_payloads[0].approval_id,
+                    ApprovalDecision.APPROVED,
+                )
+
+                resumed_events: list[EventEnvelope] = []
+                while (
+                    not resumed_events
+                    or resumed_events[-1].event_type != "TurnCompleted"
+                ):
+                    resumed_events.append(await subscription.get())
+
+            replay_artifacts = [
+                json.loads(
+                    artifact_repository.read_text_artifact(Path(event.payload.path))
+                )
+                for event in repository.read_session_events(state.session_id)
+                if isinstance(event.payload, ReplayArtifactRecorded)
+                and event.payload.path is not None
+            ]
+        finally:
+            connection.close()
+
+        tool_completed = next(
+            event.payload
+            for event in resumed_events
+            if event.event_type == "ToolExecutionCompleted"
+        )
+        assert isinstance(tool_completed, ToolExecutionCompleted)
+        assert tool_completed.success is False
+        assert tool_completed.exit_code == 7
+        assert tool_completed.summary == "failed in ."
+
+        tool_result_manifests = [
+            artifact
+            for artifact in replay_artifacts
+            if artifact["artifact_kind"] == "replay_tool_result"
+        ]
+        assert len(tool_result_manifests) == 1
+        assert tool_result_manifests[0]["success"] is False
+        assert tool_result_manifests[0]["summary"] == "failed in ."
+        assert tool_result_manifests[0]["error_message"] == "failed in . (exit code 7)"
+        assert (
+            tool_result_manifests[0]["output_payload"]["failure_category"]
+            == "execution_error"
+        )
+        assert tool_result_manifests[0]["output_payload"]["exit_code"] == 7
+
+    asyncio.run(scenario())
+
+
 def test_turn_engine_records_pytest_failure_digest_for_later_turns(
     tmp_path: Path,
 ) -> None:
@@ -525,6 +700,51 @@ def _blocked_tool_response(messages, _agent_info) -> ModelResponse:
             )
         ]
     )
+
+
+def _blocked_command_response(messages, _agent_info) -> ModelResponse:
+    del messages, _agent_info
+    return ModelResponse(
+        parts=[
+            ToolCallPart(
+                tool_name="run_command",
+                args={"command": "rm -rf /"},
+                tool_call_id="provider-call-command-blocked-1",
+            )
+        ]
+    )
+
+
+def _failing_command_then_text_response(messages, _agent_info) -> ModelResponse:
+    saw_tool_return = False
+    tool_content = None
+    user_prompt = None
+
+    for message in messages:
+        if isinstance(message, ModelRequest):
+            for part in message.parts:
+                if isinstance(part, UserPromptPart):
+                    user_prompt = part.content
+                if isinstance(part, ToolReturnPart) and part.tool_name == "run_command":
+                    saw_tool_return = True
+                    tool_content = part.content
+
+    assert user_prompt == "Run the failing command"
+    if not saw_tool_return:
+        return ModelResponse(
+            parts=[
+                ToolCallPart(
+                    tool_name="run_command",
+                    args={"command": "exit 7"},
+                    tool_call_id="provider-call-command-fail-1",
+                )
+            ]
+        )
+
+    assert isinstance(tool_content, dict)
+    assert tool_content["failure_category"] == "execution_error"
+    assert tool_content["exit_code"] == 7
+    return ModelResponse(parts=[TextPart(content="Observed failing command.")])
 
 
 def _run_tests_then_use_digest_response(messages, _agent_info) -> ModelResponse:

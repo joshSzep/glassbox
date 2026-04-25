@@ -10,13 +10,17 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 
+from glassbox.tools._subprocess import DEFAULT_MAX_OUTPUT_BYTES
+from glassbox.tools._subprocess import CommandExecutionEnvelope
+from glassbox.tools._subprocess import CommandFailureCategory
+from glassbox.tools._subprocess import build_command_execution_envelope
+from glassbox.tools._subprocess import capture_streaming_subprocess
+from glassbox.tools._subprocess import resolve_workspace_cwd
 from glassbox.tools.command import build_command_tool_registry
 from glassbox.tools.registry import ToolRegistry
 from glassbox.tools.registry import ToolRiskLevel
 from glassbox.tools.registry import ToolSpec
 from glassbox.tools.registry import ToolStreamingMode
-
-_MAX_OUTPUT_BYTES = 100 * 1024  # 100 KB cap before truncation
 
 # ---------------------------------------------------------------------------
 # Git status tool
@@ -74,7 +78,7 @@ class GitStatusTool:
     async def execute(self, arguments: GitStatusArgs) -> GitStatusResult:
         """Run git status and return structured output."""
 
-        cwd = _resolve_workspace_cwd(self._workspace_root, arguments.cwd)
+        cwd = resolve_workspace_cwd(self._workspace_root, arguments.cwd)
         try:
             process = await asyncio.create_subprocess_exec(
                 "git",
@@ -207,6 +211,9 @@ class RunTestsResult(BaseModel):
     stderr: str = ""
     truncated: bool = False
     timed_out: bool = False
+    execution_envelope: CommandExecutionEnvelope
+    failure_category: CommandFailureCategory | None = None
+    termination_signal: int | None = None
 
 
 class RunTestsTool:
@@ -251,6 +258,13 @@ class RunTestsTool:
         if arguments.keywords:
             cmd.extend(["-k", arguments.keywords])
         cmd.extend(arguments.paths)
+        envelope = build_command_execution_envelope(
+            workspace_root=self._workspace_root,
+            requested_cwd=".",
+            resolved_cwd=self._workspace_root,
+            timeout_seconds=arguments.timeout,
+            output_limit_bytes=DEFAULT_MAX_OUTPUT_BYTES,
+        )
 
         process = await asyncio.create_subprocess_exec(
             *cmd,
@@ -258,57 +272,15 @@ class RunTestsTool:
             stderr=asyncio.subprocess.PIPE,
             cwd=self._workspace_root,
         )
+        captured = await capture_streaming_subprocess(
+            process,
+            timeout_seconds=arguments.timeout,
+            on_chunk=on_chunk,
+            output_limit_bytes=DEFAULT_MAX_OUTPUT_BYTES,
+        )
 
-        stdout_parts: list[str] = []
-        stderr_parts: list[str] = []
-        total_bytes = 0
-        truncated = False
-        timed_out = False
-
-        def _record_line(stream: str, raw_line: bytes, parts: list[str]) -> None:
-            nonlocal total_bytes, truncated
-            total_bytes += len(raw_line)
-            if total_bytes <= _MAX_OUTPUT_BYTES:
-                text = raw_line.decode("utf-8", errors="replace")
-                parts.append(text)
-                on_chunk(stream, text)
-            else:
-                truncated = True
-
-        assert process.stdout is not None
-        assert process.stderr is not None
-        stdout_stream = process.stdout
-        stderr_stream = process.stderr
-
-        async def _read_stdout() -> None:
-            async for raw_line in stdout_stream:
-                _record_line("stdout", raw_line, stdout_parts)
-
-        async def _read_stderr() -> None:
-            async for raw_line in stderr_stream:
-                _record_line("stderr", raw_line, stderr_parts)
-
-        exit_code = -1
-        try:
-            async with asyncio.timeout(float(arguments.timeout)):
-                await asyncio.gather(_read_stdout(), _read_stderr())
-                exit_code = await process.wait()
-        except TimeoutError:
-            try:
-                process.kill()
-            except ProcessLookupError:
-                pass
-            try:
-                async with asyncio.timeout(5.0):
-                    await process.wait()
-            except TimeoutError:
-                pass
-            if process.returncode is not None:
-                exit_code = process.returncode
-            timed_out = True
-
-        stdout_text = "".join(stdout_parts)
-        stderr_text = "".join(stderr_parts)
+        stdout_text = captured.stdout
+        stderr_text = captured.stderr
         counts = _parse_pytest_summary(stdout_text + stderr_text)
 
         return RunTestsResult(
@@ -316,11 +288,14 @@ class RunTestsTool:
             failed=counts.get("failed", 0),
             errors=counts.get("error", 0),
             warnings=counts.get("warning", 0),
-            exit_code=exit_code,
+            exit_code=captured.exit_code,
             stdout=stdout_text,
             stderr=stderr_text,
-            truncated=truncated,
-            timed_out=timed_out,
+            truncated=captured.truncated,
+            timed_out=captured.timed_out,
+            execution_envelope=envelope,
+            failure_category=captured.failure_category,
+            termination_signal=captured.termination_signal,
         )
 
 
@@ -345,15 +320,3 @@ def build_workflow_tool_registry(workspace_root: Path) -> ToolRegistry:
     registry.register(GitStatusTool(workspace_root))
     registry.register(RunTestsTool(workspace_root))
     return registry
-
-
-def _resolve_workspace_cwd(workspace_root: Path, relative_path: str) -> Path:
-    if relative_path == ".":
-        return workspace_root
-    resolved = (workspace_root / relative_path).resolve(strict=False)
-    if not resolved.is_relative_to(workspace_root):
-        raise ValueError(
-            f"working directory '{relative_path}' is outside workspace "
-            f"'{workspace_root}'"
-        )
-    return resolved

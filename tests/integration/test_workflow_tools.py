@@ -174,6 +174,8 @@ def test_run_tests_passes_on_simple_test(tmp_path: Path) -> None:
         assert result.failed == 0
         assert result.exit_code == 0
         assert result.timed_out is False
+        assert result.failure_category is None
+        assert result.execution_envelope.resolved_cwd == "."
 
     asyncio.run(scenario())
 
@@ -186,6 +188,7 @@ def test_run_tests_captures_failure(tmp_path: Path) -> None:
         result = await tool.execute(RunTestsArgs(paths=[test_file.name]))
         assert result.failed == 1
         assert result.exit_code != 0
+        assert result.failure_category == "execution_error"
 
     asyncio.run(scenario())
 
@@ -234,6 +237,7 @@ def test_run_tests_times_out(tmp_path: Path) -> None:
     async def scenario() -> None:
         result = await tool.execute(RunTestsArgs(paths=["test_slow.py"], timeout=2))
         assert result.timed_out is True
+        assert result.failure_category == "timed_out"
 
     asyncio.run(scenario())
 

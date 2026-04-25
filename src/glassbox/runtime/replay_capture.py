@@ -103,9 +103,10 @@ class ReplayArtifactRecorder:
             tool_call_id=execution_result.event_tool_call_id,
             provider_tool_call_id=execution_result.provider_tool_call_id,
             tool_name=execution_result.tool_name,
-            success=True,
+            success=execution_result.success,
             output_payload=execution_result.output_payload,
             summary=execution_result.summary,
+            error_message=execution_result.error_message,
         )
 
     def record_turn_output(

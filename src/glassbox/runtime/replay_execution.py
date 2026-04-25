@@ -440,15 +440,21 @@ class _ReplayToolRuntime(ToolRuntime):
             )
         self._consumed_results.add(result_key)
 
-        if not manifest.success:
+        if not manifest.success and manifest.output_payload is None:
             raise RuntimeError(manifest.error_message or manifest.summary)
+
+        output_payload = manifest.output_payload or {}
+        exit_code = output_payload.get("exit_code")
 
         return ToolExecutionResult(
             event_tool_call_id=prepared.event_tool_call_id,
             provider_tool_call_id=prepared.provider_tool_call_id,
             tool_name=prepared.tool_name,
-            output_payload=manifest.output_payload or {},
+            success=manifest.success,
+            output_payload=output_payload,
             summary=manifest.summary,
+            exit_code=exit_code if isinstance(exit_code, int) else None,
+            error_message=manifest.error_message,
         )
 
 

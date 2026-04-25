@@ -414,7 +414,8 @@ class TurnToolExecutor:
                 ToolExecutionCompleted(
                     turn_id=turn_id,
                     tool_call_id=execution_result.event_tool_call_id,
-                    success=True,
+                    success=execution_result.success,
+                    exit_code=execution_result.exit_code,
                     summary=execution_result.summary,
                 )
             ],
@@ -438,7 +439,7 @@ class TurnToolExecutor:
                 turn_id=turn_id,
                 tool_call_id=execution_result.event_tool_call_id,
                 tool_name=prepared_tool_call.tool_name,
-                success=True,
+                success=execution_result.success,
             ),
         )
         return execution_result

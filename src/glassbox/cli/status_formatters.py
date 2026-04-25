@@ -287,6 +287,9 @@ def _session_failure_from_status_view(
 
 def _format_tool_call_summary(tool_call: ToolCallRecord) -> str:
     summary_suffix = f": {tool_call.summary}" if tool_call.summary else ""
+    exit_suffix = (
+        f" (exit code {tool_call.exit_code})" if tool_call.exit_code is not None else ""
+    )
     policy_suffix = format_policy_suffix(
         outcome=tool_call.policy_outcome,
         risk_level=tool_call.policy_risk_level,
@@ -298,7 +301,8 @@ def _format_tool_call_summary(tool_call: ToolCallRecord) -> str:
         reason_suffix = f" [{tool_call.policy_reason}]"
     return (
         f"{tool_call.tool_name} {tool_call.status} "
-        f"(turn {tool_call.turn_id}){policy_suffix}{summary_suffix}{reason_suffix}"
+        f"(turn {tool_call.turn_id}){policy_suffix}{summary_suffix}{exit_suffix}"
+        f"{reason_suffix}"
     )
 
 

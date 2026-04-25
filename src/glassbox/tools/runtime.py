@@ -7,6 +7,7 @@ from datetime import UTC
 from datetime import datetime
 from typing import Any
 from typing import Protocol
+from typing import cast
 
 from pydantic import BaseModel
 from pydantic_ai.messages import ModelRequest
@@ -49,8 +50,11 @@ class ToolExecutionResult:
     event_tool_call_id: ToolCallId
     provider_tool_call_id: str
     tool_name: str
+    success: bool
     output_payload: dict[str, object]
     summary: str
+    exit_code: int | None = None
+    error_message: str | None = None
 
     def to_model_request(self) -> ModelRequest:
         """Convert the tool result into a provider-facing tool return request."""
@@ -161,12 +165,19 @@ class ToolRuntime:
             else raw_output
         )
         output_payload = validated_output.model_dump(mode="json")
+        success, summary, exit_code, error_message = _classify_tool_result(
+            prepared.tool_name,
+            output_payload,
+        )
         return ToolExecutionResult(
             event_tool_call_id=prepared.event_tool_call_id,
             provider_tool_call_id=prepared.provider_tool_call_id,
             tool_name=prepared.tool_name,
+            success=success,
             output_payload=output_payload,
-            summary=f"{prepared.tool_name} completed",
+            summary=summary,
+            exit_code=exit_code,
+            error_message=error_message,
         )
 
 
@@ -186,3 +197,51 @@ def _tool_arguments_payload(
 
 def _noop_chunk(stream: str, chunk: str) -> None:
     pass
+
+
+def _classify_tool_result(
+    tool_name: str,
+    output_payload: dict[str, object],
+) -> tuple[bool, str, int | None, str | None]:
+    exit_code = output_payload.get("exit_code")
+    if not isinstance(exit_code, int):
+        return True, f"{tool_name} completed", None, None
+
+    failure_category = output_payload.get("failure_category")
+    timeout_seconds = _execution_envelope_value(output_payload, "timeout_seconds")
+    resolved_cwd = _execution_envelope_value(output_payload, "resolved_cwd")
+    location_suffix = f" in {resolved_cwd}" if resolved_cwd else ""
+
+    if failure_category == "timed_out":
+        timeout_suffix = f" after {timeout_seconds}s" if timeout_seconds else ""
+        summary = f"timed out{timeout_suffix}{location_suffix}"
+        return False, summary, exit_code, summary
+
+    if failure_category == "interrupted":
+        termination_signal = output_payload.get("termination_signal")
+        signal_suffix = (
+            f" by signal {termination_signal}"
+            if isinstance(termination_signal, int)
+            else ""
+        )
+        summary = f"interrupted{signal_suffix}{location_suffix}"
+        return False, summary, exit_code, summary
+
+    if failure_category == "execution_error":
+        summary = f"failed{location_suffix}"
+        return False, summary, exit_code, f"{summary} (exit code {exit_code})"
+
+    return True, f"completed{location_suffix}", exit_code, None
+
+
+def _execution_envelope_value(
+    output_payload: dict[str, object],
+    key: str,
+) -> str | int | None:
+    envelope = output_payload.get("execution_envelope")
+    if not isinstance(envelope, dict):
+        return None
+    value = cast(dict[str, object], envelope).get(key)
+    if isinstance(value, (str, int)):
+        return value
+    return None
