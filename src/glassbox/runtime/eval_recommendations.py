@@ -896,38 +896,49 @@ def _build_release_surface_recommendations(
     profile_recommendations: list[EvalProfileRecommendation],
     profiles_by_id: dict[str, EvalProfileDefinition],
 ) -> list[EvalReleaseSurfaceRecommendation]:
-    surfaces: list[EvalReleaseSurfaceRecommendation] = []
-    for stage in _DAILY_RELEASE_STAGES:
-        stage_cases = [
-            recommendation
-            for recommendation in case_recommendations
-            if stage in recommendation.verification_stages
-        ]
-        stage_profiles = [
-            recommendation
-            for recommendation in profile_recommendations
-            if recommendation.verification_stage == stage
-        ]
-        surfaces.append(
-            EvalReleaseSurfaceRecommendation(
-                verification_stage=stage,
-                impacted=bool(stage_cases or stage_profiles),
-                recommended_case_ids=[case.case_id for case in stage_cases],
-                recommended_profile_ids=[
-                    profile.profile_id for profile in stage_profiles
-                ],
-                blocking_profile_ids=[
-                    profile.profile_id for profile in stage_profiles if profile.blocking
-                ],
-                impacted_capability_ids=_stage_capability_ids(stage_cases),
-                owner_ids=_stage_owner_ids(stage_cases),
-                profile_budget_notes=_stage_profile_budget_notes(
-                    stage_profiles,
-                    profiles_by_id=profiles_by_id,
-                ),
-            )
+    return [
+        _build_release_surface_recommendation(
+            stage,
+            case_recommendations=case_recommendations,
+            profile_recommendations=profile_recommendations,
+            profiles_by_id=profiles_by_id,
         )
-    return surfaces
+        for stage in _DAILY_RELEASE_STAGES
+    ]
+
+
+def _build_release_surface_recommendation(
+    stage: EvalVerificationStage,
+    *,
+    case_recommendations: list[EvalCaseRecommendation],
+    profile_recommendations: list[EvalProfileRecommendation],
+    profiles_by_id: dict[str, EvalProfileDefinition],
+) -> EvalReleaseSurfaceRecommendation:
+    stage_cases = [
+        recommendation
+        for recommendation in case_recommendations
+        if stage in recommendation.verification_stages
+    ]
+    stage_profiles = [
+        recommendation
+        for recommendation in profile_recommendations
+        if recommendation.verification_stage == stage
+    ]
+    return EvalReleaseSurfaceRecommendation(
+        verification_stage=stage,
+        impacted=bool(stage_cases or stage_profiles),
+        recommended_case_ids=[case.case_id for case in stage_cases],
+        recommended_profile_ids=[profile.profile_id for profile in stage_profiles],
+        blocking_profile_ids=[
+            profile.profile_id for profile in stage_profiles if profile.blocking
+        ],
+        impacted_capability_ids=_stage_capability_ids(stage_cases),
+        owner_ids=_stage_owner_ids(stage_cases),
+        profile_budget_notes=_stage_profile_budget_notes(
+            stage_profiles,
+            profiles_by_id=profiles_by_id,
+        ),
+    )
 
 
 def _stage_capability_ids(

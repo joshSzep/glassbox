@@ -1,10 +1,12 @@
 """Replay and eval report formatting helpers for the CLI."""
 
+from collections.abc import Sequence
 from pathlib import Path
 
 from glassbox.runtime.eval_baselines import format_eval_baseline_update_report
 from glassbox.runtime.eval_coverage import build_eval_coverage_summary_lines
 from glassbox.runtime.eval_recommendations import EvalRecommendationReport
+from glassbox.runtime.eval_recommendations import EvalReleaseSurfaceRecommendation
 from glassbox.runtime.eval_runner import EvalSuiteResult
 from glassbox.runtime.replay import ReplayResult
 
@@ -159,12 +161,17 @@ def _print_eval_suite_report(result: EvalSuiteResult) -> None:
             print("    Drift sources: " + ", ".join(case_result.triage_drift_sources))
         if case_result.triage_recommended_inspection_path:
             print("    Next inspect: " + case_result.triage_recommended_inspection_path)
-        if case_result.owner:
-            print("    Owner: " + case_result.owner)
-        if case_result.capabilities:
-            print("    Capabilities: " + ", ".join(case_result.capabilities))
-        if case_result.verification_stages:
-            print("    Release stages: " + ", ".join(case_result.verification_stages))
+        _print_optional_value("Owner", case_result.owner, indent="    ")
+        _print_optional_joined_line(
+            "Capabilities",
+            case_result.capabilities,
+            indent="    ",
+        )
+        _print_optional_joined_line(
+            "Release stages",
+            case_result.verification_stages,
+            indent="    ",
+        )
         print(f"    Artifact: {case_result.artifact_path}")
 
 
@@ -224,25 +231,7 @@ def _print_eval_recommendations(result: EvalRecommendationReport) -> None:
         print("Warnings:")
         for warning in result.warnings:
             print(f"  - {warning}")
-    if result.release_surfaces:
-        print("Release surfaces:")
-        for surface in result.release_surfaces:
-            status = "impacted" if surface.impacted else "not impacted"
-            print(f"  - {surface.verification_stage}: {status}")
-            if surface.recommended_profile_ids:
-                print("    Profiles: " + ", ".join(surface.recommended_profile_ids))
-            if surface.blocking_profile_ids:
-                print("    Blocking: " + ", ".join(surface.blocking_profile_ids))
-            if surface.recommended_case_ids:
-                print("    Cases: " + ", ".join(surface.recommended_case_ids))
-            if surface.impacted_capability_ids:
-                print("    Capabilities: " + ", ".join(surface.impacted_capability_ids))
-            if surface.owner_ids:
-                print("    Owners: " + ", ".join(surface.owner_ids))
-            if surface.profile_budget_notes:
-                print("    Budget notes:")
-                for note in surface.profile_budget_notes:
-                    print("      - " + note)
+    _print_release_surface_recommendations(result.release_surfaces)
     if result.cases:
         print("Recommended cases:")
         for case in result.cases:
@@ -272,6 +261,49 @@ def _format_budget_limit(limit: int | None) -> str:
     if limit is None:
         return " (no configured limit)"
     return f" / {limit}"
+
+
+def _print_release_surface_recommendations(
+    surfaces: list[EvalReleaseSurfaceRecommendation],
+) -> None:
+    if not surfaces:
+        return
+    print("Release surfaces:")
+    for surface in surfaces:
+        status = "impacted" if surface.impacted else "not impacted"
+        print(f"  - {surface.verification_stage}: {status}")
+        _print_optional_joined_line(
+            "Profiles", surface.recommended_profile_ids, indent="    "
+        )
+        _print_optional_joined_line(
+            "Blocking", surface.blocking_profile_ids, indent="    "
+        )
+        _print_optional_joined_line(
+            "Cases", surface.recommended_case_ids, indent="    "
+        )
+        _print_optional_joined_line(
+            "Capabilities", surface.impacted_capability_ids, indent="    "
+        )
+        _print_optional_joined_line("Owners", surface.owner_ids, indent="    ")
+        if surface.profile_budget_notes:
+            print("    Budget notes:")
+            for note in surface.profile_budget_notes:
+                print("      - " + note)
+
+
+def _print_optional_value(label: str, value: str | None, *, indent: str) -> None:
+    if value:
+        print(f"{indent}{label}: {value}")
+
+
+def _print_optional_joined_line(
+    label: str,
+    values: Sequence[str],
+    *,
+    indent: str,
+) -> None:
+    if values:
+        print(f"{indent}{label}: " + ", ".join(values))
 
 
 def _replay_detail_lines(result: ReplayResult) -> list[str]:
