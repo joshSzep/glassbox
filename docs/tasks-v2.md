@@ -210,7 +210,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-304: Add Persistent Runtime Health, Discovery, And Operator Documentation
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-302`, `GBX-303`, `GBX-121`
 - Goal: make the persistent-runtime model operable and discoverable without requiring source inspection
 - Deliverables:
@@ -226,6 +226,7 @@ Each phase below corresponds to one concrete milestone.
   - doc review against implemented runtime lifecycle behavior and attach semantics
 - Done when:
   - an operator can understand and use the persistent-runtime flow from docs and help output alone
+  - `glassbox daemon status` exposes human-readable and JSON discovery output for runtime health, metadata, logs, and next commands
 
 ---
 

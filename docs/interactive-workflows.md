@@ -119,6 +119,9 @@ This means `attach` now resolves one of two explicit behaviors:
 
 ## Persistent Runtime Semantics For V2
 
+For the command-by-command daemon operating guide, see
+[persistent-runtime.md](./persistent-runtime.md).
+
 The first daemon-backed ownership slice now ships with these semantics:
 
 - `glassbox daemon start` backgrounds one workspace-scoped runtime owner and
@@ -162,5 +165,6 @@ coordination.
 ## Related Guides
 
 - [dashboard.md](./dashboard.md)
+- [persistent-runtime.md](./persistent-runtime.md)
 - [branching.md](./branching.md)
 - [tool-policy.md](./tool-policy.md)

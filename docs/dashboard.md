@@ -43,6 +43,10 @@ http://127.0.0.1:8765/
 
 The root view is the recent-session browser. It lets you discover sessions from the browser instead of copying a `session_id` first.
 
+For daemon-backed runtime ownership, use `glassbox daemon status --cwd .` to
+discover the dashboard URL, health URL, session index, owner metadata path, and
+log paths for the active workspace runtime.
+
 ## What The Dashboard Shows
 
 The dashboard shell exposes the operator surfaces backed by the snapshot and SSE APIs:
@@ -90,5 +94,6 @@ The dashboard lets the operator:
 ## Related Guides
 
 - [interactive-workflows.md](./interactive-workflows.md)
+- [persistent-runtime.md](./persistent-runtime.md)
 - [branching.md](./branching.md)
 - [runtime-context.md](./runtime-context.md)

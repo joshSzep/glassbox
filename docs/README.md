@@ -12,12 +12,14 @@ Use this page to jump to the right level of detail.
 - [getting-started.md](./getting-started.md): install the project, run the first session, understand the local workspace layout, and use the default validation commands
 - [interactive-workflows.md](./interactive-workflows.md): work through `chat`, `attach`, `message`, `answer`, `approve`, `deny`, `resume`, and `status`
 - [dashboard.md](./dashboard.md): use the co-hosted dashboard from `chat` or the standalone dashboard from `serve`
+- [persistent-runtime.md](./persistent-runtime.md): run a workspace daemon, inspect runtime health, attach from another terminal, and recover stale ownership
 
 ## Operator Guides
 
 - [branching.md](./branching.md): inspect historical sessions, create child branches, and understand lineage fields
 - [replay-evals.md](./replay-evals.md): replay historical sessions, export bundles, run eval suites, and work through local-first regression gates
 - [runtime-context.md](./runtime-context.md): inspect repository context, runtime notes, working-set context, and artifact-backed summaries
+- [persistent-runtime.md](./persistent-runtime.md): operate the daemon-backed workspace runtime and troubleshoot attach or health states
 - [providers.md](./providers.md): configure OpenAI or Anthropic credentials for real provider execution
 - [tool-policy.md](./tool-policy.md): understand risk buckets, approval gating, blocked commands, and `ask_user` semantics
 

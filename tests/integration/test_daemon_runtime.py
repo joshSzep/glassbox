@@ -43,6 +43,18 @@ def test_cli_help_lists_daemon_command(capsys: pytest.CaptureFixture[str]) -> No
     assert "daemon" in captured.out
 
 
+def test_daemon_status_help_lists_json_flag(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["daemon", "status", "--help"])
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 0
+    assert "--json" in captured.out
+
+
 def test_daemon_start_status_duplicate_rejection_and_stop(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -71,6 +83,11 @@ def test_daemon_start_status_duplicate_rejection_and_stop(
         assert exit_code == 0
         assert "Status: running" in status_capture.out
         assert "Health: ok" in status_capture.out
+        assert "Workspace:" in status_capture.out
+        assert "Owner metadata:" in status_capture.out
+        assert "Session index:" in status_capture.out
+        assert "Attach: glassbox attach SESSION_ID" in status_capture.out
+        assert "Stop: glassbox daemon stop" in status_capture.out
 
         exit_code = main(
             [
@@ -114,6 +131,62 @@ def test_daemon_start_status_duplicate_rejection_and_stop(
         assert "Status: not running" in stopped_capture.out
     finally:
         _stop_daemon_if_running(tmp_path)
+
+
+def test_daemon_status_json_reports_discovery_and_health(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    port = _reserve_port()
+
+    try:
+        exit_code = main(
+            [
+                "daemon",
+                "start",
+                "--cwd",
+                str(tmp_path),
+                "--port",
+                str(port),
+            ]
+        )
+        _ = capsys.readouterr()
+
+        assert exit_code == 0
+
+        exit_code = main(["daemon", "status", "--cwd", str(tmp_path), "--json"])
+        captured = capsys.readouterr()
+        payload = json.loads(captured.out)
+
+        assert exit_code == 0
+        assert payload["state"] == "running"
+        assert payload["health"] == "ok"
+        assert payload["workspace_root"] == str(tmp_path.resolve())
+        assert payload["dashboard_url"] == f"http://127.0.0.1:{port}/"
+        assert payload["health_url"] == f"http://127.0.0.1:{port}/healthz"
+        assert payload["metadata_path"].endswith(".glassbox/runtime-owner.json")
+        assert payload["stdout_log_path"].endswith(".glassbox/runtime-owner.stdout.log")
+        assert payload["stderr_log_path"].endswith(".glassbox/runtime-owner.stderr.log")
+        assert payload["commands"]["attach"].startswith(
+            "glassbox attach SESSION_ID --cwd "
+        )
+        assert payload["commands"]["status_json"].endswith(" --json")
+    finally:
+        _stop_daemon_if_running(tmp_path)
+
+
+def test_daemon_status_reports_not_running_discovery(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = main(["daemon", "status", "--cwd", str(tmp_path)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Status: not running" in captured.out
+    assert "Runtime owner: none" in captured.out
+    assert "Start: glassbox daemon start" in captured.out
+    assert "Owner metadata:" in captured.out
 
 
 def test_daemon_start_recovers_stale_owner_metadata(
@@ -162,6 +235,38 @@ def test_daemon_start_recovers_stale_owner_metadata(
         assert "Stopped daemon pid" in stop_capture.out
     finally:
         _stop_daemon_if_running(tmp_path)
+
+
+def test_daemon_status_reports_stale_recovery_commands(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    owner_path = _runtime_owner_path(tmp_path)
+    owner_path.parent.mkdir(parents=True, exist_ok=True)
+    owner_path.write_text(
+        json.dumps(
+            {
+                "pid": 999999,
+                "workspace_root": str(tmp_path),
+                "database_path": str(tmp_path / ".glassbox" / "glassbox.sqlite3"),
+                "host": "127.0.0.1",
+                "port": 8765,
+                "dashboard_url": "http://127.0.0.1:8765/",
+                "started_at": "2025-01-01T00:00:00Z",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(["daemon", "status", "--cwd", str(tmp_path)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Status: stale" in captured.out
+    assert "Health: unavailable (owner process is not running)" in captured.out
+    assert "Recover: glassbox daemon start" in captured.out
+    assert "Clear stale owner: glassbox daemon stop" in captured.out
 
 
 def test_cli_attach_routes_live_session_through_daemon_and_can_reattach(

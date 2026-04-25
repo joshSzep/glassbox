@@ -646,6 +646,11 @@ def _add_operations_parsers(
         description="Inspect the persistent workspace runtime owner.",
     )
     _add_runtime_location_arguments(daemon_status_parser)
+    daemon_status_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print daemon discovery and health details as JSON",
+    )
 
     daemon_run_owner_parser = daemon_subparsers.add_parser(
         "run-owner",
