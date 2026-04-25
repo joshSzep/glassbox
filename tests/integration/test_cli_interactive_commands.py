@@ -1,6 +1,7 @@
 """Integration tests for interactive CLI chat and attach commands."""
 
 import asyncio
+import json
 from contextlib import nullcontext
 from pathlib import Path
 from typing import Any
@@ -111,6 +112,83 @@ def test_cli_chat_keeps_session_open_for_multiple_prompts(
     assert transcript[3].parts[0].text == (
         "I received your request: Now summarize the tests."
     )
+
+
+def test_cli_run_uses_workspace_profile_runtime_defaults(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    _write_workspace_profile(
+        tmp_path,
+        runtime={
+            "model_name": "anthropic:claude-sonnet-4",
+            "approval_mode": "never",
+        },
+    )
+
+    exit_code = main(
+        [
+            "run",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    _ = capsys.readouterr()
+    started_event = _single_session_started_event(db_path)
+
+    assert exit_code == 0
+    assert started_event.model_name == "anthropic:claude-sonnet-4"
+    assert started_event.approval_mode == "never"
+
+
+def test_cli_run_explicit_flags_override_workspace_profile_defaults(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    _write_workspace_profile(
+        tmp_path,
+        runtime={
+            "model_name": "anthropic:claude-sonnet-4",
+            "approval_mode": "never",
+        },
+    )
+
+    exit_code = main(
+        [
+            "run",
+            "--model-name",
+            "openai:gpt-5.4",
+            "--approval-mode",
+            "confirm",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    _ = capsys.readouterr()
+    started_event = _single_session_started_event(db_path)
+
+    assert exit_code == 0
+    assert started_event.model_name == "openai:gpt-5.4"
+    assert started_event.approval_mode == "confirm"
+
+
+def test_cli_run_rejects_invalid_workspace_profile(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _write_workspace_profile(tmp_path, runtime={"approval_mode": "always"})
+
+    exit_code = main(["run", "--cwd", str(tmp_path)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "invalid workspace profile" in captured.err
 
 
 def test_cli_attach_keeps_existing_idle_session_open_for_new_prompts(
@@ -792,4 +870,34 @@ def test_cli_attach_rejects_failed_session(
     assert exit_code == 1
     assert captured.err.strip() == (
         f"cannot attach session {session_id} in status failed"
+    )
+
+
+def _single_session_started_event(db_path: Path) -> SessionStarted:
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        sessions = repository.list_sessions()
+        assert len(sessions) == 1
+        return next(
+            event.payload
+            for event in repository.read_session_events(sessions[0].session_id)
+            if isinstance(event.payload, SessionStarted)
+        )
+    finally:
+        connection.close()
+
+
+def _write_workspace_profile(
+    tmp_path: Path,
+    *,
+    runtime: dict[str, object],
+) -> None:
+    payload = {
+        "profile_version": 1,
+        "runtime": runtime,
+    }
+    (tmp_path / "glassbox.profile.json").write_text(
+        json.dumps(payload, indent=2) + "\n",
+        encoding="utf-8",
     )

@@ -31,6 +31,7 @@ from glassbox.runtime.eval_summary import build_eval_release_signoff_report
 from glassbox.runtime.eval_summary import build_eval_release_signoff_summary
 from glassbox.runtime.evals import load_eval_profiles
 from glassbox.runtime.replay import ReplayRunner
+from glassbox.runtime.workspace_profile import resolve_eval_profile_default
 
 
 def _replay_command(args: argparse.Namespace) -> int:
@@ -92,9 +93,13 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
     if args.eval_command == "run":
         cwd, _db_path = resolve_runtime_location(args)
         del _db_path
+        profile_default = resolve_eval_profile_default(
+            cwd,
+            explicit_profile=args.profile,
+        )
         suite_result = await EvalRunner().run_suite(
             cwd,
-            profile_id=args.profile,
+            profile_id=profile_default.profile_id,
             case_ids=list(args.case_ids) or None,
             tags=list(args.tags) or None,
             output_dir=resolve_optional_explicit_path(cwd, args.output_dir),
@@ -111,9 +116,13 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
     if args.eval_command == "audit":
         cwd, _db_path = resolve_runtime_location(args)
         del _db_path
+        profile_default = resolve_eval_profile_default(
+            cwd,
+            explicit_profile=args.profile,
+        )
         audit_result = audit_eval_coverage(
             cwd,
-            profile_id=args.profile,
+            profile_id=profile_default.profile_id,
             case_ids=list(args.case_ids) or None,
             tags=list(args.tags) or None,
         )

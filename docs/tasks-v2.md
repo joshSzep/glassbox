@@ -638,7 +638,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-353: Add Workspace Profiles For Common Runtime Defaults
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-331`, `GBX-341`, `GBX-350`
 - Goal: make common per-repository defaults for model selection, policy posture, and verification routing more reproducible
 - Deliverables:

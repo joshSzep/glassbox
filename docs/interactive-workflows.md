@@ -15,6 +15,10 @@ Start an interactive session:
 uv run glassbox chat --cwd .
 ```
 
+`chat` and `run` read optional repository defaults from
+`glassbox.profile.json` at the selected `--cwd`. Use `--model-name` or
+`--approval-mode` when one invocation needs to override those defaults.
+
 Or start with an initial prompt:
 
 ```bash

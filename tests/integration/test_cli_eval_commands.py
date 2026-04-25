@@ -248,6 +248,76 @@ def test_cli_eval_run_supports_profile_selection_and_tag_narrowing(
     assert payload["cases"][0]["case_id"] == "context.branch"
 
 
+def test_cli_eval_run_uses_workspace_profile_verification_default(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    bundle_path, _session_id = _export_eval_bundle(tmp_path, "smoke.readme")
+    branch_bundle_path = tmp_path / "evals" / "bundles" / "context.branch.json"
+    shutil.copyfile(bundle_path, branch_bundle_path)
+
+    _write_eval_case(
+        tmp_path,
+        case_id="smoke.readme",
+        title="README smoke",
+        bundle_name=bundle_path.name,
+        tags=["smoke"],
+    )
+    _write_eval_case(
+        tmp_path,
+        case_id="context.branch",
+        title="Branch context",
+        bundle_name=branch_bundle_path.name,
+        tags=["context"],
+        release_contract={"verification_stages": ["commit-time"]},
+    )
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "commit-context",
+                "title": "Commit context",
+                "verification_stage": "commit-time",
+                "tags": ["context"],
+                "blocking": True,
+            }
+        ],
+    )
+    (tmp_path / "glassbox.profile.json").write_text(
+        json.dumps(
+            {
+                "profile_version": 1,
+                "verification": {"eval_profile": "commit-context"},
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "workspace-profile-eval-output"
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "run",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["profile_id"] == "commit-context"
+    assert payload["profile_verification_stage"] == "commit-time"
+    assert payload["selected_case_count"] == 1
+    assert payload["cases"][0]["case_id"] == "context.branch"
+
+
 def test_cli_eval_audit_reports_uncovered_critical_capabilities(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

@@ -22,6 +22,10 @@ uv run glassbox run "Inspect the repository" --cwd . --model-name anthropic:clau
 If provider config is absent, Glassbox preserves the deterministic local
 executor path for offline development and tests.
 
+Model selection defaults can live in `glassbox.profile.json`; provider
+credentials still come from runtime-only environment configuration described
+below.
+
 ## Environment Variables
 
 OpenAI:
@@ -66,6 +70,8 @@ Precedence is explicit:
 
 - process environment overrides `.env`
 - `.env` overrides absence of provider config
+- `glassbox.profile.json` is separate and does not override provider secrets or
+  base URLs
 
 Partial provider configuration is treated as an error. For example, setting
 `OPENAI_BASE_URL` without `OPENAI_API_KEY` fails before any remote request is

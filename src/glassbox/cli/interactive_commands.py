@@ -16,6 +16,7 @@ from glassbox.core.types import ApprovalDecision
 from glassbox.runtime.context import RuntimeContext
 from glassbox.runtime.daemon import clear_stale_runtime_owner
 from glassbox.runtime.daemon import inspect_runtime_owner
+from glassbox.runtime.workspace_profile import resolve_session_start_defaults
 
 
 def _run_command(args: argparse.Namespace) -> int:
@@ -227,10 +228,15 @@ def _build_start_session_config(
     args: argparse.Namespace,
     cwd: Path,
 ) -> SessionConfig:
+    defaults = resolve_session_start_defaults(
+        cwd,
+        explicit_model_name=args.model_name,
+        explicit_approval_mode=args.approval_mode,
+    )
     return SessionConfig(
-        model_name=args.model_name,
+        model_name=defaults.model_name,
         cwd=cwd,
-        approval_mode=args.approval_mode,
+        approval_mode=defaults.approval_mode,
     )
 
 

@@ -57,17 +57,7 @@ def _add_session_workflow_parsers(
     )
     run_parser.add_argument("prompt", nargs="?", help="optional initial user prompt")
     _add_runtime_location_arguments(run_parser)
-    run_parser.add_argument(
-        "--model-name",
-        default="openai:gpt-5.4",
-        help="model identifier recorded in the session metadata",
-    )
-    run_parser.add_argument(
-        "--approval-mode",
-        default="confirm",
-        choices=_APPROVAL_MODE_CHOICES,
-        help="approval mode for risky tool actions",
-    )
+    _add_session_start_default_arguments(run_parser)
 
     chat_parser = subparsers.add_parser(
         "chat",
@@ -79,17 +69,7 @@ def _add_session_workflow_parsers(
     )
     chat_parser.add_argument("prompt", nargs="?", help="optional initial user prompt")
     _add_runtime_location_arguments(chat_parser)
-    chat_parser.add_argument(
-        "--model-name",
-        default="openai:gpt-5.4",
-        help="model identifier recorded in the session metadata",
-    )
-    chat_parser.add_argument(
-        "--approval-mode",
-        default="confirm",
-        choices=_APPROVAL_MODE_CHOICES,
-        help="approval mode for risky tool actions",
-    )
+    _add_session_start_default_arguments(chat_parser)
     chat_parser.add_argument(
         "--dashboard-host",
         default=None,
@@ -866,6 +846,23 @@ def _add_runtime_location_arguments(parser: argparse.ArgumentParser) -> None:
         "--db-path",
         default=None,
         help="override the SQLite database path",
+    )
+
+
+def _add_session_start_default_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--model-name",
+        default=None,
+        help=(
+            "model identifier recorded in the session metadata; overrides "
+            "glassbox.profile.json"
+        ),
+    )
+    parser.add_argument(
+        "--approval-mode",
+        default=None,
+        choices=_APPROVAL_MODE_CHOICES,
+        help=("approval mode for risky tool actions; overrides glassbox.profile.json"),
     )
 
 

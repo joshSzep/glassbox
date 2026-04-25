@@ -15,6 +15,7 @@ Use this page to jump to the right level of detail.
 - [operator-console.md](./operator-console.md): understand the v2 multi-session console model, action queues, runtime-health semantics, and backend/frontend contracts
 - [persistent-runtime.md](./persistent-runtime.md): run a workspace daemon, inspect runtime health, attach from another terminal, and recover stale ownership
 - [team-workflows.md](./team-workflows.md): understand v2 session ownership, operator identity, and local-first handoff semantics
+- [workspace-profiles.md](./workspace-profiles.md): declare repository-owned defaults for model selection, approval posture, and eval profile routing
 
 ## Operator Guides
 
@@ -25,6 +26,7 @@ Use this page to jump to the right level of detail.
 - [operator-console.md](./operator-console.md): plan and reason about the v2 multi-session console, action queues, and runtime-health semantics
 - [team-workflows.md](./team-workflows.md): plan team-oriented session custody, intervention attribution, and handoff without assuming a remote multi-user platform
 - [providers.md](./providers.md): configure OpenAI or Anthropic credentials for real provider execution
+- [workspace-profiles.md](./workspace-profiles.md): configure reviewable repository defaults without storing runtime secrets
 - [tool-policy.md](./tool-policy.md): understand risk buckets, approval gating, blocked commands, and `ask_user` semantics
 
 ## Deep Reference
