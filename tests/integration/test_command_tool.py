@@ -5,10 +5,12 @@ from pathlib import Path
 
 import pytest
 
+from glassbox.tools import DEFAULT_TOOL_POLICY_PATH
 from glassbox.tools import ApprovalMode
 from glassbox.tools import ToolPolicyContext
 from glassbox.tools import ToolPolicyEngine
 from glassbox.tools import build_command_tool_registry
+from glassbox.tools import load_tool_policy_manifest
 from glassbox.tools.command import RunCommandArgs
 from glassbox.tools.command import RunCommandTool
 
@@ -160,3 +162,36 @@ def test_command_tool_blocks_destructive_pattern(tmp_path: Path) -> None:
 
     assert decision.allowed is False
     assert "destructive" in decision.reason
+
+
+def test_command_tool_loads_workspace_policy_manifest(tmp_path: Path) -> None:
+    (tmp_path / DEFAULT_TOOL_POLICY_PATH).write_text(
+        """
+                {
+                    "manifest_version": 1,
+                    "rules": [
+                        {
+                            "rule_id": "allow-git-status",
+                            "tool_name": "run_command",
+                            "action": "allow",
+                            "command_prefixes": ["git status"]
+                        }
+                    ]
+                }
+                """.strip(),
+        encoding="utf-8",
+    )
+    engine = ToolPolicyEngine()
+    context = ToolPolicyContext(
+        workspace_root=tmp_path,
+        approval_mode=ApprovalMode.NEVER,
+        policy_manifest=load_tool_policy_manifest(tmp_path),
+    )
+    registry = build_command_tool_registry(tmp_path)
+    tool = registry.require("run_command")
+    args = RunCommandArgs(command="git status --short")
+    decision = engine.evaluate(tool.spec, arguments=args, context=context)
+
+    assert decision.allowed is True
+    assert decision.requires_approval is False
+    assert "allow-git-status" in decision.reason

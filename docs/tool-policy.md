@@ -336,3 +336,87 @@ incidental edit to a repository-owned policy file.
 
 Those tasks should extend the current local policy engine and approval runtime
 instead of replacing them with a separate governance subsystem.
+
+## Workspace Policy Configuration
+
+`GBX-331` implements the first repository-owned policy manifest at:
+
+```text
+glassbox-policy.json
+```
+
+The file is optional. When it is absent, Glassbox keeps the current default
+behavior:
+
+- `read_only` defaults to `allow`
+- `workspace_write` defaults to `approve`
+- `command` defaults to `approve`
+
+When present, the manifest is versioned JSON with explicit defaults and
+top-to-bottom rule matching.
+
+Example:
+
+```json
+{
+  "manifest_version": 1,
+  "defaults": {
+    "read_only": "allow",
+    "workspace_write": "approve",
+    "command": "approve"
+  },
+  "rules": [
+    {
+      "rule_id": "allow-git-status",
+      "tool_name": "run_command",
+      "action": "allow",
+      "command_prefixes": ["git status"]
+    },
+    {
+      "rule_id": "allow-docs-patches",
+      "tool_name": "apply_patch",
+      "action": "allow",
+      "path_prefixes": ["docs"]
+    }
+  ]
+}
+```
+
+Supported action values are:
+
+- `allow`
+- `approve`
+- `deny`
+
+Supported selectors in the first manifest version are:
+
+- exact `tool_name`
+- `command_prefixes` for command-style tools
+- `cwd_prefixes` for bounded working-directory matching
+- `path_prefixes` for in-workspace path arguments
+
+Rules are matched in declaration order. The first matching rule wins. If no
+rule matches, the configured defaults apply.
+
+Path prefixes must be relative to the workspace root. Absolute path prefixes,
+unknown fields, duplicate `rule_id` values, unsupported manifest versions, and
+invalid action values are rejected as invalid policy configuration.
+
+## Approval Mode And Config Interaction
+
+Workspace policy resolves to one of three normalized actions:
+
+- `allow`
+- `approve`
+- `deny`
+
+Approval mode is applied after that resolution:
+
+- `allow` executes immediately
+- `approve` pauses for approval in `confirm`, `review`, and `on-request`
+- `approve` becomes blocked in `never`
+- `deny` blocks immediately
+
+That means repository policy can deliberately allow a bounded action even when
+the session approval mode is `never`, but it cannot bypass hard runtime
+invariants such as workspace-scope checks or destructive-command blocking.

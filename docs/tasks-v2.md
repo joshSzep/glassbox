@@ -433,7 +433,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-331: Implement Workspace-Scoped Policy Configuration And Resolution
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-330`
 - Goal: let repositories tune tool-governance rules deliberately without editing Glassbox source code
 - Deliverables:
@@ -444,6 +444,9 @@ Each phase below corresponds to one concrete milestone.
   - keep precedence and defaults explicit; repository policy should refine runtime behavior without becoming ambiguous hidden state
   - preserve backwards-compatible behavior when no policy config exists
   - align policy configuration loading with the existing runtime config philosophy used for providers and eval profiles
+  - GBX-331 chooses an optional repository-owned `glassbox-policy.json` manifest at the workspace root with explicit `manifest_version`, default actions, and ordered rule matching
+  - the first shipped selectors are exact `tool_name` plus bounded `command_prefixes`, `cwd_prefixes`, and `path_prefixes`; this is intentionally typed policy data, not executable policy code
+  - missing policy config preserves the current coarse default behavior, while invalid or unsupported manifests fail visibly during runtime policy-context construction
 - Tests and validation included in task:
   - unit and integration tests for policy config parsing, precedence, and invalid-config handling
   - regression tests proving the current default policy remains unchanged when no config is supplied

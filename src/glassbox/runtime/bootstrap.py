@@ -27,6 +27,7 @@ from glassbox.tools import ToolPolicyContext
 from glassbox.tools import ToolPolicyEngine
 from glassbox.tools import ToolRuntime
 from glassbox.tools import build_ask_user_tool_registry
+from glassbox.tools import load_tool_policy_manifest
 
 
 def default_database_path(cwd: Path) -> Path:
@@ -92,6 +93,13 @@ def _build_tool_runtime(session: SessionRecord) -> ToolRuntime:
             f"invalid approval mode persisted for session: {session.approval_mode}",
             retryable=False,
         ) from exc
+    try:
+        policy_manifest = load_tool_policy_manifest(session.cwd)
+    except ValueError as exc:
+        raise SessionRuntimeFailure(
+            f"invalid tool policy config for workspace {session.cwd}: {exc}",
+            retryable=False,
+        ) from exc
 
     return ToolRuntime(
         build_ask_user_tool_registry(session.cwd),
@@ -99,5 +107,6 @@ def _build_tool_runtime(session: SessionRecord) -> ToolRuntime:
         ToolPolicyContext(
             workspace_root=session.cwd,
             approval_mode=approval_mode,
+            policy_manifest=policy_manifest,
         ),
     )

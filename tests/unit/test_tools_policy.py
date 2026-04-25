@@ -2,14 +2,19 @@
 
 from pathlib import Path
 
+import pytest
 from pydantic import BaseModel
 
+from glassbox.tools import DEFAULT_TOOL_POLICY_PATH
 from glassbox.tools import ApprovalMode
 from glassbox.tools import ToolPolicyContext
 from glassbox.tools import ToolPolicyEngine
+from glassbox.tools import ToolPolicyManifest
+from glassbox.tools import ToolPolicyRule
 from glassbox.tools import ToolRegistry
 from glassbox.tools import ToolRiskLevel
 from glassbox.tools import ToolSpec
+from glassbox.tools import load_tool_policy_manifest
 
 
 class ReadFileArgs(BaseModel):
@@ -183,3 +188,78 @@ def test_policy_evaluates_registered_tools_consistently() -> None:
     assert decision.allowed is True
     assert decision.requires_approval is True
     assert "command execution is gated by local policy" in decision.reason
+
+
+def test_load_tool_policy_manifest_returns_defaults_when_missing(
+    tmp_path: Path,
+) -> None:
+    manifest = load_tool_policy_manifest(tmp_path)
+
+    assert manifest == ToolPolicyManifest()
+
+
+def test_load_tool_policy_manifest_rejects_invalid_config(tmp_path: Path) -> None:
+    (tmp_path / DEFAULT_TOOL_POLICY_PATH).write_text(
+        (
+            '{"manifest_version": 1, "rules": '
+            '[{"tool_name": "run_command", "action": "ask"}]}'
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="invalid tool policy manifest"):
+        load_tool_policy_manifest(tmp_path)
+
+
+def test_policy_rule_can_allow_workspace_write_without_approval(tmp_path: Path) -> None:
+    engine = ToolPolicyEngine()
+
+    decision = engine.evaluate(
+        WriteFileTool.spec,
+        arguments=WriteFileArgs(path="docs/notes.txt", content="hello"),
+        context=ToolPolicyContext(
+            workspace_root=tmp_path,
+            approval_mode=ApprovalMode.NEVER,
+            policy_manifest=ToolPolicyManifest(
+                rules=[
+                    ToolPolicyRule(
+                        rule_id="allow-docs-write",
+                        tool_name="write_file",
+                        action="allow",
+                        path_prefixes=["docs"],
+                    )
+                ]
+            ),
+        ),
+    )
+
+    assert decision.allowed is True
+    assert decision.requires_approval is False
+    assert "allow-docs-write" in decision.reason
+
+
+def test_policy_rule_can_allow_command_prefix_without_approval(tmp_path: Path) -> None:
+    engine = ToolPolicyEngine()
+
+    decision = engine.evaluate(
+        RunCommandTool.spec,
+        arguments=RunCommandArgs(command="git status --short", cwd="."),
+        context=ToolPolicyContext(
+            workspace_root=tmp_path,
+            approval_mode=ApprovalMode.NEVER,
+            policy_manifest=ToolPolicyManifest(
+                rules=[
+                    ToolPolicyRule(
+                        rule_id="allow-git-status",
+                        tool_name="run_command",
+                        action="allow",
+                        command_prefixes=["git status"],
+                    )
+                ]
+            ),
+        ),
+    )
+
+    assert decision.allowed is True
+    assert decision.requires_approval is False
+    assert "allow-git-status" in decision.reason

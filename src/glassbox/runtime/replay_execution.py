@@ -53,6 +53,7 @@ from glassbox.tools import ToolPolicyEngine
 from glassbox.tools import ToolRegistry
 from glassbox.tools import ToolRuntime
 from glassbox.tools import build_ask_user_tool_registry
+from glassbox.tools import load_tool_policy_manifest
 
 
 async def execute_replay_bundle(
@@ -524,12 +525,14 @@ def build_replay_tool_runtime(
     filtered_registry = ToolRegistry(
         [registered_tools[tool_name] for tool_name in recorded_tool_names]
     )
+    policy_manifest = load_tool_policy_manifest(replay_session_config.cwd)
     return _ReplayToolRuntime(
         filtered_registry,
         ToolPolicyEngine(),
         ToolPolicyContext(
             workspace_root=replay_session_config.cwd,
             approval_mode=approval_mode,
+            policy_manifest=policy_manifest,
         ),
         tool_requests=bundle.tool_requests,
         tool_results=bundle.tool_results,
