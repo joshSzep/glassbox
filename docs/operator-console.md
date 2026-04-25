@@ -172,6 +172,10 @@ The first aggregate response should be able to answer:
 - runtime-owner summary for the selected workspace when available
 - whether each row is live-actionable, historical-only, or degraded
 
+The first backend slice exposes this as `GET /sessions/aggregate`, with small
+query parameters for queue, status, sort, and limit so the browser can hydrate
+overview and queue surfaces without fetching every session snapshot.
+
 The aggregate read path may reuse current `SessionSummaryView` fields where they
 are sufficient. It should add only the missing fields needed to avoid opening
 every session individually for triage.

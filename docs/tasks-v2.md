@@ -344,7 +344,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-321: Add Aggregate Session, Queue, And Health Read Models
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-320`, `GBX-302`
 - Goal: provide the backend data model needed for a dashboard that prioritizes operational awareness over one-session-at-a-time inspection
 - Deliverables:
@@ -360,6 +360,7 @@ Each phase below corresponds to one concrete milestone.
   - regression tests for consistency between aggregate summaries and full per-session snapshots
 - Done when:
   - the dashboard backend can answer what needs attention now without opening each session individually
+  - `GET /sessions/aggregate` returns prioritized operator rows, queue counts, projection-health counts, runtime-owner summary, and queue/status/sort filters backed by the persisted session query path
 
 ### GBX-322: Implement Operator Console Views For Queues, Health, And Turn Timelines
 

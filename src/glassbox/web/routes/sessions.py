@@ -1,20 +1,27 @@
 """Session snapshot API route: GET /sessions/{session_id}."""
 
+from typing import Annotated
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter
 from fastapi import HTTPException
+from fastapi import Query
 
+from glassbox.runtime.daemon import inspect_runtime_owner
 from glassbox.runtime.session_queries import SessionQueryService
+from glassbox.runtime.session_queries import WorkspaceRuntimeSummaryView
 from glassbox.web.app import RuntimeContextDep
 from glassbox.web.session_api import ActionAcceptedResponse
 from glassbox.web.session_api import ForkSessionRequest
 from glassbox.web.session_api import ForkSessionResponse
+from glassbox.web.session_api import SessionAggregateResponse
 from glassbox.web.session_api import SessionSnapshotResponse
 from glassbox.web.session_api import SessionSummaryResponse
 from glassbox.web.session_api import SubmitSessionAnswerRequest
 from glassbox.web.session_api import SubmitSessionMessageRequest
 from glassbox.web.session_api import build_fork_session_response
+from glassbox.web.session_api import build_session_aggregate_response
 from glassbox.web.session_api import build_session_snapshot_response
 from glassbox.web.session_api import build_session_summary_responses
 
@@ -32,6 +39,45 @@ async def list_session_summaries(
         context.repositories.artifacts,
     )
     return build_session_summary_responses(query_service.list_session_summaries())
+
+
+@router.get("/aggregate", response_model=SessionAggregateResponse)
+async def get_session_aggregate(
+    context: RuntimeContextDep,
+    queue: Annotated[
+        Literal[
+            "all",
+            "approvals",
+            "questions",
+            "failures",
+            "degraded",
+            "active",
+            "action-needed",
+            "historical",
+        ]
+        | None,
+        Query(),
+    ] = None,
+    status: str | None = None,
+    sort: Annotated[Literal["priority", "updated_at"], Query()] = "priority",
+    limit: Annotated[int | None, Query(ge=1)] = None,
+) -> SessionAggregateResponse:
+    """Return operator-console queue, health, and priority data."""
+
+    query_service = SessionQueryService(
+        context.repositories.sessions,
+        context.repositories.artifacts,
+    )
+    workspace_root = context.infrastructure.artifacts_root
+    owner_status = inspect_runtime_owner(workspace_root)
+    aggregate = query_service.get_session_aggregate(
+        runtime=_build_workspace_runtime_summary(workspace_root, owner_status),
+        queue=queue,
+        status=status,
+        sort=sort,
+        limit=limit,
+    )
+    return build_session_aggregate_response(aggregate)
 
 
 @router.post(
@@ -135,3 +181,21 @@ async def get_session_snapshot(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     return build_session_snapshot_response(snapshot)
+
+
+def _build_workspace_runtime_summary(
+    workspace_root,
+    owner_status,
+) -> WorkspaceRuntimeSummaryView:
+    record = owner_status.record
+    dashboard_url = record.dashboard_url if record is not None else None
+    return WorkspaceRuntimeSummaryView(
+        workspace_root=str(workspace_root),
+        state=owner_status.state,
+        health=owner_status.health,
+        pid=record.pid if record is not None else None,
+        dashboard_url=dashboard_url,
+        health_url=(dashboard_url.rstrip("/") + "/healthz") if dashboard_url else None,
+        session_index_url=dashboard_url,
+        started_at=record.started_at if record is not None else None,
+    )

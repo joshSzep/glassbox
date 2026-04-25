@@ -8,8 +8,13 @@ from pydantic import BaseModel
 
 from glassbox.core.models import ForkedSession
 from glassbox.runtime.context_builder import RuntimeContextSnapshot
+from glassbox.runtime.session_queries import OperatorSessionSummaryView
+from glassbox.runtime.session_queries import ProjectionHealthCountsView
+from glassbox.runtime.session_queries import SessionAggregateView
+from glassbox.runtime.session_queries import SessionQueueCountsView
 from glassbox.runtime.session_queries import SessionSnapshotView
 from glassbox.runtime.session_queries import SessionSummaryView
+from glassbox.runtime.session_queries import WorkspaceRuntimeSummaryView
 
 
 class MessagePartResponse(BaseModel):
@@ -135,6 +140,56 @@ class SessionSummaryResponse(BaseModel):
     next_action_summary: str
 
 
+class OperatorSessionSummaryResponse(SessionSummaryResponse):
+    queue_memberships: list[str]
+    priority_bucket: str
+    priority_rank: int
+    action_needed: bool
+    live_actionable: bool
+    historical_only: bool
+    has_active_turn: bool
+
+
+class SessionQueueCountsResponse(BaseModel):
+    total: int
+    approvals: int
+    questions: int
+    failures: int
+    degraded: int
+    active: int
+    action_needed: int
+    historical: int
+
+
+class ProjectionHealthCountsAggregateResponse(BaseModel):
+    ok: int
+    stale: int
+    unavailable: int
+    degraded: int
+
+
+class WorkspaceRuntimeSummaryResponse(BaseModel):
+    workspace_root: str
+    state: str
+    health: str | None
+    pid: int | None
+    dashboard_url: str | None
+    health_url: str | None
+    session_index_url: str | None
+    started_at: datetime | None
+
+
+class SessionAggregateResponse(BaseModel):
+    queue: str | None
+    status: str | None
+    sort: str
+    limit: int | None
+    queue_counts: SessionQueueCountsResponse
+    projection_health_counts: ProjectionHealthCountsAggregateResponse
+    runtime: WorkspaceRuntimeSummaryResponse
+    sessions: list[OperatorSessionSummaryResponse]
+
+
 class SessionSnapshotResponse(BaseModel):
     session_id: str
     status: str
@@ -189,6 +244,60 @@ def build_session_summary_responses(
     """Serialize multiple session summary views for the session index."""
 
     return [build_session_summary_response(summary) for summary in summaries]
+
+
+def build_operator_session_summary_response(
+    summary: OperatorSessionSummaryView,
+) -> OperatorSessionSummaryResponse:
+    """Serialize an operator-console session summary into the HTTP model."""
+
+    return OperatorSessionSummaryResponse.model_validate(
+        summary.model_dump(mode="json")
+    )
+
+
+def build_session_queue_counts_response(
+    counts: SessionQueueCountsView,
+) -> SessionQueueCountsResponse:
+    return SessionQueueCountsResponse.model_validate(counts.model_dump(mode="json"))
+
+
+def build_projection_health_counts_response(
+    counts: ProjectionHealthCountsView,
+) -> ProjectionHealthCountsAggregateResponse:
+    return ProjectionHealthCountsAggregateResponse.model_validate(
+        counts.model_dump(mode="json")
+    )
+
+
+def build_workspace_runtime_summary_response(
+    runtime: WorkspaceRuntimeSummaryView,
+) -> WorkspaceRuntimeSummaryResponse:
+    return WorkspaceRuntimeSummaryResponse.model_validate(
+        runtime.model_dump(mode="json")
+    )
+
+
+def build_session_aggregate_response(
+    aggregate: SessionAggregateView,
+) -> SessionAggregateResponse:
+    """Serialize the operator-console aggregate response into HTTP payloads."""
+
+    return SessionAggregateResponse(
+        queue=aggregate.queue,
+        status=aggregate.status,
+        sort=aggregate.sort,
+        limit=aggregate.limit,
+        queue_counts=build_session_queue_counts_response(aggregate.queue_counts),
+        projection_health_counts=build_projection_health_counts_response(
+            aggregate.projection_health_counts
+        ),
+        runtime=build_workspace_runtime_summary_response(aggregate.runtime),
+        sessions=[
+            build_operator_session_summary_response(summary)
+            for summary in aggregate.sessions
+        ],
+    )
 
 
 def build_session_snapshot_response(

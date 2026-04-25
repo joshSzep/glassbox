@@ -1,6 +1,7 @@
 """Read-only session query models and service for CLI and web consumers."""
 
 from collections.abc import Sequence
+from datetime import UTC
 from datetime import datetime
 
 from pydantic import BaseModel
@@ -86,6 +87,74 @@ class SessionSummaryView(BaseModel):
     latest_message_summary: str | None = None
     projection_health: ProjectionHealth
     next_action_summary: str
+
+
+class OperatorSessionSummaryView(SessionSummaryView):
+    """Operator-console summary row with queue and priority metadata."""
+
+    queue_memberships: list[str] = Field(default_factory=list)
+    priority_bucket: str
+    priority_rank: int
+    action_needed: bool
+    live_actionable: bool
+    historical_only: bool
+    has_active_turn: bool
+
+
+class SessionQueueCountsView(BaseModel):
+    """Aggregate queue counts for the operator console."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    total: int
+    approvals: int
+    questions: int
+    failures: int
+    degraded: int
+    active: int
+    action_needed: int
+    historical: int
+
+
+class ProjectionHealthCountsView(BaseModel):
+    """Aggregate projection-health totals for the operator console."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    ok: int = 0
+    stale: int = 0
+    unavailable: int = 0
+    degraded: int = 0
+
+
+class WorkspaceRuntimeSummaryView(BaseModel):
+    """Workspace-level runtime owner summary for operator triage."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    workspace_root: str
+    state: str
+    health: str | None = None
+    pid: int | None = None
+    dashboard_url: str | None = None
+    health_url: str | None = None
+    session_index_url: str | None = None
+    started_at: datetime | None = None
+
+
+class SessionAggregateView(BaseModel):
+    """Aggregate operator-console response built from session summaries."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    queue: str | None = None
+    status: str | None = None
+    sort: str
+    limit: int | None = None
+    queue_counts: SessionQueueCountsView
+    projection_health_counts: ProjectionHealthCountsView
+    runtime: WorkspaceRuntimeSummaryView
+    sessions: list[OperatorSessionSummaryView] = Field(default_factory=list)
 
 
 class SessionSnapshotView(BaseModel):
@@ -325,6 +394,40 @@ class SessionQueryService:
                 limit=recent_tool_call_limit,
             ),
             latest_message_summary=_latest_message_summary(snapshot.transcript),
+        )
+
+    def get_session_aggregate(
+        self,
+        *,
+        runtime: WorkspaceRuntimeSummaryView,
+        queue: str | None = None,
+        status: str | None = None,
+        sort: str = "priority",
+        limit: int | None = None,
+    ) -> SessionAggregateView:
+        rows = [
+            _build_operator_session_summary(summary)
+            for summary in self.list_session_summaries()
+        ]
+        filtered_rows = [
+            row
+            for row in rows
+            if _matches_operator_queue(row, queue)
+            and _matches_operator_status(row, status)
+        ]
+        sorted_rows = _sort_operator_rows(filtered_rows, sort=sort)
+        if limit is not None:
+            sorted_rows = sorted_rows[:limit]
+
+        return SessionAggregateView(
+            queue=queue,
+            status=status,
+            sort=sort,
+            limit=limit,
+            queue_counts=_session_queue_counts(rows),
+            projection_health_counts=_projection_health_counts(rows),
+            runtime=runtime,
+            sessions=sorted_rows,
         )
 
     def _build_session_summary(
@@ -653,3 +756,147 @@ def _recent_tool_calls(
         return tool_call.completed_at or tool_call.started_at or datetime.min
 
     return sorted(tool_calls, key=sort_key, reverse=True)[:limit]
+
+
+def _build_operator_session_summary(
+    summary: SessionSummaryView,
+) -> OperatorSessionSummaryView:
+    has_active_turn = (
+        summary.status == "running"
+        and summary.next_action_summary == "Wait for the current turn to finish"
+    )
+    live_actionable = summary.status in {
+        "running",
+        "awaiting_approval",
+        "awaiting_user_input",
+    }
+    historical_only = not live_actionable
+    priority_bucket, priority_rank = _operator_priority(summary, has_active_turn)
+
+    queue_memberships: list[str] = []
+    if summary.pending_approval_id is not None:
+        queue_memberships.append("approvals")
+    if summary.pending_question_id is not None:
+        queue_memberships.append("questions")
+    if summary.status == "failed":
+        queue_memberships.append("failures")
+    if summary.projection_health.degraded:
+        queue_memberships.append("degraded")
+    if live_actionable:
+        queue_memberships.append("active")
+    action_needed = bool(
+        summary.pending_approval_id is not None
+        or summary.pending_question_id is not None
+        or summary.status == "failed"
+        or summary.projection_health.degraded
+    )
+    if action_needed:
+        queue_memberships.append("action-needed")
+    if historical_only:
+        queue_memberships.append("historical")
+
+    payload = summary.model_dump()
+    payload.update(
+        {
+            "queue_memberships": queue_memberships,
+            "priority_bucket": priority_bucket,
+            "priority_rank": priority_rank,
+            "action_needed": action_needed,
+            "live_actionable": live_actionable,
+            "historical_only": historical_only,
+            "has_active_turn": has_active_turn,
+        }
+    )
+    return OperatorSessionSummaryView.model_validate(payload)
+
+
+def _operator_priority(
+    summary: SessionSummaryView,
+    has_active_turn: bool,
+) -> tuple[str, int]:
+    if summary.pending_approval_id is not None:
+        return "approvals", 0
+    if summary.pending_question_id is not None:
+        return "questions", 1
+    if summary.status == "failed":
+        return "failures", 2
+    if summary.projection_health.degraded:
+        return "degraded", 3
+    if has_active_turn:
+        return "running", 4
+    if summary.status == "running":
+        return "idle_running", 5
+    return "historical", 6
+
+
+def _matches_operator_queue(
+    row: OperatorSessionSummaryView,
+    queue: str | None,
+) -> bool:
+    if queue is None or queue == "all":
+        return True
+    return queue in row.queue_memberships
+
+
+def _matches_operator_status(
+    row: OperatorSessionSummaryView,
+    status: str | None,
+) -> bool:
+    return status is None or row.status == status
+
+
+def _sort_operator_rows(
+    rows: Sequence[OperatorSessionSummaryView],
+    *,
+    sort: str,
+) -> list[OperatorSessionSummaryView]:
+    if sort == "updated_at":
+        return sorted(
+            rows,
+            key=lambda row: (
+                -row.updated_at.replace(tzinfo=UTC).timestamp(),
+                row.priority_rank,
+                str(row.session_id),
+            ),
+        )
+
+    return sorted(
+        rows,
+        key=lambda row: (
+            row.priority_rank,
+            -row.updated_at.replace(tzinfo=UTC).timestamp(),
+            str(row.session_id),
+        ),
+    )
+
+
+def _session_queue_counts(
+    rows: Sequence[OperatorSessionSummaryView],
+) -> SessionQueueCountsView:
+    return SessionQueueCountsView(
+        total=len(rows),
+        approvals=sum("approvals" in row.queue_memberships for row in rows),
+        questions=sum("questions" in row.queue_memberships for row in rows),
+        failures=sum("failures" in row.queue_memberships for row in rows),
+        degraded=sum("degraded" in row.queue_memberships for row in rows),
+        active=sum("active" in row.queue_memberships for row in rows),
+        action_needed=sum("action-needed" in row.queue_memberships for row in rows),
+        historical=sum("historical" in row.queue_memberships for row in rows),
+    )
+
+
+def _projection_health_counts(
+    rows: Sequence[OperatorSessionSummaryView],
+) -> ProjectionHealthCountsView:
+    counts = ProjectionHealthCountsView()
+    for row in rows:
+        state = row.projection_health.state
+        if state == "ok":
+            counts.ok += 1
+        elif state == "stale":
+            counts.stale += 1
+        elif state == "unavailable":
+            counts.unavailable += 1
+        if row.projection_health.degraded:
+            counts.degraded += 1
+    return counts
