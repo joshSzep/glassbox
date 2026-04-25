@@ -537,7 +537,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-342: Improve Baseline Promotion, Refresh, And Review Ergonomics Further
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-244`, `GBX-245`, `GBX-341`
 - Goal: make evolving replay baselines feel more like deliberate interface maintenance and less like artifact churn
 - Deliverables:

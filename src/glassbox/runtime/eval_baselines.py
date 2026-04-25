@@ -13,6 +13,8 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 
+from glassbox.runtime.eval_coverage import EvalCapabilityDefinition
+from glassbox.runtime.eval_coverage import load_eval_coverage_manifest
 from glassbox.runtime.evals import DEFAULT_EVAL_BUNDLES_DIR
 from glassbox.runtime.evals import DEFAULT_EVAL_CASES_DIR
 from glassbox.runtime.evals import EvalBaselineHistoryEntry
@@ -22,9 +24,12 @@ from glassbox.runtime.evals import EvalCaseManifest
 from glassbox.runtime.evals import EvalCaseReleaseContract
 from glassbox.runtime.evals import EvalCaseSeverity
 from glassbox.runtime.evals import EvalInvariant
+from glassbox.runtime.evals import EvalProfileDefinition
+from glassbox.runtime.evals import EvalProfileTrack
 from glassbox.runtime.evals import EvalVerificationStage
 from glassbox.runtime.evals import _ensure_path_within_root
 from glassbox.runtime.evals import _normalize_identifier
+from glassbox.runtime.evals import load_eval_profiles
 from glassbox.runtime.replay import ReplayRunner
 
 DEFAULT_EVAL_BASELINE_REPORTS_DIR = Path(".glassbox") / "evals" / "baseline-updates"
@@ -38,6 +43,32 @@ class EvalBaselineValueChange(BaseModel):
 
     before: Any = None
     after: Any = None
+
+
+class EvalBaselineCapabilityImpact(BaseModel):
+    """Coverage metadata that helps reviewers understand a baseline change."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    capability_id: str
+    title: str | None = None
+    criticality: str | None = None
+    verification_stages: list[EvalVerificationStage] = Field(default_factory=list)
+    expected_case_ids: list[str] = Field(default_factory=list)
+    current_case_expected: bool = False
+
+
+class EvalBaselineProfileImpact(BaseModel):
+    """Profile metadata affected by one baseline promotion or refresh."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    title: str
+    verification_stage: EvalVerificationStage
+    track: EvalProfileTrack
+    blocking: bool
+    selection_reasons: list[str] = Field(default_factory=list)
 
 
 class EvalBaselineUpdateReport(BaseModel):
@@ -69,6 +100,15 @@ class EvalBaselineUpdateReport(BaseModel):
     release_contract_after: dict[str, Any] = Field(default_factory=dict)
     baseline_history_count_before: int = 0
     baseline_history_count_after: int = 0
+    likely_change_owners: list[str] = Field(default_factory=list)
+    impacted_verification_stages: list[EvalVerificationStage] = Field(
+        default_factory=list
+    )
+    impacted_capabilities: list[EvalBaselineCapabilityImpact] = Field(
+        default_factory=list
+    )
+    impacted_profiles: list[EvalBaselineProfileImpact] = Field(default_factory=list)
+    impacted_blocking_profile_ids: list[str] = Field(default_factory=list)
 
 
 def promote_eval_case(
@@ -134,6 +174,7 @@ def promote_eval_case(
     _write_manifest(case_path, manifest)
 
     report = _build_update_report(
+        workspace_root=resolved_workspace_root,
         operation="promote",
         session_id=session_id,
         rationale=manifest.baseline_history[-1].rationale,
@@ -212,9 +253,23 @@ def refresh_eval_case(
     )
     _validate_curated_release_contract(normalized_case_id, release_contract_after)
     if requires_acknowledgement and not acknowledge_policy:
+        impacted_profiles = _resolve_impacted_profiles(
+            resolved_workspace_root,
+            case_id=normalized_case_id,
+            tags=list(tags) if tags is not None else list(manifest_before.tags),
+            release_contract=release_contract_after,
+        )
+        blocking_profile_ids = [
+            profile.profile_id for profile in impacted_profiles if profile.blocking
+        ]
+        scope_suffix = ""
+        if blocking_profile_ids:
+            scope_suffix = (
+                " (affected blocking profiles: " + ", ".join(blocking_profile_ids) + ")"
+            )
         raise ValueError(
             "refreshing blocking or release-candidate eval case requires "
-            f"--acknowledge-policy: {normalized_case_id}"
+            f"--acknowledge-policy: {normalized_case_id}{scope_suffix}"
         )
 
     refreshed_bundle_path = replay_runner.export_session_bundle(session_id, bundle_path)
@@ -240,6 +295,7 @@ def refresh_eval_case(
     _write_manifest(case_path, manifest_after)
 
     report = _build_update_report(
+        workspace_root=resolved_workspace_root,
         operation="refresh",
         session_id=session_id,
         rationale=rationale,
@@ -278,6 +334,43 @@ def format_eval_baseline_update_report(report: EvalBaselineUpdateReport) -> list
             "Policy acknowledgement: "
             + ("confirmed" if report.acknowledgement_received else "required")
         )
+    if report.likely_change_owners:
+        lines.append("Likely owners: " + ", ".join(report.likely_change_owners))
+    if report.impacted_verification_stages:
+        lines.append(
+            "Release surfaces: " + ", ".join(report.impacted_verification_stages)
+        )
+    if report.impacted_blocking_profile_ids:
+        lines.append(
+            "Blocking profiles: " + ", ".join(report.impacted_blocking_profile_ids)
+        )
+    if report.impacted_capabilities:
+        lines.append("Impacted capabilities:")
+        for capability in report.impacted_capabilities:
+            detail = capability.capability_id
+            fragments: list[str] = []
+            if capability.title is not None:
+                fragments.append(capability.title)
+            if capability.criticality is not None:
+                fragments.append(capability.criticality)
+            if capability.verification_stages:
+                fragments.append("stages=" + ", ".join(capability.verification_stages))
+            if capability.current_case_expected:
+                fragments.append("expected case")
+            if fragments:
+                detail += ": " + "; ".join(fragments)
+            lines.append("  - " + detail)
+    if report.impacted_profiles:
+        lines.append("Impacted profiles:")
+        for profile in report.impacted_profiles:
+            detail = (
+                f"{profile.profile_id}: {profile.verification_stage}, "
+                f"{profile.track}, "
+                f"{'blocking' if profile.blocking else 'non-blocking'}"
+            )
+            if profile.selection_reasons:
+                detail += " [" + ", ".join(profile.selection_reasons) + "]"
+            lines.append("  - " + detail)
     if report.manifest_field_changes:
         lines.append(
             "Manifest fields changed: "
@@ -445,6 +538,7 @@ def _load_json_file(path: Path) -> dict[str, Any]:
 
 def _build_update_report(
     *,
+    workspace_root: Path,
     operation: str,
     session_id: UUID,
     rationale: str,
@@ -458,6 +552,11 @@ def _build_update_report(
     acknowledgement_required: bool,
     acknowledgement_received: bool,
 ) -> EvalBaselineUpdateReport:
+    impact_summary = _build_baseline_impact_summary(
+        workspace_root,
+        manifest_before=manifest_before,
+        manifest_after=manifest_after,
+    )
     bundle_summary_before = (
         _summarize_bundle_payload(bundle_payload_before)
         if bundle_payload_before is not None
@@ -503,6 +602,11 @@ def _build_update_report(
             len(manifest_before.baseline_history) if manifest_before is not None else 0
         ),
         baseline_history_count_after=len(manifest_after.baseline_history),
+        likely_change_owners=impact_summary["likely_change_owners"],
+        impacted_verification_stages=impact_summary["impacted_verification_stages"],
+        impacted_capabilities=impact_summary["impacted_capabilities"],
+        impacted_profiles=impact_summary["impacted_profiles"],
+        impacted_blocking_profile_ids=impact_summary["impacted_blocking_profile_ids"],
     )
 
 
@@ -555,3 +659,165 @@ def _diff_mapping(
         for key in changed_keys
         if before_payload.get(key) != after.get(key)
     }
+
+
+def _build_baseline_impact_summary(
+    workspace_root: Path,
+    *,
+    manifest_before: EvalCaseManifest | None,
+    manifest_after: EvalCaseManifest,
+) -> dict[str, Any]:
+    likely_change_owners = _collect_likely_change_owners(
+        before_owner=(
+            None if manifest_before is None else manifest_before.release_contract.owner
+        ),
+        after_owner=manifest_after.release_contract.owner,
+    )
+    impacted_capabilities = _resolve_impacted_capabilities(
+        workspace_root,
+        case_id=manifest_after.case_id,
+        release_contract=manifest_after.release_contract,
+    )
+    impacted_profiles = _resolve_impacted_profiles(
+        workspace_root,
+        case_id=manifest_after.case_id,
+        tags=list(manifest_after.tags),
+        release_contract=manifest_after.release_contract,
+    )
+    return {
+        "likely_change_owners": likely_change_owners,
+        "impacted_verification_stages": list(
+            manifest_after.release_contract.verification_stages
+        ),
+        "impacted_capabilities": impacted_capabilities,
+        "impacted_profiles": impacted_profiles,
+        "impacted_blocking_profile_ids": [
+            profile.profile_id for profile in impacted_profiles if profile.blocking
+        ],
+    }
+
+
+def _collect_likely_change_owners(
+    *,
+    before_owner: str | None,
+    after_owner: str | None,
+) -> list[str]:
+    owners: list[str] = []
+    for owner in [before_owner, after_owner]:
+        if owner is None or owner in owners:
+            continue
+        owners.append(owner)
+    return owners
+
+
+def _resolve_impacted_capabilities(
+    workspace_root: Path,
+    *,
+    case_id: str,
+    release_contract: EvalCaseReleaseContract,
+) -> list[EvalBaselineCapabilityImpact]:
+    definitions_by_id = _load_capability_definitions_by_id(workspace_root)
+    impacts: list[EvalBaselineCapabilityImpact] = []
+    for capability_id in release_contract.capabilities:
+        definition = definitions_by_id.get(capability_id)
+        impacts.append(
+            EvalBaselineCapabilityImpact(
+                capability_id=capability_id,
+                title=None if definition is None else definition.title,
+                criticality=None if definition is None else definition.criticality,
+                verification_stages=(
+                    list(release_contract.verification_stages)
+                    if definition is None
+                    else list(definition.verification_stages)
+                ),
+                expected_case_ids=(
+                    [] if definition is None else list(definition.expected_case_ids)
+                ),
+                current_case_expected=(
+                    False
+                    if definition is None
+                    else case_id in definition.expected_case_ids
+                ),
+            )
+        )
+    return impacts
+
+
+def _resolve_impacted_profiles(
+    workspace_root: Path,
+    *,
+    case_id: str,
+    tags: list[str],
+    release_contract: EvalCaseReleaseContract,
+) -> list[EvalBaselineProfileImpact]:
+    impacts: list[EvalBaselineProfileImpact] = []
+    for profile in _load_profiles_for_baseline_report(workspace_root):
+        selection_reasons = _build_profile_selection_reasons(
+            profile,
+            case_id=case_id,
+            tags=tags,
+            release_contract=release_contract,
+        )
+        if not selection_reasons:
+            continue
+        impacts.append(
+            EvalBaselineProfileImpact(
+                profile_id=profile.profile_id,
+                title=profile.title,
+                verification_stage=profile.verification_stage,
+                track=profile.track,
+                blocking=profile.blocking,
+                selection_reasons=selection_reasons,
+            )
+        )
+    impacts.sort(
+        key=lambda impact: (
+            not impact.blocking,
+            impact.verification_stage,
+            impact.profile_id,
+        )
+    )
+    return impacts
+
+
+def _load_capability_definitions_by_id(
+    workspace_root: Path,
+) -> dict[str, EvalCapabilityDefinition]:
+    try:
+        manifest = load_eval_coverage_manifest(workspace_root)
+    except ValueError:
+        return {}
+    return {
+        capability.capability_id: capability for capability in manifest.capabilities
+    }
+
+
+def _load_profiles_for_baseline_report(
+    workspace_root: Path,
+) -> list[EvalProfileDefinition]:
+    try:
+        return load_eval_profiles(workspace_root)
+    except ValueError:
+        return []
+
+
+def _build_profile_selection_reasons(
+    profile: EvalProfileDefinition,
+    *,
+    case_id: str,
+    tags: list[str],
+    release_contract: EvalCaseReleaseContract,
+) -> list[str]:
+    reasons: list[str] = []
+    if profile.case_ids:
+        if case_id not in profile.case_ids:
+            return []
+        reasons.append("explicit case id")
+    if profile.tags:
+        if not set(profile.tags).issubset(set(tags)):
+            return []
+        reasons.append("tag match")
+    if profile.verification_stage not in release_contract.verification_stages:
+        return []
+    reasons.append(f"stage {profile.verification_stage}")
+    return reasons

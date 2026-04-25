@@ -606,6 +606,37 @@ def test_cli_eval_promote_creates_case_bundle_and_review_artifact(
         tmp_path,
         prompt="Inspect the repository",
     )
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "commit-smoke",
+                "title": "Commit smoke",
+                "verification_stage": "commit-time",
+                "tags": ["smoke"],
+                "blocking": True,
+            },
+            {
+                "profile_id": "push-confirmation",
+                "title": "Push confirmation",
+                "verification_stage": "push-time",
+                "tags": ["smoke"],
+                "blocking": True,
+            },
+        ],
+    )
+    _write_eval_coverage(
+        tmp_path,
+        profiles=[
+            {
+                "capability_id": "replay_portability",
+                "title": "Replay portability",
+                "criticality": "release-critical",
+                "verification_stages": ["commit-time", "push-time"],
+                "expected_case_ids": ["smoke.promoted"],
+            }
+        ],
+    )
     _ = capsys.readouterr()
 
     exit_code = main(
@@ -648,6 +679,9 @@ def test_cli_eval_promote_creates_case_bundle_and_review_artifact(
 
     assert exit_code == 0
     assert "Operation: promote" in captured.out
+    assert "Likely owners: runtime.replay" in captured.out
+    assert "Blocking profiles: commit-smoke, push-confirmation" in captured.out
+    assert "Impacted capabilities:" in captured.out
     assert case_path.is_file()
     assert bundle_path.is_file()
     assert report_path.is_file()
@@ -658,6 +692,18 @@ def test_cli_eval_promote_creates_case_bundle_and_review_artifact(
     )
     assert report_payload["operation"] == "promote"
     assert report_payload["acknowledgement_required"] is False
+    assert report_payload["likely_change_owners"] == ["runtime.replay"]
+    assert report_payload["impacted_blocking_profile_ids"] == [
+        "commit-smoke",
+        "push-confirmation",
+    ]
+    assert [
+        capability["capability_id"]
+        for capability in report_payload["impacted_capabilities"]
+    ] == ["replay_portability"]
+    assert [
+        profile["profile_id"] for profile in report_payload["impacted_profiles"]
+    ] == ["commit-smoke", "push-confirmation"]
 
     run_exit_code = main(
         [
@@ -709,6 +755,18 @@ def test_cli_eval_refresh_requires_acknowledgement_for_blocking_case(
             "verification_stages": ["commit-time"],
         },
     )
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "commit-smoke",
+                "title": "Commit smoke",
+                "verification_stage": "commit-time",
+                "tags": ["smoke"],
+                "blocking": True,
+            }
+        ],
+    )
     _ = capsys.readouterr()
 
     exit_code = main(
@@ -730,6 +788,7 @@ def test_cli_eval_refresh_requires_acknowledgement_for_blocking_case(
     assert second_exit_code == 0
     assert exit_code == 1
     assert "requires --acknowledge-policy" in captured.err
+    assert "commit-smoke" in captured.err
 
 
 def test_cli_eval_refresh_rejects_blocking_case_without_release_metadata(
@@ -794,6 +853,30 @@ def test_cli_eval_refresh_updates_bundle_manifest_history_and_review_artifact(
     db_path, initial_session_id = _run_baseline_session(
         tmp_path,
         prompt="Inspect the repository",
+    )
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "commit-smoke",
+                "title": "Commit smoke",
+                "verification_stage": "commit-time",
+                "tags": ["smoke"],
+                "blocking": True,
+            }
+        ],
+    )
+    _write_eval_coverage(
+        tmp_path,
+        profiles=[
+            {
+                "capability_id": "replay_portability",
+                "title": "Replay portability",
+                "criticality": "release-critical",
+                "verification_stages": ["commit-time"],
+                "expected_case_ids": ["smoke.promoted"],
+            }
+        ],
     )
     _ = capsys.readouterr()
 
@@ -872,6 +955,8 @@ def test_cli_eval_refresh_updates_bundle_manifest_history_and_review_artifact(
     assert second_exit_code == 0
     assert refresh_exit_code == 0
     assert "Operation: refresh" in captured.out
+    assert "Likely owners: runtime.replay" in captured.out
+    assert "Blocking profiles: commit-smoke" in captured.out
     assert len(case_payload["baseline_history"]) == 2
     assert case_payload["baseline_history"][-1]["operation"] == "refresh"
     assert case_payload["baseline_history"][-1]["rationale"] == (
@@ -883,6 +968,12 @@ def test_cli_eval_refresh_updates_bundle_manifest_history_and_review_artifact(
     assert report_payload["acknowledgement_received"] is True
     assert report_payload["baseline_history_count_after"] == 2
     assert report_payload["manifest_field_changes"]["baseline_history"]["after"]
+    assert report_payload["likely_change_owners"] == ["runtime.replay"]
+    assert report_payload["impacted_blocking_profile_ids"] == ["commit-smoke"]
+    assert (
+        report_payload["impacted_capabilities"][0]["criticality"] == "release-critical"
+    )
+    assert report_payload["impacted_profiles"][0]["profile_id"] == "commit-smoke"
 
     run_exit_code = main(
         [
