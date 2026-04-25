@@ -2,12 +2,19 @@
 
 import json
 import socket
+from datetime import UTC
+from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
 import pytest
 
 from glassbox.cli import main
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import SessionCompleted
+from glassbox.store.repositories import SQLiteSessionRepository
+from glassbox.store.sqlite import open_database
+from tests.integration.cli_test_support import _run_baseline_session
 
 
 def _reserve_port() -> int:
@@ -155,3 +162,250 @@ def test_daemon_start_recovers_stale_owner_metadata(
         assert "Stopped daemon pid" in stop_capture.out
     finally:
         _stop_daemon_if_running(tmp_path)
+
+
+def test_cli_attach_routes_live_session_through_daemon_and_can_reattach(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    port = _reserve_port()
+    interactive_inputs = iter(
+        [
+            "Now summarize the tests.",
+            "/exit",
+            "Add one more note.",
+            "/exit",
+        ]
+    )
+
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_session._read_interactive_input",
+        lambda prompt: next(interactive_inputs),
+    )
+
+    try:
+        exit_code = main(
+            [
+                "daemon",
+                "start",
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+                "--port",
+                str(port),
+            ]
+        )
+        _ = capsys.readouterr()
+
+        assert exit_code == 0
+
+        exit_code = main(
+            [
+                "attach",
+                str(session_id),
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+            ]
+        )
+        first_capture = capsys.readouterr()
+
+        assert exit_code == 0
+        assert f"Attached to live session {session_id}" in first_capture.out
+        assert "Queued user message: Now summarize the tests." in first_capture.out
+        assert (
+            "Assistant: I received your request: Now summarize the tests."
+            in first_capture.out
+        )
+        assert "Leaving interactive session" in first_capture.out
+
+        exit_code = main(
+            [
+                "attach",
+                str(session_id),
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+            ]
+        )
+        second_capture = capsys.readouterr()
+
+        assert exit_code == 0
+        assert f"Attached to live session {session_id}" in second_capture.out
+        assert "Queued user message: Add one more note." in second_capture.out
+        assert (
+            "Assistant: I received your request: Add one more note."
+            in second_capture.out
+        )
+
+        connection = open_database(db_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            transcript = repository.list_transcript_messages(session_id)
+        finally:
+            connection.close()
+
+        assert transcript[-4].parts[0].text == "Now summarize the tests."
+        assert transcript[-3].parts[0].text == (
+            "I received your request: Now summarize the tests."
+        )
+        assert transcript[-2].parts[0].text == "Add one more note."
+        assert transcript[-1].parts[0].text == (
+            "I received your request: Add one more note."
+        )
+    finally:
+        _stop_daemon_if_running(tmp_path)
+
+
+def test_cli_attach_reports_live_runtime_unavailable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from glassbox.runtime.daemon import RuntimeOwnerRecord
+    from glassbox.runtime.daemon import RuntimeOwnerStatus
+
+    db_path, session_id = _run_baseline_session(tmp_path)
+    baseline_db_path = db_path
+
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_commands.inspect_runtime_owner",
+        lambda cwd, db_path=None: RuntimeOwnerStatus(
+            state="running",
+            record=RuntimeOwnerRecord(
+                pid=12345,
+                workspace_root=tmp_path,
+                database_path=baseline_db_path,
+                host="127.0.0.1",
+                port=9999,
+                dashboard_url="http://127.0.0.1:9999/",
+                started_at=datetime(2025, 1, 1, tzinfo=UTC),
+            ),
+            health="unreachable",
+        ),
+    )
+
+    exit_code = main(
+        [
+            "attach",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert (
+        "live runtime unavailable at http://127.0.0.1:9999/; cannot attach session"
+        in captured.err
+    )
+
+
+def test_cli_attach_reports_historical_only_session_when_daemon_is_running(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    port = _reserve_port()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=SessionCompleted(reason="done"),
+            )
+        )
+    finally:
+        connection.close()
+
+    try:
+        exit_code = main(
+            [
+                "daemon",
+                "start",
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+                "--port",
+                str(port),
+            ]
+        )
+        _ = capsys.readouterr()
+
+        assert exit_code == 0
+
+        exit_code = main(
+            [
+                "attach",
+                str(session_id),
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+            ]
+        )
+        captured = capsys.readouterr()
+
+        assert exit_code == 1
+        assert "is only historically inspectable in status completed" in captured.err
+    finally:
+        _stop_daemon_if_running(tmp_path)
+
+
+def test_cli_attach_reports_stale_runtime_owner_then_falls_back_locally(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    interactive_inputs = iter(["Now summarize the tests.", "/exit"])
+    owner_path = _runtime_owner_path(tmp_path)
+    owner_path.parent.mkdir(parents=True, exist_ok=True)
+    owner_path.write_text(
+        json.dumps(
+            {
+                "pid": 999999,
+                "workspace_root": str(tmp_path),
+                "database_path": str(db_path),
+                "host": "127.0.0.1",
+                "port": 8765,
+                "dashboard_url": "http://127.0.0.1:8765/",
+                "started_at": "2025-01-01T00:00:00Z",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_session._read_interactive_input",
+        lambda prompt: next(interactive_inputs),
+    )
+
+    exit_code = main(
+        [
+            "attach",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Workspace daemon owner metadata is stale" in captured.out
+    assert f"Attached to session {session_id}" in captured.out

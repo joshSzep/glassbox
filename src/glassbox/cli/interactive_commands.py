@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 
+from glassbox.cli.daemon_attach import attach_via_daemon
 from glassbox.cli.interactive_session import _interactive_session_loop
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.cli.runtime_runner import _dashboard_session_url
@@ -11,6 +12,8 @@ from glassbox.cli.runtime_runner import _start_chat_dashboard
 from glassbox.core import SessionConfig
 from glassbox.core.types import ApprovalDecision
 from glassbox.runtime.context import RuntimeContext
+from glassbox.runtime.daemon import clear_stale_runtime_owner
+from glassbox.runtime.daemon import inspect_runtime_owner
 
 
 def _run_command(args: argparse.Namespace) -> int:
@@ -108,10 +111,28 @@ def _attach_command(args: argparse.Namespace) -> int:
 
 
 async def _attach_command_async(args: argparse.Namespace) -> int:
-    cwd, db_path = resolve_runtime_location(
-        args,
-        require_daemon_unowned_for="attach to a live session locally",
-    )
+    cwd, db_path = resolve_runtime_location(args)
+    daemon_status = inspect_runtime_owner(cwd, db_path=db_path)
+
+    if daemon_status.state == "running":
+        assert daemon_status.record is not None
+        if daemon_status.health != "ok":
+            raise ValueError(
+                "live runtime unavailable at "
+                f"{daemon_status.record.dashboard_url}; cannot attach session "
+                f"{args.session_id}"
+            )
+        return await attach_via_daemon(
+            args,
+            dashboard_url=daemon_status.record.dashboard_url,
+        )
+
+    if daemon_status.state == "stale":
+        clear_stale_runtime_owner(cwd, db_path=db_path)
+        print(
+            "Workspace daemon owner metadata is stale; reopening the persisted "
+            "session locally."
+        )
 
     async def action(runtime_context: RuntimeContext, prompt_state) -> None:
         repository = runtime_context.repositories.sessions

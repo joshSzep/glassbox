@@ -57,9 +57,8 @@ following as the implemented baseline that v2 extends:
 - `glassbox chat` owns the live in-process conversational workflow
 - `glassbox daemon start|status|stop` now provides a workspace-scoped
     background runtime owner with health and lock metadata under `.glassbox/`
-- `glassbox attach` reopens persisted actionable sessions from projections, but
-    does not yet provide live terminal attach to a runtime owned by another
-    process
+- `glassbox attach` now chooses between persisted local reopen and live
+    terminal attach to a healthy daemon-owned runtime for the same workspace
 - `glassbox serve` exposes the standalone browser console over persisted
     sessions, recent-session discovery, snapshot reads, HTTP actions, and SSE
     live tails
@@ -93,10 +92,10 @@ for a future split-process or richer persistent-runtime architecture.
 For interactive terminal UX, the first-class conversational experience still
 lives inside the foreground CLI process today. A long-lived CLI session can keep
 an event subscription open, render runtime activity continuously, and submit
-follow-up operator input through the existing session service. The new daemon
-owner is the durable runtime host for one workspace, but terminal attach does
-not yet stream live events from that daemon-owned process until the explicit
-cross-process attach mechanism lands.
+follow-up operator input through the existing session service. The daemon owner
+is now also a live terminal attach target: the terminal reconnects through the
+existing HTTP plus SSE control surfaces when a healthy workspace daemon already
+owns the session.
 
 That boundary was the starting point for v2 planning. `GBX-300` in
 [tasks-v2.md](./tasks-v2.md) now resolves the ownership model choice, and
@@ -1929,9 +1928,9 @@ The attach model should distinguish three operator surfaces explicitly:
 
 - embedded terminal ownership: `glassbox chat` owns the live session inside the
     current process and may co-host the dashboard for that same runtime
-- terminal attach to a background owner: a later attach client should reconnect
-    to the daemon-owned session, replay enough prompt and suspension state to
-    restore the terminal UX, and then continue with live updates
+- terminal attach to a background owner: the attach client reconnects to the
+    daemon-owned session, restores prompt and suspension state from snapshot
+    data, and then continues with live updates over the daemon event stream
 - browser observation and action: the browser continues to use snapshot, action,
     and event-stream surfaces as an operator console whether the runtime is
     embedded, background-owned, reconnecting, or unavailable

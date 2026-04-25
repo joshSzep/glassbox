@@ -188,7 +188,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-303: Add Cross-Process Interactive Attach And Reconnect Flow
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-301`, `GBX-302`
 - Goal: let operators attach an interactive terminal UI to a session owned by a different long-lived process and continue work with live updates
 - Deliverables:
@@ -206,6 +206,7 @@ Each phase below corresponds to one concrete milestone.
   - negative-path tests for unavailable runtimes, unknown sessions, and non-attachable session states
 - Done when:
   - a user can continue a live Glassbox session from a new terminal process without restarting the owning runtime
+  - `attach` chooses between live daemon attach and explicit historical local reopen semantics without silently blurring the two
 
 ### GBX-304: Add Persistent Runtime Health, Discovery, And Operator Documentation
 

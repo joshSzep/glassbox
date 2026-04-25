@@ -38,7 +38,15 @@ Use `attach` when you already have a session ID and want to reopen an actionable
 uv run glassbox attach SESSION_ID --cwd .
 ```
 
-`attach` is for sessions that are actionable from the operator side:
+`attach` now has two explicit modes:
+
+- live daemon attach: if a healthy workspace daemon owns the runtime, `attach`
+	reconnects the terminal to that live owner over the daemon's HTTP plus SSE
+	surfaces
+- persisted local reopen: if no daemon owns the workspace, `attach` reopens the
+	persisted actionable session from local state
+
+In either mode, `attach` is for sessions that are actionable from the operator side:
 
 - idle running sessions waiting for the next prompt
 - sessions awaiting `ask_user` input
@@ -78,14 +86,14 @@ uv run glassbox deny SESSION_ID APPROVAL_ID --cwd .
 
 ## Current Shipped Boundary
 
-The current interactive terminal UX is intentionally process-local.
+The shipped interactive terminal UX now has two honest boundaries:
 
 - `chat` owns the live in-process event stream for the session it starts
-- `attach` can reopen a persisted actionable session later
-- Glassbox does not yet claim that today's `attach` command can stream live
-	terminal updates from another already-running session owner
-
-For the shipped cross-process observation path, use the dashboard.
+- `attach` can either reopen a persisted actionable session locally or live
+	reconnect to a healthy daemon-owned session
+- terminal attach does not silently pretend a terminal is still live when the
+	workspace daemon is stale, unavailable, or the session is only historically
+	inspectable
 
 ## V2 Ownership Decision
 
@@ -102,16 +110,12 @@ The intended ownership split is:
 - browser mode: `glassbox serve` remains the operator console and session
 	browser; it is not the authoritative runtime owner
 
-This means the current `attach` command and the future daemon attach path are
-not the same thing:
+This means `attach` now resolves one of two explicit behaviors:
 
-- current `attach`: reopen a persisted actionable session from stored state
-- future live attach: reconnect a terminal UI to a session actively owned by a
+- persisted local attach: reopen a session from stored state when no daemon owns
+	the workspace
+- live daemon attach: reconnect a terminal UI to a session actively owned by a
 	background runtime
-
-Until the later persistent-runtime tasks land, the shipped `attach` command
-should still be understood as the persisted-state re-entry path rather than the
-final cross-process live attach UX.
 
 ## Persistent Runtime Semantics For V2
 
@@ -134,9 +138,22 @@ Operators should expect these runtime semantics:
 - if the owner becomes unavailable, Glassbox should say so explicitly instead of
 	silently pretending a historical snapshot is still a live session
 
-Until cross-process attach lands, local mutating CLI flows such as `run`,
-`chat`, `attach`, `message`, `answer`, `approve`, `deny`, `fork`, `resume`, and
-`rebuild` reject execution while a daemon owns the same workspace runtime.
+With cross-process attach in place, local mutating CLI flows such as `run`,
+`chat`, `message`, `answer`, `approve`, `deny`, `fork`, `resume`, and `rebuild`
+still reject execution while a daemon owns the same workspace runtime, while
+`attach` becomes the terminal-native reconnect surface for that owner.
+
+Operators should also expect explicit messaging for these states:
+
+- live: the terminal is attached to the daemon-owned session and receives live
+	event updates
+- reconnecting: the live stream is retrying after a transport interruption
+- unavailable: the daemon owner exists but the runtime cannot be reached for
+	live attach
+- stale: stale owner metadata is reported before Glassbox reopens the persisted
+	session locally
+- historical-only: completed, failed, or cancelled sessions remain inspectable
+	but do not pretend to support live attach
 
 The first persistent-runtime slice is intentionally still local-first. It does
 not imply remote orchestration, browser-native terminal control, or multi-user
