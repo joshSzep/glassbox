@@ -1266,6 +1266,58 @@ resolution now live behind a shared input boundary, so the suite runner,
 summary loaders, and CLI report commands consume the same resolved eval-suite
 inputs instead of rebuilding that selection logic independently.
 
+### Change-Impact Recommendation Model
+
+The next replay and eval workflow step is not a new portfolio system. It is a
+repository-owned recommendation layer that explains which existing cases,
+capabilities, and profiles are most relevant after a change set.
+
+The first version should stay advisory and inspectable.
+
+- it recommends replay and eval scope from changed paths; it does not silently choose the only allowed verification command
+- it expands from repository-owned metadata that already exists in case manifests, capability coverage, and profile definitions
+- it reports confidence and reasons for each recommendation instead of pretending the mapping is exact when the evidence is weak
+- it preserves the named-profile operator model, so the output remains "run these existing cases or profiles" rather than "trust this opaque score"
+
+The recommendation pipeline should be:
+
+1. normalize the change set into repository-relative touched paths
+2. resolve those paths through a repository-owned impact-rules table that maps stable path globs or subsystem anchors to owner IDs, capability IDs, and optional direct case or profile hints
+3. expand owner and capability matches through existing eval metadata:
+    - case manifests remain the source of case-level `owner`, `capabilities`, and `verification_stages`
+    - `coverage.json` remains the source of capability-to-case expectations and stage criticality
+    - `profiles.json` remains the source of stage-to-profile selection, deterministic versus canary track, and budget expectations
+4. rank recommendations by confidence and emit the reasoning chain that produced them
+
+The confidence model should be explicit:
+
+- `direct`: a touched path matched an impact rule that names the case, capability, or profile directly
+- `owner-derived`: a touched path matched one owner, and the recommended case carries that same owner in its release-contract metadata
+- `capability-derived`: a touched path matched one capability, and the recommendation came from the coverage manifest or case capability metadata
+- `stage-derived`: a profile is recommended because impacted cases or capabilities participate in that verification stage
+- `fallback`: no stronger deterministic mapping exists, so the system recommends only the smallest existing deterministic smoke surface or says that no confident replay or eval recommendation exists
+
+The first version should favor under-claiming over false precision.
+
+- if no confident path-to-owner or path-to-capability mapping exists, the system should say so directly
+- if a change only touches workflow docs or unrelated repository files, the system may legitimately recommend no replay work beyond the current manual policy
+- if a change touches eval metadata itself, the explanation should say that the recommendation is metadata-driven rather than product-behavior-driven
+
+The impact-rules table is the only new metadata concept required for this model.
+It should stay small, reviewable, and subordinate to the existing eval
+portfolio rather than becoming a second source of truth for release intent.
+Its job is only to answer which owners or capabilities a path likely affects;
+case membership, stage intent, blocking behavior, and capability expectations
+must continue to live in the existing case, coverage, and profile manifests.
+
+Explicit non-goals for the first version:
+
+- no hidden machine-learned or provider-generated recommendation state
+- no claim that the recommended set is a perfect minimal proof of correctness
+- no static call-graph or whole-program semantic analysis requirement before recommendations can be useful
+- no automatic mutation of profiles, tags, or case manifests in response to a change set
+- no mixing of `live-provider-canary` profiles into deterministic release-signoff recommendations
+
 ### Replay Baseline Capture
 
 Replay should be grounded in recorded turn manifests rather than inferred after

@@ -126,6 +126,56 @@ The expected split is:
 - `smoke` tags are the commit-time blocking set
 - broader tags remain advisory or push-time only until they are stable enough to move earlier
 
+## Change-Impact Recommendations
+
+GBX-340 defines the operator contract for choosing replay and eval scope from a
+change set before the recommendation command itself exists.
+
+The model stays advisory.
+
+- Glassbox should recommend relevant existing cases and profiles after a change; it should not pretend it has proved the only correct verification set.
+- Every recommendation should explain why it was chosen in terms of touched paths, owner metadata, capability coverage, or verification-stage rules.
+- If the evidence is weak, Glassbox should say that directly and fall back to the smallest deterministic smoke surface or to no confident recommendation.
+
+The recommendation steps are:
+
+1. Start from repository-relative changed paths such as `src/glassbox/runtime/replay_execution.py` or `evals/coverage.json`.
+2. Resolve those paths through repository-owned impact rules that map stable path globs or subsystem anchors to owner IDs, capability IDs, and optional direct case or profile hints.
+3. Expand through existing eval metadata:
+  - case manifests contribute `release_contract.owner`, `capabilities`, and `verification_stages`
+  - `evals/coverage.json` contributes capability-to-case expectations and stage criticality
+  - `evals/profiles.json` contributes stage-specific profile recommendations, deterministic-versus-canary track, and budget expectations
+4. Rank and explain recommendations by confidence rather than flattening them into one opaque list.
+
+Recommendation confidence should be visible in output:
+
+- `direct`: the touched path matched a rule that named the case, capability, or profile explicitly
+- `owner-derived`: the touched path mapped to one owner and the case carries the same owner in its release-contract metadata
+- `capability-derived`: the touched path mapped to one capability and the case came from coverage expectations or case capability metadata
+- `stage-derived`: the profile was recommended because impacted capabilities or cases participate in that verification stage
+- `fallback`: no stronger deterministic mapping was available
+
+Practical operator expectations:
+
+- changes to `evals/cases/*.json` should recommend the touched case directly plus any deterministic profiles that include its verification stages
+- changes to `evals/profiles.json` should recommend the affected profiles themselves and explain that the change is profile-governance metadata, not a behavior-specific product signal
+- changes to `evals/coverage.json` should recommend `eval audit` plus the deterministic profiles or cases named by the affected capabilities
+- changes to runtime, tool, CLI, or dashboard code should resolve through impact rules into owners and capabilities first, then expand outward to cases and profiles
+- documentation-only changes outside replay or eval governance surfaces may legitimately produce no strong replay recommendation
+
+Examples:
+
+- A change under `src/glassbox/runtime/replay_*.py` should usually map to owner `runtime.replay`, then to replay portability or smoke capabilities, then to the deterministic profiles that carry those cases.
+- A change under `src/glassbox/runtime/context_*.py` should usually map to owner `runtime.context`, then to `context_inheritance`, `context_drift_detection`, or `artifact_backed_context`, then to the cases and stages that cover those capabilities.
+- A change only to `evals/coverage.json` should explain that the primary follow-up is contract-audit validation, not product-behavior replay alone.
+
+The first version should not try to do any of the following:
+
+- infer a perfect minimal test set from whole-program semantics
+- mix `live-provider-canary` profiles into deterministic release recommendations
+- auto-run or auto-refresh cases without an operator seeing the reasoning first
+- treat low-confidence guesses as if they were release-bearing evidence
+
 ## Local Failure Triage
 
 When commit-time eval fails:

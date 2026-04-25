@@ -498,7 +498,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-340: Define Change-Impact Model For Replay And Eval Selection
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-243`, `GBX-246`, `GBX-249`
 - Goal: define how Glassbox should recommend the right replay or eval work after a code change instead of relying only on manual profile choice
 - Deliverables:
