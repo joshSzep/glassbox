@@ -36,6 +36,11 @@ export function createState() {
     sessionIndex: [],
     sessionIndexState: "idle",
     sessionIndexError: null,
+    selectedQueue: "all",
+    queueCounts: createEmptyQueueCounts(),
+    projectionHealthCounts: createEmptyProjectionHealthCounts(),
+    runtimeSummary: createEmptyRuntimeSummary(),
+    sessionIndexSort: "priority",
     selectedSessionId: null,
     sessionLoadState: "idle",
     sessionLoadError: null,
@@ -57,5 +62,40 @@ export function createIdleForkSubmission() {
   return {
     state: "idle",
     error: null,
+  };
+}
+
+export function createEmptyQueueCounts() {
+  return {
+    total: 0,
+    approvals: 0,
+    questions: 0,
+    failures: 0,
+    degraded: 0,
+    active: 0,
+    action_needed: 0,
+    historical: 0,
+  };
+}
+
+export function createEmptyProjectionHealthCounts() {
+  return {
+    ok: 0,
+    stale: 0,
+    unavailable: 0,
+    degraded: 0,
+  };
+}
+
+export function createEmptyRuntimeSummary() {
+  return {
+    workspace_root: null,
+    state: "not_running",
+    health: null,
+    pid: null,
+    dashboard_url: null,
+    health_url: null,
+    session_index_url: null,
+    started_at: null,
   };
 }

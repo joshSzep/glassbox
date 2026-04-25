@@ -1,5 +1,57 @@
 import { escHtml, renderEmpty, shortId } from "./render-utils.js";
 
+function eventLabel(eventType) {
+  switch (eventType) {
+    case "TurnStarted":
+      return "Turn started";
+    case "TurnCompleted":
+      return "Turn completed";
+    case "TurnFailed":
+      return "Turn failed";
+    case "ModelCallStarted":
+      return "Model call started";
+    case "ModelCallCompleted":
+      return "Model call completed";
+    case "ToolExecutionStarted":
+      return "Tool call started";
+    case "ToolExecutionCompleted":
+      return "Tool call completed";
+    case "ToolArtifactRecorded":
+      return "Artifact recorded";
+    case "ReplayArtifactRecorded":
+      return "Replay artifact recorded";
+    case "ApprovalRequested":
+      return "Approval requested";
+    case "ApprovalResolved":
+      return "Approval resolved";
+    case "UserQuestionAsked":
+      return "Ask-user question";
+    case "UserAnswerProvided":
+      return "Ask-user answer";
+    case "SessionFailed":
+      return "Session failed";
+    default:
+      return eventType;
+  }
+}
+
+function renderTurnTimeline(state) {
+  const recent = (state.eventLog ?? []).slice(-10).reverse();
+  if (recent.length === 0) {
+    return "";
+  }
+
+  return `<div class="turn-timeline">
+    <div class="turn-timeline-label">Recent timeline</div>
+    <div class="turn-timeline-list">${recent.map(event => `
+      <div class="turn-timeline-entry">
+        <span class="turn-timeline-seq">#${escHtml(String(event.sequence))}</span>
+        <span class="turn-timeline-text">${escHtml(eventLabel(event.event_type))}</span>
+      </div>
+    `).join("")}</div>
+  </div>`;
+}
+
 export function renderTranscriptPane(state) {
   if (state.transcript.length === 0) {
     return renderEmpty("No messages yet.");
@@ -33,6 +85,7 @@ export function renderTurnPane(state) {
         </div>
         <div class="turn-error">${escHtml(state.sessionFailureMessage)}</div>
         ${retryableHtml}
+        ${renderTurnTimeline(state)}
       </div>`;
     }
     return renderEmpty("No active turn.");
@@ -62,9 +115,20 @@ export function renderTurnPane(state) {
     ? `<div class="turn-error">${escHtml(turn.error_message)}</div>`
     : "";
 
+  const latestMetrics = (state.turnMetrics ?? []).find(metrics => metrics.turn_id === turn.turn_id);
+  const metricsHtml = latestMetrics
+    ? `<div class="turn-metrics-inline">
+        <div class="detail-row"><span class="detail-label">Model calls</span><span class="detail-value">${escHtml(String(latestMetrics.model_call_count ?? 0))}</span></div>
+        <div class="detail-row"><span class="detail-label">Tool calls</span><span class="detail-value">${escHtml(String(latestMetrics.tool_call_count ?? 0))}</span></div>
+        <div class="detail-row"><span class="detail-label">Token total</span><span class="detail-value">${escHtml(String((latestMetrics.model_input_tokens_total ?? 0) + (latestMetrics.model_output_tokens_total ?? 0)))}</span></div>
+      </div>`
+    : "";
+
   return `<div class="turn-card status-${escHtml(turn.status)}">
     ${detailHtml}
     ${errorHtml}
+    ${metricsHtml}
+    ${renderTurnTimeline(state)}
   </div>`;
 }
 

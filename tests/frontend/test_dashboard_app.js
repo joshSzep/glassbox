@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import { createDashboardApp } from "../../src/glassbox/web/static/dashboard.js";
 import {
+  makeSessionAggregate,
   makeHistoricalSnapshot,
   makeSessionSnapshot as makeSnapshot,
   makeSessionSummary as makeSummary,
@@ -170,15 +171,15 @@ function okJson(payload) {
 test("dashboard app init loads landing page and recent sessions at root", async () => {
   const harness = createHarness({
     responses: {
-      "/sessions": okJson([makeSummary("session-123")]),
+      "/sessions/aggregate": okJson(makeSessionAggregate([makeSummary("session-123")])),
     },
   });
 
   await harness.app.init();
 
-  assert.deepEqual(harness.fetchCalls, ["/sessions"]);
-  assert.equal(harness.elements.get("primary-pane-title").textContent, "Session Browser");
-  assert.match(harness.elements.get("transcript-list").innerHTML, /Choose a recent session/);
+  assert.deepEqual(harness.fetchCalls, ["/sessions/aggregate"]);
+  assert.equal(harness.elements.get("primary-pane-title").textContent, "Operator Console");
+  assert.match(harness.elements.get("transcript-list").innerHTML, /What needs attention now/);
   assert.match(harness.elements.get("session-browser-list").innerHTML, /session-1/);
   assert.equal(harness.elements.get("status-badge").textContent, "no session");
   assert.equal(harness.elements.get("sse-indicator").textContent, "○ index mode");
@@ -189,7 +190,7 @@ test("dashboard app init loads landing page and recent sessions at root", async 
 test("dashboard app openSession selects a recent session and updates the URL", async () => {
   const harness = createHarness({
     responses: {
-      "/sessions": okJson([makeSummary("session-123")]),
+      "/sessions/aggregate": okJson(makeSessionAggregate([makeSummary("session-123")])),
       "/sessions/session-123": okJson(makeSnapshot("session-123")),
     },
   });
@@ -197,7 +198,7 @@ test("dashboard app openSession selects a recent session and updates the URL", a
   await harness.app.init();
   await harness.app.openSession("session-123");
 
-  assert.deepEqual(harness.fetchCalls, ["/sessions", "/sessions/session-123"]);
+  assert.deepEqual(harness.fetchCalls, ["/sessions/aggregate", "/sessions/session-123"]);
   assert.equal(harness.windowImpl.location.search, "?session=session-123");
   assert.equal(harness.elements.get("primary-pane-title").textContent, "Transcript");
   assert.match(
@@ -217,14 +218,14 @@ test("dashboard app preserves deep-link navigation on init", async () => {
   const harness = createHarness({
     search: "?session=session-456",
     responses: {
-      "/sessions": okJson([makeSummary("session-456")]),
+      "/sessions/aggregate": okJson(makeSessionAggregate([makeSummary("session-456")])),
       "/sessions/session-456": okJson(makeSnapshot("session-456")),
     },
   });
 
   await harness.app.init();
 
-  assert.deepEqual(harness.fetchCalls, ["/sessions", "/sessions/session-456"]);
+  assert.deepEqual(harness.fetchCalls, ["/sessions/aggregate", "/sessions/session-456"]);
   assert.equal(harness.app.getState().selectedSessionId, "session-456");
   assert.equal(harness.app.getState().sessionId, "session-456");
   assert.equal(harness.windowImpl.location.search, "?session=session-456");
@@ -234,7 +235,7 @@ test("dashboard app preserves deep-link navigation on init", async () => {
 test("dashboard app retries a disconnected live stream before marking it unavailable", async () => {
   const harness = createHarness({
     responses: {
-      "/sessions": okJson([makeSummary("session-123")]),
+      "/sessions/aggregate": okJson(makeSessionAggregate([makeSummary("session-123")])),
       "/sessions/session-123": okJson(makeSnapshot("session-123")),
     },
   });
@@ -266,12 +267,12 @@ test("dashboard app retries a disconnected live stream before marking it unavail
 test("dashboard app treats completed sessions as historical snapshots", async () => {
   const harness = createHarness({
     responses: {
-      "/sessions": okJson([
+      "/sessions/aggregate": okJson(makeSessionAggregate([
         makeSummary("session-789", {
           status: "completed",
           next_action_summary: "Inspect completed session",
         }),
-      ]),
+      ])),
       "/sessions/session-789": okJson(makeHistoricalSnapshot("session-789")),
     },
   });
@@ -291,7 +292,7 @@ test("dashboard app clears stale deep links back to the session index", async ()
   const harness = createHarness({
     search: "?session=missing-session",
     responses: {
-      "/sessions": okJson([makeSummary("session-123")]),
+      "/sessions/aggregate": okJson(makeSessionAggregate([makeSummary("session-123")])),
       "/sessions/missing-session": {
         ok: false,
         status: 404,
@@ -314,9 +315,20 @@ test("dashboard app clears stale deep links back to the session index", async ()
 test("dashboard app creates a fork and opens the child session", async () => {
   const harness = createHarness({
     responses: {
-      "/sessions": [
-        okJson([makeSummary("session-parent")]),
-        okJson([
+      "/sessions/aggregate": [
+        okJson(makeSessionAggregate([makeSummary("session-parent")], {
+          queue_counts: {
+            total: 1,
+            approvals: 0,
+            questions: 0,
+            failures: 0,
+            degraded: 0,
+            active: 1,
+            action_needed: 0,
+            historical: 0,
+          },
+        })),
+        okJson(makeSessionAggregate([
           makeSummary("session-child", {
             parent_session_id: "session-parent",
             forked_from_turn_id: "turn-2",
@@ -328,7 +340,7 @@ test("dashboard app creates a fork and opens the child session", async () => {
             latest_fork_point_turn_id: "turn-2",
             latest_fork_point_sequence: 8,
           }),
-        ]),
+        ])),
       ],
       "/sessions/session-parent": okJson({
         ...makeHistoricalSnapshot("session-parent"),
@@ -384,14 +396,55 @@ test("dashboard app creates a fork and opens the child session", async () => {
     },
   });
   assert.deepEqual(harness.fetchCalls, [
-    "/sessions",
+    "/sessions/aggregate",
     "/sessions/session-parent",
     "/sessions/session-parent/fork",
-    "/sessions",
+    "/sessions/aggregate",
     "/sessions/session-child",
   ]);
   assert.equal(harness.windowImpl.location.search, "?session=session-child");
   assert.equal(harness.app.getState().sessionId, "session-child");
   assert.equal(harness.app.getState().parentSessionId, "session-parent");
   assert.equal(harness.app.getState().branchLabel, "alt-path");
+});
+
+test("dashboard app queue selection updates the URL and reloads aggregate data", async () => {
+  const harness = createHarness({
+    responses: {
+      "/sessions/aggregate": okJson(makeSessionAggregate([makeSummary("session-123")])),
+      "/sessions/aggregate?queue=approvals": okJson(makeSessionAggregate([
+        makeSummary("session-approval", {
+          status: "awaiting_approval",
+          pending_approval_id: "approval-1",
+          next_action_summary: "Resolve pending approval",
+          queue_memberships: ["approvals", "active", "action-needed"],
+          priority_bucket: "approvals",
+        }),
+      ], {
+        queue: "approvals",
+        queue_counts: {
+          total: 1,
+          approvals: 1,
+          questions: 0,
+          failures: 0,
+          degraded: 0,
+          active: 1,
+          action_needed: 1,
+          historical: 0,
+        },
+      })),
+    },
+  });
+
+  await harness.app.init();
+  await harness.app.selectQueue("approvals");
+
+  assert.deepEqual(harness.fetchCalls, [
+    "/sessions/aggregate",
+    "/sessions/aggregate?queue=approvals",
+  ]);
+  assert.equal(harness.windowImpl.location.search, "?queue=approvals");
+  assert.equal(harness.app.getState().selectedQueue, "approvals");
+  assert.match(harness.elements.get("session-browser-list").innerHTML, /Approvals/);
+  assert.match(harness.elements.get("session-browser-list").innerHTML, /Resolve pending approval/);
 });

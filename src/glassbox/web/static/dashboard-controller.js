@@ -1,14 +1,14 @@
 import {
   applyEvent,
   beginLiveStreamConnection,
-  beginSessionIndexLoad,
+  beginSessionAggregateLoad,
   beginSessionSelection,
   clearSessionSelection,
   createState,
-  failSessionIndexLoad,
+  failSessionAggregateLoad,
   failSessionSelection,
   hydrateFromSnapshot,
-  hydrateSessionIndex,
+  hydrateSessionAggregate,
   markHistoricalSnapshot,
   markLiveStreamConnected,
   markLiveStreamReconnecting,
@@ -26,12 +26,21 @@ function selectedSessionIdFromLocation(location) {
   return new URLSearchParams(location.search).get("session");
 }
 
-function nextDashboardUrl(location, sessionId) {
+function selectedQueueFromLocation(location) {
+  return new URLSearchParams(location.search).get("queue") ?? "all";
+}
+
+function nextDashboardUrl(location, { sessionId, queue }) {
   const params = new URLSearchParams(location.search);
   if (sessionId) {
     params.set("session", sessionId);
   } else {
     params.delete("session");
+  }
+  if (queue && queue !== "all") {
+    params.set("queue", queue);
+  } else {
+    params.delete("queue");
   }
   const nextQuery = params.toString();
   return nextQuery ? `${location.pathname}?${nextQuery}` : location.pathname;
@@ -74,6 +83,24 @@ export function createDashboardController({
       sessionIndexError: state.sessionIndexError,
     };
     domBindings.resetDrafts();
+  }
+
+  async function loadSessionAggregate(queue = state.selectedQueue ?? "all") {
+    syncState(current => beginSessionAggregateLoad(current, { queue }));
+
+    const response = await transport.fetchSessionAggregate({ queue, sort: "priority" });
+    if (!response.ok) {
+      syncState(current => failSessionAggregateLoad(
+        current,
+        `Operator console unavailable (${response.status})`,
+        { queue },
+      ));
+      return false;
+    }
+
+    const aggregate = await response.json();
+    syncState(current => hydrateSessionAggregate(current, aggregate));
+    return true;
   }
 
   function shouldOpenLiveStream() {
@@ -125,22 +152,6 @@ export function createDashboardController({
     );
   }
 
-  async function loadSessionIndex() {
-    syncState(current => beginSessionIndexLoad(current));
-
-    const response = await transport.fetchSessionIndex();
-    if (!response.ok) {
-      syncState(current => failSessionIndexLoad(
-        current,
-        `Recent sessions unavailable (${response.status})`,
-      ));
-      return;
-    }
-
-    const summaries = await response.json();
-    syncState(current => hydrateSessionIndex(current, summaries));
-  }
-
   async function loadSnapshot(sessionId) {
     syncState(current => beginSessionSelection(current, sessionId));
     closeSSE();
@@ -169,20 +180,46 @@ export function createDashboardController({
   }
 
   async function openSession(sessionId, { replaceHistory = false } = {}) {
-    const nextUrl = nextDashboardUrl(windowImpl.location, sessionId);
+    const nextUrl = nextDashboardUrl(windowImpl.location, {
+      sessionId,
+      queue: state.selectedQueue,
+    });
     const historyMethod = replaceHistory ? "replaceState" : "pushState";
     windowImpl.history[historyMethod]({}, "", nextUrl);
     return loadSnapshot(sessionId);
   }
 
+  async function selectQueue(queue, { replaceHistory = false } = {}) {
+    const nextUrl = nextDashboardUrl(windowImpl.location, {
+      sessionId: state.selectedSessionId ?? state.sessionId,
+      queue,
+    });
+    const historyMethod = replaceHistory ? "replaceState" : "pushState";
+    windowImpl.history[historyMethod]({}, "", nextUrl);
+    await loadSessionAggregate(queue);
+  }
+
   async function syncFromLocation({ replaceHistory = true } = {}) {
     const requestedSessionId = selectedSessionIdFromLocation(windowImpl.location);
+    const requestedQueue = selectedQueueFromLocation(windowImpl.location);
+
+    if (
+      state.sessionIndexState === "idle"
+      || state.selectedQueue !== requestedQueue
+    ) {
+      await loadSessionAggregate(requestedQueue);
+    }
+
     if (!requestedSessionId) {
       closeSSE();
       state = clearSessionSelection(state);
       renderAll();
       if (replaceHistory) {
-        windowImpl.history.replaceState({}, "", nextDashboardUrl(windowImpl.location, null));
+        windowImpl.history.replaceState(
+          {},
+          "",
+          nextDashboardUrl(windowImpl.location, { sessionId: null, queue: requestedQueue }),
+        );
       }
       return;
     }
@@ -192,7 +229,7 @@ export function createDashboardController({
       windowImpl.history.replaceState(
         {},
         "",
-        nextDashboardUrl(windowImpl.location, null),
+        nextDashboardUrl(windowImpl.location, { sessionId: null, queue: requestedQueue }),
       );
     }
   }
@@ -254,7 +291,7 @@ export function createDashboardController({
     }
 
     domBindings.clearForkDraft();
-    await loadSessionIndex();
+    await loadSessionAggregate(state.selectedQueue);
     await openSession(result.data.child_session_id);
     return result;
   }
@@ -266,7 +303,6 @@ export function createDashboardController({
   async function init() {
     state = clearSessionSelection(state);
     renderAll();
-    await loadSessionIndex();
     await syncFromLocation({ replaceHistory: true });
   }
 
@@ -283,6 +319,7 @@ export function createDashboardController({
     handleSubmitComposer,
     init,
     openSession,
+    selectQueue,
     syncFromLocation,
   };
 }

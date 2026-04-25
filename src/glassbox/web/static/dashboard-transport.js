@@ -2,8 +2,16 @@ export function createDashboardTransport({
   fetchImpl,
   EventSourceImpl,
 }) {
-  async function fetchSessionIndex() {
-    const response = await fetchImpl("/sessions");
+  async function fetchSessionAggregate({ queue = "all", sort = "priority" } = {}) {
+    const params = new URLSearchParams();
+    if (queue && queue !== "all") {
+      params.set("queue", queue);
+    }
+    if (sort && sort !== "priority") {
+      params.set("sort", sort);
+    }
+    const query = params.toString();
+    const response = await fetchImpl(query ? `/sessions/aggregate?${query}` : "/sessions/aggregate");
     return response;
   }
 
@@ -46,7 +54,7 @@ export function createDashboardTransport({
   }
 
   return {
-    fetchSessionIndex,
+    fetchSessionAggregate,
     fetchSessionSnapshot,
     openSessionEventStream,
   };

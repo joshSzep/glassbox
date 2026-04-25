@@ -196,6 +196,15 @@ The first implementation should preserve direct `?session=...` links. Queue and
 filter URL state can be added, but a session deep link must remain enough to
 open the inspector.
 
+The first frontend slice now uses `GET /sessions/aggregate` for the root
+dashboard shell, rendering:
+
+- a workspace overview with runtime-owner and projection-health summaries
+- queue tabs for approvals, questions, failures, degraded sessions, and active work
+- prioritized session cards that preserve direct `?session=...` inspection links
+- a timeline-oriented turn pane that stays grounded in snapshot metrics and the
+  existing SSE/event-log stream rather than browser-only inferred state
+
 ## Non-Goals For The First Console Slice
 
 The first v2 console should not:

@@ -29,6 +29,43 @@ export function makeSessionSummary(sessionId, overrides = {}) {
   };
 }
 
+export function makeSessionAggregate(sessions = [], overrides = {}) {
+  return {
+    queue: "all",
+    status: null,
+    sort: "priority",
+    limit: null,
+    queue_counts: {
+      total: sessions.length,
+      approvals: 0,
+      questions: 0,
+      failures: 0,
+      degraded: 0,
+      active: sessions.filter(summary => ["running", "awaiting_approval", "awaiting_user_input"].includes(summary.status)).length,
+      action_needed: sessions.filter(summary => summary.pending_approval_id || summary.pending_question_id || summary.status === "failed").length,
+      historical: sessions.filter(summary => ["completed", "cancelled", "failed"].includes(summary.status)).length,
+    },
+    projection_health_counts: {
+      ok: sessions.length,
+      stale: 0,
+      unavailable: 0,
+      degraded: 0,
+    },
+    runtime: {
+      workspace_root: "/tmp/workspace",
+      state: "not_running",
+      health: null,
+      pid: null,
+      dashboard_url: null,
+      health_url: null,
+      session_index_url: null,
+      started_at: null,
+    },
+    sessions,
+    ...overrides,
+  };
+}
+
 export function makeSessionSnapshot(sessionId, overrides = {}) {
   return {
     session_id: sessionId,

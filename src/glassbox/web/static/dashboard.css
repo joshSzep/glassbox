@@ -214,6 +214,86 @@ main {
   gap: 10px;
 }
 
+.console-queue-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.queue-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #141721;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.queue-tab:hover {
+  border-color: rgba(108, 140, 245, 0.45);
+}
+
+.queue-tab.selected {
+  color: var(--text);
+  border-color: rgba(108, 140, 245, 0.55);
+  background: #10192f;
+}
+
+.queue-tab-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.queue-tab-count {
+  min-width: 22px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-align: center;
+}
+
+.console-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.console-overview-card {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #141721;
+}
+
+.console-overview-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.console-overview-value {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.console-overview-detail {
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
 .session-browser-empty {
   display: grid;
   gap: 8px;
@@ -296,6 +376,12 @@ main {
   color: var(--text-muted);
 }
 
+.session-card-queues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .session-card-footer {
   display: grid;
   gap: 8px;
@@ -357,6 +443,52 @@ main {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.turn-metrics-inline {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.turn-timeline {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.turn-timeline-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.turn-timeline-list {
+  display: grid;
+  gap: 8px;
+}
+
+.turn-timeline-entry {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.turn-timeline-seq {
+  min-width: 42px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.turn-timeline-text {
+  line-height: 1.5;
 }
 
 .selected-session-lineage {

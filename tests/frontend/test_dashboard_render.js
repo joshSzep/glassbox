@@ -445,6 +445,17 @@ test("renderSessionBrowserPane shows recent sessions and selected status chips",
   const html = renderSessionBrowserPane({
     sessionId: null,
     selectedSessionId: "session-123",
+    selectedQueue: "questions",
+    queueCounts: {
+      total: 3,
+      approvals: 0,
+      questions: 1,
+      failures: 1,
+      degraded: 0,
+      active: 2,
+      action_needed: 2,
+      historical: 1,
+    },
     sessionIndexState: "loaded",
     sessionIndex: [
       {
@@ -459,10 +470,18 @@ test("renderSessionBrowserPane shows recent sessions and selected status chips",
         parent_session_id: null,
         branch_label: null,
         child_session_count: 2,
+        priority_bucket: "questions",
+        queue_memberships: ["questions", "active", "action-needed"],
+        live_actionable: true,
+        historical_only: false,
+        has_active_turn: false,
+        projection_health: { state: "ok", degraded: false },
       },
     ],
   });
 
+  assert.match(html, /queue-tab selected/);
+  assert.match(html, /Questions/);
   assert.match(html, /session-card selected/);
   assert.match(html, /Next action/);
   assert.match(html, /Last activity/);
@@ -627,6 +646,28 @@ test("renderLandingPane shows no-session, loading, and failed selection states",
   const noSessionHtml = renderLandingPane({
     sessionId: null,
     selectedSessionId: null,
+    selectedQueue: "all",
+    queueCounts: {
+      total: 4,
+      approvals: 1,
+      questions: 1,
+      failures: 1,
+      degraded: 1,
+      active: 2,
+      action_needed: 4,
+      historical: 1,
+    },
+    projectionHealthCounts: { ok: 3, stale: 1, unavailable: 0, degraded: 1 },
+    runtimeSummary: {
+      workspace_root: "/tmp/workspace",
+      state: "running",
+      health: "ok",
+      pid: 1234,
+      dashboard_url: "http://127.0.0.1:8765/",
+      health_url: "http://127.0.0.1:8765/healthz",
+      session_index_url: "http://127.0.0.1:8765/",
+      started_at: "2026-04-24T00:00:00Z",
+    },
     sessionLoadState: "idle",
     sessionLoadError: null,
     sessionIndex: [],
@@ -646,7 +687,9 @@ test("renderLandingPane shows no-session, loading, and failed selection states",
     sessionIndex: [],
   });
 
-  assert.match(noSessionHtml, /Choose a recent session/);
+  assert.match(noSessionHtml, /What needs attention now/);
+  assert.match(noSessionHtml, /Runtime owner/);
+  assert.match(noSessionHtml, /Action needed/);
   assert.match(loadingHtml, /Opening session-/);
   assert.match(failedHtml, /Session unavailable/);
   assert.match(failedHtml, /Session not found \(404\)/);

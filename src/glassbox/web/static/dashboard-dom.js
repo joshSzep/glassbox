@@ -35,6 +35,7 @@ function indicatorPresentation(state) {
 export function createDashboardDomBindings({
   documentImpl,
   onOpenSession,
+  onSelectQueue,
   onResolveApproval,
   onSelectForkTurn,
   onSubmitComposer,
@@ -112,7 +113,7 @@ export function createDashboardDomBindings({
       return;
     }
 
-    title.textContent = "Session Browser";
+    title.textContent = "Operator Console";
     element.innerHTML = panes.landing;
     element.scrollTop = 0;
   }
@@ -120,6 +121,11 @@ export function createDashboardDomBindings({
   function renderSessionBrowser(state) {
     const element = byId("session-browser-list");
     element.innerHTML = renderDashboardPanes(state).sessionBrowser;
+    element.querySelectorAll("[data-queue]").forEach(button => {
+      button.addEventListener("click", () => {
+        void onSelectQueue(button.dataset.queue);
+      });
+    });
     element.querySelectorAll("[data-session-id]").forEach(button => {
       button.addEventListener("click", () => {
         void onOpenSession(button.dataset.sessionId);

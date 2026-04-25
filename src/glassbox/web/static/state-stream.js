@@ -1,28 +1,66 @@
-import { createState } from "./state-core.js";
+import {
+  createEmptyProjectionHealthCounts,
+  createEmptyQueueCounts,
+  createEmptyRuntimeSummary,
+  createState,
+} from "./state-core.js";
 
-export function beginSessionIndexLoad(state) {
+export function beginSessionAggregateLoad(state, { queue = state.selectedQueue ?? "all" } = {}) {
   return {
     ...state,
+    selectedQueue: queue,
     sessionIndexState: "loading",
     sessionIndexError: null,
   };
 }
 
-export function hydrateSessionIndex(state, sessionIndex) {
+export function beginSessionIndexLoad(state) {
+  return beginSessionAggregateLoad(state);
+}
+
+export function hydrateSessionAggregate(state, aggregate) {
   return {
     ...state,
-    sessionIndex: [...sessionIndex],
+    sessionIndex: [...(aggregate.sessions ?? [])],
     sessionIndexState: "loaded",
     sessionIndexError: null,
+    selectedQueue: aggregate.queue ?? state.selectedQueue ?? "all",
+    queueCounts: { ...(aggregate.queue_counts ?? createEmptyQueueCounts()) },
+    projectionHealthCounts: {
+      ...(aggregate.projection_health_counts ?? createEmptyProjectionHealthCounts()),
+    },
+    runtimeSummary: { ...(aggregate.runtime ?? createEmptyRuntimeSummary()) },
+    sessionIndexSort: aggregate.sort ?? state.sessionIndexSort,
+  };
+}
+
+export function hydrateSessionIndex(state, sessionIndex) {
+  if (Array.isArray(sessionIndex)) {
+    return {
+      ...state,
+      sessionIndex: [...sessionIndex],
+      sessionIndexState: "loaded",
+      sessionIndexError: null,
+    };
+  }
+  return hydrateSessionAggregate(state, sessionIndex);
+}
+
+export function failSessionAggregateLoad(
+  state,
+  errorMessage,
+  { queue = state.selectedQueue ?? "all" } = {},
+) {
+  return {
+    ...state,
+    selectedQueue: queue,
+    sessionIndexState: "failed",
+    sessionIndexError: errorMessage,
   };
 }
 
 export function failSessionIndexLoad(state, errorMessage) {
-  return {
-    ...state,
-    sessionIndexState: "failed",
-    sessionIndexError: errorMessage,
-  };
+  return failSessionAggregateLoad(state, errorMessage);
 }
 
 export function beginSessionSelection(state, sessionId) {
@@ -44,6 +82,11 @@ export function clearSessionSelection(state) {
     sessionIndex: [...state.sessionIndex],
     sessionIndexState: state.sessionIndexState,
     sessionIndexError: state.sessionIndexError,
+    selectedQueue: state.selectedQueue,
+    queueCounts: { ...state.queueCounts },
+    projectionHealthCounts: { ...state.projectionHealthCounts },
+    runtimeSummary: { ...state.runtimeSummary },
+    sessionIndexSort: state.sessionIndexSort,
     streamState: "index",
   };
 }

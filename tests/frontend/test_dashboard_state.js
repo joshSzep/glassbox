@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   applyEvent,
+  beginSessionAggregateLoad,
   beginSessionIndexLoad,
   beginLiveStreamConnection,
   beginSessionSelection,
@@ -20,6 +21,7 @@ import {
   failForkSubmission,
   failInteractionSubmission,
   hydrateFromSnapshot,
+  hydrateSessionAggregate,
   hydrateSessionIndex,
   markHistoricalSnapshot,
   markLiveStreamConnected,
@@ -418,6 +420,84 @@ test("session index helpers track landing-mode hydration and selection", () => {
   assert.equal(cleared.selectedSessionId, null);
   assert.equal(cleared.sessionIndex.length, 1);
   assert.equal(cleared.sessionIndexState, "loaded");
+});
+
+test("session aggregate helpers hydrate queue counts and runtime summary", () => {
+  const loading = beginSessionAggregateLoad(createState(), { queue: "approvals" });
+  const hydrated = hydrateSessionAggregate(loading, {
+    queue: "approvals",
+    sort: "priority",
+    queue_counts: {
+      total: 3,
+      approvals: 1,
+      questions: 1,
+      failures: 0,
+      degraded: 1,
+      active: 2,
+      action_needed: 2,
+      historical: 1,
+    },
+    projection_health_counts: {
+      ok: 2,
+      stale: 1,
+      unavailable: 0,
+      degraded: 1,
+    },
+    runtime: {
+      workspace_root: "/tmp/workspace",
+      state: "running",
+      health: "ok",
+      pid: 1234,
+      dashboard_url: "http://127.0.0.1:8765/",
+      health_url: "http://127.0.0.1:8765/healthz",
+      session_index_url: "http://127.0.0.1:8765/",
+      started_at: "2026-04-24T00:00:00Z",
+    },
+    sessions: [
+      {
+        session_id: "session-123",
+        status: "awaiting_approval",
+        model_name: "openai:gpt-5.4",
+        cwd: "/tmp/workspace",
+        approval_mode: "confirm",
+        parent_session_id: null,
+        forked_from_turn_id: null,
+        forked_from_sequence: null,
+        branch_label: null,
+        child_session_count: 0,
+        can_fork: false,
+        latest_fork_point_turn_id: null,
+        latest_fork_point_sequence: null,
+        fork_blocked_reason: null,
+        dashboard_url: null,
+        created_at: "2026-04-23T00:00:00Z",
+        updated_at: "2026-04-23T00:00:01Z",
+        last_sequence: 5,
+        pending_approval_id: "approval-1",
+        pending_question_id: null,
+        pending_question_text: null,
+        session_failure_message: null,
+        session_failure_retryable: null,
+        latest_message_summary: "assistant: waiting",
+        next_action_summary: "Resolve pending approval",
+        queue_memberships: ["approvals", "active", "action-needed"],
+        priority_bucket: "approvals",
+        priority_rank: 0,
+        action_needed: true,
+        live_actionable: true,
+        historical_only: false,
+        has_active_turn: false,
+        projection_health: { state: "ok", degraded: false },
+      },
+    ],
+  });
+
+  assert.equal(loading.selectedQueue, "approvals");
+  assert.equal(hydrated.selectedQueue, "approvals");
+  assert.equal(hydrated.sessionIndex.length, 1);
+  assert.equal(hydrated.queueCounts.approvals, 1);
+  assert.equal(hydrated.projectionHealthCounts.degraded, 1);
+  assert.equal(hydrated.runtimeSummary.state, "running");
 });
 
 test("session selection failures preserve session browser state for recovery", () => {

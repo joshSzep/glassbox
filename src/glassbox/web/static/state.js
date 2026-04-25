@@ -27,7 +27,11 @@
  * @typedef {{state: "idle" | "submitting" | "failed", error: string | null}} ForkSubmission
  * @typedef {{session_id: string, status: string, branch_label: string | null, updated_at: string, latest_message_summary: string | null}} ChildSessionSummary
  * @typedef {{turn_id: string, sequence: number, created_at: string, label: string}} BranchableTurn
- * @typedef {{session_id: string, status: string, model_name: string, cwd: string, approval_mode: string, parent_session_id: string | null, forked_from_turn_id: string | null, forked_from_sequence: number | null, branch_label: string | null, child_session_count: number, can_fork: boolean, latest_fork_point_turn_id: string | null, latest_fork_point_sequence: number | null, fork_blocked_reason: string | null, dashboard_url: string | null, created_at: string, updated_at: string, last_sequence: number, pending_approval_id: string | null, pending_question_id: string | null, pending_question_text: string | null, session_failure_message: string | null, session_failure_retryable: boolean | null, latest_message_summary: string | null, next_action_summary: string}} SessionSummary
+ * @typedef {{state: string, canonical_last_sequence?: number, projected_last_sequence?: number | null, lag?: number, degraded: boolean, detail?: string | null}} ProjectionHealthSummary
+ * @typedef {{session_id: string, status: string, model_name: string, cwd: string, approval_mode: string, parent_session_id: string | null, forked_from_turn_id: string | null, forked_from_sequence: number | null, branch_label: string | null, child_session_count: number, can_fork: boolean, latest_fork_point_turn_id: string | null, latest_fork_point_sequence: number | null, fork_blocked_reason: string | null, dashboard_url: string | null, created_at: string, updated_at: string, last_sequence: number, pending_approval_id: string | null, pending_question_id: string | null, pending_question_text: string | null, session_failure_message: string | null, session_failure_retryable: boolean | null, latest_message_summary: string | null, next_action_summary: string, queue_memberships?: string[], priority_bucket?: string, priority_rank?: number, action_needed?: boolean, live_actionable?: boolean, historical_only?: boolean, has_active_turn?: boolean, projection_health?: ProjectionHealthSummary}} SessionSummary
+ * @typedef {{total: number, approvals: number, questions: number, failures: number, degraded: number, active: number, action_needed: number, historical: number}} QueueCounts
+ * @typedef {{ok: number, stale: number, unavailable: number, degraded: number}} ProjectionHealthCounts
+ * @typedef {{workspace_root: string | null, state: string, health: string | null, pid: number | null, dashboard_url: string | null, health_url: string | null, session_index_url: string | null, started_at: string | null}} RuntimeSummary
  *
  * @typedef {Object} DashboardState
  * @property {string | null} sessionId
@@ -66,6 +70,11 @@
  * @property {SessionSummary[]} sessionIndex
  * @property {"idle" | "loading" | "loaded" | "failed"} sessionIndexState
  * @property {string | null} sessionIndexError
+ * @property {string} selectedQueue
+ * @property {QueueCounts} queueCounts
+ * @property {ProjectionHealthCounts} projectionHealthCounts
+ * @property {RuntimeSummary} runtimeSummary
+ * @property {"priority" | "updated_at"} sessionIndexSort
  * @property {string | null} selectedSessionId
  * @property {"idle" | "loading" | "loaded" | "failed"} sessionLoadState
  * @property {string | null} sessionLoadError
@@ -117,6 +126,9 @@
 export { createState } from "./state-core.js";
 export { hydrateFromSnapshot, selectForkTurn } from "./state-snapshot.js";
 export {
+  beginSessionAggregateLoad,
+  hydrateSessionAggregate,
+  failSessionAggregateLoad,
   beginSessionIndexLoad,
   hydrateSessionIndex,
   failSessionIndexLoad,

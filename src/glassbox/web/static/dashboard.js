@@ -31,6 +31,7 @@ export function createDashboardApp({
   const domBindings = createDashboardDomBindings({
     documentImpl,
     onOpenSession: (sessionId) => controller.openSession(sessionId),
+    onSelectQueue: (queue) => controller.selectQueue(queue),
     onResolveApproval: (approvalId, decision) => controller.handleResolveApproval(approvalId, decision),
     onSelectForkTurn: (turnId) => controller.handleSelectForkTurn(turnId),
     onSubmitComposer: (mode, value) => controller.handleSubmitComposer(mode, value),
@@ -46,6 +47,7 @@ export function createDashboardApp({
   return {
     init: () => controller.init(),
     openSession: (sessionId, options) => controller.openSession(sessionId, options),
+    selectQueue: (queue, options) => controller.selectQueue(queue, options),
     forkCurrentSession: (params) => controller.forkCurrentSession(params),
     syncFromLocation: (options) => controller.syncFromLocation(options),
     getState: () => controller.getState(),

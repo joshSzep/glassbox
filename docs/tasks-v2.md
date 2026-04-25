@@ -364,7 +364,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-322: Implement Operator Console Views For Queues, Health, And Turn Timelines
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-321`
 - Goal: make the browser the best place to inspect many sessions, active problems, and runtime timelines at once
 - Deliverables:
@@ -381,6 +381,7 @@ Each phase below corresponds to one concrete milestone.
   - regression tests for deep-link session views and SSE reconnect behavior inside the new console shell
 - Done when:
   - an operator can understand what Glassbox is doing across sessions and intervene quickly from the dashboard alone
+  - the dashboard root hydrates `GET /sessions/aggregate` into a queue-driven operator console with workspace overview, queue selection, prioritized session cards, preserved `?session=...` deep links, and a timeline-oriented turn pane grounded in existing snapshot plus SSE state
 
 ### GBX-323: Add Session Compare, Lineage, And Drift-Inspection Views
 
