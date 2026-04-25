@@ -431,12 +431,13 @@ Recommended layout:
 ### Artifact Retention And GC
 
 Artifact garbage collection is intentionally narrower than schema migration or
-projection rebuild. `glassbox artifacts prune --dry-run` inspects managed artifact
-state, reports SHA-256 digests for candidate files, and explains what cleanup
-would do before deleting anything. Running the same command without `--dry-run`
-may delete only managed stale files under `.glassbox/sessions/*/artifacts/` that
-are not referenced by canonical artifact events, and aged derived eval outputs
-under `.glassbox/evals/`.
+projection rebuild. `glassbox artifacts inspect` reports managed artifact state,
+SHA-256 digests, missing event-referenced files, and stale cleanup candidates
+without deleting anything. `glassbox artifacts prune --dry-run` shows the same
+candidate cleanup path in prune terms before deleting anything. Running prune
+without `--dry-run` may delete only managed stale files under
+`.glassbox/sessions/*/artifacts/` that are not referenced by canonical artifact
+events, and aged derived eval outputs under `.glassbox/evals/`.
 
 The GC path must not delete canonical SQLite event data, event-referenced session
 artifacts, source-controlled replay bundles under `evals/`, or curated eval

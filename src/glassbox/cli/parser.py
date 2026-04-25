@@ -930,6 +930,28 @@ def _add_artifact_parsers(
         required=True,
     )
 
+    inspect_parser = artifacts_subparsers.add_parser(
+        "inspect",
+        help="inspect managed artifact state",
+        description=(
+            "Inspect managed .glassbox artifacts without deleting files. "
+            "Event-referenced session artifacts and source-controlled eval "
+            "bundles are protected."
+        ),
+    )
+    _add_runtime_location_arguments(inspect_parser)
+    inspect_parser.add_argument(
+        "--max-age-days",
+        type=int,
+        default=30,
+        help="age threshold for managed .glassbox/evals artifacts",
+    )
+    inspect_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the artifact inspection report as JSON",
+    )
+
     prune_parser = artifacts_subparsers.add_parser(
         "prune",
         help="prune stale managed artifacts",

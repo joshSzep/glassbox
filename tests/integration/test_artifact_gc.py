@@ -57,6 +57,77 @@ def test_artifact_prune_dry_run_reports_without_deleting_protected_or_stale_file
     assert curated_bundle_path.exists()
 
 
+def test_artifact_inspect_reports_without_deleting_files(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, protected_path, orphan_path, stale_eval_path, curated_bundle_path = (
+        _seed_artifact_gc_workspace(tmp_path)
+    )
+
+    exit_code = main(
+        [
+            "artifacts",
+            "inspect",
+            "--max-age-days",
+            "7",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Artifact inspect: 1 protected, 2 stale" in captured.out
+    assert (
+        f"Protected: {protected_path.relative_to(tmp_path).as_posix()}" in captured.out
+    )
+    assert f"Stale: {orphan_path.relative_to(tmp_path).as_posix()}" in captured.out
+    assert f"Stale: {stale_eval_path.relative_to(tmp_path).as_posix()}" in captured.out
+    assert protected_path.exists()
+    assert orphan_path.exists()
+    assert stale_eval_path.exists()
+    assert curated_bundle_path.exists()
+
+
+def test_artifact_inspect_json_reports_hashes_and_missing_references(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, protected_path, orphan_path, stale_eval_path, _curated_bundle_path = (
+        _seed_artifact_gc_workspace(tmp_path)
+    )
+    protected_path.unlink()
+
+    exit_code = main(
+        [
+            "artifacts",
+            "inspect",
+            "--json",
+            "--max-age-days",
+            "7",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["protected_count"] == 0
+    assert payload["missing_reference_count"] == 1
+    assert payload["candidate_count"] == 2
+    assert {candidate["path"] for candidate in payload["candidates"]} == {
+        orphan_path.relative_to(tmp_path).as_posix(),
+        stale_eval_path.relative_to(tmp_path).as_posix(),
+    }
+    assert all(candidate["content_sha256"] for candidate in payload["candidates"])
+
+
 def test_artifact_prune_deletes_only_unreferenced_and_managed_stale_files(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
