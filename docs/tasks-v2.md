@@ -410,7 +410,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-330: Define Configurable Tool-Governance Model Beyond Coarse Risk Buckets
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-122`, `GBX-245`, `GBX-249`
 - Goal: define how Glassbox should evolve tool policy from fixed broad buckets into configurable, reviewable governance without losing predictability
 - Deliverables:
@@ -422,6 +422,9 @@ Each phase below corresponds to one concrete milestone.
   - keep policy inspectable and local-first; do not hide decision rules in runtime-only implicit heuristics
   - preserve the current simple risk model as the compatibility baseline while v2 policy grows
   - make explicit which policy changes should count as replay-manifest drift versus ordinary runtime configuration
+  - GBX-330 chooses a layered governance model: hard runtime invariants, registry-declared risk buckets, repository-owned workspace policy rules, and session approval-mode translation remain distinct concerns
+  - the selected v2 rule shape is typed and inspectable rather than executable policy code; repository policy may refine allow-versus-approve-versus-deny outcomes for tool, argument, and command selectors inside existing safety guardrails
+  - replay drift is defined against the effective normalized policy snapshot for a recorded turn, not against comments, formatting, or unrelated unused policy rules
 - Tests and validation included in task:
   - doc and design review against current tool policy, approval semantics, and replay contracts before coding starts
   - manual validation that the proposed model remains understandable for operators and testable for contributors

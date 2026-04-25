@@ -707,6 +707,20 @@ The `run_command` tool should stream stdout and stderr as event chunks.
 
 Tool policy must be separate from the tool implementation.
 
+The current runtime already enforces a minimal local policy boundary:
+
+- workspace path checks
+- coarse tool risk buckets
+- destructive command blocking
+- approval-mode gating for risky actions
+
+For v2, keep that baseline but split policy into four explicit layers:
+
+1. hard runtime invariants that are never repository-tunable
+2. registry-declared baseline tool risk classification
+3. repository-owned workspace policy rules
+4. session approval mode translation for approval-worthy actions
+
 Example policy rules:
 
 - read-only repo operations: auto-approve
@@ -714,6 +728,20 @@ Example policy rules:
 - network access: blocked or confirm-only
 - destructive filesystem commands: blocked
 - commands outside workspace: blocked
+
+The registry risk bucket is only the baseline classification. Final allow,
+approve, or deny behavior should come from the resolved workspace policy plus
+approval mode, not from a hard-coded `if risk == ...` tree alone.
+
+The first configurable policy model should stay typed and inspectable. Prefer
+explicit rule selectors such as:
+
+- exact tool names
+- normalized path-root constraints
+- bounded argument-value matchers
+- command prefixes or subcommand families for command-style tools
+
+Avoid arbitrary policy code or hidden runtime heuristics.
 
 Represent policy decisions explicitly:
 
@@ -723,6 +751,10 @@ class PolicyDecision(BaseModel):
     requires_approval: bool
     reason: str
 ```
+
+The runtime-facing decision may stay this small, but the resolved policy input
+to that decision should be versioned and normalizable so replay can fingerprint
+the effective policy state for a turn.
 
 ## LLM Integration Design
 
@@ -1255,6 +1287,12 @@ Replay manifests should be:
 - redacted so secrets and runtime-only credentials never land in replay artifacts
 - linked from session or turn metadata rather than discovered through ad hoc filesystem scans
 - suitable for later export into portable replay bundles
+
+The recorded policy snapshot should reflect the effective normalized policy for
+the turn, not every incidental detail from a repository policy file. Changes to
+matched rules, approval mode, or hard policy invariants should count as
+manifest drift. Changes to comments, formatting, or unrelated unused rules
+should not.
 
 ### Replay Scope And Equivalence Rules
 

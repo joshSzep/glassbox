@@ -6,6 +6,10 @@ This document describes the tool safety rules and approval behavior that are
 implemented in Glassbox today. It is intended for operators who need to predict
 how the runtime will handle tool calls before they happen.
 
+It also records the v2 governance contract chosen in `GBX-330` so later policy
+work can extend the current runtime without reopening the safety model from
+scratch.
+
 ## Scope
 
 Glassbox evaluates tool calls through a local policy layer before execution.
@@ -194,3 +198,141 @@ You can reliably expect the following:
 - Approval resolution service: `src/glassbox/runtime/supervisor.py`
 - CLI approval commands: `src/glassbox/cli/__init__.py`
 - Dashboard approval endpoint: `src/glassbox/web/routes/approvals.py`
+
+## V2 Governance Model
+
+`GBX-330` keeps the current coarse policy engine as the compatibility baseline,
+but defines a stronger boundary for workspace-owned governance.
+
+The key rule is that Glassbox should separate these concerns explicitly:
+
+- hard runtime safety invariants that never become repository-tunable
+- tool-declared baseline risk classification from the registry
+- repository-owned workspace policy that can refine tool behavior
+- session approval mode that decides how approval-worthy actions are handled at runtime
+
+The runtime may still collapse policy evaluation to the same three practical
+outcomes used today:
+
+- allowed immediately
+- paused for approval
+- blocked immediately
+
+The important v2 change is that those outcomes should come from a resolved,
+inspectable policy model rather than only from hard-coded risk buckets.
+
+### Hard Invariants Versus Configurable Policy
+
+The following remain non-overridable runtime invariants:
+
+- path arguments that resolve outside the workspace are blocked
+- destructive command patterns remain blocked outright
+- unknown tools or invalid policy configuration fail visibly rather than falling back silently
+- approval mode `never` never executes an action that policy classifies as approval-worthy
+
+Workspace policy may refine what happens inside those guardrails, but it must
+not weaken them.
+
+That means repository policy can decide that some in-workspace writes or some
+command shapes are allowed immediately, approval-gated, or denied, but it
+cannot authorize out-of-workspace paths, suppress destructive-command blocking,
+or reinterpret `never` as an implicit approval.
+
+### Resolution Layers
+
+The chosen v2 resolution order is:
+
+1. validate hard runtime invariants such as workspace scope, destructive command blocking, and tool registration
+2. load the tool's coarse baseline classification from the registry
+3. apply the normalized workspace policy rules that match the tool and its arguments
+4. translate any `approve` result through the session's approval mode
+
+This keeps the existing `ToolPolicyEngine` shape usable while making room for a
+resolved policy input that is richer than `ToolRiskLevel` alone.
+
+The compatibility baseline remains:
+
+- `read_only` defaults to allow
+- `workspace_write` defaults to approve
+- `command` defaults to approve after destructive-command blocking
+
+Later policy tasks may refine those defaults through repository configuration,
+but they should not erase them from the model.
+
+### Rule Shape
+
+The first configurable model should stay typed, local-first, and reviewable.
+`GBX-330` chooses a rule model built from explicit selectors and outcomes,
+not arbitrary policy code.
+
+The supported rule scopes should be:
+
+- per-tool controls keyed by exact tool name
+- per-argument controls for stable argument classes such as path arguments and bounded string or enum arguments
+- per-command controls for command-style tools using inspectable command selectors such as exact command, prefix, or approved subcommand families
+
+The supported outcomes should be:
+
+- `allow`
+- `approve`
+- `deny`
+
+Rule matching should stay deterministic and normalized. The policy layer should
+not evaluate arbitrary Python, shell, or user-defined expressions as part of
+policy resolution.
+
+### Approval Mode Compatibility
+
+Approval mode remains a session-scoped operator posture, not a replacement for
+workspace policy.
+
+The chosen compatibility contract is:
+
+- workspace policy decides whether a request is `allow`, `approve`, or `deny`
+- `confirm`, `review`, and `on-request` continue to turn `approve` into an explicit approval pause for now
+- `never` converts `approve` into `deny`
+- `allow` remains immediate in all approval modes unless a hard invariant already blocked the request
+
+This preserves the current operator mental model while allowing repositories to
+be more specific about which actions deserve immediate execution versus approval.
+
+### Replay And Drift Compatibility
+
+Replay already treats tool schema and policy state as part of manifest
+equivalence. `GBX-330` makes that rule more precise.
+
+For replayable turns, Glassbox should record a normalized effective policy
+snapshot that includes:
+
+- the session approval mode relevant to the turn
+- the matched workspace policy rules or normalized defaults relevant to the requested tool calls
+- the hard policy version or fingerprint for invariants that affect decision outcomes
+
+The following should count as replay-manifest drift when they change the
+effective decision surface for the recorded turn:
+
+- approval mode changes
+- changes to matched per-tool, per-argument, or per-command rules
+- changes to normalized defaults that affect the recorded tool requests
+- changes to hard invariants that alter allow versus approve versus deny outcomes
+
+The following should not count as manifest drift by themselves:
+
+- comments, descriptions, or formatting changes in policy files
+- reordering that preserves the same normalized matched result
+- rules for unrelated tools never referenced by the recorded turn
+- dashboard or CLI presentation changes that do not alter policy resolution
+
+This keeps replay focused on effective governance behavior rather than on every
+incidental edit to a repository-owned policy file.
+
+### Planned Implementation Boundary
+
+`GBX-330` defines the model only. The implementation split for follow-on work is:
+
+- `GBX-331`: repository-owned policy config format, loading, validation, and resolution
+- `GBX-332`: richer decision metadata, summaries, and audit surfaces
+- `GBX-333`: command-envelope hardening and clearer command failure classification
+
+Those tasks should extend the current local policy engine and approval runtime
+instead of replacing them with a separate governance subsystem.
