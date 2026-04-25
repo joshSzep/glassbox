@@ -12,6 +12,13 @@ from glassbox.core.events import ReplayArtifactRecorded
 from glassbox.core.events import ToolArtifactRecorded
 from glassbox.services import SessionRepository
 
+_EVENT_REFERENCED_ARTIFACT_CATEGORY = "event_referenced_artifact"
+_ORPHAN_SESSION_ARTIFACT_CATEGORY = "orphan_session_artifact"
+_STALE_EVAL_ARTIFACT_CATEGORY = "stale_eval_artifact"
+_KEEP_ACTION = "keep"
+_WOULD_DELETE_ACTION = "would_delete"
+_DELETED_ACTION = "deleted"
+
 
 @dataclass(frozen=True, slots=True)
 class ArtifactRetentionPolicy:
@@ -30,6 +37,26 @@ class ArtifactGcEntry:
     reason: str
     size_bytes: int
     content_sha256: str
+
+    def with_action(self, action: str) -> ArtifactGcEntry:
+        return ArtifactGcEntry(
+            relative_path=self.relative_path,
+            category=self.category,
+            action=action,
+            reason=self.reason,
+            size_bytes=self.size_bytes,
+            content_sha256=self.content_sha256,
+        )
+
+    def to_json_payload(self) -> dict[str, object]:
+        return {
+            "path": self.relative_path.as_posix(),
+            "category": self.category,
+            "action": self.action,
+            "reason": self.reason,
+            "size_bytes": self.size_bytes,
+            "content_sha256": self.content_sha256,
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,9 +84,9 @@ class ArtifactGcReport:
             "missing_reference_count": len(self.missing_references),
             "candidate_size_bytes": self.candidate_size_bytes,
             "deleted_size_bytes": self.deleted_size_bytes,
-            "protected": [_entry_payload(entry) for entry in self.protected],
-            "candidates": [_entry_payload(entry) for entry in self.candidates],
-            "deleted": [_entry_payload(entry) for entry in self.deleted],
+            "protected": [entry.to_json_payload() for entry in self.protected],
+            "candidates": [entry.to_json_payload() for entry in self.candidates],
+            "deleted": [entry.to_json_payload() for entry in self.deleted],
             "missing_references": [path.as_posix() for path in self.missing_references],
         }
 
@@ -90,16 +117,7 @@ def run_artifact_gc(
         if not absolute_path.is_file():
             continue
         absolute_path.unlink()
-        deleted.append(
-            ArtifactGcEntry(
-                relative_path=entry.relative_path,
-                category=entry.category,
-                action="deleted",
-                reason=entry.reason,
-                size_bytes=entry.size_bytes,
-                content_sha256=entry.content_sha256,
-            )
-        )
+        deleted.append(entry.with_action(_DELETED_ACTION))
     _remove_empty_managed_directories(root_dir)
     return ArtifactGcReport(
         protected=report.protected,
@@ -169,8 +187,8 @@ def _protected_entries(
             _build_entry(
                 root_dir,
                 absolute_path,
-                category="event_referenced_artifact",
-                action="keep",
+                category=_EVENT_REFERENCED_ARTIFACT_CATEGORY,
+                action=_KEEP_ACTION,
                 reason="referenced by canonical event log",
             )
         )
@@ -195,8 +213,8 @@ def _candidate_entries(
             _build_entry(
                 root_dir,
                 artifact_path,
-                category="orphan_session_artifact",
-                action="would_delete",
+                category=_ORPHAN_SESSION_ARTIFACT_CATEGORY,
+                action=_WOULD_DELETE_ACTION,
                 reason="session artifact is not referenced by canonical events",
             )
         )
@@ -210,8 +228,8 @@ def _candidate_entries(
             _build_entry(
                 root_dir,
                 eval_path,
-                category="stale_eval_artifact",
-                action="would_delete",
+                category=_STALE_EVAL_ARTIFACT_CATEGORY,
+                action=_WOULD_DELETE_ACTION,
                 reason=(
                     f"managed eval artifact is older than "
                     f"{policy.eval_max_age_days} day(s)"
@@ -260,17 +278,6 @@ def _build_entry(
         size_bytes=len(content),
         content_sha256=hashlib.sha256(content).hexdigest(),
     )
-
-
-def _entry_payload(entry: ArtifactGcEntry) -> dict[str, object]:
-    return {
-        "path": entry.relative_path.as_posix(),
-        "category": entry.category,
-        "action": entry.action,
-        "reason": entry.reason,
-        "size_bytes": entry.size_bytes,
-        "content_sha256": entry.content_sha256,
-    }
 
 
 def _remove_empty_managed_directories(root_dir: Path) -> None:
