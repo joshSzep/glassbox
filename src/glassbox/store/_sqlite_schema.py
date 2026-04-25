@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 SCHEMA_VERSION = 5
+BASELINE_SCHEMA_VERSION = 3
+BASELINE_MIGRATION_NAME = "baseline event store and projections"
 
 
 @dataclass(frozen=True, slots=True)
@@ -386,15 +388,7 @@ def initialize_database(connection: sqlite3.Connection) -> None:
     with connection:
         _ensure_migration_table(connection)
         _ensure_v3_baseline_schema(connection)
-        if 3 not in _applied_migration_versions(connection):
-            _record_migration(connection, 3, "baseline event store and projections")
-        else:
-            _ensure_migration_name(
-                connection,
-                3,
-                "baseline event store and projections",
-            )
-
+        _ensure_baseline_migration_record(connection)
         _apply_pending_migrations(connection)
 
 
@@ -418,6 +412,22 @@ def _ensure_migration_table(connection: sqlite3.Connection) -> None:
 def _ensure_v3_baseline_schema(connection: sqlite3.Connection) -> None:
     for statement in V3_BASELINE_SCHEMA_STATEMENTS:
         connection.execute(statement)
+
+
+def _ensure_baseline_migration_record(connection: sqlite3.Connection) -> None:
+    if BASELINE_SCHEMA_VERSION not in _applied_migration_versions(connection):
+        _record_migration(
+            connection,
+            BASELINE_SCHEMA_VERSION,
+            BASELINE_MIGRATION_NAME,
+        )
+        return
+
+    _ensure_migration_name(
+        connection,
+        BASELINE_SCHEMA_VERSION,
+        BASELINE_MIGRATION_NAME,
+    )
 
 
 def _apply_pending_migrations(connection: sqlite3.Connection) -> None:
