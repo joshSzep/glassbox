@@ -25,6 +25,7 @@ from glassbox.core.models import TurnMetricsRecord
 from glassbox.runtime.session_queries import BranchableTurnView
 from glassbox.runtime.session_queries import ChildSessionSummaryView
 from glassbox.runtime.session_queries import SessionQueryService
+from glassbox.runtime.session_queries import SessionSnapshotView
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
 
@@ -40,6 +41,11 @@ _SECRET_PATTERNS = (
     ),
     re.compile(r"\bsk-[A-Za-z0-9_-]{12,}\b"),
 )
+_REDACTION_NOTES = [
+    "absolute workspace paths are replaced with <workspace-root>",
+    "common secret-like tokens and key assignments are replaced with <redacted>",
+    "artifact contents are not embedded; only retained artifact references are listed",
+]
 
 
 class SessionExportWorkspace(BaseModel):
@@ -208,74 +214,23 @@ def build_session_export_payload(
     query_service = SessionQueryService(session_repository, artifact_repository)
     snapshot = query_service.get_session_snapshot(session_id, turn_metrics_limit=25)
     events = session_repository.read_session_events(session_id)
-    redaction_notes = [
-        "absolute workspace paths are replaced with <workspace-root>",
-        "common secret-like tokens and key assignments are replaced with <redacted>",
-        "artifact contents are not embedded; only retained artifact references "
-        "are listed",
-    ]
     redaction_context = _RedactionContext(workspace_root=workspace_root.resolve())
 
     return SessionExportPayload(
         exported_at=datetime.now(UTC),
-        metadata=SessionExportMetadata(
-            session_id=snapshot.session_id,
-            status=snapshot.status,
-            model_name=_redact_text(snapshot.model_name, redaction_context),
-            approval_mode=snapshot.approval_mode,
-            created_at=snapshot.created_at,
-            updated_at=snapshot.updated_at,
-            last_sequence=snapshot.last_sequence,
-            workspace=SessionExportWorkspace(label=workspace_root.resolve().name),
+        metadata=_build_export_metadata(
+            snapshot,
+            workspace_root=workspace_root,
+            redaction_context=redaction_context,
         ),
-        lineage=SessionExportLineage(
-            parent_session_id=snapshot.parent_session_id,
-            forked_from_turn_id=_stringify_optional(snapshot.forked_from_turn_id),
-            forked_from_sequence=snapshot.forked_from_sequence,
-            branch_label=_redact_optional_text(
-                snapshot.branch_label, redaction_context
-            ),
-            child_sessions=_redact_child_sessions(
-                snapshot.child_sessions,
-                redaction_context,
-            ),
-            branchable_turns=_redact_branchable_turns(
-                snapshot.branchable_turns,
-                redaction_context,
-            ),
-            can_fork=snapshot.can_fork,
-            latest_fork_point_turn_id=_stringify_optional(
-                snapshot.latest_fork_point_turn_id
-            ),
-            latest_fork_point_sequence=snapshot.latest_fork_point_sequence,
-            fork_blocked_reason=_redact_optional_text(
-                snapshot.fork_blocked_reason,
-                redaction_context,
-            ),
-        ),
-        handoff=SessionExportHandoff(
-            exported_by=_redact_optional_text(exported_by, redaction_context),
-            expected_custodian=_redact_optional_text(
-                expected_custodian,
-                redaction_context,
-            ),
-            note=_redact_optional_text(note, redaction_context),
-            last_actor_hint=_last_actor_hint(events, redaction_context),
-            next_action_summary=_session_next_action_summary(snapshot),
-            pending_approval_id=snapshot.pending_approval_id,
-            pending_question_id=snapshot.pending_question_id,
-            pending_question_text=_redact_optional_text(
-                snapshot.pending_question_text,
-                redaction_context,
-            ),
-            session_failure_message=_redact_optional_text(
-                snapshot.session_failure_message,
-                redaction_context,
-            ),
-            session_failure_retryable=snapshot.session_failure_retryable,
-            historical_only=snapshot.status in {"completed", "failed", "cancelled"},
-            live_actionable=snapshot.status
-            in {"running", "awaiting_approval", "awaiting_user_input"},
+        lineage=_build_export_lineage(snapshot, redaction_context),
+        handoff=_build_export_handoff(
+            snapshot,
+            events,
+            redaction_context,
+            exported_by=exported_by,
+            expected_custodian=expected_custodian,
+            note=note,
         ),
         transcript=_export_transcript(snapshot.transcript, redaction_context),
         active_tool_calls=snapshot.active_tool_calls,
@@ -287,13 +242,95 @@ def build_session_export_payload(
         artifact_references=_artifact_references(events, redaction_context),
         event_count=len(events),
         events=[_event_summary(event) for event in events],
-        redaction_notes=redaction_notes,
+        redaction_notes=list(_REDACTION_NOTES),
     )
 
 
 class _RedactionContext(BaseModel):
     model_config = ConfigDict(extra="forbid")
     workspace_root: Path
+
+
+def _build_export_metadata(
+    snapshot: SessionSnapshotView,
+    *,
+    workspace_root: Path,
+    redaction_context: _RedactionContext,
+) -> SessionExportMetadata:
+    return SessionExportMetadata(
+        session_id=snapshot.session_id,
+        status=snapshot.status,
+        model_name=_redact_text(snapshot.model_name, redaction_context),
+        approval_mode=snapshot.approval_mode,
+        created_at=snapshot.created_at,
+        updated_at=snapshot.updated_at,
+        last_sequence=snapshot.last_sequence,
+        workspace=SessionExportWorkspace(label=workspace_root.resolve().name),
+    )
+
+
+def _build_export_lineage(
+    snapshot: SessionSnapshotView,
+    redaction_context: _RedactionContext,
+) -> SessionExportLineage:
+    return SessionExportLineage(
+        parent_session_id=snapshot.parent_session_id,
+        forked_from_turn_id=_stringify_optional(snapshot.forked_from_turn_id),
+        forked_from_sequence=snapshot.forked_from_sequence,
+        branch_label=_redact_optional_text(snapshot.branch_label, redaction_context),
+        child_sessions=_redact_child_sessions(
+            snapshot.child_sessions,
+            redaction_context,
+        ),
+        branchable_turns=_redact_branchable_turns(
+            snapshot.branchable_turns,
+            redaction_context,
+        ),
+        can_fork=snapshot.can_fork,
+        latest_fork_point_turn_id=_stringify_optional(
+            snapshot.latest_fork_point_turn_id
+        ),
+        latest_fork_point_sequence=snapshot.latest_fork_point_sequence,
+        fork_blocked_reason=_redact_optional_text(
+            snapshot.fork_blocked_reason,
+            redaction_context,
+        ),
+    )
+
+
+def _build_export_handoff(
+    snapshot: SessionSnapshotView,
+    events: Sequence[EventEnvelope],
+    redaction_context: _RedactionContext,
+    *,
+    exported_by: str | None,
+    expected_custodian: str | None,
+    note: str | None,
+) -> SessionExportHandoff:
+    return SessionExportHandoff(
+        exported_by=_redact_optional_text(exported_by, redaction_context),
+        expected_custodian=_redact_optional_text(
+            expected_custodian,
+            redaction_context,
+        ),
+        note=_redact_optional_text(note, redaction_context),
+        last_actor_hint=_last_actor_hint(events, redaction_context),
+        next_action_summary=_session_next_action_summary(snapshot),
+        pending_approval_id=snapshot.pending_approval_id,
+        pending_question_id=snapshot.pending_question_id,
+        pending_question_text=_redact_optional_text(
+            snapshot.pending_question_text,
+            redaction_context,
+        ),
+        session_failure_message=_redact_optional_text(
+            snapshot.session_failure_message,
+            redaction_context,
+        ),
+        session_failure_retryable=snapshot.session_failure_retryable,
+        historical_only=snapshot.status in {"completed", "failed", "cancelled"},
+        live_actionable=snapshot.status
+        in {"running", "awaiting_approval", "awaiting_user_input"},
+    )
 
 
 def _export_transcript(
@@ -407,7 +444,7 @@ def _event_summary(event: EventEnvelope) -> SessionExportEventSummary:
     )
 
 
-def _session_next_action_summary(snapshot) -> str:
+def _session_next_action_summary(snapshot: SessionSnapshotView) -> str:
     if snapshot.projection_health.degraded:
         return "Rebuild derived projections from canonical events"
     if snapshot.status == "awaiting_user_input":
