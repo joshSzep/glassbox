@@ -52,8 +52,11 @@ export type SessionInspectorProps = {
   error: string | null;
   loadState: LoadState;
   onAnswerTextChange?: (questionId: string, text: string) => void;
+  onClearCompare?: () => void;
+  onCompareSession?: (sessionId: string) => void;
   onFork?: (input?: { branchLabel?: string | null; turnId?: string | null }) => void;
   onForkLabelChange?: (text: string) => void;
+  onOpenSession?: (sessionId: string) => void;
   onPromptChange?: (text: string) => void;
   onResolveApproval?: (input: { approvalId: string; decision: "approved" | "denied" }) => void;
   onSubmitAnswer?: (questionId: string) => void;
@@ -70,8 +73,11 @@ export function SessionInspector({
   error,
   loadState,
   onAnswerTextChange,
+  onClearCompare,
+  onCompareSession,
   onFork,
   onForkLabelChange,
+  onOpenSession,
   onPromptChange,
   onResolveApproval,
   onSubmitAnswer,
@@ -123,7 +129,13 @@ export function SessionInspector({
           onSubmitPrompt={onSubmitPrompt}
         />
         <TranscriptPane messages={data.transcript} />
-        <TimelinePane data={data} />
+        <LineagePane
+          data={data}
+          onClearCompare={onClearCompare}
+          onCompareSession={onCompareSession}
+          onOpenSession={onOpenSession}
+        />
+        <ComparePane data={data} onClearCompare={onClearCompare} onOpenSession={onOpenSession} />
         <ActionSummaryPane data={data} />
         <RuntimePane data={data} />
         <MetricsPane data={data} />
@@ -245,10 +257,32 @@ function TranscriptPane({ messages }: { messages: TranscriptMessage[] }) {
   );
 }
 
-function TimelinePane({ data }: { data: DashboardState }) {
+function LineagePane({
+  data,
+  onClearCompare,
+  onCompareSession,
+  onOpenSession,
+}: {
+  data: DashboardState;
+  onClearCompare?: () => void;
+  onCompareSession?: (sessionId: string) => void;
+  onOpenSession?: (sessionId: string) => void;
+}) {
   return (
-    <Pane icon={GitBranch} title="Turn timeline">
+    <Pane icon={GitBranch} title="Lineage and turns">
       <DataList density="compact">
+        {data.parentSessionId !== null ? (
+          <DataListItem>
+            <DataListLabel>Parent {data.parentSessionId}</DataListLabel>
+            <DataListMeta>Persisted parent relationship</DataListMeta>
+            <LineageActions
+              onClearCompare={onClearCompare}
+              onCompareSession={onCompareSession}
+              onOpenSession={onOpenSession}
+              sessionId={data.parentSessionId}
+            />
+          </DataListItem>
+        ) : null}
         {data.currentTurn !== null ? (
           <DataListItem>
             <DataListLabel>Current turn {data.currentTurn.turn_id}</DataListLabel>
@@ -267,9 +301,16 @@ function TimelinePane({ data }: { data: DashboardState }) {
           <DataListItem key={child.session_id}>
             <DataListLabel>{child.branch_label ?? child.session_id}</DataListLabel>
             <DataListMeta>{child.latest_message_summary ?? child.status}</DataListMeta>
+            <LineageActions
+              onClearCompare={onClearCompare}
+              onCompareSession={onCompareSession}
+              onOpenSession={onOpenSession}
+              sessionId={child.session_id}
+            />
           </DataListItem>
         ))}
         {data.currentTurn === null &&
+        data.parentSessionId === null &&
         data.branchableTurns.length === 0 &&
         data.childSessions.length === 0 ? (
           <DataListItem>
@@ -277,6 +318,112 @@ function TimelinePane({ data }: { data: DashboardState }) {
           </DataListItem>
         ) : null}
       </DataList>
+    </Pane>
+  );
+}
+
+function LineageActions({
+  onClearCompare,
+  onCompareSession,
+  onOpenSession,
+  sessionId,
+}: {
+  onClearCompare?: () => void;
+  onCompareSession?: (sessionId: string) => void;
+  onOpenSession?: (sessionId: string) => void;
+  sessionId: string;
+}) {
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      <Button
+        onClick={() => onCompareSession?.(sessionId)}
+        size="xs"
+        type="button"
+        variant="outline"
+      >
+        Compare
+      </Button>
+      <Button onClick={() => onOpenSession?.(sessionId)} size="xs" type="button" variant="ghost">
+        Open
+      </Button>
+      <Button onClick={() => onClearCompare?.()} size="xs" type="button" variant="ghost">
+        Clear compare
+      </Button>
+    </div>
+  );
+}
+
+function ComparePane({
+  data,
+  onClearCompare,
+  onOpenSession,
+}: {
+  data: DashboardState;
+  onClearCompare?: () => void;
+  onOpenSession?: (sessionId: string) => void;
+}) {
+  const compare = data.compareSession;
+  return (
+    <Pane icon={GitBranch} title="Compare">
+      {compare === null ? (
+        <EmptyLine value="Select a parent or child session to compare persisted snapshots." />
+      ) : (
+        <div className="space-y-3">
+          <div className="rounded-md border bg-card p-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="break-all text-sm font-medium">{compare.sessionId}</p>
+                <p className="text-xs text-muted-foreground">
+                  {compare.branchLabel ?? "unlabeled branch"} · {compare.status}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => onOpenSession?.(compare.sessionId ?? "")}
+                  size="xs"
+                  type="button"
+                  variant="outline"
+                >
+                  Open compared
+                </Button>
+                <Button onClick={() => onClearCompare?.()} size="xs" type="button" variant="ghost">
+                  Clear
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DataList density="compact">
+            <DataListItem>
+              <DataListLabel>Transcript</DataListLabel>
+              <DataListMeta>
+                {data.transcript.length} current · {compare.transcript.length} compared ·{" "}
+                {compare.transcript.length - data.transcript.length} delta
+              </DataListMeta>
+            </DataListItem>
+            <DataListItem>
+              <DataListLabel>Runtime context</DataListLabel>
+              <DataListMeta>
+                {(data.runtimeContext?.working_set?.items ?? []).length} current working-set ·{" "}
+                {compare.runtimeContext?.working_set?.items?.length ?? 0} compared
+              </DataListMeta>
+            </DataListItem>
+            <DataListItem>
+              <DataListLabel>Turn summaries</DataListLabel>
+              <DataListMeta>
+                {data.turnMetrics.length} current metrics · {compare.turnMetrics.length} compared
+                metrics
+              </DataListMeta>
+            </DataListItem>
+            <DataListItem>
+              <DataListLabel>Branch metadata</DataListLabel>
+              <DataListMeta>
+                parent {compare.parentSessionId ?? "none"} · forked sequence{" "}
+                {compare.forkedFromSequence ?? "unknown"}
+              </DataListMeta>
+            </DataListItem>
+          </DataList>
+        </div>
+      )}
     </Pane>
   );
 }

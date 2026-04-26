@@ -178,6 +178,25 @@ describe("session store", () => {
     expect(store.getState().drafts.selectedCompareTargetId).toBeNull();
   });
 
+  it("resets invalid compare targets after load failures", async () => {
+    const store = createSessionStore({
+      apiClient: createApiClient({
+        getCompareSessionSnapshot: async () => {
+          throw new GlassboxApiError({ kind: "not_found", message: "compare target missing" });
+        },
+      }),
+    });
+    await store.getState().loadSession("session-1");
+    await store.getState().loadCompareSession("missing-session");
+
+    expect(store.getState().data.compareSession).toBeNull();
+    expect(store.getState().data.compareSessionId).toBeNull();
+    expect(store.getState().action).toMatchObject({
+      error: "compare target missing",
+      state: "failed",
+    });
+  });
+
   it("connects the stream slice and applies stream events", async () => {
     const streams: FakeStreamHandle[] = [];
     const store = createSessionStore({

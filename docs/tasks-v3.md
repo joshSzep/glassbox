@@ -495,7 +495,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-451: Implement Lineage Navigation And Session Compare Views
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-442`, `GBX-450`
 - Goal: make branching and historical inspection first-class in the SPA
 - Deliverables:

@@ -9,9 +9,11 @@ import { WorkspaceOverview } from "@/components/console/workspace-overview";
 import {
   buildAppRoute,
   createDefaultAppRoute,
+  openLineageTargetRoute,
   parseAppRoute,
   selectQueueRoute,
   selectSessionRoute,
+  setCompareRoute,
   type AppQueue,
   type AppRouteState,
 } from "@/routing/app-route";
@@ -31,7 +33,12 @@ export function WorkspaceConsole() {
       setRoute(nextRoute);
       void consoleStore.getState().loadAggregate({ queue: nextRoute.queue });
       if (nextRoute.selectedSessionId !== null) {
-        void sessionStore.getState().loadSession(nextRoute.selectedSessionId);
+        void (async () => {
+          await sessionStore.getState().loadSession(nextRoute.selectedSessionId as string);
+          if (nextRoute.compareSessionId !== null) {
+            await sessionStore.getState().loadCompareSession(nextRoute.compareSessionId);
+          }
+        })();
       } else {
         sessionStore.getState().resetForRoute(null);
       }
@@ -71,11 +78,21 @@ export function WorkspaceConsole() {
             onAnswerTextChange={(questionId, text) =>
               sessionStore.getState().setAnswerText(questionId, text)
             }
+            onClearCompare={() => {
+              const nextRoute = setCompareRoute(route, null);
+              navigate(nextRoute);
+              sessionStore.getState().clearCompareSession();
+            }}
+            onCompareSession={(sessionId) => {
+              const nextRoute = setCompareRoute(route, sessionId);
+              navigate(nextRoute);
+              void sessionStore.getState().loadCompareSession(sessionId);
+            }}
             onFork={(input) => {
               void (async () => {
                 const childSessionId = await sessionStore.getState().forkSession(input);
                 if (childSessionId !== null) {
-                  const nextRoute = selectSessionRoute(route, childSessionId);
+                  const nextRoute = openLineageTargetRoute(route, childSessionId);
                   navigate(nextRoute);
                   await sessionStore.getState().loadSession(childSessionId);
                   void consoleStore.getState().loadAggregate();
@@ -83,6 +100,12 @@ export function WorkspaceConsole() {
               })();
             }}
             onForkLabelChange={(text) => sessionStore.getState().setForkLabel(text)}
+            onOpenSession={(sessionId) => {
+              const nextRoute = openLineageTargetRoute(route, sessionId);
+              navigate(nextRoute);
+              sessionStore.getState().clearCompareSession();
+              void sessionStore.getState().loadSession(sessionId);
+            }}
             onPromptChange={(text) => sessionStore.getState().setComposerText(text)}
             onResolveApproval={(input) => {
               void (async () => {
