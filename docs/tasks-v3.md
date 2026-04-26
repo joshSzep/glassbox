@@ -200,7 +200,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-410: Scaffold The Next.js TypeScript Frontend Workspace
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-400`
 - Goal: add a modern frontend workspace without changing the current production dashboard route
 - Deliverables:

@@ -197,6 +197,13 @@ cython_debug/
 # Ruff stuff:
 .ruff_cache/
 
+# Frontend workspace
+frontend/.next/
+frontend/coverage/
+frontend/node_modules/
+frontend/out/
+frontend/tsconfig.tsbuildinfo
+
 # PyPI configuration file
 .pypirc
 
