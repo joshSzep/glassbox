@@ -551,7 +551,7 @@ The intended v4 milestone order is:
 
 ### GBX-530: Build A Turn-Grouped Transcript And Timeline Model
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-520`, `GBX-502`, `GBX-492`
 - Goal: make the selected session readable as a sequence of turns rather than isolated panels of transcript, metrics, and events
 - Deliverables:
