@@ -1,0 +1,2643 @@
+{
+  "components": {
+    "schemas": {
+      "ActionAcceptedResponse": {
+        "properties": {
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": ["status"],
+        "title": "ActionAcceptedResponse",
+        "type": "object"
+      },
+      "ActiveToolCallResponse": {
+        "properties": {
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "policy_outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Outcome"
+          },
+          "policy_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Reason"
+          },
+          "policy_risk_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Risk Level"
+          },
+          "policy_source_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Source Kind"
+          },
+          "policy_source_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Source Label"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "tool_call_id": {
+            "title": "Tool Call Id",
+            "type": "string"
+          },
+          "tool_name": {
+            "title": "Tool Name",
+            "type": "string"
+          },
+          "turn_id": {
+            "title": "Turn Id",
+            "type": "string"
+          }
+        },
+        "required": ["tool_call_id", "turn_id", "tool_name", "status", "started_at"],
+        "title": "ActiveToolCallResponse",
+        "type": "object"
+      },
+      "ApprovalDecision": {
+        "description": "Explicit operator decision for an approval request.",
+        "enum": ["approved", "denied"],
+        "title": "ApprovalDecision",
+        "type": "string"
+      },
+      "ArtifactBackedContextSnapshot": {
+        "additionalProperties": false,
+        "description": "Bounded artifact-backed context summaries for the current session.",
+        "properties": {
+          "additional_summary_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Additional Summary Count",
+            "type": "integer"
+          },
+          "summaries": {
+            "items": {
+              "$ref": "#/components/schemas/ArtifactBackedContextSummarySnapshot"
+            },
+            "title": "Summaries",
+            "type": "array"
+          }
+        },
+        "title": "ArtifactBackedContextSnapshot",
+        "type": "object"
+      },
+      "ArtifactBackedContextSummarySnapshot": {
+        "additionalProperties": false,
+        "description": "One explicit artifact-backed context summary available to the runtime.",
+        "properties": {
+          "artifact_kind": {
+            "title": "Artifact Kind",
+            "type": "string"
+          },
+          "artifact_path": {
+            "title": "Artifact Path",
+            "type": "string"
+          },
+          "error_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Error Count",
+            "type": "integer"
+          },
+          "failing_tests": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Failing Tests",
+            "type": "array"
+          },
+          "failure_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Failure Count",
+            "type": "integer"
+          },
+          "freshness": {
+            "default": "fresh",
+            "enum": ["fresh", "stale"],
+            "title": "Freshness",
+            "type": "string"
+          },
+          "inherited": {
+            "default": false,
+            "title": "Inherited",
+            "type": "boolean"
+          },
+          "keyword_filter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Keyword Filter"
+          },
+          "provenance_class": {
+            "const": "artifact_backed_summary",
+            "default": "artifact_backed_summary",
+            "title": "Provenance Class",
+            "type": "string"
+          },
+          "source_tool_call_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ToolCallId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_tool_name": {
+            "title": "Source Tool Name",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "summary_kind": {
+            "title": "Summary Kind",
+            "type": "string"
+          },
+          "target_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Target Paths",
+            "type": "array"
+          },
+          "timed_out": {
+            "default": false,
+            "title": "Timed Out",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "summary_kind",
+          "source_tool_name",
+          "artifact_kind",
+          "artifact_path",
+          "summary"
+        ],
+        "title": "ArtifactBackedContextSummarySnapshot",
+        "type": "object"
+      },
+      "BranchableTurnResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "turn_id": {
+            "title": "Turn Id",
+            "type": "string"
+          }
+        },
+        "required": ["turn_id", "sequence", "created_at", "label"],
+        "title": "BranchableTurnResponse",
+        "type": "object"
+      },
+      "ChildSessionSummaryResponse": {
+        "properties": {
+          "branch_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Label"
+          },
+          "latest_message_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Message Summary"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "status",
+          "branch_label",
+          "updated_at",
+          "latest_message_summary"
+        ],
+        "title": "ChildSessionSummaryResponse",
+        "type": "object"
+      },
+      "ErrorDetailResponse": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": ["detail"],
+        "title": "ErrorDetailResponse",
+        "type": "object"
+      },
+      "EventTransportObservability": {
+        "additionalProperties": false,
+        "description": "Live event delivery counters and reconnect guidance.",
+        "properties": {
+          "degraded": {
+            "title": "Degraded",
+            "type": "boolean"
+          },
+          "dropped_events": {
+            "title": "Dropped Events",
+            "type": "integer"
+          },
+          "next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Next Actions",
+            "type": "array"
+          },
+          "reconnect_mode": {
+            "title": "Reconnect Mode",
+            "type": "string"
+          },
+          "subscriber_count": {
+            "title": "Subscriber Count",
+            "type": "integer"
+          }
+        },
+        "required": ["subscriber_count", "dropped_events", "reconnect_mode", "degraded"],
+        "title": "EventTransportObservability",
+        "type": "object"
+      },
+      "ForkSessionRequest": {
+        "properties": {
+          "branch_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Label"
+          },
+          "turn_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turn Id"
+          }
+        },
+        "title": "ForkSessionRequest",
+        "type": "object"
+      },
+      "ForkSessionResponse": {
+        "properties": {
+          "branch_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Label"
+          },
+          "child_session_id": {
+            "title": "Child Session Id",
+            "type": "string"
+          },
+          "forked_from_sequence": {
+            "title": "Forked From Sequence",
+            "type": "integer"
+          },
+          "forked_from_turn_id": {
+            "title": "Forked From Turn Id",
+            "type": "string"
+          },
+          "inherited_message_count": {
+            "title": "Inherited Message Count",
+            "type": "integer"
+          },
+          "last_sequence": {
+            "title": "Last Sequence",
+            "type": "integer"
+          },
+          "parent_session_id": {
+            "title": "Parent Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "child_session_id",
+          "parent_session_id",
+          "forked_from_turn_id",
+          "forked_from_sequence",
+          "branch_label",
+          "inherited_message_count",
+          "last_sequence"
+        ],
+        "title": "ForkSessionResponse",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HealthResponse": {
+        "properties": {
+          "event_transport": {
+            "$ref": "#/components/schemas/EventTransportObservability"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": ["status", "event_transport"],
+        "title": "HealthResponse",
+        "type": "object"
+      },
+      "MessagePartResponse": {
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": ["kind", "text"],
+        "title": "MessagePartResponse",
+        "type": "object"
+      },
+      "OperatorSessionSummaryResponse": {
+        "properties": {
+          "action_needed": {
+            "title": "Action Needed",
+            "type": "boolean"
+          },
+          "approval_mode": {
+            "title": "Approval Mode",
+            "type": "string"
+          },
+          "branch_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Label"
+          },
+          "can_fork": {
+            "title": "Can Fork",
+            "type": "boolean"
+          },
+          "child_session_count": {
+            "title": "Child Session Count",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "cwd": {
+            "title": "Cwd",
+            "type": "string"
+          },
+          "dashboard_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dashboard Url"
+          },
+          "fork_blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fork Blocked Reason"
+          },
+          "forked_from_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forked From Sequence"
+          },
+          "forked_from_turn_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forked From Turn Id"
+          },
+          "has_active_turn": {
+            "title": "Has Active Turn",
+            "type": "boolean"
+          },
+          "historical_only": {
+            "title": "Historical Only",
+            "type": "boolean"
+          },
+          "last_sequence": {
+            "title": "Last Sequence",
+            "type": "integer"
+          },
+          "latest_fork_point_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Fork Point Sequence"
+          },
+          "latest_fork_point_turn_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Fork Point Turn Id"
+          },
+          "latest_message_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Message Summary"
+          },
+          "live_actionable": {
+            "title": "Live Actionable",
+            "type": "boolean"
+          },
+          "model_name": {
+            "title": "Model Name",
+            "type": "string"
+          },
+          "next_action_summary": {
+            "title": "Next Action Summary",
+            "type": "string"
+          },
+          "parent_session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Session Id"
+          },
+          "pending_approval_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Approval Id"
+          },
+          "pending_question_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Question Id"
+          },
+          "pending_question_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Question Text"
+          },
+          "priority_bucket": {
+            "title": "Priority Bucket",
+            "type": "string"
+          },
+          "priority_rank": {
+            "title": "Priority Rank",
+            "type": "integer"
+          },
+          "projection_health": {
+            "$ref": "#/components/schemas/ProjectionHealthResponse"
+          },
+          "queue_memberships": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Queue Memberships",
+            "type": "array"
+          },
+          "session_failure_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Failure Message"
+          },
+          "session_failure_retryable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Failure Retryable"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "status",
+          "model_name",
+          "cwd",
+          "approval_mode",
+          "parent_session_id",
+          "forked_from_turn_id",
+          "forked_from_sequence",
+          "branch_label",
+          "child_session_count",
+          "can_fork",
+          "latest_fork_point_turn_id",
+          "latest_fork_point_sequence",
+          "fork_blocked_reason",
+          "dashboard_url",
+          "created_at",
+          "updated_at",
+          "last_sequence",
+          "pending_approval_id",
+          "pending_question_id",
+          "pending_question_text",
+          "session_failure_message",
+          "session_failure_retryable",
+          "latest_message_summary",
+          "projection_health",
+          "next_action_summary",
+          "queue_memberships",
+          "priority_bucket",
+          "priority_rank",
+          "action_needed",
+          "live_actionable",
+          "historical_only",
+          "has_active_turn"
+        ],
+        "title": "OperatorSessionSummaryResponse",
+        "type": "object"
+      },
+      "PendingApprovalResponse": {
+        "properties": {
+          "approval_id": {
+            "title": "Approval Id",
+            "type": "string"
+          },
+          "policy_outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Outcome"
+          },
+          "policy_risk_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Risk Level"
+          },
+          "policy_source_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Source Kind"
+          },
+          "policy_source_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Source Label"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "requested_at": {
+            "format": "date-time",
+            "title": "Requested At",
+            "type": "string"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "turn_id": {
+            "title": "Turn Id",
+            "type": "string"
+          }
+        },
+        "required": ["approval_id", "turn_id", "subject", "reason", "requested_at"],
+        "title": "PendingApprovalResponse",
+        "type": "object"
+      },
+      "PolicyActivitySummaryResponse": {
+        "properties": {
+          "allow_count": {
+            "title": "Allow Count",
+            "type": "integer"
+          },
+          "approve_count": {
+            "title": "Approve Count",
+            "type": "integer"
+          },
+          "blocked_count": {
+            "title": "Blocked Count",
+            "type": "integer"
+          },
+          "command_count": {
+            "title": "Command Count",
+            "type": "integer"
+          },
+          "deny_count": {
+            "title": "Deny Count",
+            "type": "integer"
+          },
+          "highest_risk_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Highest Risk Level"
+          },
+          "read_only_count": {
+            "title": "Read Only Count",
+            "type": "integer"
+          },
+          "total_decisions": {
+            "title": "Total Decisions",
+            "type": "integer"
+          },
+          "workspace_write_count": {
+            "title": "Workspace Write Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total_decisions",
+          "allow_count",
+          "approve_count",
+          "deny_count",
+          "blocked_count",
+          "read_only_count",
+          "workspace_write_count",
+          "command_count"
+        ],
+        "title": "PolicyActivitySummaryResponse",
+        "type": "object"
+      },
+      "ProjectionHealthCountsAggregateResponse": {
+        "properties": {
+          "degraded": {
+            "title": "Degraded",
+            "type": "integer"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "integer"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "integer"
+          },
+          "unavailable": {
+            "title": "Unavailable",
+            "type": "integer"
+          }
+        },
+        "required": ["ok", "stale", "unavailable", "degraded"],
+        "title": "ProjectionHealthCountsAggregateResponse",
+        "type": "object"
+      },
+      "ProjectionHealthResponse": {
+        "properties": {
+          "canonical_last_sequence": {
+            "title": "Canonical Last Sequence",
+            "type": "integer"
+          },
+          "degraded": {
+            "title": "Degraded",
+            "type": "boolean"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "lag": {
+            "title": "Lag",
+            "type": "integer"
+          },
+          "projected_last_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projected Last Sequence"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "canonical_last_sequence",
+          "projected_last_sequence",
+          "lag",
+          "degraded",
+          "detail"
+        ],
+        "title": "ProjectionHealthResponse",
+        "type": "object"
+      },
+      "RepositoryContextSnapshot": {
+        "additionalProperties": false,
+        "description": "Deterministic top-level repository summary for prompt context.",
+        "properties": {
+          "additional_directory_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Additional Directory Count",
+            "type": "integer"
+          },
+          "additional_file_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Additional File Count",
+            "type": "integer"
+          },
+          "high_signal_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "High Signal Paths",
+            "type": "array"
+          },
+          "project_markers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Project Markers",
+            "type": "array"
+          },
+          "top_level_directories": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Top Level Directories",
+            "type": "array"
+          },
+          "top_level_files": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Top Level Files",
+            "type": "array"
+          },
+          "workspace_name": {
+            "title": "Workspace Name",
+            "type": "string"
+          }
+        },
+        "required": ["workspace_name"],
+        "title": "RepositoryContextSnapshot",
+        "type": "object"
+      },
+      "ResolveApprovalRequest": {
+        "description": "Request body for resolving a pending approval.",
+        "properties": {
+          "decision": {
+            "$ref": "#/components/schemas/ApprovalDecision"
+          }
+        },
+        "required": ["decision"],
+        "title": "ResolveApprovalRequest",
+        "type": "object"
+      },
+      "RuntimeContextNoteSnapshot": {
+        "additionalProperties": false,
+        "description": "Bounded runtime note summary for operator inspection.",
+        "properties": {
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "inherited": {
+            "default": false,
+            "title": "Inherited",
+            "type": "boolean"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "source_session_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SessionId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["category", "message"],
+        "title": "RuntimeContextNoteSnapshot",
+        "type": "object"
+      },
+      "RuntimeContextSnapshot": {
+        "additionalProperties": false,
+        "description": "Shared operator-facing runtime context summary.",
+        "properties": {
+          "additional_runtime_note_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Additional Runtime Note Count",
+            "type": "integer"
+          },
+          "artifact_context": {
+            "$ref": "#/components/schemas/ArtifactBackedContextSnapshot"
+          },
+          "repository_context": {
+            "$ref": "#/components/schemas/RepositoryContextSnapshot"
+          },
+          "runtime_notes": {
+            "items": {
+              "$ref": "#/components/schemas/RuntimeContextNoteSnapshot"
+            },
+            "title": "Runtime Notes",
+            "type": "array"
+          },
+          "working_set": {
+            "$ref": "#/components/schemas/WorkingSetSnapshot"
+          }
+        },
+        "required": ["repository_context"],
+        "title": "RuntimeContextSnapshot",
+        "type": "object"
+      },
+      "SessionAggregateResponse": {
+        "properties": {
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit"
+          },
+          "projection_health_counts": {
+            "$ref": "#/components/schemas/ProjectionHealthCountsAggregateResponse"
+          },
+          "queue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Queue"
+          },
+          "queue_counts": {
+            "$ref": "#/components/schemas/SessionQueueCountsResponse"
+          },
+          "runtime": {
+            "$ref": "#/components/schemas/WorkspaceRuntimeSummaryResponse"
+          },
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/OperatorSessionSummaryResponse"
+            },
+            "title": "Sessions",
+            "type": "array"
+          },
+          "sort": {
+            "title": "Sort",
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "required": [
+          "queue",
+          "status",
+          "sort",
+          "limit",
+          "queue_counts",
+          "projection_health_counts",
+          "runtime",
+          "sessions"
+        ],
+        "title": "SessionAggregateResponse",
+        "type": "object"
+      },
+      "SessionId": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "SessionQueueCountsResponse": {
+        "properties": {
+          "action_needed": {
+            "title": "Action Needed",
+            "type": "integer"
+          },
+          "active": {
+            "title": "Active",
+            "type": "integer"
+          },
+          "approvals": {
+            "title": "Approvals",
+            "type": "integer"
+          },
+          "degraded": {
+            "title": "Degraded",
+            "type": "integer"
+          },
+          "failures": {
+            "title": "Failures",
+            "type": "integer"
+          },
+          "historical": {
+            "title": "Historical",
+            "type": "integer"
+          },
+          "questions": {
+            "title": "Questions",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "approvals",
+          "questions",
+          "failures",
+          "degraded",
+          "active",
+          "action_needed",
+          "historical"
+        ],
+        "title": "SessionQueueCountsResponse",
+        "type": "object"
+      },
+      "SessionSnapshotResponse": {
+        "properties": {
+          "active_tool_calls": {
+            "items": {
+              "$ref": "#/components/schemas/ActiveToolCallResponse"
+            },
+            "title": "Active Tool Calls",
+            "type": "array"
+          },
+          "approval_mode": {
+            "title": "Approval Mode",
+            "type": "string"
+          },
+          "branch_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Label"
+          },
+          "branchable_turns": {
+            "items": {
+              "$ref": "#/components/schemas/BranchableTurnResponse"
+            },
+            "title": "Branchable Turns",
+            "type": "array"
+          },
+          "can_fork": {
+            "title": "Can Fork",
+            "type": "boolean"
+          },
+          "child_sessions": {
+            "items": {
+              "$ref": "#/components/schemas/ChildSessionSummaryResponse"
+            },
+            "title": "Child Sessions",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "current_turn_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Turn Id"
+          },
+          "current_turn_policy_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PolicyActivitySummaryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cwd": {
+            "title": "Cwd",
+            "type": "string"
+          },
+          "dashboard_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dashboard Url"
+          },
+          "fork_blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fork Blocked Reason"
+          },
+          "forked_from_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forked From Sequence"
+          },
+          "forked_from_turn_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forked From Turn Id"
+          },
+          "last_sequence": {
+            "title": "Last Sequence",
+            "type": "integer"
+          },
+          "latest_fork_point_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Fork Point Sequence"
+          },
+          "latest_fork_point_turn_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Fork Point Turn Id"
+          },
+          "model_name": {
+            "title": "Model Name",
+            "type": "string"
+          },
+          "parent_session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Session Id"
+          },
+          "pending_approval_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Approval Id"
+          },
+          "pending_approvals": {
+            "items": {
+              "$ref": "#/components/schemas/PendingApprovalResponse"
+            },
+            "title": "Pending Approvals",
+            "type": "array"
+          },
+          "pending_question_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Question Id"
+          },
+          "pending_question_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Question Text"
+          },
+          "projection_health": {
+            "$ref": "#/components/schemas/ProjectionHealthResponse"
+          },
+          "runtime_context": {
+            "$ref": "#/components/schemas/RuntimeContextSnapshot"
+          },
+          "session_failure_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Failure Message"
+          },
+          "session_failure_retryable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Failure Retryable"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "session_policy_summary": {
+            "$ref": "#/components/schemas/PolicyActivitySummaryResponse"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "transcript": {
+            "items": {
+              "$ref": "#/components/schemas/TranscriptMessageResponse"
+            },
+            "title": "Transcript",
+            "type": "array"
+          },
+          "turn_metrics": {
+            "items": {
+              "$ref": "#/components/schemas/TurnMetricsResponse"
+            },
+            "title": "Turn Metrics",
+            "type": "array"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "status",
+          "current_turn_id",
+          "model_name",
+          "cwd",
+          "approval_mode",
+          "parent_session_id",
+          "forked_from_turn_id",
+          "forked_from_sequence",
+          "branch_label",
+          "child_sessions",
+          "branchable_turns",
+          "can_fork",
+          "latest_fork_point_turn_id",
+          "latest_fork_point_sequence",
+          "fork_blocked_reason",
+          "dashboard_url",
+          "created_at",
+          "updated_at",
+          "last_sequence",
+          "pending_approval_id",
+          "pending_question_id",
+          "pending_question_text",
+          "session_failure_message",
+          "session_failure_retryable",
+          "transcript",
+          "active_tool_calls",
+          "pending_approvals",
+          "session_policy_summary",
+          "current_turn_policy_summary",
+          "turn_metrics",
+          "runtime_context",
+          "projection_health"
+        ],
+        "title": "SessionSnapshotResponse",
+        "type": "object"
+      },
+      "SessionSummaryResponse": {
+        "properties": {
+          "approval_mode": {
+            "title": "Approval Mode",
+            "type": "string"
+          },
+          "branch_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Label"
+          },
+          "can_fork": {
+            "title": "Can Fork",
+            "type": "boolean"
+          },
+          "child_session_count": {
+            "title": "Child Session Count",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "cwd": {
+            "title": "Cwd",
+            "type": "string"
+          },
+          "dashboard_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dashboard Url"
+          },
+          "fork_blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fork Blocked Reason"
+          },
+          "forked_from_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forked From Sequence"
+          },
+          "forked_from_turn_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forked From Turn Id"
+          },
+          "last_sequence": {
+            "title": "Last Sequence",
+            "type": "integer"
+          },
+          "latest_fork_point_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Fork Point Sequence"
+          },
+          "latest_fork_point_turn_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Fork Point Turn Id"
+          },
+          "latest_message_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Message Summary"
+          },
+          "model_name": {
+            "title": "Model Name",
+            "type": "string"
+          },
+          "next_action_summary": {
+            "title": "Next Action Summary",
+            "type": "string"
+          },
+          "parent_session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Session Id"
+          },
+          "pending_approval_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Approval Id"
+          },
+          "pending_question_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Question Id"
+          },
+          "pending_question_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Question Text"
+          },
+          "projection_health": {
+            "$ref": "#/components/schemas/ProjectionHealthResponse"
+          },
+          "session_failure_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Failure Message"
+          },
+          "session_failure_retryable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Failure Retryable"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "status",
+          "model_name",
+          "cwd",
+          "approval_mode",
+          "parent_session_id",
+          "forked_from_turn_id",
+          "forked_from_sequence",
+          "branch_label",
+          "child_session_count",
+          "can_fork",
+          "latest_fork_point_turn_id",
+          "latest_fork_point_sequence",
+          "fork_blocked_reason",
+          "dashboard_url",
+          "created_at",
+          "updated_at",
+          "last_sequence",
+          "pending_approval_id",
+          "pending_question_id",
+          "pending_question_text",
+          "session_failure_message",
+          "session_failure_retryable",
+          "latest_message_summary",
+          "projection_health",
+          "next_action_summary"
+        ],
+        "title": "SessionSummaryResponse",
+        "type": "object"
+      },
+      "SubmitSessionAnswerRequest": {
+        "properties": {
+          "answer": {
+            "title": "Answer",
+            "type": "string"
+          }
+        },
+        "required": ["answer"],
+        "title": "SubmitSessionAnswerRequest",
+        "type": "object"
+      },
+      "SubmitSessionMessageRequest": {
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": ["text"],
+        "title": "SubmitSessionMessageRequest",
+        "type": "object"
+      },
+      "ToolCallId": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "TranscriptMessageResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "message_id": {
+            "title": "Message Id",
+            "type": "string"
+          },
+          "parts": {
+            "items": {
+              "$ref": "#/components/schemas/MessagePartResponse"
+            },
+            "title": "Parts",
+            "type": "array"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": ["message_id", "role", "parts", "created_at"],
+        "title": "TranscriptMessageResponse",
+        "type": "object"
+      },
+      "TurnMetricsResponse": {
+        "properties": {
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "failed_tool_call_count": {
+            "title": "Failed Tool Call Count",
+            "type": "integer"
+          },
+          "model_call_count": {
+            "title": "Model Call Count",
+            "type": "integer"
+          },
+          "model_duration_ms_total": {
+            "title": "Model Duration Ms Total",
+            "type": "integer"
+          },
+          "model_input_tokens_total": {
+            "title": "Model Input Tokens Total",
+            "type": "integer"
+          },
+          "model_output_tokens_total": {
+            "title": "Model Output Tokens Total",
+            "type": "integer"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "succeeded_tool_call_count": {
+            "title": "Succeeded Tool Call Count",
+            "type": "integer"
+          },
+          "tool_call_count": {
+            "title": "Tool Call Count",
+            "type": "integer"
+          },
+          "tool_duration_ms_total": {
+            "title": "Tool Duration Ms Total",
+            "type": "integer"
+          },
+          "turn_duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turn Duration Ms"
+          },
+          "turn_id": {
+            "title": "Turn Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "turn_id",
+          "started_at",
+          "completed_at",
+          "turn_duration_ms",
+          "model_call_count",
+          "model_duration_ms_total",
+          "model_input_tokens_total",
+          "model_output_tokens_total",
+          "tool_call_count",
+          "tool_duration_ms_total",
+          "succeeded_tool_call_count",
+          "failed_tool_call_count"
+        ],
+        "title": "TurnMetricsResponse",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WorkingSetItemSnapshot": {
+        "additionalProperties": false,
+        "description": "One bounded working-set item derived from explicit runtime signals.",
+        "properties": {
+          "inherited": {
+            "default": false,
+            "title": "Inherited",
+            "type": "boolean"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "signal_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Signal Types",
+            "type": "array"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "subject_kind": {
+            "title": "Subject Kind",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": ["subject_kind", "subject", "summary"],
+        "title": "WorkingSetItemSnapshot",
+        "type": "object"
+      },
+      "WorkingSetSnapshot": {
+        "additionalProperties": false,
+        "description": "A deterministic summary of the current local slice of work.",
+        "properties": {
+          "additional_item_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Additional Item Count",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WorkingSetItemSnapshot"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "title": "WorkingSetSnapshot",
+        "type": "object"
+      },
+      "WorkspaceRuntimeSummaryResponse": {
+        "properties": {
+          "dashboard_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dashboard Url"
+          },
+          "health": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Health"
+          },
+          "health_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Health Url"
+          },
+          "pid": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pid"
+          },
+          "session_index_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Index Url"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "workspace_root": {
+            "title": "Workspace Root",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_root",
+          "state",
+          "health",
+          "pid",
+          "dashboard_url",
+          "health_url",
+          "session_index_url",
+          "started_at"
+        ],
+        "title": "WorkspaceRuntimeSummaryResponse",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Glassbox",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/healthz": {
+      "get": {
+        "description": "Return service health status.",
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Healthz"
+      }
+    },
+    "/sessions": {
+      "get": {
+        "description": "Return recent session summaries for standalone dashboard discovery.",
+        "operationId": "list_session_summaries_sessions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SessionSummaryResponse"
+                  },
+                  "title": "Response List Session Summaries Sessions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Session Summaries"
+      }
+    },
+    "/sessions/aggregate": {
+      "get": {
+        "description": "Return operator-console queue, health, and priority data.",
+        "operationId": "get_session_aggregate_sessions_aggregate_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "queue",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "all",
+                    "approvals",
+                    "questions",
+                    "failures",
+                    "degraded",
+                    "active",
+                    "action-needed",
+                    "historical"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Queue"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "priority",
+              "enum": ["priority", "updated_at"],
+              "title": "Sort",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionAggregateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Session Aggregate"
+      }
+    },
+    "/sessions/{session_id}": {
+      "get": {
+        "description": "Return a full snapshot of the current session state.",
+        "operationId": "get_session_snapshot_sessions__session_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionSnapshotResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Session Snapshot"
+      }
+    },
+    "/sessions/{session_id}/approvals/{approval_id}": {
+      "post": {
+        "description": "Approve or deny a pending tool-call approval.\n\nReturns ``{\"status\": \"ok\"}`` on success.\n\nRaises:\n    404 if the session or approval does not exist.\n    409 if the session is not currently awaiting approval, or if the\n        approval has already been resolved.",
+        "operationId": "resolve_approval_sessions__session_id__approvals__approval_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "approval_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Approval Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveApprovalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionAcceptedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve Approval"
+      }
+    },
+    "/sessions/{session_id}/events": {
+      "get": {
+        "description": "Stream live session events as Server-Sent Events.\n\nQuery parameters:\n    after (int): Only return events with sequence > after.  Defaults to 0\n        (send all events).  Use the ``sequence`` field from a prior event\n        to reconnect without replaying the full history.",
+        "operationId": "stream_session_events_sessions__session_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "title": "After",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Stream Session Events"
+      }
+    },
+    "/sessions/{session_id}/fork": {
+      "post": {
+        "description": "Create a child session from a stable historical fork point.",
+        "operationId": "fork_session_sessions__session_id__fork_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForkSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForkSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Fork Session"
+      }
+    },
+    "/sessions/{session_id}/messages": {
+      "post": {
+        "description": "Submit a new user message into an existing session.",
+        "operationId": "submit_session_message_sessions__session_id__messages_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitSessionMessageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionAcceptedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Session Message"
+      }
+    },
+    "/sessions/{session_id}/questions/{question_id}": {
+      "post": {
+        "description": "Submit an answer for a pending ask_user question.",
+        "operationId": "submit_session_answer_sessions__session_id__questions__question_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitSessionAnswerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionAcceptedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Session Answer"
+      }
+    }
+  }
+}

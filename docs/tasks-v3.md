@@ -270,7 +270,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-420: Add OpenAPI-Driven Type Generation For Browser Contracts
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-410`
 - Goal: generate TypeScript API types from the FastAPI OpenAPI schema from the start of the SPA migration
 - Deliverables:

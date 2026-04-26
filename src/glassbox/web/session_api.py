@@ -130,6 +130,10 @@ class ActionAcceptedResponse(BaseModel):
     status: str
 
 
+class ErrorDetailResponse(BaseModel):
+    detail: str
+
+
 class SessionSummaryResponse(BaseModel):
     session_id: str
     status: str

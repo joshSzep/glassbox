@@ -5,6 +5,10 @@
   "packageManager": "pnpm@10.26.2",
   "scripts": {
     "dev": "next dev",
+    "api:format": "prettier --write generated/openapi.json generated/api-types.ts",
+    "api:generate": "pnpm run api:schema && pnpm run api:types && pnpm run api:format",
+    "api:schema": "cd .. && uv run python -m glassbox.web.openapi_schema frontend/generated/openapi.json",
+    "api:types": "openapi-typescript generated/openapi.json -o generated/api-types.ts",
     "build": "next build && pnpm run build:copy-static",
     "build:copy-static": "rm -rf ../src/glassbox/web/static_next && mkdir -p ../src/glassbox/web/static_next && cp -R out/. ../src/glassbox/web/static_next",
     "format": "prettier --write .",
@@ -31,6 +35,7 @@
     "autoprefixer": "10.4.23",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.4",
+    "openapi-typescript": "^7.13.0",
     "postcss": "8.5.6",
     "prettier": "3.8.3",
     "tailwindcss": "3.4.19",

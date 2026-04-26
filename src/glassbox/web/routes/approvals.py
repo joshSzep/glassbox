@@ -11,6 +11,8 @@ from pydantic import BaseModel
 
 from glassbox.core.types import ApprovalDecision
 from glassbox.web.app import RuntimeContextDep
+from glassbox.web.session_api import ActionAcceptedResponse
+from glassbox.web.session_api import ErrorDetailResponse
 
 router = APIRouter(prefix="/sessions")
 
@@ -21,13 +23,21 @@ class ResolveApprovalRequest(BaseModel):
     decision: ApprovalDecision
 
 
-@router.post("/{session_id}/approvals/{approval_id}", status_code=200)
+@router.post(
+    "/{session_id}/approvals/{approval_id}",
+    response_model=ActionAcceptedResponse,
+    status_code=200,
+    responses={
+        404: {"model": ErrorDetailResponse},
+        409: {"model": ErrorDetailResponse},
+    },
+)
 async def resolve_approval(
     session_id: UUID,
     approval_id: UUID,
     body: ResolveApprovalRequest,
     context: RuntimeContextDep,
-) -> dict[str, str]:
+) -> ActionAcceptedResponse:
     """Approve or deny a pending tool-call approval.
 
     Returns ``{"status": "ok"}`` on success.
@@ -50,4 +60,4 @@ async def resolve_approval(
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
-    return {"status": "ok"}
+    return ActionAcceptedResponse(status="ok")

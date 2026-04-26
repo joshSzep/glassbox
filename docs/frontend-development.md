@@ -93,3 +93,19 @@ remains at `/` during the migration window, while the built SPA is served at
 Use this production path before packaging or release validation so the installed
 Python distribution can serve the dashboard without requiring Node.js or `pnpm`
 at operator runtime.
+
+## Generated API Types
+
+Browser transport types are generated from the FastAPI OpenAPI schema. Refresh
+them whenever a route, request model, response model, status code, or error
+shape changes:
+
+```bash
+pnpm --dir frontend api:generate
+```
+
+The command exports the schema without starting a live server, writes
+`frontend/generated/openapi.json`, and then writes
+`frontend/generated/api-types.ts` with `openapi-typescript`. Handwritten
+transport code should import these generated types rather than duplicating
+FastAPI response interfaces.

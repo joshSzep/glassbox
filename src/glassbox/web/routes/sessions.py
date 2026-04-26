@@ -16,6 +16,7 @@ from glassbox.runtime.session_queries import SessionQueryService
 from glassbox.runtime.session_queries import WorkspaceRuntimeSummaryView
 from glassbox.web.app import RuntimeContextDep
 from glassbox.web.session_api import ActionAcceptedResponse
+from glassbox.web.session_api import ErrorDetailResponse
 from glassbox.web.session_api import ForkSessionRequest
 from glassbox.web.session_api import ForkSessionResponse
 from glassbox.web.session_api import SessionAggregateResponse
@@ -92,6 +93,10 @@ async def get_session_aggregate(
     "/{session_id}/fork",
     response_model=ForkSessionResponse,
     status_code=201,
+    responses={
+        404: {"model": ErrorDetailResponse},
+        409: {"model": ErrorDetailResponse},
+    },
 )
 async def fork_session(
     session_id: UUID,
@@ -120,6 +125,10 @@ async def fork_session(
     "/{session_id}/messages",
     response_model=ActionAcceptedResponse,
     status_code=200,
+    responses={
+        404: {"model": ErrorDetailResponse},
+        409: {"model": ErrorDetailResponse},
+    },
 )
 async def submit_session_message(
     session_id: UUID,
@@ -147,6 +156,10 @@ async def submit_session_message(
     "/{session_id}/questions/{question_id}",
     response_model=ActionAcceptedResponse,
     status_code=200,
+    responses={
+        404: {"model": ErrorDetailResponse},
+        409: {"model": ErrorDetailResponse},
+    },
 )
 async def submit_session_answer(
     session_id: UUID,
@@ -172,7 +185,11 @@ async def submit_session_answer(
     return ActionAcceptedResponse(status="ok")
 
 
-@router.get("/{session_id}", response_model=SessionSnapshotResponse)
+@router.get(
+    "/{session_id}",
+    response_model=SessionSnapshotResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
 async def get_session_snapshot(
     session_id: UUID,
     context: RuntimeContextDep,
