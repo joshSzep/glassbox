@@ -515,7 +515,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-452: Surface Replay, Eval, Context-Drift, And Verification Cues In The SPA
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-442`, `GBX-451`, `GBX-245`, `GBX-343`
 - Goal: connect the operator console to Glassbox's replay and eval discipline without making the browser the only debugging surface
 - Deliverables:

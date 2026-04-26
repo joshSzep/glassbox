@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { VerificationCues } from "@/components/console/verification-cues";
 import { operatorIconSizeClass } from "@/design-system/operator-status";
 import { buildAppRoute, type AppQueue, type InspectorTab } from "@/routing/app-route";
 import type { SessionStreamState } from "@/api/sse";
@@ -138,6 +139,7 @@ export function SessionInspector({
         <ComparePane data={data} onClearCompare={onClearCompare} onOpenSession={onOpenSession} />
         <ActionSummaryPane data={data} />
         <RuntimePane data={data} />
+        <VerificationCues data={data} />
         <MetricsPane data={data} />
         <EvidencePane data={data} stream={stream} />
       </div>

@@ -179,6 +179,7 @@ describe("session inspector", () => {
     expect(markup).toContain("Run pytest for the frontend shell");
     expect(markup).toContain("Which branch should be inspected?");
     expect(markup).toContain("frontend/app/page.tsx");
+    expect(markup).toContain("Verification cues");
     expect(markup).toContain("6.5s");
     expect(markup).toContain("pytest passed");
     expect(markup).toContain("ToolExecutionStarted");
