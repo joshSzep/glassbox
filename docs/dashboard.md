@@ -21,7 +21,7 @@ When startup succeeds, the terminal prints a session-specific URL like:
 http://127.0.0.1:8765/?session=SESSION_ID
 ```
 
-Open that URL while the interactive session is still running to watch the same live session that the terminal is driving.
+Open that URL while the interactive session is still running to watch the same live session that the terminal is driving in the v3 SPA dashboard.
 
 If default dashboard startup fails, `chat` keeps the terminal workflow running and prints a warning that the dashboard is unavailable for that session.
 
@@ -44,6 +44,14 @@ http://127.0.0.1:8765/
 The root view is the operator-console overview. It lets you inspect runtime
 health, queue counts, and prioritized sessions from the browser instead of
 copying a `session_id` first.
+
+During the final migration window, the retired no-framework dashboard remains available at:
+
+```text
+http://127.0.0.1:8765/legacy
+```
+
+Use `/legacy` only as a temporary fallback while validating the SPA default route.
 
 For daemon-backed runtime ownership, use `glassbox daemon status --cwd .` to
 discover the dashboard URL, health URL, session index, owner metadata path, and
@@ -99,6 +107,7 @@ The dashboard lets the operator:
 
 - If you used `glassbox session chat --no-dashboard`, start `glassbox dashboard serve` and open `/`.
 - If the co-hosted dashboard was unavailable, the session may still be running normally in the terminal.
+- If `/` reports that SPA assets have not been built, run `pnpm --dir frontend build` from the repository root before serving the development checkout.
 - If the selected session shows `live unavailable`, treat the snapshot as persisted history unless another runtime is known to be driving it.
 - If a direct `?session=...` URL is stale or invalid, the dashboard returns to the session index instead of leaving the browser stuck.
 

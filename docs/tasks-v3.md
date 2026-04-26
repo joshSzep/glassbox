@@ -625,7 +625,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-471: Flip The Default Dashboard Route From Legacy Static Assets To The SPA
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-470`
 - Goal: make the Next.js SPA the default dashboard served at `/` while retaining a temporary legacy escape hatch
 - Deliverables:

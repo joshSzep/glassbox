@@ -4,8 +4,8 @@
 
 This document is now legacy guidance for the existing no-framework dashboard in
 `src/glassbox/web/static/`. It remains useful while that implementation is still
-served at `/`, but it is no longer the target frontend architecture for new
-dashboard work.
+available through the temporary `/legacy` route, but it is no longer the target
+frontend architecture for new dashboard work.
 
 The target v3 dashboard architecture is a TypeScript, Next.js, Tailwind,
 Zustand, and shadcn-style SPA developed under `frontend/`, statically exported
@@ -44,13 +44,13 @@ installed Python package.
 
 Route migration rules:
 
-- keep `/` mapped to the legacy dashboard until the SPA parity gate is satisfied
-- serve the built SPA at `/app` during migration
+- serve the built SPA at `/` after the SPA parity gate is satisfied
+- preserve `/app` as a temporary SPA alias during migration
+- keep `/legacy` mapped to the no-framework dashboard for one migration window
 - make direct `/app` refreshes and nested client routes resolve to the SPA shell
 - keep direct `?session=SESSION_ID` links working during migration and after the
    final route flip
-- after parity, serve the SPA at `/`, keep a temporary `/legacy` escape hatch if
-   needed, and retire the no-framework assets after the migration window
+- after the migration window, retire the `/legacy` route and no-framework assets
 
 Compatibility rules for the SPA:
 

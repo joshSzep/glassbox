@@ -77,9 +77,14 @@ def create_app(runtime_context: RuntimeContext) -> FastAPI:
     app.include_router(events_router)
     app.include_router(approvals_router)
 
-    # Dashboard shell — served at the root path.
+    # Dashboard shell — the SPA is the default route after the v3 parity gate.
     @app.get("/", include_in_schema=False)
     async def dashboard() -> FileResponse:
+        _ensure_spa_build_available()
+        return FileResponse(_spa_index_path(), media_type="text/html")
+
+    @app.get("/legacy", include_in_schema=False)
+    async def legacy_dashboard() -> FileResponse:
         return FileResponse(_STATIC_DIR / "dashboard.html", media_type="text/html")
 
     @app.get("/app", include_in_schema=False)

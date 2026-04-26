@@ -45,8 +45,8 @@ def test_dashboard_root_returns_html(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
-def test_dashboard_html_contains_expected_structure(tmp_path: Path) -> None:
-    """Dashboard HTML contains the key structural landmarks."""
+def test_legacy_dashboard_html_contains_expected_structure(tmp_path: Path) -> None:
+    """Legacy dashboard HTML contains the key structural landmarks."""
 
     async def scenario() -> None:
         connection = _open_initialized_db(tmp_path)
@@ -56,7 +56,7 @@ def test_dashboard_html_contains_expected_structure(tmp_path: Path) -> None:
                 transport=httpx.ASGITransport(app=app),
                 base_url="http://testserver",
             ) as client:
-                response = await client.get("/")
+                response = await client.get("/legacy")
 
             html = response.text
             assert "<!DOCTYPE html>" in html
