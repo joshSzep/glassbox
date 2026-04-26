@@ -3,32 +3,65 @@
 @tailwind utilities;
 
 :root {
-  --background: 42 27% 98%;
-  --foreground: 24 10% 12%;
+  color-scheme: light;
+  --background: 42 18% 97%;
+  --foreground: 222 18% 13%;
   --card: 0 0% 100%;
-  --card-foreground: 24 10% 12%;
-  --primary: 168 76% 24%;
+  --card-foreground: 222 18% 13%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 18% 13%;
+  --primary: 174 72% 24%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 32 34% 91%;
-  --secondary-foreground: 24 10% 16%;
-  --muted: 36 22% 93%;
-  --muted-foreground: 24 7% 42%;
-  --accent: 199 62% 88%;
-  --accent-foreground: 202 58% 18%;
-  --destructive: 0 72% 42%;
+  --secondary: 210 18% 91%;
+  --secondary-foreground: 222 18% 17%;
+  --muted: 210 16% 93%;
+  --muted-foreground: 218 9% 42%;
+  --accent: 196 54% 88%;
+  --accent-foreground: 203 58% 18%;
+  --destructive: 358 70% 43%;
   --destructive-foreground: 0 0% 100%;
-  --border: 30 16% 84%;
-  --input: 30 16% 84%;
-  --ring: 168 76% 24%;
+  --warning: 39 82% 44%;
+  --warning-foreground: 40 14% 10%;
+  --success: 155 64% 29%;
+  --success-foreground: 0 0% 100%;
+  --info: 203 70% 36%;
+  --info-foreground: 0 0% 100%;
+  --border: 214 14% 82%;
+  --input: 214 14% 82%;
+  --ring: 174 72% 24%;
   --radius: 0.5rem;
+  --console-sidebar: 18rem;
+  --console-inspector: 22rem;
 }
 
 * {
   border-color: hsl(var(--border));
 }
 
+*:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
 body {
   min-height: 100vh;
   background: hsl(var(--background));
   color: hsl(var(--foreground));
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

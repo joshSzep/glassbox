@@ -402,7 +402,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-440: Establish Tailwind, shadcn Components, Theme, And Accessibility Baseline
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-401`, `GBX-410`
 - Goal: create a polished, consistent UI foundation for the Glassbox operator console
 - Deliverables:
