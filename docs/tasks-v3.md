@@ -560,7 +560,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-461: Add Playwright Coverage For Critical Operator Workflows
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-411`, `GBX-441`, `GBX-442`, `GBX-450`
 - Goal: protect the high-value browser workflows through real-page tests
 - Deliverables:

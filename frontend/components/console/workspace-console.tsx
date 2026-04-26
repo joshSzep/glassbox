@@ -62,6 +62,15 @@ export function WorkspaceConsole() {
     void consoleStore.getState().loadAggregate();
   };
 
+  useEffect(() => {
+    if (sessionState.loadState !== "loaded" || sessionState.data.sessionId === null) {
+      return;
+    }
+
+    sessionStore.getState().connectStream();
+    return () => sessionStore.getState().disconnectStream();
+  }, [sessionState.data.sessionId, sessionState.loadState, sessionStore]);
+
   return (
     <WorkspaceOverview
       data={consoleState.data}
