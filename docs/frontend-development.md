@@ -109,3 +109,15 @@ The command exports the schema without starting a live server, writes
 `frontend/generated/api-types.ts` with `openapi-typescript`. Handwritten
 transport code should import these generated types rather than duplicating
 FastAPI response interfaces.
+
+## v4 Console Visual Density Rules
+
+The v4 operator console uses shared surface and density tokens instead of
+one-off panel styling. Keep these rules when adding or changing dashboard UI:
+
+- Page backgrounds use the subtle surface token; primary work regions use card or raised surface tokens.
+- Reserve warning and destructive badges for work that needs attention. Use muted, outline, info, or success for passive state.
+- Use repeated cards for rows, dialogs, and discrete artifacts. Use section boundaries and data lists for grouped evidence instead of nesting cards inside cards.
+- Keep attention rows and list rows on stable shared minimum heights so live updates, badges, and focus rings do not shift surrounding layout.
+- Use compact `DataList` density for inspector evidence, timeline, runtime, metrics, lineage, compare, and verification rows.
+- Long session ids, file paths, artifact paths, and branch labels should wrap or truncate inside their own row rather than widening the viewport.

@@ -102,7 +102,7 @@ export function WorkspaceOverview({
   const hasSelectedInspector = inspector !== undefined && selectedSessionId !== null;
 
   return (
-    <main className="min-h-screen bg-background px-4 py-5 text-foreground sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-surface-subtle px-4 py-5 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-[1440px] flex-col gap-5">
         <WorkspaceStatusRail
           data={data}
@@ -202,7 +202,7 @@ function MobileReturnToQueues({
   const queue = queueDescriptor(selectedQueue);
   return (
     <a
-      className="flex min-w-0 items-center justify-between gap-3 rounded-lg border bg-card p-3 text-sm font-medium text-card-foreground shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring xl:hidden"
+      className="flex min-w-0 items-center justify-between gap-3 rounded-md border border-border/80 bg-card p-3 text-sm font-medium text-card-foreground shadow-sm hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring xl:hidden"
       href={buildAppRoute({
         compareSessionId: null,
         queue: selectedQueue as AppQueue,
@@ -256,7 +256,7 @@ function WorkspaceStatusRail({
 
   return (
     <header
-      className="rounded-lg border bg-card px-4 py-3 text-card-foreground shadow-sm"
+      className="rounded-lg border border-border/80 bg-card px-4 py-3 text-card-foreground shadow-sm"
       aria-label="Workspace status rail"
     >
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -343,7 +343,7 @@ function RailFact({
   variant: NonNullable<ComponentProps<typeof Badge>["variant"]>;
 }) {
   return (
-    <div className="min-h-16 rounded-md border bg-background p-3">
+    <div className="min-h-16 rounded-md border border-border/70 bg-surface p-3">
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <Badge className="mt-2 max-w-full justify-start" variant={variant}>
         <Icon className={operatorIconSizeClass} aria-hidden="true" />
@@ -356,7 +356,7 @@ function RailFact({
 function WorkspaceSummary({ data, loadState }: { data: DashboardState; loadState: LoadState }) {
   return (
     <section
-      className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm"
+      className="rounded-md border border-border/80 bg-card p-4 text-card-foreground shadow-sm"
       aria-label="Workspace overview"
     >
       <div className="flex items-start justify-between gap-3">
@@ -391,7 +391,7 @@ function MetricTile({
   variant?: "outline" | "success" | "warning";
 }) {
   return (
-    <div className="min-h-16 rounded-md border bg-background p-3">
+    <div className="min-h-16 rounded-md border border-border/70 bg-surface p-3">
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <Badge className="mt-2 justify-start" variant={variant}>
         {value}
@@ -413,7 +413,7 @@ function QueueNavigation({
   const PriorityIcon = priority.icon;
   return (
     <nav
-      className="rounded-lg border bg-card p-3 text-card-foreground shadow-sm"
+      className="rounded-md border border-border/80 bg-card p-3 text-card-foreground shadow-sm"
       aria-label="Action queues"
     >
       <div className="mb-2 flex items-center justify-between gap-3 px-1">
@@ -423,7 +423,7 @@ function QueueNavigation({
         <Badge variant="muted">{data.queueCounts.total}</Badge>
       </div>
       <section
-        className="mb-3 rounded-md border bg-background p-3"
+        className="mb-3 rounded-md border border-border/70 bg-surface p-3"
         aria-label="Queue priority summary"
       >
         <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
@@ -442,8 +442,8 @@ function QueueNavigation({
           return (
             <a
               aria-current={selected ? "page" : undefined}
-              className={`grid min-h-14 rounded-md px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                selected ? "bg-accent text-accent-foreground" : "hover:bg-muted"
+              className={`grid min-h-density-row rounded-md px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                selected ? "bg-accent text-accent-foreground" : "hover:bg-surface-raised"
               }`}
               href={buildAppRoute({
                 compareSessionId: null,
@@ -489,7 +489,7 @@ function QueueHeader({
   const hiddenCount = Math.max(data.queueCounts.total - count, 0);
   return (
     <section
-      className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm"
+      className="rounded-md border border-border/80 bg-card p-4 text-card-foreground shadow-sm"
       aria-label="Queue status"
     >
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -555,7 +555,7 @@ function SessionAttentionRow({
   return (
     <a
       aria-current={selected ? "page" : undefined}
-      className={`grid min-w-0 gap-3 rounded-lg border bg-card p-4 text-card-foreground shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[minmax(0,1fr)_auto] ${
+      className={`grid min-h-attention-row min-w-0 gap-3 rounded-md border border-border/80 bg-card p-4 text-card-foreground shadow-sm transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[minmax(0,1fr)_auto] ${
         selected ? "border-primary bg-accent/60" : ""
       }`}
       data-state={selected ? "selected" : undefined}
@@ -579,19 +579,19 @@ function SessionAttentionRow({
         </p>
         <p className="mt-1 break-words text-sm text-muted-foreground">{detail}</p>
         <div className="mt-3 flex min-w-0 flex-wrap gap-2 text-xs text-muted-foreground">
-          <span className="break-all rounded-md border bg-background px-2 py-1 font-mono text-[0.75rem] text-foreground">
+          <span className="break-all rounded-md border border-border/70 bg-surface px-2 py-1 font-mono text-[0.75rem] text-foreground">
             {session.session_id}
           </span>
-          <span className="rounded-md border bg-background px-2 py-1">
+          <span className="rounded-md border border-border/70 bg-surface px-2 py-1">
             {actionabilityLabel(session)}
           </span>
-          <span className="break-words rounded-md border bg-background px-2 py-1">
+          <span className="break-words rounded-md border border-border/70 bg-surface px-2 py-1">
             {lineageHint(session)}
           </span>
-          <span className="break-words rounded-md border bg-background px-2 py-1">
+          <span className="break-words rounded-md border border-border/70 bg-surface px-2 py-1">
             {session.model_name ?? "unknown model"}
           </span>
-          <span className="rounded-md border bg-background px-2 py-1">
+          <span className="rounded-md border border-border/70 bg-surface px-2 py-1">
             updated {formatUpdatedAt(session.updated_at)}
           </span>
         </div>
@@ -738,7 +738,7 @@ function StatePanel({
   value: string;
 }) {
   return (
-    <section className="grid min-h-80 place-items-center rounded-lg border bg-card p-8 text-center text-card-foreground shadow-sm">
+    <section className="grid min-h-80 place-items-center rounded-md border border-border/80 bg-card p-8 text-center text-card-foreground shadow-sm">
       <div className="max-w-sm">
         <Badge variant={tone === "destructive" ? "destructive" : tone}>
           <Icon className={operatorIconSizeClass} aria-hidden="true" />

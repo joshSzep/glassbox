@@ -3,17 +3,20 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
-const dataListVariants = cva("divide-y rounded-lg border bg-card text-card-foreground", {
-  variants: {
-    density: {
-      compact: "text-console",
-      default: "text-sm",
+const dataListVariants = cva(
+  "divide-y divide-border/70 rounded-md border border-border/80 bg-surface text-card-foreground",
+  {
+    variants: {
+      density: {
+        compact: "text-console",
+        default: "text-sm",
+      },
+    },
+    defaultVariants: {
+      density: "default",
     },
   },
-  defaultVariants: {
-    density: "default",
-  },
-});
+);
 
 export interface DataListProps
   extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof dataListVariants> {}
@@ -33,7 +36,10 @@ DataList.displayName = "DataList";
 const DataListItem = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
-      className={cn("grid min-h-12 gap-1 px-3 py-2 transition-colors hover:bg-muted/50", className)}
+      className={cn(
+        "grid min-h-density-row gap-1 px-3 py-2 transition-colors hover:bg-surface-raised",
+        className,
+      )}
       ref={ref}
       role="listitem"
       {...props}

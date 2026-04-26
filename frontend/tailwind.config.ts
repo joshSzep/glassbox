@@ -54,6 +54,11 @@ const config: Config = {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
         },
+        surface: {
+          DEFAULT: "hsl(var(--surface))",
+          raised: "hsl(var(--surface-raised))",
+          subtle: "hsl(var(--surface-subtle))",
+        },
         warning: {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
@@ -80,6 +85,10 @@ const config: Config = {
       },
       minWidth: {
         "status-chip": "5.5rem",
+      },
+      minHeight: {
+        "attention-row": "var(--density-row-large)",
+        "density-row": "var(--density-row)",
       },
       spacing: {
         inspector: "var(--console-inspector)",

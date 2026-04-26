@@ -725,7 +725,7 @@ The intended v4 milestone order is:
 
 ### GBX-550: Refresh The v4 Visual System And Density Rules
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-501`, `GBX-510`, `GBX-520`, `GBX-492`
 - Goal: make the console visually precise, calm, dense, and consistent across the redesigned surfaces
 - Deliverables:

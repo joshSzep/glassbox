@@ -4,17 +4,20 @@
 
 :root {
   color-scheme: light;
-  --background: 42 18% 97%;
-  --foreground: 222 18% 13%;
-  --card: 0 0% 100%;
+  --background: 210 20% 97%;
+  --foreground: 221 20% 13%;
+  --card: 210 18% 99%;
   --card-foreground: 222 18% 13%;
   --popover: 0 0% 100%;
   --popover-foreground: 222 18% 13%;
-  --primary: 174 72% 24%;
+  --surface: 0 0% 100%;
+  --surface-raised: 210 20% 98%;
+  --surface-subtle: 213 24% 95%;
+  --primary: 176 62% 25%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 210 18% 91%;
+  --secondary: 210 18% 92%;
   --secondary-foreground: 222 18% 17%;
-  --muted: 210 16% 93%;
+  --muted: 212 16% 92%;
   --muted-foreground: 218 9% 42%;
   --accent: 196 54% 88%;
   --accent-foreground: 203 58% 18%;
@@ -26,12 +29,14 @@
   --success-foreground: 0 0% 100%;
   --info: 203 70% 36%;
   --info-foreground: 0 0% 100%;
-  --border: 214 14% 82%;
-  --input: 214 14% 82%;
-  --ring: 174 72% 24%;
+  --border: 215 14% 80%;
+  --input: 215 14% 80%;
+  --ring: 176 62% 25%;
   --radius: 0.5rem;
   --console-sidebar: 18rem;
   --console-inspector: 22rem;
+  --density-row: 2.75rem;
+  --density-row-large: 5.5rem;
 }
 
 * {

@@ -75,8 +75,27 @@ describe("design system primitives", () => {
 
   it("keeps focus visibility and stable status sizing in shared variants", () => {
     expect(buttonVariants()).toContain("focus-visible:ring-2");
+    expect(buttonVariants()).toContain("focus-visible:ring-offset-background");
     expect(buttonVariants({ size: "icon" })).toContain("w-9");
     expect(badgeVariants({ variant: "success" })).toContain("min-w-status-chip");
+  });
+
+  it("keeps v4 console density classes on shared data lists", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(
+        DataList,
+        { density: "compact" },
+        React.createElement(
+          DataListItem,
+          null,
+          React.createElement(DataListLabel, null, "Evidence"),
+          React.createElement(DataListMeta, null, "stable row"),
+        ),
+      ),
+    );
+
+    expect(markup).toContain("bg-surface");
+    expect(markup).toContain("min-h-density-row");
   });
 
   it("defines operator status tokens with lucide-compatible icons", () => {

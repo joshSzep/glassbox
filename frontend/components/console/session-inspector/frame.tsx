@@ -7,7 +7,7 @@ import { operatorIconSizeClass } from "@/design-system/operator-status";
 export function InspectorFrame({ children }: { children: ReactNode }) {
   return (
     <aside
-      className="min-w-0 rounded-lg border bg-card text-card-foreground shadow-sm"
+      className="min-w-0 rounded-lg border border-border/80 bg-card text-card-foreground shadow-sm"
       aria-label="Selected session inspector"
     >
       {children}
@@ -25,7 +25,7 @@ export function Pane({
   title: string;
 }) {
   return (
-    <section className="rounded-lg border bg-background p-4">
+    <section className="rounded-md border border-border/80 bg-surface-raised p-4">
       <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-normal text-muted-foreground">
         <Icon className={operatorIconSizeClass} aria-hidden="true" />
         {title}
