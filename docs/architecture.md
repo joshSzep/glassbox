@@ -2163,12 +2163,12 @@ src/glassbox/
         workflow.py
     store/
         __init__.py
-        _sqlite_events.py
-        _sqlite_fork.py
-        _sqlite_projections.py
-        _sqlite_queries.py
-        _sqlite_schema.py
-        _sqlite_sessions.py
+        sqlite_events.py
+        sqlite_fork.py
+        sqlite_projections.py
+        sqlite_queries.py
+        sqlite_schema.py
+        sqlite_sessions.py
         artifacts.py
         repositories.py
         sqlite.py
@@ -2213,14 +2213,14 @@ The public entry modules are intentionally thinner than their neighbors:
 
 - `runtime/__init__.py` stays a curated package surface for runtime wiring types
 - `runtime/replay.py` and `runtime/eval_summary.py` stay as compatibility facades over the split replay and eval-reporting modules
-- `store/sqlite.py` stays as the stable SQLite facade while internal ownership lives in `_sqlite_*` modules
+- `store/sqlite.py` stays as the stable SQLite facade while internal ownership lives in `sqlite_*` modules
 - `web/static/state.js`, `render.js`, and `dashboard.js` stay as browser facades over the split reducer, renderer, transport, and DOM modules
 
 ### Boundary Rules
 
 - `core` contains pure domain types and no framework code.
 - `services` contains repository and service contracts plus contract-layer shared values such as `StoredArtifact`; it should remain concrete-implementation free.
-- `store` owns persistence internals, repository adapters, artifact storage, and projection rebuild logic. Raw SQLite helpers stay in `_sqlite_*` modules behind `store/sqlite.py`.
+- `store` owns persistence internals, repository adapters, artifact storage, and projection rebuild logic. Raw SQLite helpers stay in `sqlite_*` modules behind `store/sqlite.py`.
 - `runtime` owns orchestration, context assembly, the shared model-loop boundary, session-query shaping, replay execution, and eval reporting. Bootstrap code may wire concrete store implementations, but orchestration code should prefer service and repository contracts.
 - `tools` depends on `core` and minimal runtime contracts.
 - `cli` depends on runtime and service/query seams, not on raw store helpers. `cli/__init__.py` remains a compatibility wrapper while parser, command, interactive-session, and formatting responsibilities live in owned neighbor modules.

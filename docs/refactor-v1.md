@@ -216,7 +216,7 @@ These follow-on tasks stay within the same behavior-preserving contract as the o
 - Depends on: `GBX-R100`
 - Goal: separate schema/bootstrap, event-log operations, and projection application inside the store layer without changing repository behavior
 - Deliverables:
-  - internal store module split for schema/bootstrap, event-store reads/writes, projection application, and lineage/fork helpers under `src/glassbox/store/_sqlite_*.py`
+  - internal store module split for schema/bootstrap, event-store reads/writes, projection application, and lineage/fork helpers under `src/glassbox/store/sqlite_*.py`
   - existing repository adapters kept stable or migrated with small compatibility shims
   - clear internal ownership for projection rebuild and append-time projection updates
 - Implementation notes:

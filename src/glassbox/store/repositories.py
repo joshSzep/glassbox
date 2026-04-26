@@ -5,12 +5,12 @@ from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
 
-import glassbox.store._sqlite_events as event_store
-import glassbox.store._sqlite_fork as fork_store
-import glassbox.store._sqlite_projection_health as projection_health_store
-import glassbox.store._sqlite_queries as query_store
-import glassbox.store._sqlite_sessions as session_store
 import glassbox.store.artifacts as artifact_store
+import glassbox.store.sqlite_events as event_store
+import glassbox.store.sqlite_fork as fork_store
+import glassbox.store.sqlite_projection_health as projection_health_store
+import glassbox.store.sqlite_queries as query_store
+import glassbox.store.sqlite_sessions as session_store
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import RuntimeNoteRecorded
 from glassbox.core.ids import ApprovalId

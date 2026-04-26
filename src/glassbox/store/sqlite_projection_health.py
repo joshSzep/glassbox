@@ -4,7 +4,7 @@ import sqlite3
 
 from glassbox.core.ids import SessionId
 from glassbox.core.models import ProjectionHealth
-from glassbox.store._sqlite_sessions import get_session
+from glassbox.store.sqlite_sessions import get_session
 
 _PROJECTION_TABLES = (
     "session_state",

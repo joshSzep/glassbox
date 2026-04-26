@@ -29,7 +29,7 @@ from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import TurnId
 from glassbox.core.types import SessionStatus
-from glassbox.store._sqlite_utils import _stringify_identifier
+from glassbox.store.sqlite_utils import _stringify_identifier
 
 
 def _apply_projection_event(

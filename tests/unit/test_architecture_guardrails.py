@@ -31,14 +31,13 @@ PYTHON_DIRECTION_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
 PYTHON_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
     (
         SRC_ROOT / "cli",
-        ("glassbox.store.sqlite", "glassbox.store._sqlite"),
+        ("glassbox.store.sqlite",),
         "cli modules must not depend directly on raw sqlite helpers",
     ),
     (
         SRC_ROOT / "web" / "routes",
         (
             "glassbox.store.sqlite",
-            "glassbox.store._sqlite",
             "glassbox.store.repositories",
         ),
         (
@@ -65,7 +64,7 @@ PYTHON_FACADE_RULES: tuple[
     ),
     (
         SRC_ROOT / "store" / "sqlite.py",
-        ("glassbox.store._sqlite_",),
+        ("glassbox.store.sqlite_",),
         100,
         "store.sqlite should stay a thin facade over internal sqlite modules",
     ),

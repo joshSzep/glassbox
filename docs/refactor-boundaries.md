@@ -113,7 +113,7 @@ The `store` package should not own runtime orchestration, CLI formatting, or web
 - raw event-store operations should be distinct from projection application helpers
 - projection application should remain deterministic and rebuildable from `events`
 - repository adapters should stay stable while internal storage helpers split underneath them
-- the SQLite store now uses internal `_sqlite_schema.py`, `_sqlite_sessions.py`, `_sqlite_events.py`, `_sqlite_projections.py`, `_sqlite_queries.py`, and `_sqlite_fork.py` modules behind the stable `store/sqlite.py` facade
+- the SQLite store now uses internal `sqlite_schema.py`, `sqlite_sessions.py`, `sqlite_events.py`, `sqlite_projections.py`, `sqlite_queries.py`, and `sqlite_fork.py` modules behind the stable `store/sqlite.py` facade
 - `store/__init__.py` should stay limited to repository adapters, bootstrap helpers, and shared artifact models; raw SQLite and artifact helper imports should come from `store.sqlite` or `store.artifacts`
 
 ### Services
@@ -272,7 +272,7 @@ The intended mapping is:
 
 - `GBX-R101`: shared model-loop boundary for live turns and replay
 - `GBX-R102`: shared session snapshot and query service in `src/glassbox/runtime/session_queries.py`
-- `GBX-R103`: store-internal split under stable repository adapters via the `_sqlite_*.py` internal modules behind `store/sqlite.py`
+- `GBX-R103`: store-internal split under stable repository adapters via the `sqlite_*.py` internal modules behind `store/sqlite.py`
 - `GBX-R104`: export-surface tightening and dependency-direction cleanup
 
 Later tasks should follow this boundary map rather than redefining subsystem ownership case by case.

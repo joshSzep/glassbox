@@ -12,8 +12,8 @@ from glassbox.core.models import SessionRecord
 from glassbox.core.models import SessionState
 from glassbox.core.types import ApprovalMode
 from glassbox.core.types import SessionStatus
-from glassbox.store._sqlite_utils import _session_from_row
-from glassbox.store._sqlite_utils import _stringify_identifier
+from glassbox.store.sqlite_utils import _session_from_row
+from glassbox.store.sqlite_utils import _stringify_identifier
 
 
 def create_session(

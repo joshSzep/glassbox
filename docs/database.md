@@ -91,7 +91,7 @@ The persistence contract above is stable even though the store implementation is
 now decomposed internally.
 
 - `src/glassbox/store/sqlite.py` is the public compatibility facade for schema bootstrap, append/read helpers, rebuild entrypoints, and list-style query helpers
-- `src/glassbox/store/_sqlite_schema.py`, `_sqlite_sessions.py`, `_sqlite_events.py`, `_sqlite_projections.py`, `_sqlite_queries.py`, and `_sqlite_fork.py` own the internal storage concerns separately
+- `src/glassbox/store/sqlite_schema.py`, `sqlite_sessions.py`, `sqlite_events.py`, `sqlite_projections.py`, `sqlite_queries.py`, and `sqlite_fork.py` own the internal storage concerns separately
 - `src/glassbox/store/repositories.py` owns the concrete repository adapters over those helpers
 - `src/glassbox/store/artifacts.py` owns filesystem artifact writes and reads while returning the shared `StoredArtifact` contract type from `services/contracts.py`
 

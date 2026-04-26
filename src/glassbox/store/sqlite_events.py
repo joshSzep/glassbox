@@ -16,15 +16,15 @@ from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.models import SessionConfig
 from glassbox.core.types import SessionStatus
-from glassbox.store._sqlite_projections import _apply_projection_event
-from glassbox.store._sqlite_projections import _clear_session_projections
-from glassbox.store._sqlite_sessions import create_session
-from glassbox.store._sqlite_sessions import get_session
-from glassbox.store._sqlite_sessions import get_session_state
-from glassbox.store._sqlite_sessions import update_session
-from glassbox.store._sqlite_utils import CorrelationValue
-from glassbox.store._sqlite_utils import _event_from_row
-from glassbox.store._sqlite_utils import _stringify_identifier
+from glassbox.store.sqlite_projections import _apply_projection_event
+from glassbox.store.sqlite_projections import _clear_session_projections
+from glassbox.store.sqlite_sessions import create_session
+from glassbox.store.sqlite_sessions import get_session
+from glassbox.store.sqlite_sessions import get_session_state
+from glassbox.store.sqlite_sessions import update_session
+from glassbox.store.sqlite_utils import CorrelationValue
+from glassbox.store.sqlite_utils import _event_from_row
+from glassbox.store.sqlite_utils import _stringify_identifier
 
 
 def append_event(
