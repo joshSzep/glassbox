@@ -378,7 +378,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-432: Add Routing, Deep Links, And Navigation State For `/app`
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-431`
 - Goal: make the migration route behave like a real SPA while preserving existing dashboard deep-link semantics
 - Deliverables:
