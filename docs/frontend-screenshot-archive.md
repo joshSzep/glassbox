@@ -8,6 +8,8 @@ The v4 screenshot archive is a repeatable Playwright capture of representative d
 
 Screenshots are audit artifacts first. They are not strict pixel baselines unless a later task deliberately introduces a visual-regression gate.
 
+Archive captures should contain only Glassbox operator-console UI and deterministic fixture data. The screenshot command disables Next.js dev indicators during capture and checks for known dev-only overlay roots before writing images.
+
 ## Generate The Archive
 
 Run the full archive from the repository root:
@@ -71,6 +73,7 @@ For pure transport, reducer, state-model, generated-type, or backend changes tha
 
 When reviewing an archive, check:
 
+- no Next.js dev indicator or other tooling overlay is visible in the screenshot
 - the first visible screen identifies workspace health and highest-priority operator work
 - urgent approval and question states are visually stronger than passive diagnostics
 - inspector tabs reduce clutter rather than rendering every pane at once

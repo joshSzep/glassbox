@@ -43,6 +43,11 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
 };
 
+const v4AuditScreenshotConfig: NextConfig = {
+  ...nextConfig,
+  devIndicators: false,
+};
+
 export default function config(phase: string): NextConfig {
   if (phase !== PHASE_DEVELOPMENT_SERVER) {
     return {
@@ -52,7 +57,7 @@ export default function config(phase: string): NextConfig {
   }
 
   return {
-    ...nextConfig,
+    ...(process.env.V4_AUDIT_SCREENSHOTS === "1" ? v4AuditScreenshotConfig : nextConfig),
     async rewrites() {
       return createDevRewrites(process.env.GLASSBOX_FASTAPI_ORIGIN);
     },

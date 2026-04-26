@@ -13,16 +13,16 @@ export default defineConfig({
   testMatch: "v4-audit-screenshots.spec.ts",
   timeout: 60_000,
   use: {
-    baseURL: "http://127.0.0.1:3210",
+    baseURL: "http://127.0.0.1:3211",
     screenshot: "off",
     trace: "retain-on-failure",
     video: "off",
   },
   webServer: {
-    command: "pnpm exec next dev --hostname 127.0.0.1 --port 3210",
-    reuseExistingServer: !process.env.CI,
+    command: "V4_AUDIT_SCREENSHOTS=1 pnpm exec next dev --hostname 127.0.0.1 --port 3211",
+    reuseExistingServer: false,
     timeout: 120_000,
-    url: "http://127.0.0.1:3210/app",
+    url: "http://127.0.0.1:3211/app",
   },
   projects: [
     {

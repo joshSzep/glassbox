@@ -73,12 +73,12 @@ These rules apply to every task in this file.
 8. Keep raw transcript, event, metric, approval, question, tool-call, lineage, and runtime-context evidence available even when moving it behind tabs, sheets, or progressive disclosure.
 9. If the UX redesign exposes an API mismatch, fix the API contract or document the mismatch before encoding fragile browser-only workarounds.
 10. Every implementation task automatically includes:
-   - automated tests for new behavior
-   - `pnpm` lint, typecheck, unit test, and build compliance for touched frontend code
-   - Playwright coverage for changed critical browser workflows when the behavior is user-visible and end-to-end
-   - `ruff` formatting and lint compliance for touched Python code
-   - `ty` typecheck compliance for touched Python code
-   - documentation updates when contracts, routes, packaging, workflows, or operator-visible behavior change
+    - automated tests for new behavior
+    - `pnpm` lint, typecheck, unit test, and build compliance for touched frontend code
+    - Playwright coverage for changed critical browser workflows when the behavior is user-visible and end-to-end
+    - `ruff` formatting and lint compliance for touched Python code
+    - `ty` typecheck compliance for touched Python code
+    - documentation updates when contracts, routes, packaging, workflows, or operator-visible behavior change
 
 ## Completion Contract For Any Task
 
@@ -241,7 +241,7 @@ The intended v4 milestone order is:
 
 ### GBX-493: Remove Dev-Only Chrome From Screenshot Captures
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-492`
 - Goal: keep the v4 screenshot archive focused on the product UI rather than Next.js development overlays or tooling chrome
 - Deliverables:

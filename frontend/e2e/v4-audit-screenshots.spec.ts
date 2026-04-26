@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -50,6 +50,7 @@ for (const scenario of Object.keys(scenarioFixtures) as ScreenshotScenarioId[]) 
       const route = scenarioRoute(scenario);
       await page.goto(route);
       await expect(page.getByRole("heading", { name: "Operator Console" })).toBeVisible();
+      await expectNoDevOnlyChrome(page);
       await page.screenshot({
         fullPage: true,
         path: path.join(archiveRoot, `${scenario}.${viewport.name}.png`),
@@ -83,6 +84,53 @@ test.afterAll(async () => {
   );
   await writeFile(path.join(archiveRoot, "index.md"), renderIndex(manifest));
 });
+
+async function expectNoDevOnlyChrome(page: Page): Promise<void> {
+  const visibleDevElements = await page.evaluate(() => {
+    const devChromeSelectors = [
+      "[data-nextjs-toast]",
+      ".nextjs-toast",
+      ".dev-tools-indicator-menu",
+      "#devtools-indicator",
+    ];
+    const candidates = Array.from(
+      document.querySelectorAll(
+        "nextjs-portal, script[data-nextjs-dev-overlay], [data-nextjs-toast]",
+      ),
+    );
+
+    for (const element of Array.from(document.querySelectorAll("nextjs-portal"))) {
+      if (element.shadowRoot !== null) {
+        candidates.push(
+          ...Array.from(element.shadowRoot.querySelectorAll(devChromeSelectors.join(","))),
+        );
+      }
+    }
+
+    return candidates.filter(isVisibleDevElement).map((element) => ({
+      className: String((element as HTMLElement).className ?? ""),
+      id: (element as HTMLElement).id,
+      tagName: element.tagName.toLowerCase(),
+      text: (element.textContent ?? "").trim().slice(0, 80),
+    }));
+
+    function isVisibleDevElement(element: Element): boolean {
+      const htmlElement = element as HTMLElement;
+      const style = window.getComputedStyle(htmlElement);
+      const rect = htmlElement.getBoundingClientRect();
+
+      return (
+        style.display !== "none" &&
+        style.visibility !== "hidden" &&
+        style.opacity !== "0" &&
+        rect.width > 0 &&
+        rect.height > 0
+      );
+    }
+  });
+
+  expect(visibleDevElements).toEqual([]);
+}
 
 function renderIndex(entries: ManifestEntry[]): string {
   const rows = entries
