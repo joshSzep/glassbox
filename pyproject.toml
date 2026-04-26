@@ -64,5 +64,12 @@ packages = ["src/glassbox"]
 artifacts = ["src/glassbox/web/static_next/**"]
 
 [tool.hatch.build.targets.sdist]
-include = ["/src", "/tests", "/docs", "/README.md", "/LICENSE", "/pyproject.toml"]
+include = [
+    "/src",
+    "/tests",
+    "/docs",
+    "/README.md",
+    "/LICENSE",
+    "/pyproject.toml",
+]
 artifacts = ["src/glassbox/web/static_next/**"]
