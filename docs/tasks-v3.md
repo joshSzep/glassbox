@@ -667,7 +667,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-473: Package The SPA As Part Of The Python Distribution
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-471`
 - Goal: ensure the production dashboard works from installed Python packages without requiring users to build frontend assets locally
 - Deliverables:

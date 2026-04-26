@@ -3,6 +3,7 @@
 import asyncio
 import re
 import sqlite3
+import tomllib
 from pathlib import Path
 
 import httpx
@@ -63,6 +64,43 @@ def test_default_dashboard_reports_clear_error_when_spa_build_is_missing(
             connection.close()
 
     asyncio.run(scenario())
+
+
+def test_default_dashboard_reports_clear_error_for_stale_spa_build(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def scenario() -> None:
+        static_next = tmp_path / "static_next"
+        _write_spa_build(static_next)
+        (static_next / "_next" / "static" / "chunks" / "app.js").unlink()
+        monkeypatch.setattr(web_app, "_STATIC_NEXT_DIR", static_next)
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app = _make_app(tmp_path, connection)
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get("/")
+
+            assert response.status_code == 503
+            assert "missing SPA asset" in response.json()["detail"]
+            assert "/app/_next/static/chunks/app.js" in response.json()["detail"]
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_package_build_config_includes_spa_static_artifacts() -> None:
+    project = tomllib.loads((Path(__file__).parents[2] / "pyproject.toml").read_text())
+
+    wheel = project["tool"]["hatch"]["build"]["targets"]["wheel"]
+    sdist = project["tool"]["hatch"]["build"]["targets"]["sdist"]
+
+    assert "src/glassbox/web/static_next/**" in wheel["artifacts"]
+    assert "src/glassbox/web/static_next/**" in sdist["artifacts"]
 
 
 def test_default_dashboard_serves_spa_shell_when_build_exists(

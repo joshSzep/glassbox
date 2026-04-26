@@ -12,6 +12,7 @@ from fastapi import Request
 from fastapi.responses import FileResponse
 
 from glassbox.runtime.context import RuntimeContext
+from glassbox.web.spa_static import validate_spa_static_assets
 
 _STATIC_NEXT_DIR = Path(__file__).parent / "static_next"
 _SPA_MISSING_DETAIL = (
@@ -34,8 +35,10 @@ def _spa_index_path() -> Path:
 
 
 def _ensure_spa_build_available() -> None:
-    if not _spa_index_path().is_file():
-        raise HTTPException(status_code=503, detail=_SPA_MISSING_DETAIL)
+    problems = validate_spa_static_assets(_STATIC_NEXT_DIR)
+    if problems:
+        detail = f"{_SPA_MISSING_DETAIL} Problem: {problems[0]}"
+        raise HTTPException(status_code=503, detail=detail)
 
 
 def _resolve_spa_file(relative_path: str) -> Path | None:

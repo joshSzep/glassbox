@@ -123,6 +123,8 @@ Before treating a build as a Glassbox v2 release candidate, complete this list:
 - `uv run pre-commit run --all-files` passes, including replay-backed evals.
 - `uv run glassbox eval report ...` writes release-signoff artifacts for the
   selected deterministic profiles.
+- `pnpm --dir frontend build` has refreshed `src/glassbox/web/static_next/`, and
+  `uv build --wheel` includes the SPA dashboard assets.
 - Manual dashboard smoke: start `session chat`, open the printed dashboard URL,
   confirm the session inspector loads, then confirm the root dashboard lists the
   session in the appropriate queue.
@@ -156,5 +158,7 @@ inspectable, and deterministic where release evidence needs to be deterministic.
 - [tool-policy.md](./tool-policy.md): approval and tool-governance model
 - [replay-evals.md](./replay-evals.md): replay, eval, recommendation, and release
   signoff workflows
+- [release-packaging.md](./release-packaging.md): package build and installed SPA
+  dashboard smoke validation
 - [team-workflows.md](./team-workflows.md): local-first handoff and operator
   identity semantics
