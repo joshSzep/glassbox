@@ -230,6 +230,195 @@ pending approvals/questions and failed/degraded states outrank raw event logs,
 metric tables, and historical artifact detail. Raw evidence must remain
 available, but it should not crowd out the immediate operator decision.
 
+## V4 Operator Console Interaction Contract
+
+The v4 redesign starts from the screenshot-backed audit in
+[frontend-ux-audit-v4.md](./frontend-ux-audit-v4.md). The central correction is
+interaction hierarchy: the console should first answer what needs attention,
+what action is safe, and what evidence matters for that decision. It should not
+render every available session surface as equal default content.
+
+### V4 Surface Model
+
+The console is organized around four persistent surface roles.
+
+Attention rail:
+
+- owns workspace identity, runtime-owner summary, projection-health summary,
+  queue counts, filtered queues, and prioritized session summaries
+- explains the highest-priority queue item in operator language before showing
+  secondary metrics
+- keeps queue membership and row ordering grounded in server priority, with
+  local filtering and selection only narrowing that server-backed set
+- renders mobile and narrow summaries as stacked attention rows, never clipped
+  desktop tables
+
+Session narrative:
+
+- owns the selected-session header, transcript preview, timeline, active turn,
+  stream posture, and branch context
+- tells the current session story before exposing raw diagnostics
+- connects approvals, questions, tool calls, failures, fork boundaries, and turn
+  metrics to their transcript or timeline position
+- preserves direct selected-session links and can be opened from any queue row
+
+Action rail:
+
+- owns the next safe operator decision for the selected session
+- keeps approval, denial, `ask_user` answer, retry guidance, prompt composer,
+  fork, lineage, and compare controls out of passive evidence panels
+- places pending, submitted, resolved, validation-error, conflict, and network
+  recovery states beside the control that caused them
+- remains reachable near the selected-session header on every viewport
+
+Evidence surfaces:
+
+- own runtime context, working set, artifact summaries, projection diagnostics,
+  verification cues, metrics, event log, raw transcript, lineage details, and
+  compare details
+- stay available without crowding out attention, narrative, or action surfaces
+- distinguish advisory evidence from runtime failure and session failure
+- use tabs, sheets, or focused panes to reveal detail only when the operator is
+  inspecting evidence, comparing branches, or debugging health
+
+### V4 Layout Rules
+
+Desktop widths should use a three-region console when there is room: attention
+rail on the left, session narrative in the center, and action/evidence rail on
+the right. The selected-session narrative owns the most horizontal space because
+it carries the operator's mental model. Action cards should align with the
+selected-session header and remain visible above secondary evidence. Evidence can
+share the right rail behind tabs or accordions, but urgent action state is not
+buried behind diagnostics.
+
+Narrow desktop widths should collapse to two regions: attention rail plus
+selected-session workspace. The selected-session workspace should show narrative
+and action first, then evidence behind tabs, a sheet, or a lower pane. Queue
+filters and the selected session remain visible together so operators can move
+between triage and inspection without losing route state.
+
+Tablet widths should stack regions in workflow order: workspace summary, queue
+or attention rows, selected-session header, action rail, session narrative, then
+evidence tabs. Top-level navigation should remain persistent enough to return to
+queues without walking through the full evidence stack.
+
+Mobile widths should become a deliberate drill-in workflow. The default route
+shows workspace summary and stacked queue/session attention rows. Selecting a
+session opens a focused inspector with a clear return path, selected-session
+header, primary action, narrative/timeline, and then evidence tabs or sheets.
+Queue rows must wrap as compact labeled blocks with stable fields for status,
+updated time, next action, pending subject, and health. No mobile workflow may
+require horizontal scrolling to read `NEXT ACTION`, approve or deny, answer a
+question, submit a prompt, inspect compare context, or read artifact evidence.
+
+### Tab And Route-State Contract
+
+Tabs should reduce scope, not decorate an all-panels-at-once page. The selected
+session supports these route-state concepts:
+
+- `session`: selected session identifier, deep-linkable from any queue or
+  lineage/compare surface
+- `queue`: selected queue or filter, preserved when opening and closing a
+  selected session
+- `tab`: selected inspector scope, such as `overview`, `transcript`, `timeline`,
+  `actions`, `lineage`, `compare`, `evidence`, `metrics`, or `events`
+- `compare`: selected compare target, preserved while moving between compare and
+  narrative tabs
+
+The `overview` tab is a selective summary of narrative, current action, and most
+important evidence; it is not a dump of every panel. Changing tabs should update
+route state without dropping local drafts, scroll focus, selected queue, or
+compare target. Invalid or unavailable tabs should fall back to the closest
+safe tab with clear neutral copy, such as a historical session without live
+actions returning to narrative or evidence instead of showing broken controls.
+
+### Action-Priority Rules
+
+When the selected session has multiple possible controls, v4 orders them by the
+operator decision they unblock:
+
+1. pending approvals, including approve and deny, because they unblock blocked
+   tool or policy work and require risk context
+2. pending `ask_user` questions, because the agent is explicitly waiting on an
+   answer
+3. failed-session recovery or retry guidance, because the next decision is
+   whether the failure is actionable, historical, or only inspectable
+4. prompt composer for idle promptable sessions, because it starts new work
+   only after blocking decisions are absent
+5. fork controls, because they create alternate work from a known boundary and
+   need branch context
+6. lineage and compare controls, because they support branch triage and should
+   be close to narrative evidence but below urgent actions
+7. evidence, metrics, raw events, and diagnostics, because they explain or
+   verify state but are not usually the first action
+
+This order applies visually, in keyboard order, and in mobile stacking. If a
+backend mutation is pending or conflicts, the affected action stays in place and
+shows pending/error/retry state locally instead of pushing the operator to a
+global toast or distant event row.
+
+### Status Hierarchy Rules
+
+The console should treat status terms as different layers, not interchangeable
+badges:
+
+- runtime-owner state says whether a compatible daemon or foreground owner can
+  accept live work for the workspace
+- browser stream posture says whether this browser is currently receiving an SSE
+  tail for the selected session
+- projection health says whether derived read models are fresh, stale,
+  unavailable, or missing while canonical events remain authoritative
+- session status says whether the session itself is running, idle, completed,
+  failed, cancelled, or historical
+- queue urgency says why the operator should inspect this session now, such as
+  approval, question, failure, degraded projection, or active work
+- verification evidence says whether replay, eval, context, artifact, or working
+  set cues support confidence or require inspection
+
+Visual weight follows operational urgency. Queue urgency and pending actions get
+the strongest treatment. Session status and stream posture support the selected
+session header. Runtime owner and projection health sit in compact health
+summaries unless they directly block an action. Verification evidence uses
+advisory styling unless it identifies a concrete failure. None of these states
+should rely on color alone; each needs text or an accessible name carrying the
+state meaning.
+
+### V4 Copy Guidance
+
+Copy should state operator consequences, not implementation internals.
+
+- Status copy should prefer `live`, `reconnecting`, `historical snapshot`,
+  `awaiting approval`, `awaiting answer`, `failed`, `projection degraded`,
+  `compare available`, and `artifact drift` over protocol or framework terms.
+- Health copy should explain whether work is blocked, inspectable, advisory, or
+  repairable, and should reuse CLI-aligned repair language such as checking the
+  daemon or projection health.
+- Empty states should confirm the queue is clear and preserve next navigation;
+  they should not explain how the application works.
+- Action feedback should stay local: `approving`, `approved`, `denied`,
+  `answer sent`, `prompt queued`, `fork created`, `retry failed`, or `conflict`
+  beside the relevant control.
+- Evidence labels should separate label and value clearly, wrap long paths, and
+  distinguish artifact summaries from runtime, projection, or session failures.
+
+### Screenshot Review Rubric
+
+Every v4 surface change should update or rerun the screenshot archive and review
+the scenarios that prove the affected behavior:
+
+| Surface | Primary Scenarios | Review Focus |
+| --- | --- | --- |
+| Attention rail and queue rows | `empty-workspace`, `all-queues`, `pending-approval`, `pending-question`, `failed-session`, `projection-degraded` | highest-priority item is obvious, mobile rows wrap without horizontal clipping, empty queues stay calm |
+| Session narrative and timeline | `live-session`, `historical-session`, `failed-session`, `branched-session` | selected-session story appears before raw diagnostics, live and historical states read differently |
+| Action rail | `pending-approval`, `pending-question`, `live-session`, `failed-session` | blocking decisions outrank composer/fork/evidence, feedback appears beside the action |
+| Lineage and compare | `branched-session`, `compare-view` | parent/child context and compare target remain visible across tabs and mobile drill-in |
+| Evidence and verification | `artifact-drift`, `projection-degraded`, `compare-view` | advisory evidence does not look like runtime failure, long paths and labels wrap cleanly |
+| Responsive behavior | every scenario at desktop and mobile, plus narrow desktop/tablet when captured manually | no clipped next-action text, no all-panels-at-once mobile stack, actions remain reachable |
+
+Archive screenshots are not permanent goldens by default. They are an evidence
+set for reviewing whether each interaction slice honors this contract before it
+is marked done.
+
 ## Information Architecture
 
 The first console should organize the dashboard into these operator surfaces.

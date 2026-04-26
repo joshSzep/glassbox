@@ -292,7 +292,7 @@ The intended v4 milestone order is:
 
 ### GBX-501: Define The v4 Operator Console Interaction Model
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-500`
 - Goal: convert the UX audit into a concrete interaction contract for the v4 redesign
 - Deliverables:
