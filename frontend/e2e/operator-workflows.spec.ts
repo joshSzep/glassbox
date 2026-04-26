@@ -30,6 +30,13 @@ test("operator can browse queues, open a session, stream updates, and resolve ac
   await expect(page.getByText("awaiting approval")).toBeVisible();
   await expect(page.getByText("Live SSE update received by the browser.")).toBeVisible();
 
+  await page.getByRole("tab", { name: "Transcript" }).click();
+  await expect(page).toHaveURL(/tab=transcript/);
+  await expect(page.getByLabel("Session narrative turns")).toBeVisible();
+  await expect(page.getByText("Live SSE update received by the browser.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Pending action" })).toBeVisible();
+  await page.getByRole("tab", { name: "Overview" }).click();
+
   await page.getByLabel("Continue session").fill("Please continue with the next check");
   await page.getByRole("button", { name: "Send prompt" }).click();
 

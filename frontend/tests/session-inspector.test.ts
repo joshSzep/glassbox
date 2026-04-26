@@ -152,7 +152,49 @@ describe("session inspector", () => {
     const transcriptMarkup = renderInspectorTab(data, "transcript");
     expect(transcriptMarkup).toContain("Transcript");
     expect(transcriptMarkup).toContain("Inspect the console");
+    expect(transcriptMarkup).toContain("Latest activity");
+    expect(transcriptMarkup).toContain("Session narrative turns");
+    expect(transcriptMarkup).toContain("Approval: apply patch");
+    expect(transcriptMarkup).toContain("Live stdout");
     expect(transcriptMarkup).not.toContain("Lineage and turns");
+  });
+
+  it("renders transcript narrative states across fixture scenarios", () => {
+    const cases = [
+      ["approval-session", "pending-approval", "Approval:"],
+      ["question-session", "pending-question", "Question"],
+      ["failed-session", "failed-session", "Retryable failure"],
+      ["historical-session", "historical-session", "historical"],
+      ["large-transcript-session", "large-transcript", "Live stdout"],
+    ] as const;
+
+    for (const [sessionId, scenarioId, expectedText] of cases) {
+      const data = hydrateSelectedSession(
+        createDashboardState(),
+        makeV4ScenarioSnapshot(sessionId, scenarioId),
+      );
+      const markup = renderInspectorTab(
+        scenarioId === "large-transcript"
+          ? {
+              ...data,
+              liveOutput: [
+                {
+                  chunk: "pnpm test output is still streaming",
+                  stream: "stdout",
+                  tool_call_id: "tool-1",
+                  turn_id: "turn-1",
+                },
+              ],
+            }
+          : data,
+        "transcript",
+      );
+
+      expect(markup).toContain("Transcript");
+      expect(markup).toContain("Latest activity");
+      expect(markup).toContain(expectedText);
+      expect(markup).toContain("Turn metrics");
+    }
   });
 
   function makeRichSessionData(suffix: string) {

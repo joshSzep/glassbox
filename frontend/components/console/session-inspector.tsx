@@ -46,6 +46,7 @@ export type SessionInspectorProps = {
   onOpenSession?: (sessionId: string) => void;
   onPromptChange?: (text: string) => void;
   onResolveApproval?: (input: { approvalId: string; decision: "approved" | "denied" }) => void;
+  onSelectTab?: (tab: InspectorTab) => void;
   onSubmitAnswer?: (questionId: string) => void;
   onSubmitPrompt?: () => void;
   queue: AppQueue;
@@ -67,6 +68,7 @@ export function SessionInspector({
   onOpenSession,
   onPromptChange,
   onResolveApproval,
+  onSelectTab,
   onSubmitAnswer,
   onSubmitPrompt,
   queue,
@@ -101,7 +103,7 @@ export function SessionInspector({
   return (
     <InspectorFrame>
       <SessionHeader data={data} stream={stream} />
-      <InspectorTabs activeTab={activeTab} data={data} queue={queue} />
+      <InspectorTabs activeTab={activeTab} data={data} onSelectTab={onSelectTab} queue={queue} />
       <InspectorTabContent
         action={action}
         activeTab={activeTab}
@@ -169,7 +171,7 @@ function InspectorTabContent({
 
   switch (activeTab) {
     case "transcript":
-      return <TabPanel>{<TranscriptPane messages={data.transcript} />}</TabPanel>;
+      return <TabPanel>{<TranscriptPane data={data} />}</TabPanel>;
     case "timeline":
       return <TabPanel>{<TimelinePane data={data} />}</TabPanel>;
     case "actions":

@@ -574,7 +574,7 @@ The intended v4 milestone order is:
 
 ### GBX-531: Redesign The Transcript Tab Around The Session Narrative
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-530`
 - Goal: make transcript inspection the central narrative surface for what happened and what is happening now
 - Deliverables:

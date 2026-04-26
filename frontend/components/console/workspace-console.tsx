@@ -14,6 +14,7 @@ import {
   selectQueueRoute,
   selectSessionRoute,
   setCompareRoute,
+  setInspectorTabRoute,
   type AppQueue,
   type AppRouteState,
 } from "@/routing/app-route";
@@ -122,6 +123,7 @@ export function WorkspaceConsole() {
                 await refreshSelectedSession();
               })();
             }}
+            onSelectTab={(tab) => navigate(setInspectorTabRoute(route, tab))}
             onSubmitAnswer={(questionId) => {
               void (async () => {
                 await sessionStore.getState().submitAnswer({ questionId });

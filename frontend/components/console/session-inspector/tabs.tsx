@@ -18,10 +18,12 @@ const inspectorTabs: { label: string; value: InspectorTab }[] = [
 export function InspectorTabs({
   activeTab,
   data,
+  onSelectTab,
   queue,
 }: {
   activeTab: InspectorTab;
   data: DashboardState;
+  onSelectTab?: (tab: InspectorTab) => void;
   queue: AppQueue;
 }) {
   return (
@@ -37,6 +39,13 @@ export function InspectorTabs({
                   selectedSessionId: data.sessionId,
                   tab: tab.value,
                 })}
+                onClick={(event) => {
+                  if (onSelectTab === undefined) {
+                    return;
+                  }
+                  event.preventDefault();
+                  onSelectTab(tab.value);
+                }}
               >
                 {tab.label}
               </a>
