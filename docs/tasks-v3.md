@@ -539,7 +539,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-460: Establish Frontend Unit, Component, And Integration Test Stack
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-410`, `GBX-430`, `GBX-440`
 - Goal: replace the legacy Node test-runner pattern with frontend-native tests that scale with the SPA
 - Deliverables:
