@@ -61,6 +61,9 @@ for (const scenario of Object.keys(scenarioFixtures) as ScreenshotScenarioId[]) 
         if (view.name === "timeline") {
           await expect(page.getByLabel("Timeline turns")).toBeVisible();
         }
+        if (view.name === "lineage") {
+          await expect(page.getByLabel("Current lineage anchor")).toBeVisible();
+        }
         if (view.name === "evidence") {
           await expect(page.getByLabel("Evidence overview")).toBeVisible();
         }
@@ -102,6 +105,10 @@ function screenshotViewsForScenario(scenario: ScreenshotScenarioId): ScreenshotV
     ["branched-session", "failed-session", "live-session", "pending-approval"].includes(scenario)
   ) {
     views.push({ name: "timeline", route: routeWithTab(route, "timeline") });
+  }
+
+  if (["branched-session", "historical-session", "live-session"].includes(scenario)) {
+    views.push({ name: "lineage", route: routeWithTab(route, "lineage") });
   }
 
   if (["artifact-drift", "large-transcript", "projection-degraded"].includes(scenario)) {

@@ -156,7 +156,14 @@ describe("session inspector", () => {
 
     const lineageMarkup = renderInspectorTab(data, "lineage");
     expect(lineageMarkup).toContain("Lineage and turns");
+    expect(lineageMarkup).toContain("Current lineage anchor");
+    expect(lineageMarkup).toContain("Current session");
+    expect(lineageMarkup).toContain("Child sessions");
+    expect(lineageMarkup).toContain("Forkable turns");
     expect(lineageMarkup).toContain("Parent parent-1");
+    expect(lineageMarkup).toContain("Compare parent-1");
+    expect(lineageMarkup).toContain("Open child-1");
+    expect(lineageMarkup).toContain("Open fork flow for Continue from tool result");
     expect(lineageMarkup).not.toContain("Continue session");
 
     const transcriptMarkup = renderInspectorTab(data, "transcript");

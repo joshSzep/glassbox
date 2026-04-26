@@ -649,7 +649,7 @@ The intended v4 milestone order is:
 
 ### GBX-540: Build A Focused Lineage Navigator
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-520`, `GBX-522`, `GBX-532`, `GBX-492`
 - Goal: make parent, child, sibling, and fork-point relationships easy to understand and act on
 - Deliverables:

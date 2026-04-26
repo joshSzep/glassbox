@@ -185,6 +185,43 @@ test("operator can open selected-session tabs from direct URLs", async ({ page }
   await expect(page.getByText("parent-session")).toBeVisible();
 });
 
+test("operator can navigate lineage targets and compare child sessions", async ({ page }) => {
+  await installGlassboxApiFixture(page, "branched-session");
+
+  await page.goto(`/app/sessions/${sessionId}?queue=active&tab=lineage`);
+  await expect(
+    page
+      .getByRole("complementary", { name: "Selected session inspector" })
+      .getByRole("heading", { name: sessionId })
+      .first(),
+  ).toBeVisible();
+  await expect(page.getByText("Child sessions", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Compare child-1" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Compare child-1" }).click();
+  await expect(page).toHaveURL(/compare=child-1/);
+  await expect(page).toHaveURL(/tab=compare/);
+  await expect(page.getByRole("heading", { name: "Compare" })).toBeVisible();
+
+  await page.getByRole("tab", { name: "Lineage" }).click();
+  await page.getByRole("button", { name: "Open child-1" }).click();
+  await expect(page).toHaveURL(/\/app\/sessions\/child-1\?queue=active$/);
+  await expect(
+    page
+      .getByRole("complementary", { name: "Selected session inspector" })
+      .getByRole("heading", { name: childSessionId })
+      .first(),
+  ).toBeVisible();
+
+  await page.goBack();
+  await expect(
+    page
+      .getByRole("complementary", { name: "Selected session inspector" })
+      .getByRole("heading", { name: sessionId })
+      .first(),
+  ).toBeVisible();
+});
+
 test("operator sees inline feedback for action failures", async ({ page }) => {
   await installGlassboxApiFixture(page);
   await page.route("**/sessions/*/approvals/*", (route) =>

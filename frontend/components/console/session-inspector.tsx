@@ -183,6 +183,7 @@ function InspectorTabContent({
       data={data}
       onClearCompare={onClearCompare}
       onCompareSession={onCompareSession}
+      onOpenForkTurn={onOpenForkTurn}
       onOpenSession={onOpenSession}
     />
   );

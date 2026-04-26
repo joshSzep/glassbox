@@ -477,6 +477,11 @@ export function makeV4ScenarioSnapshot(
   if (sessionId === "question-session" || sessionId === defaultSessionId) {
     return {
       ...base,
+      child_sessions:
+        sessionId === defaultSessionId &&
+        (scenarioId === "branched-session" || scenarioId === "compare-view")
+          ? [makeV4ChildSessionSummary()]
+          : base.child_sessions,
       pending_approval_id: sessionId === defaultSessionId ? "approval-1" : null,
       pending_approvals: sessionId === defaultSessionId ? [makeV4Approval()] : [],
       pending_question_id: "question-1",
@@ -569,17 +574,19 @@ export function makeV4ScenarioSnapshot(
     ...base,
     child_sessions:
       scenarioId === "branched-session" || scenarioId === "compare-view"
-        ? [
-            {
-              branch_label: "retry with narrower context",
-              latest_message_summary: "assistant: retrying from fork point",
-              session_id: defaultChildSessionId,
-              status: "running",
-              updated_at: "2026-04-23T00:00:04Z",
-            },
-          ]
+        ? [makeV4ChildSessionSummary()]
         : [],
     parent_session_id: scenarioId === "compare-view" ? "parent-session" : null,
+  };
+}
+
+function makeV4ChildSessionSummary(): components["schemas"]["ChildSessionSummaryResponse"] {
+  return {
+    branch_label: "retry with narrower context",
+    latest_message_summary: "assistant: retrying from fork point",
+    session_id: defaultChildSessionId,
+    status: "running",
+    updated_at: "2026-04-23T00:00:04Z",
   };
 }
 

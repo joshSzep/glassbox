@@ -40,6 +40,8 @@ describe("operator action component harness", () => {
     const user = userEvent.setup();
     const callbacks = {
       onFork: vi.fn(),
+      onCompareSession: vi.fn(),
+      onOpenSession: vi.fn(),
       onPromptChange: vi.fn(),
       onResolveApproval: vi.fn(),
       onSubmitAnswer: vi.fn(),
@@ -132,6 +134,40 @@ describe("operator action component harness", () => {
     });
   });
 
+  it("opens compare, child, and fork flows from the lineage navigator", async () => {
+    const user = userEvent.setup();
+    const callbacks = makeCallbacks();
+
+    render(
+      <ActionHarness
+        callbacks={callbacks}
+        initialActiveTab="lineage"
+        snapshotOverrides={{
+          child_sessions: [
+            {
+              branch_label: "retry with focused context",
+              latest_message_summary: "assistant: retrying from fork point",
+              session_id: "child-1",
+              status: "running",
+              updated_at: "2026-04-23T00:00:04Z",
+            },
+          ],
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Compare child-1" }));
+    await user.click(screen.getByRole("button", { name: "Open child-1" }));
+    await user.click(
+      screen.getByRole("button", { name: "Open fork flow for Continue from tool result" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Fork selected point" }));
+
+    expect(callbacks.onCompareSession).toHaveBeenCalledWith("child-1");
+    expect(callbacks.onOpenSession).toHaveBeenCalledWith("child-1");
+    expect(callbacks.onFork).toHaveBeenCalledWith({ branchLabel: null, turnId: "turn-1" });
+  });
+
   it("surfaces pending, success, conflict, validation, and network action feedback", () => {
     const cases: { action: ActionStatus; expected: string }[] = [
       { action: { error: null, kind: "prompt", state: "pending" }, expected: "sending prompt" },
@@ -200,6 +236,8 @@ describe("operator action component harness", () => {
 function makeCallbacks() {
   return {
     onFork: vi.fn(),
+    onCompareSession: vi.fn(),
+    onOpenSession: vi.fn(),
     onPromptChange: vi.fn(),
     onResolveApproval: vi.fn(),
     onSubmitAnswer: vi.fn(),
@@ -211,6 +249,8 @@ type ActionHarnessProps = {
   action?: ActionStatus;
   callbacks: {
     onFork: (input?: { branchLabel?: string | null; turnId?: string | null }) => void;
+    onCompareSession: (sessionId: string) => void;
+    onOpenSession: (sessionId: string) => void;
     onPromptChange: (text: string) => void;
     onResolveApproval: (input: { approvalId: string; decision: "approved" | "denied" }) => void;
     onSubmitAnswer: (questionId: string) => void;
@@ -270,6 +310,8 @@ function ActionHarness({
         callbacks.onPromptChange(text);
         setDrafts((current) => ({ ...current, composerText: text }));
       }}
+      onCompareSession={callbacks.onCompareSession}
+      onOpenSession={callbacks.onOpenSession}
       onResolveApproval={callbacks.onResolveApproval}
       onSelectTab={setActiveTab}
       onSubmitAnswer={callbacks.onSubmitAnswer}
