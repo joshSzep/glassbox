@@ -473,7 +473,7 @@ The intended v4 milestone order is:
 
 ### GBX-521: Build A Selected-Session Overview Tab
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-520`
 - Goal: make the default selected-session view answer what happened, what is live now, and what needs action next
 - Deliverables:

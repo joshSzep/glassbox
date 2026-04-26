@@ -7,8 +7,8 @@ import { VerificationCues } from "@/components/console/verification-cues";
 import { OperatorActionPane } from "@/components/console/session-inspector/actions";
 import { InspectorFrame, StateBlock } from "@/components/console/session-inspector/frame";
 import { SessionHeader } from "@/components/console/session-inspector/header";
+import { SessionOverviewTab } from "@/components/console/session-inspector/overview";
 import {
-  ActionSummaryPane,
   ComparePane,
   EvidencePane,
   LineagePane,
@@ -192,28 +192,10 @@ function InspectorTabContent({
       return <TabPanel>{<EvidencePane data={data} stream={stream} />}</TabPanel>;
     case "overview":
     default:
-      return (
-        <TabPanel className="xl:grid-cols-2">
-          {hasHighPriorityAction(data) ? actionPane : <ActionSummaryPane data={data} />}
-          <TranscriptPane messages={latestTranscriptPreview(data)} />
-        </TabPanel>
-      );
+      return <SessionOverviewTab actionPane={actionPane} data={data} stream={stream} />;
   }
 }
 
 function TabPanel({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <div className={`grid gap-4 p-4 ${className}`}>{children}</div>;
-}
-
-function hasHighPriorityAction(data: DashboardState): boolean {
-  return (
-    data.pendingApprovals.length > 0 ||
-    data.pendingQuestionId !== null ||
-    data.sessionFailureMessage !== null ||
-    data.activeToolCalls.length > 0
-  );
-}
-
-function latestTranscriptPreview(data: DashboardState) {
-  return data.transcript.slice(-3);
 }

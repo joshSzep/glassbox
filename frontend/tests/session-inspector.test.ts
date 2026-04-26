@@ -6,6 +6,7 @@ import { SessionInspector } from "../components/console/session-inspector";
 import { WorkspaceOverview } from "../components/console/workspace-overview";
 import {
   createDashboardState,
+  type DashboardState,
   hydrateCompareSession,
   hydrateSelectedSession,
 } from "../state/session-state";
@@ -15,6 +16,7 @@ import {
   makeSessionAggregate,
   makeSessionSnapshot,
   makeSessionSummary,
+  makeV4ScenarioSnapshot,
 } from "./fixtures/session-state";
 
 const stream = {
@@ -25,7 +27,7 @@ const stream = {
 };
 
 describe("session inspector", () => {
-  it("renders overview with urgent actions while hiding inactive diagnostic panes", () => {
+  it("renders overview with priority action, status, narrative, and scoped evidence", () => {
     const data = makeRichSessionData("overview");
 
     const markup = renderToStaticMarkup(
@@ -39,6 +41,15 @@ describe("session inspector", () => {
       }),
     );
 
+    expect(markup).toContain("Next action");
+    expect(markup).toContain("awaiting approval");
+    expect(markup).toContain("Review the pending approval before continuing.");
+    expect(markup).toContain("Session readout");
+    expect(markup).toContain("Runtime owner");
+    expect(markup).toContain("Recent narrative");
+    expect(markup).toContain("Decision context");
+    expect(markup).toContain("Health attention");
+    expect(markup).toContain("projection degraded");
     expect(markup).toContain("Continue session");
     expect(markup).toContain("Answer pending question");
     expect(markup).toContain("Approve");
@@ -52,6 +63,45 @@ describe("session inspector", () => {
     expect(markup).not.toContain("Event evidence");
     expect(markup).not.toContain("Verification cues");
     expect(markup).not.toContain("Open compared");
+  });
+
+  it("prioritizes overview next actions across selected-session states", () => {
+    const cases = [
+      ["approval-session", "pending-approval", "awaiting approval"],
+      ["question-session", "pending-question", "awaiting answer"],
+      ["failed-session", "failed-session", "retryable failure"],
+      ["active-session", "live-session", "active tool call"],
+      ["historical-session", "historical-session", "historical snapshot"],
+      ["degraded-session", "projection-degraded", "projection degraded"],
+    ] as const;
+
+    for (const [sessionId, scenarioId, expectedText] of cases) {
+      const snapshot =
+        sessionId === "active-session"
+          ? makeSessionSnapshot(sessionId, {
+              active_tool_calls: [
+                {
+                  completed_at: null,
+                  policy_outcome: "allow",
+                  policy_reason: "read only",
+                  policy_risk_level: "low",
+                  policy_source_kind: "tool_policy",
+                  policy_source_label: "default",
+                  started_at: "2026-04-23T00:00:02Z",
+                  status: "running",
+                  summary: "Run verification suite",
+                  tool_call_id: "tool-active",
+                  tool_name: "pytest",
+                  turn_id: "turn-1",
+                },
+              ],
+            })
+          : makeV4ScenarioSnapshot(sessionId, scenarioId);
+      const data = hydrateSelectedSession(createDashboardState(), snapshot);
+      const markup = renderInspectorTab(data, "overview");
+
+      expect(markup).toContain(expectedText);
+    }
   });
 
   it("renders only the active inspector tab content", () => {
@@ -234,7 +284,7 @@ describe("session inspector", () => {
   }
 
   function renderInspectorTab(
-    data: ReturnType<typeof makeRichSessionData>,
+    data: DashboardState,
     activeTab: Parameters<typeof SessionInspector>[0]["activeTab"],
   ) {
     return renderToStaticMarkup(

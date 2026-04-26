@@ -27,6 +27,7 @@ test("operator can browse queues, open a session, stream updates, and resolve ac
   await page.getByRole("link", { name: sessionLink }).click();
   await expect(page).toHaveURL(/\/app\/sessions\/session-1\?queue=questions$/);
   await expect(page.getByRole("heading", { name: sessionId })).toBeVisible();
+  await expect(page.getByText("awaiting approval")).toBeVisible();
   await expect(page.getByText("Live SSE update received by the browser.")).toBeVisible();
 
   await page.getByLabel("Continue session").fill("Please continue with the next check");
