@@ -69,3 +69,20 @@ test("operator console remains reachable in a narrow viewport", async ({ page })
   await expect(page.getByRole("navigation", { name: "Action queues" })).toBeVisible();
   await expect(page.getByRole("link", { name: sessionId })).toBeVisible();
 });
+
+test("console frame loads from app, queue, and selected-session routes", async ({ page }) => {
+  await installGlassboxApiFixture(page);
+
+  for (const route of [
+    "/",
+    "/app",
+    `/app?session=${sessionId}&queue=active`,
+    "/app/queues/approvals",
+    `/app/sessions/${sessionId}?queue=active`,
+  ]) {
+    await page.goto(route);
+    await expect(page.getByRole("heading", { name: "Operator Console" })).toBeVisible();
+    await expect(page.getByLabel("Workspace status rail")).toBeVisible();
+    await expect(page.getByLabel("Console frame")).toBeVisible();
+  }
+});

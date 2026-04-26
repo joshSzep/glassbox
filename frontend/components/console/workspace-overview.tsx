@@ -1,9 +1,11 @@
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
   AlertTriangle,
   CheckCircle2,
+  Database,
+  RadioTower,
   RefreshCcw,
   Server,
   ShieldAlert,
@@ -22,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { operatorIconSizeClass, operatorStatusTokens } from "@/design-system/operator-status";
 import { buildAppRoute, type AppQueue } from "@/routing/app-route";
+import type { SessionStreamState } from "@/api/sse";
 import type { DashboardState, ProjectionHealth, SessionSummary } from "@/state/session-state";
 import type { ConsoleFilters, LoadState } from "@/stores/dashboard-stores";
 
@@ -81,6 +84,7 @@ export type WorkspaceOverviewProps = {
   onSelectSession?: (sessionId: string) => void;
   selectedQueue: ConsoleFilters["queue"];
   selectedSessionId?: string | null;
+  stream?: SessionStreamState;
 };
 
 export function WorkspaceOverview({
@@ -93,38 +97,27 @@ export function WorkspaceOverview({
   onSelectSession,
   selectedQueue,
   selectedSessionId = null,
+  stream,
 }: WorkspaceOverviewProps) {
-  const runtime = runtimeDescriptor(data.runtimeSummary.state);
-  const RuntimeIcon = runtime.icon;
   const hasRows = data.sessionIndex.length > 0;
 
   return (
     <main className="min-h-screen bg-background px-4 py-5 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-[1440px] flex-col gap-5">
-        <header className="flex flex-col gap-3 border-b pb-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Glassbox</p>
-            <h1 className="text-2xl font-semibold tracking-normal">Operator Console</h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <Badge variant={runtime.variant}>
-              <RuntimeIcon className={operatorIconSizeClass} aria-hidden="true" />
-              {runtime.label}
-            </Badge>
-            <Button
-              aria-label="Refresh workspace"
-              onClick={onRefresh}
-              size="sm"
-              type="button"
-              variant="outline"
-            >
-              <RefreshCcw className="h-4 w-4" aria-hidden="true" />
-              Refresh
-            </Button>
-          </div>
-        </header>
+        <WorkspaceStatusRail
+          data={data}
+          error={error}
+          loadState={loadState}
+          onRefresh={onRefresh}
+          selectedQueue={selectedQueue}
+          selectedSessionId={selectedSessionId}
+          stream={stream}
+        />
 
-        <section className="grid gap-4 xl:grid-cols-[20rem_minmax(0,1fr)]">
+        <section
+          aria-label="Console frame"
+          className="grid gap-4 xl:grid-cols-[20rem_minmax(0,1fr)]"
+        >
           <aside className="flex flex-col gap-4">
             <WorkspaceSummary data={data} loadState={loadState} />
             <QueueNavigation
@@ -188,8 +181,132 @@ export function WorkspaceOverview({
   );
 }
 
+function WorkspaceStatusRail({
+  data,
+  error,
+  loadState,
+  onRefresh,
+  selectedQueue,
+  selectedSessionId,
+  stream,
+}: {
+  data: DashboardState;
+  error: string | null;
+  loadState: LoadState;
+  onRefresh?: () => void;
+  selectedQueue: ConsoleFilters["queue"];
+  selectedSessionId: string | null;
+  stream?: SessionStreamState;
+}) {
+  const runtime = runtimeDescriptor(data.runtimeSummary.state, data.runtimeSummary.health);
+  const RuntimeIcon = runtime.icon;
+  const projection = projectionSummaryDescriptor(data);
+  const ProjectionIcon = projection.icon;
+  const streamStatus = streamDescriptor(stream, selectedSessionId);
+  const StreamIcon = streamStatus.icon;
+  const refresh = refreshDescriptor(loadState, error);
+  const RefreshIcon = refresh.icon;
+
+  return (
+    <header
+      className="rounded-lg border bg-card px-4 py-3 text-card-foreground shadow-sm"
+      aria-label="Workspace status rail"
+    >
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-muted-foreground">Glassbox</p>
+          <h1 className="mt-0.5 text-2xl font-semibold tracking-normal">Operator Console</h1>
+          <p className="mt-1 break-all text-sm text-muted-foreground">
+            {data.runtimeSummary.workspace_root || "Local workspace"}
+          </p>
+        </div>
+
+        <div className="grid min-w-0 gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:min-w-[44rem]">
+          <RailFact
+            icon={RuntimeIcon}
+            label="Runtime owner"
+            value={runtime.label}
+            variant={runtime.variant}
+          />
+          <RailFact
+            icon={ProjectionIcon}
+            label="Projection health"
+            value={projection.label}
+            variant={projection.variant}
+          />
+          <RailFact
+            icon={StreamIcon}
+            label="Browser stream"
+            value={streamStatus.label}
+            variant={streamStatus.variant}
+          />
+          <RailFact
+            icon={RefreshIcon}
+            label="Last refresh"
+            value={refresh.label}
+            variant={refresh.variant}
+          />
+        </div>
+      </div>
+
+      <Separator className="my-3" />
+
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
+          <Badge variant="outline">Queue {selectedQueue}</Badge>
+          <Badge
+            className="max-w-full justify-start"
+            variant={selectedSessionId ? "info" : "muted"}
+          >
+            <span className="truncate">
+              {selectedSessionId ? `Session ${selectedSessionId}` : "No session selected"}
+            </span>
+          </Badge>
+          {data.queueCounts.action_needed > 0 ? (
+            <Badge variant="warning">{data.queueCounts.action_needed} actions</Badge>
+          ) : (
+            <Badge variant="success">No blocking actions</Badge>
+          )}
+        </div>
+        <Button
+          aria-label="Refresh workspace"
+          className="w-full justify-center md:w-auto"
+          onClick={onRefresh}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <RefreshCcw className="h-4 w-4" aria-hidden="true" />
+          Refresh
+        </Button>
+      </div>
+    </header>
+  );
+}
+
+function RailFact({
+  icon: Icon,
+  label,
+  value,
+  variant,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  variant: NonNullable<ComponentProps<typeof Badge>["variant"]>;
+}) {
+  return (
+    <div className="min-h-16 rounded-md border bg-background p-3">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <Badge className="mt-2 max-w-full justify-start" variant={variant}>
+        <Icon className={operatorIconSizeClass} aria-hidden="true" />
+        <span className="truncate">{value}</span>
+      </Badge>
+    </div>
+  );
+}
+
 function WorkspaceSummary({ data, loadState }: { data: DashboardState; loadState: LoadState }) {
-  const degradedCount = data.projectionHealthCounts.degraded + data.projectionHealthCounts.stale;
   return (
     <section
       className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm"
@@ -210,12 +327,8 @@ function WorkspaceSummary({ data, loadState }: { data: DashboardState; loadState
       <div className="grid grid-cols-2 gap-2">
         <MetricTile label="Total" value={data.queueCounts.total} />
         <MetricTile label="Action" value={data.queueCounts.action_needed} variant="warning" />
-        <MetricTile
-          label="Projection"
-          value={degradedCount}
-          variant={degradedCount > 0 ? "warning" : "success"}
-        />
-        <MetricTile label="Runtime" value={runtimeShortLabel(data.runtimeSummary.state)} />
+        <MetricTile label="Approvals" value={data.queueCounts.approvals} />
+        <MetricTile label="Questions" value={data.queueCounts.questions} />
       </div>
     </section>
   );
@@ -311,7 +424,6 @@ function QueueHeader({
 }) {
   const queueLabel =
     queueDescriptors.find((queue) => queue.queue === selectedQueue)?.label ?? "All";
-  const degraded = data.projectionHealthCounts.degraded + data.projectionHealthCounts.stale;
   return (
     <section
       className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm"
@@ -326,7 +438,9 @@ function QueueHeader({
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge variant={error === null ? "outline" : "destructive"}>{loadState}</Badge>
-          <Badge variant={degraded > 0 ? "warning" : "success"}>{degraded} degraded</Badge>
+          <Badge variant={data.queueCounts.action_needed > 0 ? "warning" : "success"}>
+            {data.queueCounts.action_needed} actions
+          </Badge>
         </div>
       </div>
     </section>
@@ -484,16 +598,72 @@ function sessionDescriptor(session: SessionSummary) {
   return operatorStatusTokens.unknown;
 }
 
-function runtimeDescriptor(state: string) {
+function runtimeDescriptor(state: string, health: string | null) {
   if (state === "running") {
     return { icon: Server, label: "runtime online", variant: "success" as const };
   }
-  if (state === "degraded") {
+  if (state === "degraded" || health === "degraded") {
     return { icon: AlertTriangle, label: "runtime degraded", variant: "warning" as const };
   }
   return { icon: Activity, label: "runtime offline", variant: "muted" as const };
 }
 
-function runtimeShortLabel(state: string): string {
-  return state.replaceAll("_", " ");
+function projectionSummaryDescriptor(data: DashboardState) {
+  const counts = data.projectionHealthCounts;
+  if (counts.unavailable > 0) {
+    return {
+      icon: ShieldAlert,
+      label: `${counts.unavailable} projection missing`,
+      variant: "destructive" as const,
+    };
+  }
+  const degraded = counts.degraded + counts.stale;
+  if (degraded > 0) {
+    return {
+      icon: AlertTriangle,
+      label: `${degraded} projection alerts`,
+      variant: "warning" as const,
+    };
+  }
+  return { icon: Database, label: "projection fresh", variant: "success" as const };
+}
+
+function streamDescriptor(
+  stream: SessionStreamState | undefined,
+  selectedSessionId: string | null,
+) {
+  if (selectedSessionId === null) {
+    return { icon: RadioTower, label: "no session selected", variant: "muted" as const };
+  }
+  if (stream === undefined) {
+    return { icon: RadioTower, label: "stream idle", variant: "muted" as const };
+  }
+  if (stream.status === "live") {
+    return { icon: RadioTower, label: "stream live", variant: "success" as const };
+  }
+  if (stream.status === "connecting" || stream.status === "reconnecting") {
+    return {
+      icon: RefreshCcw,
+      label: stream.status.replaceAll("_", " "),
+      variant: "info" as const,
+    };
+  }
+  return {
+    icon: AlertTriangle,
+    label: stream.status.replaceAll("_", " "),
+    variant: stream.status === "historical_snapshot" ? ("muted" as const) : ("warning" as const),
+  };
+}
+
+function refreshDescriptor(loadState: LoadState, error: string | null) {
+  if (error !== null || loadState === "failed") {
+    return { icon: ShieldAlert, label: "refresh failed", variant: "destructive" as const };
+  }
+  if (loadState === "loading") {
+    return { icon: RefreshCcw, label: "refreshing", variant: "info" as const };
+  }
+  if (loadState === "loaded") {
+    return { icon: CheckCircle2, label: "aggregate loaded", variant: "success" as const };
+  }
+  return { icon: Activity, label: "not loaded", variant: "muted" as const };
 }

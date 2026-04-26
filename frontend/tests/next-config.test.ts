@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createDevRewrites, normalizeFastApiOrigin } from "../next.config";
+import { createDevRedirects, createDevRewrites, normalizeFastApiOrigin } from "../next.config";
 
 describe("Next.js development proxy configuration", () => {
   it("normalizes the FastAPI origin", () => {
@@ -10,6 +10,14 @@ describe("Next.js development proxy configuration", () => {
 
   it("proxies FastAPI HTTP and SSE routes from the dev server root", () => {
     expect(createDevRewrites("http://127.0.0.1:9000/")).toEqual([
+      {
+        source: "/queues/:path*",
+        destination: "/",
+      },
+      {
+        source: "/sessions/:path*",
+        destination: "/",
+      },
       {
         source: "/healthz",
         destination: "http://127.0.0.1:9000/healthz",
@@ -23,6 +31,17 @@ describe("Next.js development proxy configuration", () => {
       {
         source: "/sessions/:path*",
         destination: "http://127.0.0.1:9000/sessions/:path*",
+        basePath: false,
+      },
+    ]);
+  });
+
+  it("redirects the dev server root to the SPA base path", () => {
+    expect(createDevRedirects()).toEqual([
+      {
+        source: "/",
+        destination: "/app",
+        permanent: false,
         basePath: false,
       },
     ]);

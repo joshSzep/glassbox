@@ -154,6 +154,7 @@ export function WorkspaceConsole() {
       }}
       selectedQueue={consoleState.filters.queue}
       selectedSessionId={route.selectedSessionId}
+      stream={sessionState.stream}
     />
   );
 }

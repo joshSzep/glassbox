@@ -48,6 +48,8 @@ describe("workspace overview console", () => {
     const markup = renderOverview(state, "loaded", null, "approvals");
 
     expect(markup).toContain("runtime online");
+    expect(markup).toContain("projection fresh");
+    expect(markup).toContain("Queue approvals");
     expect(markup).toContain("/tmp/glassbox");
     expect(markup).toContain("approval-session");
     expect(markup).toContain("Approve command execution");
@@ -57,14 +59,20 @@ describe("workspace overview console", () => {
 
   it("renders loading, empty, error, and degraded states", () => {
     const emptyState = hydrateSessionAggregate(createDashboardState(), makeSessionAggregate([]));
+    expect(renderOverview(emptyState, "idle", null, "all")).toContain("runtime offline");
+    expect(renderOverview(emptyState, "idle", null, "all")).toContain("not loaded");
     expect(renderOverview(emptyState, "loading", null, "all")).toContain(
       "Loading workspace queues",
     );
+    expect(renderOverview(emptyState, "loading", null, "all")).toContain("refreshing");
     expect(renderOverview(emptyState, "loaded", null, "all")).toContain(
       "No sessions in this queue",
     );
     expect(renderOverview(emptyState, "failed", "network unavailable", "all")).toContain(
       "network unavailable",
+    );
+    expect(renderOverview(emptyState, "failed", "network unavailable", "all")).toContain(
+      "refresh failed",
     );
 
     const degradedState = hydrateSessionAggregate(
@@ -83,8 +91,65 @@ describe("workspace overview console", () => {
       ),
     );
 
-    expect(renderOverview(degradedState, "loaded", null, "degraded")).toContain("2 degraded");
+    expect(renderOverview(degradedState, "loaded", null, "degraded")).toContain(
+      "2 projection alerts",
+    );
     expect(renderOverview(degradedState, "loaded", null, "degraded")).toContain("stale");
+  });
+
+  it("renders route-aware status rail context and stream states", () => {
+    const runningState = hydrateSessionAggregate(
+      createDashboardState(),
+      makeSessionAggregate([makeSessionSummary("session-1")], {
+        queue: "active",
+        runtime: {
+          dashboard_url: null,
+          health: "ok",
+          health_url: null,
+          pid: 1234,
+          session_index_url: null,
+          started_at: "2026-04-23T00:00:00Z",
+          state: "running",
+          workspace_root: "/tmp/glassbox",
+        },
+      }),
+    );
+    const selectedMarkup = renderOverview(runningState, "loaded", null, "active", "session-1", {
+      error: null,
+      lastSequence: 12,
+      retryCount: 0,
+      status: "live",
+    });
+
+    expect(selectedMarkup).toContain("Session session-1");
+    expect(selectedMarkup).toContain("stream live");
+
+    const degradedRuntime = hydrateSessionAggregate(
+      createDashboardState(),
+      makeSessionAggregate([], {
+        runtime: {
+          dashboard_url: null,
+          health: "degraded",
+          health_url: null,
+          pid: 1234,
+          session_index_url: null,
+          started_at: "2026-04-23T00:00:00Z",
+          state: "degraded",
+          workspace_root: "/tmp/glassbox",
+        },
+      }),
+    );
+    expect(renderOverview(degradedRuntime, "loaded", null, "all")).toContain("runtime degraded");
+
+    const missingProjection = hydrateSessionAggregate(
+      createDashboardState(),
+      makeSessionAggregate([], {
+        projection_health_counts: { degraded: 0, ok: 0, stale: 0, unavailable: 1 },
+      }),
+    );
+    expect(renderOverview(missingProjection, "loaded", null, "all")).toContain(
+      "1 projection missing",
+    );
   });
 });
 
@@ -93,6 +158,13 @@ function renderOverview(
   loadState: "failed" | "idle" | "loaded" | "loading",
   error: string | null,
   selectedQueue: "active" | "all" | "approvals" | "degraded",
+  selectedSessionId: string | null = null,
+  stream?: {
+    error: string | null;
+    lastSequence: number;
+    retryCount: number;
+    status: "connecting" | "historical_snapshot" | "live" | "live_unavailable" | "reconnecting";
+  },
 ): string {
   return renderToStaticMarkup(
     React.createElement(WorkspaceOverview, {
@@ -100,6 +172,8 @@ function renderOverview(
       error,
       loadState,
       selectedQueue,
+      selectedSessionId,
+      stream,
     }),
   );
 }

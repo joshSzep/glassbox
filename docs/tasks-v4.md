@@ -344,7 +344,7 @@ The intended v4 milestone order is:
 
 ### GBX-510: Build The Workspace Status Rail And Console Frame
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-501`, `GBX-502`, `GBX-492`
 - Goal: replace the generic page header and scattered status badges with a stable operational frame
 - Deliverables:
