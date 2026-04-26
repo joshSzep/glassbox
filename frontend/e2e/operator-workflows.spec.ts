@@ -158,3 +158,22 @@ test("operator can open selected-session tabs from direct URLs", async ({ page }
   await expect(page.getByRole("heading", { name: "Compare" })).toBeVisible();
   await expect(page.getByText("parent-session")).toBeVisible();
 });
+
+test("operator sees inline feedback for action failures", async ({ page }) => {
+  await installGlassboxApiFixture(page);
+  await page.route("**/sessions/*/approvals/*", (route) =>
+    route.fulfill({ json: { detail: "approval conflict: already resolved" }, status: 409 }),
+  );
+
+  await page.goto(`/app/sessions/${sessionId}?queue=questions`);
+  await page.getByRole("button", { name: "Approve" }).click();
+  await expect(page.getByText("conflict", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Refresh the snapshot before acting again/)).toBeVisible();
+
+  await page.route("**/sessions/*/fork", (route) => route.abort("failed"));
+  await page.getByRole("button", { name: "Create fork" }).click();
+  await page.getByLabel("Fork label").fill("network retry branch");
+  await page.getByRole("button", { name: "Fork Continue from tool result" }).click();
+  await expect(page.getByText("network error", { exact: true })).toBeVisible();
+  await expect(page.getByText(/draft is preserved/i)).toBeVisible();
+});

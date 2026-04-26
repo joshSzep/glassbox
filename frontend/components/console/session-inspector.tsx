@@ -152,6 +152,7 @@ function InspectorTabContent({
       onResolveApproval={onResolveApproval}
       onSubmitAnswer={onSubmitAnswer}
       onSubmitPrompt={onSubmitPrompt}
+      stream={stream}
     />
   );
   const lineagePane = (

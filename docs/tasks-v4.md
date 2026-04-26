@@ -524,7 +524,7 @@ The intended v4 milestone order is:
 
 ### GBX-523: Add Inline Action Feedback And Recovery Copy
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-522`
 - Goal: make action results understandable without forcing operators to infer status from disabled buttons or generic badges
 - Deliverables:

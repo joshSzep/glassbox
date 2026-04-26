@@ -3,10 +3,15 @@ import { cleanup } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SessionInspector } from "../components/console/session-inspector";
+import type { SessionStreamState } from "../api/sse";
 import type { components } from "../generated/api-types";
-import { createDashboardState, hydrateSelectedSession } from "../state/session-state";
+import {
+  createDashboardState,
+  hydrateSelectedSession,
+  type DashboardState,
+} from "../state/session-state";
 import type { ActionStatus, DraftState } from "../stores/dashboard-stores";
-import { makeOperatorActionSessionSnapshot } from "./fixtures/session-state";
+import { makeOperatorActionSessionSnapshot, makeProjectionHealth } from "./fixtures/session-state";
 import { render, screen, userEvent, within } from "./test-utils";
 
 const stream = {
@@ -107,16 +112,66 @@ describe("operator action component harness", () => {
     expect(callbacks.onFork).toHaveBeenCalledWith({ branchLabel: "latest branch", turnId: null });
   });
 
-  it("surfaces conflict, validation, and network action errors", () => {
-    const errors: ActionStatus[] = [
-      { error: "approval conflict: already resolved", kind: "approval", state: "failed" },
-      { error: "validation error: prompt is empty", kind: "prompt", state: "failed" },
-      { error: "network failure: retry request", kind: "fork", state: "failed" },
+  it("surfaces pending, success, conflict, validation, and network action feedback", () => {
+    const cases: { action: ActionStatus; expected: string }[] = [
+      { action: { error: null, kind: "prompt", state: "pending" }, expected: "sending prompt" },
+      { action: { error: null, kind: "answer", state: "succeeded" }, expected: "answer submitted" },
+      {
+        action: { error: "approval conflict: already resolved", kind: "approval", state: "failed" },
+        expected: "conflict",
+      },
+      {
+        action: { error: "validation error: prompt is empty", kind: "prompt", state: "failed" },
+        expected: "validation error",
+      },
+      {
+        action: { error: "network failure: retry request", kind: "fork", state: "failed" },
+        expected: "network error",
+      },
     ];
 
-    for (const action of errors) {
+    for (const { action, expected } of cases) {
       const { unmount } = render(<ActionHarness action={action} callbacks={makeCallbacks()} />);
-      expect(screen.getByText(`${action.kind} failed: ${action.error}`)).toBeVisible();
+      expect(screen.getByText(expected)).toBeVisible();
+      unmount();
+    }
+  });
+
+  it("surfaces historical, live-unavailable, projection, and runtime recovery copy", () => {
+    const cases: { expected: string; props: ActionHarnessOverrides }[] = [
+      {
+        expected: "historical-only",
+        props: { snapshotOverrides: { status: "completed" } },
+      },
+      {
+        expected: "live unavailable",
+        props: {
+          streamOverride: { error: "Live stream disconnected.", status: "live_unavailable" },
+        },
+      },
+      {
+        expected: "projection degraded",
+        props: {
+          snapshotOverrides: {
+            projection_health: makeProjectionHealth({ degraded: true, state: "stale" }),
+          },
+        },
+      },
+      {
+        expected: "runtime offline",
+        props: {
+          dataOverrides: { runtimeContext: null },
+          snapshotOverrides: {
+            pending_approvals: [],
+            pending_question_id: null,
+          },
+        },
+      },
+    ];
+
+    for (const { expected, props } of cases) {
+      const { unmount } = render(<ActionHarness callbacks={makeCallbacks()} {...props} />);
+      expect(screen.getAllByText(expected)[0]).toBeVisible();
       unmount();
     }
   });
@@ -132,11 +187,7 @@ function makeCallbacks() {
   };
 }
 
-function ActionHarness({
-  action = { error: null, kind: null, state: "idle" },
-  callbacks,
-  snapshotOverrides = {},
-}: {
+type ActionHarnessProps = {
   action?: ActionStatus;
   callbacks: {
     onFork: (input?: { branchLabel?: string | null; turnId?: string | null }) => void;
@@ -145,13 +196,34 @@ function ActionHarness({
     onSubmitAnswer: (questionId: string) => void;
     onSubmitPrompt: () => void;
   };
+  dataOverrides?: Partial<DashboardState>;
   snapshotOverrides?: Partial<components["schemas"]["SessionSnapshotResponse"]>;
-}) {
+  streamOverride?: Partial<SessionStreamState>;
+};
+
+type ActionHarnessOverrides = Omit<ActionHarnessProps, "callbacks">;
+
+function ActionHarness({
+  action = { error: null, kind: null, state: "idle" },
+  callbacks,
+  dataOverrides = {},
+  snapshotOverrides = {},
+  streamOverride = {},
+}: ActionHarnessProps) {
   const [drafts, setDrafts] = useState(() => makeDrafts());
-  const data = hydrateSelectedSession(
-    createDashboardState(),
-    makeOperatorActionSessionSnapshot("session-1", snapshotOverrides),
-  );
+  const data = {
+    ...hydrateSelectedSession(
+      createDashboardState(),
+      makeOperatorActionSessionSnapshot("session-1", snapshotOverrides),
+    ),
+    ...dataOverrides,
+  };
+  const mergedStream: SessionStreamState = {
+    error: streamOverride.error ?? stream.error,
+    lastSequence: streamOverride.lastSequence ?? stream.lastSequence,
+    retryCount: streamOverride.retryCount ?? stream.retryCount,
+    status: streamOverride.status ?? stream.status,
+  };
 
   return (
     <SessionInspector
@@ -179,7 +251,7 @@ function ActionHarness({
       onSubmitAnswer={callbacks.onSubmitAnswer}
       onSubmitPrompt={callbacks.onSubmitPrompt}
       queue="active"
-      stream={stream}
+      stream={mergedStream}
     />
   );
 }
