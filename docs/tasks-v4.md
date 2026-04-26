@@ -696,7 +696,7 @@ The intended v4 milestone order is:
 
 ### GBX-542: Refine Verification And Drift Cues
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-533`, `GBX-541`
 - Goal: make replay, eval, artifact, and working-set cues useful without visually conflating them with runtime health or session failure
 - Deliverables:

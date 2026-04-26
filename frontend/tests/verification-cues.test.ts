@@ -30,7 +30,7 @@ describe("verification cues", () => {
                 summary: "Eval fixture is older than the selected working set.",
                 summary_kind: "context drift",
                 target_paths: ["frontend/app/page.tsx"],
-                timed_out: false,
+                timed_out: true,
               },
               {
                 artifact_kind: "replay",
@@ -47,6 +47,23 @@ describe("verification cues", () => {
                 summary: "Replay smoke failed after branch drift.",
                 summary_kind: "replay failure",
                 target_paths: ["src/glassbox/runtime"],
+                timed_out: false,
+              },
+              {
+                artifact_kind: "eval",
+                artifact_path: "evals/impact.json",
+                error_count: 0,
+                failing_tests: [],
+                failure_count: 0,
+                freshness: "fresh",
+                inherited: false,
+                keyword_filter: null,
+                provenance_class: "artifact_backed_summary",
+                source_tool_call_id: null,
+                source_tool_name: "glassbox eval run",
+                summary: "Eval impact is current for this branch.",
+                summary_kind: "eval verified",
+                target_paths: ["frontend/components/console/verification-cues.tsx"],
                 timed_out: false,
               },
             ],
@@ -71,12 +88,18 @@ describe("verification cues", () => {
     const markup = renderToStaticMarkup(React.createElement(VerificationCues, { data }));
 
     expect(markup).toContain("Verification cues");
-    expect(markup).toContain("1 blocking evidence");
-    expect(markup).toContain("1 advisory drift");
+    expect(markup).toContain("Verification summary");
+    expect(markup).toContain("Blocking evidence");
+    expect(markup).toContain("Advisory drift");
+    expect(markup).toContain("Verified state");
+    expect(markup).toContain("verified");
     expect(markup).toContain("evals/cases/session-1.json");
+    expect(markup).toContain("Copyable artifact path evals/cases/session-1.json");
+    expect(markup).toContain("timed out");
     expect(markup).toContain("test_replay_runner.py::test_smoke");
     expect(markup).toContain("Working-set provenance");
-    expect(markup).toContain("inherited");
+    expect(markup).toContain("1 inherited item may explain drift");
+    expect(markup).toContain("inherited working set");
   });
 
   it("renders a missing-artifact state distinctly from runtime health", () => {
@@ -88,7 +111,7 @@ describe("verification cues", () => {
     const markup = renderToStaticMarkup(React.createElement(VerificationCues, { data }));
 
     expect(markup).toContain("No replay or eval artifacts are retained in this snapshot.");
-    expect(markup).toContain("0 blocking evidence");
-    expect(markup).toContain("0 advisory drift");
+    expect(markup).toContain("Missing artifacts");
+    expect(markup).toContain("Use CLI replay/eval commands");
   });
 });

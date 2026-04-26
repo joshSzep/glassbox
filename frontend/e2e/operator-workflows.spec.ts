@@ -231,6 +231,19 @@ test("operator can navigate lineage targets and compare child sessions", async (
   ).toBeVisible();
 });
 
+test("operator can inspect artifact-backed verification cues", async ({ page }) => {
+  await installGlassboxApiFixture(page, "artifact-drift");
+
+  await page.goto("/app/sessions/artifact-session?queue=active&tab=evidence");
+  await expect(page.getByRole("heading", { name: "Verification cues" })).toBeVisible();
+  const summary = page.getByLabel("Verification summary");
+  await expect(summary).toBeVisible();
+  await expect(summary.getByText("Blocking evidence", { exact: true })).toBeVisible();
+  await expect(summary.getByText("Advisory drift", { exact: true })).toBeVisible();
+  await expect(summary.getByText("Verified artifacts", { exact: true })).toBeVisible();
+  await expect(page.getByLabel(/Copyable artifact path evals\/impact\.json/)).toBeVisible();
+});
+
 test("operator sees inline feedback for action failures", async ({ page }) => {
   await installGlassboxApiFixture(page);
   await page.route("**/sessions/*/approvals/*", (route) =>

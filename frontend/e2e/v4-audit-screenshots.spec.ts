@@ -111,7 +111,9 @@ function screenshotViewsForScenario(scenario: ScreenshotScenarioId): ScreenshotV
     views.push({ name: "lineage", route: routeWithTab(route, "lineage") });
   }
 
-  if (["artifact-drift", "large-transcript", "projection-degraded"].includes(scenario)) {
+  if (
+    ["artifact-drift", "large-transcript", "live-session", "projection-degraded"].includes(scenario)
+  ) {
     views.push({ name: "evidence", route: routeWithTab(route, "evidence") });
   }
 

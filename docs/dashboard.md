@@ -95,6 +95,27 @@ The dashboard lets the operator:
 - resolve a pending approval
 - create a fork from an allowed historical turn
 
+## Replay, Eval, And Verification Cues
+
+The v4 dashboard surfaces replay and eval evidence only when the persisted
+session snapshot already includes artifact summaries in its runtime context. The
+browser does not run replay or eval workflows, does not reinterpret their
+results, and does not replace the CLI as the authoritative execution path.
+
+Verification cues are promoted into the overview only when they can affect the
+next operator decision: blocking replay/eval evidence appears before actions,
+while advisory drift appears when an approval, question, or failure depends on
+artifact context. Detailed artifact paths, target paths, failing test names,
+freshness, inherited provenance, and timed-out state remain in the Evidence tab.
+Use the displayed artifact paths as copyable local references, then run the
+appropriate CLI command when reproduction or audit output is needed:
+
+```bash
+uv run glassbox replay run SESSION_ID --json
+uv run glassbox eval run --cwd .
+uv run glassbox artifacts inspect --json
+```
+
 ## Troubleshooting
 
 - If you used `glassbox session chat --no-dashboard`, start `glassbox dashboard serve` and open `/`.

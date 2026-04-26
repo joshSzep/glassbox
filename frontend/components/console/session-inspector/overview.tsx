@@ -234,6 +234,11 @@ function deriveHealthItems(data: DashboardState, stream: SessionStreamState) {
 function deriveDecisionSummaries(data: DashboardState, stream: SessionStreamState) {
   const summaries: { label: string; value: string }[] = [];
   const workingSetCount = data.runtimeContext?.working_set?.items?.length ?? 0;
+  const artifactSummaries = data.runtimeContext?.artifact_context?.summaries ?? [];
+  const blockingArtifacts = artifactSummaries.filter(hasBlockingArtifactEvidence).length;
+  const advisoryArtifacts = artifactSummaries.filter(
+    (artifact) => !hasBlockingArtifactEvidence(artifact) && hasAdvisoryArtifactDrift(artifact),
+  ).length;
   const eventCount = data.eventLog.length;
 
   if (data.compareSession !== null) {
@@ -243,7 +248,17 @@ function deriveDecisionSummaries(data: DashboardState, stream: SessionStreamStat
     });
   }
 
-  if (data.projectionHealth?.degraded) {
+  if (blockingArtifacts > 0) {
+    summaries.push({
+      label: "Verification",
+      value: `${blockingArtifacts} blocking replay/eval artifact${blockingArtifacts === 1 ? "" : "s"}; inspect evidence before acting`,
+    });
+  } else if (advisoryArtifacts > 0 && hasImmediateOperatorDecision(data)) {
+    summaries.push({
+      label: "Verification",
+      value: `${advisoryArtifacts} advisory drift cue${advisoryArtifacts === 1 ? "" : "s"}; check evidence if this action depends on artifacts`,
+    });
+  } else if (data.projectionHealth?.degraded) {
     summaries.push({
       label: "Verification",
       value: "projection degraded; verify evidence before resolving actions",
@@ -265,6 +280,22 @@ function deriveDecisionSummaries(data: DashboardState, stream: SessionStreamStat
   }
 
   return summaries;
+}
+
+type OverviewArtifactSummary = NonNullable<
+  NonNullable<NonNullable<DashboardState["runtimeContext"]>["artifact_context"]>["summaries"]
+>[number];
+
+function hasBlockingArtifactEvidence(artifact: OverviewArtifactSummary): boolean {
+  return (
+    artifact.error_count > 0 ||
+    artifact.failure_count > 0 ||
+    (artifact.failing_tests ?? []).length > 0
+  );
+}
+
+function hasAdvisoryArtifactDrift(artifact: OverviewArtifactSummary): boolean {
+  return artifact.freshness === "stale" || artifact.inherited || artifact.timed_out;
 }
 
 function deriveTranscriptPreview(data: DashboardState): TranscriptMessage[] {

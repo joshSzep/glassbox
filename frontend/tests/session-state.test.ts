@@ -214,7 +214,7 @@ describe("session state hydration", () => {
     expect(state.pendingApprovals[0]?.subject).toBe("apply patch");
     expect(state.activeToolCalls[0]?.tool_name).toBe("pnpm test");
     expect(state.liveOutput[0]?.chunk).toContain("long validation line");
-    expect(state.runtimeContext?.artifact_context?.summaries).toHaveLength(2);
+    expect(state.runtimeContext?.artifact_context?.summaries).toHaveLength(3);
     expect(state.runtimeContext?.runtime_notes?.map((note) => note.category)).toEqual([
       "runtime",
       "artifact",

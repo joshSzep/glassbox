@@ -104,6 +104,17 @@ describe("session inspector", () => {
     }
   });
 
+  it("promotes blocking artifact evidence into overview decision context", () => {
+    const data = hydrateSelectedSession(
+      createDashboardState(),
+      makeV4ScenarioSnapshot("artifact-session", "artifact-drift"),
+    );
+    const markup = renderInspectorTab(data, "overview");
+
+    expect(markup).toContain("Verification");
+    expect(markup).toContain("blocking replay/eval artifact");
+  });
+
   it("renders only the active inspector tab content", () => {
     const data = makeRichSessionData();
 
