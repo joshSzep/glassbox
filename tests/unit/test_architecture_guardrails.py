@@ -80,6 +80,18 @@ PYTHON_FACADE_RULES: tuple[
         "eval_summary should stay a thin facade over split reporting modules",
     ),
     (
+        SRC_ROOT / "runtime" / "evals.py",
+        (
+            "glassbox.runtime.eval_case_models",
+            "glassbox.runtime.eval_constants",
+            "glassbox.runtime.eval_discovery",
+            "glassbox.runtime.eval_profile_models",
+            "glassbox.runtime.eval_selection",
+        ),
+        90,
+        "evals should stay a thin facade over split eval modules",
+    ),
+    (
         SRC_ROOT / "runtime" / "replay.py",
         (
             "glassbox.core.ids",
