@@ -312,7 +312,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-422: Implement Typed SSE Client And Reconnect Semantics
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-420`, `GBX-421`
 - Goal: preserve and improve live event streaming in the SPA through a typed SSE boundary
 - Deliverables:
