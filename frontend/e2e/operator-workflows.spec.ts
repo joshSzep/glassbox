@@ -182,7 +182,16 @@ test("operator can open selected-session tabs from direct URLs", async ({ page }
 
   await page.goto(`/app/sessions/${sessionId}?queue=active&compare=parent-session&tab=compare`);
   await expect(page.getByRole("heading", { name: "Compare" })).toBeVisible();
-  await expect(page.getByText("parent-session")).toBeVisible();
+  await expect(page.getByText("Difference summary")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "parent-session" })).toBeVisible();
+  await page.getByRole("button", { name: "Open compared parent-session" }).click();
+  await expect(page).toHaveURL(/\/app\/sessions\/parent-session\?queue=active$/);
+  await expect(
+    page
+      .getByRole("complementary", { name: "Selected session inspector" })
+      .getByRole("heading", { name: "parent-session" })
+      .first(),
+  ).toBeVisible();
 });
 
 test("operator can navigate lineage targets and compare child sessions", async ({ page }) => {

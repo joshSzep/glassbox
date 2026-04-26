@@ -118,6 +118,12 @@ describe("session inspector", () => {
 
     const compareMarkup = renderInspectorTab(data, "compare");
     expect(compareMarkup).toContain("Compare");
+    expect(compareMarkup).toContain("Compare session anchors");
+    expect(compareMarkup).toContain("Difference summary");
+    expect(compareMarkup).toContain("Latest messages");
+    expect(compareMarkup).toContain("Compare metrics");
+    expect(compareMarkup).toContain("Status change");
+    expect(compareMarkup).toContain("Working set");
     expect(compareMarkup).toContain("Open compared");
     expect(compareMarkup).toContain("parent-1");
     expect(compareMarkup).not.toContain("frontend/app/page.tsx");
@@ -231,6 +237,21 @@ describe("session inspector", () => {
       expect(markup).toContain(expectedText);
       expect(markup).toContain("Turn metrics");
     }
+  });
+
+  it("renders compact compare empty and unavailable states", () => {
+    const selected = hydrateSelectedSession(
+      createDashboardState(),
+      makeSessionSnapshot("session-1"),
+    );
+    const emptyMarkup = renderInspectorTab(selected, "compare");
+    expect(emptyMarkup).toContain("Select a parent or child session");
+
+    const loadingMarkup = renderInspectorTab(
+      { ...selected, compareSessionId: "missing-session" },
+      "compare",
+    );
+    expect(loadingMarkup).toContain("Compare target missing-session is loading or unavailable.");
   });
 
   function makeRichSessionData() {

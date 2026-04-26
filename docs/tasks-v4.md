@@ -672,7 +672,7 @@ The intended v4 milestone order is:
 
 ### GBX-541: Redesign Compare Into A Real Difference View
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-540`
 - Goal: make session comparison useful for triage rather than mostly showing counts
 - Deliverables:
