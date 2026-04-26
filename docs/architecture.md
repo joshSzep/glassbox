@@ -1443,9 +1443,9 @@ The dashboard should be a thin client over the runtime.
 
 ### V3 SPA Architecture Contract
 
-The v3 dashboard direction replaces the hand-rolled browser implementation in
-`src/glassbox/web/static/` with a modern TypeScript SPA while preserving the
-same local-first runtime and event-sourced backend contracts.
+The v3 dashboard replaced the hand-rolled browser implementation with a modern
+TypeScript SPA while preserving the same local-first runtime and event-sourced
+backend contracts.
 
 The accepted frontend stack is:
 
@@ -1466,17 +1466,12 @@ have been built and included in the Python distribution.
 
 The SPA should live under a repository-local `frontend/` workspace. Its static
 export should be copied or emitted into `src/glassbox/web/static_next/` when a
-production build is prepared. The FastAPI app should serve those built files at
-`/app` during the migration while continuing to serve the legacy dashboard at
-`/`. Missing SPA assets in a source checkout should produce developer-facing
-guidance when `/app` is requested, not break unrelated backend tests or normal
-legacy dashboard use.
+production build is prepared. The FastAPI app serves those built files at `/`,
+with `/app` retained as a compatibility alias. Missing SPA assets in a source
+checkout should produce developer-facing guidance, not a silent blank page.
 
-After the parity gate is satisfied, the route ownership should flip: `/` serves
-the SPA shell, a temporary `/legacy` route may serve the old dashboard for one
-migration window, and `/app` may remain as an alias or redirect only if it helps
-operator transition. Direct session links using `?session=SESSION_ID` must keep
-working before and after the flip.
+Direct session links using `?session=SESSION_ID` must keep working at the root
+dashboard URL.
 
 The SPA architecture should keep these boundaries explicit:
 

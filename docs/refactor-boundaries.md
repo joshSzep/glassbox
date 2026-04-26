@@ -173,23 +173,18 @@ The `web` package should not own the canonical logic for deriving session summar
 - transport-specific response models may wrap query-domain models, but should not redefine the business logic that produces them
 - the session route transport split now keeps HTTP request/response models and view serializers in `src/glassbox/web/session_api.py`, leaving `web/routes/sessions.py` focused on parameter validation, service calls, and HTTP error mapping
 
-#### Legacy Web Frontend Sub-Boundaries
+#### Historical Web Frontend Sub-Boundaries
 
-These sub-boundaries describe the completed no-framework dashboard split under
-`src/glassbox/web/static/`. They are legacy guidance during the v3 SPA migration;
-new dashboard architecture should follow the Next.js SPA contract in
-[architecture.md](./architecture.md) and [tasks-v3.md](./tasks-v3.md).
+These sub-boundaries describe the removed no-framework dashboard split. They are
+kept only as historical refactor context; current dashboard architecture follows
+the Next.js SPA contract in [architecture.md](./architecture.md) and
+[tasks-v3.md](./tasks-v3.md).
 
 - reducer and snapshot-normalization logic should stay pure
 - pane rendering should stay pure and be grouped by UI responsibility
 - fetch/SSE transport and DOM-binding logic should live outside pure reducers and renderers
-- the detailed legacy browser-module map now lives in [dashboard-frontend-boundaries.md](./dashboard-frontend-boundaries.md)
-- `state.js` should split behind a stable facade into snapshot hydration, session/stream state, browser submission state, and incremental event-reduction helpers
-- `render.js` should split behind a stable facade into session discovery, selected-session summary/lineage, transcript/live activity, operator actions, and operational diagnostics pane families
-- `approval-actions.js` and `interaction-actions.js` should remain the focused POST transport modules, while `dashboard.js` remains the only browser shell that touches DOM, URL/history, and SSE lifecycle concerns
-- the reducer split now keeps `src/glassbox/web/static/state.js` as the public facade while moving base state to `state-core.js`, snapshot shaping to `state-snapshot.js`, session/stream transitions to `state-stream.js`, browser submission-state helpers to `state-interaction.js`, and incremental event reduction to `state-events.js`
-- the renderer split now keeps `src/glassbox/web/static/render.js` as the public facade while moving shared HTML helpers to `render-utils.js`, session-discovery and selected-session summary panes to `render-session-panes.js`, transcript/live-activity panes to `render-activity-panes.js`, operator-action panes to `render-action-panes.js`, and diagnostics panes to `render-diagnostics-panes.js`
-- the dashboard app-entry split now keeps `src/glassbox/web/static/dashboard.js` as the public facade while moving snapshot/index fetches and SSE setup to `dashboard-transport.js`, stateful browser orchestration to `dashboard-controller.js`, and DOM rendering plus event binding to `dashboard-dom.js`
+- the detailed historical browser-module map lives in [dashboard-frontend-boundaries.md](./dashboard-frontend-boundaries.md)
+- the former reducer, renderer, transport, and DOM orchestration files were removed in GBX-472 after SPA parity and route flip tasks completed
 
 ### Replay And Eval
 

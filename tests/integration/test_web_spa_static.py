@@ -192,32 +192,6 @@ def test_app_next_static_asset_is_served(
     asyncio.run(scenario())
 
 
-def test_legacy_dashboard_route_remains_available_during_migration(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    async def scenario() -> None:
-        static_next = tmp_path / "static_next"
-        _write_spa_build(static_next)
-        monkeypatch.setattr(web_app, "_STATIC_NEXT_DIR", static_next)
-        connection = _open_initialized_db(tmp_path)
-        try:
-            app = _make_app(tmp_path, connection)
-            async with httpx.AsyncClient(
-                transport=httpx.ASGITransport(app=app),
-                base_url="http://testserver",
-            ) as client:
-                response = await client.get("/legacy")
-
-            assert response.status_code == 200
-            assert "/static/dashboard.js" in response.text
-            assert "Glassbox Operator Console" not in response.text
-        finally:
-            connection.close()
-
-    asyncio.run(scenario())
-
-
 @pytest.mark.skipif(
     not web_app._spa_index_path().is_file(),  # noqa: SLF001
     reason="frontend static export has not been built",

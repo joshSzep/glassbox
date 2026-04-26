@@ -1,11 +1,11 @@
-# Dashboard Frontend Boundaries
+# Historical Dashboard Frontend Boundaries
 
-## V3 Supersession Notice
+## Historical Notice
 
-This document is now legacy guidance for the existing no-framework dashboard in
-`src/glassbox/web/static/`. It remains useful while that implementation is still
-available through the temporary `/legacy` route, but it is no longer the target
-frontend architecture for new dashboard work.
+This document is a historical record for the no-framework dashboard that was
+removed in GBX-472. The current dashboard implementation is the TypeScript SPA
+under `frontend/`, statically exported into `src/glassbox/web/static_next/`, and
+served by FastAPI.
 
 The target v3 dashboard architecture is a TypeScript, Next.js, Tailwind,
 Zustand, and shadcn-style SPA developed under `frontend/`, statically exported
@@ -16,8 +16,7 @@ migration.
 
 Use [tasks-v3.md](./tasks-v3.md) for the v3 execution graph and
 [architecture.md](./architecture.md) for the code-aligned SPA contract. Use this
-file only when maintaining or comparing against the legacy dashboard until the
-SPA reaches the parity gate and replaces it.
+file only for migration archaeology.
 
 ## V3 SPA Migration Contract
 
@@ -45,12 +44,11 @@ installed Python package.
 Route migration rules:
 
 - serve the built SPA at `/` after the SPA parity gate is satisfied
-- preserve `/app` as a temporary SPA alias during migration
-- keep `/legacy` mapped to the no-framework dashboard for one migration window
+- preserve `/app` as a compatibility SPA alias
 - make direct `/app` refreshes and nested client routes resolve to the SPA shell
 - keep direct `?session=SESSION_ID` links working during migration and after the
    final route flip
-- after the migration window, retire the `/legacy` route and no-framework assets
+- the `/legacy` route and no-framework assets were retired in GBX-472
 
 Compatibility rules for the SPA:
 
@@ -107,7 +105,7 @@ the SPA replaces it.
 
 ## Non-Goals
 
-Legacy maintenance should not:
+Historical legacy-maintenance guidance was:
 
 - introduce React, Vue, or another client framework into `src/glassbox/web/static/`
 - replace HTML-string rendering with a virtual DOM abstraction
@@ -115,9 +113,9 @@ Legacy maintenance should not:
 - move browser-specific transport concerns into the reducer or renderer layers
 - rewrite the current dashboard tests around a new harness model
 
-## Current Frontend Surface
+## Removed Frontend Surface
 
-The current browser surface under `src/glassbox/web/static/` is:
+Before GBX-472, the browser surface under `src/glassbox/web/static/` was:
 
 - `dashboard.js`: app entry, DOM lookup, render scheduling, form/button event binding, URL sync, fetch orchestration, and SSE reconnect flow
 - `state.js`: state creation, snapshot normalization, session-index/session-selection state, stream-state transitions, interaction transient state, and incremental event reduction
@@ -125,11 +123,11 @@ The current browser surface under `src/glassbox/web/static/` is:
 - `approval-actions.js`: approval request building, server error extraction, and approval POST flow
 - `interaction-actions.js`: prompt/answer/fork request building, server error extraction, and interaction POST flow
 
-That shape should remain the legacy public mental model after the split, even if internal helpers move under submodules.
+That shape remains documented only to explain the removed migration baseline.
 
 ## Legacy Module Map
 
-The legacy decomposition keeps the existing top-level browser files as stable facades first, then moves internals behind them.
+The legacy decomposition kept top-level browser files as stable facades first, then moved internals behind them.
 
 The first reducer split is now in place:
 
@@ -285,18 +283,18 @@ Browser- or network-bound modules should not:
 - embed reducer-only business rules that can be expressed as pure state transitions
 - generate pane HTML inline when a pure renderer already owns that surface
 
-## Test-Preservation Plan
+## Historical Test-Preservation Plan
 
-The existing frontend tests already map cleanly onto the legacy split. That test shape should be preserved until the SPA test harness replaces it for new work.
+The removed Node-based frontend tests mapped cleanly onto the legacy split. The SPA test harness under `frontend/tests/` and `frontend/e2e/` has replaced this test shape for current work.
 
-### Existing Test Seams
+### Removed Test Seams
 
 - `tests/frontend/test_dashboard_state.js` protects snapshot hydration, stream state transitions, event reduction, lineage/fork state, runtime-context updates, and browser submission state
 - `tests/frontend/test_dashboard_render.js` protects pane-family HTML output for session discovery, selected-session summary, transcript/output, approvals/composer/fork UI, and operational diagnostics
 - `tests/frontend/test_approval_actions.js` protects approval transport behavior
 - `tests/frontend/test_interaction_actions.js` protects prompt/answer/fork transport behavior
 - `tests/frontend/test_dashboard_app.js` protects browser wiring for init, deep links, URL sync, historical sessions, SSE reconnect behavior, and fork-open flow
-- `tests/test_frontend_unit.py` remains the outer Node-based smoke gate for the whole browser surface
+- `tests/test_frontend_unit.py` was the outer Node-based smoke gate for the whole browser surface
 
 ### Migration Rules
 

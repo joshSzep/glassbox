@@ -34,12 +34,11 @@ Before flipping the default dashboard route, validate these representative paths
 - Refresh `/`, `/app`, `/app/sessions/SESSION_ID`, and `/?session=SESSION_ID` to confirm browser routes recover without a blank page.
 - Temporarily move the built SPA asset directory aside and confirm the server returns the documented missing-build guidance instead of an empty shell.
 
-## Known Gaps
+## Accepted Migration Notes
 
-- The SPA route is still served from `/app` until GBX-471 flips the default `/` dashboard route.
 - Browser tests currently use deterministic route fixtures rather than a launched FastAPI fixture server; FastAPI static-serving behavior is covered separately by Python integration tests.
-- The legacy no-framework dashboard remains available until GBX-472 retires it after the accepted migration window.
+- The GBX-472 migration window has closed: the no-framework dashboard assets, `/legacy` route, and Node-based legacy tests have been removed.
 
 ## Gate Decision
 
-The SPA may replace the legacy root route when all automated checks above pass, the manual checklist has no blocking failures, and any remaining known gaps are explicitly accepted as non-blocking migration notes.
+The SPA may replace the legacy root route when all automated checks above pass, the manual checklist has no blocking failures, and any remaining migration notes are explicitly accepted as non-blocking.

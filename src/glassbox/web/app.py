@@ -10,11 +10,9 @@ from fastapi import FastAPI
 from fastapi import HTTPException
 from fastapi import Request
 from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 
 from glassbox.runtime.context import RuntimeContext
 
-_STATIC_DIR = Path(__file__).parent / "static"
 _STATIC_NEXT_DIR = Path(__file__).parent / "static_next"
 _SPA_MISSING_DETAIL = (
     "Glassbox SPA assets have not been built. Run "
@@ -83,10 +81,6 @@ def create_app(runtime_context: RuntimeContext) -> FastAPI:
         _ensure_spa_build_available()
         return FileResponse(_spa_index_path(), media_type="text/html")
 
-    @app.get("/legacy", include_in_schema=False)
-    async def legacy_dashboard() -> FileResponse:
-        return FileResponse(_STATIC_DIR / "dashboard.html", media_type="text/html")
-
     @app.get("/app", include_in_schema=False)
     async def spa_root() -> FileResponse:
         _ensure_spa_build_available()
@@ -109,8 +103,5 @@ def create_app(runtime_context: RuntimeContext) -> FastAPI:
         if Path(client_path).suffix:
             raise HTTPException(status_code=404, detail="SPA asset not found")
         return FileResponse(_spa_index_path(), media_type="text/html")
-
-    # Static assets (CSS, JS).
-    app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 
     return app

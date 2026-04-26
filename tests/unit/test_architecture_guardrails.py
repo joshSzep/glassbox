@@ -1,7 +1,6 @@
 """Lightweight architectural guardrails for refactor-sensitive boundaries."""
 
 import ast
-import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -109,67 +108,6 @@ PYTHON_FACADE_RULES: tuple[
     ),
 )
 
-JAVASCRIPT_FACADE_RULES: tuple[
-    tuple[Path, tuple[str, ...], tuple[str, ...], int, str],
-    ...,
-] = (
-    (
-        SRC_ROOT / "web" / "static" / "state.js",
-        (
-            "./state-core.js",
-            "./state-snapshot.js",
-            "./state-stream.js",
-            "./state-interaction.js",
-            "./state-events.js",
-        ),
-        (
-            "./state-core.js",
-            "./state-snapshot.js",
-            "./state-stream.js",
-            "./state-interaction.js",
-            "./state-events.js",
-        ),
-        200,
-        "state.js should stay a thin facade over the split reducer modules",
-    ),
-    (
-        SRC_ROOT / "web" / "static" / "render.js",
-        (
-            "./render-session-panes.js",
-            "./render-activity-panes.js",
-            "./render-action-panes.js",
-            "./render-diagnostics-panes.js",
-        ),
-        (
-            "./render-session-panes.js",
-            "./render-activity-panes.js",
-            "./render-action-panes.js",
-            "./render-diagnostics-panes.js",
-        ),
-        90,
-        "render.js should stay a thin facade over split pane renderers",
-    ),
-    (
-        SRC_ROOT / "web" / "static" / "dashboard.js",
-        (
-            "./state.js",
-            "./dashboard-controller.js",
-            "./dashboard-dom.js",
-            "./dashboard-transport.js",
-        ),
-        (
-            "./dashboard-controller.js",
-            "./dashboard-dom.js",
-            "./dashboard-transport.js",
-        ),
-        110,
-        (
-            "dashboard.js should stay a thin browser entry facade over split "
-            "transport, dom, and controller modules"
-        ),
-    ),
-)
-
 
 def test_dependency_direction_rules_hold_for_refactor_boundaries() -> None:
     violations: list[str] = []
@@ -240,46 +178,11 @@ def test_python_public_facades_stay_thin_and_delegate_to_owned_modules() -> None
     assert violations == []
 
 
-def test_browser_public_facades_stay_thin_and_delegate_to_split_modules() -> None:
-    violations: list[str] = []
-
-    for (
-        file_path,
-        allowed_edges,
-        required_edges,
-        max_lines,
-        message,
-    ) in JAVASCRIPT_FACADE_RULES:
-        edges = _javascript_module_edges(file_path)
-        disallowed = sorted(edge for edge in edges if edge not in allowed_edges)
-        if disallowed:
-            violations.append(
-                _format_violation(
-                    file_path,
-                    message,
-                    f"unexpected imports {disallowed}",
-                )
-            )
-        missing = sorted(edge for edge in required_edges if edge not in edges)
-        if missing:
-            violations.append(
-                _format_violation(
-                    file_path,
-                    message,
-                    f"missing imports {missing}",
-                )
-            )
-        line_count = _line_count(file_path)
-        if line_count > max_lines:
-            violations.append(
-                _format_violation(
-                    file_path,
-                    message,
-                    f"{line_count} lines exceeds {max_lines}",
-                )
-            )
-
-    assert violations == []
+def test_spa_source_replaces_legacy_static_dashboard() -> None:
+    legacy_static_dir = SRC_ROOT / "web" / "static"
+    assert not any(legacy_static_dir.rglob("*"))
+    assert (REPO_ROOT / "frontend" / "app" / "page.tsx").is_file()
+    assert (REPO_ROOT / "frontend" / "components" / "console").is_dir()
 
 
 def _python_import_modules(file_path: Path) -> list[str]:
@@ -309,21 +212,6 @@ def _python_future_features(file_path: Path) -> set[str]:
         ):
             features.update(alias.name for alias in node.names)
     return features
-
-
-def _javascript_module_edges(file_path: Path) -> set[str]:
-    content = file_path.read_text(encoding="utf-8")
-    edges: set[str] = set()
-    for statement in content.split(";"):
-        stripped = statement.strip()
-        from_match = re.search(r"\bfrom\s+[\"']([^\"']+)[\"']", stripped)
-        if from_match is not None:
-            edges.add(from_match.group(1))
-            continue
-        import_match = re.search(r"^import\s+[\"']([^\"']+)[\"']", stripped)
-        if import_match is not None:
-            edges.add(import_match.group(1))
-    return edges
 
 
 def _line_count(file_path: Path) -> int:

@@ -82,13 +82,13 @@ uv run glassbox dashboard serve --cwd . --host 127.0.0.1 --port 8765
 Then open:
 
 ```text
-http://127.0.0.1:8765/app
+http://127.0.0.1:8765/
 ```
 
 `pnpm --dir frontend build` runs `next build` with static export enabled and
-copies `frontend/out/` to `src/glassbox/web/static_next/`. The legacy dashboard
-remains at `/` during the migration window, while the built SPA is served at
-`/app` and direct nested `/app/...` routes fall back to the SPA shell.
+copies `frontend/out/` to `src/glassbox/web/static_next/`. The built SPA is the
+default dashboard at `/`; `/app` remains a compatibility alias and direct nested
+`/app/...` routes fall back to the SPA shell.
 
 Use this production path before packaging or release validation so the installed
 Python distribution can serve the dashboard without requiring Node.js or `pnpm`

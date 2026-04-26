@@ -8,7 +8,7 @@ This document defines Glassbox v3: the next major frontend evolution after the c
 
 It is written in the same execution style as [tasks-v1.md](./tasks-v1.md) and [tasks-v2.md](./tasks-v2.md): explicit dependencies, small vertical slices, concrete deliverables, and quality requirements attached directly to the work.
 
-The current dashboard under `src/glassbox/web/static/` has served the project well, but the no-framework browser architecture is no longer the desired direction. The new direction is a modern TypeScript SPA that preserves Glassbox's local-first runtime model, event-sourced backend contracts, and deterministic replay discipline while materially improving operator UX.
+The original dashboard under `src/glassbox/web/static/` served the project well, but the no-framework browser architecture was no longer the desired direction. The new direction is a modern TypeScript SPA that preserves Glassbox's local-first runtime model, event-sourced backend contracts, and deterministic replay discipline while materially improving operator UX.
 
 ## Product Direction
 
@@ -46,9 +46,9 @@ The accepted stack decisions are:
 Treat the following as the starting point for every task in this document:
 
 - FastAPI owns `/healthz`, `/sessions`, `/sessions/aggregate`, `/sessions/{session_id}`, `/sessions/{session_id}/events`, approval actions, prompt submission, answer submission, and fork actions
-- the dashboard root is currently served from `src/glassbox/web/static/dashboard.html`
+- the dashboard root originally served `src/glassbox/web/static/dashboard.html`
 - current static browser modules already separate state, renderers, transport, controller, and DOM binding, but they are plain JavaScript and string-rendered HTML
-- current frontend tests run through Node's built-in test runner from `tests/test_frontend_unit.py`
+- the original frontend tests ran through Node's built-in test runner from `tests/test_frontend_unit.py`
 - [dashboard-frontend-boundaries.md](./dashboard-frontend-boundaries.md) records the old no-framework decomposition and should be treated as a legacy baseline until this task graph supersedes it through implementation and doc updates
 - [operator-console.md](./operator-console.md) defines the current v2 console information architecture and should remain the product UX baseline for the new SPA
 - the Python package should continue to work for normal operators without requiring a production Node process
@@ -646,7 +646,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-472: Remove Legacy Dashboard Assets And Tests After The Migration Window
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-471`
 - Goal: complete the migration by deleting the old hand-rolled dashboard implementation once the SPA has proven stable
 - Deliverables:

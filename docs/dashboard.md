@@ -45,14 +45,6 @@ The root view is the operator-console overview. It lets you inspect runtime
 health, queue counts, and prioritized sessions from the browser instead of
 copying a `session_id` first.
 
-During the final migration window, the retired no-framework dashboard remains available at:
-
-```text
-http://127.0.0.1:8765/legacy
-```
-
-Use `/legacy` only as a temporary fallback while validating the SPA default route.
-
 For daemon-backed runtime ownership, use `glassbox daemon status --cwd .` to
 discover the dashboard URL, health URL, session index, owner metadata path, and
 log paths for the active workspace runtime.
