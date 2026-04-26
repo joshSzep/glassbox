@@ -23,6 +23,7 @@ Use this page to jump to the right level of detail.
 - [operator-console.md](./operator-console.md): understand the v2 multi-session console model, v3 SPA UX contract, action queues, runtime-health semantics, and backend/frontend contracts
 - [persistent-runtime.md](./persistent-runtime.md): run a workspace daemon, inspect runtime health, attach from another terminal, and recover stale ownership
 - [release-packaging.md](./release-packaging.md): build and validate release packages that include the statically exported SPA dashboard
+- [v4-ux-release-gate.md](./v4-ux-release-gate.md): validate the v4 operator-console UX gate with automated coverage, screenshot review, and manual checks
 - [team-workflows.md](./team-workflows.md): understand v2 session ownership, operator identity, and local-first handoff semantics
 - [workspace-profiles.md](./workspace-profiles.md): declare repository-owned defaults for model selection, approval posture, and eval profile routing
 
@@ -50,6 +51,7 @@ Use this page to jump to the right level of detail.
 - [frontend-ux-audit-v4.md](./frontend-ux-audit-v4.md): current-SPA v4 UX audit, screenshot evidence map, issue inventory, and preserved behavior list
 - [frontend-testing.md](./frontend-testing.md): v3 SPA frontend-native test harness, fixture strategy, and focused test-writing guidance
 - [operator-console.md](./operator-console.md): v2 operator-console information architecture, v3 SPA UX contract, and queue/health semantics for multi-session inspection
+- [v4-ux-release-gate.md](./v4-ux-release-gate.md): v4 UX gate command, checklist, automated coverage map, screenshot review path, manual validation, and known gaps
 - [tasks-v3.md](./tasks-v3.md): concrete v3 task graph for replacing the hand-rolled dashboard with a statically served Next.js SPA
 - [tasks-v4.md](./tasks-v4.md): concrete v4 task graph for attention-first queue triage, real inspector tabs, priority actions, session narrative, evidence hierarchy, mobile drill-in, accessibility, and visual QA
 - [team-workflows.md](./team-workflows.md): v2 ownership, identity, and handoff contract for portable team workflows

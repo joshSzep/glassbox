@@ -128,6 +128,7 @@ uv run glassbox artifacts inspect --json
 
 - [frontend-development.md](./frontend-development.md)
 - [interactive-workflows.md](./interactive-workflows.md)
+- [v4-ux-release-gate.md](./v4-ux-release-gate.md)
 - [persistent-runtime.md](./persistent-runtime.md)
 - [branching.md](./branching.md)
 - [runtime-context.md](./runtime-context.md)

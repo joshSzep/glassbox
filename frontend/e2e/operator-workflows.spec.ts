@@ -110,7 +110,9 @@ test("operator can complete the primary workflow from the keyboard", async ({ pa
   await page.keyboard.type("Use the main branch");
   await page.getByRole("button", { name: "Submit answer" }).focus();
   await page.keyboard.press("Enter");
+  await expect(page.getByText("answer submitted", { exact: true })).toBeVisible();
 
+  await expect(page.getByRole("button", { name: "Approve" })).toBeEnabled();
   await page.getByRole("button", { name: "Approve" }).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByText("approval resolved", { exact: true })).toBeVisible();

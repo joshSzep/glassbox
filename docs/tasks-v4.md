@@ -798,7 +798,7 @@ The intended v4 milestone order is:
 
 ### GBX-553: Define And Enforce The v4 UX Release Gate
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-552`
 - Goal: decide when the redesigned SPA is good enough to call the v4 operator console baseline
 - Deliverables:

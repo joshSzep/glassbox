@@ -16,6 +16,7 @@
     "lint": "eslint .",
     "screenshots:v4-audit": "node scripts/v4-audit-screenshots.mjs",
     "test:e2e": "sh -c 'status=0; playwright test || status=$?; next build >/dev/null || status=$?; exit $status'",
+    "validate:v4-ux": "node scripts/v4-ux-release-gate.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

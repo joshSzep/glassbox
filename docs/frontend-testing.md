@@ -67,3 +67,6 @@ pnpm --dir frontend screenshots:v4-audit
 The archive writes to `frontend/test-results/v4-audit-screenshots/` and is intentionally ignored by git. Keep the current run locally while reviewing a UX change, and rely on regenerated screenshots rather than committed binary baselines. Each capture records route, scenario, operator state, git revision, viewport, and file path in `manifest.json` plus a readable `index.md`.
 
 Review representative desktop, narrow desktop, tablet, and mobile captures for the scenario viewports declared in the shared v4 fixtures. The archive test should fail on dev-overlay contamination, blank primary regions, selected-session blank states, or horizontal overflow. Add new fixture scenarios when a user-visible operator state is not represented by the current matrix.
+
+The full v4 UX release command and manual approval checklist live in
+[v4-ux-release-gate.md](./v4-ux-release-gate.md).
