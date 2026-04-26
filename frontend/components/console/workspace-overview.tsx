@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import {
   Activity,
   AlertTriangle,
@@ -72,19 +74,25 @@ const queueDescriptors: QueueDescriptor[] = [
 export type WorkspaceOverviewProps = {
   data: DashboardState;
   error: string | null;
+  inspector?: ReactNode;
   loadState: LoadState;
   onRefresh?: () => void;
   onSelectQueue?: (queue: ConsoleFilters["queue"]) => void;
+  onSelectSession?: (sessionId: string) => void;
   selectedQueue: ConsoleFilters["queue"];
+  selectedSessionId?: string | null;
 };
 
 export function WorkspaceOverview({
   data,
   error,
+  inspector,
   loadState,
   onRefresh,
   onSelectQueue,
+  onSelectSession,
   selectedQueue,
+  selectedSessionId = null,
 }: WorkspaceOverviewProps) {
   const runtime = runtimeDescriptor(data.runtimeSummary.state);
   const RuntimeIcon = runtime.icon;
@@ -133,30 +141,46 @@ export function WorkspaceOverview({
               loadState={loadState}
               selectedQueue={selectedQueue}
             />
-            {error !== null ? (
-              <StatePanel
-                icon={ShieldAlert}
-                title="Workspace aggregate unavailable"
-                tone="destructive"
-                value={error}
-              />
-            ) : loadState === "loading" && !hasRows ? (
-              <StatePanel
-                icon={RefreshCcw}
-                title="Loading workspace queues"
-                tone="info"
-                value="Fetching aggregate session state."
-              />
-            ) : hasRows ? (
-              <SessionQueueTable sessions={data.sessionIndex} selectedQueue={selectedQueue} />
-            ) : (
-              <StatePanel
-                icon={CheckCircle2}
-                title="No sessions in this queue"
-                tone="success"
-                value="There is no operator work matching the current filter."
-              />
-            )}
+            <div
+              className={
+                inspector === undefined
+                  ? "min-w-0"
+                  : "grid min-w-0 gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(28rem,0.9fr)]"
+              }
+            >
+              <div className="min-w-0">
+                {error !== null ? (
+                  <StatePanel
+                    icon={ShieldAlert}
+                    title="Workspace aggregate unavailable"
+                    tone="destructive"
+                    value={error}
+                  />
+                ) : loadState === "loading" && !hasRows ? (
+                  <StatePanel
+                    icon={RefreshCcw}
+                    title="Loading workspace queues"
+                    tone="info"
+                    value="Fetching aggregate session state."
+                  />
+                ) : hasRows ? (
+                  <SessionQueueTable
+                    onSelectSession={onSelectSession}
+                    selectedQueue={selectedQueue}
+                    selectedSessionId={selectedSessionId}
+                    sessions={data.sessionIndex}
+                  />
+                ) : (
+                  <StatePanel
+                    icon={CheckCircle2}
+                    title="No sessions in this queue"
+                    tone="success"
+                    value="There is no operator work matching the current filter."
+                  />
+                )}
+              </div>
+              {inspector}
+            </div>
           </section>
         </section>
       </div>
@@ -310,10 +334,14 @@ function QueueHeader({
 }
 
 function SessionQueueTable({
+  onSelectSession,
   selectedQueue,
+  selectedSessionId,
   sessions,
 }: {
+  onSelectSession?: (sessionId: string) => void;
   selectedQueue: ConsoleFilters["queue"];
+  selectedSessionId: string | null;
   sessions: SessionSummary[];
 }) {
   return (
@@ -331,6 +359,8 @@ function SessionQueueTable({
         {sessions.map((session) => (
           <SessionQueueRow
             key={session.session_id}
+            onSelectSession={onSelectSession}
+            selected={selectedSessionId === session.session_id}
             selectedQueue={selectedQueue}
             session={session}
           />
@@ -341,16 +371,20 @@ function SessionQueueTable({
 }
 
 function SessionQueueRow({
+  onSelectSession,
+  selected,
   selectedQueue,
   session,
 }: {
+  onSelectSession?: (sessionId: string) => void;
+  selected: boolean;
   selectedQueue: ConsoleFilters["queue"];
   session: SessionSummary;
 }) {
   const status = sessionDescriptor(session);
   const StatusIcon = status.icon;
   return (
-    <TableRow>
+    <TableRow data-state={selected ? "selected" : undefined}>
       <TableCell className="min-w-64">
         <a
           className="font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -360,6 +394,13 @@ function SessionQueueRow({
             selectedSessionId: session.session_id,
             tab: "overview",
           })}
+          onClick={(event) => {
+            if (onSelectSession === undefined) {
+              return;
+            }
+            event.preventDefault();
+            onSelectSession(session.session_id);
+          }}
         >
           {session.session_id}
         </a>
@@ -400,7 +441,7 @@ function StatePanel({
   tone,
   value,
 }: {
-  icon: typeof AlertTriangle;
+  icon: LucideIcon;
   title: string;
   tone: "destructive" | "info" | "success";
   value: string;

@@ -1,38 +1,83 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useStore } from "zustand";
 
 import { createGlassboxApiClient } from "@/api/client";
+import { SessionInspector } from "@/components/console/session-inspector";
 import { WorkspaceOverview } from "@/components/console/workspace-overview";
-import { parseAppRoute, selectQueueRoute, type AppQueue } from "@/routing/app-route";
-import { createConsoleStore } from "@/stores/dashboard-stores";
+import {
+  buildAppRoute,
+  createDefaultAppRoute,
+  parseAppRoute,
+  selectQueueRoute,
+  selectSessionRoute,
+  type AppQueue,
+  type AppRouteState,
+} from "@/routing/app-route";
+import { createConsoleStore, createSessionStore } from "@/stores/dashboard-stores";
 
 export function WorkspaceConsole() {
-  const store = useMemo(() => createConsoleStore(createGlassboxApiClient()), []);
-  const state = useStore(store);
+  const apiClient = useMemo(() => createGlassboxApiClient(), []);
+  const consoleStore = useMemo(() => createConsoleStore(apiClient), [apiClient]);
+  const sessionStore = useMemo(() => createSessionStore({ apiClient }), [apiClient]);
+  const consoleState = useStore(consoleStore);
+  const sessionState = useStore(sessionStore);
+  const [route, setRoute] = useState<AppRouteState>(createDefaultAppRoute);
 
   useEffect(() => {
-    const route = parseAppRoute(window.location.href);
-    void store.getState().loadAggregate({ queue: route.queue });
-  }, [store]);
+    const syncFromLocation = () => {
+      const nextRoute = parseAppRoute(window.location.href);
+      setRoute(nextRoute);
+      void consoleStore.getState().loadAggregate({ queue: nextRoute.queue });
+      if (nextRoute.selectedSessionId !== null) {
+        void sessionStore.getState().loadSession(nextRoute.selectedSessionId);
+      } else {
+        sessionStore.getState().resetForRoute(null);
+      }
+    };
+
+    syncFromLocation();
+    window.addEventListener("popstate", syncFromLocation);
+    return () => window.removeEventListener("popstate", syncFromLocation);
+  }, [consoleStore, sessionStore]);
+
+  const navigate = (nextRoute: AppRouteState) => {
+    setRoute(nextRoute);
+    window.history.pushState(null, "", buildAppRoute(nextRoute));
+  };
 
   return (
     <WorkspaceOverview
-      data={state.data}
-      error={state.error}
-      loadState={state.loadState}
-      onRefresh={() => void store.getState().loadAggregate()}
+      data={consoleState.data}
+      error={consoleState.error}
+      inspector={
+        route.selectedSessionId === null ? undefined : (
+          <SessionInspector
+            activeTab={route.tab}
+            data={sessionState.data}
+            error={sessionState.error}
+            loadState={sessionState.loadState}
+            queue={route.queue}
+            stream={sessionState.stream}
+          />
+        )
+      }
+      loadState={consoleState.loadState}
+      onRefresh={() => void consoleStore.getState().loadAggregate()}
       onSelectQueue={(queue) => {
         const nextRoute = selectQueueRoute(parseAppRoute(window.location.href), queue as AppQueue);
-        window.history.pushState(
-          null,
-          "",
-          nextRoute.queue === "all" ? "/app" : `/app/queues/${nextRoute.queue}`,
-        );
-        void store.getState().selectQueue(queue);
+        navigate(nextRoute);
+        sessionStore.getState().resetForRoute(null);
+        void consoleStore.getState().selectQueue(queue);
       }}
-      selectedQueue={state.filters.queue}
+      onSelectSession={(sessionId) => {
+        const nextRoute = selectSessionRoute(route, sessionId);
+        navigate(nextRoute);
+        void sessionStore.getState().loadSession(sessionId);
+      }}
+      selectedQueue={consoleState.filters.queue}
+      selectedSessionId={route.selectedSessionId}
     />
   );
 }

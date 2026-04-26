@@ -446,7 +446,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-442: Build The Selected-Session Inspector Shell
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-432`, `GBX-440`, `GBX-441`
 - Goal: recreate the core selected-session inspection surface in the new SPA shell
 - Deliverables:

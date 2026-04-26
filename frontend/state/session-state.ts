@@ -70,6 +70,7 @@ export type SessionFields = {
   pendingApprovals: PendingApproval[];
   pendingQuestionId: string | null;
   pendingQuestionText: string | null;
+  projectionHealth: ProjectionHealth | null;
   runtimeContext: RuntimeContext | null;
   selectedForkTurnId: string | null;
   sessionFailureMessage: string | null;
@@ -557,6 +558,7 @@ function createEmptySessionFields(): SessionFields {
     pendingApprovals: [],
     pendingQuestionId: null,
     pendingQuestionText: null,
+    projectionHealth: null,
     runtimeContext: null,
     selectedForkTurnId: null,
     sessionFailureMessage: null,
@@ -601,6 +603,7 @@ function normalizeSessionFields(snapshot: SessionSnapshot): SessionFields {
     })),
     pendingQuestionId: snapshot.pending_question_id,
     pendingQuestionText: snapshot.pending_question_text,
+    projectionHealth: snapshot.projection_health,
     runtimeContext: cloneRuntimeContext(snapshot.runtime_context),
     selectedForkTurnId: defaultSelectedForkTurnId(
       branchableTurns,
@@ -620,7 +623,6 @@ function normalizeComparableSession(snapshot: SessionSnapshot): ComparableSessio
   return {
     ...normalizeSessionFields(snapshot),
     createdAt: snapshot.created_at,
-    projectionHealth: snapshot.projection_health,
     updatedAt: snapshot.updated_at,
   };
 }
