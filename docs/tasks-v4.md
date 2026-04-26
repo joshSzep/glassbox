@@ -21,6 +21,7 @@ The frontend UX work should optimize for five outcomes:
 - a transcript and timeline experience that makes the current session story readable under live updates
 - a responsive layout that works as a real console on desktop and a focused drill-in workflow on mobile
 - a design system that is dense, restrained, accessible, and visibly operational rather than generic or decorative
+- a living screenshot archive that makes UX regressions and improvements reviewable across representative states
 
 The v4 thesis is:
 
@@ -53,11 +54,12 @@ These rules apply to every task in this file.
 2. Preserve the event-sourced source-of-truth rule. Browser state remains derived from backend snapshots, SSE events, and local UI drafts only.
 3. Preserve FastAPI as the production runtime owner. Next.js remains a static-exported SPA in production.
 4. Treat UX hierarchy as functional behavior. If a change alters what the operator notices first, what action is easiest, or what evidence is visible by default, cover it with tests and docs where practical.
-5. Prefer small vertical slices that improve the live console immediately over broad redesign branches.
-6. Do not add browser-only state or hidden heuristics that contradict backend session status, projection health, runtime ownership, approval semantics, fork semantics, or replay/eval evidence.
-7. Keep raw transcript, event, metric, approval, question, tool-call, lineage, and runtime-context evidence available even when moving it behind tabs, sheets, or progressive disclosure.
-8. If the UX redesign exposes an API mismatch, fix the API contract or document the mismatch before encoding fragile browser-only workarounds.
-9. Every implementation task automatically includes:
+5. Maintain the v4 screenshot archive as the UX changes. Any task that materially changes layout, hierarchy, copy, responsive behavior, action feedback, or visual state should refresh the relevant screenshots or document why the archive does not need an update.
+6. Prefer small vertical slices that improve the live console immediately over broad redesign branches.
+7. Do not add browser-only state or hidden heuristics that contradict backend session status, projection health, runtime ownership, approval semantics, fork semantics, or replay/eval evidence.
+8. Keep raw transcript, event, metric, approval, question, tool-call, lineage, and runtime-context evidence available even when moving it behind tabs, sheets, or progressive disclosure.
+9. If the UX redesign exposes an API mismatch, fix the API contract or document the mismatch before encoding fragile browser-only workarounds.
+10. Every implementation task automatically includes:
    - automated tests for new behavior
    - `pnpm` lint, typecheck, unit test, and build compliance for touched frontend code
    - Playwright coverage for changed critical browser workflows when the behavior is user-visible and end-to-end
@@ -75,6 +77,7 @@ A task is complete only when all of the following are true:
 - Python lint, typecheck, and tests pass for touched backend code
 - the task does not leave placeholder code or hidden follow-up work outside this file
 - the dashboard remains usable through the FastAPI-served production build path
+- the v4 screenshot archive is refreshed or explicitly marked unchanged when the task changes visible UX
 - docs are updated if the task changes persistence, transport, operator-visible behavior, frontend build workflows, verification workflows, or the user-facing console model
 
 ## Suggested Status Markers
@@ -102,6 +105,7 @@ frontend/
     state/
     stores/
     styles/
+    test-results/v4-audit-screenshots/
     tests/
     e2e/
 src/glassbox/web/
@@ -119,6 +123,7 @@ pnpm --dir frontend typecheck
 pnpm --dir frontend test
 pnpm --dir frontend build
 pnpm --dir frontend test:e2e
+pnpm --dir frontend screenshots:v4-audit
 uv run ruff format --check .
 uv run ruff check .
 uv run ty check
@@ -133,6 +138,7 @@ pnpm --dir frontend test -- workspace-overview
 pnpm --dir frontend test -- operator-actions
 pnpm --dir frontend typecheck
 pnpm --dir frontend test:e2e -- operator-workflows
+pnpm --dir frontend screenshots:v4-audit -- --scenario selected-session-overview
 uv run pytest tests/integration/test_specific_web_flow.py
 uv run ruff check src/glassbox/web tests/integration/test_specific_web_flow.py
 ```
@@ -141,14 +147,84 @@ uv run ruff check src/glassbox/web tests/integration/test_specific_web_flow.py
 
 The intended v4 milestone order is:
 
-1. UX audit, evidence capture, and v4 interaction contract
-2. attention-first workspace shell and queue redesign
-3. real inspector tabs, overview hierarchy, and priority action surfaces
-4. turn-grouped transcript, live narrative, and progressive evidence disclosure
-5. lineage, compare, drift, and verification UX refinement
-6. accessibility, responsive behavior, visual QA, and v4 release gate
+1. screenshot archive harness and current-SPA visual baseline
+2. UX audit, evidence capture, and v4 interaction contract
+3. attention-first workspace shell and queue redesign
+4. real inspector tabs, overview hierarchy, and priority action surfaces
+5. turn-grouped transcript, live narrative, and progressive evidence disclosure
+6. lineage, compare, drift, and verification UX refinement
+7. accessibility, responsive behavior, visual QA, and v4 release gate
 
 ## Task Graph
+
+---
+
+## Phase 49: Screenshot Archive And Visual Baseline
+
+### GBX-490: Define The v4 Screenshot Archive Harness
+
+- Status: `TODO`
+- Depends on: `GBX-473`
+- Goal: create a repeatable Playwright-driven screenshot archive path for auditing the current SPA and tracking UX changes through v4
+- Deliverables:
+  - repository script such as `pnpm --dir frontend screenshots:v4-audit`
+  - deterministic Playwright screenshot harness that can load fixture-backed SPA states without live provider calls
+  - output convention such as `frontend/test-results/v4-audit-screenshots/`
+  - archive manifest or index describing scenario name, viewport, route, fixture, timestamp or git revision, and short operator state
+  - gitignore or retention policy that makes generated screenshot archives available locally without committing large binary churn by default
+- Implementation notes:
+  - treat screenshots as audit artifacts first, not as strict visual regression baselines
+  - use the existing Playwright setup and mocked FastAPI route fixtures where possible
+  - keep scenario names stable so before/after archives are easy to compare during review
+  - include desktop and mobile viewport definitions from the start
+- Tests and validation included in task:
+  - screenshot command runs successfully against at least one desktop and one mobile scenario
+  - generated manifest can be reviewed without opening every image manually
+  - `pnpm --dir frontend test:e2e` still passes after adding the harness
+- Done when:
+  - contributors can generate a local screenshot archive of the SPA through one documented command
+
+### GBX-491: Capture The Current v3 SPA Visual Baseline
+
+- Status: `TODO`
+- Depends on: `GBX-490`
+- Goal: archive the current completed-SPA UX before v4 redesign work changes the interface
+- Deliverables:
+  - baseline screenshot archive for empty workspace, all queues, live session, historical session, failed session, pending approval, pending question, branched session, compare view, projection degraded, and artifact-backed drift cue
+  - desktop and mobile captures for the highest-value scenarios
+  - short baseline review notes calling out obvious hierarchy, density, overflow, tab, action, and mobile issues visible in the archive
+  - documented command and output path for regenerating the baseline
+- Implementation notes:
+  - this task should capture the current UX honestly rather than fixing it first
+  - prefer deterministic fixtures so baseline screenshots can be regenerated on another machine
+  - do not commit screenshot binaries unless the repository deliberately chooses a reviewed artifact retention path
+- Tests and validation included in task:
+  - `pnpm --dir frontend screenshots:v4-audit`
+  - manual review that every required scenario produced a nonblank, correctly routed screenshot
+  - mobile capture review for horizontal overflow and inaccessible action placement
+- Done when:
+  - the project has a current-SPA visual baseline that can anchor the v4 UX audit and later before/after review
+
+### GBX-492: Define Screenshot Archive Maintenance Rules
+
+- Status: `TODO`
+- Depends on: `GBX-491`
+- Goal: make screenshot updates part of v4 execution rather than a one-time audit artifact
+- Deliverables:
+  - documentation for when to refresh the archive during UX tasks
+  - naming conventions for scenario, route, viewport, and before/after captures
+  - review checklist for comparing current screenshots against the v3 baseline and the latest v4 state
+  - guidance for when screenshot diffs should block a task versus remain manual review evidence
+  - policy for storing archives locally, attaching them to PRs, or publishing them as CI artifacts if CI later supports it
+- Implementation notes:
+  - require archive refresh for visible hierarchy, layout, copy, responsive, action, tab, and evidence-surface changes
+  - allow no-op notes for pure state-model, transport, or backend tasks that do not change rendered UX
+  - keep binary artifact churn out of normal source commits unless an explicit release artifact path is chosen
+- Tests and validation included in task:
+  - doc review against the v4 task graph
+  - dry-run screenshot archive regeneration after one harmless fixture or route selection change
+- Done when:
+  - every later v4 task has a clear expectation for keeping visual evidence current
 
 ---
 
@@ -157,11 +233,11 @@ The intended v4 milestone order is:
 ### GBX-500: Audit The Completed SPA Against Operator Workflows
 
 - Status: `TODO`
-- Depends on: `GBX-473`
+- Depends on: `GBX-492`
 - Goal: establish a concrete, code-aligned UX baseline for the current SPA before redesign work begins
 - Deliverables:
-  - UX audit document covering workspace overview, queues, selected-session inspector, actions, transcript, timeline, lineage, compare, runtime context, evidence, and mobile behavior
-  - screenshot set or Playwright trace set for representative states: empty workspace, live session, historical session, failed session, pending approval, pending question, branched session, projection degraded, and artifact-backed drift cue
+  - UX audit document covering workspace overview, queues, selected-session inspector, actions, transcript, timeline, lineage, compare, runtime context, evidence, and mobile behavior, annotated against the screenshot archive
+  - screenshot archive references or Playwright trace links for representative states: empty workspace, live session, historical session, failed session, pending approval, pending question, branched session, projection degraded, and artifact-backed drift cue
   - issue inventory grouped by severity: workflow blocker, high-friction hierarchy issue, accessibility problem, responsive layout problem, visual polish issue, and copy issue
   - explicit list of already-good v3 surfaces that should be preserved during redesign
 - Implementation notes:
@@ -171,6 +247,7 @@ The intended v4 milestone order is:
   - treat screenshots as evidence for decision-making, not as permanent visual golden tests unless the repository deliberately chooses that path
 - Tests and validation included in task:
   - Playwright smoke run against representative fixtures
+  - `pnpm --dir frontend screenshots:v4-audit`
   - manual desktop and mobile review notes added to docs
   - no production code changes are required unless a trivial instrumentation gap blocks the audit
 - Done when:
@@ -187,6 +264,7 @@ The intended v4 milestone order is:
   - tab and route-state contract for selected-session inspection
   - action-priority rules for approvals, questions, failures, prompts, forks, lineage, compare, and evidence
   - copy guidance for status, health, empty states, action feedback, and evidence labels
+  - screenshot review rubric mapping each v4 surface to the archive scenarios that should prove it visually
 - Implementation notes:
   - use [operator-console.md](./operator-console.md) as the product baseline, but update it where v4 clarifies or improves the model
   - define behavior in terms of operator decisions: what needs attention, what evidence is needed, and what action is safe
@@ -207,6 +285,7 @@ The intended v4 milestone order is:
   - frontend fixture inventory for live, historical, failed, approval, question, branched, degraded, drift, and large-transcript sessions
   - shared fixture builders or scenario helpers for component tests and Playwright tests
   - documented scenario names and expected operator decision for each scenario
+  - mapping from scenario names to screenshot archive captures and critical viewports
   - fixture guidance that prevents generated API contract drift
 - Implementation notes:
   - extend existing `frontend/tests/fixtures/session-state.ts` rather than creating unrelated fixture systems unless the current helper structure is insufficient
@@ -226,13 +305,14 @@ The intended v4 milestone order is:
 ### GBX-510: Build The Workspace Status Rail And Console Frame
 
 - Status: `TODO`
-- Depends on: `GBX-501`, `GBX-502`
+- Depends on: `GBX-501`, `GBX-502`, `GBX-492`
 - Goal: replace the generic page header and scattered status badges with a stable operational frame
 - Deliverables:
   - top-level status rail showing runtime owner, projection health, stream posture where relevant, workspace identity, and last refresh state
   - console frame that reserves clear regions for attention queues, selected-session narrative, and action or evidence surfaces
   - route-aware selected-session and queue state shown without burying the active context in a table row
   - compact refresh and recovery affordances aligned with existing backend health semantics
+  - refreshed screenshot archive captures for the workspace shell in desktop and mobile viewports
 - Implementation notes:
   - do not turn the top rail into a decorative hero or marketing header
   - visually separate runtime owner, projection health, and browser stream state because they describe different failure modes
@@ -241,6 +321,7 @@ The intended v4 milestone order is:
 - Tests and validation included in task:
   - component tests for status rail states: online, offline, degraded, stale projection, missing projection, loading, and failed aggregate
   - responsive rendering tests where practical
+  - screenshot archive refresh for workspace shell and status rail scenarios
   - Playwright smoke check that `/`, `/app`, selected-session deep links, and queue links still load the console frame
 - Done when:
   - opening the dashboard immediately communicates workspace health and current console context without relying on scattered badges
@@ -256,6 +337,7 @@ The intended v4 milestone order is:
   - row metadata for session ID, status, live or historical posture, projection health, model, branch or lineage hint, updated time, and actionability
   - compact empty, loading, stale, and degraded states for each queue
   - click and keyboard behavior that preserves direct session deep links
+  - refreshed screenshot archive captures for attention rows across approval, question, failed, degraded, active, and historical queues
 - Implementation notes:
   - keep server-side priority ordering from `GET /sessions/aggregate` authoritative
   - do not hide session IDs, but avoid making them the only readable label when better action or message text exists
@@ -265,6 +347,7 @@ The intended v4 milestone order is:
 - Tests and validation included in task:
   - component tests for each queue row type and empty state
   - store and route tests proving queue selection and selected-session navigation still round trip
+  - screenshot archive comparison against the v3 queue table baseline
   - Playwright test for browsing from an urgent queue row into the selected-session inspector
 - Done when:
   - an operator can scan the queue list and understand why each row deserves attention without opening every session
@@ -279,6 +362,7 @@ The intended v4 milestone order is:
   - queue filter controls for all, approvals, questions, failures, degraded, active, and historical sessions
   - optional lightweight text filtering only if it can be implemented without undermining server priority semantics
   - persistent readable URL state for queue and selected session
+  - refreshed screenshot archive captures for queue summaries, selected filters, and no-result states
 - Implementation notes:
   - do not invent browser-only queue categories that conflict with backend queue memberships
   - keep filtering local and transparent; the operator should understand whether a row is hidden by queue, search text, or server result limit
@@ -286,6 +370,7 @@ The intended v4 milestone order is:
 - Tests and validation included in task:
   - component tests for queue counts and selected queue affordances
   - route tests for queue URL state
+  - screenshot archive refresh for queue summary and filter scenarios
   - Playwright coverage for switching queues and returning to the selected session
 - Done when:
   - queue navigation feels like an attention model rather than a static list of tabs
@@ -300,6 +385,7 @@ The intended v4 milestone order is:
   - clear return path from selected session to queues
   - mobile-safe action, tab, and transcript layouts without horizontal scrolling
   - stable controls for refresh, queue selection, and selected-session context
+  - refreshed screenshot archive captures for mobile overview, mobile selected session, and mobile return-to-queues states
 - Implementation notes:
   - desktop can keep simultaneous queue and inspector visibility; mobile should prioritize one task at a time
   - no operator action should require guessing where state changed after live updates
@@ -307,6 +393,7 @@ The intended v4 milestone order is:
 - Tests and validation included in task:
   - Playwright mobile viewport tests for queue browsing, selected-session opening, return to queues, answer submission, approval resolution, and fork dialog access
   - component tests for mobile-only affordances where practical
+  - screenshot archive review for mobile overflow and visible action placement
   - manual validation on at least one narrow viewport around 390px wide
 - Done when:
   - mobile users can triage, inspect, and act without horizontal scrolling or losing navigation context
@@ -318,12 +405,13 @@ The intended v4 milestone order is:
 ### GBX-520: Make Inspector Tabs Gate Actual Content
 
 - Status: `TODO`
-- Depends on: `GBX-501`, `GBX-502`
+- Depends on: `GBX-501`, `GBX-502`, `GBX-492`
 - Goal: turn inspector tabs from decorative route state into the primary mechanism for progressive disclosure
 - Deliverables:
   - tab content mapping for overview, transcript, timeline, actions, lineage, compare, runtime, metrics, and events or evidence
   - route-aware rendering that shows only the active tab's primary content plus any always-visible session header or action rail required by the layout
   - preserved direct links for every inspector tab
+  - refreshed screenshot archive captures showing active tab content and hidden diagnostics across desktop and mobile
   - tests proving tab selection changes visible content and hidden tabs do not crowd the overview
 - Implementation notes:
   - avoid rendering every pane in a grid by default
@@ -333,6 +421,7 @@ The intended v4 milestone order is:
 - Tests and validation included in task:
   - component tests for each tab's visible and hidden content
   - route tests for tab URL round trips
+  - screenshot archive comparison proving the overview is no longer crowded by every pane
   - Playwright test for navigating directly to a session tab URL
 - Done when:
   - inspector navigation reliably reduces cognitive load instead of adding visual chrome
@@ -347,6 +436,7 @@ The intended v4 milestone order is:
   - next-action block that prioritizes approval, question, failure, active tool call, live turn, promptability, forkability, and historical inspection in that order
   - transcript preview centered on the latest meaningful turn or pending action
   - compact health explanation when projection, runtime, or stream state is degraded
+  - refreshed screenshot archive captures for selected-session overview states across approval, question, failed, active, historical, and degraded sessions
 - Implementation notes:
   - do not show empty compare, metrics, event, or artifact panels in the default overview unless they contain urgent evidence
   - use operator language such as `awaiting approval`, `awaiting answer`, `historical snapshot`, `projection degraded`, and `live stream reconnecting`
@@ -354,6 +444,7 @@ The intended v4 milestone order is:
 - Tests and validation included in task:
   - component tests for overview priority across approval, question, failed, active, historical, and degraded sessions
   - snapshot hydration tests only if new derived UI helpers are introduced
+  - screenshot archive refresh for selected-session overview scenarios
   - Playwright selected-session smoke path verifying the overview loads from queue row navigation
 - Done when:
   - opening a selected session gives an immediate, accurate read of status, next action, and recent narrative
@@ -369,6 +460,7 @@ The intended v4 milestone order is:
   - question answer surface with pending prompt text, answer draft, submit state, and backend error feedback
   - composer surface shown only when the selected session can accept the next prompt or when the backend reports a clear unavailable reason
   - fork flow moved into a focused dialog or sheet with branch label, fork-point selection, blocked reason, and child-session navigation
+  - refreshed screenshot archive captures for priority action states and fork dialog or sheet states
 - Implementation notes:
   - approval resolution must remain explicit and visually distinct from prompts and `ask_user` answers
   - use backend conflict and validation responses to drive action guidance
@@ -377,6 +469,7 @@ The intended v4 milestone order is:
 - Tests and validation included in task:
   - React component tests for prompt, answer, approval approve, approval deny, fork latest, fork from turn, conflict, validation error, and network failure
   - store tests for action pending and stale-response handling if store behavior changes
+  - screenshot archive comparison for action hierarchy before and after redesign
   - Playwright test for the core action sequence in both desktop and mobile viewports
 - Done when:
   - the most urgent available action is visually first, keyboard reachable, and backed by trustworthy feedback
@@ -391,6 +484,7 @@ The intended v4 milestone order is:
   - retry behavior where backend semantics permit retry
   - copy for historical-only, live-unavailable, projection-degraded, and runtime-offline action states
   - toast usage reserved for cross-surface confirmations, not as the only place action state appears
+  - refreshed screenshot archive captures for action feedback and recovery states
 - Implementation notes:
   - avoid generic `action failed` copy when the normalized error contains a better reason
   - do not imply an action can be retried if the backend conflict means it has already been resolved or is no longer valid
@@ -398,6 +492,7 @@ The intended v4 milestone order is:
 - Tests and validation included in task:
   - component tests for each action-state copy path
   - API-client error-normalization tests if new error mapping is needed
+  - screenshot archive review of inline feedback visibility in desktop and mobile layouts
   - Playwright negative-path route fixture for at least one conflict and one network failure
 - Done when:
   - operators can tell what happened after an action and what they can safely do next
@@ -409,13 +504,14 @@ The intended v4 milestone order is:
 ### GBX-530: Build A Turn-Grouped Transcript And Timeline Model
 
 - Status: `TODO`
-- Depends on: `GBX-520`, `GBX-502`
+- Depends on: `GBX-520`, `GBX-502`, `GBX-492`
 - Goal: make the selected session readable as a sequence of turns rather than isolated panels of transcript, metrics, and events
 - Deliverables:
   - pure TypeScript helper that groups transcript messages, current turn, active tool calls, pending approvals, questions, live output, metrics, and event evidence by turn where snapshot data permits
   - timeline item types for user message, assistant message, tool call, approval request, question request, live output, failure, metric summary, and fork boundary
   - fallback behavior for historical or partial snapshots where turn grouping is incomplete
   - tests covering normal, live, failed, approval, question, tool-heavy, and partial-history sessions
+  - screenshot scenario expectation updates if grouped narrative state changes what fixture-backed views should show
 - Implementation notes:
   - keep the grouping helper pure and independent from React components and Zustand stores
   - do not infer authoritative turn state beyond backend data; make unknown or partial relationships explicit
@@ -424,6 +520,7 @@ The intended v4 milestone order is:
   - unit tests for the grouping helper with realistic fixtures
   - typecheck proving no broad `any` escapes are introduced
   - regression tests against selected v3 session-state fixtures
+  - screenshot archive dry run to confirm narrative scenarios still render after state derivation changes
 - Done when:
   - UI components can render a coherent session narrative from typed, deterministic derived state
 
@@ -437,6 +534,7 @@ The intended v4 milestone order is:
   - clear visual distinction between completed turns, active turns, pending interventions, failed turns, and historical turns
   - controls to jump to the latest activity, pending action, and failed turn where applicable
   - large-transcript behavior that remains performant and readable
+  - refreshed screenshot archive captures for live, historical, failed, approval, question, and large-transcript narrative scenarios
 - Implementation notes:
   - avoid burying active tool output or approval requests in separate panels when they belong to the current turn story
   - preserve access to full raw event evidence through the evidence tab
@@ -445,6 +543,7 @@ The intended v4 milestone order is:
 - Tests and validation included in task:
   - component tests for narrative rendering across fixture scenarios
   - accessibility tests for landmarks, headings, and jump controls where practical
+  - screenshot archive comparison for transcript readability and turn grouping
   - Playwright test for live SSE update appearing in the narrative view
 - Done when:
   - operators can understand the current session story without piecing it together from disconnected cards
@@ -459,6 +558,7 @@ The intended v4 milestone order is:
   - filters or quick jumps for failed turns, active turn, pending actions, and branchable turns if the fixture set proves they are useful
   - fork-point affordances that can open the fork dialog with the chosen turn preselected
   - connection to metrics data without requiring operators to inspect a separate metrics table first
+  - refreshed screenshot archive captures for timeline scanning, failed-turn, active-turn, and fork-boundary scenarios
 - Implementation notes:
   - timeline is a navigation and scanning surface, not a duplicate raw event log
   - keep labels concise and stable so live updates do not cause distracting layout shifts
@@ -466,6 +566,7 @@ The intended v4 milestone order is:
 - Tests and validation included in task:
   - component tests for timeline rows and branchable-turn actions
   - interaction tests for opening fork flow from a timeline turn
+  - screenshot archive review for timeline density and visual stability
   - Playwright workflow for failed-turn or fork-point navigation where practical
 - Done when:
   - operators can scan session progress and jump to meaningful turns quickly
@@ -480,12 +581,14 @@ The intended v4 milestone order is:
   - runtime tab focused on working set, repository context, runtime notes, and provenance
   - metrics presentation that summarizes turn-level cost and duration before exposing raw rows
   - clear empty states that do not consume large default-layout space
+  - refreshed screenshot archive captures for evidence-heavy, runtime-context-heavy, metric-heavy, and empty-diagnostics states
 - Implementation notes:
   - evidence is essential, but it should be intentionally requested unless it is blocking or directly relevant to the current action
   - keep raw event ordering and sequence numbers visible in the evidence surface
   - do not remove data that v3 parity guaranteed; move it into better hierarchy
 - Tests and validation included in task:
   - component tests for evidence, runtime, metrics, empty, and large-data states
+  - screenshot archive refresh for diagnostics and evidence scenarios
   - Playwright direct-link tests for evidence and runtime tabs
   - manual review with an event-heavy fixture
 - Done when:
@@ -498,13 +601,14 @@ The intended v4 milestone order is:
 ### GBX-540: Build A Focused Lineage Navigator
 
 - Status: `TODO`
-- Depends on: `GBX-520`, `GBX-522`, `GBX-532`
+- Depends on: `GBX-520`, `GBX-522`, `GBX-532`, `GBX-492`
 - Goal: make parent, child, sibling, and fork-point relationships easy to understand and act on
 - Deliverables:
   - lineage tab centered on current session, parent session, child sessions, and branchable turns
   - clear actions for opening a lineage target, comparing with a lineage target, and forking from a valid turn
   - branch metadata presentation for label, source turn, source sequence, updated time, and status where available
   - empty and partial-lineage states that remain compact and neutral
+  - refreshed screenshot archive captures for root, parented, child-bearing, and forkable lineage scenarios
 - Implementation notes:
   - lineage must remain anchored in persisted backend snapshot fields
   - do not infer sibling relationships unless the backend exposes enough data to do so reliably
@@ -512,6 +616,7 @@ The intended v4 milestone order is:
 - Tests and validation included in task:
   - component tests for root, parented, child-bearing, and forkable sessions
   - route tests for opening lineage targets and compare targets
+  - screenshot archive review for lineage mental model clarity
   - Playwright workflow for opening a child session and returning to the parent context
 - Done when:
   - branching relationships are visible and actionable without requiring raw snapshot inspection
@@ -526,6 +631,7 @@ The intended v4 milestone order is:
   - difference summaries for transcript length, latest messages, status changes, runtime-context changes, working-set changes, and turn-summary changes where reliable data exists
   - navigation into compared session without losing the operator's selected queue context
   - clear loading, missing target, invalid target, and partial-data states
+  - refreshed screenshot archive captures for compare target selected, compare target missing, and compared-session navigation states
 - Implementation notes:
   - anchor comparison in persisted lineage and snapshot data, not transcript similarity heuristics
   - prefer useful summaries over noisy side-by-side raw dumps
@@ -533,6 +639,7 @@ The intended v4 milestone order is:
 - Tests and validation included in task:
   - store tests for compare target loading, stale responses, reset, and invalid target handling if store behavior changes
   - component tests for compare differences and missing-data states
+  - screenshot archive comparison showing compare is more informative than the v3 count summary
   - Playwright workflow for selecting a compare target and opening the compared session
 - Done when:
   - comparison helps operators understand what changed between related sessions quickly enough to support branch triage
@@ -547,12 +654,14 @@ The intended v4 milestone order is:
   - promotion rules for when verification cues appear in overview versus evidence/runtime tabs
   - copyable or openable artifact references where safe local references are exposed
   - working-set provenance summary that highlights likely causes before listing all raw items
+  - refreshed screenshot archive captures for blocking evidence, advisory drift, inherited working-set, missing-artifact, and verified states
 - Implementation notes:
   - do not make the SPA run deterministic replay or eval itself
   - keep replay/eval evidence grounded in existing artifact summaries and runtime-context data
   - advisory drift should not look like a runtime failure unless the backend marks it as blocking evidence
 - Tests and validation included in task:
   - component tests for blocking, advisory, inherited, missing, stale, timed-out, and verified states
+  - screenshot archive review that advisory cues do not visually read as runtime failures
   - Playwright direct-link or selected-session tests for an artifact-backed drift scenario
   - documentation update describing how v4 surfaces replay/eval evidence without replacing CLI workflows
 - Done when:
@@ -565,13 +674,14 @@ The intended v4 milestone order is:
 ### GBX-550: Refresh The v4 Visual System And Density Rules
 
 - Status: `TODO`
-- Depends on: `GBX-501`, `GBX-510`, `GBX-520`
+- Depends on: `GBX-501`, `GBX-510`, `GBX-520`, `GBX-492`
 - Goal: make the console visually precise, calm, dense, and consistent across the redesigned surfaces
 - Deliverables:
   - updated Tailwind tokens for background, surfaces, borders, semantic status colors, focus states, row density, and typography
   - component-level density rules for attention rows, status rail, action cards, transcript turns, timeline rows, tabs, dialogs, sheets, and evidence lists
   - restrained color strategy that avoids a one-note palette and reserves warning/destructive color for actual attention states
   - visual hierarchy rules for page regions versus repeated cards so the app does not feel like nested panels
+  - refreshed full screenshot archive after visual-token and density changes
 - Implementation notes:
   - keep the console work-focused, not illustrative or marketing-oriented
   - avoid decorative backgrounds, oversized hero typography, and card-heavy page composition
@@ -579,7 +689,7 @@ The intended v4 milestone order is:
   - avoid layout shifts from live updates by using constrained row heights and stable control dimensions
 - Tests and validation included in task:
   - component smoke tests where token or primitive changes affect rendered behavior
-  - Playwright screenshots for representative desktop and mobile states, used for manual review unless a visual-regression tool is deliberately introduced
+  - Playwright screenshot archive refresh for representative desktop and mobile states, used for manual review unless a visual-regression tool is deliberately introduced
   - manual contrast and density review against the fixture matrix
 - Done when:
   - the console has a coherent v4 visual system that supports scanning, intervention, and trust
@@ -594,6 +704,7 @@ The intended v4 milestone order is:
   - semantic landmarks, tab panels, accessible names, status labels, and polite live-region announcements for important state changes where practical
   - focus restoration after dialogs, sheets, route changes, and successful or failed actions
   - reduced-motion compliance for nonessential transitions
+  - refreshed screenshot archive captures for visible focus states on the highest-frequency desktop and mobile workflows where practical
 - Implementation notes:
   - status and health indicators must not rely on color alone
   - disabled and pending states should remain announced and understandable
@@ -601,6 +712,7 @@ The intended v4 milestone order is:
 - Tests and validation included in task:
   - React Testing Library tests for keyboard paths and focus behavior where practical
   - Playwright keyboard-only workflow for queue to action to feedback
+  - screenshot archive review for focus visibility and no focus-induced layout shifts
   - accessibility checks supported by the chosen test stack, plus manual screen-reader spot checks if available
 - Done when:
   - the redesigned console supports pointer-free operation for the workflows an operator performs most often
@@ -612,6 +724,7 @@ The intended v4 milestone order is:
 - Goal: protect the redesigned UX with scenario-based browser coverage that catches regressions in real operator flows
 - Deliverables:
   - Playwright scenarios for urgent queue triage, selected-session overview, approval resolution, question answer, prompt submission, fork creation, lineage navigation, compare view, evidence inspection, degraded projection, historical session, and mobile drill-in
+  - screenshot archive generation wired into the scenario matrix for v4 UX review
   - screenshot or trace retention policy for v4 UX failures that is useful but low churn
   - documented manual visual review checklist for representative states and viewports
   - optional pixel or screenshot checks only for stable layout invariants such as nonblank primary regions, no horizontal overflow, and visible action surfaces
@@ -621,6 +734,7 @@ The intended v4 milestone order is:
   - use mobile and desktop viewports in the critical-path suite
 - Tests and validation included in task:
   - `pnpm --dir frontend test:e2e`
+  - `pnpm --dir frontend screenshots:v4-audit`
   - `pnpm --dir frontend test`
   - `pnpm --dir frontend build`
   - manual visual review against the checklist
@@ -635,6 +749,7 @@ The intended v4 milestone order is:
 - Deliverables:
   - v4 UX release checklist covering attention queues, selected-session overview, real tabs, priority actions, turn narrative, timeline, runtime context, evidence, lineage, compare, verification cues, mobile drill-in, accessibility, and visual density
   - automated coverage map for each release-gate requirement
+  - final v4 screenshot archive reviewed against the current-SPA baseline and the known-gaps list
   - manual validation checklist using representative real or deterministic sessions
   - explicit known-gaps list for any non-blocking UX limitations that remain
   - docs updates for dashboard usage and troubleshooting if behavior changes materially
@@ -644,6 +759,7 @@ The intended v4 milestone order is:
   - the production FastAPI-served static build path must be validated before declaring the UX release gate complete
 - Tests and validation included in task:
   - full frontend validation
+  - final `pnpm --dir frontend screenshots:v4-audit` archive generation and review
   - full relevant Python web/dashboard validation
   - production static build and FastAPI-served dashboard smoke test
   - manual desktop and mobile review against the gate
@@ -656,17 +772,19 @@ The intended v4 milestone order is:
 
 If an agent wants the fastest path to a demonstrable improvement, the recommended order is:
 
-1. `GBX-500` and `GBX-501`
-2. `GBX-502`
-3. `GBX-520`
-4. `GBX-521` and `GBX-522`
-5. `GBX-511`
-6. `GBX-513`
-7. `GBX-530` and `GBX-531`
-8. selected coverage from `GBX-552`
+1. `GBX-490` through `GBX-492`
+2. `GBX-500` and `GBX-501`
+3. `GBX-502`
+4. `GBX-520`
+5. `GBX-521` and `GBX-522`
+6. `GBX-511`
+7. `GBX-513`
+8. `GBX-530` and `GBX-531`
+9. selected coverage from `GBX-552`
 
 That yields:
 
+- a repeatable screenshot archive and current-SPA visual baseline
 - a documented UX baseline
 - reusable representative fixtures
 - inspector tabs that actually reduce cognitive load
@@ -685,6 +803,7 @@ Do not spend time on these unless a later task graph explicitly adds them:
 - adding authentication, tenancy, remote collaboration, or hosted cloud assumptions
 - changing approval, prompt, answer, fork, SSE, replay, or eval semantics for visual convenience
 - deleting raw evidence surfaces in the name of simplification
+- committing large screenshot binary archives by default without an explicit artifact-retention decision
 - adding broad command palettes, dashboards, charts, or analytics tables before the core operator flows are excellent
 - introducing decorative visual themes, landing pages, hero sections, or marketing-style composition
 - implementing browser-side replay or eval execution
@@ -694,6 +813,7 @@ Do not spend time on these unless a later task graph explicitly adds them:
 The v4 redesign is on track when all of the following are true:
 
 - opening the dashboard immediately shows workspace health and the highest-priority operator work
+- a repeatable screenshot archive captures the current UX baseline and stays current as visible v4 surfaces change
 - queue rows explain why each session needs attention without requiring a snapshot fetch
 - selecting a session opens an overview that explains status, live posture, projection health, recent narrative, and next action
 - inspector tabs control actual content and make diagnostics available without crowding default views
