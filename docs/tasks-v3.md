@@ -424,7 +424,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-441: Build The Workspace Overview And Action Queue Console Shell
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-431`, `GBX-432`, `GBX-440`
 - Goal: make `/app` useful as a multi-session operator console before single-session parity is complete
 - Deliverables:
