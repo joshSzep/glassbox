@@ -39,7 +39,8 @@ test("operator can browse queues, open a session, stream updates, and resolve ac
   await page.getByRole("button", { name: "Approve" }).click();
   await page.getByRole("button", { name: "Deny" }).click();
 
-  await page.getByLabel("Create fork").fill("retry with narrower context");
+  await page.getByRole("button", { name: "Create fork" }).click();
+  await page.getByLabel("Fork label").fill("retry with narrower context");
   await page.getByRole("button", { name: "Fork Continue from tool result" }).click();
 
   await expect(page).toHaveURL(/\/app\/sessions\/child-1\?queue=questions$/);
@@ -88,7 +89,8 @@ test("mobile operator can drill into a session, act, and return to queues", asyn
   await page.getByLabel("Answer pending question").fill("Use the main branch");
   await page.getByRole("button", { name: "Submit answer" }).click();
   await page.getByRole("button", { name: "Approve" }).click();
-  await page.getByLabel("Create fork").fill("mobile fork check");
+  await page.getByRole("button", { name: "Create fork" }).click();
+  await page.getByLabel("Fork label").fill("mobile fork check");
   await page.getByRole("button", { name: "Fork Continue from tool result" }).click();
 
   await page.getByRole("link", { name: /Back to Questions queue/ }).click();

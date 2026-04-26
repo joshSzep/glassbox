@@ -498,7 +498,7 @@ The intended v4 milestone order is:
 
 ### GBX-522: Redesign Operator Actions Around Urgency
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-520`, `GBX-521`
 - Goal: make approvals, questions, prompts, and forks feel like deliberate operator workflows instead of a single mixed form pane
 - Deliverables:
