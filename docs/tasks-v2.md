@@ -743,7 +743,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-363: Package And Document Glassbox v2 As A Coherent Release Candidate
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-304`, `GBX-354`, `GBX-360`, `GBX-361`, `GBX-362`, `GBX-121`
 - Goal: make the v2 milestone set coherent enough to ship as a clear product step rather than a loose pile of incremental changes
 - Deliverables:
@@ -754,6 +754,9 @@ Each phase below corresponds to one concrete milestone.
   - keep polish grounded in real v2 workflow friction rather than cosmetic churn
   - ensure the final docs tell one coherent story about what v2 changed and what remains deliberately out of scope
   - preserve continuity with the current v1 baseline so contributors can understand the progression without reading every historical task
+  - added [v2-release-candidate.md](./v2-release-candidate.md) as the release-candidate operating-model and readiness guide
+  - corrected root quick-start commands to the current `glassbox session ...` command surface
+  - linked the release-candidate guide from the root README, docs hub, and getting-started guide
 - Tests and validation included in task:
   - full repo validation using the standard command set plus the relevant v2 workflows
   - manual verification of the documented primary operator flows against the actual runtime and dashboard behavior

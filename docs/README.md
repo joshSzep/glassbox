@@ -10,6 +10,7 @@ Use this page to jump to the right level of detail.
 ## Start Here
 
 - [getting-started.md](./getting-started.md): install the project, run the first session, understand the local workspace layout, and use the default validation commands
+- [v2-release-candidate.md](./v2-release-candidate.md): review the supported v2 operating model, release-readiness checklist, and explicit non-goals
 - [interactive-workflows.md](./interactive-workflows.md): work through `chat`, `attach`, `message`, `answer`, `approve`, `deny`, `resume`, and `status`
 - [dashboard.md](./dashboard.md): use the co-hosted dashboard from `chat` or the standalone dashboard from `serve`
 - [operator-console.md](./operator-console.md): understand the v2 multi-session console model, action queues, runtime-health semantics, and backend/frontend contracts
@@ -19,6 +20,7 @@ Use this page to jump to the right level of detail.
 
 ## Operator Guides
 
+- [v2-release-candidate.md](./v2-release-candidate.md): package the v2 workflow set into one release-candidate guide for operators and contributors
 - [branching.md](./branching.md): inspect historical sessions, create child branches, and understand lineage fields
 - [replay-evals.md](./replay-evals.md): replay historical sessions, export bundles, run eval suites, and work through local-first regression gates
 - [runtime-context.md](./runtime-context.md): inspect repository context, runtime notes, working-set context, and artifact-backed summaries
@@ -36,6 +38,7 @@ Use this page to jump to the right level of detail.
 - [dashboard-frontend-boundaries.md](./dashboard-frontend-boundaries.md): target reducer, renderer, transport, and DOM-binding boundaries for the no-framework dashboard frontend refactor
 - [operator-console.md](./operator-console.md): v2 operator-console information architecture and queue/health semantics for multi-session inspection
 - [team-workflows.md](./team-workflows.md): v2 ownership, identity, and handoff contract for portable team workflows
+- [v2-release-candidate.md](./v2-release-candidate.md): release-candidate readiness checklist and supported operating-model summary
 - [refactor-boundaries.md](./refactor-boundaries.md): code-aligned boundary map, dependency-direction rules, and guardrails that explain why the current facades and module splits look the way they do
 - [refactor-v1.md](./refactor-v1.md): architecture-first refactor roadmap, completed follow-on queue, and status tracker for the v1 decomposition work
 - [tasks-v1.md](./tasks-v1.md): implementation history, completed v1 task graph, and roadmap context

@@ -42,13 +42,13 @@ python -m glassbox --help
 Start the default interactive workflow:
 
 ```bash
-uv run glassbox chat --cwd .
+uv run glassbox session chat --cwd .
 ```
 
 Or start with an initial prompt:
 
 ```bash
-uv run glassbox chat "Inspect the repository" --cwd .
+uv run glassbox session chat "Inspect the repository" --cwd .
 ```
 
 By default, `chat` also starts a co-hosted dashboard and prints a session-specific browser URL like:
@@ -60,7 +60,7 @@ http://127.0.0.1:8765/?session=SESSION_ID
 If you want a one-shot command instead of the long-lived interactive shell:
 
 ```bash
-uv run glassbox run "Inspect the repository" --cwd .
+uv run glassbox session run "Inspect the repository" --cwd .
 ```
 
 ## Core Workflows
@@ -73,11 +73,23 @@ Use Glassbox in a few distinct modes:
 - historical branching with `fork`
 - portable handoff with `session export` and inspection-only `session import`
 - repository defaults through `glassbox.profile.json`
-- replay and eval verification with `replay run`, `replay export`, and `eval`
+- replay and eval verification with `replay run`, `replay bundle export`, and `eval`
 
 Persistence is local to the selected workspace by default. Glassbox stores runtime state under `.glassbox/`, with the SQLite database at `.glassbox/glassbox.sqlite3` unless you override `--db-path`.
 
-Glassbox team workflows remain local-first. A foreground `chat` process or workspace daemon owns live mutation for one workspace, while session custody and handoff metadata are operator guidance rather than cloud authority or multi-user access control.
+Glassbox team workflows remain local-first. A foreground `session chat` process or workspace daemon owns live mutation for one workspace, while session custody and handoff metadata are operator guidance rather than cloud authority or multi-user access control.
+
+## V2 Release Candidate
+
+The v2 release candidate packages the current local-first operating model as one
+coherent workflow set: persistent runtime ownership, an operator-console
+dashboard, rebuildable projections, workspace backup, richer policy outcomes,
+replay/eval release evidence, local session handoff, observability summaries,
+and larger-session performance budgets.
+
+Start with [docs/v2-release-candidate.md](docs/v2-release-candidate.md) when you
+need the supported v2 operating model, release-readiness checklist, and explicit
+non-goals in one place.
 
 ## Documentation
 
@@ -86,6 +98,7 @@ The root README is the shortest path into the project. The detailed operator and
 Start here based on what you need:
 
 - [docs/getting-started.md](docs/getting-started.md)
+- [docs/v2-release-candidate.md](docs/v2-release-candidate.md)
 - [docs/interactive-workflows.md](docs/interactive-workflows.md)
 - [docs/dashboard.md](docs/dashboard.md)
 - [docs/branching.md](docs/branching.md)

@@ -105,6 +105,7 @@ glassbox daemon stop
 
 Use the dedicated guides for workflow detail:
 
+- [v2-release-candidate.md](./v2-release-candidate.md)
 - [interactive-workflows.md](./interactive-workflows.md)
 - [dashboard.md](./dashboard.md)
 - [branching.md](./branching.md)
@@ -135,6 +136,7 @@ uv run glassbox eval run --tag smoke --cwd .
 ## Where To Go Next
 
 - For the day-to-day operator shell, read [interactive-workflows.md](./interactive-workflows.md).
+- For the supported v2 operating model and release checklist, read [v2-release-candidate.md](./v2-release-candidate.md).
 - For browser usage, read [dashboard.md](./dashboard.md).
 - For replay and eval workflows, read [replay-evals.md](./replay-evals.md).
 - For the architecture and persistence contracts, read [architecture.md](./architecture.md) and [database.md](./database.md).

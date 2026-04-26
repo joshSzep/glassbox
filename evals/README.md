@@ -269,7 +269,7 @@ the local-first deterministic contract honest.
 End-to-end governed example:
 
 ```text
-uv run glassbox run "Inspect the repository" --cwd .
+uv run glassbox session run "Inspect the repository" --cwd .
 uv run glassbox eval case promote SESSION_ID tooling.readme --title "README inspection stays stable" --tag smoke --tag tooling --owner runtime.replay --capability repository_inspection --capability replay_portability --severity high --verification-stage commit-time --verification-stage push-time --reason "Initial promotion for repository inspection contract" --cwd . --db-path .glassbox/glassbox.sqlite3
 uv run glassbox eval run --profile commit-smoke --output-dir .glassbox/evals/pre-commit --refresh-output-dir --cwd .
 uv run glassbox eval case refresh tooling.readme SESSION_ID --reason "Intentional baseline update after README contract change" --acknowledge-policy --cwd . --db-path .glassbox/glassbox.sqlite3
