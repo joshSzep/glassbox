@@ -29,6 +29,12 @@ type QueueDescriptor = {
 
 const queueDescriptors: QueueDescriptor[] = [
   {
+    countKey: "total",
+    description: "Every server-prioritized session row",
+    label: "All",
+    queue: "all",
+  },
+  {
     countKey: "approvals",
     description: "Commands waiting on explicit approval",
     label: "Approvals",
@@ -354,6 +360,8 @@ function QueueNavigation({
   onSelectQueue?: (queue: ConsoleFilters["queue"]) => void;
   selectedQueue: ConsoleFilters["queue"];
 }) {
+  const priority = queuePrioritySummary(data);
+  const PriorityIcon = priority.icon;
   return (
     <nav
       className="rounded-lg border bg-card p-3 text-card-foreground shadow-sm"
@@ -365,6 +373,19 @@ function QueueNavigation({
         </h2>
         <Badge variant="muted">{data.queueCounts.total}</Badge>
       </div>
+      <section
+        className="mb-3 rounded-md border bg-background p-3"
+        aria-label="Queue priority summary"
+      >
+        <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+          Top priority
+        </p>
+        <Badge className="mt-2 max-w-full justify-start" variant={priority.variant}>
+          <PriorityIcon className={operatorIconSizeClass} aria-hidden="true" />
+          <span className="truncate">{priority.label}</span>
+        </Badge>
+        <p className="mt-2 text-xs text-muted-foreground">{priority.description}</p>
+      </section>
       <div className="grid gap-1">
         {queueDescriptors.map((queue) => {
           const selected = selectedQueue === queue.queue;
@@ -414,8 +435,9 @@ function QueueHeader({
   loadState: LoadState;
   selectedQueue: ConsoleFilters["queue"];
 }) {
-  const queueLabel =
-    queueDescriptors.find((queue) => queue.queue === selectedQueue)?.label ?? "All";
+  const queue = queueDescriptor(selectedQueue);
+  const count = data.queueCounts[queue.countKey];
+  const hiddenCount = Math.max(data.queueCounts.total - count, 0);
   return (
     <section
       className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm"
@@ -423,13 +445,15 @@ function QueueHeader({
     >
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <h2 className="text-lg font-semibold tracking-normal">{queueLabel} sessions</h2>
+          <h2 className="text-lg font-semibold tracking-normal">{queue.label} sessions</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Server-prioritized aggregate rows from the selected queue.
+            Showing {count} of {data.queueCounts.total} server-prioritized sessions.
+            {hiddenCount > 0 ? ` ${hiddenCount} rows are hidden by the current queue filter.` : ""}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge variant={error === null ? "outline" : "destructive"}>{loadState}</Badge>
+          <Badge variant={count > 0 ? "info" : "muted"}>{count} shown</Badge>
           <Badge variant={data.queueCounts.action_needed > 0 ? "warning" : "success"}>
             {data.queueCounts.action_needed} actions
           </Badge>
@@ -541,6 +565,67 @@ function ProjectionBadge({ health }: { health: ProjectionHealth | null }) {
   }
   const variant = health.degraded || health.state !== "ok" ? "warning" : "success";
   return <Badge variant={variant}>{health.state}</Badge>;
+}
+
+function queueDescriptor(queue: ConsoleFilters["queue"]): QueueDescriptor {
+  return queueDescriptors.find((descriptor) => descriptor.queue === queue) ?? queueDescriptors[0];
+}
+
+function queuePrioritySummary(data: DashboardState) {
+  if (data.queueCounts.approvals > 0) {
+    return {
+      description: "Review approval risk before prompts, forks, or passive evidence.",
+      icon: operatorStatusTokens.approval.icon,
+      label: `${data.queueCounts.approvals} approvals`,
+      variant: "warning" as const,
+    };
+  }
+  if (data.queueCounts.questions > 0) {
+    return {
+      description: "Answer pending ask_user questions before sending new prompts.",
+      icon: operatorStatusTokens.question.icon,
+      label: `${data.queueCounts.questions} questions`,
+      variant: "info" as const,
+    };
+  }
+  if (data.queueCounts.failures > 0) {
+    return {
+      description: "Inspect retryability and failure summaries before lower-priority work.",
+      icon: operatorStatusTokens.failed.icon,
+      label: `${data.queueCounts.failures} failures`,
+      variant: "destructive" as const,
+    };
+  }
+  if (data.queueCounts.degraded > 0) {
+    return {
+      description: "Projection health needs attention; canonical events remain authoritative.",
+      icon: operatorStatusTokens.degraded.icon,
+      label: `${data.queueCounts.degraded} degraded`,
+      variant: "warning" as const,
+    };
+  }
+  if (data.queueCounts.active > 0) {
+    return {
+      description: "Active work is available after urgent queues are clear.",
+      icon: operatorStatusTokens.active.icon,
+      label: `${data.queueCounts.active} active`,
+      variant: "success" as const,
+    };
+  }
+  if (data.queueCounts.historical > 0) {
+    return {
+      description: "Only historical snapshots remain for inspection.",
+      icon: operatorStatusTokens.historical.icon,
+      label: `${data.queueCounts.historical} historical`,
+      variant: "muted" as const,
+    };
+  }
+  return {
+    description: "All queues are clear for this workspace.",
+    icon: CheckCircle2,
+    label: "queues clear",
+    variant: "success" as const,
+  };
 }
 
 function attentionDetail(session: SessionSummary): string {

@@ -397,7 +397,7 @@ The intended v4 milestone order is:
 
 ### GBX-512: Add Queue-Level Priority Summaries And Filters
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-511`
 - Goal: help operators move between urgent work, active sessions, degraded sessions, and history without reading every row
 - Deliverables:

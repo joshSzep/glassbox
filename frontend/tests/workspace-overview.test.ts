@@ -173,13 +173,39 @@ describe("workspace overview console", () => {
     expect(markup).toContain('data-state="selected"');
     expect(markup).toContain("/app/sessions/approval-session");
   });
+
+  it("renders queue filter counts, all-session filter, and priority summary", () => {
+    const state = hydrateSessionAggregate(
+      createDashboardState(),
+      makeV4ScenarioAggregate("all-queues", "approvals"),
+    );
+    const markup = renderOverview(state, "loaded", null, "approvals");
+
+    expect(markup).toContain("Queue priority summary");
+    expect(markup).toContain("Top priority");
+    expect(markup).toContain("3 approvals");
+    expect(markup).toContain("Review approval risk before prompts");
+    expect(markup).toContain("All");
+    expect(markup).toContain("/app");
+    expect(markup).toContain('aria-current="page"');
+    expect(markup).toContain("Showing 3 of 8 server-prioritized sessions.");
+    expect(markup).toContain("5 rows are hidden by the current queue filter.");
+    expect(markup).toContain("3 shown");
+  });
 });
 
 function renderOverview(
   data: ReturnType<typeof createDashboardState>,
   loadState: "failed" | "idle" | "loaded" | "loading",
   error: string | null,
-  selectedQueue: "active" | "all" | "approvals" | "degraded",
+  selectedQueue:
+    | "active"
+    | "all"
+    | "approvals"
+    | "degraded"
+    | "failures"
+    | "historical"
+    | "questions",
   selectedSessionId: string | null = null,
   stream?: {
     error: string | null;

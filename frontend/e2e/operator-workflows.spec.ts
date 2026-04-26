@@ -71,6 +71,30 @@ test("operator console remains reachable in a narrow viewport", async ({ page })
   await expect(page.getByRole("link", { name: sessionLink })).toBeVisible();
 });
 
+test("operator can switch queue filters and return to a selected session", async ({ page }) => {
+  await installGlassboxApiFixture(page);
+
+  await page.goto("/app");
+  await page.getByRole("link", { name: /Failures/ }).click();
+  await expect(page).toHaveURL(/\/app\/queues\/failures$/);
+  await expect(page.getByRole("heading", { name: "Failures sessions" })).toBeVisible();
+  await expect(page.getByText("Inspect retryable failure")).toBeVisible();
+
+  await page.getByRole("link", { name: /All/ }).click();
+  await expect(page).toHaveURL(/\/app$/);
+  await expect(page.getByRole("heading", { name: "All sessions" })).toBeVisible();
+
+  await page.getByRole("link", { name: /Questions/ }).click();
+  await page.getByRole("link", { name: sessionLink }).click();
+  await expect(page).toHaveURL(/\/app\/sessions\/session-1\?queue=questions$/);
+  await expect(page.getByRole("heading", { name: sessionId })).toBeVisible();
+
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "Questions sessions" })).toBeVisible();
+  await page.goForward();
+  await expect(page.getByRole("heading", { name: sessionId })).toBeVisible();
+});
+
 test("console frame loads from app, queue, and selected-session routes", async ({ page }) => {
   await installGlassboxApiFixture(page);
 
