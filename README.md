@@ -101,6 +101,7 @@ Start here based on what you need:
 - [docs/v2-release-candidate.md](docs/v2-release-candidate.md)
 - [docs/interactive-workflows.md](docs/interactive-workflows.md)
 - [docs/dashboard.md](docs/dashboard.md)
+- [docs/frontend-development.md](docs/frontend-development.md)
 - [docs/branching.md](docs/branching.md)
 - [docs/replay-evals.md](docs/replay-evals.md)
 - [docs/runtime-context.md](docs/runtime-context.md)

@@ -246,7 +246,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-412: Add Frontend Development Proxy And Local Developer Workflow Docs
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-411`
 - Goal: make SPA development fast while preserving the FastAPI-owned production model
 - Deliverables:

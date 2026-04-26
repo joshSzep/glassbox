@@ -104,6 +104,7 @@ The dashboard lets the operator:
 
 ## Related Guides
 
+- [frontend-development.md](./frontend-development.md)
 - [interactive-workflows.md](./interactive-workflows.md)
 - [persistent-runtime.md](./persistent-runtime.md)
 - [branching.md](./branching.md)
