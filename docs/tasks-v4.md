@@ -369,7 +369,7 @@ The intended v4 milestone order is:
 
 ### GBX-511: Replace The Queue Table With Dense Attention Rows
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-510`
 - Goal: make the workspace overview a triage surface instead of a generic data table
 - Deliverables:

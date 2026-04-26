@@ -8,6 +8,7 @@ import {
 
 const sessionId = defaultSessionId;
 const childSessionId = defaultChildSessionId;
+const sessionLink = new RegExp(sessionId);
 
 test("operator can browse queues, open a session, stream updates, and resolve actions", async ({
   page,
@@ -17,13 +18,13 @@ test("operator can browse queues, open a session, stream updates, and resolve ac
   await page.goto("/app");
 
   await expect(page.getByRole("heading", { name: "Operator Console" })).toBeVisible();
-  await expect(page.getByRole("link", { name: sessionId })).toBeVisible();
+  await expect(page.getByRole("link", { name: sessionLink })).toBeVisible();
 
   await page.getByRole("link", { name: /Questions/ }).click();
   await expect(page).toHaveURL(/\/app\/queues\/questions$/);
   await expect(page.getByRole("heading", { name: "Questions sessions" })).toBeVisible();
 
-  await page.getByRole("link", { name: sessionId }).click();
+  await page.getByRole("link", { name: sessionLink }).click();
   await expect(page).toHaveURL(/\/app\/sessions\/session-1\?queue=questions$/);
   await expect(page.getByRole("heading", { name: sessionId })).toBeVisible();
   await expect(page.getByText("Live SSE update received by the browser.")).toBeVisible();
@@ -67,7 +68,7 @@ test("operator console remains reachable in a narrow viewport", async ({ page })
   await page.goto("/app");
 
   await expect(page.getByRole("navigation", { name: "Action queues" })).toBeVisible();
-  await expect(page.getByRole("link", { name: sessionId })).toBeVisible();
+  await expect(page.getByRole("link", { name: sessionLink })).toBeVisible();
 });
 
 test("console frame loads from app, queue, and selected-session routes", async ({ page }) => {

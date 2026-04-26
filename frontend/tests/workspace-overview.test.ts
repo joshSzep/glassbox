@@ -8,6 +8,7 @@ import {
   makeProjectionHealth,
   makeSessionAggregate,
   makeSessionSummary,
+  makeV4ScenarioAggregate,
 } from "./fixtures/session-state";
 
 describe("workspace overview console", () => {
@@ -150,6 +151,27 @@ describe("workspace overview console", () => {
     expect(renderOverview(missingProjection, "loaded", null, "all")).toContain(
       "1 projection missing",
     );
+  });
+
+  it("renders dense attention rows for urgent, degraded, active, and historical sessions", () => {
+    const state = hydrateSessionAggregate(
+      createDashboardState(),
+      makeV4ScenarioAggregate("all-queues"),
+    );
+    const markup = renderOverview(state, "loaded", null, "all", "approval-session");
+
+    expect(markup).toContain("Session attention rows");
+    expect(markup).toContain("Review pending approval");
+    expect(markup).toContain("Approval approval-1");
+    expect(markup).toContain("Answer pending question");
+    expect(markup).toContain("Question Which branch should be inspected?");
+    expect(markup).toContain("Inspect retryable failure");
+    expect(markup).toContain("Retryable failure: frontend e2e workflow failed");
+    expect(markup).toContain("Projection stale: canonical events remain authoritative.");
+    expect(markup).toContain("Review historical snapshot");
+    expect(markup).toContain("historical only");
+    expect(markup).toContain('data-state="selected"');
+    expect(markup).toContain("/app/sessions/approval-session");
   });
 });
 
