@@ -17,6 +17,7 @@ Use this page to jump to the right level of detail.
 - [dashboard.md](./dashboard.md): use the co-hosted dashboard from `chat` or the standalone dashboard from `serve`
 - [dashboard-parity.md](./dashboard-parity.md): review the v3 SPA parity gate before replacing the legacy dashboard route
 - [frontend-development.md](./frontend-development.md): run the Next.js SPA with FastAPI during local development and verify the static production path
+- [frontend-screenshot-archive.md](./frontend-screenshot-archive.md): generate and review the v4 Playwright screenshot archive for frontend UX work
 - [frontend-testing.md](./frontend-testing.md): write v3 SPA unit, transport, store, and React component tests with Vitest and Testing Library
 - [operator-console.md](./operator-console.md): understand the v2 multi-session console model, v3 SPA UX contract, action queues, runtime-health semantics, and backend/frontend contracts
 - [persistent-runtime.md](./persistent-runtime.md): run a workspace daemon, inspect runtime health, attach from another terminal, and recover stale ownership
@@ -44,6 +45,7 @@ Use this page to jump to the right level of detail.
 - [dashboard-frontend-boundaries.md](./dashboard-frontend-boundaries.md): legacy reducer, renderer, transport, and DOM-binding boundaries for the no-framework dashboard, plus the v3 SPA supersession notice
 - [dashboard-parity.md](./dashboard-parity.md): behavioral parity checklist, automated coverage map, manual validation path, and known migration gaps for the SPA route flip
 - [frontend-development.md](./frontend-development.md): v3 SPA local proxy, SSE development, and FastAPI static-serving workflow
+- [frontend-screenshot-archive.md](./frontend-screenshot-archive.md): v4 screenshot archive command, scenario names, retention policy, and visual review checklist
 - [frontend-testing.md](./frontend-testing.md): v3 SPA frontend-native test harness, fixture strategy, and focused test-writing guidance
 - [operator-console.md](./operator-console.md): v2 operator-console information architecture, v3 SPA UX contract, and queue/health semantics for multi-session inspection
 - [tasks-v3.md](./tasks-v3.md): concrete v3 task graph for replacing the hand-rolled dashboard with a statically served Next.js SPA

@@ -138,7 +138,7 @@ pnpm --dir frontend test -- workspace-overview
 pnpm --dir frontend test -- operator-actions
 pnpm --dir frontend typecheck
 pnpm --dir frontend test:e2e -- operator-workflows
-pnpm --dir frontend screenshots:v4-audit -- --scenario selected-session-overview
+pnpm --dir frontend screenshots:v4-audit -- --scenario pending-question
 uv run pytest tests/integration/test_specific_web_flow.py
 uv run ruff check src/glassbox/web tests/integration/test_specific_web_flow.py
 ```
@@ -163,7 +163,7 @@ The intended v4 milestone order is:
 
 ### GBX-490: Define The v4 Screenshot Archive Harness
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-473`
 - Goal: create a repeatable Playwright-driven screenshot archive path for auditing the current SPA and tracking UX changes through v4
 - Deliverables:
@@ -186,7 +186,7 @@ The intended v4 milestone order is:
 
 ### GBX-491: Capture The Current v3 SPA Visual Baseline
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-490`
 - Goal: archive the current completed-SPA UX before v4 redesign work changes the interface
 - Deliverables:
@@ -207,7 +207,7 @@ The intended v4 milestone order is:
 
 ### GBX-492: Define Screenshot Archive Maintenance Rules
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-491`
 - Goal: make screenshot updates part of v4 execution rather than a one-time audit artifact
 - Deliverables:
