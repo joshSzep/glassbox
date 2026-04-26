@@ -357,7 +357,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-431: Implement Zustand Stores For Console, Session, Stream, And Draft State
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-421`, `GBX-422`, `GBX-430`
 - Goal: wire typed reducers and transport helpers into focused Zustand stores for the SPA
 - Deliverables:

@@ -173,6 +173,8 @@ export function createGlassboxApiClient(options: GlassboxApiClientOptions = {}) 
   };
 }
 
+export type GlassboxApiClient = ReturnType<typeof createGlassboxApiClient>;
+
 async function requestJsonWithFetch<T>(
   fetchImpl: FetchLike,
   baseUrl: string | undefined,
