@@ -12,6 +12,7 @@ Use this page to jump to the right level of detail.
 - [getting-started.md](./getting-started.md): install the project, run the first session, understand the local workspace layout, and use the default validation commands
 - [v2-release-candidate.md](./v2-release-candidate.md): review the supported v2 operating model, release-readiness checklist, and explicit non-goals
 - [tasks-v3.md](./tasks-v3.md): plan the Next.js, TypeScript, Tailwind, Zustand, shadcn, and OpenAPI-driven SPA migration for the dashboard
+- [tasks-v4.md](./tasks-v4.md): plan the UX-focused evolution of the completed SPA into a stronger operator console
 - [interactive-workflows.md](./interactive-workflows.md): work through `chat`, `attach`, `message`, `answer`, `approve`, `deny`, `resume`, and `status`
 - [dashboard.md](./dashboard.md): use the co-hosted dashboard from `chat` or the standalone dashboard from `serve`
 - [dashboard-parity.md](./dashboard-parity.md): review the v3 SPA parity gate before replacing the legacy dashboard route
@@ -46,6 +47,7 @@ Use this page to jump to the right level of detail.
 - [frontend-testing.md](./frontend-testing.md): v3 SPA frontend-native test harness, fixture strategy, and focused test-writing guidance
 - [operator-console.md](./operator-console.md): v2 operator-console information architecture, v3 SPA UX contract, and queue/health semantics for multi-session inspection
 - [tasks-v3.md](./tasks-v3.md): concrete v3 task graph for replacing the hand-rolled dashboard with a statically served Next.js SPA
+- [tasks-v4.md](./tasks-v4.md): concrete v4 task graph for attention-first queue triage, real inspector tabs, priority actions, session narrative, evidence hierarchy, mobile drill-in, accessibility, and visual QA
 - [team-workflows.md](./team-workflows.md): v2 ownership, identity, and handoff contract for portable team workflows
 - [v2-release-candidate.md](./v2-release-candidate.md): release-candidate readiness checklist and supported operating-model summary
 - [release-packaging.md](./release-packaging.md): Python distribution packaging path, SPA asset checks, and installed-dashboard smoke validation
