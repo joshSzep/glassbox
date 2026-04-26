@@ -1,0 +1,97 @@
+import type { components } from "@/generated/api-types";
+
+export type ProjectionHealth = components["schemas"]["ProjectionHealthResponse"];
+export type QueueCounts = components["schemas"]["SessionQueueCountsResponse"];
+export type ProjectionHealthCounts =
+  components["schemas"]["ProjectionHealthCountsAggregateResponse"];
+export type RuntimeSummary = components["schemas"]["WorkspaceRuntimeSummaryResponse"];
+export type RuntimeContext = components["schemas"]["RuntimeContextSnapshot"];
+export type SessionAggregate = components["schemas"]["SessionAggregateResponse"];
+export type SessionSnapshot = components["schemas"]["SessionSnapshotResponse"];
+export type SessionSummary = components["schemas"]["OperatorSessionSummaryResponse"];
+export type TranscriptMessage = components["schemas"]["TranscriptMessageResponse"];
+export type ActiveToolCall = components["schemas"]["ActiveToolCallResponse"];
+export type PendingApproval = components["schemas"]["PendingApprovalResponse"] & {
+  resolution_decision?: string | null;
+  resolution_error?: string | null;
+  resolution_state?: "idle" | "pending" | "failed" | "resolved";
+};
+export type TurnMetrics = components["schemas"]["TurnMetricsResponse"];
+export type BranchableTurn = components["schemas"]["BranchableTurnResponse"];
+export type ChildSession = components["schemas"]["ChildSessionSummaryResponse"];
+export type PolicySummary = components["schemas"]["PolicyActivitySummaryResponse"];
+
+export type CurrentTurn = {
+  error_message?: string;
+  outcome?: string;
+  status: string;
+  trigger_message_id?: string;
+  turn_id: string;
+};
+
+export type LiveOutputEntry = {
+  chunk: string;
+  stream: string;
+  tool_call_id: string;
+  turn_id: string;
+};
+
+export type EventLogEntry = {
+  event_type: string;
+  sequence: number;
+};
+
+export type SessionFields = {
+  activeToolCalls: ActiveToolCall[];
+  approvalMode: string | null;
+  branchLabel: string | null;
+  branchableTurns: BranchableTurn[];
+  canFork: boolean;
+  childSessions: ChildSession[];
+  currentTurn: CurrentTurn | null;
+  currentTurnPolicySummary: PolicySummary | null;
+  cwd: string | null;
+  dashboardUrl: string | null;
+  forkBlockedReason: string | null;
+  forkedFromSequence: number | null;
+  forkedFromTurnId: string | null;
+  lastSequence: number;
+  latestForkPointSequence: number | null;
+  latestForkPointTurnId: string | null;
+  modelName: string | null;
+  parentSessionId: string | null;
+  pendingApprovalId: string | null;
+  pendingApprovals: PendingApproval[];
+  pendingQuestionId: string | null;
+  pendingQuestionText: string | null;
+  projectionHealth: ProjectionHealth | null;
+  runtimeContext: RuntimeContext | null;
+  selectedForkTurnId: string | null;
+  sessionFailureMessage: string | null;
+  sessionFailureRetryable: boolean | null;
+  sessionId: string | null;
+  sessionPolicySummary: PolicySummary | null;
+  status: string;
+  transcript: TranscriptMessage[];
+  turnMetrics: TurnMetrics[];
+};
+
+export type ComparableSession = SessionFields & {
+  createdAt: string | null;
+  projectionHealth: ProjectionHealth | null;
+  updatedAt: string | null;
+};
+
+export type DashboardState = SessionFields & {
+  compareSession: ComparableSession | null;
+  compareSessionId: string | null;
+  eventLog: EventLogEntry[];
+  liveOutput: LiveOutputEntry[];
+  projectionHealthCounts: ProjectionHealthCounts;
+  queueCounts: QueueCounts;
+  runtimeSummary: RuntimeSummary;
+  selectedQueue: string;
+  selectedSessionId: string | null;
+  sessionIndex: SessionSummary[];
+  sessionIndexSort: string;
+};
