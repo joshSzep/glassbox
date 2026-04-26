@@ -61,6 +61,12 @@ for (const scenario of Object.keys(scenarioFixtures) as ScreenshotScenarioId[]) 
         if (view.name === "timeline") {
           await expect(page.getByLabel("Timeline turns")).toBeVisible();
         }
+        if (view.name === "evidence") {
+          await expect(page.getByLabel("Evidence overview")).toBeVisible();
+        }
+        if (view.name === "runtime") {
+          await expect(page.getByRole("heading", { name: "Runtime context" })).toBeVisible();
+        }
         await expectNoDevOnlyChrome(page);
 
         const file =
@@ -96,6 +102,14 @@ function screenshotViewsForScenario(scenario: ScreenshotScenarioId): ScreenshotV
     ["branched-session", "failed-session", "live-session", "pending-approval"].includes(scenario)
   ) {
     views.push({ name: "timeline", route: routeWithTab(route, "timeline") });
+  }
+
+  if (["artifact-drift", "large-transcript", "projection-degraded"].includes(scenario)) {
+    views.push({ name: "evidence", route: routeWithTab(route, "evidence") });
+  }
+
+  if (["artifact-drift", "large-transcript"].includes(scenario)) {
+    views.push({ name: "runtime", route: routeWithTab(route, "runtime") });
   }
 
   return views;

@@ -172,7 +172,13 @@ test("operator can open selected-session tabs from direct URLs", async ({ page }
   await page.goto(`/app/sessions/${sessionId}?queue=active&tab=runtime`);
   await expect(page.getByRole("heading", { name: sessionId })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Runtime context" })).toBeVisible();
+  await expect(page.getByText("Working set")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Transcript" })).not.toBeVisible();
+
+  await page.goto(`/app/sessions/${sessionId}?queue=active&tab=evidence`);
+  await expect(page.getByRole("heading", { name: "Verification cues" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Event evidence" })).toBeVisible();
+  await expect(page.getByLabel("Evidence overview")).toBeVisible();
 
   await page.goto(`/app/sessions/${sessionId}?queue=active&compare=parent-session&tab=compare`);
   await expect(page.getByRole("heading", { name: "Compare" })).toBeVisible();

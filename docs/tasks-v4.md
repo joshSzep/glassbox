@@ -621,7 +621,7 @@ The intended v4 milestone order is:
 
 ### GBX-533: Move Diagnostics Into Progressive Evidence Surfaces
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-520`, `GBX-531`, `GBX-532`
 - Goal: preserve raw evidence while preventing diagnostics from dominating the default inspector
 - Deliverables:

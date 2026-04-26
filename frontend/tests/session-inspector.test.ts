@@ -109,6 +109,9 @@ describe("session inspector", () => {
 
     const runtimeMarkup = renderInspectorTab(data, "runtime");
     expect(runtimeMarkup).toContain("Runtime context");
+    expect(runtimeMarkup).toContain("Working set");
+    expect(runtimeMarkup).toContain("Runtime notes");
+    expect(runtimeMarkup).toContain("Artifact provenance");
     expect(runtimeMarkup).toContain("frontend/app/page.tsx");
     expect(runtimeMarkup).not.toContain("Continue session");
     expect(runtimeMarkup).not.toContain("Inspect the console");
@@ -121,11 +124,18 @@ describe("session inspector", () => {
 
     const evidenceMarkup = renderInspectorTab(data, "evidence");
     expect(evidenceMarkup).toContain("Verification cues");
+    expect(evidenceMarkup).toContain("Evidence overview");
+    expect(evidenceMarkup).toContain("Stream state");
+    expect(evidenceMarkup).toContain("Projection details");
+    expect(evidenceMarkup).toContain("Raw metric details");
     expect(evidenceMarkup).toContain("Event evidence");
     expect(evidenceMarkup).toContain("pytest passed");
 
     const metricsMarkup = renderInspectorTab(data, "metrics");
     expect(metricsMarkup).toContain("Metrics");
+    expect(metricsMarkup).toContain("Metrics summary");
+    expect(metricsMarkup).toContain("Raw turn metrics");
+    expect(metricsMarkup).toContain("Tokens");
     expect(metricsMarkup).toContain("6.5s");
     expect(metricsMarkup).not.toContain("Continue session");
   });
