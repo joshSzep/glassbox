@@ -292,7 +292,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-421: Implement Typed API Client And Error Normalization
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-420`
 - Goal: create the SPA transport layer for HTTP requests with generated types and consistent error handling
 - Deliverables:
