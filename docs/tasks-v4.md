@@ -266,7 +266,7 @@ The intended v4 milestone order is:
 
 ### GBX-500: Audit The Completed SPA Against Operator Workflows
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-493`
 - Goal: establish a concrete, code-aligned UX baseline for the current SPA before redesign work begins
 - Deliverables:
