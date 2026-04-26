@@ -1506,6 +1506,7 @@ The CLI should expose two complementary layers:
 
 ```text
 glassbox command tree
+glassbox observability status [--json]
 glassbox performance budgets
 glassbox session run [PROMPT]
 glassbox session fork SESSION_ID [--turn TURN_ID] [--branch-label LABEL] [--prompt PROMPT]
@@ -1524,6 +1525,12 @@ glassbox dashboard serve
 budgets used by integration coverage, including mitigation guidance for event
 append, projection rebuild, session-index, and operator-console aggregate
 regressions.
+
+`glassbox observability status` joins daemon health, event-stream reconnect/drop
+counters, projection lag, and retained eval summaries into one operator-facing
+summary with concrete next inspection or recovery actions. The daemon health
+endpoint also includes event-transport counters so dashboards can distinguish a
+healthy process from a degraded live stream.
 
 `glassbox session status` should read persisted projections and summarize the current turn,
 pending approvals, recent tool activity, and recent turn metrics without replaying

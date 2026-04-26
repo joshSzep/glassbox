@@ -721,7 +721,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-362: Expand Observability For Runtime Health, Lag, And Verification Workflows
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-304`, `GBX-321`, `GBX-343`, `GBX-360`
 - Goal: give operators and contributors clearer runtime and verification diagnostics without making logs the main product interface
 - Deliverables:
@@ -732,6 +732,9 @@ Each phase below corresponds to one concrete milestone.
   - logs complement persisted events and projections; they do not replace them
   - keep new observability surfaces tightly tied to concrete operator questions rather than generic telemetry accumulation
   - preserve the local-first product posture and avoid accidental dependency on external observability systems
+  - added `glassbox observability status` with structured runtime, projection, event-transport, and retained eval-summary health
+  - enriched `/healthz` with event-transport subscriber, drop, reconnect, and degraded-mode signals for daemon-backed dashboards
+  - retained eval summaries under `.glassbox/evals/**/summary.json` are surfaced as verification activity with direct inspection guidance
 - Tests and validation included in task:
   - integration tests for health-summary correctness and observability signal emission where practical
   - regression tests ensuring observability additions do not degrade startup or interactive workflows

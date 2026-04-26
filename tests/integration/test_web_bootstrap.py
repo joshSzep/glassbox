@@ -8,7 +8,9 @@ from pathlib import Path
 import httpx
 import pytest
 
+from glassbox.core import EventEnvelope
 from glassbox.core import SessionConfig
+from glassbox.core import SessionStarted
 from glassbox.core import new_session_id
 from glassbox.llm import PydanticAIModelExecutor
 from glassbox.llm import build_local_text_model_executor
@@ -48,7 +50,51 @@ def test_healthz_returns_ok(tmp_path: Path) -> None:
                 response = await client.get("/healthz")
 
             assert response.status_code == 200
-            assert response.json() == {"status": "ok"}
+            payload = response.json()
+            assert payload["status"] == "ok"
+            assert payload["event_transport"]["subscriber_count"] == 0
+            assert payload["event_transport"]["dropped_events"] == 0
+            assert payload["event_transport"]["reconnect_mode"].startswith(
+                "resume with"
+            )
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_healthz_reports_event_transport_backpressure(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            runtime_context = _make_runtime_context(tmp_path, connection)
+            app = create_app(runtime_context)
+            event = EventEnvelope(
+                session_id=new_session_id(),
+                sequence=0,
+                payload=SessionStarted(
+                    cwd=str(tmp_path),
+                    model_name="openai:gpt-5.4",
+                    approval_mode="confirm",
+                ),
+            )
+
+            async with runtime_context.infrastructure.event_transport.subscribe():
+                for _ in range(80):
+                    runtime_context.infrastructure.event_transport.publish(event)
+
+                async with httpx.AsyncClient(
+                    transport=httpx.ASGITransport(app=app),
+                    base_url="http://testserver",
+                ) as client:
+                    response = await client.get("/healthz")
+
+            payload = response.json()
+            assert response.status_code == 200
+            assert payload["event_transport"]["subscriber_count"] == 1
+            assert payload["event_transport"]["dropped_events"] > 0
+            assert payload["event_transport"]["degraded"] is True
+            assert payload["event_transport"]["next_actions"]
         finally:
             connection.close()
 

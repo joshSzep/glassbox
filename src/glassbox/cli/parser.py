@@ -926,6 +926,31 @@ def _add_eval_parsers(
 def _add_operations_parsers(
     subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
 ) -> None:
+    observability_parser = subparsers.add_parser(
+        "observability",
+        help="summarize runtime, projection, and verification health",
+        description=(
+            "Summarize workspace runtime health, projection lag, event transport "
+            "state, and retained verification activity."
+        ),
+    )
+    observability_subparsers = observability_parser.add_subparsers(
+        dest="observability_command",
+        required=True,
+    )
+
+    observability_status_parser = observability_subparsers.add_parser(
+        "status",
+        help="print a workspace observability summary",
+        description="Print a workspace observability summary and next actions.",
+    )
+    observability_status_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the observability report as JSON",
+    )
+    _add_runtime_location_arguments(observability_status_parser)
+
     performance_parser = subparsers.add_parser(
         "performance",
         help="inspect larger-session performance expectations",

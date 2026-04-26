@@ -61,6 +61,7 @@ Glassbox stores runtime state under `.glassbox/` in the selected workspace by de
 
 ```text
 glassbox command tree
+glassbox observability status [--json]
 glassbox performance budgets
 glassbox session run [PROMPT]
 glassbox session chat [PROMPT]

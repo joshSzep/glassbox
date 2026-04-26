@@ -42,6 +42,8 @@ def test_cli_command_tree_prints_command_tree(
     assert "|-- command" in captured.out
     assert "inspect the Glassbox command surface" in captured.out
     assert "|   `-- tree  print the command tree" in captured.out
+    assert "|-- observability" in captured.out
+    assert "summarize runtime, projection, and verification health" in captured.out
     assert "|-- performance" in captured.out
     assert "inspect larger-session performance expectations" in captured.out
     assert "|-- session" in captured.out
