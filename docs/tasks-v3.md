@@ -337,7 +337,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-430: Port Snapshot Hydration And Event Reduction To TypeScript
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-420`, `GBX-422`
 - Goal: recreate the deterministic browser state model in TypeScript before building rich React UI on top of it
 - Deliverables:
