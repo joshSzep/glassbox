@@ -47,6 +47,14 @@ export function WorkspaceConsole() {
     window.history.pushState(null, "", buildAppRoute(nextRoute));
   };
 
+  const refreshSelectedSession = async () => {
+    const sessionId = sessionStore.getState().data.sessionId;
+    if (sessionId !== null) {
+      await sessionStore.getState().loadSession(sessionId);
+    }
+    void consoleStore.getState().loadAggregate();
+  };
+
   return (
     <WorkspaceOverview
       data={consoleState.data}
@@ -54,10 +62,46 @@ export function WorkspaceConsole() {
       inspector={
         route.selectedSessionId === null ? undefined : (
           <SessionInspector
+            action={sessionState.action}
             activeTab={route.tab}
             data={sessionState.data}
+            drafts={sessionState.drafts}
             error={sessionState.error}
             loadState={sessionState.loadState}
+            onAnswerTextChange={(questionId, text) =>
+              sessionStore.getState().setAnswerText(questionId, text)
+            }
+            onFork={(input) => {
+              void (async () => {
+                const childSessionId = await sessionStore.getState().forkSession(input);
+                if (childSessionId !== null) {
+                  const nextRoute = selectSessionRoute(route, childSessionId);
+                  navigate(nextRoute);
+                  await sessionStore.getState().loadSession(childSessionId);
+                  void consoleStore.getState().loadAggregate();
+                }
+              })();
+            }}
+            onForkLabelChange={(text) => sessionStore.getState().setForkLabel(text)}
+            onPromptChange={(text) => sessionStore.getState().setComposerText(text)}
+            onResolveApproval={(input) => {
+              void (async () => {
+                await sessionStore.getState().resolveApproval(input);
+                await refreshSelectedSession();
+              })();
+            }}
+            onSubmitAnswer={(questionId) => {
+              void (async () => {
+                await sessionStore.getState().submitAnswer({ questionId });
+                await refreshSelectedSession();
+              })();
+            }}
+            onSubmitPrompt={() => {
+              void (async () => {
+                await sessionStore.getState().submitPrompt();
+                await refreshSelectedSession();
+              })();
+            }}
             queue={route.queue}
             stream={sessionState.stream}
           />

@@ -472,7 +472,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-450: Implement Prompt, Answer, Approval, And Fork Actions In The SPA
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-421`, `GBX-431`, `GBX-442`
 - Goal: make the SPA an actionable operator console, not only a read-only inspector
 - Deliverables:

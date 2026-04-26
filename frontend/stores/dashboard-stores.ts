@@ -63,7 +63,10 @@ export type SessionStoreState = {
   disconnectStream: () => void;
   drafts: DraftState;
   error: string | null;
-  forkSession: (input?: { branchLabel?: string | null; turnId?: string | null }) => Promise<void>;
+  forkSession: (input?: {
+    branchLabel?: string | null;
+    turnId?: string | null;
+  }) => Promise<string | null>;
   loadCompareSession: (sessionId: string) => Promise<void>;
   loadSession: (sessionId: string) => Promise<void>;
   loadState: LoadState;
@@ -187,7 +190,7 @@ export function createSessionStore({
       const currentActionRequestId = ++actionRequestId;
       set({ action: { error: null, kind: "fork", state: "pending" } });
       try {
-        await apiClient.forkSession({
+        const fork = await apiClient.forkSession({
           branchLabel: (input.branchLabel ?? get().drafts.forkLabel) || null,
           sessionId,
           turnId: input.turnId ?? get().data.selectedForkTurnId,
@@ -198,10 +201,12 @@ export function createSessionStore({
             drafts: { ...state.drafts, forkLabel: "" },
           }));
         }
+        return fork.child_session_id;
       } catch (error) {
         if (currentActionRequestId === actionRequestId) {
           set({ action: { error: errorMessage(error), kind: "fork", state: "failed" } });
         }
+        return null;
       }
     },
     loadCompareSession: async (sessionId) => {

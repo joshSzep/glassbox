@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { GlassboxApiClient } from "../api/client";
+import { GlassboxApiError, type GlassboxApiClient } from "../api/client";
 import type { SessionEventStreamOptions, SessionStreamState, SseEventEnvelope } from "../api/sse";
 import { createConsoleStore, createSessionStore } from "../stores/dashboard-stores";
 import {
@@ -233,12 +233,53 @@ describe("session store", () => {
     await store.getState().submitPrompt();
     await store.getState().submitAnswer({ questionId: "question-1" });
     await store.getState().resolveApproval({ approvalId: "approval-1", decision: "approved" });
+    const childSessionId = await store.getState().forkSession({ turnId: "turn-1" });
 
     expect(calls).toEqual(["prompt", "answer", "approval"]);
+    expect(childSessionId).toBe("child-1");
     expect(store.getState().drafts.composerText).toBe("");
     expect(store.getState().drafts.answerTextByQuestionId).toEqual({});
     expect(store.getState().data.transcript).toHaveLength(1);
-    expect(store.getState().action).toMatchObject({ kind: "approval", state: "succeeded" });
+    expect(store.getState().action).toMatchObject({ kind: "fork", state: "succeeded" });
+  });
+
+  it("surfaces conflict, validation, and network failures from action helpers", async () => {
+    const store = createSessionStore({
+      apiClient: createApiClient({
+        forkSession: async () => {
+          throw new GlassboxApiError({ kind: "network", message: "network unavailable" });
+        },
+        resolveApproval: async () => {
+          throw new GlassboxApiError({ kind: "conflict", message: "approval already resolved" });
+        },
+        submitMessage: async () => {
+          throw new GlassboxApiError({ kind: "validation", message: "prompt is required" });
+        },
+      }),
+    });
+    await store.getState().loadSession("session-1");
+    store.getState().setComposerText("Continue");
+
+    await store.getState().submitPrompt();
+    expect(store.getState().action).toMatchObject({
+      error: "prompt is required",
+      kind: "prompt",
+      state: "failed",
+    });
+
+    await store.getState().resolveApproval({ approvalId: "approval-1", decision: "approved" });
+    expect(store.getState().action).toMatchObject({
+      error: "approval already resolved",
+      kind: "approval",
+      state: "failed",
+    });
+
+    await expect(store.getState().forkSession({ turnId: "turn-1" })).resolves.toBeNull();
+    expect(store.getState().action).toMatchObject({
+      error: "network unavailable",
+      kind: "fork",
+      state: "failed",
+    });
   });
 
   it("resets server state for route changes while preserving drafts", async () => {

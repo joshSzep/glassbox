@@ -142,6 +142,11 @@ describe("session inspector", () => {
       }),
     );
 
+    expect(markup).toContain("Continue session");
+    expect(markup).toContain("Answer pending question");
+    expect(markup).toContain("Approve");
+    expect(markup).toContain("Deny");
+    expect(markup).toContain("Create fork");
     expect(markup).toContain("session-1");
     expect(markup).toContain("projection stale");
     expect(markup).toContain("I will inspect the console.");
