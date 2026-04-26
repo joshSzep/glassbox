@@ -1441,6 +1441,97 @@ under the current codebase.
 
 The dashboard should be a thin client over the runtime.
 
+### V3 SPA Architecture Contract
+
+The v3 dashboard direction replaces the hand-rolled browser implementation in
+`src/glassbox/web/static/` with a modern TypeScript SPA while preserving the
+same local-first runtime and event-sourced backend contracts.
+
+The accepted frontend stack is:
+
+- Next.js App Router with strict TypeScript
+- `pnpm` as the frontend package manager
+- Tailwind CSS for styling
+- shadcn-style components built on headless/Radix primitives
+- Zustand for client-side state coordination
+- OpenAPI-generated TypeScript types derived from the FastAPI schema
+- static export served by the existing FastAPI process for production use
+
+FastAPI remains the API owner, runtime owner, and production serving process.
+Next.js may provide a development server, hot reload, and local API rewrites for
+contributors, but production Glassbox dashboard usage must not require a Node
+server. Normal Python runtime users should be able to open a packaged dashboard
+from `glassbox session chat` or `glassbox dashboard serve` after release assets
+have been built and included in the Python distribution.
+
+The SPA should live under a repository-local `frontend/` workspace. Its static
+export should be copied or emitted into `src/glassbox/web/static_next/` when a
+production build is prepared. The FastAPI app should serve those built files at
+`/app` during the migration while continuing to serve the legacy dashboard at
+`/`. Missing SPA assets in a source checkout should produce developer-facing
+guidance when `/app` is requested, not break unrelated backend tests or normal
+legacy dashboard use.
+
+After the parity gate is satisfied, the route ownership should flip: `/` serves
+the SPA shell, a temporary `/legacy` route may serve the old dashboard for one
+migration window, and `/app` may remain as an alias or redirect only if it helps
+operator transition. Direct session links using `?session=SESSION_ID` must keep
+working before and after the flip.
+
+The SPA architecture should keep these boundaries explicit:
+
+- generated OpenAPI types are the browser contract at the HTTP boundary
+- typed transport helpers own `fetch`, request cancellation, response decoding,
+    and domain-friendly error normalization
+- a typed SSE client owns `GET /sessions/{session_id}/events`, sequence tracking,
+    reconnect state, and resume-after behavior
+- pure TypeScript reducer helpers hydrate snapshots and reduce live events
+    without React, Zustand, browser globals, or network side effects
+- Zustand stores coordinate aggregate console state, selected-session state,
+    stream lifecycle, route state, and local UI drafts while keeping server-derived
+    data distinct from transient browser input
+- React components render the operator console from typed store state and call
+    transport/store actions instead of issuing ad hoc HTTP requests
+
+[operator-console.md](./operator-console.md) remains the product UX baseline for
+the SPA. The first SPA screen is the operator console itself: workspace overview,
+action queues, runtime/projection health, and selected-session inspection. The
+SPA must preserve local drafts and useful browser navigation, but canonical
+session state remains derived from FastAPI snapshots, aggregate read models, SSE
+events, and persisted backend actions.
+
+### SPA Compatibility Rules
+
+The SPA migration must preserve these existing backend contracts unless a task
+explicitly updates the API and documents the change:
+
+- `GET /healthz` remains the health check and event-transport observability path
+- `GET /sessions` remains the recent-session summary index for compatibility
+- `GET /sessions/aggregate` remains the multi-session console overview and
+    queue data source
+- `GET /sessions/{session_id}` remains the selected-session snapshot source
+- `GET /sessions/{session_id}/events?after=SEQUENCE` remains the per-session SSE
+    stream, with historical replay before live events and sequence-based resume
+- `POST /sessions/{session_id}/messages` remains the next-prompt action
+- `POST /sessions/{session_id}/questions/{question_id}` remains the `ask_user`
+    answer action
+- `POST /sessions/{session_id}/approvals/{approval_id}` remains approval and
+    denial resolution
+- `POST /sessions/{session_id}/fork` remains the persisted branch creation path
+
+The browser may sort, filter, preserve drafts, and render transient pending
+states. It must not invent authoritative approval semantics, fork validity,
+runtime ownership, projection health, lineage, or replay/eval outcomes that the
+backend has not exposed. After mutations, the SPA should rely on snapshot refresh
+and SSE events for canonical state rather than treating optimistic local changes
+as durable truth.
+
+The minimum parity gate before replacing `/` is behavioral, not visual. The SPA
+must cover session discovery, aggregate queues, selected-session inspection,
+live SSE, historical snapshots, approvals, questions, prompts, forks, lineage,
+comparison, runtime context, metrics, active tool calls, live output, event log,
+projection health, direct `?session=` deep links, and clear error handling.
+
 ### Transport
 
 Use:
@@ -1452,13 +1543,16 @@ SSE is a better first fit than WebSockets because the dominant direction is serv
 
 ### Endpoints
 
-The first server surface should include:
+The current server surface includes:
 
 - `GET /healthz`
 - `GET /sessions` for recent-session discovery in the standalone dashboard, including parent lineage metadata and lightweight branchability state
+- `GET /sessions/aggregate` for operator-console queue counts, health summaries, runtime-owner state, and prioritized session rows
 - `GET /sessions/{session_id}` for a snapshot view, including parent metadata, child-session summaries, and explicit branchable-turn choices for the selected session
 - `POST /sessions/{session_id}/fork` to create a child session from the latest or explicitly selected stable historical turn boundary
 - `GET /sessions/{session_id}/events` as an SSE stream
+- `POST /sessions/{session_id}/messages` to submit the next user prompt
+- `POST /sessions/{session_id}/questions/{question_id}` to answer an `ask_user` question
 - `POST /sessions/{session_id}/approvals/{approval_id}` to resolve approvals
 
 ### Dashboard Panes
@@ -2200,6 +2294,15 @@ src/glassbox/
             state-snapshot.js
             state-stream.js
             state.js
+        static_next/
+            # built Next.js static export, when present
+    frontend/
+        app/
+        components/
+        lib/
+        styles/
+        tests/
+        package.json
     services/
         __init__.py
         contracts.py
@@ -2214,7 +2317,7 @@ The public entry modules are intentionally thinner than their neighbors:
 - `runtime/__init__.py` stays a curated package surface for runtime wiring types
 - `runtime/replay.py` and `runtime/eval_summary.py` stay as compatibility facades over the split replay and eval-reporting modules
 - `store/sqlite.py` stays as the stable SQLite facade while internal ownership lives in `sqlite_*` modules
-- `web/static/state.js`, `render.js`, and `dashboard.js` stay as browser facades over the split reducer, renderer, transport, and DOM modules
+- during the v3 migration, `web/static/state.js`, `render.js`, and `dashboard.js` are legacy browser facades for the no-framework dashboard, while `frontend/` becomes the target SPA source and `web/static_next/` holds built SPA assets
 
 ### Boundary Rules
 
@@ -2224,7 +2327,7 @@ The public entry modules are intentionally thinner than their neighbors:
 - `runtime` owns orchestration, context assembly, the shared model-loop boundary, session-query shaping, replay execution, and eval reporting. Bootstrap code may wire concrete store implementations, but orchestration code should prefer service and repository contracts.
 - `tools` depends on `core` and minimal runtime contracts.
 - `cli` depends on runtime and service/query seams, not on raw store helpers. `cli/__init__.py` remains a compatibility wrapper while parser, command, interactive-session, and formatting responsibilities live in owned neighbor modules.
-- `web` owns HTTP transport, SSE endpoints, and browser assets. Route modules should use runtime query and service seams rather than rebuilding business logic inline, and the browser facades should stay thin over split controller, DOM, transport, reducer, and renderer modules.
+- `web` owns HTTP transport, SSE endpoints, and browser asset serving. Route modules should use runtime query and service seams rather than rebuilding business logic inline. During the v3 migration, the legacy `web/static/` dashboard remains available until SPA parity, and the production SPA is served as static assets by FastAPI rather than by a Node process.
 
 ## Service Interfaces
 

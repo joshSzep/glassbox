@@ -36,7 +36,7 @@ Use this page to jump to the right level of detail.
 
 - [architecture.md](./architecture.md): current runtime, bootstrap, store, CLI, web, replay, and eval ownership boundaries on top of the event-sourced system design
 - [database.md](./database.md): SQLite event store, projection tables, artifact storage, branching lineage fields, and the split store implementation map
-- [dashboard-frontend-boundaries.md](./dashboard-frontend-boundaries.md): target reducer, renderer, transport, and DOM-binding boundaries for the no-framework dashboard frontend refactor
+- [dashboard-frontend-boundaries.md](./dashboard-frontend-boundaries.md): legacy reducer, renderer, transport, and DOM-binding boundaries for the no-framework dashboard, plus the v3 SPA supersession notice
 - [operator-console.md](./operator-console.md): v2 operator-console information architecture and queue/health semantics for multi-session inspection
 - [tasks-v3.md](./tasks-v3.md): concrete v3 task graph for replacing the hand-rolled dashboard with a statically served Next.js SPA
 - [team-workflows.md](./team-workflows.md): v2 ownership, identity, and handoff contract for portable team workflows
@@ -53,5 +53,5 @@ Start with the workflow guide that matches the job you need to do now.
 - If you are new to the repo, start with [getting-started.md](./getting-started.md).
 - If you are running Glassbox day to day, the workflow guides are the main path.
 - If you are changing implementation contracts, keep [architecture.md](./architecture.md) and [database.md](./database.md) open.
-- If you are changing module ownership after the refactor, keep [architecture.md](./architecture.md), [refactor-boundaries.md](./refactor-boundaries.md), and [dashboard-frontend-boundaries.md](./dashboard-frontend-boundaries.md) open together so the runtime/bootstrap, replay/eval, and frontend seams stay aligned.
+- If you are changing module ownership after the refactor, keep [architecture.md](./architecture.md), [refactor-boundaries.md](./refactor-boundaries.md), and [dashboard-frontend-boundaries.md](./dashboard-frontend-boundaries.md) open together so the runtime/bootstrap, replay/eval, legacy dashboard, and v3 SPA seams stay aligned.
 - If you need policy, provider, or replay governance details, prefer the dedicated guide over the root README.

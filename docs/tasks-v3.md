@@ -153,7 +153,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-400: Define Next.js SPA Architecture And Supersede The No-Framework Constraint
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-363`
 - Goal: establish the code-aligned architecture contract for replacing the hand-rolled dashboard with a TypeScript Next.js SPA
 - Deliverables:

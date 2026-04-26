@@ -1,29 +1,115 @@
 # Dashboard Frontend Boundaries
 
+## V3 Supersession Notice
+
+This document is now legacy guidance for the existing no-framework dashboard in
+`src/glassbox/web/static/`. It remains useful while that implementation is still
+served at `/`, but it is no longer the target frontend architecture for new
+dashboard work.
+
+The target v3 dashboard architecture is a TypeScript, Next.js, Tailwind,
+Zustand, and shadcn-style SPA developed under `frontend/`, statically exported
+for production, and served by FastAPI from `src/glassbox/web/static_next/`.
+FastAPI remains the API owner, runtime owner, and production serving process;
+Next.js server capabilities are development tooling only for the first SPA
+migration.
+
+Use [tasks-v3.md](./tasks-v3.md) for the v3 execution graph and
+[architecture.md](./architecture.md) for the code-aligned SPA contract. Use this
+file only when maintaining or comparing against the legacy dashboard until the
+SPA reaches the parity gate and replaces it.
+
+## V3 SPA Migration Contract
+
+The SPA must preserve Glassbox's current event-sourced browser contract while
+changing the implementation stack.
+
+Accepted stack and workspace rules:
+
+- package manager: `pnpm`
+- framework: Next.js App Router with strict TypeScript
+- styling: Tailwind CSS
+- component system: shadcn-style components on headless/Radix primitives
+- client state: Zustand stores over pure typed reducers
+- API types: OpenAPI-generated TypeScript from the FastAPI schema
+- production serving: static export served by FastAPI, not a Node server
+- migration source: `frontend/`
+- production asset target: `src/glassbox/web/static_next/`
+
+The development path may run a Next.js dev server with API and SSE rewrites to a
+local FastAPI server. The production path is always FastAPI serving the static
+SPA build. Release packaging should include built SPA assets when available so
+ordinary operators do not need Node or `pnpm` to open the dashboard from an
+installed Python package.
+
+Route migration rules:
+
+- keep `/` mapped to the legacy dashboard until the SPA parity gate is satisfied
+- serve the built SPA at `/app` during migration
+- make direct `/app` refreshes and nested client routes resolve to the SPA shell
+- keep direct `?session=SESSION_ID` links working during migration and after the
+   final route flip
+- after parity, serve the SPA at `/`, keep a temporary `/legacy` escape hatch if
+   needed, and retire the no-framework assets after the migration window
+
+Compatibility rules for the SPA:
+
+- `GET /healthz` remains the health and event-transport observability endpoint
+- `GET /sessions` remains compatible for recent-session discovery
+- `GET /sessions/aggregate` remains the console overview, queue, health, and
+   priority endpoint
+- `GET /sessions/{session_id}` remains the selected-session snapshot endpoint
+- `GET /sessions/{session_id}/events?after=SEQUENCE` remains the SSE stream,
+   including historical replay before live events and sequence-based reconnect
+- `POST /sessions/{session_id}/messages` remains the next-prompt action
+- `POST /sessions/{session_id}/questions/{question_id}` remains the `ask_user`
+   answer action
+- `POST /sessions/{session_id}/approvals/{approval_id}` remains the approve and
+   deny action
+- `POST /sessions/{session_id}/fork` remains branch creation
+
+The SPA may improve presentation, routing, keyboard flow, responsive layout, and
+draft preservation, but browser state remains derived from aggregate responses,
+snapshots, SSE events, and local UI drafts. It must not create browser-only
+authority for session status, approval validity, fork points, runtime ownership,
+projection health, lineage, comparison, replay, or eval evidence.
+
+The parity gate before replacing `/` is behavioral. The SPA must cover session
+index and aggregate console browsing, selected-session inspection, live SSE and
+historical states, approvals, questions, prompt submission, forks, lineage,
+compare, runtime context, metrics, active tools, live output, event log,
+projection health, error handling, and direct session deep links.
+
+## Legacy No-Framework Baseline
+
 This note is the frontend architecture source of truth for `GBX-R130`, `GBX-R131`, and `GBX-R132`.
 
 It now also records the `GBX-R133` app-entry split for transport, controller, and DOM-binding responsibilities.
 
-It defines how the current no-framework dashboard should be decomposed without changing browser-visible behavior, HTTP payloads, or the existing frontend test strategy.
+It defines how the current no-framework dashboard was decomposed without changing browser-visible behavior, HTTP payloads, or the existing frontend test strategy.
 
 ## Purpose
 
-The dashboard frontend already has the right high-level separation:
+The legacy dashboard frontend already has the right high-level separation for
+its current implementation:
 
 - `state.js` owns a pure reducer and snapshot hydration model
 - `render.js` owns pure HTML string renderers
 - `approval-actions.js` and `interaction-actions.js` own fetch-based browser actions
 - `dashboard.js` owns browser bootstrapping, DOM mutation, URL/history handling, snapshot loading, and SSE lifecycle
 
-The current problem is not architectural direction. It is that several of those files are carrying multiple sub-responsibilities at once.
+The remaining legacy maintenance concern is keeping those responsibilities
+separate while the SPA is built in parallel.
 
-The goal of the next frontend refactor steps is to split those files by stable responsibility while keeping the current simple browser architecture.
+The goal for legacy-only changes is to preserve stable responsibility boundaries
+without expanding the no-framework implementation beyond what is needed before
+the SPA replaces it.
 
 ## Non-Goals
 
-This refactor should not:
+Legacy maintenance should not:
 
-- introduce React, Vue, or another client framework
+- introduce React, Vue, or another client framework into `src/glassbox/web/static/`
 - replace HTML-string rendering with a virtual DOM abstraction
 - change snapshot or session-index payload shapes
 - move browser-specific transport concerns into the reducer or renderer layers
@@ -39,11 +125,11 @@ The current browser surface under `src/glassbox/web/static/` is:
 - `approval-actions.js`: approval request building, server error extraction, and approval POST flow
 - `interaction-actions.js`: prompt/answer/fork request building, server error extraction, and interaction POST flow
 
-That shape should remain the public mental model after the split, even if internal helpers move under submodules.
+That shape should remain the legacy public mental model after the split, even if internal helpers move under submodules.
 
-## Target Module Map
+## Legacy Module Map
 
-The target decomposition should keep the existing top-level browser files as stable facades first, then move internals behind them.
+The legacy decomposition keeps the existing top-level browser files as stable facades first, then moves internals behind them.
 
 The first reducer split is now in place:
 
@@ -72,7 +158,7 @@ The first dashboard app-entry split is now in place:
 
 ### State Boundary
 
-`state.js` should remain the public reducer facade for now, but its internals should split into these responsibility groups:
+`state.js` remains the public reducer facade for the legacy dashboard, with internals split into these responsibility groups:
 
 1. Snapshot hydration and normalization
    - owns `createState()`, snapshot field normalization, runtime-context normalization, current-turn inference, and default fork selection rules
@@ -95,9 +181,9 @@ The important contract is that snapshot hydration, browser submission state, and
 
 ### Renderer Boundary
 
-`render.js` should remain the public renderer facade for now, but the next split should group panes by UI responsibility instead of keeping one broad renderer file.
+`render.js` remains the public renderer facade for the legacy dashboard, with panes grouped by UI responsibility instead of one broad renderer file.
 
-The target pane families are:
+The legacy pane families are:
 
 1. Session discovery and selection
    - landing pane
@@ -139,7 +225,7 @@ The action helper modules may keep small pure request-construction helpers next 
 
 ### DOM-Binding Boundary
 
-`dashboard.js` should remain the only place that talks directly to browser globals or DOM nodes.
+`dashboard.js` remains the only legacy place that talks directly to browser globals or DOM nodes.
 
 Its stable responsibilities are:
 
@@ -201,7 +287,7 @@ Browser- or network-bound modules should not:
 
 ## Test-Preservation Plan
 
-The existing frontend tests already map cleanly onto the target split. That test shape should be preserved.
+The existing frontend tests already map cleanly onto the legacy split. That test shape should be preserved until the SPA test harness replaces it for new work.
 
 ### Existing Test Seams
 
@@ -242,7 +328,7 @@ This order keeps the most testable logic moving first and avoids dragging browse
 
 ## Boundary Summary
 
-The stable dashboard frontend architecture is:
+The stable legacy dashboard frontend architecture is:
 
 - pure state transitions and snapshot shaping in the reducer layer
 - pure pane HTML generation in the renderer layer
