@@ -773,7 +773,7 @@ The intended v4 milestone order is:
 
 ### GBX-552: Add v4 Browser Workflow And Visual Review Coverage
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-513`, `GBX-531`, `GBX-541`, `GBX-542`, `GBX-550`, `GBX-551`
 - Goal: protect the redesigned UX with scenario-based browser coverage that catches regressions in real operator flows
 - Deliverables:

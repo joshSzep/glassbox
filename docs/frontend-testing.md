@@ -55,3 +55,15 @@ When a test needs backend failures, construct `GlassboxApiError` or HTTP-shaped 
 ## Browser Workflow Tests
 
 Put real-page coverage in `frontend/e2e/`. Prefer route-level FastAPI fixtures for browser tests until a seeded FastAPI test server is needed for broader integration. The first browser suite should stay focused on operator-critical flows: loading `/app`, changing queues, opening a selected session, receiving SSE updates, sending prompts, answering questions, resolving approvals, and creating forks.
+
+## v4 Visual Review Archive
+
+Generate the deterministic v4 screenshot archive with:
+
+```sh
+pnpm --dir frontend screenshots:v4-audit
+```
+
+The archive writes to `frontend/test-results/v4-audit-screenshots/` and is intentionally ignored by git. Keep the current run locally while reviewing a UX change, and rely on regenerated screenshots rather than committed binary baselines. Each capture records route, scenario, operator state, git revision, viewport, and file path in `manifest.json` plus a readable `index.md`.
+
+Review representative desktop, narrow desktop, tablet, and mobile captures for the scenario viewports declared in the shared v4 fixtures. The archive test should fail on dev-overlay contamination, blank primary regions, selected-session blank states, or horizontal overflow. Add new fixture scenarios when a user-visible operator state is not represented by the current matrix.

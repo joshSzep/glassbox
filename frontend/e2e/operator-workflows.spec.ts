@@ -1,9 +1,10 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 import {
   defaultChildSessionId,
   defaultSessionId,
   installGlassboxApiFixture,
+  scenarioRoute,
 } from "./fixtures/glassbox-api";
 
 const sessionId = defaultSessionId;
@@ -112,7 +113,9 @@ test("operator can complete the primary workflow from the keyboard", async ({ pa
 
   await page.getByRole("button", { name: "Approve" }).focus();
   await page.keyboard.press("Enter");
+  await expect(page.getByText("approval resolved", { exact: true })).toBeVisible();
 
+  await expect(page.getByRole("button", { name: "Create fork" })).toBeEnabled();
   await page.getByRole("button", { name: "Create fork" }).focus();
   await page.keyboard.press("Enter");
   await page.getByLabel("Fork label").focus();
@@ -292,6 +295,41 @@ test("operator can inspect artifact-backed verification cues", async ({ page }) 
   await expect(page.getByLabel(/Copyable artifact path evals\/impact\.json/)).toBeVisible();
 });
 
+test("operator can review degraded projection without losing canonical evidence", async ({
+  page,
+}) => {
+  await installGlassboxApiFixture(page, "projection-degraded");
+
+  await page.goto(scenarioRoute("projection-degraded"));
+  const inspector = page.getByRole("complementary", { name: "Selected session inspector" });
+  await expect(page.getByRole("heading", { name: "Operator Console" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "degraded-session" })).toBeVisible();
+  await expect(
+    page.getByText("Projection stale: canonical events remain authoritative."),
+  ).toBeVisible();
+  await expect(inspector.getByText("projection degraded", { exact: true }).first()).toBeVisible();
+
+  await page.getByRole("tab", { name: "Evidence" }).click();
+  await expect(page.getByLabel("Evidence overview")).toBeVisible();
+  await expect(page.getByText("Projection details")).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
+test("operator can review a historical session as inspect-only work", async ({ page }) => {
+  await installGlassboxApiFixture(page, "historical-session");
+
+  await page.goto(scenarioRoute("historical-session"));
+  const inspector = page.getByRole("complementary", { name: "Selected session inspector" });
+  await expect(page.getByRole("heading", { name: "historical-session" })).toBeVisible();
+  await expect(page.getByText("historical snapshot", { exact: true })).toBeVisible();
+  await expect(inspector.getByText("historical-only", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Send prompt" })).toBeDisabled();
+
+  await page.getByRole("tab", { name: "Lineage" }).click();
+  await expect(page.getByRole("heading", { name: "Lineage and turns" })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
 test("operator sees inline feedback for action failures", async ({ page }) => {
   await installGlassboxApiFixture(page);
   await page.route("**/sessions/*/approvals/*", (route) =>
@@ -311,3 +349,10 @@ test("operator sees inline feedback for action failures", async ({ page }) => {
   await expect(page.getByText("network error", { exact: true })).toBeVisible();
   await expect(page.getByText(/draft is preserved/i)).toBeVisible();
 });
+
+async function expectNoHorizontalOverflow(page: Page) {
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
+}

@@ -13,10 +13,12 @@ const archiveRoot = path.join(process.cwd(), "test-results", "v4-audit-screensho
 const selectedScenario = process.env.V4_AUDIT_SCENARIO as ScreenshotScenarioId | undefined;
 const gitRevision = process.env.V4_AUDIT_REVISION ?? "unknown";
 
-const viewports = [
-  { height: 900, name: "desktop", width: 1440 },
-  { height: 844, name: "mobile", width: 390 },
-] as const;
+const viewports = {
+  desktop: { height: 900, name: "desktop", width: 1440 },
+  "narrow-desktop": { height: 900, name: "narrow-desktop", width: 1024 },
+  tablet: { height: 1024, name: "tablet", width: 768 },
+  mobile: { height: 844, name: "mobile", width: 390 },
+} as const;
 
 type ManifestEntry = {
   file: string;
@@ -49,9 +51,12 @@ for (const scenario of Object.keys(scenarioFixtures) as ScreenshotScenarioId[]) 
   }
 
   const views = screenshotViewsForScenario(scenario);
+  const scenarioViewports = scenarioFixtures[scenario].criticalViewports.map(
+    (viewport) => viewports[viewport],
+  );
 
   for (const view of views) {
-    for (const viewport of viewports) {
+    for (const viewport of scenarioViewports) {
       test(`v4 screenshot archive: ${scenario} ${view.name} ${viewport.name}`, async ({ page }) => {
         await page.setViewportSize({ height: viewport.height, width: viewport.width });
         await installGlassboxApiFixture(page, scenario);
@@ -71,6 +76,7 @@ for (const scenario of Object.keys(scenarioFixtures) as ScreenshotScenarioId[]) 
           await expect(page.getByRole("heading", { name: "Runtime context" })).toBeVisible();
         }
         await expectNoDevOnlyChrome(page);
+        await expectStableConsoleLayout(page);
 
         const file =
           view.name === "default"
@@ -191,6 +197,25 @@ async function expectNoDevOnlyChrome(page: Page): Promise<void> {
   });
 
   expect(visibleDevElements).toEqual([]);
+}
+
+async function expectStableConsoleLayout(page: Page): Promise<void> {
+  const layout = await page.evaluate(() => {
+    const main = document.querySelector("main");
+    const inspector = document.querySelector('[aria-label="Selected session inspector"]');
+    return {
+      horizontalOverflow:
+        document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      inspectorTextLength: inspector?.textContent?.trim().length ?? 0,
+      mainTextLength: main?.textContent?.trim().length ?? 0,
+    };
+  });
+
+  expect(layout.horizontalOverflow).toBeLessThanOrEqual(1);
+  expect(layout.mainTextLength).toBeGreaterThan(0);
+  if (page.url().includes("session=") || page.url().includes("/sessions/")) {
+    expect(layout.inspectorTextLength).toBeGreaterThan(0);
+  }
 }
 
 function renderIndex(entries: ManifestEntry[]): string {
