@@ -604,7 +604,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-470: Define And Enforce The Dashboard Parity Gate
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-441`, `GBX-442`, `GBX-450`, `GBX-451`, `GBX-460`
 - Goal: decide when the SPA is ready to replace the legacy dashboard root
 - Deliverables:
