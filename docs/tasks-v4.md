@@ -317,7 +317,7 @@ The intended v4 milestone order is:
 
 ### GBX-502: Define v4 Fixture And Scenario Coverage
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-500`, `GBX-501`
 - Goal: make representative UX states easy to test, review, and keep stable while the redesign lands
 - Deliverables:

@@ -12,19 +12,20 @@ pnpm --dir frontend screenshots:v4-audit
 
 The archive is written locally to `frontend/test-results/v4-audit-screenshots/`. The current scenario set covers:
 
-| Scenario | Viewports | Audit Purpose |
-| --- | --- | --- |
-| `empty-workspace` | desktop, mobile | calm state, runtime summary, empty queue posture |
-| `all-queues` | desktop, mobile | workspace overview, queue counts, session summary table |
-| `live-session` | desktop, mobile | selected active session, stream update, promptability |
-| `historical-session` | desktop, mobile | completed session, live-unavailable posture |
-| `failed-session` | desktop, mobile | failure visibility and retryable failure summary |
-| `pending-approval` | desktop, mobile | explicit approval decision path |
-| `pending-question` | desktop, mobile | `ask_user` answer path |
-| `branched-session` | desktop, mobile | child lineage and fork point evidence |
-| `compare-view` | desktop, mobile | compare target loading and compare surface |
-| `projection-degraded` | desktop, mobile | stale projection health without data-loss panic |
-| `artifact-drift` | desktop, mobile | artifact-backed verification and working-set drift cues |
+| Scenario              | Viewports       | Audit Purpose                                                                     |
+| --------------------- | --------------- | --------------------------------------------------------------------------------- |
+| `empty-workspace`     | desktop, mobile | calm state, runtime summary, empty queue posture                                  |
+| `all-queues`          | desktop, mobile | workspace overview, queue counts, session summary table                           |
+| `live-session`        | desktop, mobile | selected active session, stream update, promptability                             |
+| `historical-session`  | desktop, mobile | completed session, live-unavailable posture                                       |
+| `failed-session`      | desktop, mobile | failure visibility and retryable failure summary                                  |
+| `pending-approval`    | desktop, mobile | explicit approval decision path                                                   |
+| `pending-question`    | desktop, mobile | `ask_user` answer path                                                            |
+| `branched-session`    | desktop, mobile | child lineage and fork point evidence                                             |
+| `compare-view`        | desktop, mobile | compare target loading and compare surface                                        |
+| `projection-degraded` | desktop, mobile | stale projection health without data-loss panic                                   |
+| `artifact-drift`      | desktop, mobile | artifact-backed verification and working-set drift cues                           |
+| `large-transcript`    | desktop, mobile | noisy transcript, active tool output, approvals, runtime notes, and artifact cues |
 
 Screenshots are evidence for design decisions, not committed pixel baselines. The useful references are the generated `index.md`, `manifest.json`, and scenario PNGs in the archive directory.
 

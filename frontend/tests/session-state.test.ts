@@ -9,11 +9,17 @@ import {
   hydrateSessionSnapshot,
 } from "../state/session-state";
 import {
+  largeTranscriptSessionId,
   makeEnvelope,
   makeRuntimeContext,
+  makeV4ScenarioAggregate,
+  makeV4ScenarioSnapshot,
+  makeV4ScenarioSseEnvelopes,
   makeSessionAggregate,
   makeSessionSnapshot,
   makeSessionSummary,
+  v4ConsoleScenarioFixtures,
+  type V4ConsoleScenarioId,
 } from "./fixtures/session-state";
 
 describe("session state hydration", () => {
@@ -159,6 +165,60 @@ describe("session state hydration", () => {
     expect(compared.sessionId).toBe("selected");
     expect(compared.compareSessionId).toBe("compare");
     expect(compared.compareSession?.projectionHealth?.state).toBe("stale");
+  });
+
+  it("hydrates v4 console scenarios through the real reducer path", () => {
+    const aggregateState = hydrateSessionAggregate(
+      createDashboardState(),
+      makeV4ScenarioAggregate("all-queues"),
+    );
+    const scenarioEntries = Object.entries(v4ConsoleScenarioFixtures) as [
+      V4ConsoleScenarioId,
+      (typeof v4ConsoleScenarioFixtures)[V4ConsoleScenarioId],
+    ][];
+
+    expect(aggregateState.sessionIndex.map((session) => session.session_id)).toEqual(
+      expect.arrayContaining([
+        "approval-session",
+        "question-session",
+        "failed-session",
+        "degraded-session",
+        largeTranscriptSessionId,
+      ]),
+    );
+
+    for (const [scenarioId, scenario] of scenarioEntries) {
+      if (!("sessionId" in scenario)) {
+        continue;
+      }
+      const snapshot = makeV4ScenarioSnapshot(scenario.sessionId, scenarioId);
+      const selected = makeV4ScenarioSseEnvelopes(scenarioId, scenario.sessionId).reduce(
+        applySessionEvent,
+        hydrateSelectedSession(aggregateState, snapshot),
+      );
+
+      expect(selected.selectedSessionId).toBe(scenario.sessionId);
+      expect(selected.status).toBeTruthy();
+      expect(selected.runtimeContext?.repository_context.workspace_name).toBe("glassbox");
+    }
+  });
+
+  it("keeps the noisy v4 scenario realistic under reducer hydration", () => {
+    const snapshot = makeV4ScenarioSnapshot(largeTranscriptSessionId, "large-transcript");
+    const state = makeV4ScenarioSseEnvelopes("large-transcript", largeTranscriptSessionId).reduce(
+      applySessionEvent,
+      hydrateSelectedSession(createDashboardState(), snapshot),
+    );
+
+    expect(state.transcript).toHaveLength(19);
+    expect(state.pendingApprovals[0]?.subject).toBe("apply patch");
+    expect(state.activeToolCalls[0]?.tool_name).toBe("pnpm test");
+    expect(state.liveOutput[0]?.chunk).toContain("long validation line");
+    expect(state.runtimeContext?.artifact_context?.summaries).toHaveLength(2);
+    expect(state.runtimeContext?.runtime_notes?.map((note) => note.category)).toEqual([
+      "runtime",
+      "artifact",
+    ]);
   });
 });
 
