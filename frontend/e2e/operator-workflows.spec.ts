@@ -71,6 +71,37 @@ test("operator console remains reachable in a narrow viewport", async ({ page })
   await expect(page.getByRole("link", { name: sessionLink })).toBeVisible();
 });
 
+test("mobile operator can drill into a session, act, and return to queues", async ({ page }) => {
+  const fixture = await installGlassboxApiFixture(page);
+  await page.setViewportSize({ height: 844, width: 390 });
+
+  await page.goto("/app");
+  await page.getByRole("link", { name: /Questions/ }).click();
+  await page.getByRole("link", { name: sessionLink }).click();
+
+  await expect(page).toHaveURL(/\/app\/sessions\/session-1\?queue=questions$/);
+  await expect(page.getByRole("link", { name: /Back to Questions queue/ })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Action queues" })).not.toBeVisible();
+  await expect(page.getByRole("heading", { name: sessionId })).toBeVisible();
+
+  await page.getByLabel("Answer pending question").fill("Use the main branch");
+  await page.getByRole("button", { name: "Submit answer" }).click();
+  await page.getByRole("button", { name: "Approve" }).click();
+  await page.getByLabel("Create fork").fill("mobile fork check");
+  await page.getByRole("button", { name: "Fork Continue from tool result" }).click();
+
+  await page.getByRole("link", { name: /Back to Questions queue/ }).click();
+  await expect(page).toHaveURL(/\/app\/queues\/questions$/);
+  await expect(page.getByRole("navigation", { name: "Action queues" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Questions sessions" })).toBeVisible();
+
+  expect(fixture.actions.map((action) => action.url)).toEqual([
+    `/sessions/${sessionId}/questions/question-1`,
+    `/sessions/${sessionId}/approvals/approval-1`,
+    `/sessions/${sessionId}/fork`,
+  ]);
+});
+
 test("operator can switch queue filters and return to a selected session", async ({ page }) => {
   await installGlassboxApiFixture(page);
 

@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Activity,
   AlertTriangle,
+  ArrowLeft,
   CheckCircle2,
   Database,
   RadioTower,
@@ -98,6 +99,7 @@ export function WorkspaceOverview({
   stream,
 }: WorkspaceOverviewProps) {
   const hasRows = data.sessionIndex.length > 0;
+  const hasSelectedInspector = inspector !== undefined && selectedSessionId !== null;
 
   return (
     <main className="min-h-screen bg-background px-4 py-5 text-foreground sm:px-6 lg:px-8">
@@ -116,7 +118,7 @@ export function WorkspaceOverview({
           aria-label="Console frame"
           className="grid gap-4 xl:grid-cols-[20rem_minmax(0,1fr)]"
         >
-          <aside className="flex flex-col gap-4">
+          <aside className={`${hasSelectedInspector ? "hidden xl:flex" : "flex"} flex-col gap-4`}>
             <WorkspaceSummary data={data} loadState={loadState} />
             <QueueNavigation
               data={data}
@@ -126,12 +128,21 @@ export function WorkspaceOverview({
           </aside>
 
           <section className="flex min-w-0 flex-col gap-4">
-            <QueueHeader
-              data={data}
-              error={error}
-              loadState={loadState}
-              selectedQueue={selectedQueue}
-            />
+            {hasSelectedInspector ? (
+              <MobileReturnToQueues
+                onSelectQueue={onSelectQueue}
+                selectedQueue={selectedQueue}
+                selectedSessionId={selectedSessionId}
+              />
+            ) : null}
+            <div className={hasSelectedInspector ? "hidden xl:block" : undefined}>
+              <QueueHeader
+                data={data}
+                error={error}
+                loadState={loadState}
+                selectedQueue={selectedQueue}
+              />
+            </div>
             <div
               className={
                 inspector === undefined
@@ -139,7 +150,7 @@ export function WorkspaceOverview({
                   : "grid min-w-0 gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(28rem,0.9fr)]"
               }
             >
-              <div className="min-w-0">
+              <div className={hasSelectedInspector ? "hidden min-w-0 xl:block" : "min-w-0"}>
                 {error !== null ? (
                   <StatePanel
                     icon={ShieldAlert}
@@ -176,6 +187,44 @@ export function WorkspaceOverview({
         </section>
       </div>
     </main>
+  );
+}
+
+function MobileReturnToQueues({
+  onSelectQueue,
+  selectedQueue,
+  selectedSessionId,
+}: {
+  onSelectQueue?: (queue: ConsoleFilters["queue"]) => void;
+  selectedQueue: ConsoleFilters["queue"];
+  selectedSessionId: string;
+}) {
+  const queue = queueDescriptor(selectedQueue);
+  return (
+    <a
+      className="flex min-w-0 items-center justify-between gap-3 rounded-lg border bg-card p-3 text-sm font-medium text-card-foreground shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring xl:hidden"
+      href={buildAppRoute({
+        compareSessionId: null,
+        queue: selectedQueue as AppQueue,
+        selectedSessionId: null,
+        tab: "overview",
+      })}
+      onClick={(event) => {
+        if (onSelectQueue === undefined) {
+          return;
+        }
+        event.preventDefault();
+        onSelectQueue(selectedQueue);
+      }}
+    >
+      <span className="flex min-w-0 items-center gap-2">
+        <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <span className="truncate">Back to {queue.label} queue</span>
+      </span>
+      <Badge className="max-w-[12rem] justify-start" variant="info">
+        <span className="truncate">{selectedSessionId}</span>
+      </Badge>
+    </a>
   );
 }
 

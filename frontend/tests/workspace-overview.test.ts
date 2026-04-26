@@ -192,6 +192,27 @@ describe("workspace overview console", () => {
     expect(markup).toContain("5 rows are hidden by the current queue filter.");
     expect(markup).toContain("3 shown");
   });
+
+  it("renders a mobile return path for selected-session drill-in", () => {
+    const state = hydrateSessionAggregate(
+      createDashboardState(),
+      makeV4ScenarioAggregate("all-queues", "questions"),
+    );
+    const markup = renderOverview(
+      state,
+      "loaded",
+      null,
+      "questions",
+      "session-1",
+      undefined,
+      React.createElement("aside", null, "Inspector pane"),
+    );
+
+    expect(markup).toContain("Back to Questions queue");
+    expect(markup).toContain("/app/queues/questions");
+    expect(markup).toContain("xl:hidden");
+    expect(markup).toContain("Inspector pane");
+  });
 });
 
 function renderOverview(
@@ -213,11 +234,13 @@ function renderOverview(
     retryCount: number;
     status: "connecting" | "historical_snapshot" | "live" | "live_unavailable" | "reconnecting";
   },
+  inspector?: React.ReactNode,
 ): string {
   return renderToStaticMarkup(
     React.createElement(WorkspaceOverview, {
       data,
       error,
+      inspector,
       loadState,
       selectedQueue,
       selectedSessionId,

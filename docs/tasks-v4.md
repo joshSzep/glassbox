@@ -420,7 +420,7 @@ The intended v4 milestone order is:
 
 ### GBX-513: Implement Mobile Drill-In Navigation For Queues And Sessions
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-511`, `GBX-512`
 - Goal: make the SPA usable on narrow viewports as a focused workflow rather than a squeezed desktop layout
 - Deliverables:
