@@ -598,7 +598,7 @@ The intended v4 milestone order is:
 
 ### GBX-532: Build A Focused Timeline Tab
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-530`, `GBX-531`
 - Goal: provide a dense turn-level summary for scanning progress, failures, tool usage, and fork boundaries
 - Deliverables:

@@ -76,7 +76,8 @@ describe("operator action component harness", () => {
 
     await user.click(screen.getByRole("button", { name: "Create fork" }));
     await user.type(screen.getByLabelText("Fork label"), "retry with focused context");
-    await user.click(screen.getByRole("button", { name: "Fork Continue from tool result" }));
+    await user.click(screen.getByRole("button", { name: "Select Continue from tool result" }));
+    await user.click(screen.getByRole("button", { name: "Fork selected point" }));
 
     expect(callbacks.onFork).toHaveBeenCalledWith({
       branchLabel: "retry with focused context",
@@ -110,6 +111,25 @@ describe("operator action component harness", () => {
     await user.click(screen.getByRole("button", { name: "Fork latest point" }));
 
     expect(callbacks.onFork).toHaveBeenCalledWith({ branchLabel: "latest branch", turnId: null });
+  });
+
+  it("opens the fork flow from branchable turns exposed in the timeline", async () => {
+    const user = userEvent.setup();
+    const callbacks = makeCallbacks();
+
+    render(<ActionHarness callbacks={callbacks} initialActiveTab="timeline" />);
+
+    await user.click(
+      screen.getByRole("button", { name: "Open fork flow for Continue from tool result" }),
+    );
+    await user.type(screen.getByLabelText("Fork label"), "timeline branch");
+    expect(screen.getByText("Continue from tool result · sequence 8")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Fork selected point" }));
+
+    expect(callbacks.onFork).toHaveBeenCalledWith({
+      branchLabel: "timeline branch",
+      turnId: "turn-1",
+    });
   });
 
   it("surfaces pending, success, conflict, validation, and network action feedback", () => {
@@ -197,6 +217,7 @@ type ActionHarnessProps = {
     onSubmitPrompt: () => void;
   };
   dataOverrides?: Partial<DashboardState>;
+  initialActiveTab?: Parameters<typeof SessionInspector>[0]["activeTab"];
   snapshotOverrides?: Partial<components["schemas"]["SessionSnapshotResponse"]>;
   streamOverride?: Partial<SessionStreamState>;
 };
@@ -207,9 +228,11 @@ function ActionHarness({
   action = { error: null, kind: null, state: "idle" },
   callbacks,
   dataOverrides = {},
+  initialActiveTab = "actions",
   snapshotOverrides = {},
   streamOverride = {},
 }: ActionHarnessProps) {
+  const [activeTab, setActiveTab] = useState(initialActiveTab);
   const [drafts, setDrafts] = useState(() => makeDrafts());
   const data = {
     ...hydrateSelectedSession(
@@ -227,7 +250,7 @@ function ActionHarness({
 
   return (
     <SessionInspector
-      activeTab="actions"
+      activeTab={activeTab}
       action={action}
       data={data}
       drafts={drafts}
@@ -248,6 +271,7 @@ function ActionHarness({
         setDrafts((current) => ({ ...current, composerText: text }));
       }}
       onResolveApproval={callbacks.onResolveApproval}
+      onSelectTab={setActiveTab}
       onSubmitAnswer={callbacks.onSubmitAnswer}
       onSubmitPrompt={callbacks.onSubmitPrompt}
       queue="active"

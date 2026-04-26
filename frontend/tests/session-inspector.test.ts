@@ -28,7 +28,7 @@ const stream = {
 
 describe("session inspector", () => {
   it("renders overview with priority action, status, narrative, and scoped evidence", () => {
-    const data = makeRichSessionData("overview");
+    const data = makeRichSessionData();
 
     const markup = renderToStaticMarkup(
       React.createElement(SessionInspector, {
@@ -105,7 +105,7 @@ describe("session inspector", () => {
   });
 
   it("renders only the active inspector tab content", () => {
-    const data = makeRichSessionData("tabs");
+    const data = makeRichSessionData();
 
     const runtimeMarkup = renderInspectorTab(data, "runtime");
     expect(runtimeMarkup).toContain("Runtime context");
@@ -131,7 +131,7 @@ describe("session inspector", () => {
   });
 
   it("preserves direct links for inspector tabs", () => {
-    const data = makeRichSessionData("links");
+    const data = makeRichSessionData();
     const markup = renderInspectorTab(data, "lineage");
 
     expect(markup).toContain("/app/sessions/session-1?queue=active&amp;compare=parent-1");
@@ -142,7 +142,7 @@ describe("session inspector", () => {
   });
 
   it("renders lineage and transcript as scoped tab content", () => {
-    const data = makeRichSessionData("scoped");
+    const data = makeRichSessionData();
 
     const lineageMarkup = renderInspectorTab(data, "lineage");
     expect(lineageMarkup).toContain("Lineage and turns");
@@ -157,6 +157,25 @@ describe("session inspector", () => {
     expect(transcriptMarkup).toContain("Approval: apply patch");
     expect(transcriptMarkup).toContain("Live stdout");
     expect(transcriptMarkup).not.toContain("Lineage and turns");
+  });
+
+  it("renders a focused timeline with jumps, metrics, and fork affordances", () => {
+    const data = makeRichSessionData();
+
+    const markup = renderInspectorTab(data, "timeline");
+
+    expect(markup).toContain("Timeline");
+    expect(markup).toContain("Timeline jumps");
+    expect(markup).toContain("Timeline turns");
+    expect(markup).toContain("Active turn");
+    expect(markup).toContain("Pending action");
+    expect(markup).toContain("Fork boundary");
+    expect(markup).toContain("1 model");
+    expect(markup).toContain("2 pending intervention");
+    expect(markup).toContain("1 active tool");
+    expect(markup).toContain("1 live output");
+    expect(markup).toContain("Open fork flow for Continue from tool result");
+    expect(markup).not.toContain("Session narrative turns");
   });
 
   it("renders transcript narrative states across fixture scenarios", () => {
@@ -197,7 +216,7 @@ describe("session inspector", () => {
     }
   });
 
-  function makeRichSessionData(suffix: string) {
+  function makeRichSessionData() {
     const selected = hydrateSelectedSession(
       createDashboardState(),
       makeSessionSnapshot("session-1", {

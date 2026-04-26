@@ -35,6 +35,17 @@ test("operator can browse queues, open a session, stream updates, and resolve ac
   await expect(page.getByLabel("Session narrative turns")).toBeVisible();
   await expect(page.getByText("Live SSE update received by the browser.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Pending action" })).toBeVisible();
+
+  await page.getByRole("tab", { name: "Timeline" }).click();
+  await expect(page).toHaveURL(/tab=timeline/);
+  await expect(page.getByLabel("Timeline turns")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Active turn" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Fork boundary" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Open fork flow for Continue from tool result" }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Fork boundary" }).click();
+  await expect(page).toHaveURL(/#narrative-turn-1$/);
   await page.getByRole("tab", { name: "Overview" }).click();
 
   await page.getByLabel("Continue session").fill("Please continue with the next check");
@@ -48,7 +59,8 @@ test("operator can browse queues, open a session, stream updates, and resolve ac
 
   await page.getByRole("button", { name: "Create fork" }).click();
   await page.getByLabel("Fork label").fill("retry with narrower context");
-  await page.getByRole("button", { name: "Fork Continue from tool result" }).click();
+  await page.getByRole("button", { name: "Select Continue from tool result" }).click();
+  await page.getByRole("button", { name: "Fork selected point" }).click();
 
   await expect(page).toHaveURL(/\/app\/sessions\/child-1\?queue=questions$/);
   await expect(page.getByRole("heading", { name: childSessionId })).toBeVisible();
@@ -98,7 +110,8 @@ test("mobile operator can drill into a session, act, and return to queues", asyn
   await page.getByRole("button", { name: "Approve" }).click();
   await page.getByRole("button", { name: "Create fork" }).click();
   await page.getByLabel("Fork label").fill("mobile fork check");
-  await page.getByRole("button", { name: "Fork Continue from tool result" }).click();
+  await page.getByRole("button", { name: "Select Continue from tool result" }).click();
+  await page.getByRole("button", { name: "Fork selected point" }).click();
 
   await page.getByRole("link", { name: /Back to Questions queue/ }).click();
   await expect(page).toHaveURL(/\/app\/queues\/questions$/);
@@ -180,7 +193,8 @@ test("operator sees inline feedback for action failures", async ({ page }) => {
   await page.route("**/sessions/*/fork", (route) => route.abort("failed"));
   await page.getByRole("button", { name: "Create fork" }).click();
   await page.getByLabel("Fork label").fill("network retry branch");
-  await page.getByRole("button", { name: "Fork Continue from tool result" }).click();
+  await page.getByRole("button", { name: "Select Continue from tool result" }).click();
+  await page.getByRole("button", { name: "Fork selected point" }).click();
   await expect(page.getByText("network error", { exact: true })).toBeVisible();
   await expect(page.getByText(/draft is preserved/i)).toBeVisible();
 });

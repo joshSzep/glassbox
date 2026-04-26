@@ -24,8 +24,14 @@ type ManifestEntry = {
   operatorState: string;
   route: string;
   scenario: ScreenshotScenarioId;
+  view: string;
   viewport: string;
   viewportSize: { height: number; width: number };
+};
+
+type ScreenshotView = {
+  name: string;
+  route: string;
 };
 
 const manifest: ManifestEntry[] = [];
@@ -42,31 +48,63 @@ for (const scenario of Object.keys(scenarioFixtures) as ScreenshotScenarioId[]) 
     continue;
   }
 
-  for (const viewport of viewports) {
-    test(`v4 screenshot archive: ${scenario} ${viewport.name}`, async ({ page }) => {
-      await page.setViewportSize({ height: viewport.height, width: viewport.width });
-      await installGlassboxApiFixture(page, scenario);
+  const views = screenshotViewsForScenario(scenario);
 
-      const route = scenarioRoute(scenario);
-      await page.goto(route);
-      await expect(page.getByRole("heading", { name: "Operator Console" })).toBeVisible();
-      await expectNoDevOnlyChrome(page);
-      await page.screenshot({
-        fullPage: true,
-        path: path.join(archiveRoot, `${scenario}.${viewport.name}.png`),
-      });
+  for (const view of views) {
+    for (const viewport of viewports) {
+      test(`v4 screenshot archive: ${scenario} ${view.name} ${viewport.name}`, async ({ page }) => {
+        await page.setViewportSize({ height: viewport.height, width: viewport.width });
+        await installGlassboxApiFixture(page, scenario);
 
-      manifest.push({
-        file: `${scenario}.${viewport.name}.png`,
-        gitRevision,
-        operatorState: scenarioFixtures[scenario].summary,
-        route,
-        scenario,
-        viewport: viewport.name,
-        viewportSize: { height: viewport.height, width: viewport.width },
+        await page.goto(view.route);
+        await expect(page.getByRole("heading", { name: "Operator Console" })).toBeVisible();
+        if (view.name === "timeline") {
+          await expect(page.getByLabel("Timeline turns")).toBeVisible();
+        }
+        await expectNoDevOnlyChrome(page);
+
+        const file =
+          view.name === "default"
+            ? `${scenario}.${viewport.name}.png`
+            : `${scenario}.${view.name}.${viewport.name}.png`;
+
+        await page.screenshot({
+          fullPage: true,
+          path: path.join(archiveRoot, file),
+        });
+
+        manifest.push({
+          file,
+          gitRevision,
+          operatorState: scenarioFixtures[scenario].summary,
+          route: view.route,
+          scenario,
+          view: view.name,
+          viewport: viewport.name,
+          viewportSize: { height: viewport.height, width: viewport.width },
+        });
       });
-    });
+    }
   }
+}
+
+function screenshotViewsForScenario(scenario: ScreenshotScenarioId): ScreenshotView[] {
+  const route = scenarioRoute(scenario);
+  const views = [{ name: "default", route }];
+
+  if (
+    ["branched-session", "failed-session", "live-session", "pending-approval"].includes(scenario)
+  ) {
+    views.push({ name: "timeline", route: routeWithTab(route, "timeline") });
+  }
+
+  return views;
+}
+
+function routeWithTab(route: string, tab: string): string {
+  const url = new URL(route, "http://glassbox.local");
+  url.searchParams.set("tab", tab);
+  return `${url.pathname}${url.search}`;
 }
 
 test.afterAll(async () => {
@@ -139,7 +177,7 @@ function renderIndex(entries: ManifestEntry[]): string {
     )
     .map(
       (entry) =>
-        `| ${entry.scenario} | ${entry.viewport} | ${entry.route} | ${entry.operatorState} | [${entry.file}](./${entry.file}) |`,
+        `| ${entry.scenario} | ${entry.view} | ${entry.viewport} | ${entry.route} | ${entry.operatorState} | [${entry.file}](./${entry.file}) |`,
     );
 
   return [
@@ -148,8 +186,8 @@ function renderIndex(entries: ManifestEntry[]): string {
     `Generated: ${new Date().toISOString()}`,
     `Git revision: ${gitRevision}`,
     "",
-    "| Scenario | Viewport | Route | Operator State | Screenshot |",
-    "| --- | --- | --- | --- | --- |",
+    "| Scenario | View | Viewport | Route | Operator State | Screenshot |",
+    "| --- | --- | --- | --- | --- | --- |",
     ...rows,
     "",
   ].join("\n");

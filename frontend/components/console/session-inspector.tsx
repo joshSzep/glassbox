@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { AlertCircle, MessageSquareText, RadioTower } from "lucide-react";
 
 import { VerificationCues } from "@/components/console/verification-cues";
@@ -22,6 +22,8 @@ import type { SessionStreamState } from "@/api/sse";
 import type { AppQueue, InspectorTab } from "@/routing/app-route";
 import type { DashboardState } from "@/state/session-state";
 import type { ActionStatus, DraftState, LoadState } from "@/stores/dashboard-stores";
+
+type ForkDialogRequest = { requestId: number; turnId: string | null };
 
 const idleAction: ActionStatus = { error: null, kind: null, state: "idle" };
 const emptyDrafts: DraftState = {
@@ -74,6 +76,8 @@ export function SessionInspector({
   queue,
   stream,
 }: SessionInspectorProps) {
+  const [forkDialogRequest, setForkDialogRequest] = useState<ForkDialogRequest | null>(null);
+
   if (data.selectedSessionId !== null && data.sessionId === null) {
     return (
       <InspectorFrame>
@@ -109,11 +113,19 @@ export function SessionInspector({
         activeTab={activeTab}
         data={data}
         drafts={drafts}
+        forkDialogRequest={forkDialogRequest}
         onAnswerTextChange={onAnswerTextChange}
         onClearCompare={onClearCompare}
         onCompareSession={onCompareSession}
         onFork={onFork}
         onForkLabelChange={onForkLabelChange}
+        onClearForkDialogRequest={() => {
+          setForkDialogRequest(null);
+        }}
+        onOpenForkTurn={(turnId) => {
+          setForkDialogRequest({ requestId: Date.now(), turnId });
+          onSelectTab?.("actions");
+        }}
         onOpenSession={onOpenSession}
         onPromptChange={onPromptChange}
         onResolveApproval={onResolveApproval}
@@ -130,23 +142,32 @@ function InspectorTabContent({
   activeTab,
   data,
   drafts,
+  forkDialogRequest,
   onAnswerTextChange,
   onClearCompare,
   onCompareSession,
   onFork,
   onForkLabelChange,
+  onClearForkDialogRequest,
+  onOpenForkTurn,
   onOpenSession,
   onPromptChange,
   onResolveApproval,
   onSubmitAnswer,
   onSubmitPrompt,
   stream,
-}: Omit<SessionInspectorProps, "error" | "loadState" | "queue">) {
+}: Omit<SessionInspectorProps, "error" | "loadState" | "queue"> & {
+  forkDialogRequest: ForkDialogRequest | null;
+  onClearForkDialogRequest: () => void;
+  onOpenForkTurn: (turnId: string | null) => void;
+}) {
   const actionPane = (
     <OperatorActionPane
       action={action ?? idleAction}
       data={data}
       drafts={drafts ?? emptyDrafts}
+      forkDialogRequest={forkDialogRequest}
+      onClearForkDialogRequest={onClearForkDialogRequest}
       onAnswerTextChange={onAnswerTextChange}
       onFork={onFork}
       onForkLabelChange={onForkLabelChange}
@@ -173,7 +194,7 @@ function InspectorTabContent({
     case "transcript":
       return <TabPanel>{<TranscriptPane data={data} />}</TabPanel>;
     case "timeline":
-      return <TabPanel>{<TimelinePane data={data} />}</TabPanel>;
+      return <TabPanel>{<TimelinePane data={data} onOpenForkTurn={onOpenForkTurn} />}</TabPanel>;
     case "actions":
       return <TabPanel>{actionPane}</TabPanel>;
     case "lineage":

@@ -31,7 +31,9 @@ export function OperatorActionPane({
   action,
   data,
   drafts,
+  forkDialogRequest,
   onAnswerTextChange,
+  onClearForkDialogRequest,
   onFork,
   onForkLabelChange,
   onPromptChange,
@@ -43,7 +45,9 @@ export function OperatorActionPane({
   action: ActionStatus;
   data: DashboardState;
   drafts: DraftState;
+  forkDialogRequest?: { requestId: number; turnId: string | null } | null;
   onAnswerTextChange?: (questionId: string, text: string) => void;
+  onClearForkDialogRequest?: () => void;
   onFork?: (input?: { branchLabel?: string | null; turnId?: string | null }) => void;
   onForkLabelChange?: (text: string) => void;
   onPromptChange?: (text: string) => void;
@@ -161,6 +165,8 @@ export function OperatorActionPane({
           data={data}
           drafts={drafts}
           action={action}
+          forkDialogRequest={forkDialogRequest ?? null}
+          onClearForkDialogRequest={onClearForkDialogRequest}
           onFork={onFork}
           onForkLabelChange={onForkLabelChange}
           pending={pending}
@@ -261,6 +267,8 @@ function ForkDialog({
   action,
   data,
   drafts,
+  forkDialogRequest,
+  onClearForkDialogRequest,
   onFork,
   onForkLabelChange,
   pending,
@@ -269,21 +277,43 @@ function ForkDialog({
   action: ActionStatus;
   data: DashboardState;
   drafts: DraftState;
+  forkDialogRequest: { requestId: number; turnId: string | null } | null;
+  onClearForkDialogRequest?: () => void;
   onFork?: (input?: { branchLabel?: string | null; turnId?: string | null }) => void;
   onForkLabelChange?: (text: string) => void;
   pending: boolean;
   stream: SessionStreamState;
 }) {
   const [open, setOpen] = useState(false);
+  const [selectedTurnId, setSelectedTurnId] = useState<string | null>(null);
   const blocked = pending || !data.canFork || isBlockedByNonRetryableFailure(action, "fork");
+  const effectiveSelectedTurnId = selectedTurnId ?? forkDialogRequest?.turnId ?? null;
+  const selectedTurn = data.branchableTurns.find(
+    (turn) => turn.turn_id === effectiveSelectedTurnId,
+  );
+
+  function closeDialog() {
+    setOpen(false);
+    setSelectedTurnId(null);
+    onClearForkDialogRequest?.();
+  }
 
   function forkFrom(turnId?: string | null) {
     onFork?.({ branchLabel: drafts.forkLabel || null, turnId: turnId ?? null });
-    setOpen(false);
+    closeDialog();
   }
 
   return (
-    <Dialog onOpenChange={setOpen} open={open}>
+    <Dialog
+      onOpenChange={(nextOpen) => {
+        if (nextOpen) {
+          setOpen(true);
+          return;
+        }
+        closeDialog();
+      }}
+      open={open || forkDialogRequest !== null}
+    >
       <div className="space-y-3 rounded-md border bg-card p-3">
         <SectionHeader
           detail={
@@ -321,17 +351,39 @@ function ForkDialog({
           </div>
           <div className="grid gap-2">
             {data.branchableTurns.length > 0 ? (
-              data.branchableTurns.map((turn) => (
+              <>
+                <div className="rounded-md border bg-background p-3 text-sm">
+                  <Badge variant={selectedTurn === undefined ? "outline" : "info"}>
+                    Selected fork point
+                  </Badge>
+                  <p className="mt-2 text-muted-foreground">
+                    {selectedTurn === undefined
+                      ? "Select a persisted turn before forking."
+                      : `${selectedTurn.label} · sequence ${selectedTurn.sequence}`}
+                  </p>
+                </div>
                 <Button
-                  disabled={pending}
-                  key={turn.turn_id}
-                  onClick={() => forkFrom(turn.turn_id)}
+                  disabled={blocked || selectedTurn === undefined}
+                  onClick={() => forkFrom(effectiveSelectedTurnId)}
                   type="button"
-                  variant="outline"
                 >
-                  Fork {turn.label}
+                  Fork selected point
                 </Button>
-              ))
+                {data.branchableTurns.map((turn) => (
+                  <Button
+                    aria-pressed={effectiveSelectedTurnId === turn.turn_id}
+                    disabled={pending}
+                    key={turn.turn_id}
+                    onClick={() => {
+                      setSelectedTurnId(turn.turn_id);
+                    }}
+                    type="button"
+                    variant={effectiveSelectedTurnId === turn.turn_id ? "secondary" : "outline"}
+                  >
+                    Select {turn.label}
+                  </Button>
+                ))}
+              </>
             ) : (
               <Button
                 disabled={blocked}
@@ -349,7 +401,7 @@ function ForkDialog({
           <InlineActionFeedback action={action} data={data} kind="fork" stream={stream} />
         </div>
         <DialogFooter>
-          <Button onClick={() => setOpen(false)} type="button" variant="ghost">
+          <Button onClick={closeDialog} type="button" variant="ghost">
             Cancel
           </Button>
         </DialogFooter>
