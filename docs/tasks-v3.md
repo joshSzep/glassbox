@@ -175,7 +175,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-401: Define Frontend UX Principles And Console Information Architecture For The SPA
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-400`, `GBX-320`
 - Goal: translate the v2 operator-console model into SPA-specific UX principles, layout rules, and interaction expectations
 - Deliverables:

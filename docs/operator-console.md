@@ -6,8 +6,9 @@ current dashboard usage, see [dashboard.md](./dashboard.md).
 ## Purpose
 
 This note defines the v2 multi-session operator console model for Glassbox. It
-is the design contract for `GBX-320` and the dependency baseline for `GBX-321`
-and `GBX-322`.
+is the design contract for `GBX-320`, the dependency baseline for `GBX-321` and
+`GBX-322`, and the product UX baseline for the v3 Next.js SPA migration in
+[tasks-v3.md](./tasks-v3.md).
 
 The console should evolve the existing dashboard from a recent-session browser
 plus one-session deep link into a workspace operations surface. It should help
@@ -54,6 +55,180 @@ The v2 console should follow these rules:
 - live runtime state and historical inspectability must be visibly distinct
 - degraded projections are an operational health condition, not session data
   loss
+
+## V3 SPA UX Contract
+
+The v3 SPA should translate the existing operator-console model into a faster,
+more legible work surface. It should feel like an operations console for local
+agent sessions, not a landing page, documentation site, or generic admin theme.
+Opening `/app` during migration should put the operator directly into the
+workspace overview and action queues, with selected-session inspection one
+click or one deep link away.
+
+The SPA should optimize for four operator behaviors:
+
+- scanning many sessions quickly enough to spot the next required intervention
+- distinguishing live, reconnecting, historical, failed, and degraded states
+  without reading implementation detail
+- acting on prompts, questions, approvals, denials, and forks with clear
+  feedback and no hidden local authority
+- moving between overview, queue, session, lineage, compare, and drift evidence
+  without losing the selected session or mental model
+
+Use Tailwind and shadcn-style primitives to make these flows consistent: tabs
+for queues and inspector panes, tables or dense lists for session rows, badges
+for status and health, dialogs or sheets for focused actions, tooltips for icon
+controls, toasts or inline status for action feedback, and command/menu patterns
+only where they shorten frequent operator workflows.
+
+### V3 Surface Brief
+
+The SPA should organize the console around these first-class surfaces.
+
+Workspace overview:
+
+- default first screen for `/app`, never a marketing hero or explanatory splash
+- shows runtime-owner state, projection-health totals, queue counts, and recent
+  prioritized sessions from `GET /sessions/aggregate`
+- highlights the highest-priority next action and the most degraded health
+  condition without hiding lower-priority queues
+- keeps health and queue summaries clickable so operators can move directly to
+  filtered work
+
+Action queues:
+
+- queue tabs cover approvals, questions, failures, degraded sessions, active
+  work, historical sessions, and all sessions where useful
+- rows show session ID, status, branch label or lineage hint, updated time,
+  next-action summary, projection health, and pending approval/question subject
+- row ordering follows server priority first and local UI filtering second
+- empty states should be compact and operational, confirming there is no current
+  work in that queue rather than explaining the product
+
+Session inspector:
+
+- selected-session header shows status, live stream state, projection health,
+  model, workspace, branch label or lineage hint, and next action
+- transcript remains the central narrative surface for what happened and what is
+  happening now
+- timeline summarizes turns, model calls, tool calls, suspensions, failures,
+  metrics, and forkable boundaries from snapshot and event data
+- inspector panes expose current turn, active tools, live output, runtime
+  context, working set, approvals, questions, event log, and metrics without
+  forcing raw event inspection as the first stop
+
+Runtime health:
+
+- live stream state, runtime ownership, and projection health stay visually
+  separate because they describe different failure modes
+- degraded projection states should include concise repair direction aligned
+  with CLI language, such as checking daemon status or projection health
+- a historical snapshot should look inspectable, not broken, when live streaming
+  is no longer expected
+
+Approvals and questions:
+
+- pending approvals and `ask_user` questions are action surfaces, not generic
+  messages buried in the transcript
+- approve, deny, and answer controls stay close to the subject, policy reason,
+  and current session state needed to decide safely
+- submitted, resolved, conflicted, validation-error, and network-error states
+  must be visible and reversible only when the backend actually permits retry
+
+Lineage and compare:
+
+- lineage navigation should show parent, child, and sibling relationships from
+  persisted snapshot fields, not transcript similarity
+- compare target selection should favor parent and child snapshots first, with
+  a clear way back to the selected session
+- compare views should show status, branch metadata, transcript differences,
+  runtime context, working-set differences, and turn-summary differences where
+  available while preserving access to raw transcript and event evidence
+
+Drift and verification cues:
+
+- replay, eval, context-drift, working-set provenance, and artifact-backed cues
+  are advisory evidence surfaces, not runtime-health failures by themselves
+- the SPA should summarize likely causes and safe artifact references already
+  exposed by snapshots/runtime context, while leaving deterministic replay and
+  eval execution to the CLI/backend workflows
+- missing artifacts or unsupported historical sessions should be clear neutral
+  states rather than visually conflated with session failure
+
+### Responsive Layout Contract
+
+Desktop widths should favor simultaneous scanning and inspection. Use a stable
+multi-column layout with a workspace/queue column, a selected-session narrative
+area, and a diagnostics/action area when space allows. Queue rows, status chips,
+and action controls should have fixed or constrained dimensions so live updates
+do not cause distracting layout shifts.
+
+Narrow desktop widths should keep two primary regions visible: queue/navigation
+and selected-session inspection. Secondary diagnostics can move behind tabs,
+collapsible panes, or a sheet, but the transcript, next action, live state, and
+pending intervention surfaces remain directly reachable.
+
+Tablet widths should use stacked regions with persistent top-level navigation:
+overview or queues first, selected-session header next, then transcript/timeline
+and inspector tabs. Approvals, questions, and composer actions should remain
+near the selected-session header or in a predictable action area rather than
+falling below long diagnostic panes.
+
+Mobile widths should become a single-column console. The default view shows the
+workspace overview and queue list; selecting a session moves into a focused
+inspector with a clear return path to queues. Transcript, timeline, actions,
+lineage, compare, and diagnostics should be reachable through tabs or sheets.
+No operator action should require horizontal scrolling or guessing where state
+changed after a live update.
+
+### Accessibility And Keyboard Contract
+
+Every high-frequency operator workflow should be reachable without a pointer:
+queue selection, session-row opening, inspector tab changes, transcript/timeline
+navigation, composer submit, answer submit, approval approve/deny, fork dialog
+open/confirm, lineage target selection, compare target selection, and returning
+from a selected session to queues.
+
+Expected interaction rules:
+
+- focus states are visible on all interactive controls and survive live rerenders
+- tab order follows the visual workflow: overview, queues, selected-session
+  header, primary narrative, actions, then diagnostics
+- queue tabs and inspector tabs use standard keyboard behavior for tablists
+- dialogs and sheets trap focus, restore focus on close, and expose semantic
+  labels for destructive or irreversible actions
+- submit controls should expose pending/disabled states without removing the
+  operator's place in the flow
+- status chips and health badges must not rely on color alone; text or accessible
+  names carry the state
+- reduced-motion preferences should suppress nonessential transitions while
+  preserving live-state feedback
+- live updates should announce important state changes politely when the browser
+  accessibility stack supports it, especially new approvals, questions, failures,
+  and stream-state changes
+
+Keyboard shortcuts, if added, should be discoverable through menus or tooltips
+and should never be the only way to perform an action.
+
+### Visual Density And Copy
+
+The SPA should be quiet, dense, and work-focused. Use compact typography,
+stable row heights, restrained status color, and clear grouping over decorative
+cards or oversized hero sections. Cards are appropriate for repeated session
+items, dialogs, and focused tools; page sections should read as an application
+workspace rather than nested promotional panels.
+
+Copy should help the operator choose the next action. Avoid in-app text that
+explains that Glassbox is event-sourced, powered by Next.js, using SSE, or built
+from generated types. Those are implementation facts for docs and debugging, not
+primary UI content. In the UI, prefer operator language such as `live`,
+`reconnecting`, `historical snapshot`, `awaiting approval`, `awaiting answer`,
+`projection degraded`, `fork available`, and `compare with parent`.
+
+The visual hierarchy should put active interventions before passive diagnostics:
+pending approvals/questions and failed/degraded states outrank raw event logs,
+metric tables, and historical artifact detail. Raw evidence must remain
+available, but it should not crowd out the immediate operator decision.
 
 ## Information Architecture
 
@@ -241,3 +416,19 @@ current product behavior:
   the existing SSE lifecycle
 - daemon health and runtime ownership remain separate from canonical session
   truth
+
+For the v3 SPA UX, validate the layout, interaction model, and copy against a
+representative set of sessions before treating the design foundation as ready:
+
+- a live running session with active model or tool output
+- a historical completed session with no expected live stream
+- a failed session with retryability and failure summary visible
+- a session awaiting approval with approve and deny actions available
+- a session awaiting an `ask_user` answer
+- a branched session with parent, child, fork point, and compare target evidence
+- a projection-degraded session where canonical event history remains readable
+- a snapshot carrying replay, eval, or context-drift artifact cues
+
+For each case, check desktop, narrow desktop, tablet, and mobile layouts; pointer
+and keyboard navigation; visible focus; action pending/error states; and whether
+the first visible copy helps the operator decide what to inspect or do next.

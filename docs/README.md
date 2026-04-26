@@ -14,7 +14,7 @@ Use this page to jump to the right level of detail.
 - [tasks-v3.md](./tasks-v3.md): plan the Next.js, TypeScript, Tailwind, Zustand, shadcn, and OpenAPI-driven SPA migration for the dashboard
 - [interactive-workflows.md](./interactive-workflows.md): work through `chat`, `attach`, `message`, `answer`, `approve`, `deny`, `resume`, and `status`
 - [dashboard.md](./dashboard.md): use the co-hosted dashboard from `chat` or the standalone dashboard from `serve`
-- [operator-console.md](./operator-console.md): understand the v2 multi-session console model, action queues, runtime-health semantics, and backend/frontend contracts
+- [operator-console.md](./operator-console.md): understand the v2 multi-session console model, v3 SPA UX contract, action queues, runtime-health semantics, and backend/frontend contracts
 - [persistent-runtime.md](./persistent-runtime.md): run a workspace daemon, inspect runtime health, attach from another terminal, and recover stale ownership
 - [team-workflows.md](./team-workflows.md): understand v2 session ownership, operator identity, and local-first handoff semantics
 - [workspace-profiles.md](./workspace-profiles.md): declare repository-owned defaults for model selection, approval posture, and eval profile routing
@@ -26,7 +26,7 @@ Use this page to jump to the right level of detail.
 - [replay-evals.md](./replay-evals.md): replay historical sessions, export bundles, run eval suites, and work through local-first regression gates
 - [runtime-context.md](./runtime-context.md): inspect repository context, runtime notes, working-set context, and artifact-backed summaries
 - [persistent-runtime.md](./persistent-runtime.md): operate the daemon-backed workspace runtime and troubleshoot attach or health states
-- [operator-console.md](./operator-console.md): plan and reason about the v2 multi-session console, action queues, and runtime-health semantics
+- [operator-console.md](./operator-console.md): plan and reason about the v2 multi-session console, v3 SPA UX, action queues, and runtime-health semantics
 - [team-workflows.md](./team-workflows.md): plan team-oriented session custody, intervention attribution, and handoff without assuming a remote multi-user platform
 - [providers.md](./providers.md): configure OpenAI or Anthropic credentials for real provider execution
 - [workspace-profiles.md](./workspace-profiles.md): configure reviewable repository defaults without storing runtime secrets
@@ -37,7 +37,7 @@ Use this page to jump to the right level of detail.
 - [architecture.md](./architecture.md): current runtime, bootstrap, store, CLI, web, replay, and eval ownership boundaries on top of the event-sourced system design
 - [database.md](./database.md): SQLite event store, projection tables, artifact storage, branching lineage fields, and the split store implementation map
 - [dashboard-frontend-boundaries.md](./dashboard-frontend-boundaries.md): legacy reducer, renderer, transport, and DOM-binding boundaries for the no-framework dashboard, plus the v3 SPA supersession notice
-- [operator-console.md](./operator-console.md): v2 operator-console information architecture and queue/health semantics for multi-session inspection
+- [operator-console.md](./operator-console.md): v2 operator-console information architecture, v3 SPA UX contract, and queue/health semantics for multi-session inspection
 - [tasks-v3.md](./tasks-v3.md): concrete v3 task graph for replacing the hand-rolled dashboard with a statically served Next.js SPA
 - [team-workflows.md](./team-workflows.md): v2 ownership, identity, and handoff contract for portable team workflows
 - [v2-release-candidate.md](./v2-release-candidate.md): release-candidate readiness checklist and supported operating-model summary
