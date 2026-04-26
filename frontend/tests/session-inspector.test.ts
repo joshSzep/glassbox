@@ -25,7 +25,87 @@ const stream = {
 };
 
 describe("session inspector", () => {
-  it("renders selected-session header, transcript, actions, runtime, metrics, and evidence", () => {
+  it("renders overview with urgent actions while hiding inactive diagnostic panes", () => {
+    const data = makeRichSessionData("overview");
+
+    const markup = renderToStaticMarkup(
+      React.createElement(SessionInspector, {
+        activeTab: "overview",
+        data,
+        error: null,
+        loadState: "loaded",
+        queue: "active",
+        stream,
+      }),
+    );
+
+    expect(markup).toContain("Continue session");
+    expect(markup).toContain("Answer pending question");
+    expect(markup).toContain("Approve");
+    expect(markup).toContain("Deny");
+    expect(markup).toContain("Create fork");
+    expect(markup).toContain("Transcript");
+    expect(markup).toContain("session-1");
+    expect(markup).toContain("projection stale");
+    expect(markup).toContain("I will inspect the console.");
+    expect(markup).not.toContain("Runtime context");
+    expect(markup).not.toContain("Event evidence");
+    expect(markup).not.toContain("Verification cues");
+    expect(markup).not.toContain("Open compared");
+  });
+
+  it("renders only the active inspector tab content", () => {
+    const data = makeRichSessionData("tabs");
+
+    const runtimeMarkup = renderInspectorTab(data, "runtime");
+    expect(runtimeMarkup).toContain("Runtime context");
+    expect(runtimeMarkup).toContain("frontend/app/page.tsx");
+    expect(runtimeMarkup).not.toContain("Continue session");
+    expect(runtimeMarkup).not.toContain("Inspect the console");
+
+    const compareMarkup = renderInspectorTab(data, "compare");
+    expect(compareMarkup).toContain("Compare");
+    expect(compareMarkup).toContain("Open compared");
+    expect(compareMarkup).toContain("parent-1");
+    expect(compareMarkup).not.toContain("frontend/app/page.tsx");
+
+    const evidenceMarkup = renderInspectorTab(data, "evidence");
+    expect(evidenceMarkup).toContain("Verification cues");
+    expect(evidenceMarkup).toContain("Event evidence");
+    expect(evidenceMarkup).toContain("pytest passed");
+
+    const metricsMarkup = renderInspectorTab(data, "metrics");
+    expect(metricsMarkup).toContain("Metrics");
+    expect(metricsMarkup).toContain("6.5s");
+    expect(metricsMarkup).not.toContain("Continue session");
+  });
+
+  it("preserves direct links for inspector tabs", () => {
+    const data = makeRichSessionData("links");
+    const markup = renderInspectorTab(data, "lineage");
+
+    expect(markup).toContain("/app/sessions/session-1?queue=active&amp;compare=parent-1");
+    expect(markup).toContain("tab=transcript");
+    expect(markup).toContain("tab=lineage");
+    expect(markup).toContain("tab=evidence");
+    expect(markup).toContain("tab=events");
+  });
+
+  it("renders lineage and transcript as scoped tab content", () => {
+    const data = makeRichSessionData("scoped");
+
+    const lineageMarkup = renderInspectorTab(data, "lineage");
+    expect(lineageMarkup).toContain("Lineage and turns");
+    expect(lineageMarkup).toContain("Parent parent-1");
+    expect(lineageMarkup).not.toContain("Continue session");
+
+    const transcriptMarkup = renderInspectorTab(data, "transcript");
+    expect(transcriptMarkup).toContain("Transcript");
+    expect(transcriptMarkup).toContain("Inspect the console");
+    expect(transcriptMarkup).not.toContain("Lineage and turns");
+  });
+
+  function makeRichSessionData(suffix: string) {
     const selected = hydrateSelectedSession(
       createDashboardState(),
       makeSessionSnapshot("session-1", {
@@ -129,7 +209,7 @@ describe("session inspector", () => {
         ],
       }),
     );
-    const data = {
+    return {
       ...hydrateCompareSession(
         selected,
         makeSessionSnapshot("parent-1", {
@@ -149,11 +229,17 @@ describe("session inspector", () => {
       liveOutput: [
         { chunk: "pytest passed", stream: "stdout", tool_call_id: "tool-1", turn_id: "turn-1" },
       ],
+      selectedSessionId: "session-1",
     };
+  }
 
-    const markup = renderToStaticMarkup(
+  function renderInspectorTab(
+    data: ReturnType<typeof makeRichSessionData>,
+    activeTab: Parameters<typeof SessionInspector>[0]["activeTab"],
+  ) {
+    return renderToStaticMarkup(
       React.createElement(SessionInspector, {
-        activeTab: "overview",
+        activeTab,
         data,
         error: null,
         loadState: "loaded",
@@ -161,29 +247,7 @@ describe("session inspector", () => {
         stream,
       }),
     );
-
-    expect(markup).toContain("Continue session");
-    expect(markup).toContain("Answer pending question");
-    expect(markup).toContain("Approve");
-    expect(markup).toContain("Deny");
-    expect(markup).toContain("Create fork");
-    expect(markup).toContain("Parent parent-1");
-    expect(markup).toContain("Compare");
-    expect(markup).toContain("Open compared");
-    expect(markup).toContain("parent-1");
-    expect(markup).toContain("Transcript");
-    expect(markup).toContain("1 compared");
-    expect(markup).toContain("session-1");
-    expect(markup).toContain("projection stale");
-    expect(markup).toContain("I will inspect the console.");
-    expect(markup).toContain("Run pytest for the frontend shell");
-    expect(markup).toContain("Which branch should be inspected?");
-    expect(markup).toContain("frontend/app/page.tsx");
-    expect(markup).toContain("Verification cues");
-    expect(markup).toContain("6.5s");
-    expect(markup).toContain("pytest passed");
-    expect(markup).toContain("ToolExecutionStarted");
-  });
+  }
 
   it("renders loading and failed selected-session states", () => {
     const loading = { ...createDashboardState(), selectedSessionId: "session-1" };

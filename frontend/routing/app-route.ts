@@ -16,10 +16,12 @@ export const inspectorTabs = [
   "transcript",
   "timeline",
   "actions",
+  "lineage",
+  "compare",
   "runtime",
+  "evidence",
   "metrics",
   "events",
-  "compare",
 ] as const;
 
 export type InspectorTab = (typeof inspectorTabs)[number];

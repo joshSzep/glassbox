@@ -28,11 +28,11 @@ describe("app route parsing", () => {
   });
 
   it("parses canonical session, compare, and inspector links", () => {
-    expect(parseAppRoute("/app/sessions/session%2F1?compare=parent-1&tab=runtime")).toEqual({
+    expect(parseAppRoute("/app/sessions/session%2F1?compare=parent-1&tab=evidence")).toEqual({
       compareSessionId: "parent-1",
       queue: "all",
       selectedSessionId: "session/1",
-      tab: "runtime",
+      tab: "evidence",
     });
   });
 
@@ -94,13 +94,13 @@ describe("app navigation helpers", () => {
     const queued = selectQueueRoute(route, "active");
     const selected = selectSessionRoute(queued, "session-1");
     const compared = setCompareRoute(selected, "parent-1");
-    const tabbed = setInspectorTabRoute(compared, "events");
+    const tabbed = setInspectorTabRoute(compared, "lineage");
     const lineage = openLineageTargetRoute(tabbed, "child-1");
 
     expect(queued).toMatchObject({ queue: "active", selectedSessionId: null });
     expect(selected).toMatchObject({ queue: "active", selectedSessionId: "session-1" });
     expect(compared).toMatchObject({ compareSessionId: "parent-1", tab: "compare" });
-    expect(tabbed).toMatchObject({ compareSessionId: "parent-1", tab: "events" });
+    expect(tabbed).toMatchObject({ compareSessionId: "parent-1", tab: "lineage" });
     expect(lineage).toMatchObject({
       compareSessionId: null,
       queue: "active",

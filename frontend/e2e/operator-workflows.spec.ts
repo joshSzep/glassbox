@@ -142,3 +142,16 @@ test("console frame loads from app, queue, and selected-session routes", async (
     await expect(page.getByLabel("Console frame")).toBeVisible();
   }
 });
+
+test("operator can open selected-session tabs from direct URLs", async ({ page }) => {
+  await installGlassboxApiFixture(page, "compare-view");
+
+  await page.goto(`/app/sessions/${sessionId}?queue=active&tab=runtime`);
+  await expect(page.getByRole("heading", { name: sessionId })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Runtime context" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Transcript" })).not.toBeVisible();
+
+  await page.goto(`/app/sessions/${sessionId}?queue=active&compare=parent-session&tab=compare`);
+  await expect(page.getByRole("heading", { name: "Compare" })).toBeVisible();
+  await expect(page.getByText("parent-session")).toBeVisible();
+});

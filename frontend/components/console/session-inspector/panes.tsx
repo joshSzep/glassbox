@@ -1,6 +1,7 @@
 import {
   Activity,
   GitBranch,
+  History,
   ListChecks,
   MessageSquareText,
   ScrollText,
@@ -241,6 +242,49 @@ export function ActionSummaryPane({ data }: { data: DashboardState }) {
         data.activeToolCalls.length === 0 ? (
           <DataListItem>
             <DataListMeta>No active approvals, questions, or tool calls.</DataListMeta>
+          </DataListItem>
+        ) : null}
+      </DataList>
+    </Pane>
+  );
+}
+
+export function TimelinePane({ data }: { data: DashboardState }) {
+  return (
+    <Pane icon={History} title="Timeline">
+      <DataList density="compact">
+        {data.currentTurn !== null ? (
+          <DataListItem>
+            <DataListLabel>Current turn {data.currentTurn.turn_id}</DataListLabel>
+            <DataListMeta>{data.currentTurn.status}</DataListMeta>
+          </DataListItem>
+        ) : null}
+        {data.activeToolCalls.map((tool) => (
+          <DataListItem key={tool.tool_call_id}>
+            <DataListLabel>{tool.tool_name}</DataListLabel>
+            <DataListMeta>{tool.summary ?? tool.status}</DataListMeta>
+          </DataListItem>
+        ))}
+        {data.branchableTurns.map((turn) => (
+          <DataListItem key={turn.turn_id}>
+            <DataListLabel>{turn.label}</DataListLabel>
+            <DataListMeta>
+              sequence {turn.sequence} · {formatTime(turn.created_at)}
+            </DataListMeta>
+          </DataListItem>
+        ))}
+        {data.eventLog.slice(-5).map((event) => (
+          <DataListItem key={`${event.event_type}:${event.sequence}`}>
+            <DataListLabel>{event.event_type}</DataListLabel>
+            <DataListMeta>sequence {event.sequence}</DataListMeta>
+          </DataListItem>
+        ))}
+        {data.currentTurn === null &&
+        data.activeToolCalls.length === 0 &&
+        data.branchableTurns.length === 0 &&
+        data.eventLog.length === 0 ? (
+          <DataListItem>
+            <DataListMeta>No timeline events are available.</DataListMeta>
           </DataListItem>
         ) : null}
       </DataList>

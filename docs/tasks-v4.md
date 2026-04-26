@@ -448,7 +448,7 @@ The intended v4 milestone order is:
 
 ### GBX-520: Make Inspector Tabs Gate Actual Content
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-501`, `GBX-502`, `GBX-492`
 - Goal: turn inspector tabs from decorative route state into the primary mechanism for progressive disclosure
 - Deliverables:

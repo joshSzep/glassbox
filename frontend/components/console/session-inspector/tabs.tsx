@@ -7,7 +7,10 @@ const inspectorTabs: { label: string; value: InspectorTab }[] = [
   { label: "Transcript", value: "transcript" },
   { label: "Timeline", value: "timeline" },
   { label: "Actions", value: "actions" },
+  { label: "Lineage", value: "lineage" },
+  { label: "Compare", value: "compare" },
   { label: "Runtime", value: "runtime" },
+  { label: "Evidence", value: "evidence" },
   { label: "Metrics", value: "metrics" },
   { label: "Events", value: "events" },
 ];
