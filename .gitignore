@@ -203,6 +203,7 @@ frontend/coverage/
 frontend/node_modules/
 frontend/out/
 frontend/tsconfig.tsbuildinfo
+src/glassbox/web/static_next/
 
 # PyPI configuration file
 .pypirc

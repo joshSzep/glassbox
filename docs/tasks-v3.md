@@ -225,7 +225,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-411: Add Static Export Output And FastAPI Serving At `/app`
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-410`
 - Goal: serve the built SPA from the existing FastAPI process at `/app` without disturbing the legacy dashboard at `/`
 - Deliverables:

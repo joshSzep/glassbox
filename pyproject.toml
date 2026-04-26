@@ -58,3 +58,11 @@ include = ["src", "tests"]
 [tool.ty.terminal]
 error-on-warning = true
 output-format = "concise"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/glassbox"]
+artifacts = ["src/glassbox/web/static_next/**"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src", "/tests", "/docs", "/README.md", "/LICENSE", "/pyproject.toml"]
+artifacts = ["src/glassbox/web/static_next/**"]

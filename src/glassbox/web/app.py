@@ -7,6 +7,7 @@ from typing import Annotated
 
 from fastapi import Depends
 from fastapi import FastAPI
+from fastapi import HTTPException
 from fastapi import Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -14,6 +15,12 @@ from fastapi.staticfiles import StaticFiles
 from glassbox.runtime.context import RuntimeContext
 
 _STATIC_DIR = Path(__file__).parent / "static"
+_STATIC_NEXT_DIR = Path(__file__).parent / "static_next"
+_SPA_MISSING_DETAIL = (
+    "Glassbox SPA assets have not been built. Run "
+    "`pnpm --dir frontend build` from the repository root to generate "
+    "src/glassbox/web/static_next/."
+)
 
 
 def _get_runtime_context(request: Request) -> RuntimeContext:
@@ -22,6 +29,25 @@ def _get_runtime_context(request: Request) -> RuntimeContext:
 
 
 RuntimeContextDep = Annotated[RuntimeContext, Depends(_get_runtime_context)]
+
+
+def _spa_index_path() -> Path:
+    return _STATIC_NEXT_DIR / "index.html"
+
+
+def _ensure_spa_build_available() -> None:
+    if not _spa_index_path().is_file():
+        raise HTTPException(status_code=503, detail=_SPA_MISSING_DETAIL)
+
+
+def _resolve_spa_file(relative_path: str) -> Path | None:
+    static_root = _STATIC_NEXT_DIR.resolve()
+    candidate = (static_root / relative_path).resolve()
+    if candidate == static_root or static_root not in candidate.parents:
+        return None
+    if not candidate.is_file():
+        return None
+    return candidate
 
 
 def create_app(runtime_context: RuntimeContext) -> FastAPI:
@@ -55,6 +81,29 @@ def create_app(runtime_context: RuntimeContext) -> FastAPI:
     @app.get("/", include_in_schema=False)
     async def dashboard() -> FileResponse:
         return FileResponse(_STATIC_DIR / "dashboard.html", media_type="text/html")
+
+    @app.get("/app", include_in_schema=False)
+    async def spa_root() -> FileResponse:
+        _ensure_spa_build_available()
+        return FileResponse(_spa_index_path(), media_type="text/html")
+
+    @app.get("/app/_next/{asset_path:path}", include_in_schema=False)
+    async def spa_next_asset(asset_path: str) -> FileResponse:
+        _ensure_spa_build_available()
+        asset = _resolve_spa_file(f"_next/{asset_path}")
+        if asset is None:
+            raise HTTPException(status_code=404, detail="SPA asset not found")
+        return FileResponse(asset)
+
+    @app.get("/app/{client_path:path}", include_in_schema=False)
+    async def spa_fallback(client_path: str) -> FileResponse:
+        _ensure_spa_build_available()
+        asset = _resolve_spa_file(client_path)
+        if asset is not None:
+            return FileResponse(asset)
+        if Path(client_path).suffix:
+            raise HTTPException(status_code=404, detail="SPA asset not found")
+        return FileResponse(_spa_index_path(), media_type="text/html")
 
     # Static assets (CSS, JS).
     app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")

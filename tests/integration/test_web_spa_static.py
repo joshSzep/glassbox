@@ -1,0 +1,198 @@
+"""Integration tests for serving the v3 SPA static export."""
+
+import asyncio
+import re
+import sqlite3
+from pathlib import Path
+
+import httpx
+import pytest
+
+import glassbox.web.app as web_app
+from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
+from glassbox.store import initialize_database
+from glassbox.store import open_database
+from glassbox.web import create_app
+
+
+def _open_initialized_db(tmp_path: Path) -> sqlite3.Connection:
+    db_path = tmp_path / "glassbox.sqlite3"
+    connection = open_database(db_path)
+    initialize_database(connection)
+    return connection
+
+
+def _make_app(tmp_path: Path, connection: sqlite3.Connection):
+    runtime_context = _build_runtime_context(connection, tmp_path)
+    return create_app(runtime_context)
+
+
+def _write_spa_build(root: Path) -> None:
+    chunk_dir = root / "_next" / "static" / "chunks"
+    chunk_dir.mkdir(parents=True)
+    (root / "index.html").write_text(
+        "<!doctype html><html><head>"
+        '<script src="/app/_next/static/chunks/app.js"></script>'
+        "</head><body><main>Glassbox Operator Console</main></body></html>",
+        encoding="utf-8",
+    )
+    (chunk_dir / "app.js").write_text("console.log('glassbox spa');", encoding="utf-8")
+
+
+def test_app_route_reports_clear_error_when_spa_build_is_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def scenario() -> None:
+        monkeypatch.setattr(
+            web_app, "_STATIC_NEXT_DIR", tmp_path / "missing-static-next"
+        )
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app = _make_app(tmp_path, connection)
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get("/app")
+
+            assert response.status_code == 503
+            assert "pnpm --dir frontend build" in response.json()["detail"]
+            assert "static_next" in response.json()["detail"]
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_app_route_serves_spa_shell_when_build_exists(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def scenario() -> None:
+        static_next = tmp_path / "static_next"
+        _write_spa_build(static_next)
+        monkeypatch.setattr(web_app, "_STATIC_NEXT_DIR", static_next)
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app = _make_app(tmp_path, connection)
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get("/app")
+
+            assert response.status_code == 200
+            assert "text/html" in response.headers["content-type"]
+            assert "Glassbox Operator Console" in response.text
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_app_nested_client_route_falls_back_to_spa_shell(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def scenario() -> None:
+        static_next = tmp_path / "static_next"
+        _write_spa_build(static_next)
+        monkeypatch.setattr(web_app, "_STATIC_NEXT_DIR", static_next)
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app = _make_app(tmp_path, connection)
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get("/app/sessions/demo-session")
+
+            assert response.status_code == 200
+            assert "Glassbox Operator Console" in response.text
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_app_next_static_asset_is_served(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def scenario() -> None:
+        static_next = tmp_path / "static_next"
+        _write_spa_build(static_next)
+        monkeypatch.setattr(web_app, "_STATIC_NEXT_DIR", static_next)
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app = _make_app(tmp_path, connection)
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get("/app/_next/static/chunks/app.js")
+
+            assert response.status_code == 200
+            assert "javascript" in response.headers["content-type"]
+            assert "glassbox spa" in response.text
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_legacy_dashboard_root_remains_unchanged(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def scenario() -> None:
+        static_next = tmp_path / "static_next"
+        _write_spa_build(static_next)
+        monkeypatch.setattr(web_app, "_STATIC_NEXT_DIR", static_next)
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app = _make_app(tmp_path, connection)
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get("/")
+
+            assert response.status_code == 200
+            assert "/static/dashboard.js" in response.text
+            assert "Glassbox Operator Console" not in response.text
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.skipif(
+    not web_app._spa_index_path().is_file(),  # noqa: SLF001
+    reason="frontend static export has not been built",
+)
+def test_built_spa_export_serves_real_next_asset(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app = _make_app(tmp_path, connection)
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                app_response = await client.get("/app")
+                match = re.search(
+                    r'src="(/app/_next/static/[^"]+\.js)"', app_response.text
+                )
+                assert match is not None
+                asset_response = await client.get(match.group(1))
+
+            assert app_response.status_code == 200
+            assert "text/html" in app_response.headers["content-type"]
+            assert asset_response.status_code == 200
+            assert "javascript" in asset_response.headers["content-type"]
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
