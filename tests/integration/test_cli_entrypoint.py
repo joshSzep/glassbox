@@ -42,6 +42,8 @@ def test_cli_command_tree_prints_command_tree(
     assert "|-- command" in captured.out
     assert "inspect the Glassbox command surface" in captured.out
     assert "|   `-- tree  print the command tree" in captured.out
+    assert "|-- performance" in captured.out
+    assert "inspect larger-session performance expectations" in captured.out
     assert "|-- session" in captured.out
     assert "work with sessions" in captured.out
     assert "|   |-- run" in captured.out
@@ -85,6 +87,21 @@ def test_cli_command_help_lists_tree_subcommand(
     assert exc_info.value.code == 0
     assert "usage: glassbox command" in captured.out
     assert "tree" in captured.out
+
+
+def test_cli_performance_budgets_prints_guidance(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = main(["performance", "budgets"])
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert captured.out.startswith("Glassbox performance budgets")
+    assert "event-stream append: 2000 ms" in captured.out
+    assert "projection rebuild: 2000 ms" in captured.out
+    assert "operator console aggregate: 3000 ms" in captured.out
+    assert "Guidance:" in captured.out
 
 
 def test_python_module_entrypoint_prints_help(

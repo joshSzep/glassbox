@@ -699,7 +699,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-361: Add Performance Budgets For Large Sessions, Rebuilds, And Console Views
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-311`, `GBX-322`, `GBX-360`
 - Goal: keep Glassbox usable as sessions and retained histories grow beyond the scale of early v1 workflows
 - Deliverables:
@@ -710,6 +710,9 @@ Each phase below corresponds to one concrete milestone.
   - optimize the highest-value bottlenecks first rather than prematurely redesigning storage or transport around hypothetical scale
   - preserve correctness and replayability as non-negotiable constraints on optimization work
   - keep budgets repository-owned and testable where possible
+  - implemented repository-owned performance budgets for event append, projection rebuild, session-index reads, and operator-console aggregates
+  - added `glassbox performance budgets` so operators can see the current limits and mitigation guidance without reading test code
+  - added integration performance-regression coverage for representative larger-session fixtures
 - Tests and validation included in task:
   - benchmark or performance-regression coverage for representative large-session scenarios
   - regression tests proving optimizations do not break replay, projections, or operator-visible summaries

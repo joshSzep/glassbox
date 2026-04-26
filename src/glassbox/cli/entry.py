@@ -64,6 +64,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
         "eval": _eval_command,
         "artifacts": _artifacts_command,
         "backup": _backup_command,
+        "performance": _performance_command,
         "projection": _projection_command,
         "dashboard": _dashboard_command,
         "daemon": _daemon_command,
@@ -80,6 +81,16 @@ def _command_command(args: argparse.Namespace) -> int:
         print(format_command_tree(build_parser(), color_theme=_argparse_color_theme()))
         return 0
     raise ValueError(f"unsupported command subcommand: {command_command}")
+
+
+def _performance_command(args: argparse.Namespace) -> int:
+    from glassbox.runtime.performance_budgets import format_performance_budgets
+
+    performance_command = getattr(args, "performance_command", None)
+    if performance_command == "budgets":
+        print(format_performance_budgets())
+        return 0
+    raise ValueError(f"unsupported performance subcommand: {performance_command}")
 
 
 def _argparse_color_theme() -> CommandTreeColorTheme | None:

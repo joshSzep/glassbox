@@ -1506,6 +1506,7 @@ The CLI should expose two complementary layers:
 
 ```text
 glassbox command tree
+glassbox performance budgets
 glassbox session run [PROMPT]
 glassbox session fork SESSION_ID [--turn TURN_ID] [--branch-label LABEL] [--prompt PROMPT]
 glassbox session message SESSION_ID PROMPT
@@ -1518,6 +1519,11 @@ glassbox projection check [SESSION_ID | --all]
 glassbox projection rebuild [SESSION_ID | --all]
 glassbox dashboard serve
 ```
+
+`glassbox performance budgets` prints the repository-owned larger-session
+budgets used by integration coverage, including mitigation guidance for event
+append, projection rebuild, session-index, and operator-console aggregate
+regressions.
 
 `glassbox session status` should read persisted projections and summarize the current turn,
 pending approvals, recent tool activity, and recent turn metrics without replaying

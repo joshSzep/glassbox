@@ -926,6 +926,25 @@ def _add_eval_parsers(
 def _add_operations_parsers(
     subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
 ) -> None:
+    performance_parser = subparsers.add_parser(
+        "performance",
+        help="inspect larger-session performance expectations",
+        description="Inspect repository-owned larger-session performance budgets.",
+    )
+    performance_subparsers = performance_parser.add_subparsers(
+        dest="performance_command",
+        required=True,
+    )
+
+    performance_subparsers.add_parser(
+        "budgets",
+        help="print performance budgets and mitigation guidance",
+        description=(
+            "Print explicit performance budgets and operator mitigation guidance "
+            "for larger local workspaces."
+        ),
+    )
+
     projection_parser = subparsers.add_parser(
         "projection",
         help="inspect or rebuild derived projections",
