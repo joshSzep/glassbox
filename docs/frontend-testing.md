@@ -16,6 +16,29 @@ pnpm --dir frontend test:e2e
 
 Playwright launches the Next dev server with the `/app` base path and uses deterministic route fixtures instead of live provider calls. Failure screenshots, videos, and traces are retained under `frontend/test-results/`; passing runs do not create retained artifacts.
 
+## Validation Gates
+
+Frontend files trigger scoped pre-commit hooks for Prettier, ESLint, TypeScript, Vitest, static export build validation, and Playwright. These hooks run through `pnpm --dir frontend ...` and do not run for Python-only commits unless the hook is invoked over all files.
+
+Run frontend-only validation while working on the SPA:
+
+```sh
+pnpm --dir frontend format:check
+pnpm --dir frontend lint
+pnpm --dir frontend typecheck
+pnpm --dir frontend test
+pnpm --dir frontend exec next build
+pnpm --dir frontend test:e2e
+```
+
+Run full-repo validation before cross-boundary changes land:
+
+```sh
+uv run pre-commit run --all-files
+```
+
+Full-repo validation keeps deterministic replay/eval gates separate from frontend checks while still running both families in the normal push workflow. GitHub Actions installs pnpm dependencies and Playwright Chromium before running pre-commit, then uploads `frontend/test-results/` on browser-test failures.
+
 ## Test Layers
 
 - Reducer tests should exercise pure state transitions in `frontend/state/` without rendering React.

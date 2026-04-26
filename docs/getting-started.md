@@ -6,6 +6,7 @@ Glassbox is a local-first CLI agent harness with a live dashboard. It is built a
 
 - Python 3.14
 - [uv](https://docs.astral.sh/uv/)
+- Node.js 24 and pnpm through Corepack for v3 SPA development and validation
 
 ## Install The Project
 
@@ -13,6 +14,8 @@ From the repository root:
 
 ```bash
 uv sync
+corepack enable
+pnpm --dir frontend install --frozen-lockfile
 uv run pre-commit install
 ```
 
@@ -122,6 +125,19 @@ uv run ty check
 uv run pytest
 uv run pre-commit run --all-files
 ```
+
+Frontend-only validation:
+
+```bash
+pnpm --dir frontend format:check
+pnpm --dir frontend lint
+pnpm --dir frontend typecheck
+pnpm --dir frontend test
+pnpm --dir frontend exec next build
+pnpm --dir frontend test:e2e
+```
+
+Use the frontend-only checks when your change is limited to the SPA, generated frontend API types, or frontend documentation. Use `uv run pre-commit run --all-files` before pushing cross-cutting changes or when backend contracts, generated OpenAPI output, replay/eval behavior, or the production static export path may be affected.
 
 During incremental work, prefer narrower checks for the slice you touched. Examples:
 

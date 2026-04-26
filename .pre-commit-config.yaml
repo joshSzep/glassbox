@@ -45,3 +45,45 @@ repos:
         language: unsupported
         always_run: true
         pass_filenames: false
+
+      - id: frontend-format-check
+        name: frontend format check
+        entry: pnpm --dir frontend format:check
+        language: unsupported
+        pass_filenames: false
+        files: ^frontend/
+
+      - id: frontend-lint
+        name: frontend lint
+        entry: pnpm --dir frontend lint
+        language: unsupported
+        pass_filenames: false
+        files: ^frontend/
+
+      - id: frontend-typecheck
+        name: frontend typecheck
+        entry: pnpm --dir frontend typecheck
+        language: unsupported
+        pass_filenames: false
+        files: ^frontend/
+
+      - id: frontend-test
+        name: frontend unit and component tests
+        entry: pnpm --dir frontend test
+        language: unsupported
+        pass_filenames: false
+        files: ^frontend/
+
+      - id: frontend-build
+        name: frontend static export check
+        entry: pnpm --dir frontend exec next build
+        language: unsupported
+        pass_filenames: false
+        files: ^frontend/
+
+      - id: frontend-e2e
+        name: frontend playwright workflows
+        entry: pnpm --dir frontend test:e2e
+        language: unsupported
+        pass_filenames: false
+        files: ^frontend/

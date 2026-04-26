@@ -580,7 +580,7 @@ The intended frontend SPA milestone order is:
 
 ### GBX-462: Integrate Frontend Checks Into Local And Push-Time Validation
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-410`, `GBX-460`
 - Goal: make the frontend quality gates part of the normal repository workflow
 - Deliverables:
