@@ -120,6 +120,8 @@ describe("session inspector", () => {
 
     const runtimeMarkup = renderInspectorTab(data, "runtime");
     expect(runtimeMarkup).toContain("Runtime context");
+    expect(runtimeMarkup).toContain('role="tabpanel"');
+    expect(runtimeMarkup).toContain('aria-label="Runtime tab panel"');
     expect(runtimeMarkup).toContain("Working set");
     expect(runtimeMarkup).toContain("Runtime notes");
     expect(runtimeMarkup).toContain("Artifact provenance");
@@ -166,6 +168,8 @@ describe("session inspector", () => {
     expect(markup).toContain("tab=lineage");
     expect(markup).toContain("tab=evidence");
     expect(markup).toContain("tab=events");
+    expect(markup).toContain('aria-label="Browser stream live"');
+    expect(markup).toContain('role="status"');
   });
 
   it("renders lineage and transcript as scoped tab content", () => {

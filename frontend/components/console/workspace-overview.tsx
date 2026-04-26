@@ -258,6 +258,7 @@ function WorkspaceStatusRail({
     <header
       className="rounded-lg border border-border/80 bg-card px-4 py-3 text-card-foreground shadow-sm"
       aria-label="Workspace status rail"
+      aria-live="polite"
     >
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">

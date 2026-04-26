@@ -82,6 +82,54 @@ test("operator can browse queues, open a session, stream updates, and resolve ac
   });
 });
 
+test("operator can complete the primary workflow from the keyboard", async ({ page }) => {
+  const fixture = await installGlassboxApiFixture(page);
+
+  await page.goto("/app");
+
+  await page.getByRole("link", { name: /Questions/ }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/app\/queues\/questions$/);
+
+  await page.getByRole("link", { name: sessionLink }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/app\/sessions\/session-1\?queue=questions$/);
+  await expect(page.getByRole("heading", { name: sessionId })).toBeFocused();
+
+  await page.getByRole("tab", { name: "Transcript" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("tabpanel", { name: "Transcript tab panel" })).toBeVisible();
+  await page.getByRole("link", { name: "Pending action" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#narrative-turn-1$/);
+
+  await page.getByRole("tab", { name: "Overview" }).focus();
+  await page.keyboard.press("Enter");
+  await page.getByLabel("Answer pending question").focus();
+  await page.keyboard.type("Use the main branch");
+  await page.getByRole("button", { name: "Submit answer" }).focus();
+  await page.keyboard.press("Enter");
+
+  await page.getByRole("button", { name: "Approve" }).focus();
+  await page.keyboard.press("Enter");
+
+  await page.getByRole("button", { name: "Create fork" }).focus();
+  await page.keyboard.press("Enter");
+  await page.getByLabel("Fork label").focus();
+  await page.keyboard.type("keyboard branch");
+  await page.getByRole("button", { name: "Select Continue from tool result" }).focus();
+  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "Fork selected point" }).focus();
+  await page.keyboard.press("Enter");
+
+  await expect(page).toHaveURL(/\/app\/sessions\/child-1\?queue=questions$/);
+  expect(fixture.actions.map((action) => action.url)).toEqual([
+    `/sessions/${sessionId}/questions/question-1`,
+    `/sessions/${sessionId}/approvals/approval-1`,
+    `/sessions/${sessionId}/fork`,
+  ]);
+});
+
 test("operator console remains reachable in a narrow viewport", async ({ page }) => {
   await installGlassboxApiFixture(page);
   await page.setViewportSize({ height: 844, width: 390 });

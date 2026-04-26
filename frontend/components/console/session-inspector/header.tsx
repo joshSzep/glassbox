@@ -1,3 +1,5 @@
+import type { RefObject } from "react";
+
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { SessionStreamState } from "@/api/sse";
@@ -5,19 +7,27 @@ import type { DashboardState } from "@/state/session-state";
 
 export function SessionHeader({
   data,
+  headingRef,
   stream,
 }: {
   data: DashboardState;
+  headingRef?: RefObject<HTMLHeadingElement | null>;
   stream: SessionStreamState;
 }) {
   return (
-    <header className="border-b p-4">
+    <header className="border-b p-4" aria-label="Selected session status">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
             Selected session
           </p>
-          <h2 className="mt-1 break-all text-lg font-semibold tracking-normal">{data.sessionId}</h2>
+          <h2
+            className="mt-1 break-all text-lg font-semibold tracking-normal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            ref={headingRef}
+            tabIndex={-1}
+          >
+            {data.sessionId}
+          </h2>
           <p className="mt-1 break-all text-sm text-muted-foreground">
             {data.cwd ?? "workspace unknown"}
           </p>
@@ -26,7 +36,14 @@ export function SessionHeader({
           <Badge variant={data.status === "failed" ? "destructive" : "outline"}>
             {data.status}
           </Badge>
-          <Badge variant={stream.status === "live" ? "success" : "muted"}>{stream.status}</Badge>
+          <Badge
+            aria-label={`Browser stream ${stream.status}`}
+            aria-live="polite"
+            role="status"
+            variant={stream.status === "live" ? "success" : "muted"}
+          >
+            {stream.status}
+          </Badge>
           <ProjectionBadge
             state={data.projectionHealth?.state ?? "unknown"}
             degraded={Boolean(data.projectionHealth?.degraded)}

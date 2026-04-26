@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AlertCircle, MessageSquareText, RadioTower } from "lucide-react";
 
 import { VerificationCues } from "@/components/console/verification-cues";
@@ -77,6 +77,16 @@ export function SessionInspector({
   stream,
 }: SessionInspectorProps) {
   const [forkDialogRequest, setForkDialogRequest] = useState<ForkDialogRequest | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const previousSessionIdRef = useRef<string | null>(data.sessionId);
+
+  useEffect(() => {
+    if (data.sessionId === null || previousSessionIdRef.current === data.sessionId) {
+      return;
+    }
+    previousSessionIdRef.current = data.sessionId;
+    headingRef.current?.focus({ preventScroll: true });
+  }, [data.sessionId]);
 
   if (data.selectedSessionId !== null && data.sessionId === null) {
     return (
@@ -106,7 +116,7 @@ export function SessionInspector({
 
   return (
     <InspectorFrame>
-      <SessionHeader data={data} stream={stream} />
+      <SessionHeader data={data} headingRef={headingRef} stream={stream} />
       <InspectorTabs activeTab={activeTab} data={data} onSelectTab={onSelectTab} queue={queue} />
       <InspectorTabContent
         action={action}
@@ -193,34 +203,83 @@ function InspectorTabContent({
 
   switch (activeTab) {
     case "transcript":
-      return <TabPanel>{<TranscriptPane data={data} />}</TabPanel>;
+      return <TabPanel activeTab={activeTab}>{<TranscriptPane data={data} />}</TabPanel>;
     case "timeline":
-      return <TabPanel>{<TimelinePane data={data} onOpenForkTurn={onOpenForkTurn} />}</TabPanel>;
+      return (
+        <TabPanel activeTab={activeTab}>
+          {<TimelinePane data={data} onOpenForkTurn={onOpenForkTurn} />}
+        </TabPanel>
+      );
     case "actions":
-      return <TabPanel>{actionPane}</TabPanel>;
+      return <TabPanel activeTab={activeTab}>{actionPane}</TabPanel>;
     case "lineage":
-      return <TabPanel>{lineagePane}</TabPanel>;
+      return <TabPanel activeTab={activeTab}>{lineagePane}</TabPanel>;
     case "compare":
-      return <TabPanel>{comparePane}</TabPanel>;
+      return <TabPanel activeTab={activeTab}>{comparePane}</TabPanel>;
     case "runtime":
-      return <TabPanel>{<RuntimePane data={data} />}</TabPanel>;
+      return <TabPanel activeTab={activeTab}>{<RuntimePane data={data} />}</TabPanel>;
     case "evidence":
       return (
-        <TabPanel className="xl:grid-cols-2">
+        <TabPanel activeTab={activeTab} className="xl:grid-cols-2">
           <VerificationCues data={data} />
           <EvidencePane data={data} stream={stream} />
         </TabPanel>
       );
     case "metrics":
-      return <TabPanel>{<MetricsPane data={data} />}</TabPanel>;
+      return <TabPanel activeTab={activeTab}>{<MetricsPane data={data} />}</TabPanel>;
     case "events":
-      return <TabPanel>{<EvidencePane data={data} stream={stream} />}</TabPanel>;
+      return (
+        <TabPanel activeTab={activeTab}>{<EvidencePane data={data} stream={stream} />}</TabPanel>
+      );
     case "overview":
     default:
       return <SessionOverviewTab actionPane={actionPane} data={data} stream={stream} />;
   }
 }
 
-function TabPanel({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`grid gap-4 p-4 ${className}`}>{children}</div>;
+function TabPanel({
+  activeTab,
+  children,
+  className = "",
+}: {
+  activeTab: SessionInspectorProps["activeTab"];
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      aria-label={`${inspectorTabLabel(activeTab)} tab panel`}
+      className={`grid gap-4 p-4 ${className}`}
+      role="tabpanel"
+      tabIndex={0}
+    >
+      {children}
+    </div>
+  );
+}
+
+function inspectorTabLabel(tab: SessionInspectorProps["activeTab"]): string {
+  switch (tab) {
+    case "transcript":
+      return "Transcript";
+    case "timeline":
+      return "Timeline";
+    case "actions":
+      return "Actions";
+    case "lineage":
+      return "Lineage";
+    case "compare":
+      return "Compare";
+    case "runtime":
+      return "Runtime";
+    case "evidence":
+      return "Evidence";
+    case "metrics":
+      return "Metrics";
+    case "events":
+      return "Events";
+    case "overview":
+    default:
+      return "Overview";
+  }
 }

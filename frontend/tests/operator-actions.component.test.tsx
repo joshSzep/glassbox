@@ -12,7 +12,7 @@ import {
 } from "../state/session-state";
 import type { ActionStatus, DraftState } from "../stores/dashboard-stores";
 import { makeOperatorActionSessionSnapshot, makeProjectionHealth } from "./fixtures/session-state";
-import { render, screen, userEvent, within } from "./test-utils";
+import { render, screen, userEvent, waitFor, within } from "./test-utils";
 
 const stream = {
   error: null,
@@ -95,6 +95,21 @@ describe("operator action component harness", () => {
 
     expect(text.indexOf("Pending approvals")).toBeLessThan(text.indexOf("Answer pending question"));
     expect(text.indexOf("Answer pending question")).toBeLessThan(text.indexOf("Continue session"));
+  });
+
+  it("moves focus to the selected-session heading when the selected session changes", async () => {
+    const callbacks = makeCallbacks();
+    const { rerender } = render(
+      <ActionHarness callbacks={callbacks} snapshotOverrides={{ session_id: "session-1" }} />,
+    );
+
+    rerender(
+      <ActionHarness callbacks={callbacks} snapshotOverrides={{ session_id: "session-2" }} />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "session-2" })).toHaveFocus();
+    });
   });
 
   it("forks from the latest point when no branchable turns are available", async () => {

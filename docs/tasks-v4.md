@@ -750,7 +750,7 @@ The intended v4 milestone order is:
 
 ### GBX-551: Complete Keyboard And Accessibility Pass
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-513`, `GBX-522`, `GBX-540`
 - Goal: ensure high-frequency operator workflows work without a pointer and remain understandable to assistive technologies
 - Deliverables:
