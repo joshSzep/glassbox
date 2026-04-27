@@ -229,16 +229,16 @@ Completion notes:
 
 ### GBX-561: Define The v5 Terminal Interaction Model
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-560`
 - Goal: convert the audit and product direction into a concrete interaction contract for the full-screen chat client
 - Deliverables:
-  - documentation update defining the v5 terminal model: header, conversation transcript, composer, action strip, command palette, optional details pane, and dashboard handoff
-  - keyboard contract for sending, multiline editing, command palette, approval, denial, answer submit, interrupt, quit, jump latest, toggle details, open dashboard, copy session ID, and focus movement
-  - action-priority rules for pending approvals, questions, active tool calls, failed turns, reconnecting streams, promptability, and historical-only states
-  - transcript hierarchy rules for user turns, assistant streaming, tool activity, tool output, files/artifacts, failures, and compact system notices
-  - fallback contract for non-TTY, CI, redirected stdin/stdout, and `--plain` compatibility if retained
-  - explicit rule that `session chat` remains chat-first while the web dashboard remains the deeper operator console
+  - documentation update defining the v5 terminal model: header, conversation transcript, composer, action strip, command palette, optional details pane, and dashboard handoff: [terminal-interaction-model-v5.md](./terminal-interaction-model-v5.md)
+  - keyboard contract for sending, multiline editing, command palette, approval, denial, answer submit, interrupt, quit, jump latest, toggle details, open dashboard, copy session ID, and focus movement: [terminal-interaction-model-v5.md](./terminal-interaction-model-v5.md)
+  - action-priority rules for pending approvals, questions, active tool calls, failed turns, reconnecting streams, promptability, and historical-only states: [terminal-interaction-model-v5.md](./terminal-interaction-model-v5.md)
+  - transcript hierarchy rules for user turns, assistant streaming, tool activity, tool output, files/artifacts, failures, and compact system notices: [terminal-interaction-model-v5.md](./terminal-interaction-model-v5.md)
+  - fallback contract for non-TTY, CI, redirected stdin/stdout, and `--plain` compatibility if retained: [terminal-interaction-model-v5.md](./terminal-interaction-model-v5.md)
+  - explicit rule that `session chat` remains chat-first while the web dashboard remains the deeper operator console: [terminal-interaction-model-v5.md](./terminal-interaction-model-v5.md)
 - Implementation notes:
   - define behavior in terms of coding flow: think, ask, inspect, approve, recover, continue
   - avoid duplicating the v4 dashboard queue and evidence model in the default terminal surface
@@ -249,6 +249,11 @@ Completion notes:
   - manual validation that the proposed model does not require browser-owned canonical state or a second runtime control plane
 - Done when:
   - the repo has a clear v5 terminal UX contract that implementation tasks can execute without guessing interaction details
+
+Completion notes:
+
+- Completed in [terminal-interaction-model-v5.md](./terminal-interaction-model-v5.md).
+- Validation: documentation review against current CLI commands, daemon attach, dashboard co-hosting, event model, and snapshot/API boundaries.
 
 ### GBX-562: Choose And Document The Terminal UI Framework
 
