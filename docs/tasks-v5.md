@@ -491,7 +491,7 @@ Completion notes:
 
 ### GBX-582: Model Priority Actions For Questions And Approvals
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-580`
 - Goal: derive first-class action cards for pending operator decisions
 - Deliverables:
@@ -508,6 +508,14 @@ Completion notes:
   - tests for stale approval/question resolution after stream updates
 - Done when:
   - the TUI can render the current blocking operator decision without scraping status strings
+
+Completion notes:
+
+- Added `TerminalActionState` derivation in [conversation.py](../src/glassbox/cli/tui/conversation.py) for prompt, pending approval, pending question, active-turn wait, unavailable prompt, failed, and historical-only states.
+- Approval actions now expose subject, reason, approval ID, allowed decisions, related tool, policy risk/source, and debug ID without interpreting freeform composer input as approval resolution.
+- Question actions expose question ID, prompt text, related turn/tool, and matching answer draft ownership.
+- Added stale resolved approval/question and action-priority coverage in [test_cli_tui_conversation.py](../tests/unit/test_cli_tui_conversation.py).
+- Validation: `uv run pytest tests/unit/test_cli_tui_conversation.py`; `uv run ruff check src/glassbox/cli/tui/conversation.py tests/unit/test_cli_tui_conversation.py`; `uv run ty check`.
 
 ### GBX-583: Model Runtime, Stream, And Dashboard Status For The Header
 

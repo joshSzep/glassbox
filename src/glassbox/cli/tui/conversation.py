@@ -85,6 +85,16 @@ class ToolActivityStatus(StrEnum):
     FAILED = "failed"
 
 
+class TerminalActionKind(StrEnum):
+    PROMPT = "prompt"
+    PENDING_APPROVAL = "pending_approval"
+    PENDING_QUESTION = "pending_question"
+    ACTIVE_TURN_WAIT = "active_turn_wait"
+    FAILED = "failed"
+    HISTORICAL_ONLY = "historical_only"
+    UNAVAILABLE_PROMPT = "unavailable_prompt"
+
+
 @dataclass(frozen=True, slots=True)
 class TerminalHeaderState:
     session_id: SessionId
@@ -161,6 +171,30 @@ class PendingApprovalState:
     sequence: int
     tool_call_id: ToolCallId | None = None
     decision: ApprovalDecision | None = None
+    policy_outcome: PolicyDecisionOutcome | None = None
+    policy_risk_level: PolicyRiskLevel | None = None
+    policy_source_kind: PolicyDecisionSourceKind | None = None
+    policy_source_label: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class TerminalActionState:
+    kind: TerminalActionKind
+    title: str
+    description: str
+    turn_id: TurnId | None = None
+    approval_id: ApprovalId | None = None
+    question_id: QuestionId | None = None
+    tool_call_id: ToolCallId | None = None
+    related_tool_name: str | None = None
+    subject: str | None = None
+    reason: str | None = None
+    policy_risk_level: PolicyRiskLevel | None = None
+    policy_source_kind: PolicyDecisionSourceKind | None = None
+    policy_source_label: str | None = None
+    allowed_decisions: tuple[ApprovalDecision, ...] = ()
+    answer_draft: str | None = None
+    debug_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -474,6 +508,10 @@ def apply_event(
             reason=payload.reason,
             sequence=event.sequence,
             tool_call_id=payload.tool_call_id,
+            policy_outcome=payload.policy_outcome,
+            policy_risk_level=payload.policy_risk_level,
+            policy_source_kind=payload.policy_source_kind,
+            policy_source_label=payload.policy_source_label,
         )
         return _with_header(
             _replace(state, pending_approval=approval),
@@ -610,6 +648,98 @@ def with_tool_expanded(
     else:
         expanded_tool_ids.discard(tool_call_id)
     return _replace(state, expanded_tool_ids=frozenset(expanded_tool_ids))
+
+
+def terminal_action_from_state(
+    state: TerminalConversationState,
+) -> TerminalActionState:
+    approval = state.pending_approval
+    if approval is not None and approval.decision is None:
+        related_tool = _find_tool(
+            state,
+            tool_call_id=approval.tool_call_id,
+            turn_id=approval.turn_id,
+        )
+        return TerminalActionState(
+            kind=TerminalActionKind.PENDING_APPROVAL,
+            title="Approval required",
+            description=approval.subject,
+            turn_id=approval.turn_id,
+            approval_id=approval.approval_id,
+            tool_call_id=approval.tool_call_id,
+            related_tool_name=related_tool.tool_name if related_tool else None,
+            subject=approval.subject,
+            reason=approval.reason,
+            policy_risk_level=approval.policy_risk_level,
+            policy_source_kind=approval.policy_source_kind,
+            policy_source_label=approval.policy_source_label,
+            allowed_decisions=(ApprovalDecision.APPROVED, ApprovalDecision.DENIED),
+            debug_id=str(approval.approval_id),
+        )
+
+    question = state.pending_question
+    if question is not None and question.answer is None:
+        related_tool = _find_tool(
+            state,
+            tool_call_id=question.tool_call_id,
+            turn_id=question.turn_id,
+        )
+        answer_draft = None
+        if state.composer.question_id == question.question_id:
+            answer_draft = state.composer.text
+        return TerminalActionState(
+            kind=TerminalActionKind.PENDING_QUESTION,
+            title="Answer required",
+            description=question.question,
+            turn_id=question.turn_id,
+            question_id=question.question_id,
+            tool_call_id=question.tool_call_id,
+            related_tool_name=related_tool.tool_name if related_tool else None,
+            answer_draft=answer_draft,
+            debug_id=str(question.question_id),
+        )
+
+    if state.failure is not None or state.header.mode == TerminalMode.FAILED:
+        message = (
+            state.failure.message if state.failure is not None else "Session failed"
+        )
+        return TerminalActionState(
+            kind=TerminalActionKind.FAILED,
+            title="Session failed",
+            description=message,
+            turn_id=state.failure.turn_id if state.failure is not None else None,
+        )
+
+    if state.header.stream_status == TerminalStreamStatus.HISTORICAL_ONLY:
+        return TerminalActionState(
+            kind=TerminalActionKind.HISTORICAL_ONLY,
+            title="Historical session",
+            description="This session can be inspected but not continued live.",
+        )
+
+    if state.header.stream_status == TerminalStreamStatus.UNAVAILABLE:
+        return TerminalActionState(
+            kind=TerminalActionKind.UNAVAILABLE_PROMPT,
+            title="Runtime unavailable",
+            description=state.header.stream_detail or "Live runtime is unavailable.",
+        )
+
+    if state.header.current_turn_id is not None or state.header.mode in {
+        TerminalMode.THINKING,
+        TerminalMode.RUNNING_TOOL,
+    }:
+        return TerminalActionState(
+            kind=TerminalActionKind.ACTIVE_TURN_WAIT,
+            title="Working",
+            description="The assistant is still working on the current turn.",
+            turn_id=state.header.current_turn_id,
+        )
+
+    return TerminalActionState(
+        kind=TerminalActionKind.PROMPT,
+        title="Ready",
+        description="Type the next prompt.",
+    )
 
 
 def _with_last_sequence(
@@ -902,6 +1032,21 @@ def _map_tool(
             for turn in state.turns
         ),
     )
+
+
+def _find_tool(
+    state: TerminalConversationState,
+    *,
+    tool_call_id: ToolCallId | None,
+    turn_id: TurnId | None,
+) -> ToolActivity | None:
+    for turn in state.turns:
+        if turn_id is not None and turn.turn_id != turn_id:
+            continue
+        for tool in turn.tools:
+            if tool_call_id is None or tool.tool_call_id == tool_call_id:
+                return tool
+    return None
 
 
 def _ensure_turn(
