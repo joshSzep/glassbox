@@ -12,6 +12,8 @@ import pytest
 from glassbox.cli import main
 from glassbox.cli.interactive_launch import InteractiveLaunchMode
 from glassbox.cli.interactive_launch import InteractiveLaunchOptions
+from glassbox.cli.tui.conversation import TerminalMode
+from glassbox.cli.tui.conversation import TerminalStreamStatus
 from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import SessionCompleted
@@ -227,6 +229,117 @@ def test_cli_chat_tui_flag_launches_terminal_app(
     assert exit_code == 0
     assert len(sessions) == 1
     assert launched_session_ids == [sessions[0].session_id]
+
+
+def test_cli_attach_tui_flag_launches_terminal_app_for_local_session(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    launched: list[tuple[UUID, str | None]] = []
+
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_commands.interactive_launch_options_from_args",
+        lambda args, *, tui_available: InteractiveLaunchOptions(
+            requested_mode=InteractiveLaunchMode.TUI,
+            default_mode=InteractiveLaunchMode.PLAIN,
+            stdin_is_tty=True,
+            stdout_is_tty=True,
+            term="xterm-256color",
+            ci=False,
+            tui_available=tui_available,
+        ),
+    )
+
+    async def fake_run_tui_app(app: Any) -> None:
+        launched.append((app.state.header.session_id, app.state.header.runtime_owner))
+        await app.close_client()
+
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_commands.run_tui_app",
+        fake_run_tui_app,
+    )
+
+    exit_code = main(
+        [
+            "session",
+            "attach",
+            str(session_id),
+            "--tui",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    _ = capsys.readouterr()
+
+    assert exit_code == 0
+    assert launched == [(session_id, "persisted local session")]
+
+
+def test_cli_attach_tui_flag_presents_completed_session_as_historical(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=SessionCompleted(reason="done"),
+            )
+        )
+    finally:
+        connection.close()
+
+    launched: list[tuple[TerminalMode, TerminalStreamStatus]] = []
+
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_commands.interactive_launch_options_from_args",
+        lambda args, *, tui_available: InteractiveLaunchOptions(
+            requested_mode=InteractiveLaunchMode.TUI,
+            default_mode=InteractiveLaunchMode.PLAIN,
+            stdin_is_tty=True,
+            stdout_is_tty=True,
+            term="xterm-256color",
+            ci=False,
+            tui_available=tui_available,
+        ),
+    )
+
+    async def fake_run_tui_app(app: Any) -> None:
+        launched.append((app.state.header.mode, app.state.header.stream_status))
+        await app.close_client()
+
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_commands.run_tui_app",
+        fake_run_tui_app,
+    )
+
+    exit_code = main(
+        [
+            "session",
+            "attach",
+            str(session_id),
+            "--tui",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    _ = capsys.readouterr()
+
+    assert exit_code == 0
+    assert launched == [
+        (TerminalMode.HISTORICAL_ONLY, TerminalStreamStatus.HISTORICAL_ONLY)
+    ]
 
 
 def test_cli_run_uses_workspace_profile_runtime_defaults(

@@ -22,6 +22,9 @@ from glassbox.cli.renderer import InteractivePromptState
 from glassbox.cli.status_formatters import _format_current_turn_line
 from glassbox.cli.status_formatters import _format_next_action_line
 from glassbox.cli.status_formatters import _format_pending_question_line
+from glassbox.cli.tui import create_session_tui_app
+from glassbox.cli.tui import run_tui_app
+from glassbox.cli.tui.conversation import with_runtime_owner
 from glassbox.core.events import SessionFailed
 from glassbox.core.models import SessionState
 from glassbox.core.types import ApprovalDecision
@@ -77,6 +80,32 @@ async def attach_via_daemon(
             stream_task.cancel()
             with suppress(asyncio.CancelledError):
                 await stream_task
+
+
+async def attach_tui_via_daemon(
+    args: argparse.Namespace,
+    *,
+    dashboard_url: str,
+    launch_options,
+) -> int:
+    """Attach the full-screen terminal UI to a daemon-owned live session."""
+
+    async with httpx.AsyncClient(
+        base_url=dashboard_url.rstrip("/"),
+        timeout=httpx.Timeout(5.0, connect=1.0, read=None, write=5.0),
+    ) as client:
+        app = await create_session_tui_app(
+            client=DaemonInteractiveSessionClient(
+                client,
+                args.session_id,
+                dashboard_url,
+            ),
+            launch_options=launch_options,
+            dashboard_url=dashboard_url,
+        )
+        app.state = with_runtime_owner(app.state, "daemon runtime")
+        await run_tui_app(app)
+    return 0
 
 
 async def _interactive_remote_session_loop(

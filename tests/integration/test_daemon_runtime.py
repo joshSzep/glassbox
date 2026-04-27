@@ -10,6 +10,8 @@ from uuid import uuid4
 import pytest
 
 from glassbox.cli import main
+from glassbox.cli.interactive_launch import InteractiveLaunchMode
+from glassbox.cli.interactive_launch import InteractiveLaunchOptions
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import SessionCompleted
 from glassbox.store.repositories import SQLiteSessionRepository
@@ -378,6 +380,75 @@ def test_cli_attach_routes_live_session_through_daemon_and_can_reattach(
         assert transcript[-1].parts[0].text == (
             "I received your request: Add one more note."
         )
+    finally:
+        _stop_daemon_if_running(tmp_path)
+
+
+def test_cli_attach_tui_routes_live_session_through_daemon(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    dashboard_urls: list[str] = []
+
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_commands.interactive_launch_options_from_args",
+        lambda args, *, tui_available: InteractiveLaunchOptions(
+            requested_mode=InteractiveLaunchMode.TUI,
+            default_mode=InteractiveLaunchMode.PLAIN,
+            stdin_is_tty=True,
+            stdout_is_tty=True,
+            term="xterm-256color",
+            ci=False,
+            tui_available=tui_available,
+        ),
+    )
+
+    async def fake_attach_tui_via_daemon(args, *, dashboard_url, launch_options) -> int:
+        assert args.session_id == session_id
+        assert launch_options.requested_mode == InteractiveLaunchMode.TUI
+        dashboard_urls.append(dashboard_url)
+        return 0
+
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_commands.attach_tui_via_daemon",
+        fake_attach_tui_via_daemon,
+    )
+
+    port = _reserve_port()
+    try:
+        exit_code = main(
+            [
+                "daemon",
+                "start",
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+                "--port",
+                str(port),
+            ]
+        )
+        _ = capsys.readouterr()
+        assert exit_code == 0
+
+        exit_code = main(
+            [
+                "session",
+                "attach",
+                str(session_id),
+                "--tui",
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+            ]
+        )
+        _ = capsys.readouterr()
+
+        assert exit_code == 0
+        assert dashboard_urls == [f"http://127.0.0.1:{port}/"]
     finally:
         _stop_daemon_if_running(tmp_path)
 

@@ -935,7 +935,7 @@ Completion notes:
 
 ### GBX-620: Bring Full-Screen TUI To `session attach`
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-590`, `GBX-570`, `GBX-571`
 - Goal: make attaching to existing actionable sessions use the same modern terminal experience as new chat sessions
 - Deliverables:
@@ -954,6 +954,11 @@ Completion notes:
   - manual attach smoke with an actionable session
 - Done when:
   - users can resume an existing session in the full-screen TUI with clear live or persisted ownership semantics
+
+Completion notes:
+- Routed `session attach --tui` through the shared TUI app for daemon-owned sessions and persisted local sessions while preserving the existing plain attach path.
+- Surfaced runtime ownership in the TUI header as either `daemon runtime` or `persisted local session`, and initialized completed/cancelled/failed snapshots as historical-only while active turns render as working states.
+- Validated with `uv run pytest tests/integration/test_cli_interactive_commands.py::test_cli_attach_tui_flag_launches_terminal_app_for_local_session tests/integration/test_cli_interactive_commands.py::test_cli_attach_tui_flag_presents_completed_session_as_historical tests/integration/test_daemon_runtime.py::test_cli_attach_tui_routes_live_session_through_daemon tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_app.py`, `uv run ruff check src/glassbox/cli src/glassbox/cli/tui tests/integration/test_cli_interactive_commands.py tests/integration/test_daemon_runtime.py tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py`, and `uv run ty check`.
 
 ### GBX-621: Implement Reconnect And Runtime Availability UX
 

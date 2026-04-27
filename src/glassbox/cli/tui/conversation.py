@@ -294,11 +294,14 @@ def conversation_state_from_snapshot(
 ) -> TerminalConversationState:
     status = snapshot.state.status
     stream_status = _stream_status_from_session_status(status)
+    mode = _mode_from_session_status(status)
+    if status == SessionStatus.RUNNING and snapshot.state.current_turn_id is not None:
+        mode = TerminalMode.THINKING
     return TerminalConversationState(
         header=TerminalHeaderState(
             session_id=snapshot.session_id,
             status=status,
-            mode=_mode_from_session_status(status),
+            mode=mode,
             stream_status=stream_status,
             model_name=snapshot.model_name,
             cwd=snapshot.cwd,
@@ -1284,7 +1287,7 @@ def _mode_from_session_status(status: SessionStatus) -> TerminalMode:
         return TerminalMode.AWAITING_APPROVAL
     if status == SessionStatus.AWAITING_USER_INPUT:
         return TerminalMode.AWAITING_ANSWER
-    if status == SessionStatus.RUNNING:
+    if status in {SessionStatus.IDLE, SessionStatus.RUNNING}:
         return TerminalMode.READY
     if status == SessionStatus.FAILED:
         return TerminalMode.FAILED
