@@ -257,15 +257,15 @@ Completion notes:
 
 ### GBX-562: Choose And Document The Terminal UI Framework
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-561`
 - Goal: make a user-centered dependency decision for the full-screen terminal app before implementation spreads framework assumptions across the CLI
 - Deliverables:
-  - documented framework decision, with Textual as the intended choice unless research shows a better option
-  - comparison against at least prompt-toolkit and a hand-rolled ANSI approach
-  - package dependency updates for the chosen framework and any necessary test extras
-  - minimal framework smoke test proving the dependency imports and can run a tiny app under the project test environment
-  - packaging note confirming the dependency works in normal Python package installs
+  - documented framework decision, with Textual as the intended choice unless research shows a better option: [terminal-framework-decision-v5.md](./terminal-framework-decision-v5.md)
+  - comparison against at least prompt-toolkit and a hand-rolled ANSI approach: [terminal-framework-decision-v5.md](./terminal-framework-decision-v5.md)
+  - package dependency updates for the chosen framework and any necessary test extras: [pyproject.toml](../pyproject.toml) and [uv.lock](../uv.lock)
+  - minimal framework smoke test proving the dependency imports and can run a tiny app under the project test environment: [test_tui_framework_smoke.py](../tests/unit/test_tui_framework_smoke.py)
+  - packaging note confirming the dependency works in normal Python package installs: [terminal-framework-decision-v5.md](./terminal-framework-decision-v5.md)
 - Implementation notes:
   - optimize for the best user experience and maintainable agent-built evolution, not the smallest dependency list
   - prefer framework features for layout, input, keyboard bindings, async workers, testing, and styled rendering over bespoke terminal control
@@ -276,6 +276,11 @@ Completion notes:
   - `uv run ty check` remains usable after dependency typing decisions are made
 - Done when:
   - the terminal TUI has an accepted framework foundation and the repo can install and test it reliably
+
+Completion notes:
+
+- Completed in [terminal-framework-decision-v5.md](./terminal-framework-decision-v5.md).
+- Validation: `uv run pytest tests/unit/test_tui_framework_smoke.py`; `uv run ty check`.
 
 ### GBX-563: Define Terminal Test Harness And Review Artifacts
 
