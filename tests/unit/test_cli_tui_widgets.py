@@ -17,6 +17,7 @@ from glassbox.cli.tui.widgets import render_composer_feedback
 from glassbox.cli.tui.widgets import render_footer_help
 from glassbox.cli.tui.widgets import render_session_header
 from glassbox.cli.tui.widgets import render_transcript
+from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import AssistantMessageCompleted
 from glassbox.core.events import AssistantMessageDelta
 from glassbox.core.events import AssistantMessageStarted
@@ -28,6 +29,7 @@ from glassbox.core.events import TurnFailed
 from glassbox.core.events import TurnStarted
 from glassbox.core.events import UserMessageReceived
 from glassbox.core.events import UserQuestionAsked
+from glassbox.core.ids import new_approval_id
 from glassbox.core.ids import new_message_id
 from glassbox.core.ids import new_question_id
 from glassbox.core.ids import new_session_id
@@ -202,6 +204,55 @@ def test_action_strip_renders_pending_question_card_with_feedback() -> None:
     assert "Answer draft: write in the composer" in rendered
     assert "Ctrl+R submit answer" in rendered
     assert "Sending: Submitting answer" in rendered
+
+
+def test_action_strip_renders_pending_approval_card_with_risk_context() -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    tool_call_id = new_tool_call_id()
+    approval_id = new_approval_id()
+    state = reduce_events(
+        _state(session_id=session_id),
+        [
+            _event(
+                session_id,
+                1,
+                ToolExecutionStarted(
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    tool_name="shell",
+                ),
+            ),
+            _event(
+                session_id,
+                2,
+                ApprovalRequested(
+                    approval_id=approval_id,
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    subject="run rm command",
+                    reason="destructive shell command",
+                    policy_risk_level="command",
+                    policy_source_kind="rule",
+                    policy_source_label="deny-dangerous-shell",
+                ),
+            ),
+        ],
+    )
+
+    rendered = render_action_strip(
+        state,
+        ActionFeedback(ActionFeedbackStatus.ACCEPTED, "Approval accepted."),
+    )
+
+    assert "Approval: run rm command" in rendered
+    assert "destructive shell command" in rendered
+    assert "tool shell" in rendered
+    assert "risk command" in rendered
+    assert "policy deny-dangerous-shell" in rendered
+    assert f"id {approval_id}" in rendered
+    assert "Alt+A approve | Alt+X deny | Ctrl+E details" in rendered
+    assert "Accepted: Approval accepted." in rendered
 
 
 def test_transcript_renders_chat_tools_and_failure() -> None:

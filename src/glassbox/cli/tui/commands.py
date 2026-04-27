@@ -192,8 +192,17 @@ def _disabled_reason(
         if state.header.dashboard_url is None:
             return "dashboard unavailable"
     if command_id in {TerminalCommandId.APPROVE, TerminalCommandId.DENY}:
-        if state.pending_approval is None:
+        if (
+            state.pending_approval is None
+            or state.pending_approval.decision is not None
+        ):
             return "no pending approval"
+        if state.header.stream_status in {
+            TerminalStreamStatus.RECONNECTING,
+            TerminalStreamStatus.UNAVAILABLE,
+            TerminalStreamStatus.HISTORICAL_ONLY,
+        }:
+            return "runtime unavailable"
     if command_id == TerminalCommandId.SUBMIT_ANSWER:
         if state.pending_question is None or state.pending_question.answer is not None:
             return "no pending question"

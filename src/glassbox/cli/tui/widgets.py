@@ -21,6 +21,7 @@ from glassbox.cli.tui.commands import filter_command_items
 from glassbox.cli.tui.conversation import AssistantMessageStatus
 from glassbox.cli.tui.conversation import ConversationMessageKind
 from glassbox.cli.tui.conversation import TerminalActionKind
+from glassbox.cli.tui.conversation import TerminalActionState
 from glassbox.cli.tui.conversation import TerminalConversationState
 from glassbox.cli.tui.conversation import TerminalMode
 from glassbox.cli.tui.conversation import TerminalStreamStatus
@@ -63,6 +64,7 @@ class ActionFeedbackStatus(StrEnum):
     NETWORK_ERROR = "network_error"
     UNAVAILABLE_RUNTIME = "unavailable_runtime"
     RETRYABLE_FAILURE = "retryable_failure"
+    ALREADY_RESOLVED = "already_resolved"
 
 
 @dataclass(frozen=True, slots=True)
@@ -478,6 +480,12 @@ def render_action_strip(
             _question_answer_line(action.answer_draft, state.composer.text),
             _question_hint_line(action.related_tool_name),
         ]
+    elif action.kind == TerminalActionKind.PENDING_APPROVAL:
+        lines = [
+            f"Approval: {action.subject or action.description}",
+            _approval_context_line(action),
+            "Alt+A approve | Alt+X deny | Ctrl+E details",
+        ]
     else:
         lines = [f"{action.title}: {action.description}"]
     if feedback is not None:
@@ -494,6 +502,7 @@ def render_action_feedback(feedback: ActionFeedback) -> str:
         ActionFeedbackStatus.NETWORK_ERROR: "Network error",
         ActionFeedbackStatus.UNAVAILABLE_RUNTIME: "Runtime unavailable",
         ActionFeedbackStatus.RETRYABLE_FAILURE: "Action failed",
+        ActionFeedbackStatus.ALREADY_RESOLVED: "Resolved",
     }[feedback.status]
     suffix = " Retry is safe." if feedback.retryable else ""
     return f"{prefix}: {feedback.message}{suffix}"
@@ -509,6 +518,28 @@ def _question_answer_line(answer_draft: str | None, composer_text: str) -> str:
 def _question_hint_line(related_tool_name: str | None) -> str:
     tool = f" | tool {related_tool_name}" if related_tool_name else ""
     return f"Ctrl+R submit answer{tool}"
+
+
+def _approval_context_line(action: TerminalActionState) -> str:
+    parts: list[str] = []
+    if action.reason:
+        parts.append(_fit_line(action.reason, 34))
+    if action.related_tool_name:
+        parts.append(f"tool {action.related_tool_name}")
+    if action.policy_risk_level is not None:
+        parts.append(f"risk {_enum_or_string_value(action.policy_risk_level)}")
+    if action.policy_source_label:
+        parts.append(f"policy {action.policy_source_label}")
+    elif action.policy_source_kind is not None:
+        parts.append(f"policy {_enum_or_string_value(action.policy_source_kind)}")
+    if action.approval_id is not None:
+        parts.append(f"id {action.approval_id}")
+    return " | ".join(parts) if parts else action.description
+
+
+def _enum_or_string_value(value: object) -> str:
+    enum_value = getattr(value, "value", value)
+    return str(enum_value)
 
 
 def render_transcript(

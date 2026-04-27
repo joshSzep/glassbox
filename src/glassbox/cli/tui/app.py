@@ -245,6 +245,14 @@ class GlassboxTerminalApp(App[None]):
             self.close_command_palette(restore_focus=True)
             await self._submit_pending_answer()
             return
+        if command_id == TerminalCommandId.APPROVE:
+            self.close_command_palette(restore_focus=True)
+            await self._resolve_pending_approval(ApprovalDecision.APPROVED)
+            return
+        if command_id == TerminalCommandId.DENY:
+            self.close_command_palette(restore_focus=True)
+            await self._resolve_pending_approval(ApprovalDecision.DENIED)
+            return
         item = command_item_by_id(command_items_for_state(self.state), command_id)
         if item is not None and not item.enabled:
             return
@@ -271,20 +279,6 @@ class GlassboxTerminalApp(App[None]):
             return
         if command_id == TerminalCommandId.JUMP_LATEST:
             self.action_latest()
-            return
-        if command_id == TerminalCommandId.APPROVE:
-            if self.state.pending_approval is not None:
-                await self.client_adapter.resolve_approval(
-                    self.state.pending_approval.approval_id,
-                    ApprovalDecision.APPROVED,
-                )
-            return
-        if command_id == TerminalCommandId.DENY:
-            if self.state.pending_approval is not None:
-                await self.client_adapter.resolve_approval(
-                    self.state.pending_approval.approval_id,
-                    ApprovalDecision.DENIED,
-                )
             return
         if command_id == TerminalCommandId.INTERRUPT:
             return
@@ -430,6 +424,68 @@ class GlassboxTerminalApp(App[None]):
             )
         )
         self.update_conversation_state(with_composer_draft(self.state, ""))
+
+    async def _resolve_pending_approval(
+        self,
+        decision: ApprovalDecision,
+    ) -> None:
+        approval = self.state.pending_approval
+        if approval is None:
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.CONFLICT,
+                    "No pending approval needs a decision.",
+                )
+            )
+            return
+        if approval.decision is not None:
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.ALREADY_RESOLVED,
+                    "Approval already resolved by session events.",
+                )
+            )
+            return
+        if self.state.header.stream_status in {
+            TerminalStreamStatus.RECONNECTING,
+            TerminalStreamStatus.UNAVAILABLE,
+            TerminalStreamStatus.HISTORICAL_ONLY,
+        }:
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.UNAVAILABLE_RUNTIME,
+                    self.state.header.stream_detail or "Runtime is not writable.",
+                    retryable=True,
+                )
+            )
+            return
+        label = "approval" if decision == ApprovalDecision.APPROVED else "denial"
+        self._set_action_feedback(
+            ActionFeedback(
+                ActionFeedbackStatus.PENDING,
+                f"Submitting {label} to the runtime.",
+            )
+        )
+        try:
+            await self.client_adapter.resolve_approval(approval.approval_id, decision)
+        except InteractiveClientError as exc:
+            self._set_action_feedback(_action_feedback_for_client_error(exc))
+            return
+        except Exception as exc:
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.RETRYABLE_FAILURE,
+                    str(exc) or "The approval decision was not accepted.",
+                    retryable=True,
+                )
+            )
+            return
+        self._set_action_feedback(
+            ActionFeedback(
+                ActionFeedbackStatus.ACCEPTED,
+                f"{label.title()} accepted. Waiting for session events.",
+            )
+        )
 
     async def close_client(self) -> None:
         if self._client_closed:

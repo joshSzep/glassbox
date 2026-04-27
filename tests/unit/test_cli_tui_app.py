@@ -24,6 +24,7 @@ from glassbox.cli.tui.widgets import ComposerFeedbackLine
 from glassbox.cli.tui.widgets import ComposerWidget
 from glassbox.cli.tui.widgets import DetailsPane
 from glassbox.core.events import ApprovalRequested
+from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import AssistantMessageDelta
 from glassbox.core.events import AssistantMessageStarted
 from glassbox.core.events import EventEnvelope
@@ -178,6 +179,10 @@ def test_tui_app_preserves_answer_draft_for_failures() -> None:
 
 def test_tui_app_reports_stale_and_unavailable_question_answer_states() -> None:
     asyncio.run(_run_answer_stale_and_unavailable_test())
+
+
+def test_tui_app_reports_approval_resolution_feedback() -> None:
+    asyncio.run(_run_approval_resolution_feedback_test())
 
 
 async def _run_app_mount_test() -> None:
@@ -742,6 +747,154 @@ async def _run_answer_stale_and_unavailable_test() -> None:
     await unavailable_app.close_client()
 
 
+async def _run_approval_resolution_feedback_test() -> None:
+    snapshot = _snapshot()
+    approval_id = new_approval_id()
+    turn_id = new_turn_id()
+    approve_client = _FakeInteractiveClient(
+        events=[
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=8,
+                payload=ApprovalRequested(
+                    approval_id=approval_id,
+                    turn_id=turn_id,
+                    subject="run command",
+                    reason="needs permission",
+                ),
+            )
+        ]
+    )
+    approve_app = create_tui_app(
+        client=approve_client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+    )
+    async with approve_app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
+        await typed_app.execute_terminal_command(TerminalCommandId.APPROVE)
+        action_strip = pilot.app.query_one("#action-strip", Static)
+
+        assert approve_client.resolved_approvals == [
+            (approval_id, ApprovalDecision.APPROVED)
+        ]
+        assert "Accepted: Approval accepted" in str(action_strip.content)
+
+        pilot.app.exit()
+    await approve_app.close_client()
+
+    deny_client = _FakeInteractiveClient(
+        events=[
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=8,
+                payload=ApprovalRequested(
+                    approval_id=approval_id,
+                    turn_id=turn_id,
+                    subject="run command",
+                    reason="needs permission",
+                ),
+            )
+        ],
+        approval_error=InteractiveClientError(
+            InteractiveClientErrorKind.VALIDATION_ERROR,
+            "invalid decision",
+        ),
+    )
+    deny_app = create_tui_app(
+        client=deny_client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+    )
+    async with deny_app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
+        await typed_app.execute_terminal_command(TerminalCommandId.DENY)
+        action_strip = pilot.app.query_one("#action-strip", Static)
+
+        assert deny_client.resolved_approvals == []
+        assert "Check answer: invalid decision" in str(action_strip.content)
+
+        pilot.app.exit()
+    await deny_app.close_client()
+
+    network_client = _FakeInteractiveClient(
+        events=[
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=8,
+                payload=ApprovalRequested(
+                    approval_id=approval_id,
+                    turn_id=turn_id,
+                    subject="run command",
+                    reason="needs permission",
+                ),
+            )
+        ],
+        approval_error=InteractiveClientError(
+            InteractiveClientErrorKind.RUNTIME_UNAVAILABLE,
+            "daemon unavailable",
+        ),
+    )
+    network_app = create_tui_app(
+        client=network_client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+    )
+    async with network_app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
+        await typed_app.execute_terminal_command(TerminalCommandId.APPROVE)
+        action_strip = pilot.app.query_one("#action-strip", Static)
+
+        assert "Network error: daemon unavailable" in str(action_strip.content)
+        assert "Retry is safe" in str(action_strip.content)
+
+        pilot.app.exit()
+    await network_app.close_client()
+
+    resolved_client = _FakeInteractiveClient(
+        events=[
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=8,
+                payload=ApprovalRequested(
+                    approval_id=approval_id,
+                    turn_id=turn_id,
+                    subject="run command",
+                    reason="needs permission",
+                ),
+            ),
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=9,
+                payload=ApprovalResolved(
+                    approval_id=approval_id,
+                    decision=ApprovalDecision.APPROVED,
+                    decided_by="operator",
+                ),
+            ),
+        ]
+    )
+    resolved_app = create_tui_app(
+        client=resolved_client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+    )
+    async with resolved_app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
+        await typed_app.execute_terminal_command(TerminalCommandId.APPROVE)
+        action_strip = pilot.app.query_one("#action-strip", Static)
+
+        assert resolved_client.resolved_approvals == []
+        assert "Resolved: Approval already resolved" in str(action_strip.content)
+
+        pilot.app.exit()
+    await resolved_app.close_client()
+
+
 async def _run_lifecycle_test() -> None:
     client = _FakeInteractiveClient()
     app = await create_session_tui_app(
@@ -825,12 +978,14 @@ class _FakeInteractiveClient:
         events: list[EventEnvelope] | None = None,
         submit_error: Exception | None = None,
         answer_error: Exception | None = None,
+        approval_error: Exception | None = None,
     ) -> None:
         self.closed = False
         self.fetch_count = 0
         self.events = events or []
         self.submit_error = submit_error
         self.answer_error = answer_error
+        self.approval_error = approval_error
         self.submit_started: asyncio.Event | None = None
         self.submit_release: asyncio.Event | None = None
         self.submitted_messages: list[str] = []
@@ -864,6 +1019,8 @@ class _FakeInteractiveClient:
         approval_id: ApprovalId,
         decision: ApprovalDecision,
     ) -> None:
+        if self.approval_error is not None:
+            raise self.approval_error
         self.resolved_approvals.append((approval_id, decision))
 
     async def stream_events(

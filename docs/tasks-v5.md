@@ -826,7 +826,7 @@ Completion notes:
 
 ### GBX-611: Build First-Class Approval Workflow
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-582`, `GBX-600`, `GBX-602`
 - Goal: make risky tool approvals deliberate, informative, and fast from the terminal
 - Deliverables:
@@ -845,6 +845,11 @@ Completion notes:
   - manual review with command/tool approval scenarios
 - Done when:
   - the most urgent approval decision is visible, keyboard reachable, and safe to resolve without copying IDs
+
+Completion notes:
+- Added a first-class approval action card with subject, reason, linked tool name, risk level, policy source, approval ID detail, approve/deny shortcuts, and details affordance.
+- Routed approve and deny through feedback-aware command handling with pending, accepted, conflict, validation, network, runtime-unavailable, retryable failure, and already-resolved states.
+- Validated with `uv run pytest tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_commands.py`, `uv run ruff check src/glassbox/cli/tui tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_commands.py`, and `uv run ty check`.
 
 ### GBX-612: Render Tool Activity As Inline Conversation Objects
 
