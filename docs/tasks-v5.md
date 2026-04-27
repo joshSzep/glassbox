@@ -906,7 +906,7 @@ Completion notes:
 
 ### GBX-614: Add File, Artifact, And Dashboard Handoff Affordances
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-612`, `GBX-613`, `GBX-573`
 - Goal: connect terminal chat to the concrete files, artifacts, and browser evidence that make Glassbox trustworthy
 - Deliverables:
@@ -923,6 +923,11 @@ Completion notes:
   - command tests for copy/open actions with failure feedback
 - Done when:
   - users can move from chat to evidence without losing the session context
+
+Completion notes:
+- Added latest-artifact path discovery, artifact copy/open commands, dashboard/session copy/open feedback, and contextual command disabled states for missing artifacts or dashboard URLs.
+- Kept artifact and local path rendering compact in transcript/details surfaces while routing deeper evidence to dashboard/file handoffs.
+- Validated with `uv run pytest tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_commands.py`, `uv run ruff check src/glassbox/cli/tui tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_commands.py`, and `uv run ty check`.
 
 ---
 

@@ -28,10 +28,13 @@ from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import AssistantMessageDelta
 from glassbox.core.events import AssistantMessageStarted
 from glassbox.core.events import EventEnvelope
+from glassbox.core.events import ModelToolCallRequested
+from glassbox.core.events import ToolArtifactRecorded
 from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import QuestionId
 from glassbox.core.ids import new_approval_id
+from glassbox.core.ids import new_artifact_id
 from glassbox.core.ids import new_message_id
 from glassbox.core.ids import new_question_id
 from glassbox.core.ids import new_session_id
@@ -183,6 +186,10 @@ def test_tui_app_reports_stale_and_unavailable_question_answer_states() -> None:
 
 def test_tui_app_reports_approval_resolution_feedback() -> None:
     asyncio.run(_run_approval_resolution_feedback_test())
+
+
+def test_tui_app_reports_handoff_copy_and_open_feedback() -> None:
+    asyncio.run(_run_handoff_feedback_test())
 
 
 async def _run_app_mount_test() -> None:
@@ -893,6 +900,67 @@ async def _run_approval_resolution_feedback_test() -> None:
 
         pilot.app.exit()
     await resolved_app.close_client()
+
+
+async def _run_handoff_feedback_test() -> None:
+    snapshot = _snapshot()
+    turn_id = new_turn_id()
+    tool_call_id = new_tool_call_id()
+    artifact_path = "/workspace/reports/output.txt"
+    client = _FakeInteractiveClient(
+        events=[
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=8,
+                payload=ModelToolCallRequested(
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    tool_name="write_file",
+                    arguments_json='{"path":"/workspace/reports/output.txt"}',
+                ),
+            ),
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=9,
+                payload=ToolArtifactRecorded(
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    artifact_id=new_artifact_id(),
+                    artifact_kind="file",
+                    path=artifact_path,
+                ),
+            ),
+        ]
+    )
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
+
+        await typed_app.execute_terminal_command(TerminalCommandId.COPY_SESSION_ID)
+        action_strip = pilot.app.query_one("#action-strip", Static)
+        assert pilot.app.clipboard == str(snapshot.session_id)
+        assert "Accepted: Session ID copied." in str(action_strip.content)
+
+        await typed_app.execute_terminal_command(TerminalCommandId.COPY_DASHBOARD_URL)
+        assert pilot.app.clipboard == snapshot.dashboard_url
+        assert "Accepted: Dashboard URL copied." in str(action_strip.content)
+
+        await typed_app.execute_terminal_command(TerminalCommandId.COPY_ARTIFACT_PATH)
+        assert pilot.app.clipboard == artifact_path
+        assert "Accepted: Artifact path copied." in str(action_strip.content)
+
+        await typed_app.execute_terminal_command(TerminalCommandId.OPEN_ARTIFACT_PATH)
+        assert "Not sent: Artifact path is missing" in str(action_strip.content)
+
+        pilot.app.exit()
+
+    await app.close_client()
 
 
 async def _run_lifecycle_test() -> None:

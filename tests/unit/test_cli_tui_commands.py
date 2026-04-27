@@ -29,6 +29,8 @@ def test_command_registry_exposes_expected_palette_actions() -> None:
     assert TerminalCommandId.OPEN_DASHBOARD in command_ids
     assert TerminalCommandId.COPY_SESSION_ID in command_ids
     assert TerminalCommandId.COPY_DASHBOARD_URL in command_ids
+    assert TerminalCommandId.COPY_ARTIFACT_PATH in command_ids
+    assert TerminalCommandId.OPEN_ARTIFACT_PATH in command_ids
     assert TerminalCommandId.TOGGLE_DETAILS in command_ids
     assert TerminalCommandId.JUMP_LATEST in command_ids
     assert TerminalCommandId.APPROVE in command_ids
@@ -57,13 +59,16 @@ def test_command_registry_reports_contextual_disabled_reasons() -> None:
     open_dashboard = command_item_by_id(items, TerminalCommandId.OPEN_DASHBOARD)
     approve = command_item_by_id(items, TerminalCommandId.APPROVE)
     submit_answer = command_item_by_id(items, TerminalCommandId.SUBMIT_ANSWER)
+    copy_artifact = command_item_by_id(items, TerminalCommandId.COPY_ARTIFACT_PATH)
 
     assert open_dashboard is not None
     assert approve is not None
     assert submit_answer is not None
+    assert copy_artifact is not None
     assert open_dashboard.disabled_reason == "dashboard unavailable"
     assert approve.disabled_reason == "no pending approval"
     assert submit_answer.disabled_reason == "no pending question"
+    assert copy_artifact.disabled_reason == "no artifact path"
 
 
 def test_command_registry_enables_approval_and_answer_commands() -> None:
@@ -112,6 +117,7 @@ def test_command_registry_enables_approval_and_answer_commands() -> None:
 def test_command_from_slash_routes_compatibility_aliases() -> None:
     assert command_from_slash("/dashboard") == TerminalCommandId.OPEN_DASHBOARD
     assert command_from_slash("/copy-session now") == TerminalCommandId.COPY_SESSION_ID
+    assert command_from_slash("/copy-artifact") == TerminalCommandId.COPY_ARTIFACT_PATH
     assert command_from_slash("hello") is None
     assert command_from_slash("/unknown") is None
 

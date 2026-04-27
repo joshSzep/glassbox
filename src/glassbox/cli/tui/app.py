@@ -2,6 +2,7 @@
 
 import asyncio
 from contextlib import suppress
+from pathlib import Path
 from typing import ClassVar
 
 from textual.app import App
@@ -23,6 +24,7 @@ from glassbox.cli.tui.conversation import TerminalConversationState
 from glassbox.cli.tui.conversation import TerminalStreamStatus
 from glassbox.cli.tui.conversation import apply_event
 from glassbox.cli.tui.conversation import conversation_state_from_snapshot
+from glassbox.cli.tui.conversation import latest_artifact_path_from_state
 from glassbox.cli.tui.conversation import with_composer_draft
 from glassbox.cli.tui.conversation import with_stream_status
 from glassbox.cli.tui.keybindings import TUI_KEY_BINDINGS
@@ -260,15 +262,22 @@ class GlassboxTerminalApp(App[None]):
         if command_id == TerminalCommandId.STATUS:
             return
         if command_id == TerminalCommandId.OPEN_DASHBOARD:
-            if self.state.header.dashboard_url is not None:
-                self.open_url(self.state.header.dashboard_url)
+            self._open_dashboard()
             return
         if command_id == TerminalCommandId.COPY_SESSION_ID:
-            self.copy_to_clipboard(str(self.state.header.session_id))
+            self._copy_handoff_value(
+                str(self.state.header.session_id),
+                success_message="Session ID copied.",
+            )
             return
         if command_id == TerminalCommandId.COPY_DASHBOARD_URL:
-            if self.state.header.dashboard_url is not None:
-                self.copy_to_clipboard(self.state.header.dashboard_url)
+            self._copy_dashboard_url()
+            return
+        if command_id == TerminalCommandId.COPY_ARTIFACT_PATH:
+            self._copy_latest_artifact_path()
+            return
+        if command_id == TerminalCommandId.OPEN_ARTIFACT_PATH:
+            self._open_latest_artifact_path()
             return
         if command_id == TerminalCommandId.TOGGLE_DETAILS:
             self._details_visible = not self._details_visible
@@ -487,6 +496,105 @@ class GlassboxTerminalApp(App[None]):
             )
         )
 
+    def _open_dashboard(self) -> None:
+        url = self.state.header.dashboard_url
+        if url is None:
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.CONFLICT,
+                    "Dashboard URL is unavailable.",
+                )
+            )
+            return
+        try:
+            self.open_url(url)
+        except Exception as exc:
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.RETRYABLE_FAILURE,
+                    str(exc) or "Dashboard did not open.",
+                    retryable=True,
+                )
+            )
+            return
+        self._set_action_feedback(
+            ActionFeedback(ActionFeedbackStatus.ACCEPTED, "Dashboard opened.")
+        )
+
+    def _copy_dashboard_url(self) -> None:
+        url = self.state.header.dashboard_url
+        if url is None:
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.CONFLICT,
+                    "Dashboard URL is unavailable.",
+                )
+            )
+            return
+        self._copy_handoff_value(url, success_message="Dashboard URL copied.")
+
+    def _copy_latest_artifact_path(self) -> None:
+        path = latest_artifact_path_from_state(self.state)
+        if path is None:
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.CONFLICT,
+                    "No artifact path is available yet.",
+                )
+            )
+            return
+        self._copy_handoff_value(path, success_message="Artifact path copied.")
+
+    def _open_latest_artifact_path(self) -> None:
+        raw_path = latest_artifact_path_from_state(self.state)
+        if raw_path is None:
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.CONFLICT,
+                    "No artifact path is available yet.",
+                )
+            )
+            return
+        path = _local_artifact_path(raw_path, self.state.header.cwd)
+        if not path.exists():
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.CONFLICT,
+                    f"Artifact path is missing: {raw_path}",
+                )
+            )
+            return
+        try:
+            self.open_url(path.as_uri())
+        except Exception as exc:
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.RETRYABLE_FAILURE,
+                    str(exc) or "Artifact did not open.",
+                    retryable=True,
+                )
+            )
+            return
+        self._set_action_feedback(
+            ActionFeedback(ActionFeedbackStatus.ACCEPTED, "Artifact opened.")
+        )
+
+    def _copy_handoff_value(self, value: str, *, success_message: str) -> None:
+        try:
+            self.copy_to_clipboard(value)
+        except Exception as exc:
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.RETRYABLE_FAILURE,
+                    str(exc) or "Copy failed.",
+                    retryable=True,
+                )
+            )
+            return
+        self._set_action_feedback(
+            ActionFeedback(ActionFeedbackStatus.ACCEPTED, success_message)
+        )
+
     async def close_client(self) -> None:
         if self._client_closed:
             return
@@ -595,3 +703,12 @@ def _action_feedback_for_client_error(
         str(error),
         retryable=True,
     )
+
+
+def _local_artifact_path(raw_path: str, cwd: str | None) -> Path:
+    path = Path(raw_path).expanduser()
+    if path.is_absolute():
+        return path
+    if cwd is not None:
+        return Path(cwd).expanduser() / path
+    return path.absolute()

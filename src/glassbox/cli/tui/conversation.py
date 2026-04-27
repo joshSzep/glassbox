@@ -761,6 +761,16 @@ def with_tool_expanded(
     return _replace(state, expanded_tool_ids=frozenset(expanded_tool_ids))
 
 
+def latest_artifact_path_from_state(
+    state: TerminalConversationState,
+) -> str | None:
+    for turn in reversed(state.turns):
+        for tool in reversed(turn.tools):
+            if tool.artifact_paths:
+                return tool.artifact_paths[-1]
+    return None
+
+
 def terminal_action_from_state(
     state: TerminalConversationState,
 ) -> TerminalActionState:

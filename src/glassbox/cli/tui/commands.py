@@ -6,6 +6,7 @@ from enum import StrEnum
 from glassbox.cli.tui.conversation import TerminalConversationState
 from glassbox.cli.tui.conversation import TerminalMode
 from glassbox.cli.tui.conversation import TerminalStreamStatus
+from glassbox.cli.tui.conversation import latest_artifact_path_from_state
 
 
 class TerminalCommandId(StrEnum):
@@ -13,6 +14,8 @@ class TerminalCommandId(StrEnum):
     OPEN_DASHBOARD = "open_dashboard"
     COPY_SESSION_ID = "copy_session_id"
     COPY_DASHBOARD_URL = "copy_dashboard_url"
+    COPY_ARTIFACT_PATH = "copy_artifact_path"
+    OPEN_ARTIFACT_PATH = "open_artifact_path"
     TOGGLE_DETAILS = "toggle_details"
     JUMP_LATEST = "jump_latest"
     APPROVE = "approve"
@@ -65,6 +68,18 @@ _COMMAND_SPECS: tuple[TerminalCommandSpec, ...] = (
         "Copy the dashboard URL for this session",
         "Alt+D",
         slash_aliases=("/copy-dashboard",),
+    ),
+    TerminalCommandSpec(
+        TerminalCommandId.COPY_ARTIFACT_PATH,
+        "Copy Artifact Path",
+        "Copy the latest artifact path from this session",
+        slash_aliases=("/copy-artifact",),
+    ),
+    TerminalCommandSpec(
+        TerminalCommandId.OPEN_ARTIFACT_PATH,
+        "Open Artifact Path",
+        "Open the latest local artifact path",
+        slash_aliases=("/open-artifact",),
     ),
     TerminalCommandSpec(
         TerminalCommandId.TOGGLE_DETAILS,
@@ -191,6 +206,12 @@ def _disabled_reason(
     }:
         if state.header.dashboard_url is None:
             return "dashboard unavailable"
+    if command_id in {
+        TerminalCommandId.COPY_ARTIFACT_PATH,
+        TerminalCommandId.OPEN_ARTIFACT_PATH,
+    }:
+        if latest_artifact_path_from_state(state) is None:
+            return "no artifact path"
     if command_id in {TerminalCommandId.APPROVE, TerminalCommandId.DENY}:
         if (
             state.pending_approval is None
