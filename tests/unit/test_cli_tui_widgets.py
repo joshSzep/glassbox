@@ -15,6 +15,7 @@ from glassbox.cli.tui.widgets import ComposerSubmissionStatus
 from glassbox.cli.tui.widgets import composer_availability
 from glassbox.cli.tui.widgets import render_action_strip
 from glassbox.cli.tui.widgets import render_composer_feedback
+from glassbox.cli.tui.widgets import render_details_pane
 from glassbox.cli.tui.widgets import render_footer_help
 from glassbox.cli.tui.widgets import render_session_header
 from glassbox.cli.tui.widgets import render_transcript
@@ -441,6 +442,78 @@ def test_transcript_renders_expanded_tool_details_and_artifacts() -> None:
     assert "output full:" in rendered
     assert "artifact:" in rendered
     assert all(len(line) <= 68 for line in lines if line)
+
+
+def test_details_pane_renders_selected_tool_output_policy() -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    first_tool_id = new_tool_call_id()
+    selected_tool_id = new_tool_call_id()
+    state = reduce_events(
+        _state(session_id=session_id),
+        [
+            _event(
+                session_id,
+                1,
+                ModelToolCallRequested(
+                    turn_id=turn_id,
+                    tool_call_id=first_tool_id,
+                    tool_name="read_file",
+                    arguments_json='{"path":"a.py"}',
+                ),
+            ),
+            _event(
+                session_id,
+                2,
+                ModelToolCallRequested(
+                    turn_id=turn_id,
+                    tool_call_id=selected_tool_id,
+                    tool_name="shell",
+                    arguments_json='{"cmd":"yes"}',
+                    policy_outcome="approve",
+                    policy_risk_level="command",
+                    policy_source_label="confirm-shell",
+                ),
+            ),
+            _event(
+                session_id,
+                3,
+                ToolOutputChunk(
+                    turn_id=turn_id,
+                    tool_call_id=selected_tool_id,
+                    stream="stdout",
+                    chunk="very noisy output " * 120,
+                ),
+            ),
+            _event(
+                session_id,
+                4,
+                ToolArtifactRecorded(
+                    turn_id=turn_id,
+                    tool_call_id=selected_tool_id,
+                    artifact_id=new_artifact_id(),
+                    artifact_kind="log",
+                    path="/workspace/logs/tool-output.log",
+                ),
+            ),
+        ],
+    )
+    state = with_tool_expanded(state, selected_tool_id, expanded=True)
+
+    rendered = render_details_pane(state, width=78)
+    lines = rendered.splitlines()
+
+    assert "Details" in rendered
+    assert "dashboard:" in rendered
+    assert "recent: 0 messages | 1 turns | 2 tools" in rendered
+    assert "selected tool: shell [requested]" in rendered
+    assert f"tool id: {selected_tool_id}" in rendered
+    assert "policy: outcome approve | risk command | source confirm-shell" in rendered
+    assert "output:" in rendered
+    assert "dashboard has full output" in rendered
+    assert "artifact:" in rendered
+    assert str(first_tool_id) not in rendered
+    assert all(len(line) <= 78 for line in lines if line)
 
 
 def test_transcript_empty_states_are_specific() -> None:

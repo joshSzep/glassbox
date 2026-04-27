@@ -880,7 +880,7 @@ Completion notes:
 
 ### GBX-613: Add Tool Output Policy And Details Pane
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-612`, `GBX-601`
 - Goal: keep long-running and noisy tool output available without letting it overwhelm chat
 - Deliverables:
@@ -898,6 +898,11 @@ Completion notes:
   - manual review with high-volume stdout/stderr fixture
 - Done when:
   - noisy tools stay inspectable without destroying the main conversation experience
+
+Completion notes:
+- Added an explicit tool output policy across inline cards and the details pane, with truncated chat snippets and clearer routing to details/dashboard for longer output.
+- Expanded the details pane with selected/latest tool status, arguments, policy/risk/source, summary, exit code, output preview, artifact paths, recent activity counts, failure context, and dashboard handoff URL.
+- Validated with `uv run pytest tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_commands.py`, `uv run ruff check src/glassbox/cli/tui tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_commands.py`, and `uv run ty check`.
 
 ### GBX-614: Add File, Artifact, And Dashboard Handoff Affordances
 

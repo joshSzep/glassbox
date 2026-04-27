@@ -32,6 +32,7 @@ from glassbox.cli.tui.conversation import header_display_from_state
 from glassbox.cli.tui.conversation import terminal_action_from_state
 
 TRANSCRIPT_MIN_WIDTH = 36
+DETAILS_OUTPUT_PREVIEW_CHARS = 1200
 
 
 @dataclass(frozen=True, slots=True)
@@ -338,26 +339,17 @@ class DetailsPane(Static):
 
     def __init__(self, state: TerminalConversationState) -> None:
         self._state = state
-        super().__init__(self._render_state(state), id="details-pane")
+        super().__init__(render_details_pane(state), id="details-pane")
         self.display = False
 
     def update_state(self, state: TerminalConversationState) -> None:
         self._state = state
-        self.update(self._render_state(state))
+        self.update(render_details_pane(state))
 
     def toggle(self) -> None:
         self.display = not self.display
         if self.display:
             self.focus()
-
-    def _render_state(self, state: TerminalConversationState) -> str:
-        return (
-            "Details\n"
-            f"session: {state.header.session_id}\n"
-            f"mode: {state.header.mode.value}\n"
-            f"stream: {state.header.stream_status.value}\n"
-            f"sequence: {state.header.last_sequence}"
-        )
 
 
 def render_session_header(
@@ -509,6 +501,88 @@ def render_action_feedback(feedback: ActionFeedback) -> str:
     }[feedback.status]
     suffix = " Retry is safe." if feedback.retryable else ""
     return f"{prefix}: {feedback.message}{suffix}"
+
+
+def render_details_pane(
+    state: TerminalConversationState,
+    *,
+    width: int = 80,
+) -> str:
+    tool = _selected_tool_for_details(state)
+    tool_count = sum(len(turn.tools) for turn in state.turns)
+    lines = [
+        "Details",
+        f"session: {state.header.session_id}",
+        f"mode: {state.header.mode.value}",
+        f"stream: {state.header.stream_status.value}",
+        f"sequence: {state.header.last_sequence}",
+        (
+            f"recent: {len(state.messages)} messages | "
+            f"{len(state.turns)} turns | {tool_count} tools"
+        ),
+    ]
+    if state.header.dashboard_url is not None:
+        lines.append(f"dashboard: {_fit_line(state.header.dashboard_url, width - 11)}")
+    if state.failure is not None:
+        lines.append(f"failure: {_fit_line(state.failure.message, width - 9)}")
+    if tool is None:
+        lines.append("selected tool: none")
+        return "\n".join(_fit_line(line, width) for line in lines)
+    lines.extend(_tool_details_lines(tool, state, width))
+    return "\n".join(_fit_line(line, width) for line in lines)
+
+
+def _selected_tool_for_details(
+    state: TerminalConversationState,
+) -> ToolActivity | None:
+    tools = [tool for turn in state.turns for tool in turn.tools]
+    if not tools:
+        return None
+    for tool in reversed(tools):
+        if tool.tool_call_id in state.expanded_tool_ids:
+            return tool
+    return tools[-1]
+
+
+def _tool_details_lines(
+    tool: ToolActivity,
+    state: TerminalConversationState,
+    width: int,
+) -> list[str]:
+    status = _tool_status_label(tool, state)
+    lines = [
+        f"selected tool: {_truncate_middle(tool.tool_name, 40)} [{status}]",
+        f"tool id: {tool.tool_call_id}",
+    ]
+    if tool.arguments_json:
+        lines.append(f"args: {_fit_line(tool.arguments_json, width - 6)}")
+    policy_parts: list[str] = []
+    if tool.policy_outcome is not None:
+        policy_parts.append(f"outcome {_enum_or_string_value(tool.policy_outcome)}")
+    if tool.policy_risk_level is not None:
+        policy_parts.append(f"risk {_enum_or_string_value(tool.policy_risk_level)}")
+    if tool.policy_source_label:
+        policy_parts.append(f"source {tool.policy_source_label}")
+    elif tool.policy_source_kind is not None:
+        policy_parts.append(f"source {_enum_or_string_value(tool.policy_source_kind)}")
+    if policy_parts:
+        lines.append("policy: " + " | ".join(policy_parts))
+    if tool.summary:
+        lines.append(f"summary: {_fit_line(tool.summary, width - 9)}")
+    if tool.exit_code is not None:
+        lines.append(f"exit: {tool.exit_code}")
+    if tool.output_text:
+        output = tool.output_text.replace("\n", "\\n")
+        truncated = len(output) > DETAILS_OUTPUT_PREVIEW_CHARS
+        preview = output[:DETAILS_OUTPUT_PREVIEW_CHARS]
+        lines.append(f"output: {_fit_line(preview, width - 8)}")
+        if truncated:
+            lines.append("output policy: truncated; dashboard has full output")
+    else:
+        lines.append("output: none yet")
+    for path in tool.artifact_paths:
+        lines.append(f"artifact: {_truncate_path(path, width - 10)}")
+    return lines
 
 
 def _question_answer_line(answer_draft: str | None, composer_text: str) -> str:
