@@ -60,7 +60,8 @@ def test_session_header_renders_wide_dashboard_and_runtime_context() -> None:
     assert all(len(line) <= 120 for line in lines)
     assert "Glassbox" in lines[0]
     assert "reconnecting: retry 2" in lines[0]
-    assert "dashboard http://127" in lines[0]
+    assert "dashboard ready" in lines[0]
+    assert "Alt+D copy" in lines[0]
     assert "/workspace" in lines[1]
     assert "openai:gpt-5.4" in lines[1]
     assert "local runtime" in lines[1]

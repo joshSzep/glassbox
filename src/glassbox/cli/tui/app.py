@@ -182,10 +182,10 @@ class GlassboxTerminalApp(App[None]):
         self.set_focus(self.query_one(ActionStripPlaceholder))
 
     def action_transcript_page_up(self) -> None:
-        self.query_one(ConversationPane).scroll_page_up(animate=False)
+        self.query_one(ConversationPane).page_up()
 
     def action_transcript_page_down(self) -> None:
-        self.query_one(ConversationPane).scroll_page_down(animate=False)
+        self.query_one(ConversationPane).page_down()
 
     def on_text_area_changed(self, event: TextArea.Changed) -> None:
         if not isinstance(event.text_area, ComposerWidget):
@@ -334,7 +334,9 @@ class GlassboxTerminalApp(App[None]):
             self.action_latest()
             return
         if command_id == TerminalCommandId.CLEAR_TRANSCRIPT:
-            self.query_one(ConversationPane).update("Transcript hidden locally.")
+            self.query_one(ConversationPane).show_local_message(
+                "Transcript hidden locally."
+            )
             return
         if command_id == TerminalCommandId.QUIT:
             self._handle_quit_request()

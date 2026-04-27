@@ -12,6 +12,7 @@ from typing import cast
 from textual.binding import Binding
 from textual.containers import Vertical
 from textual.widgets import Input
+from textual.widgets import Log
 from textual.widgets import Static
 from textual.widgets import TextArea
 
@@ -99,13 +100,17 @@ class SessionHeader(Static):
         return max(self.size.width, 36)
 
 
-class ConversationPane(Static):
+class ConversationPane(Log):
     can_focus: ClassVar[bool] = True
 
     def __init__(self, state: TerminalConversationState) -> None:
         self._state = state
         self._follow_latest = True
-        super().__init__(render_transcript(state), id="conversation-pane")
+        super().__init__(id="conversation-pane", auto_scroll=True)
+
+    @property
+    def content_text(self) -> str:
+        return "\n".join(self.lines)
 
     def on_mount(self) -> None:
         self.update_state(self._state)
@@ -116,14 +121,37 @@ class ConversationPane(Static):
     def update_state(self, state: TerminalConversationState) -> None:
         self._follow_latest = self._follow_latest and self._is_at_latest()
         self._state = state
-        self.update(render_transcript(state, width=self._render_width()))
-        if self._follow_latest:
-            self.call_after_refresh(self.jump_to_latest)
+        self._replace_content(render_transcript(state, width=self._render_width()))
 
     def jump_to_latest(self) -> None:
         self._follow_latest = True
         with suppress(Exception):
-            self.scroll_end(animate=False)
+            self.scroll_y = self.max_scroll_y
+
+    def page_up(self) -> None:
+        self._follow_latest = False
+        with suppress(Exception):
+            self.scroll_y = max(
+                self.scroll_y - max(self.size.height - 1, 1),
+                0,
+            )
+
+    def page_down(self) -> None:
+        with suppress(Exception):
+            self.scroll_y = min(
+                self.scroll_y + max(self.size.height - 1, 1),
+                self.max_scroll_y,
+            )
+            self._follow_latest = self._is_at_latest()
+
+    def show_local_message(self, message: str) -> None:
+        self._replace_content(message)
+
+    def _replace_content(self, text: str) -> None:
+        self.clear()
+        self.write_lines(text.splitlines() or [""])
+        if self._follow_latest:
+            self.call_after_refresh(self.jump_to_latest)
 
     def _render_width(self) -> int:
         if not self.is_mounted:
@@ -344,12 +372,23 @@ class DetailsPane(Static):
 
     def update_state(self, state: TerminalConversationState) -> None:
         self._state = state
-        self.update(render_details_pane(state))
+        self.update(render_details_pane(state, width=self._render_width()))
+
+    def on_mount(self) -> None:
+        self.update_state(self._state)
+
+    def on_resize(self) -> None:
+        self.update_state(self._state)
 
     def toggle(self) -> None:
         self.display = not self.display
         if self.display:
             self.focus()
+
+    def _render_width(self) -> int:
+        if not self.is_mounted:
+            return 80
+        return max(self.size.width, 24)
 
 
 def render_session_header(
@@ -413,9 +452,9 @@ def composer_availability(state: TerminalConversationState) -> ComposerAvailabil
         )
     if state.pending_approval is not None:
         return ComposerAvailability(
-            can_edit=False,
+            can_edit=True,
             can_submit=False,
-            placeholder="Resolve the pending approval before sending a prompt.",
+            placeholder="Use Alt+A/Alt+X or type /approve or /deny.",
             disabled_reason="pending approval",
         )
     if state.pending_question is not None:
@@ -522,7 +561,9 @@ def render_details_pane(
         ),
     ]
     if state.header.dashboard_url is not None:
-        lines.append(f"dashboard: {_fit_line(state.header.dashboard_url, width - 11)}")
+        lines.extend(
+            _wrapped_label_lines("dashboard", state.header.dashboard_url, width)
+        )
     if state.failure is not None:
         lines.append(f"failure: {_fit_line(state.failure.message, width - 9)}")
     if tool is None:
@@ -800,8 +841,24 @@ def _dashboard_hint(
     if dashboard_url is None:
         return fallback
     if width >= 104:
-        return _truncate_middle(f"dashboard {dashboard_url}", 44)
-    return fallback
+        return "dashboard ready (Ctrl+D open, Alt+D copy)"
+    return "dashboard ready"
+
+
+def _wrapped_label_lines(label: str, value: str, width: int) -> list[str]:
+    prefix = f"{label}: "
+    available_width = max(width - len(prefix), 12)
+    wrapped = wrap(
+        value,
+        width=available_width,
+        break_long_words=True,
+        break_on_hyphens=False,
+        replace_whitespace=False,
+    ) or [""]
+    return [
+        (prefix if index == 0 else " " * len(prefix)) + line
+        for index, line in enumerate(wrapped)
+    ]
 
 
 def _fit_line(value: str, width: int) -> str:

@@ -22,6 +22,7 @@ from glassbox.cli.tui.state import session_dashboard_url
 from glassbox.cli.tui.widgets import CommandPaletteWidget
 from glassbox.cli.tui.widgets import ComposerFeedbackLine
 from glassbox.cli.tui.widgets import ComposerWidget
+from glassbox.cli.tui.widgets import ConversationPane
 from glassbox.cli.tui.widgets import DetailsPane
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import ApprovalResolved
@@ -198,6 +199,18 @@ def test_tui_app_reports_approval_resolution_feedback() -> None:
     asyncio.run(_run_approval_resolution_feedback_test())
 
 
+def test_tui_app_approval_slash_commands_are_typeable() -> None:
+    asyncio.run(_run_approval_slash_command_test())
+
+
+def test_tui_app_follows_latest_streaming_transcript() -> None:
+    asyncio.run(_run_streaming_transcript_follow_latest_test())
+
+
+def test_tui_app_details_wrap_full_dashboard_url() -> None:
+    asyncio.run(_run_dashboard_details_wrap_test())
+
+
 def test_tui_app_reports_handoff_copy_and_open_feedback() -> None:
     asyncio.run(_run_handoff_feedback_test())
 
@@ -216,12 +229,12 @@ async def _run_app_mount_test() -> None:
 
     async with app.run_test(size=(100, 30)) as pilot:
         header = pilot.app.query_one("#session-header", Static)
-        conversation = pilot.app.query_one("#conversation-pane", Static)
+        conversation = pilot.app.query_one(ConversationPane)
         composer = pilot.app.query_one("#composer", ComposerWidget)
 
         assert "Glassbox" in str(header.content)
         assert str(app.state.header.session_id)[:8] in str(header.content)
-        assert "Starting conversation" in str(conversation.content)
+        assert "Starting conversation" in conversation.content_text
         assert composer.placeholder == (
             "Write a prompt. Enter adds a line; Ctrl+Enter sends."
         )
@@ -451,11 +464,11 @@ async def _run_stream_reconnect_success_test() -> None:
     async with app.run_test(size=(100, 30)) as pilot:
         await pilot.pause()
         header = pilot.app.query_one("#session-header", Static)
-        conversation = pilot.app.query_one("#conversation-pane", Static)
+        conversation = pilot.app.query_one(ConversationPane)
 
         assert client.stream_after_sequences == [7, 7]
         assert "live: reconnected" in str(header.content)
-        assert "hello" in str(conversation.content)
+        assert "hello" in conversation.content_text
 
         pilot.app.exit()
 
@@ -1048,6 +1061,131 @@ async def _run_handoff_feedback_test() -> None:
     await app.close_client()
 
 
+async def _run_approval_slash_command_test() -> None:
+    snapshot = _snapshot()
+    approval_id = new_approval_id()
+    turn_id = new_turn_id()
+    client = _FakeInteractiveClient(
+        events=[
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=8,
+                payload=ApprovalRequested(
+                    approval_id=approval_id,
+                    turn_id=turn_id,
+                    subject="run command",
+                    reason="needs permission",
+                ),
+            )
+        ]
+    )
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        composer = pilot.app.query_one(ComposerWidget)
+
+        assert composer.read_only is False
+
+        composer.text = "/approve"
+        await pilot.pause()
+        await pilot.press("ctrl+enter")
+        action_strip = pilot.app.query_one("#action-strip", Static)
+
+        assert client.resolved_approvals == [(approval_id, ApprovalDecision.APPROVED)]
+        assert "Accepted: Approval accepted" in str(action_strip.content)
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_streaming_transcript_follow_latest_test() -> None:
+    snapshot = _snapshot()
+    message_id = new_message_id()
+    long_response = " ".join(f"token{i:03d}" for i in range(240))
+    client = _FakeInteractiveClient(
+        events=[
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=8,
+                payload=AssistantMessageStarted(message_id=message_id),
+            ),
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=9,
+                payload=AssistantMessageDelta(
+                    message_id=message_id,
+                    delta=long_response,
+                ),
+            ),
+        ]
+    )
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(60, 16)) as pilot:
+        await pilot.pause()
+        conversation = pilot.app.query_one(ConversationPane)
+
+        assert "token239" in conversation.content_text
+        assert conversation.scroll_y == conversation.max_scroll_y
+
+        await pilot.press("pageup")
+        await pilot.pause()
+        assert conversation.scroll_y < conversation.max_scroll_y
+
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
+        typed_app.action_latest()
+        await pilot.pause()
+        assert conversation.scroll_y == conversation.max_scroll_y
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_dashboard_details_wrap_test() -> None:
+    snapshot = _snapshot()
+    dashboard_url = (
+        "http://127.0.0.1:8765/?view=operator&branch=feature-super-long"
+        f"&session={snapshot.session_id}"
+    )
+    app = create_tui_app(
+        client=_FakeInteractiveClient(),
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+        dashboard_url=dashboard_url,
+    )
+
+    async with app.run_test(size=(120, 20)) as pilot:
+        await pilot.pause()
+        details = pilot.app.query_one(DetailsPane)
+        details.toggle()
+        await pilot.pause()
+        details_text = str(details.content)
+        dashboard_block = details_text.split("dashboard: ", 1)[1].split(
+            "\nselected tool",
+            1,
+        )[0]
+        compact_dashboard = "".join(dashboard_block.split())
+
+        assert "..." not in dashboard_block
+        assert "http://127.0.0.1:8765/?view=operator" in compact_dashboard
+        assert str(snapshot.session_id) in compact_dashboard
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
 async def _run_interrupt_and_quit_contract_test() -> None:
     snapshot = _snapshot()
     turn_id = new_turn_id()
@@ -1134,10 +1272,10 @@ async def _run_live_event_test() -> None:
 
     async with app.run_test(size=(100, 30)) as pilot:
         await pilot.pause()
-        conversation = pilot.app.query_one("#conversation-pane", Static)
+        conversation = pilot.app.query_one(ConversationPane)
 
-        assert "Assistant (streaming)" in str(conversation.content)
-        assert "hello" in str(conversation.content)
+        assert "Assistant (streaming)" in conversation.content_text
+        assert "hello" in conversation.content_text
 
         pilot.app.exit()
 
