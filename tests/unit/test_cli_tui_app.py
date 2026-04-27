@@ -235,6 +235,7 @@ async def _run_app_mount_test() -> None:
         assert "Glassbox" in str(header.content)
         assert str(app.state.header.session_id)[:8] in str(header.content)
         assert "Starting conversation" in conversation.content_text
+        assert pilot.app.focused is composer
         assert composer.placeholder == (
             "Write a prompt. Enter adds a line; Ctrl+Enter sends."
         )

@@ -261,7 +261,7 @@ def test_action_strip_renders_pending_approval_card_with_risk_context() -> None:
     assert "Accepted: Approval accepted." in rendered
 
 
-def test_transcript_renders_chat_tools_and_failure() -> None:
+def test_transcript_renders_chat_without_tool_logs() -> None:
     session_id = new_session_id()
     turn_id = new_turn_id()
     tool_call_id = new_tool_call_id()
@@ -327,13 +327,13 @@ def test_transcript_renders_chat_tools_and_failure() -> None:
 
     assert "You" in rendered
     assert "Assistant (completed)" in rendered
-    assert "Tool:" in rendered
-    assert "read complete" in rendered
-    assert "output: opened widgets.py" in rendered
+    assert "Tool:" not in rendered
+    assert "read complete" not in rendered
+    assert "output: opened widgets.py" not in rendered
     assert all(len(line) <= 54 for line in lines if line)
 
 
-def test_transcript_renders_compact_tool_activity_states() -> None:
+def test_transcript_hides_pending_approval_tool_activity() -> None:
     session_id = new_session_id()
     turn_id = new_turn_id()
     tool_call_id = new_tool_call_id()
@@ -371,14 +371,15 @@ def test_transcript_renders_compact_tool_activity_states() -> None:
 
     rendered = render_transcript(state, width=62)
 
-    assert "Tool: shell [awaiting approval]" in rendered
-    assert "policy approve" in rendered
-    assert "risk command" in rendered
-    assert "source confirm-shell" in rendered
-    assert "approval pending" in rendered
+    assert rendered == "Starting conversation..."
+    assert "Tool: shell [awaiting approval]" not in rendered
+    assert "policy approve" not in rendered
+    assert "risk command" not in rendered
+    assert "source confirm-shell" not in rendered
+    assert "approval pending" not in rendered
 
 
-def test_transcript_renders_expanded_tool_details_and_artifacts() -> None:
+def test_transcript_hides_expanded_tool_details_and_artifacts() -> None:
     session_id = new_session_id()
     turn_id = new_turn_id()
     tool_call_id = new_tool_call_id()
@@ -432,17 +433,16 @@ def test_transcript_renders_expanded_tool_details_and_artifacts() -> None:
     state = with_tool_expanded(state, tool_call_id, expanded=True)
 
     rendered = render_transcript(state, width=68)
-    lines = rendered.splitlines()
 
-    assert "Tool: write_file [completed]" in rendered
-    assert "output:" in rendered
-    assert "(truncated)" in rendered
-    assert "artifacts:" in rendered
-    assert "details expanded" in rendered
-    assert "args:" in rendered
-    assert "output full:" in rendered
-    assert "artifact:" in rendered
-    assert all(len(line) <= 68 for line in lines if line)
+    assert rendered == "Starting conversation..."
+    assert "Tool: write_file [completed]" not in rendered
+    assert "output:" not in rendered
+    assert "(truncated)" not in rendered
+    assert "artifacts:" not in rendered
+    assert "details expanded" not in rendered
+    assert "args:" not in rendered
+    assert "output full:" not in rendered
+    assert "artifact:" not in rendered
 
 
 def test_details_pane_renders_selected_tool_output_policy() -> None:

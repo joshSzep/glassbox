@@ -667,15 +667,13 @@ def render_transcript(
 ) -> str:
     width = max(width, TRANSCRIPT_MIN_WIDTH)
     lines: list[str] = []
-    if not state.messages and not state.turns and state.failure is None:
+    if not _has_visible_transcript_content(state):
         return _empty_transcript_text(state)
 
     for message in state.messages:
         _append_message(lines, message.kind, message.text, width, message.status)
 
     for turn in state.turns:
-        for tool in turn.tools:
-            _append_tool(lines, tool, state, width)
         if turn.failure_message:
             _append_block(lines, "Turn failed", turn.failure_message, width)
 
@@ -683,6 +681,12 @@ def render_transcript(
         _append_block(lines, "Failure", state.failure.message, width)
 
     return "\n".join(lines)
+
+
+def _has_visible_transcript_content(state: TerminalConversationState) -> bool:
+    if state.messages or state.failure is not None:
+        return True
+    return any(turn.failure_message for turn in state.turns)
 
 
 def _message_label(kind: ConversationMessageKind) -> str:

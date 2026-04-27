@@ -94,6 +94,7 @@ class GlassboxTerminalApp(App[None]):
         yield CommandPaletteWidget(self.state)
 
     def on_mount(self) -> None:
+        self.set_focus(self.query_one(ComposerWidget))
         self._stream_task = asyncio.create_task(self._consume_live_events())
 
     async def _consume_live_events(self) -> None:

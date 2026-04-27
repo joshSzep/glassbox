@@ -297,8 +297,11 @@ def _tool_activity_scenario() -> TerminalWorkflowScenario:
         ),
         expected_mode=TerminalMode.RUNNING_TOOL,
         expected_action=TerminalActionKind.ACTIVE_TURN_WAIT,
-        transcript_contains=("Tool: read_file [running]", "opened README.md"),
-        details_contains=("selected tool: read_file", "artifacts/readme.txt"),
+        details_contains=(
+            "selected tool: read_file",
+            "opened README.md",
+            "artifacts/readme.txt",
+        ),
     )
 
 
@@ -336,7 +339,7 @@ def _pending_approval_scenario() -> TerminalWorkflowScenario:
         expected_mode=TerminalMode.AWAITING_APPROVAL,
         expected_action=TerminalActionKind.PENDING_APPROVAL,
         action_contains=("Approval: run uv test command", "Alt+A approve"),
-        transcript_contains=("Tool: shell [awaiting approval]",),
+        details_contains=("selected tool: shell [awaiting approval]",),
     )
 
 
