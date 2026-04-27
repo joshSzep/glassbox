@@ -202,14 +202,14 @@ The intended v5 milestone order is:
 
 ### GBX-560: Audit The Current Interactive Terminal Experience
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-553`
 - Goal: establish a concrete, code-aligned UX baseline for `glassbox session chat` and `glassbox session attach` before the TUI migration begins
 - Deliverables:
-  - terminal UX audit document covering startup, dashboard co-hosting, transcript readability, assistant streaming, tool activity, approvals, questions, slash commands, status, attach, reconnect, interruption, non-TTY behavior, and error recovery
-  - representative captured terminal transcripts for idle prompt, initial prompt, multi-turn chat, pending question, pending approval, tool-heavy turn, failed turn, daemon attach, reconnect, and dashboard startup failure
-  - issue inventory grouped by severity: workflow blocker, high-friction interaction issue, terminal rendering issue, keyboard/input issue, copy issue, and test coverage gap
-  - explicit list of already-good semantics that must be preserved during the redesign
+  - terminal UX audit document covering startup, dashboard co-hosting, transcript readability, assistant streaming, tool activity, approvals, questions, slash commands, status, attach, reconnect, interruption, non-TTY behavior, and error recovery: [terminal-ux-audit-v5.md](./terminal-ux-audit-v5.md)
+  - representative captured terminal transcripts for idle prompt, initial prompt, multi-turn chat, pending question, pending approval, tool-heavy turn, failed turn, daemon attach, reconnect, and dashboard startup failure: [terminal-ux-audit-v5.md](./terminal-ux-audit-v5.md)
+  - issue inventory grouped by severity: workflow blocker, high-friction interaction issue, terminal rendering issue, keyboard/input issue, copy issue, and test coverage gap: [terminal-ux-audit-v5.md](./terminal-ux-audit-v5.md)
+  - explicit list of already-good semantics that must be preserved during the redesign: [terminal-ux-audit-v5.md](./terminal-ux-audit-v5.md)
 - Implementation notes:
   - inspect the current CLI as a coding-agent user, not only as a command dispatcher
   - compare the current experience against the desired full-screen coding-agent model, not against old line-mode parity
@@ -221,6 +221,11 @@ The intended v5 milestone order is:
   - no production code changes are required unless trivial instrumentation is needed to capture evidence
 - Done when:
   - implementers have a specific, evidence-backed terminal UX baseline and preserved-behavior list
+
+Completion notes:
+
+- Completed in [terminal-ux-audit-v5.md](./terminal-ux-audit-v5.md).
+- Validation: `uv run pytest tests/integration/test_cli_interactive_commands.py`.
 
 ### GBX-561: Define The v5 Terminal Interaction Model
 
