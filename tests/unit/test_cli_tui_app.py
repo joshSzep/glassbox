@@ -148,6 +148,14 @@ def test_tui_app_reports_unavailable_runtime_without_dispatching() -> None:
     asyncio.run(_run_unavailable_runtime_feedback_test())
 
 
+def test_tui_app_reconnects_stream_and_resumes_from_last_sequence() -> None:
+    asyncio.run(_run_stream_reconnect_success_test())
+
+
+def test_tui_app_reports_unavailable_stream_after_retry_exhaustion() -> None:
+    asyncio.run(_run_stream_retry_exhaustion_test())
+
+
 def test_tui_app_preserves_draft_during_live_updates() -> None:
     asyncio.run(_run_draft_preservation_test())
 
@@ -404,6 +412,73 @@ async def _run_unavailable_runtime_feedback_test() -> None:
         assert "Retry is safe" in str(feedback.content)
         assert composer.text == "preserve while unavailable"
         assert client.submitted_messages == []
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_stream_reconnect_success_test() -> None:
+    snapshot = _snapshot()
+    message_id = new_message_id()
+    client = _FakeInteractiveClient(
+        events=[
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=8,
+                payload=AssistantMessageStarted(message_id=message_id),
+            ),
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=9,
+                payload=AssistantMessageDelta(message_id=message_id, delta="hello"),
+            ),
+        ],
+        stream_errors=[RuntimeError("temporary stream break")],
+    )
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        header = pilot.app.query_one("#session-header", Static)
+        conversation = pilot.app.query_one("#conversation-pane", Static)
+
+        assert client.stream_after_sequences == [7, 7]
+        assert "live: reconnected" in str(header.content)
+        assert "hello" in str(conversation.content)
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_stream_retry_exhaustion_test() -> None:
+    client = _FakeInteractiveClient(
+        stream_errors=[
+            RuntimeError("break 1"),
+            RuntimeError("break 2"),
+            RuntimeError("break 3"),
+            RuntimeError("break 4"),
+        ]
+    )
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=_snapshot(),
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        header = pilot.app.query_one("#session-header", Static)
+        composer = pilot.app.query_one(ComposerWidget)
+
+        assert client.stream_after_sequences == [7, 7, 7, 7]
+        assert "unavailable: stream unavailable after 3 retries" in str(header.content)
+        assert composer.read_only is True
 
         pilot.app.exit()
 
@@ -1047,10 +1122,13 @@ class _FakeInteractiveClient:
         submit_error: Exception | None = None,
         answer_error: Exception | None = None,
         approval_error: Exception | None = None,
+        stream_errors: list[Exception] | None = None,
     ) -> None:
         self.closed = False
         self.fetch_count = 0
         self.events = events or []
+        self.stream_errors = stream_errors or []
+        self.stream_after_sequences: list[int] = []
         self.submit_error = submit_error
         self.answer_error = answer_error
         self.approval_error = approval_error
@@ -1096,6 +1174,9 @@ class _FakeInteractiveClient:
         *,
         after_sequence: int = 0,
     ) -> AsyncIterator[EventEnvelope]:
+        self.stream_after_sequences.append(after_sequence)
+        if self.stream_errors:
+            raise self.stream_errors.pop(0)
         for event in self.events:
             if event.sequence > after_sequence:
                 yield event

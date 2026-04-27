@@ -46,6 +46,9 @@ from glassbox.cli.tui.widgets import SessionHeader
 from glassbox.cli.tui.widgets import composer_availability
 from glassbox.core.types import ApprovalDecision
 
+STREAM_RECONNECT_RETRY_COUNT = 3
+STREAM_RECONNECT_RETRY_DELAYS_SECONDS = (0.0, 0.0, 0.0)
+
 
 class GlassboxTerminalApp(App[None]):
     """Minimal full-screen terminal app boundary for future TUI work."""
@@ -92,21 +95,56 @@ class GlassboxTerminalApp(App[None]):
         self._stream_task = asyncio.create_task(self._consume_live_events())
 
     async def _consume_live_events(self) -> None:
-        try:
-            async for event in self.client_adapter.stream_events(
-                after_sequence=self.state.header.last_sequence,
-            ):
-                self.apply_runtime_event(event)
-        except asyncio.CancelledError:
-            raise
-        except Exception as exc:
-            self.update_conversation_state(
-                with_stream_status(
-                    self.state,
-                    TerminalStreamStatus.UNAVAILABLE,
-                    detail=str(exc),
+        reconnect_attempts = 0
+        while True:
+            try:
+                async for event in self.client_adapter.stream_events(
+                    after_sequence=self.state.header.last_sequence,
+                ):
+                    self.apply_runtime_event(event)
+                if reconnect_attempts > 0:
+                    self.update_conversation_state(
+                        with_stream_status(
+                            self.state,
+                            TerminalStreamStatus.LIVE,
+                            detail="reconnected",
+                        )
+                    )
+                return
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                reconnect_attempts += 1
+                if reconnect_attempts > STREAM_RECONNECT_RETRY_COUNT:
+                    self.update_conversation_state(
+                        with_stream_status(
+                            self.state,
+                            TerminalStreamStatus.UNAVAILABLE,
+                            detail=(
+                                "stream unavailable after "
+                                f"{STREAM_RECONNECT_RETRY_COUNT} retries: {exc}"
+                            ),
+                        )
+                    )
+                    return
+                self.update_conversation_state(
+                    with_stream_status(
+                        self.state,
+                        TerminalStreamStatus.RECONNECTING,
+                        detail=(
+                            f"retry {reconnect_attempts}/"
+                            f"{STREAM_RECONNECT_RETRY_COUNT}: {exc}"
+                        ),
+                    )
                 )
-            )
+                delay = STREAM_RECONNECT_RETRY_DELAYS_SECONDS[
+                    min(
+                        reconnect_attempts - 1,
+                        len(STREAM_RECONNECT_RETRY_DELAYS_SECONDS) - 1,
+                    )
+                ]
+                if delay > 0:
+                    await asyncio.sleep(delay)
 
     def apply_runtime_event(self, event) -> None:
         self.update_conversation_state(apply_event(self.state, event))

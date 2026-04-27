@@ -962,7 +962,7 @@ Completion notes:
 
 ### GBX-621: Implement Reconnect And Runtime Availability UX
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-620`, `GBX-583`
 - Goal: make stream interruptions and daemon/runtime availability understandable and recoverable inside the TUI
 - Deliverables:
@@ -980,6 +980,11 @@ Completion notes:
   - existing daemon runtime tests continue to pass
 - Done when:
   - users understand whether the terminal is live, reconnecting, unavailable, or only inspecting persisted state
+
+Completion notes:
+- Added a visible TUI stream retry loop with `reconnecting` state, retry counts, last-sequence resume, `live: reconnected` recovery detail, and `unavailable` state only after retry exhaustion.
+- Kept composer/action guards tied to stream status so mutation is blocked while reconnecting or unavailable.
+- Validated with `uv run pytest tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_commands.py`, `uv run ruff check src/glassbox/cli/tui tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_commands.py`, and `uv run ty check`.
 
 ### GBX-622: Define And Implement Interruption Semantics
 
