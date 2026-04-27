@@ -1069,7 +1069,7 @@ Completion notes:
 
 ### GBX-630: Add Scenario-Based Terminal Workflow Coverage
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-610`, `GBX-611`, `GBX-612`, `GBX-620`, `GBX-621`, `GBX-623`
 - Goal: protect the new terminal UX with scenario-based tests that match real coding-agent workflows
 - Deliverables:
@@ -1088,6 +1088,13 @@ Completion notes:
   - `uv run ty check`
 - Done when:
   - the terminal client has enough automated workflow coverage to make future UI changes safer
+
+Completion notes:
+- Added reusable deterministic TUI workflow scenarios covering startup, initial prompt, multi-turn chat, streaming output, tool activity, pending approval, pending question, active-turn prompt conflict, failed turn, dashboard handoff, reconnect, and historical-only state.
+- Added scenario tests that assert stable user-observable reducer state, transcript/action/header/details rendering, dashboard command handoffs, mutation blocking during reconnect/historical states, and implicit non-TTY fallback behavior.
+- Added subprocess smoke coverage proving implicit `session chat` launch falls back to plain mode when stdin/stdout are redirected.
+- Expanded the manual terminal UX review checklist with representative terminal sizes and scenario expectations.
+- Validated with `uv run pytest tests/unit/test_cli_tui_workflows.py tests/integration/test_cli_tui_launch_smoke.py tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py tests/integration/test_daemon_runtime.py::test_cli_attach_tui_routes_live_session_through_daemon`.
 
 ### GBX-631: Update Operator Docs For The v5 Chat Experience
 

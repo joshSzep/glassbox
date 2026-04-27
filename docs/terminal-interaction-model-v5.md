@@ -282,20 +282,33 @@ The TUI may change presentation and discovery, but it should not change core sem
 
 ## Manual Validation Checklist
 
-Before the TUI becomes default, manually verify at least these workflows:
+Before the TUI becomes default, manually verify the automated scenario suite against real terminal behavior. Use at least these terminal sizes:
+
+- 120 x 36 for a comfortable desktop coding session
+- 100 x 30 for the default automated Textual smoke size
+- 80 x 24 for the smallest common full-screen terminal
+- 60 x 20 for narrow split panes where truncation and wrapping matter
+
+Verify at least these workflows:
 
 - launch new chat with no initial prompt
 - launch new chat with an initial prompt
+- continue a multi-turn chat without losing local prompt history
 - send a multiline prompt with pasted code
 - watch assistant streaming in a normal-width terminal
 - watch assistant streaming in a narrow terminal
 - inspect compact tool activity and expanded details
+- inspect a failed tool or failed turn and confirm recovery guidance is visible
 - answer a pending question without copying an ID
 - approve and deny pending approvals without copying an ID
+- try to send a prompt while a turn is active and confirm the conflict is explained
 - open and copy the dashboard URL after scrollback has moved
 - attach to a daemon-owned live session
 - attach to a local persisted actionable session
+- attach to a completed session and confirm the historical-only state blocks mutation
 - handle reconnecting and unavailable runtime states
 - quit during idle state
 - quit or interrupt during active turn
 - run with redirected input or output and observe the documented fallback behavior
+
+For each workflow, confirm the header stays stable, the transcript remains the main surface, the composer draft is preserved across transient UI, and the command palette gives clear enabled or disabled reasons for the expected next action.
