@@ -9,7 +9,9 @@ from glassbox.cli.interactive_client import InteractiveSessionSnapshot
 from glassbox.cli.interactive_launch import InteractiveLaunchMode
 from glassbox.cli.interactive_launch import InteractiveLaunchOptions
 from glassbox.cli.tui import GlassboxTerminalApp
+from glassbox.cli.tui import create_session_tui_app
 from glassbox.cli.tui import create_tui_app
+from glassbox.cli.tui.state import session_dashboard_url
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import QuestionId
@@ -21,15 +23,37 @@ from glassbox.core.types import SessionStatus
 
 def test_tui_app_factory_builds_app_with_fake_client() -> None:
     client = _FakeInteractiveClient()
+    snapshot = _snapshot()
     app = create_tui_app(
         client=client,
-        initial_snapshot=_snapshot(),
+        initial_snapshot=snapshot,
         launch_options=_launch_options(),
         dashboard_url="http://127.0.0.1:8765/?session=abc",
     )
 
     assert isinstance(app, GlassboxTerminalApp)
-    assert app.state.dashboard_url == "http://127.0.0.1:8765/?session=abc"
+    assert app.state.dashboard_url == (
+        f"http://127.0.0.1:8765/?session={snapshot.session_id}"
+    )
+
+
+def test_session_dashboard_url_adds_or_replaces_session_query() -> None:
+    session_id = new_session_id()
+
+    assert session_dashboard_url("http://127.0.0.1:8765/", session_id) == (
+        f"http://127.0.0.1:8765/?session={session_id}"
+    )
+    assert (
+        session_dashboard_url(
+            "http://127.0.0.1:8765/?view=operator&session=old",
+            session_id,
+        )
+        == f"http://127.0.0.1:8765/?view=operator&session={session_id}"
+    )
+
+
+def test_create_session_tui_app_fetches_snapshot_and_preserves_dashboard_url() -> None:
+    asyncio.run(_run_lifecycle_test())
 
 
 def test_tui_app_can_mount_and_close_client() -> None:
@@ -50,6 +74,7 @@ async def _run_app_mount_test() -> None:
         composer = pilot.app.query_one("#composer", Static)
 
         assert "Glassbox session" in str(header.content)
+        assert f"?session={app.state.session_id}" in str(header.content)
         assert "last event sequence 7" in str(conversation.content)
         assert "plain composer ready" in str(composer.content)
 
@@ -59,6 +84,20 @@ async def _run_app_mount_test() -> None:
     await app.close_client()
 
     assert client.closed is True
+
+
+async def _run_lifecycle_test() -> None:
+    client = _FakeInteractiveClient()
+    app = await create_session_tui_app(
+        client=client,
+        launch_options=_launch_options(),
+        dashboard_url="http://127.0.0.1:8765/",
+    )
+
+    assert client.fetch_count == 1
+    assert app.state.dashboard_url == (
+        f"http://127.0.0.1:8765/?session={app.state.session_id}"
+    )
 
 
 def _snapshot() -> InteractiveSessionSnapshot:
@@ -90,12 +129,14 @@ def _launch_options() -> InteractiveLaunchOptions:
 
 class _FakeInteractiveClient:
     closed = False
+    fetch_count = 0
 
     @property
     def session_id(self):
         return new_session_id()
 
     async def fetch_snapshot(self) -> InteractiveSessionSnapshot:
+        self.fetch_count += 1
         return _snapshot()
 
     async def submit_message(self, text: str) -> None:

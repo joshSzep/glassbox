@@ -401,7 +401,7 @@ Completion notes:
 
 ### GBX-573: Align Dashboard Co-Hosting With The TUI Launch Lifecycle
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-572`
 - Goal: preserve the co-hosted dashboard as the paired operator console while launching the full-screen terminal app
 - Deliverables:
@@ -419,6 +419,14 @@ Completion notes:
   - manual launch smoke with `--no-dashboard` and default dashboard mode
 - Done when:
   - the browser operator console remains naturally paired with terminal chat after the TUI migration
+
+Completion notes:
+
+- Added [lifecycle.py](../src/glassbox/cli/tui/lifecycle.py) so the TUI app is created from an `InteractiveSessionClient` snapshot after the command layer has resolved runtime ownership and dashboard lifecycle.
+- Updated TUI state/header plumbing to expose a session-specific dashboard URL derived from the dashboard base URL and current session id.
+- Documented the current dashboard handoff boundary in [terminal-interaction-model-v5.md](./terminal-interaction-model-v5.md).
+- Added TUI dashboard URL coverage in [test_cli_tui_app.py](../tests/unit/test_cli_tui_app.py) and re-ran existing dashboard sidecar integration coverage in [test_cli_interactive_commands.py](../tests/integration/test_cli_interactive_commands.py).
+- Validation: `uv run pytest tests/unit/test_cli_tui_app.py tests/integration/test_cli_interactive_commands.py`; `uv run ruff check src/glassbox/cli/tui tests/unit/test_cli_tui_app.py tests/integration/test_cli_interactive_commands.py`; `uv run ty check`.
 
 ---
 

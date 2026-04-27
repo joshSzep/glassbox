@@ -227,6 +227,13 @@ The terminal should make dashboard handoff persistent by providing:
 
 The terminal must remain usable if the browser is never opened. The dashboard is a paired operator console, not a required chat dependency.
 
+Current TUI lifecycle boundary:
+
+- local `session chat` still owns starting and stopping the co-hosted dashboard before creating the session
+- the TUI app receives a session-specific dashboard URL derived from the runtime dashboard base URL and current session id
+- daemon attach can surface the daemon-owned dashboard URL without taking over dashboard lifecycle ownership
+- dashboard unavailability should be visible but must not make terminal chat depend on an opened browser
+
 ## Fallback Contract
 
 The full-screen TUI should become the default in supported TTYs.

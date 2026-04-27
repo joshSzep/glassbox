@@ -1,6 +1,10 @@
 """State containers owned by the Textual app shell."""
 
 from dataclasses import dataclass
+from urllib.parse import parse_qsl
+from urllib.parse import urlencode
+from urllib.parse import urlsplit
+from urllib.parse import urlunsplit
 
 from glassbox.cli.interactive_client import InteractiveSessionSnapshot
 from glassbox.cli.interactive_launch import InteractiveLaunchOptions
@@ -33,7 +37,20 @@ class TerminalAppState:
             model_name=snapshot.model_name,
             cwd=snapshot.cwd,
             approval_mode=snapshot.approval_mode,
-            dashboard_url=dashboard_url or snapshot.dashboard_url,
+            dashboard_url=session_dashboard_url(
+                dashboard_url or snapshot.dashboard_url,
+                snapshot.session_id,
+            ),
             pending_question_text=snapshot.pending_question_text,
             launch_options=launch_options,
         )
+
+
+def session_dashboard_url(dashboard_url: str | None, session_id: object) -> str | None:
+    if dashboard_url is None:
+        return None
+
+    url_parts = urlsplit(dashboard_url)
+    query = dict(parse_qsl(url_parts.query, keep_blank_values=True))
+    query["session"] = str(session_id)
+    return urlunsplit(url_parts._replace(query=urlencode(query)))
