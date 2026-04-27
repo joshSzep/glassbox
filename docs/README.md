@@ -14,8 +14,8 @@ Use this page to jump to the right level of detail.
 - [tasks-v3.md](./tasks-v3.md): plan the Next.js, TypeScript, Tailwind, Zustand, shadcn, and OpenAPI-driven SPA migration for the dashboard
 - [tasks-v4.md](./tasks-v4.md): plan the UX-focused evolution of the completed SPA into a stronger operator console
 - [tasks-v5.md](./tasks-v5.md): plan the full-screen terminal client modernization for `glassbox session chat`
-- [interactive-workflows.md](./interactive-workflows.md): work through `chat`, `attach`, `message`, `answer`, `approve`, `deny`, `resume`, and `status`
-- [dashboard.md](./dashboard.md): use the co-hosted dashboard from `chat` or the standalone dashboard from `serve`
+- [interactive-workflows.md](./interactive-workflows.md): use the full-screen `session chat` and `attach` TUI, plus `message`, `answer`, `approve`, `deny`, `resume`, and `status`
+- [dashboard.md](./dashboard.md): use the co-hosted dashboard as the paired operator console for terminal chat or run the standalone dashboard from `serve`
 - [dashboard-parity.md](./dashboard-parity.md): review the v3 SPA parity gate before replacing the legacy dashboard route
 - [frontend-development.md](./frontend-development.md): run the Next.js SPA with FastAPI during local development and verify the static production path
 - [frontend-screenshot-archive.md](./frontend-screenshot-archive.md): generate and review the v4 Playwright screenshot archive for frontend UX work

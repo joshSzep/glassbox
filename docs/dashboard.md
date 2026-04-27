@@ -21,7 +21,9 @@ When startup succeeds, the terminal prints a session-specific URL like:
 http://127.0.0.1:8765/?session=SESSION_ID
 ```
 
-Open that URL while the interactive session is still running to watch the same live session that the terminal is driving in the v3 SPA dashboard.
+Open that URL while the full-screen terminal chat is still running to watch the same live session that the terminal is driving in the SPA dashboard. The TUI keeps the URL visible in the header and exposes open/copy actions through the command palette, so browser handoff remains available after terminal scrollback moves on.
+
+The intended split is simple: the terminal remains the primary coding-agent conversation surface, and the dashboard is the paired operator console for deeper inspection. Use the dashboard when you want queue views, lineage, event details, tool output, replay/eval cues, or broader workspace context without interrupting the chat flow.
 
 If default dashboard startup fails, `chat` keeps the terminal workflow running and prints a warning that the dashboard is unavailable for that session.
 
@@ -120,6 +122,7 @@ uv run glassbox artifacts inspect --json
 
 - If you used `glassbox session chat --no-dashboard`, start `glassbox dashboard serve` and open `/`.
 - If the co-hosted dashboard was unavailable, the session may still be running normally in the terminal.
+- If you are attached through the TUI and no dashboard URL is present, open the command palette to confirm whether the dashboard is unavailable or start `glassbox dashboard serve --cwd .` separately.
 - If `/` reports that SPA assets have not been built, run `pnpm --dir frontend build` from the repository root before serving the development checkout.
 - If the selected session shows `live unavailable`, treat the snapshot as persisted history unless another runtime is known to be driving it.
 - If a direct `?session=...` URL is stale or invalid, the dashboard returns to the session index instead of leaving the browser stuck.
@@ -128,6 +131,7 @@ uv run glassbox artifacts inspect --json
 
 - [frontend-development.md](./frontend-development.md)
 - [interactive-workflows.md](./interactive-workflows.md)
+- [terminal-interaction-model-v5.md](./terminal-interaction-model-v5.md)
 - [v4-ux-release-gate.md](./v4-ux-release-gate.md)
 - [persistent-runtime.md](./persistent-runtime.md)
 - [branching.md](./branching.md)

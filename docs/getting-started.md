@@ -28,7 +28,8 @@ python -m glassbox --help
 
 ## Start The First Session
 
-The default conversational entrypoint is `glassbox session chat`.
+The default conversational entrypoint is `glassbox session chat`. In a supported
+interactive terminal, it opens the full-screen Glassbox chat UI.
 
 ```bash
 uv run glassbox session chat --cwd .
@@ -40,19 +41,21 @@ Or start with an initial prompt:
 uv run glassbox session chat "Inspect the repository" --cwd .
 ```
 
-`session chat` starts a new session, keeps the terminal attached to the live event stream, and by default also starts a co-hosted dashboard for the same session.
+`session chat` starts a new session, keeps the terminal attached to the live event stream, and by default also starts a co-hosted dashboard for the same session. The terminal is the primary chat surface: write prompts in the composer, read assistant output in the transcript, use the action strip for approvals or questions, and open the command palette for dashboard and session handoffs.
 
-When dashboard startup succeeds, `session chat` prints a URL like:
+The dashboard URL is shown in the terminal header and is available from the command palette. It looks like:
 
 ```text
 http://127.0.0.1:8765/?session=SESSION_ID
 ```
 
-Open that URL while the `session chat` process is still running to watch the same session in the browser.
+Open that URL while the `session chat` process is still running to watch the same session in the browser. The dashboard is paired with terminal chat for deeper inspection; it is not required for ordinary prompting.
+
+If stdin/stdout are redirected, the terminal is too limited, or a CI-like environment is detected, an implicit `session chat` launch falls back to the retained plain line-mode loop. Use `--plain` to request that compatibility mode deliberately, or `--tui` to require the full-screen app and fail if it cannot launch.
 
 ## Use The One-Shot CLI
 
-If you want a one-shot command instead of the long-lived interactive shell, use `glassbox session run`.
+If you want a one-shot command instead of the long-lived terminal chat, use `glassbox session run`.
 
 ```bash
 uv run glassbox session run "Inspect the repository" --cwd .
@@ -151,7 +154,7 @@ uv run glassbox eval run --tag smoke --cwd .
 
 ## Where To Go Next
 
-- For the day-to-day operator shell, read [interactive-workflows.md](./interactive-workflows.md).
+- For the day-to-day full-screen chat workflow, read [interactive-workflows.md](./interactive-workflows.md).
 - For the supported v2 operating model and release checklist, read [v2-release-candidate.md](./v2-release-candidate.md).
 - For browser usage, read [dashboard.md](./dashboard.md).
 - For replay and eval workflows, read [replay-evals.md](./replay-evals.md).

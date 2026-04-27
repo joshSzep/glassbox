@@ -1098,7 +1098,7 @@ Completion notes:
 
 ### GBX-631: Update Operator Docs For The v5 Chat Experience
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-623`, `GBX-630`
 - Goal: teach users the new terminal experience without making them inspect source code or old task docs
 - Deliverables:
@@ -1116,6 +1116,12 @@ Completion notes:
   - manual verification of documented example flows
 - Done when:
   - a new user can discover and use the modern terminal chat workflow from docs alone
+
+Completion notes:
+- Updated getting started to present full-screen `session chat` as the default operator entry point, explain the co-hosted dashboard handoff, and document implicit fallback plus explicit `--plain`/`--tui` behavior.
+- Rewrote the interactive workflow guide around the TUI layout, keyboard controls, multiline composer behavior, approvals, questions, attach modes, historical-only sessions, fallback, and troubleshooting while keeping one-shot commands intact.
+- Updated the dashboard guide to explain the terminal/dashboard partnership and how the TUI exposes dashboard handoff actions.
+- Updated the docs hub so new users can discover the v5 terminal workflow from the main documentation index.
 
 ### GBX-632: Define And Enforce The v5 Terminal UX Release Gate
 
