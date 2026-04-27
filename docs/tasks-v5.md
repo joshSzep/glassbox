@@ -1125,7 +1125,7 @@ Completion notes:
 
 ### GBX-632: Define And Enforce The v5 Terminal UX Release Gate
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-630`, `GBX-631`, `GBX-624`
 - Goal: decide when the full-screen terminal client is good enough to become the default `glassbox session chat` experience
 - Deliverables:
@@ -1146,6 +1146,12 @@ Completion notes:
   - manual terminal review at representative sizes
 - Done when:
   - the project has objective evidence that `glassbox session chat` is materially better than the old line-mode baseline and safe to treat as the new coding-agent terminal standard
+
+Completion notes:
+- Added the v5 terminal UX release gate document with the release command, checklist, automated coverage map, focused terminal workflow suite, manual deterministic and real-provider validation, known non-blocking gaps, and the plain line-mode support decision.
+- Added `scripts/validate_v5_terminal_release_gate.py` to enforce the gate with Python format/lint/typecheck, focused terminal workflow tests, full Python tests, deterministic eval smoke, wheel/sdist build, and installed-wheel terminal smoke for help and explicit plain fallback.
+- Added release-gate tests that keep the gate document and script aligned with the required terminal UX areas and validation commands.
+- Updated the documentation hub so the release gate is discoverable beside the other v5 terminal docs.
 
 ---
 
