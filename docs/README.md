@@ -23,6 +23,7 @@ Use this page to jump to the right level of detail.
 - [terminal-ux-audit-v5.md](./terminal-ux-audit-v5.md): review the v5 audit of the current line-mode terminal chat baseline
 - [terminal-interaction-model-v5.md](./terminal-interaction-model-v5.md): review the v5 full-screen terminal chat interaction contract
 - [terminal-framework-decision-v5.md](./terminal-framework-decision-v5.md): review the v5 Textual framework decision for the terminal TUI
+- [terminal-test-harness-v5.md](./terminal-test-harness-v5.md): review the v5 terminal TUI test harness and manual review artifact policy
 - [frontend-testing.md](./frontend-testing.md): write v3 SPA unit, transport, store, and React component tests with Vitest and Testing Library
 - [operator-console.md](./operator-console.md): understand the v2 multi-session console model, v3 SPA UX contract, action queues, runtime-health semantics, and backend/frontend contracts
 - [persistent-runtime.md](./persistent-runtime.md): run a workspace daemon, inspect runtime health, attach from another terminal, and recover stale ownership
@@ -56,6 +57,7 @@ Use this page to jump to the right level of detail.
 - [terminal-ux-audit-v5.md](./terminal-ux-audit-v5.md): current terminal chat UX audit, transcript evidence, issue inventory, and preserved behavior list
 - [terminal-interaction-model-v5.md](./terminal-interaction-model-v5.md): v5 terminal chat layout, keyboard, action-priority, transcript, runtime-state, dashboard-handoff, and fallback contract
 - [terminal-framework-decision-v5.md](./terminal-framework-decision-v5.md): v5 terminal framework decision, Textual rationale, alternatives, packaging notes, and smoke validation
+- [terminal-test-harness-v5.md](./terminal-test-harness-v5.md): v5 terminal TUI test layers, scenario matrix, stable invariants, manual review checklist, and artifact retention policy
 - [frontend-testing.md](./frontend-testing.md): v3 SPA frontend-native test harness, fixture strategy, and focused test-writing guidance
 - [operator-console.md](./operator-console.md): v2 operator-console information architecture, v3 SPA UX contract, and queue/health semantics for multi-session inspection
 - [v4-ux-release-gate.md](./v4-ux-release-gate.md): v4 UX gate command, checklist, automated coverage map, screenshot review path, manual validation, and known gaps

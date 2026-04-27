@@ -284,15 +284,15 @@ Completion notes:
 
 ### GBX-563: Define Terminal Test Harness And Review Artifacts
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-561`, `GBX-562`
 - Goal: create repeatable ways to validate full-screen terminal behavior without relying only on manual terminal impressions
 - Deliverables:
-  - Textual app tests for widget state, keybindings, focus movement, and action dispatch
-  - deterministic terminal transcript or snapshot artifacts for plain fallback and selected TUI states where practical
-  - pty or subprocess smoke strategy for launching `glassbox session chat` in a real terminal-like environment
-  - manual terminal UX review checklist covering desktop terminal sizes, narrow terminal widths, paste behavior, keyboard-only action flows, scrollback, and reconnect states
-  - retention guidance for terminal screenshots, recordings, or text snapshots so local review evidence does not create noisy binary churn
+  - Textual app tests for widget state, keybindings, focus movement, and action dispatch: [terminal-test-harness-v5.md](./terminal-test-harness-v5.md)
+  - deterministic terminal transcript or snapshot artifacts for plain fallback and selected TUI states where practical: [terminal-test-harness-v5.md](./terminal-test-harness-v5.md)
+  - pty or subprocess smoke strategy for launching `glassbox session chat` in a real terminal-like environment: [terminal-test-harness-v5.md](./terminal-test-harness-v5.md)
+  - manual terminal UX review checklist covering desktop terminal sizes, narrow terminal widths, paste behavior, keyboard-only action flows, scrollback, and reconnect states: [terminal-test-harness-v5.md](./terminal-test-harness-v5.md)
+  - retention guidance for terminal screenshots, recordings, or text snapshots so local review evidence does not create noisy binary churn: [terminal-test-harness-v5.md](./terminal-test-harness-v5.md)
 - Implementation notes:
   - avoid brittle pixel-perfect terminal tests unless they protect a stable invariant
   - prefer deterministic fake sessions and event streams over live provider calls
@@ -302,6 +302,12 @@ Completion notes:
   - existing CLI tests continue to pass
 - Done when:
   - later TUI tasks have a practical validation path for terminal-specific behavior
+
+Completion notes:
+
+- Completed in [terminal-test-harness-v5.md](./terminal-test-harness-v5.md).
+- Initial CI-like Textual harness proof: [test_tui_framework_smoke.py](../tests/unit/test_tui_framework_smoke.py).
+- Validation: `uv run pytest tests/unit/test_tui_framework_smoke.py`; `uv run pytest tests/integration/test_cli_interactive_commands.py`.
 
 ---
 
