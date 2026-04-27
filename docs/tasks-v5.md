@@ -853,7 +853,7 @@ Completion notes:
 
 ### GBX-612: Render Tool Activity As Inline Conversation Objects
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-581`, `GBX-592`
 - Goal: make tool work understandable without turning the transcript into raw logs
 - Deliverables:
@@ -872,6 +872,11 @@ Completion notes:
   - manual review with `run_tests` and patch-like tool scenarios
 - Done when:
   - users can see what the agent is doing without losing the conversational thread
+
+Completion notes:
+- Reworked transcript tool rendering into compact inline cards with requested, running, awaiting-approval, completed, failed, policy, risk, summary, exit-code, output-truncation, and artifact-path context.
+- Honored reducer-backed expanded tool state for arguments, full output preview, artifacts, and failure summaries while keeping long paths and noisy output width-stable.
+- Validated with `uv run pytest tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_commands.py`, `uv run ruff check src/glassbox/cli/tui tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_commands.py`, and `uv run ty check`.
 
 ### GBX-613: Add Tool Output Policy And Details Pane
 

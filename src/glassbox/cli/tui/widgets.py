@@ -3,6 +3,7 @@
 from contextlib import suppress
 from dataclasses import dataclass
 from enum import StrEnum
+from pathlib import PurePath
 from textwrap import wrap
 from typing import Any
 from typing import ClassVar
@@ -25,6 +26,8 @@ from glassbox.cli.tui.conversation import TerminalActionState
 from glassbox.cli.tui.conversation import TerminalConversationState
 from glassbox.cli.tui.conversation import TerminalMode
 from glassbox.cli.tui.conversation import TerminalStreamStatus
+from glassbox.cli.tui.conversation import ToolActivity
+from glassbox.cli.tui.conversation import ToolActivityStatus
 from glassbox.cli.tui.conversation import header_display_from_state
 from glassbox.cli.tui.conversation import terminal_action_from_state
 
@@ -557,7 +560,7 @@ def render_transcript(
 
     for turn in state.turns:
         for tool in turn.tools:
-            _append_tool(lines, tool, width)
+            _append_tool(lines, tool, state, width)
         if turn.failure_message:
             _append_block(lines, "Turn failed", turn.failure_message, width)
 
@@ -604,18 +607,88 @@ def _append_message(
     _append_block(lines, title, text or "...", width)
 
 
-def _append_tool(lines: list[str], tool, width: int) -> None:
-    title = f"Tool: {_truncate_middle(tool.tool_name, 32)} ({tool.status.value})"
+def _append_tool(
+    lines: list[str],
+    tool: ToolActivity,
+    state: TerminalConversationState,
+    width: int,
+) -> None:
+    status = _tool_status_label(tool, state)
+    title = f"Tool: {_truncate_middle(tool.tool_name, 32)} [{status}]"
+    details = _compact_tool_details(tool, state, width)
+    if tool.tool_call_id in state.expanded_tool_ids:
+        details.extend(_expanded_tool_details(tool, width))
+    _append_block(lines, title, "\n".join(details), width)
+
+
+def _tool_status_label(
+    tool: ToolActivity,
+    state: TerminalConversationState,
+) -> str:
+    if (
+        state.pending_approval is not None
+        and state.pending_approval.tool_call_id == tool.tool_call_id
+        and state.pending_approval.decision is None
+    ):
+        return "awaiting approval"
+    if tool.status == ToolActivityStatus.REQUESTED:
+        return "requested"
+    if tool.status == ToolActivityStatus.RUNNING:
+        return "running"
+    if tool.status == ToolActivityStatus.SUCCEEDED:
+        return "completed"
+    return "failed"
+
+
+def _compact_tool_details(
+    tool: ToolActivity,
+    state: TerminalConversationState,
+    width: int,
+) -> list[str]:
     details: list[str] = []
+    if tool.policy_outcome is not None:
+        details.append(f"policy {_enum_or_string_value(tool.policy_outcome)}")
+    if tool.policy_risk_level is not None:
+        details.append(f"risk {_enum_or_string_value(tool.policy_risk_level)}")
+    if tool.policy_source_label:
+        details.append(f"source {_truncate_middle(tool.policy_source_label, 28)}")
+    elif tool.policy_source_kind is not None:
+        details.append(f"source {_enum_or_string_value(tool.policy_source_kind)}")
     if tool.summary:
-        details.append(tool.summary)
+        details.append(_fit_line(tool.summary, max(width - 2, 12)))
     if tool.exit_code is not None:
         details.append(f"exit {tool.exit_code}")
+    if (
+        state.pending_approval is not None
+        and state.pending_approval.tool_call_id == tool.tool_call_id
+        and state.pending_approval.decision is None
+    ):
+        details.append("approval pending")
     if tool.output_preview:
-        details.append(f"output: {tool.output_preview}")
+        preview = _fit_line(tool.output_preview.replace("\n", " "), max(width - 10, 12))
+        suffix = " (truncated)" if tool.output_truncated else ""
+        details.append(f"output: {preview}{suffix}")
     if tool.artifact_paths:
-        details.append("artifacts: " + ", ".join(tool.artifact_paths))
-    _append_block(lines, title, " | ".join(details) or "running", width)
+        paths = ", ".join(_truncate_path(path, 30) for path in tool.artifact_paths)
+        details.append(f"artifacts: {paths}")
+    if not details:
+        details.append("waiting for tool output")
+    return details
+
+
+def _expanded_tool_details(tool: ToolActivity, width: int) -> list[str]:
+    details = ["details expanded"]
+    if tool.arguments_json:
+        details.append(f"args: {_fit_line(tool.arguments_json, max(width - 8, 12))}")
+    if tool.output_text:
+        output = tool.output_text.replace("\n", "\\n")
+        details.append(f"output full: {_fit_line(output, max(width - 15, 12))}")
+    if tool.artifact_paths:
+        for path in tool.artifact_paths:
+            details.append(f"artifact: {_truncate_path(path, max(width - 12, 20))}")
+    if tool.status == ToolActivityStatus.FAILED and tool.summary:
+        details.append(f"failure: {_fit_line(tool.summary, max(width - 11, 12))}")
+    return details
 
 
 def _append_block(lines: list[str], title: str, text: str, width: int) -> None:
@@ -673,3 +746,14 @@ def _truncate_middle(value: str, max_length: int) -> str:
     left = (max_length - 3) // 2
     right = max_length - 3 - left
     return f"{value[:left]}...{value[-right:]}"
+
+
+def _truncate_path(value: str, max_length: int) -> str:
+    if len(value) <= max_length:
+        return value
+    path = PurePath(value)
+    name = path.name
+    if name and len(name) + 4 < max_length:
+        prefix = _truncate_middle(str(path.parent), max_length - len(name) - 4)
+        return f"{prefix}/.../{name}"
+    return _truncate_middle(value, max_length)

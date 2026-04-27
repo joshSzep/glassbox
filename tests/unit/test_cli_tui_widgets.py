@@ -6,6 +6,7 @@ from glassbox.cli.tui.conversation import conversation_state_from_snapshot
 from glassbox.cli.tui.conversation import reduce_events
 from glassbox.cli.tui.conversation import with_runtime_owner
 from glassbox.cli.tui.conversation import with_stream_status
+from glassbox.cli.tui.conversation import with_tool_expanded
 from glassbox.cli.tui.theme import GLASSBOX_TUI_CSS
 from glassbox.cli.tui.widgets import ActionFeedback
 from glassbox.cli.tui.widgets import ActionFeedbackStatus
@@ -22,6 +23,8 @@ from glassbox.core.events import AssistantMessageCompleted
 from glassbox.core.events import AssistantMessageDelta
 from glassbox.core.events import AssistantMessageStarted
 from glassbox.core.events import EventEnvelope
+from glassbox.core.events import ModelToolCallRequested
+from glassbox.core.events import ToolArtifactRecorded
 from glassbox.core.events import ToolExecutionCompleted
 from glassbox.core.events import ToolExecutionStarted
 from glassbox.core.events import ToolOutputChunk
@@ -30,6 +33,7 @@ from glassbox.core.events import TurnStarted
 from glassbox.core.events import UserMessageReceived
 from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import new_approval_id
+from glassbox.core.ids import new_artifact_id
 from glassbox.core.ids import new_message_id
 from glassbox.core.ids import new_question_id
 from glassbox.core.ids import new_session_id
@@ -325,6 +329,118 @@ def test_transcript_renders_chat_tools_and_failure() -> None:
     assert "read complete" in rendered
     assert "output: opened widgets.py" in rendered
     assert all(len(line) <= 54 for line in lines if line)
+
+
+def test_transcript_renders_compact_tool_activity_states() -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    tool_call_id = new_tool_call_id()
+    approval_id = new_approval_id()
+    state = reduce_events(
+        _state(session_id=session_id),
+        [
+            _event(
+                session_id,
+                1,
+                ModelToolCallRequested(
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    tool_name="shell",
+                    arguments_json='{"cmd":"uv run pytest"}',
+                    policy_outcome="approve",
+                    policy_risk_level="command",
+                    policy_source_kind="rule",
+                    policy_source_label="confirm-shell",
+                ),
+            ),
+            _event(
+                session_id,
+                2,
+                ApprovalRequested(
+                    approval_id=approval_id,
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    subject="run tests",
+                    reason="command execution",
+                ),
+            ),
+        ],
+    )
+
+    rendered = render_transcript(state, width=62)
+
+    assert "Tool: shell [awaiting approval]" in rendered
+    assert "policy approve" in rendered
+    assert "risk command" in rendered
+    assert "source confirm-shell" in rendered
+    assert "approval pending" in rendered
+
+
+def test_transcript_renders_expanded_tool_details_and_artifacts() -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    tool_call_id = new_tool_call_id()
+    state = reduce_events(
+        _state(session_id=session_id),
+        [
+            _event(
+                session_id,
+                1,
+                ModelToolCallRequested(
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    tool_name="write_file",
+                    arguments_json='{"path":"/workspace/reports/very-long-file-name.txt"}',
+                ),
+            ),
+            _event(
+                session_id,
+                2,
+                ToolOutputChunk(
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    stream="stdout",
+                    chunk="line " * 60,
+                ),
+            ),
+            _event(
+                session_id,
+                3,
+                ToolArtifactRecorded(
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    artifact_id=new_artifact_id(),
+                    artifact_kind="file",
+                    path="/workspace/reports/very-long-file-name.txt",
+                ),
+            ),
+            _event(
+                session_id,
+                4,
+                ToolExecutionCompleted(
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    success=True,
+                    exit_code=0,
+                    summary="wrote report",
+                ),
+            ),
+        ],
+    )
+    state = with_tool_expanded(state, tool_call_id, expanded=True)
+
+    rendered = render_transcript(state, width=68)
+    lines = rendered.splitlines()
+
+    assert "Tool: write_file [completed]" in rendered
+    assert "output:" in rendered
+    assert "(truncated)" in rendered
+    assert "artifacts:" in rendered
+    assert "details expanded" in rendered
+    assert "args:" in rendered
+    assert "output full:" in rendered
+    assert "artifact:" in rendered
+    assert all(len(line) <= 68 for line in lines if line)
 
 
 def test_transcript_empty_states_are_specific() -> None:
