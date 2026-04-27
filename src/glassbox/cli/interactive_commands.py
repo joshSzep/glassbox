@@ -5,6 +5,8 @@ import asyncio
 from pathlib import Path
 
 from glassbox.cli.daemon_attach import attach_via_daemon
+from glassbox.cli.interactive_launch import InteractiveLaunchMode
+from glassbox.cli.interactive_launch import resolve_interactive_launch_mode_from_args
 from glassbox.cli.interactive_session import _interactive_session_loop
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.cli.runtime_runner import _dashboard_session_url
@@ -52,6 +54,10 @@ def _chat_command(args: argparse.Namespace) -> int:
 
 
 async def _chat_command_async(args: argparse.Namespace) -> int:
+    launch_mode = resolve_interactive_launch_mode_from_args(args)
+    if launch_mode != InteractiveLaunchMode.PLAIN:
+        raise ValueError(f"unsupported interactive launch mode: {launch_mode}")
+
     cwd, db_path = resolve_runtime_location(
         args,
         require_daemon_unowned_for="start an interactive chat session",
@@ -104,6 +110,10 @@ def _attach_command(args: argparse.Namespace) -> int:
 
 
 async def _attach_command_async(args: argparse.Namespace) -> int:
+    launch_mode = resolve_interactive_launch_mode_from_args(args)
+    if launch_mode != InteractiveLaunchMode.PLAIN:
+        raise ValueError(f"unsupported interactive launch mode: {launch_mode}")
+
     cwd, db_path = resolve_runtime_location(args)
     daemon_status = inspect_runtime_owner(cwd, db_path=db_path)
 

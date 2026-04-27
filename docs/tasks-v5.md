@@ -344,7 +344,7 @@ Completion notes:
 
 ### GBX-571: Preserve Or Retire Line Mode Behind An Explicit Boundary
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-570`
 - Goal: decide and implement the compatibility boundary for the old line-oriented interactive loop during the TUI migration
 - Deliverables:
@@ -362,6 +362,14 @@ Completion notes:
   - existing line-mode tests either remain valid for fallback or are deliberately migrated
 - Done when:
   - implementation tasks know whether they are updating a fallback line loop or the primary TUI path
+
+Completion notes:
+
+- Added explicit launch-mode resolution in [interactive_launch.py](../src/glassbox/cli/interactive_launch.py).
+- Added `--plain` and `--tui` parser flags for `session chat` and `session attach`; `--plain` runs the retained line-mode boundary, while `--tui` is parsed and rejected until the TUI module exists.
+- Documented the current fallback boundary in [terminal-interaction-model-v5.md](./terminal-interaction-model-v5.md).
+- Added unit/parser coverage in [test_cli_interactive_launch.py](../tests/unit/test_cli_interactive_launch.py) and command-level coverage in [test_cli_interactive_commands.py](../tests/integration/test_cli_interactive_commands.py).
+- Validation: `uv run pytest tests/unit/test_cli_interactive_launch.py tests/integration/test_cli_interactive_commands.py`; `uv run ruff check src/glassbox/cli/interactive_launch.py src/glassbox/cli/parser_sessions.py src/glassbox/cli/interactive_commands.py tests/unit/test_cli_interactive_launch.py tests/integration/test_cli_interactive_commands.py`; `uv run ty check`.
 
 ### GBX-572: Add Terminal-App Module Boundaries
 

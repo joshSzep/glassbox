@@ -115,6 +115,61 @@ def test_cli_chat_keeps_session_open_for_multiple_prompts(
     )
 
 
+def test_cli_chat_plain_flag_uses_line_mode_boundary(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_session._read_interactive_input",
+        lambda prompt: "/exit",
+    )
+
+    exit_code = main(
+        [
+            "session",
+            "chat",
+            "--plain",
+            "--no-dashboard",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Attached to session" in captured.out
+    assert "Leaving interactive session" in captured.out
+
+
+def test_cli_chat_tui_flag_is_rejected_until_terminal_app_exists(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+
+    exit_code = main(
+        [
+            "session",
+            "chat",
+            "--tui",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "full-screen TUI launch is not available" in captured.err
+    assert db_path.exists() is False
+
+
 def test_cli_run_uses_workspace_profile_runtime_defaults(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

@@ -239,7 +239,14 @@ Fallback behavior must be explicit for:
 - dumb or unsupported terminals
 - explicit `--plain` if retained
 
-Fallback may either run the old line-mode loop or refuse interactive chat with a clear message that points users to one-shot commands and supported terminal usage. During migration, retaining `--plain` is acceptable for debugging and test continuity. The release gate decides whether plain mode remains a supported user feature.
+Current migration boundary:
+
+- `glassbox session chat` and `glassbox session attach` resolve through an explicit launch-mode boundary.
+- `--plain` runs the retained line-oriented compatibility loop for debugging, tests, CI, redirected streams, and unsupported terminals.
+- `--tui` is parsed but rejected until the terminal app module exists and the release gate enables it.
+- Once the TUI gate opens, unsupported non-interactive contexts must still avoid launching a full-screen app and should use `--plain` or a one-shot session command instead.
+
+The release gate decides whether plain mode remains a supported user feature after the TUI becomes the default.
 
 ## Compatibility With Existing Semantics
 
