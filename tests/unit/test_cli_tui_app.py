@@ -12,9 +12,12 @@ from glassbox.cli.tui import GlassboxTerminalApp
 from glassbox.cli.tui import create_session_tui_app
 from glassbox.cli.tui import create_tui_app
 from glassbox.cli.tui.state import session_dashboard_url
+from glassbox.core.events import AssistantMessageDelta
+from glassbox.core.events import AssistantMessageStarted
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import QuestionId
+from glassbox.core.ids import new_message_id
 from glassbox.core.ids import new_session_id
 from glassbox.core.models import SessionState
 from glassbox.core.types import ApprovalDecision
@@ -32,7 +35,7 @@ def test_tui_app_factory_builds_app_with_fake_client() -> None:
     )
 
     assert isinstance(app, GlassboxTerminalApp)
-    assert app.state.dashboard_url == (
+    assert app.state.header.dashboard_url == (
         f"http://127.0.0.1:8765/?session={snapshot.session_id}"
     )
 
@@ -60,6 +63,10 @@ def test_tui_app_can_mount_and_close_client() -> None:
     asyncio.run(_run_app_mount_test())
 
 
+def test_tui_app_ingests_live_events_into_transcript() -> None:
+    asyncio.run(_run_live_event_test())
+
+
 async def _run_app_mount_test() -> None:
     client = _FakeInteractiveClient()
     app = create_tui_app(
@@ -73,9 +80,9 @@ async def _run_app_mount_test() -> None:
         conversation = pilot.app.query_one("#conversation-pane", Static)
         composer = pilot.app.query_one("#composer", Static)
 
-        assert "Glassbox session" in str(header.content)
-        assert f"?session={app.state.session_id}" in str(header.content)
-        assert "last event sequence 7" in str(conversation.content)
+        assert "Glassbox" in str(header.content)
+        assert str(app.state.header.session_id)[:8] in str(header.content)
+        assert "Starting conversation" in str(conversation.content)
         assert "plain composer ready" in str(composer.content)
 
         pilot.app.exit()
@@ -95,9 +102,43 @@ async def _run_lifecycle_test() -> None:
     )
 
     assert client.fetch_count == 1
-    assert app.state.dashboard_url == (
-        f"http://127.0.0.1:8765/?session={app.state.session_id}"
+    assert app.state.header.dashboard_url == (
+        f"http://127.0.0.1:8765/?session={app.state.header.session_id}"
     )
+
+
+async def _run_live_event_test() -> None:
+    snapshot = _snapshot()
+    message_id = new_message_id()
+    client = _FakeInteractiveClient(
+        events=[
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=8,
+                payload=AssistantMessageStarted(message_id=message_id),
+            ),
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=9,
+                payload=AssistantMessageDelta(message_id=message_id, delta="hello"),
+            ),
+        ]
+    )
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        conversation = pilot.app.query_one("#conversation-pane", Static)
+
+        assert "assistant (streaming): hello" in str(conversation.content)
+
+        pilot.app.exit()
+
+    await app.close_client()
 
 
 def _snapshot() -> InteractiveSessionSnapshot:
@@ -128,8 +169,10 @@ def _launch_options() -> InteractiveLaunchOptions:
 
 
 class _FakeInteractiveClient:
-    closed = False
-    fetch_count = 0
+    def __init__(self, *, events: list[EventEnvelope] | None = None) -> None:
+        self.closed = False
+        self.fetch_count = 0
+        self.events = events or []
 
     @property
     def session_id(self):
@@ -152,8 +195,14 @@ class _FakeInteractiveClient:
     ) -> None:
         return None
 
-    def stream_events(self, *, after_sequence: int = 0) -> AsyncIterator[EventEnvelope]:
-        raise NotImplementedError
+    async def stream_events(
+        self,
+        *,
+        after_sequence: int = 0,
+    ) -> AsyncIterator[EventEnvelope]:
+        for event in self.events:
+            if event.sequence > after_sequence:
+                yield event
 
     async def aclose(self) -> None:
         self.closed = True

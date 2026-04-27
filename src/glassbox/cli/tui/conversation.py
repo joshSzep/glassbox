@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from dataclasses import field
+from dataclasses import replace
 from enum import StrEnum
 from pathlib import PurePath
 from uuid import UUID
@@ -275,6 +276,15 @@ class TerminalConversationState:
     pending_question: PendingQuestionState | None = None
     failure: FailureState | None = None
     expanded_tool_ids: frozenset[ToolCallId] = frozenset()
+
+    def with_dashboard_url(
+        self,
+        dashboard_url: str | None,
+    ) -> TerminalConversationState:
+        return replace(
+            self,
+            header=replace(self.header, dashboard_url=dashboard_url),
+        )
 
 
 def conversation_state_from_snapshot(
@@ -1276,6 +1286,4 @@ def _truncate_path(value: str, max_length: int) -> str:
 
 
 def _replace(obj, **changes):
-    from dataclasses import replace
-
     return replace(obj, **changes)

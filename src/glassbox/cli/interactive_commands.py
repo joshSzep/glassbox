@@ -5,16 +5,21 @@ import asyncio
 from pathlib import Path
 
 from glassbox.cli.daemon_attach import attach_via_daemon
+from glassbox.cli.interactive_client import LocalInteractiveSessionClient
 from glassbox.cli.interactive_launch import InteractiveLaunchMode
-from glassbox.cli.interactive_launch import resolve_interactive_launch_mode_from_args
+from glassbox.cli.interactive_launch import interactive_launch_options_from_args
+from glassbox.cli.interactive_launch import resolve_interactive_launch_mode
 from glassbox.cli.interactive_session import _interactive_session_loop
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.cli.runtime_runner import _dashboard_session_url
 from glassbox.cli.runtime_runner import _run_with_renderer
 from glassbox.cli.runtime_runner import _start_chat_dashboard
+from glassbox.cli.tui import create_session_tui_app
+from glassbox.cli.tui import run_tui_app
 from glassbox.core import SessionConfig
 from glassbox.core.ids import SessionId
 from glassbox.core.types import ApprovalDecision
+from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.context import RuntimeContext
 from glassbox.runtime.daemon import clear_stale_runtime_owner
 from glassbox.runtime.daemon import inspect_runtime_owner
@@ -54,15 +59,23 @@ def _chat_command(args: argparse.Namespace) -> int:
 
 
 async def _chat_command_async(args: argparse.Namespace) -> int:
-    launch_mode = resolve_interactive_launch_mode_from_args(args)
-    if launch_mode != InteractiveLaunchMode.PLAIN:
-        raise ValueError(f"unsupported interactive launch mode: {launch_mode}")
+    launch_options = interactive_launch_options_from_args(args, tui_available=True)
+    launch_mode = resolve_interactive_launch_mode(launch_options)
 
     cwd, db_path = resolve_runtime_location(
         args,
         require_daemon_unowned_for="start an interactive chat session",
     )
     base_config = _build_start_session_config(args, cwd)
+
+    if launch_mode == InteractiveLaunchMode.TUI:
+        return await _chat_tui_command_async(
+            args,
+            cwd=cwd,
+            db_path=db_path,
+            base_config=base_config,
+            launch_options=launch_options,
+        )
 
     async def action(runtime_context: RuntimeContext, prompt_state) -> None:
         dashboard_server = None
@@ -105,14 +118,56 @@ async def _chat_command_async(args: argparse.Namespace) -> int:
     return await _run_with_renderer(cwd, db_path, action)
 
 
+async def _chat_tui_command_async(
+    args: argparse.Namespace,
+    *,
+    cwd: Path,
+    db_path: Path | None,
+    base_config: SessionConfig,
+    launch_options,
+) -> int:
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        dashboard_server = None
+        dashboard_url = None
+        try:
+            dashboard_server, dashboard_url = await _start_chat_dashboard(
+                runtime_context,
+                args,
+            )
+            config = base_config.model_copy(update={"dashboard_url": dashboard_url})
+            session_state = (
+                await runtime_context.services.session_service.start_session(config)
+            )
+            await _submit_prompt_if_present(
+                runtime_context,
+                session_state.session_id,
+                args.prompt,
+            )
+            app = await create_session_tui_app(
+                client=LocalInteractiveSessionClient(
+                    runtime_context=runtime_context,
+                    session_id=session_state.session_id,
+                    dashboard_url=dashboard_url,
+                ),
+                launch_options=launch_options,
+                dashboard_url=dashboard_url,
+            )
+            await run_tui_app(app)
+        finally:
+            if dashboard_server is not None:
+                await dashboard_server.stop()
+    return 0
+
+
 def _attach_command(args: argparse.Namespace) -> int:
     return asyncio.run(_attach_command_async(args))
 
 
 async def _attach_command_async(args: argparse.Namespace) -> int:
-    launch_mode = resolve_interactive_launch_mode_from_args(args)
+    launch_options = interactive_launch_options_from_args(args, tui_available=True)
+    launch_mode = resolve_interactive_launch_mode(launch_options)
     if launch_mode != InteractiveLaunchMode.PLAIN:
-        raise ValueError(f"unsupported interactive launch mode: {launch_mode}")
+        raise ValueError("full-screen TUI attach is not implemented yet; use --plain")
 
     cwd, db_path = resolve_runtime_location(args)
     daemon_status = inspect_runtime_owner(cwd, db_path=db_path)

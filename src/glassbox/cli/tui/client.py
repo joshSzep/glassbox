@@ -1,9 +1,11 @@
 """Client adapter boundary used by the Textual app."""
 
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 
 from glassbox.cli.interactive_client import InteractiveSessionClient
 from glassbox.cli.interactive_client import InteractiveSessionSnapshot
+from glassbox.core.events import EventEnvelope
 
 
 @dataclass(slots=True)
@@ -14,6 +16,9 @@ class TerminalClientAdapter:
 
     async def fetch_snapshot(self) -> InteractiveSessionSnapshot:
         return await self.client.fetch_snapshot()
+
+    def stream_events(self, *, after_sequence: int = 0) -> AsyncIterator[EventEnvelope]:
+        return self.client.stream_events(after_sequence=after_sequence)
 
     async def close(self) -> None:
         await self.client.aclose()

@@ -551,7 +551,7 @@ Completion notes:
 
 ### GBX-590: Launch A Minimal Full-Screen `session chat` App
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-572`, `GBX-573`, `GBX-580`
 - Goal: make `glassbox session chat` capable of opening a real full-screen terminal app for a new session
 - Deliverables:
@@ -570,6 +570,14 @@ Completion notes:
   - existing line-mode tests continue to pass or are explicitly scoped to fallback
 - Done when:
   - a developer can start a new Glassbox session in a full-screen terminal app without losing existing runtime semantics
+
+Completion notes:
+
+- Wired explicit `session chat --tui` through [interactive_commands.py](../src/glassbox/cli/interactive_commands.py), while preserving plain mode and non-interactive TUI rejection.
+- Reworked [app.py](../src/glassbox/cli/tui/app.py) around the pure conversation reducer, live event streaming, session-specific dashboard URLs, widget updates, and idempotent client shutdown.
+- Added minimal header, conversation, action strip, composer, and footer widgets in [widgets.py](../src/glassbox/cli/tui/widgets.py), plus shell styling in [theme.py](../src/glassbox/cli/tui/theme.py).
+- Added Textual coverage for mount/exit and live event ingestion in [test_cli_tui_app.py](../tests/unit/test_cli_tui_app.py), plus an integration smoke for the TUI chat launch boundary in [test_cli_interactive_commands.py](../tests/integration/test_cli_interactive_commands.py).
+- Validation: `uv run pytest tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_conversation.py tests/unit/test_cli_interactive_launch.py tests/integration/test_cli_interactive_commands.py`; `uv run ruff check src/glassbox/cli/tui src/glassbox/cli/interactive_commands.py tests/unit/test_cli_tui_app.py tests/integration/test_cli_interactive_commands.py`; `uv run ty check`.
 
 ### GBX-591: Add The TUI Header, Footer, And Theme Foundation
 

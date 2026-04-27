@@ -10,6 +10,8 @@ from uuid import UUID
 import pytest
 
 from glassbox.cli import main
+from glassbox.cli.interactive_launch import InteractiveLaunchMode
+from glassbox.cli.interactive_launch import InteractiveLaunchOptions
 from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import SessionCompleted
@@ -146,7 +148,7 @@ def test_cli_chat_plain_flag_uses_line_mode_boundary(
     assert "Leaving interactive session" in captured.out
 
 
-def test_cli_chat_tui_flag_is_rejected_until_terminal_app_exists(
+def test_cli_chat_tui_flag_rejects_non_interactive_environment(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -166,8 +168,65 @@ def test_cli_chat_tui_flag_is_rejected_until_terminal_app_exists(
     captured = capsys.readouterr()
 
     assert exit_code == 1
-    assert "full-screen TUI launch is not available" in captured.err
+    assert "full-screen TUI launch requires interactive stdin/stdout" in captured.err
     assert db_path.exists() is False
+
+
+def test_cli_chat_tui_flag_launches_terminal_app(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    launched_session_ids: list[UUID] = []
+
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_commands.interactive_launch_options_from_args",
+        lambda args, *, tui_available: InteractiveLaunchOptions(
+            requested_mode=InteractiveLaunchMode.TUI,
+            default_mode=InteractiveLaunchMode.PLAIN,
+            stdin_is_tty=True,
+            stdout_is_tty=True,
+            term="xterm-256color",
+            ci=False,
+            tui_available=tui_available,
+        ),
+    )
+
+    async def fake_run_tui_app(app: Any) -> None:
+        launched_session_ids.append(app.state.header.session_id)
+        await app.close_client()
+
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_commands.run_tui_app",
+        fake_run_tui_app,
+    )
+
+    exit_code = main(
+        [
+            "session",
+            "chat",
+            "--tui",
+            "--no-dashboard",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "hello from tui",
+        ]
+    )
+    _ = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        sessions = repository.list_sessions()
+    finally:
+        connection.close()
+
+    assert exit_code == 0
+    assert len(sessions) == 1
+    assert launched_session_ids == [sessions[0].session_id]
 
 
 def test_cli_run_uses_workspace_profile_runtime_defaults(
