@@ -69,7 +69,7 @@ class GlassboxWebServer:
         if self._serve_task is not None:
             raise RuntimeError("web server already started")
 
-        self._serve_task = asyncio.create_task(self._server.serve())
+        self._serve_task = asyncio.create_task(self._serve_with_startup_errors())
         await self._wait_until_started()
 
     async def stop(self) -> None:
@@ -89,6 +89,9 @@ class GlassboxWebServer:
             if self._serve_task.done():
                 try:
                     self._serve_task.result()
+                except SystemExit as exc:
+                    self._serve_task = None
+                    raise RuntimeError("web server failed to start") from exc
                 except Exception as exc:
                     self._serve_task = None
                     raise RuntimeError("web server failed to start") from exc
@@ -96,6 +99,12 @@ class GlassboxWebServer:
                 self._serve_task = None
                 raise RuntimeError("web server exited before startup completed")
             await asyncio.sleep(0.01)
+
+    async def _serve_with_startup_errors(self) -> None:
+        try:
+            await self._server.serve()
+        except SystemExit as exc:
+            raise RuntimeError("web server failed to start") from exc
 
     def _build_uvicorn_config(self) -> uvicorn.Config:
         return uvicorn.Config(

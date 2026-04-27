@@ -379,6 +379,10 @@ async def _start_chat(
         lambda cwd, db_path=None: nullcontext(runtime_context),
     )
     monkeypatch.setattr(
+        "glassbox.cli.runtime_runner._dashboard_port_available",
+        lambda host, port: True,
+    )
+    monkeypatch.setattr(
         "glassbox.cli.runtime_runner.build_web_server",
         fake_build_web_server,
     )

@@ -305,6 +305,40 @@ def test_build_web_server_embedded_lifecycle_starts_and_stops(tmp_path: Path) ->
     asyncio.run(scenario())
 
 
+def test_build_web_server_translates_uvicorn_system_exit_on_startup(
+    tmp_path: Path,
+) -> None:
+    class ExitingServer:
+        def __init__(self, config) -> None:
+            self.config = config
+            self.started = False
+            self.should_exit = False
+
+        async def serve(self) -> None:
+            raise SystemExit(1)
+
+        def run(self) -> None:
+            raise AssertionError("blocking server should not run")
+
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            runtime_context = _make_runtime_context(tmp_path, connection)
+            server = build_web_server(
+                runtime_context,
+                host="127.0.0.1",
+                port=9876,
+                server_factory=ExitingServer,
+            )
+
+            with pytest.raises(RuntimeError, match="web server failed to start"):
+                await server.start()
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
 def test_run_server_opens_runtime_context_and_uses_shared_server_path(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

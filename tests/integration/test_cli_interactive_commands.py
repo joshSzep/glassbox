@@ -827,6 +827,10 @@ def test_cli_chat_starts_dashboard_sidecar_and_records_live_dashboard_url(
         fake_build_web_server,
     )
     monkeypatch.setattr(
+        "glassbox.cli.runtime_runner._dashboard_port_available",
+        lambda host, port: True,
+    )
+    monkeypatch.setattr(
         "glassbox.cli.interactive_session._read_interactive_input",
         lambda prompt: "/exit",
     )
@@ -883,6 +887,10 @@ def test_cli_chat_continues_without_dashboard_when_default_startup_fails(
         fake_build_web_server,
     )
     monkeypatch.setattr(
+        "glassbox.cli.runtime_runner._dashboard_port_available",
+        lambda host, port: True,
+    )
+    monkeypatch.setattr(
         "glassbox.cli.interactive_session._read_interactive_input",
         lambda prompt: "/exit",
     )
@@ -919,6 +927,88 @@ def test_cli_chat_continues_without_dashboard_when_default_startup_fails(
     assert started_event.dashboard_url is None
 
 
+@pytest.mark.parametrize("mode_args", [[], ["--tui"]])
+def test_cli_chat_reports_default_dashboard_port_conflict_with_suggestion(
+    mode_args: list[str],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+
+    def fail_if_built(*args, **kwargs):
+        raise AssertionError("dashboard sidecar should not start on a known busy port")
+
+    def fail_if_prompted(prompt: str) -> Any:
+        raise AssertionError(f"interactive prompt should not be reached: {prompt}")
+
+    def fake_dashboard_port_available(host: str, port: int) -> bool:
+        return port != 8765
+
+    monkeypatch.setattr(
+        "glassbox.cli.runtime_runner.build_web_server",
+        fail_if_built,
+    )
+    monkeypatch.setattr(
+        "glassbox.cli.runtime_runner._dashboard_port_available",
+        fake_dashboard_port_available,
+    )
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_session._read_interactive_input",
+        fail_if_prompted,
+    )
+
+    if "--tui" in mode_args:
+        monkeypatch.setattr(
+            "glassbox.cli.interactive_commands.interactive_launch_options_from_args",
+            lambda args, *, tui_available: InteractiveLaunchOptions(
+                requested_mode=InteractiveLaunchMode.TUI,
+                default_mode=InteractiveLaunchMode.PLAIN,
+                stdin_is_tty=True,
+                stdout_is_tty=True,
+                term="xterm-256color",
+                ci=False,
+                tui_available=tui_available,
+            ),
+        )
+
+        async def fail_if_tui_runs(app: Any) -> None:
+            raise AssertionError("TUI should not run without a dashboard port decision")
+
+        monkeypatch.setattr(
+            "glassbox.cli.interactive_commands.run_tui_app",
+            fail_if_tui_runs,
+        )
+
+    exit_code = main(
+        [
+            "session",
+            "chat",
+            *mode_args,
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        sessions = SQLiteSessionRepository(connection).list_sessions()
+    finally:
+        connection.close()
+
+    assert exit_code == 1
+    assert captured.err.strip() == (
+        "Dashboard port 8765 is already in use at http://127.0.0.1:8765/.\n"
+        "Try a different dashboard port: "
+        "glassbox session chat --dashboard-port 8766\n"
+        "You can also pass --no-dashboard to start without the co-hosted dashboard."
+    )
+    assert sessions == []
+
+
 def test_cli_chat_fails_when_explicit_dashboard_binding_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -935,6 +1025,10 @@ def test_cli_chat_fails_when_explicit_dashboard_binding_fails(
     monkeypatch.setattr(
         "glassbox.cli.runtime_runner.build_web_server",
         fake_build_web_server,
+    )
+    monkeypatch.setattr(
+        "glassbox.cli.runtime_runner._dashboard_port_available",
+        lambda host, port: True,
     )
     monkeypatch.setattr(
         "glassbox.cli.interactive_session._read_interactive_input",

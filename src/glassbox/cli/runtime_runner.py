@@ -2,6 +2,8 @@
 
 import argparse
 import asyncio
+import errno
+import socket
 import sys
 from collections.abc import Awaitable
 from collections.abc import Callable
@@ -16,6 +18,22 @@ from glassbox.runtime.context import RuntimeContext
 from glassbox.web import GlassboxWebServer
 from glassbox.web import WebServerConfig
 from glassbox.web import build_web_server
+
+
+class DashboardPortInUseError(RuntimeError):
+    """Raised when the chat dashboard sidecar cannot bind its requested port."""
+
+    def __init__(self, config: WebServerConfig, suggested_port: int) -> None:
+        super().__init__(
+            "Dashboard port "
+            f"{config.port} is already in use at {config.dashboard_url}.\n"
+            "Try a different dashboard port: "
+            f"glassbox session chat --dashboard-port {suggested_port}\n"
+            "You can also pass --no-dashboard to start without the "
+            "co-hosted dashboard."
+        )
+        self.config = config
+        self.suggested_port = suggested_port
 
 
 async def _run_with_renderer(
@@ -84,6 +102,8 @@ async def _start_chat_dashboard(
     if dashboard_config is None:
         return None, None
 
+    _raise_if_dashboard_port_in_use(dashboard_config)
+
     dashboard_server = build_web_server(
         runtime_context,
         host=dashboard_config.host,
@@ -91,6 +111,8 @@ async def _start_chat_dashboard(
     )
     try:
         await dashboard_server.start()
+    except DashboardPortInUseError:
+        raise
     except RuntimeError as exc:
         if explicit_dashboard_request:
             raise RuntimeError(
@@ -103,3 +125,41 @@ async def _start_chat_dashboard(
         )
         return None, None
     return dashboard_server, dashboard_config.dashboard_url
+
+
+def _raise_if_dashboard_port_in_use(config: WebServerConfig) -> None:
+    if _dashboard_port_available(config.host, config.port):
+        return
+    raise DashboardPortInUseError(
+        config,
+        suggested_port=_suggest_dashboard_port(config.host, config.port),
+    )
+
+
+def _suggest_dashboard_port(host: str, port: int) -> int:
+    for candidate in range(port + 1, port + 101):
+        if _dashboard_port_available(host, candidate):
+            return candidate
+
+    return _reserve_ephemeral_dashboard_port(host)
+
+
+def _dashboard_port_available(host: str, port: int) -> bool:
+    try:
+        with socket.socket(_socket_family_for_host(host), socket.SOCK_STREAM) as sock:
+            sock.bind((host, port))
+    except OSError as exc:
+        if exc.errno == errno.EADDRINUSE:
+            return False
+        raise
+    return True
+
+
+def _reserve_ephemeral_dashboard_port(host: str) -> int:
+    with socket.socket(_socket_family_for_host(host), socket.SOCK_STREAM) as sock:
+        sock.bind((host, 0))
+        return int(sock.getsockname()[1])
+
+
+def _socket_family_for_host(host: str) -> socket.AddressFamily:
+    return socket.AF_INET6 if ":" in host else socket.AF_INET
