@@ -610,7 +610,7 @@ Completion notes:
 
 ### GBX-592: Render The Conversation Transcript Surface
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-590`, `GBX-581`
 - Goal: replace flat event scrollback with a stable chat transcript region
 - Deliverables:
@@ -629,6 +629,14 @@ Completion notes:
   - manual review with tool-heavy and markdown-heavy assistant output
 - Done when:
   - the main terminal region reads like a conversation rather than an event log
+
+Completion notes:
+
+- Replaced the placeholder conversation text with a width-aware transcript renderer in [widgets.py](../src/glassbox/cli/tui/widgets.py) for user, assistant, runtime/system, tool, turn failure, and session failure content.
+- Made the transcript pane focusable and scrollable, with follow-latest behavior that only autoscrolls when already at latest activity.
+- Added the `Ctrl+L` latest-activity keybinding and app action in [keybindings.py](../src/glassbox/cli/tui/keybindings.py) and [app.py](../src/glassbox/cli/tui/app.py).
+- Added transcript coverage in [test_cli_tui_widgets.py](../tests/unit/test_cli_tui_widgets.py) for chat messages, compact tool cards, wrapping, and empty/historical states; added keybinding coverage in [test_cli_tui_app.py](../tests/unit/test_cli_tui_app.py).
+- Validation: `uv run pytest tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_conversation.py`; `uv run ruff check src/glassbox/cli/tui tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_app.py`; `uv run ty check`.
 
 ### GBX-593: Implement Live Assistant Streaming In The Transcript
 

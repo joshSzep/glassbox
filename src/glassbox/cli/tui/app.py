@@ -94,6 +94,9 @@ class GlassboxTerminalApp(App[None]):
             self.launch_options,
         )
 
+    def action_latest(self) -> None:
+        self.query_one(ConversationPane).jump_to_latest()
+
     async def close_client(self) -> None:
         if self._client_closed:
             return

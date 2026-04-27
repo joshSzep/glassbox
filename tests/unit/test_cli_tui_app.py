@@ -11,6 +11,7 @@ from glassbox.cli.interactive_launch import InteractiveLaunchOptions
 from glassbox.cli.tui import GlassboxTerminalApp
 from glassbox.cli.tui import create_session_tui_app
 from glassbox.cli.tui import create_tui_app
+from glassbox.cli.tui.keybindings import TUI_KEY_BINDINGS
 from glassbox.cli.tui.state import session_dashboard_url
 from glassbox.core.events import AssistantMessageDelta
 from glassbox.core.events import AssistantMessageStarted
@@ -65,6 +66,13 @@ def test_tui_app_can_mount_and_close_client() -> None:
 
 def test_tui_app_ingests_live_events_into_transcript() -> None:
     asyncio.run(_run_live_event_test())
+
+
+def test_tui_app_declares_latest_activity_keybinding() -> None:
+    assert any(
+        binding.key == "ctrl+l" and binding.action == "latest"
+        for binding in TUI_KEY_BINDINGS
+    )
 
 
 async def _run_app_mount_test() -> None:
@@ -134,7 +142,8 @@ async def _run_live_event_test() -> None:
         await pilot.pause()
         conversation = pilot.app.query_one("#conversation-pane", Static)
 
-        assert "assistant (streaming): hello" in str(conversation.content)
+        assert "Assistant (streaming)" in str(conversation.content)
+        assert "hello" in str(conversation.content)
 
         pilot.app.exit()
 

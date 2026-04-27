@@ -3,12 +3,25 @@
 from glassbox.cli.interactive_client import InteractiveSessionSnapshot
 from glassbox.cli.tui.conversation import TerminalStreamStatus
 from glassbox.cli.tui.conversation import conversation_state_from_snapshot
+from glassbox.cli.tui.conversation import reduce_events
 from glassbox.cli.tui.conversation import with_runtime_owner
 from glassbox.cli.tui.conversation import with_stream_status
 from glassbox.cli.tui.theme import GLASSBOX_TUI_CSS
 from glassbox.cli.tui.widgets import render_footer_help
 from glassbox.cli.tui.widgets import render_session_header
+from glassbox.cli.tui.widgets import render_transcript
+from glassbox.core.events import AssistantMessageCompleted
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import ToolExecutionCompleted
+from glassbox.core.events import ToolExecutionStarted
+from glassbox.core.events import ToolOutputChunk
+from glassbox.core.events import TurnStarted
+from glassbox.core.events import UserMessageReceived
+from glassbox.core.ids import new_message_id
 from glassbox.core.ids import new_session_id
+from glassbox.core.ids import new_tool_call_id
+from glassbox.core.ids import new_turn_id
+from glassbox.core.models import MessagePart
 from glassbox.core.models import SessionState
 from glassbox.core.types import SessionStatus
 
@@ -85,11 +98,97 @@ def test_theme_defines_terminal_frame_surfaces() -> None:
         assert class_name in GLASSBOX_TUI_CSS
 
 
-def _state():
-    return conversation_state_from_snapshot(
+def test_transcript_renders_chat_tools_and_failure() -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    tool_call_id = new_tool_call_id()
+    state = reduce_events(
+        _state(session_id=session_id),
+        [
+            _event(
+                session_id,
+                1,
+                UserMessageReceived(
+                    message_id=new_message_id(),
+                    text="Please inspect src/glassbox/cli/tui/widgets.py carefully.",
+                ),
+            ),
+            _event(
+                session_id,
+                2,
+                TurnStarted(turn_id=turn_id, trigger_message_id=new_message_id()),
+            ),
+            _event(
+                session_id,
+                3,
+                ToolExecutionStarted(
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    tool_name="read_file_with_a_long_name_that_needs_truncation",
+                ),
+            ),
+            _event(
+                session_id,
+                4,
+                ToolOutputChunk(
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    stream="stdout",
+                    chunk="opened widgets.py",
+                ),
+            ),
+            _event(
+                session_id,
+                5,
+                ToolExecutionCompleted(
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    success=True,
+                    exit_code=0,
+                    summary="read complete",
+                ),
+            ),
+            _event(
+                session_id,
+                6,
+                AssistantMessageCompleted(
+                    message_id=new_message_id(),
+                    parts=[MessagePart(kind="text", text="I found the transcript.")],
+                ),
+            ),
+        ],
+    )
+
+    rendered = render_transcript(state, width=54)
+    lines = rendered.splitlines()
+
+    assert "You" in rendered
+    assert "Assistant (completed)" in rendered
+    assert "Tool:" in rendered
+    assert "read complete" in rendered
+    assert "output: opened widgets.py" in rendered
+    assert all(len(line) <= 54 for line in lines if line)
+
+
+def test_transcript_empty_states_are_specific() -> None:
+    assert render_transcript(_state()) == "Starting conversation..."
+    historical_state = conversation_state_from_snapshot(
         InteractiveSessionSnapshot(
             state=SessionState(
                 session_id=new_session_id(),
+                status=SessionStatus.COMPLETED,
+            )
+        )
+    )
+
+    assert render_transcript(historical_state) == "No transcript messages yet."
+
+
+def _state(*, session_id=None):
+    return conversation_state_from_snapshot(
+        InteractiveSessionSnapshot(
+            state=SessionState(
+                session_id=session_id or new_session_id(),
                 status=SessionStatus.RUNNING,
             ),
             cwd="/workspace",
@@ -98,3 +197,7 @@ def _state():
             dashboard_url="http://127.0.0.1:8765/?session=abc",
         )
     )
+
+
+def _event(session_id, sequence, payload) -> EventEnvelope:
+    return EventEnvelope(session_id=session_id, sequence=sequence, payload=payload)

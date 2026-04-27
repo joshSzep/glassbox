@@ -1,13 +1,20 @@
 """Textual widgets for the Glassbox terminal app shell."""
 
+from contextlib import suppress
+from textwrap import wrap
+from typing import ClassVar
+
 from textual.widgets import Static
 
 from glassbox.cli.interactive_launch import InteractiveLaunchOptions
 from glassbox.cli.tui.conversation import AssistantMessageStatus
 from glassbox.cli.tui.conversation import ConversationMessageKind
 from glassbox.cli.tui.conversation import TerminalConversationState
+from glassbox.cli.tui.conversation import TerminalMode
 from glassbox.cli.tui.conversation import header_display_from_state
 from glassbox.cli.tui.conversation import terminal_action_from_state
+
+TRANSCRIPT_MIN_WIDTH = 36
 
 
 class SessionHeader(Static):
@@ -32,33 +39,40 @@ class SessionHeader(Static):
 
 
 class ConversationPane(Static):
+    can_focus: ClassVar[bool] = True
+
     def __init__(self, state: TerminalConversationState) -> None:
-        super().__init__(self._render_state(state), id="conversation-pane")
+        self._state = state
+        self._follow_latest = True
+        super().__init__(render_transcript(state), id="conversation-pane")
+
+    def on_mount(self) -> None:
+        self.update_state(self._state)
+
+    def on_resize(self) -> None:
+        self.update_state(self._state)
 
     def update_state(self, state: TerminalConversationState) -> None:
-        self.update(self._render_state(state))
+        self._follow_latest = self._follow_latest and self._is_at_latest()
+        self._state = state
+        self.update(render_transcript(state, width=self._render_width()))
+        if self._follow_latest:
+            self.call_after_refresh(self.jump_to_latest)
 
-    def _render_state(self, state: TerminalConversationState) -> str:
-        if not state.messages and not state.turns and state.failure is None:
-            return "Starting conversation..."
-        lines: list[str] = []
-        for message in state.messages:
-            label = _message_label(message.kind)
-            suffix = (
-                " (streaming)"
-                if message.status == AssistantMessageStatus.STREAMING
-                else ""
-            )
-            lines.append(f"{label}{suffix}: {message.text or '...'}")
-        for turn in state.turns:
-            for tool in turn.tools:
-                lines.append(
-                    f"tool {tool.tool_name}: {tool.status.value}"
-                    + (f" - {tool.summary}" if tool.summary else "")
-                )
-        if state.failure is not None:
-            lines.append(f"failure: {state.failure.message}")
-        return "\n".join(lines)
+    def jump_to_latest(self) -> None:
+        self._follow_latest = True
+        with suppress(Exception):
+            self.scroll_end(animate=False)
+
+    def _render_width(self) -> int:
+        if not self.is_mounted:
+            return 80
+        return max(self.size.width, TRANSCRIPT_MIN_WIDTH)
+
+    def _is_at_latest(self) -> bool:
+        if not self.is_mounted:
+            return True
+        return self.scroll_y >= max(self.max_scroll_y - 1, 0)
 
 
 class ActionStripPlaceholder(Static):
@@ -150,12 +164,103 @@ def render_footer_help(*, width: int = 80) -> str:
     )
 
 
+def render_transcript(
+    state: TerminalConversationState,
+    *,
+    width: int = 80,
+) -> str:
+    width = max(width, TRANSCRIPT_MIN_WIDTH)
+    lines: list[str] = []
+    if not state.messages and not state.turns and state.failure is None:
+        return _empty_transcript_text(state)
+
+    for message in state.messages:
+        _append_message(lines, message.kind, message.text, width, message.status)
+
+    for turn in state.turns:
+        for tool in turn.tools:
+            _append_tool(lines, tool, width)
+        if turn.failure_message:
+            _append_block(lines, "Turn failed", turn.failure_message, width)
+
+    if state.failure is not None:
+        _append_block(lines, "Failure", state.failure.message, width)
+
+    return "\n".join(lines)
+
+
 def _message_label(kind: ConversationMessageKind) -> str:
     if kind == ConversationMessageKind.USER:
-        return "you"
+        return "You"
     if kind == ConversationMessageKind.ASSISTANT:
-        return "assistant"
-    return kind.value
+        return "Assistant"
+    if kind == ConversationMessageKind.RUNTIME:
+        return "Runtime"
+    return "System"
+
+
+def _empty_transcript_text(state: TerminalConversationState) -> str:
+    if state.header.mode == TerminalMode.STARTING:
+        return "Starting session..."
+    if state.header.mode == TerminalMode.HISTORICAL_ONLY:
+        return "No transcript messages yet."
+    return "Starting conversation..."
+
+
+def _append_message(
+    lines: list[str],
+    kind: ConversationMessageKind,
+    text: str,
+    width: int,
+    status: AssistantMessageStatus | None,
+) -> None:
+    title = _message_label(kind)
+    if status == AssistantMessageStatus.STREAMING:
+        title = f"{title} (streaming)"
+    elif status == AssistantMessageStatus.COMPLETED:
+        title = f"{title} (completed)"
+    _append_block(lines, title, text or "...", width)
+
+
+def _append_tool(lines: list[str], tool, width: int) -> None:
+    title = f"Tool: {_truncate_middle(tool.tool_name, 32)} ({tool.status.value})"
+    details: list[str] = []
+    if tool.summary:
+        details.append(tool.summary)
+    if tool.exit_code is not None:
+        details.append(f"exit {tool.exit_code}")
+    if tool.output_preview:
+        details.append(f"output: {tool.output_preview}")
+    if tool.artifact_paths:
+        details.append("artifacts: " + ", ".join(tool.artifact_paths))
+    _append_block(lines, title, " | ".join(details) or "running", width)
+
+
+def _append_block(lines: list[str], title: str, text: str, width: int) -> None:
+    if lines:
+        lines.append("")
+    lines.append(_fit_line(title, width))
+    for raw_line in text.splitlines() or [""]:
+        _append_wrapped_line(lines, raw_line, width)
+
+
+def _append_wrapped_line(lines: list[str], value: str, width: int) -> None:
+    line_width = max(width - 2, 12)
+    if value.startswith("```"):
+        lines.append("  " + _fit_line(value, line_width))
+        return
+    wrapped = wrap(
+        value,
+        width=line_width,
+        break_long_words=True,
+        break_on_hyphens=False,
+        replace_whitespace=False,
+    )
+    if not wrapped:
+        lines.append("")
+        return
+    for line in wrapped:
+        lines.append("  " + line)
 
 
 def _dashboard_hint(

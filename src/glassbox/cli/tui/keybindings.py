@@ -4,4 +4,5 @@ from textual.binding import Binding
 
 TUI_KEY_BINDINGS: list[Binding] = [
     Binding("ctrl+q", "quit", "Quit", show=True),
+    Binding("ctrl+l", "latest", "Latest", show=True),
 ]
