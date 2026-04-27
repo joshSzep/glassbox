@@ -34,7 +34,7 @@ def interactive_launch_options_from_args(
     stdin: SupportsIsatty | None = None,
     stdout: SupportsIsatty | None = None,
     environ: Mapping[str, str] | None = None,
-    default_mode: InteractiveLaunchMode = InteractiveLaunchMode.PLAIN,
+    default_mode: InteractiveLaunchMode = InteractiveLaunchMode.TUI,
     tui_available: bool = False,
 ) -> InteractiveLaunchOptions:
     environment = os.environ if environ is None else environ
@@ -60,12 +60,16 @@ def resolve_interactive_launch_mode(
         return InteractiveLaunchMode.PLAIN
 
     if not options.tui_available:
+        if options.requested_mode is None:
+            return InteractiveLaunchMode.PLAIN
         raise ValueError(
             "full-screen TUI launch is not available in this build yet; "
             "use --plain for the current line-mode terminal experience"
         )
 
     if not _supports_full_screen_tui(options):
+        if options.requested_mode is None:
+            return InteractiveLaunchMode.PLAIN
         raise ValueError(
             "full-screen TUI launch requires interactive stdin/stdout, a supported "
             "terminal, and a non-CI environment; use --plain for line mode"

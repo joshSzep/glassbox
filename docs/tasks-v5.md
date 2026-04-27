@@ -1013,7 +1013,7 @@ Completion notes:
 
 ### GBX-623: Harden Non-TTY And Plain Fallback Behavior
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-571`, `GBX-590`, `GBX-620`
 - Goal: keep scripts, CI, dumb terminals, and debugging workflows from breaking when TUI becomes the default
 - Deliverables:
@@ -1030,6 +1030,11 @@ Completion notes:
   - current line-mode compatibility tests updated to match the chosen fallback contract
 - Done when:
   - making TUI default does not make Glassbox unusable in automation or unsupported terminal contexts
+
+Completion notes:
+- Made the implicit interactive launch default full-screen TUI when supported, while falling back to plain line mode for unrequested launches in non-TTY stdin/stdout, CI-like environments, dumb terminals, or builds without TUI availability.
+- Kept `--plain` as an explicit compatibility/debugging path and kept `--tui` strict: unsupported explicit TUI requests fail with clear guidance instead of silently falling back.
+- Validated with `uv run pytest tests/unit/test_cli_interactive_launch.py tests/integration/test_cli_interactive_commands.py::test_cli_chat_keeps_session_open_for_multiple_prompts tests/integration/test_cli_interactive_commands.py::test_cli_chat_plain_flag_uses_line_mode_boundary tests/integration/test_cli_interactive_commands.py::test_cli_chat_tui_flag_rejects_non_interactive_environment tests/integration/test_cli_interactive_commands.py::test_cli_attach_keeps_existing_idle_session_open_for_new_prompts tests/integration/test_cli_interactive_commands.py::test_cli_attach_rejects_completed_session`, `uv run ruff check src/glassbox/cli/interactive_launch.py tests/unit/test_cli_interactive_launch.py tests/integration/test_cli_interactive_commands.py`, and `uv run ty check`.
 
 ### GBX-624: Validate Packaging And Dependency Footprint
 

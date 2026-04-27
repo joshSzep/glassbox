@@ -257,12 +257,14 @@ Fallback behavior must be explicit for:
 - dumb or unsupported terminals
 - explicit `--plain` if retained
 
-Current migration boundary:
+Current boundary:
 
 - `glassbox session chat` and `glassbox session attach` resolve through an explicit launch-mode boundary.
+- In supported interactive TTYs, the default launch mode is the full-screen TUI.
+- If TUI launch is implicit and stdin/stdout, CI, terminal capability, or packaging availability makes full-screen launch unsafe, Glassbox falls back to plain line mode.
 - `--plain` runs the retained line-oriented compatibility loop for debugging, tests, CI, redirected streams, and unsupported terminals.
-- `--tui` is parsed but rejected until the terminal app module exists and the release gate enables it.
-- Once the TUI gate opens, unsupported non-interactive contexts must still avoid launching a full-screen app and should use `--plain` or a one-shot session command instead.
+- `--tui` is explicit: if full-screen launch cannot be honored, Glassbox fails with a clear error instead of silently choosing plain mode.
+- For automation, prefer one-shot commands such as `session run`, `session message`, `session answer`, and `session approve`; plain interactive mode is a compatibility and debugging path, not the primary v5 UX.
 
 The release gate decides whether plain mode remains a supported user feature after the TUI becomes the default.
 

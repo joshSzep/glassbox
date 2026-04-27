@@ -11,15 +11,76 @@ from glassbox.cli.interactive_launch import resolve_interactive_launch_mode
 from glassbox.cli.parser import build_parser
 
 
-def test_launch_resolver_defaults_to_plain_during_migration() -> None:
+def test_launch_resolver_defaults_to_tui_when_supported() -> None:
     mode = resolve_interactive_launch_mode(
         InteractiveLaunchOptions(
             requested_mode=None,
-            default_mode=InteractiveLaunchMode.PLAIN,
+            default_mode=InteractiveLaunchMode.TUI,
             stdin_is_tty=True,
             stdout_is_tty=True,
             term="xterm-256color",
             ci=False,
+            tui_available=True,
+        )
+    )
+
+    assert mode == InteractiveLaunchMode.TUI
+
+
+def test_launch_resolver_falls_back_to_plain_for_implicit_non_tty() -> None:
+    mode = resolve_interactive_launch_mode(
+        InteractiveLaunchOptions(
+            requested_mode=None,
+            default_mode=InteractiveLaunchMode.TUI,
+            stdin_is_tty=False,
+            stdout_is_tty=True,
+            term="xterm-256color",
+            ci=False,
+            tui_available=True,
+        )
+    )
+
+    assert mode == InteractiveLaunchMode.PLAIN
+
+
+def test_launch_resolver_falls_back_for_implicit_ci_and_dumb_term() -> None:
+    ci_mode = resolve_interactive_launch_mode(
+        InteractiveLaunchOptions(
+            requested_mode=None,
+            default_mode=InteractiveLaunchMode.TUI,
+            stdin_is_tty=True,
+            stdout_is_tty=True,
+            term="xterm-256color",
+            ci=True,
+            tui_available=True,
+        )
+    )
+    dumb_mode = resolve_interactive_launch_mode(
+        InteractiveLaunchOptions(
+            requested_mode=None,
+            default_mode=InteractiveLaunchMode.TUI,
+            stdin_is_tty=True,
+            stdout_is_tty=True,
+            term="dumb",
+            ci=False,
+            tui_available=True,
+        )
+    )
+
+    assert ci_mode == InteractiveLaunchMode.PLAIN
+    assert dumb_mode == InteractiveLaunchMode.PLAIN
+
+
+def test_launch_resolver_falls_back_to_plain_when_tui_unavailable_implicitly() -> None:
+    mode = resolve_interactive_launch_mode(
+        InteractiveLaunchOptions(
+            requested_mode=None,
+            default_mode=InteractiveLaunchMode.TUI,
+            stdin_is_tty=True,
+            stdout_is_tty=True,
+            term="xterm-256color",
+            ci=False,
+            tui_available=False,
         )
     )
 
@@ -77,10 +138,12 @@ def test_launch_options_capture_ci_environment() -> None:
         stdin=_FakeStream(is_tty=True),
         stdout=_FakeStream(is_tty=True),
         environ={"TERM": "xterm-256color", "CI": "true"},
+        tui_available=True,
     )
 
     assert options.ci is True
     assert options.term == "xterm-256color"
+    assert options.default_mode == InteractiveLaunchMode.TUI
 
 
 def test_chat_and_attach_parse_launch_mode_flags() -> None:
