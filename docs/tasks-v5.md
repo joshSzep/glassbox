@@ -519,7 +519,7 @@ Completion notes:
 
 ### GBX-583: Model Runtime, Stream, And Dashboard Status For The Header
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-580`
 - Goal: create a compact terminal header state that orients the user without becoming an operator dashboard
 - Deliverables:
@@ -536,6 +536,14 @@ Completion notes:
   - TUI snapshot or widget tests once header widget exists
 - Done when:
   - users can always tell what session they are in and whether the runtime is ready for the next action
+
+Completion notes:
+
+- Added `TerminalHeaderDisplayState` derivation in [conversation.py](../src/glassbox/cli/tui/conversation.py) for compact session, mode, stream, model, workspace, branch, runtime owner, dashboard, and last-update labels.
+- Added short status labels for starting, ready, thinking, running tool, awaiting approval, awaiting answer, reconnecting, unavailable, historical-only, and failed states.
+- Added terminal-width-aware truncation helpers for long paths, model names, branch labels, and runtime owner labels.
+- Added normal and narrow-width header coverage in [test_cli_tui_conversation.py](../tests/unit/test_cli_tui_conversation.py).
+- Validation: `uv run pytest tests/unit/test_cli_tui_conversation.py`; `uv run ruff check src/glassbox/cli/tui/conversation.py tests/unit/test_cli_tui_conversation.py`; `uv run ty check`.
 
 ---
 

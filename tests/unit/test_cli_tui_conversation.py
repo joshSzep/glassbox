@@ -11,9 +11,11 @@ from glassbox.cli.tui.conversation import TerminalStreamStatus
 from glassbox.cli.tui.conversation import ToolActivityStatus
 from glassbox.cli.tui.conversation import apply_event
 from glassbox.cli.tui.conversation import conversation_state_from_snapshot
+from glassbox.cli.tui.conversation import header_display_from_state
 from glassbox.cli.tui.conversation import reduce_events
 from glassbox.cli.tui.conversation import terminal_action_from_state
 from glassbox.cli.tui.conversation import with_composer_draft
+from glassbox.cli.tui.conversation import with_runtime_owner
 from glassbox.cli.tui.conversation import with_stream_status
 from glassbox.cli.tui.conversation import with_tool_expanded
 from glassbox.core.events import ApprovalRequested
@@ -25,6 +27,7 @@ from glassbox.core.events import EventEnvelope
 from glassbox.core.events import ModelCallCompleted
 from glassbox.core.events import ModelToolCallRequested
 from glassbox.core.events import SessionFailed
+from glassbox.core.events import SessionStarted
 from glassbox.core.events import ToolArtifactRecorded
 from glassbox.core.events import ToolExecutionCompleted
 from glassbox.core.events import ToolExecutionStarted
@@ -640,6 +643,108 @@ def test_reducer_models_reconnect_and_historical_only_stream_status() -> None:
 
     assert historical_state.header.mode == TerminalMode.HISTORICAL_ONLY
     assert historical_state.header.stream_status == TerminalStreamStatus.HISTORICAL_ONLY
+
+
+def test_header_display_derives_compact_runtime_and_dashboard_labels() -> None:
+    session_id = new_session_id()
+    state = _state(session_id)
+    state = with_runtime_owner(state, "daemon pid 12345")
+    state = with_stream_status(
+        state,
+        TerminalStreamStatus.RECONNECTING,
+        detail="retry 2",
+    )
+
+    header = header_display_from_state(state, width=100)
+
+    assert header.session_label == str(session_id)[:8]
+    assert header.mode_label == "ready"
+    assert header.stream_label == "reconnecting: retry 2"
+    assert header.runtime_label == "daemon pid 12345"
+    assert header.dashboard_label == "dashboard"
+    assert header.dashboard_url == "http://127.0.0.1:8765/"
+    assert header.last_update_label == "seq 0"
+
+
+def test_header_display_uses_short_status_labels_for_terminal_modes() -> None:
+    session_id = new_session_id()
+    assert (
+        header_display_from_state(
+            conversation_state_from_snapshot(
+                InteractiveSessionSnapshot(
+                    state=SessionState(
+                        session_id=session_id,
+                        status=SessionStatus.AWAITING_APPROVAL,
+                    )
+                )
+            ),
+            width=100,
+        ).mode_label
+        == "awaiting approval"
+    )
+    assert (
+        header_display_from_state(
+            conversation_state_from_snapshot(
+                InteractiveSessionSnapshot(
+                    state=SessionState(
+                        session_id=session_id,
+                        status=SessionStatus.AWAITING_USER_INPUT,
+                    )
+                )
+            ),
+            width=100,
+        ).mode_label
+        == "awaiting answer"
+    )
+    assert (
+        header_display_from_state(
+            with_stream_status(
+                _state(session_id),
+                TerminalStreamStatus.UNAVAILABLE,
+            ),
+            width=100,
+        ).mode_label
+        == "unavailable"
+    )
+
+
+def test_header_display_truncates_narrow_width_fields() -> None:
+    session_id = new_session_id()
+    state = conversation_state_from_snapshot(
+        InteractiveSessionSnapshot(
+            state=SessionState(session_id=session_id, status=SessionStatus.RUNNING),
+            cwd="/very/long/workspace/path/with/a/deep/project-name",
+            model_name="anthropic:claude-sonnet-super-long-model-name",
+            approval_mode="confirm",
+            dashboard_url=None,
+        )
+    )
+    state = with_runtime_owner(state, "daemon owner with a very long label")
+    state = apply_event(
+        state,
+        _event(
+            session_id,
+            1,
+            SessionStarted(
+                cwd="/very/long/workspace/path/with/a/deep/project-name",
+                model_name="anthropic:claude-sonnet-super-long-model-name",
+                approval_mode="confirm",
+                dashboard_url=None,
+                branch_label="feature/super-long-branch-name",
+            ),
+        ),
+    )
+    state = with_runtime_owner(state, "daemon owner with a very long label")
+
+    header = header_display_from_state(state, width=60)
+
+    assert len(header.model_label) <= 14
+    assert len(header.cwd_label) <= 18
+    assert header.cwd_label.endswith("project-name")
+    assert header.branch_label is not None
+    assert len(header.branch_label) <= 10
+    assert len(header.runtime_label) <= 12
+    assert header.dashboard_label == "no dashboard"
 
 
 def _state(session_id):

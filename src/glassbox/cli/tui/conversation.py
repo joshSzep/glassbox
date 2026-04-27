@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from dataclasses import field
 from enum import StrEnum
+from pathlib import PurePath
 from uuid import UUID
 
 from glassbox.cli.interactive_client import InteractiveSessionSnapshot
@@ -66,6 +67,25 @@ class TerminalMode(StrEnum):
     HISTORICAL_ONLY = "historical_only"
 
 
+MODE_LABELS: dict[TerminalMode, str] = {
+    TerminalMode.STARTING: "starting",
+    TerminalMode.READY: "ready",
+    TerminalMode.THINKING: "thinking",
+    TerminalMode.RUNNING_TOOL: "running tool",
+    TerminalMode.AWAITING_APPROVAL: "awaiting approval",
+    TerminalMode.AWAITING_ANSWER: "awaiting answer",
+    TerminalMode.FAILED: "failed",
+    TerminalMode.HISTORICAL_ONLY: "historical",
+}
+
+STREAM_LABELS: dict[TerminalStreamStatus, str] = {
+    TerminalStreamStatus.LIVE: "live",
+    TerminalStreamStatus.RECONNECTING: "reconnecting",
+    TerminalStreamStatus.UNAVAILABLE: "unavailable",
+    TerminalStreamStatus.HISTORICAL_ONLY: "historical",
+}
+
+
 class ConversationMessageKind(StrEnum):
     USER = "user"
     ASSISTANT = "assistant"
@@ -105,10 +125,25 @@ class TerminalHeaderState:
     cwd: str | None = None
     approval_mode: str | None = None
     branch_label: str | None = None
+    runtime_owner: str | None = None
     dashboard_url: str | None = None
     current_turn_id: TurnId | None = None
     last_sequence: int = 0
     stream_detail: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class TerminalHeaderDisplayState:
+    session_label: str
+    mode_label: str
+    stream_label: str
+    model_label: str
+    cwd_label: str
+    branch_label: str | None
+    runtime_label: str
+    dashboard_label: str
+    last_update_label: str
+    dashboard_url: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -636,6 +671,45 @@ def with_stream_status(
     )
 
 
+def with_runtime_owner(
+    state: TerminalConversationState,
+    runtime_owner: str | None,
+) -> TerminalConversationState:
+    return _with_header(state, runtime_owner=runtime_owner)
+
+
+def header_display_from_state(
+    state: TerminalConversationState,
+    *,
+    width: int,
+) -> TerminalHeaderDisplayState:
+    header = state.header
+    compact = width < 80
+    model_width = 14 if compact else 32
+    cwd_width = 18 if compact else 44
+    branch_width = 10 if compact else 24
+    runtime_width = 12 if compact else 24
+
+    return TerminalHeaderDisplayState(
+        session_label=str(header.session_id)[:8],
+        mode_label=_mode_label(header),
+        stream_label=_stream_label(header),
+        model_label=_truncate_middle(header.model_name or "model unknown", model_width),
+        cwd_label=_truncate_path(header.cwd or "workspace unknown", cwd_width),
+        branch_label=(
+            _truncate_middle(header.branch_label, branch_width)
+            if header.branch_label is not None
+            else None
+        ),
+        runtime_label=_truncate_middle(header.runtime_owner or "local", runtime_width),
+        dashboard_label="dashboard"
+        if header.dashboard_url is not None
+        else "no dashboard",
+        dashboard_url=header.dashboard_url,
+        last_update_label=f"seq {header.last_sequence}",
+    )
+
+
 def with_tool_expanded(
     state: TerminalConversationState,
     tool_call_id: ToolCallId,
@@ -1138,6 +1212,21 @@ def _mode_from_session_status(status: SessionStatus) -> TerminalMode:
     return TerminalMode.STARTING
 
 
+def _mode_label(header: TerminalHeaderState) -> str:
+    if header.stream_status == TerminalStreamStatus.RECONNECTING:
+        return MODE_LABELS[header.mode]
+    if header.stream_status == TerminalStreamStatus.UNAVAILABLE:
+        return "unavailable"
+    return MODE_LABELS[header.mode]
+
+
+def _stream_label(header: TerminalHeaderState) -> str:
+    label = STREAM_LABELS[header.stream_status]
+    if header.stream_detail is None:
+        return label
+    return f"{label}: {header.stream_detail}"
+
+
 def _stream_status_from_session_status(status: SessionStatus) -> TerminalStreamStatus:
     if status in {
         SessionStatus.COMPLETED,
@@ -1162,6 +1251,28 @@ def _mode_from_turn_status(status: TurnStatus) -> TerminalMode:
 
 def _text_from_parts(parts: list[MessagePart]) -> str:
     return "".join(part.text for part in parts if part.kind == "text")
+
+
+def _truncate_middle(value: str, max_length: int) -> str:
+    if max_length < 4:
+        return value[:max_length]
+    if len(value) <= max_length:
+        return value
+    head_length = (max_length - 3) // 2
+    tail_length = max_length - 3 - head_length
+    return f"{value[:head_length]}...{value[-tail_length:]}"
+
+
+def _truncate_path(value: str, max_length: int) -> str:
+    if len(value) <= max_length:
+        return value
+    path = PurePath(value)
+    name = path.name
+    if name and len(name) + 4 <= max_length:
+        prefix_length = max_length - len(name) - 4
+        parent = str(path.parent)
+        return f"{_truncate_middle(parent, prefix_length)}.../{name}"
+    return _truncate_middle(value, max_length)
 
 
 def _replace(obj, **changes):
