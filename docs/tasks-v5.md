@@ -767,7 +767,7 @@ Completion notes:
 
 ### GBX-603: Add Prompt Submission Feedback And Recovery
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-600`, `GBX-570`
 - Goal: make prompt submission states trustworthy and recoverable
 - Deliverables:
@@ -784,6 +784,15 @@ Completion notes:
   - Textual tests for composer feedback states
 - Done when:
   - users can tell whether their prompt was sent and what to do if it was not
+
+Completion notes:
+
+- Added local composer submission feedback in [widgets.py](../src/glassbox/cli/tui/widgets.py) for pending, accepted, conflict, validation-error, network-error, unavailable-runtime, and retryable failure states.
+- Added a near-composer feedback line in [app.py](../src/glassbox/cli/tui/app.py) and [theme.py](../src/glassbox/cli/tui/theme.py), keeping feedback separate from canonical conversation state.
+- Updated prompt submission to set pending before dispatch, clear drafts only after client acceptance, preserve drafts for recoverable failures, and map normalized `InteractiveClientError` kinds to user-facing recovery states.
+- Made blank slash-command parsing safe in [commands.py](../src/glassbox/cli/tui/commands.py), so empty submits report validation feedback rather than raising.
+- Added Textual and widget tests in [test_cli_tui_app.py](../tests/unit/test_cli_tui_app.py) and [test_cli_tui_widgets.py](../tests/unit/test_cli_tui_widgets.py) for pending, accepted, validation, conflict, network, unavailable-runtime, retryable failure, and draft preservation behavior.
+- Validation: `uv run pytest tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_commands.py`; `uv run ruff check src/glassbox/cli/tui tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_commands.py`; `uv run ty check`.
 
 ---
 

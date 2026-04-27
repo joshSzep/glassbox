@@ -9,6 +9,8 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.widgets import TextArea
 
+from glassbox.cli.interactive_client import InteractiveClientError
+from glassbox.cli.interactive_client import InteractiveClientErrorKind
 from glassbox.cli.interactive_client import InteractiveSessionClient
 from glassbox.cli.interactive_client import InteractiveSessionSnapshot
 from glassbox.cli.interactive_launch import InteractiveLaunchOptions
@@ -28,11 +30,16 @@ from glassbox.cli.tui.state import session_dashboard_url
 from glassbox.cli.tui.theme import GLASSBOX_TUI_CSS
 from glassbox.cli.tui.widgets import ActionStripPlaceholder
 from glassbox.cli.tui.widgets import CommandPaletteWidget
+from glassbox.cli.tui.widgets import ComposerAvailability
+from glassbox.cli.tui.widgets import ComposerFeedbackLine
+from glassbox.cli.tui.widgets import ComposerSubmissionFeedback
+from glassbox.cli.tui.widgets import ComposerSubmissionStatus
 from glassbox.cli.tui.widgets import ComposerWidget
 from glassbox.cli.tui.widgets import ConversationPane
 from glassbox.cli.tui.widgets import DetailsPane
 from glassbox.cli.tui.widgets import FooterHelp
 from glassbox.cli.tui.widgets import SessionHeader
+from glassbox.cli.tui.widgets import composer_availability
 from glassbox.core.types import ApprovalDecision
 
 
@@ -64,12 +71,14 @@ class GlassboxTerminalApp(App[None]):
         self._prompt_history_index: int | None = None
         self._focused_before_palette = None
         self._details_visible = False
+        self._composer_feedback: ComposerSubmissionFeedback | None = None
 
     def compose(self) -> ComposeResult:
         yield SessionHeader(self.state)
         yield ConversationPane(self.state)
         yield ActionStripPlaceholder(self.state)
         yield ComposerWidget(self.state, self.launch_options)
+        yield ComposerFeedbackLine(self._composer_feedback)
         yield FooterHelp()
         yield DetailsPane(self.state)
         yield CommandPaletteWidget(self.state)
@@ -108,6 +117,7 @@ class GlassboxTerminalApp(App[None]):
             state,
             self.launch_options,
         )
+        self.query_one(ComposerFeedbackLine).update_feedback(self._composer_feedback)
         self.query_one(DetailsPane).update_state(state)
         self.query_one(CommandPaletteWidget).update_state(state)
 
@@ -135,6 +145,11 @@ class GlassboxTerminalApp(App[None]):
         if event.text_area.is_syncing_state:
             return
         self._prompt_history_index = None
+        if (
+            self._composer_feedback is not None
+            and event.text_area.text != self.state.composer.text
+        ):
+            self._set_composer_feedback(None)
         self.update_conversation_state(
             with_composer_draft(self.state, event.text_area.text)
         )
@@ -146,11 +161,49 @@ class GlassboxTerminalApp(App[None]):
         if command_id is not None:
             await self.execute_terminal_command(command_id)
             return
-        if not composer.can_submit or not text.strip():
+        availability = composer_availability(self.state)
+        if self._is_prompt_submit_pending():
+            return
+        if not text.strip():
+            self._set_composer_feedback(
+                ComposerSubmissionFeedback(
+                    ComposerSubmissionStatus.VALIDATION_ERROR,
+                    "Write a prompt before sending.",
+                )
+            )
             composer.show_submit_blocked()
             return
-        await self.client_adapter.submit_message(text)
+        if not composer.can_submit:
+            self._set_composer_feedback(_feedback_for_blocked_submit(availability))
+            composer.show_submit_blocked()
+            return
+        self._set_composer_feedback(
+            ComposerSubmissionFeedback(
+                ComposerSubmissionStatus.PENDING,
+                "Waiting for the runtime to accept the prompt.",
+            )
+        )
+        try:
+            await self.client_adapter.submit_message(text)
+        except InteractiveClientError as exc:
+            self._set_composer_feedback(_feedback_for_client_error(exc))
+            return
+        except Exception as exc:
+            self._set_composer_feedback(
+                ComposerSubmissionFeedback(
+                    ComposerSubmissionStatus.RETRYABLE_FAILURE,
+                    str(exc) or "The prompt was not accepted.",
+                    retryable=True,
+                )
+            )
+            return
         self._record_prompt_history(text)
+        self._set_composer_feedback(
+            ComposerSubmissionFeedback(
+                ComposerSubmissionStatus.ACCEPTED,
+                "Prompt accepted. Waiting for session events.",
+            )
+        )
         self.update_conversation_state(with_composer_draft(self.state, ""))
 
     def action_command_palette(self) -> None:
@@ -279,6 +332,20 @@ class GlassboxTerminalApp(App[None]):
             )
         )
 
+    def _set_composer_feedback(
+        self,
+        feedback: ComposerSubmissionFeedback | None,
+    ) -> None:
+        self._composer_feedback = feedback
+        if self.is_mounted:
+            self.query_one(ComposerFeedbackLine).update_feedback(feedback)
+
+    def _is_prompt_submit_pending(self) -> bool:
+        return (
+            self._composer_feedback is not None
+            and self._composer_feedback.status == ComposerSubmissionStatus.PENDING
+        )
+
     async def close_client(self) -> None:
         if self._client_closed:
             return
@@ -310,3 +377,52 @@ async def run_tui_app(app: GlassboxTerminalApp) -> None:
         await app.run_async()
     finally:
         await app.close_client()
+
+
+def _feedback_for_blocked_submit(
+    availability: ComposerAvailability,
+) -> ComposerSubmissionFeedback:
+    if availability.disabled_reason in {
+        "runtime reconnecting",
+        "runtime stream unavailable",
+    }:
+        return ComposerSubmissionFeedback(
+            ComposerSubmissionStatus.UNAVAILABLE_RUNTIME,
+            availability.placeholder,
+            retryable=True,
+        )
+    return ComposerSubmissionFeedback(
+        ComposerSubmissionStatus.CONFLICT,
+        availability.placeholder,
+    )
+
+
+def _feedback_for_client_error(
+    error: InteractiveClientError,
+) -> ComposerSubmissionFeedback:
+    if error.kind == InteractiveClientErrorKind.CONFLICT:
+        return ComposerSubmissionFeedback(ComposerSubmissionStatus.CONFLICT, str(error))
+    if error.kind == InteractiveClientErrorKind.VALIDATION_ERROR:
+        return ComposerSubmissionFeedback(
+            ComposerSubmissionStatus.VALIDATION_ERROR,
+            str(error),
+        )
+    if error.kind in {
+        InteractiveClientErrorKind.RUNTIME_UNAVAILABLE,
+        InteractiveClientErrorKind.STREAM_UNAVAILABLE,
+    }:
+        return ComposerSubmissionFeedback(
+            ComposerSubmissionStatus.NETWORK_ERROR,
+            str(error),
+            retryable=True,
+        )
+    if error.kind in {
+        InteractiveClientErrorKind.UNKNOWN_SESSION,
+        InteractiveClientErrorKind.HISTORICAL_ONLY,
+    }:
+        return ComposerSubmissionFeedback(ComposerSubmissionStatus.CONFLICT, str(error))
+    return ComposerSubmissionFeedback(
+        ComposerSubmissionStatus.RETRYABLE_FAILURE,
+        str(error),
+        retryable=True,
+    )

@@ -40,6 +40,13 @@ Screen {
     scrollbar-size-vertical: 1;
 }
 
+#composer-feedback {
+    height: 1;
+    padding: 0 1;
+    background: #121518;
+    color: #aab2b7;
+}
+
 #footer {
     height: 1;
     padding: 0 1;

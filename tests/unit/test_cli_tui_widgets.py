@@ -7,7 +7,10 @@ from glassbox.cli.tui.conversation import reduce_events
 from glassbox.cli.tui.conversation import with_runtime_owner
 from glassbox.cli.tui.conversation import with_stream_status
 from glassbox.cli.tui.theme import GLASSBOX_TUI_CSS
+from glassbox.cli.tui.widgets import ComposerSubmissionFeedback
+from glassbox.cli.tui.widgets import ComposerSubmissionStatus
 from glassbox.cli.tui.widgets import composer_availability
+from glassbox.cli.tui.widgets import render_composer_feedback
 from glassbox.cli.tui.widgets import render_footer_help
 from glassbox.cli.tui.widgets import render_session_header
 from glassbox.cli.tui.widgets import render_transcript
@@ -89,6 +92,7 @@ def test_theme_defines_terminal_frame_surfaces() -> None:
     assert "#conversation-pane" in GLASSBOX_TUI_CSS
     assert "#action-strip" in GLASSBOX_TUI_CSS
     assert "#composer" in GLASSBOX_TUI_CSS
+    assert "#composer-feedback" in GLASSBOX_TUI_CSS
     assert "#footer" in GLASSBOX_TUI_CSS
     for class_name in [
         ".status-normal",
@@ -100,6 +104,38 @@ def test_theme_defines_terminal_frame_surfaces() -> None:
         ".status-focus",
     ]:
         assert class_name in GLASSBOX_TUI_CSS
+
+
+def test_composer_feedback_renders_normalized_submission_states() -> None:
+    assert render_composer_feedback(None) == ""
+    assert (
+        render_composer_feedback(
+            ComposerSubmissionFeedback(
+                ComposerSubmissionStatus.PENDING,
+                "Waiting for runtime.",
+            )
+        )
+        == "Sending: Waiting for runtime."
+    )
+    assert (
+        render_composer_feedback(
+            ComposerSubmissionFeedback(
+                ComposerSubmissionStatus.ACCEPTED,
+                "Prompt accepted.",
+            )
+        )
+        == "Accepted: Prompt accepted."
+    )
+    assert (
+        render_composer_feedback(
+            ComposerSubmissionFeedback(
+                ComposerSubmissionStatus.NETWORK_ERROR,
+                "daemon unavailable",
+                retryable=True,
+            )
+        )
+        == "Network error: daemon unavailable Retry is safe."
+    )
 
 
 def test_composer_availability_blocks_historical_and_reconnecting_states() -> None:

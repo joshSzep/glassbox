@@ -2,6 +2,7 @@
 
 from contextlib import suppress
 from dataclasses import dataclass
+from enum import StrEnum
 from textwrap import wrap
 from typing import Any
 from typing import ClassVar
@@ -34,6 +35,23 @@ class ComposerAvailability:
     can_submit: bool
     placeholder: str
     disabled_reason: str | None = None
+
+
+class ComposerSubmissionStatus(StrEnum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    CONFLICT = "conflict"
+    VALIDATION_ERROR = "validation_error"
+    NETWORK_ERROR = "network_error"
+    UNAVAILABLE_RUNTIME = "unavailable_runtime"
+    RETRYABLE_FAILURE = "retryable_failure"
+
+
+@dataclass(frozen=True, slots=True)
+class ComposerSubmissionFeedback:
+    status: ComposerSubmissionStatus
+    message: str
+    retryable: bool = False
 
 
 class SessionHeader(Static):
@@ -171,6 +189,16 @@ class ComposerWidget(TextArea):
 
     def action_prompt_history_next(self) -> None:
         cast(Any, self.app).action_prompt_history_next()
+
+
+class ComposerFeedbackLine(Static):
+    def __init__(self, feedback: ComposerSubmissionFeedback | None = None) -> None:
+        self._feedback = feedback
+        super().__init__(render_composer_feedback(feedback), id="composer-feedback")
+
+    def update_feedback(self, feedback: ComposerSubmissionFeedback | None) -> None:
+        self._feedback = feedback
+        self.update(render_composer_feedback(feedback))
 
 
 class FooterHelp(Static):
@@ -397,6 +425,24 @@ def composer_availability(state: TerminalConversationState) -> ComposerAvailabil
         can_submit=True,
         placeholder="Write a prompt. Enter adds a line; Ctrl+Enter sends.",
     )
+
+
+def render_composer_feedback(
+    feedback: ComposerSubmissionFeedback | None,
+) -> str:
+    if feedback is None:
+        return ""
+    prefix = {
+        ComposerSubmissionStatus.PENDING: "Sending",
+        ComposerSubmissionStatus.ACCEPTED: "Accepted",
+        ComposerSubmissionStatus.CONFLICT: "Not sent",
+        ComposerSubmissionStatus.VALIDATION_ERROR: "Check prompt",
+        ComposerSubmissionStatus.NETWORK_ERROR: "Network error",
+        ComposerSubmissionStatus.UNAVAILABLE_RUNTIME: "Runtime unavailable",
+        ComposerSubmissionStatus.RETRYABLE_FAILURE: "Send failed",
+    }[feedback.status]
+    suffix = " Retry is safe." if feedback.retryable else ""
+    return f"{prefix}: {feedback.message}{suffix}"
 
 
 def render_transcript(

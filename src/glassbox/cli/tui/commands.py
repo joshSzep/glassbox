@@ -146,7 +146,10 @@ def filter_command_items(
 
 
 def command_from_slash(text: str) -> TerminalCommandId | None:
-    normalized = text.strip().split(maxsplit=1)[0].lower()
+    parts = text.strip().split(maxsplit=1)
+    if not parts:
+        return None
+    normalized = parts[0].lower()
     if not normalized.startswith("/"):
         return None
     for spec in _COMMAND_SPECS:

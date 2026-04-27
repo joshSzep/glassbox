@@ -6,6 +6,8 @@ from typing import cast
 
 from textual.widgets import Static
 
+from glassbox.cli.interactive_client import InteractiveClientError
+from glassbox.cli.interactive_client import InteractiveClientErrorKind
 from glassbox.cli.interactive_client import InteractiveSessionSnapshot
 from glassbox.cli.interactive_launch import InteractiveLaunchMode
 from glassbox.cli.interactive_launch import InteractiveLaunchOptions
@@ -13,9 +15,12 @@ from glassbox.cli.tui import GlassboxTerminalApp
 from glassbox.cli.tui import create_session_tui_app
 from glassbox.cli.tui import create_tui_app
 from glassbox.cli.tui.commands import TerminalCommandId
+from glassbox.cli.tui.conversation import TerminalStreamStatus
+from glassbox.cli.tui.conversation import with_stream_status
 from glassbox.cli.tui.keybindings import TUI_KEY_BINDINGS
 from glassbox.cli.tui.state import session_dashboard_url
 from glassbox.cli.tui.widgets import CommandPaletteWidget
+from glassbox.cli.tui.widgets import ComposerFeedbackLine
 from glassbox.cli.tui.widgets import ComposerWidget
 from glassbox.cli.tui.widgets import DetailsPane
 from glassbox.core.events import ApprovalRequested
@@ -123,6 +128,22 @@ def test_tui_app_submits_multiline_prompt_and_clears_draft() -> None:
     asyncio.run(_run_prompt_submit_test())
 
 
+def test_tui_app_shows_pending_submission_feedback() -> None:
+    asyncio.run(_run_pending_submission_feedback_test())
+
+
+def test_tui_app_preserves_draft_for_validation_and_conflict_errors() -> None:
+    asyncio.run(_run_validation_and_conflict_feedback_test())
+
+
+def test_tui_app_preserves_draft_for_network_and_retryable_errors() -> None:
+    asyncio.run(_run_network_and_retryable_feedback_test())
+
+
+def test_tui_app_reports_unavailable_runtime_without_dispatching() -> None:
+    asyncio.run(_run_unavailable_runtime_feedback_test())
+
+
 def test_tui_app_preserves_draft_during_live_updates() -> None:
     asyncio.run(_run_draft_preservation_test())
 
@@ -194,8 +215,175 @@ async def _run_prompt_submit_test() -> None:
 
         assert client.submitted_messages == ["Inspect this file\nThen summarize it"]
         assert composer.text == ""
+        feedback = pilot.app.query_one(ComposerFeedbackLine)
+        assert "Accepted: Prompt accepted" in str(feedback.content)
         typed_app = cast(GlassboxTerminalApp, pilot.app)
         assert typed_app.state.composer.text == ""
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_pending_submission_feedback_test() -> None:
+    client = _FakeInteractiveClient()
+    client.submit_started = asyncio.Event()
+    client.submit_release = asyncio.Event()
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=_snapshot(),
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        composer = pilot.app.query_one(ComposerWidget)
+        composer.text = "long prompt"
+        await pilot.pause()
+
+        submit_task = asyncio.create_task(pilot.press("ctrl+enter"))
+        await client.submit_started.wait()
+        feedback = pilot.app.query_one(ComposerFeedbackLine)
+
+        assert "Sending: Waiting for the runtime" in str(feedback.content)
+        assert composer.text == "long prompt"
+
+        client.submit_release.set()
+        await submit_task
+        await pilot.pause()
+
+        assert "Accepted: Prompt accepted" in str(feedback.content)
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_validation_and_conflict_feedback_test() -> None:
+    validation_client = _FakeInteractiveClient()
+    validation_app = create_tui_app(
+        client=validation_client,
+        initial_snapshot=_snapshot(),
+        launch_options=_launch_options(),
+    )
+
+    async with validation_app.run_test(size=(100, 30)) as pilot:
+        await pilot.press("ctrl+enter")
+        feedback = pilot.app.query_one(ComposerFeedbackLine)
+
+        assert "Check prompt: Write a prompt before sending" in str(feedback.content)
+        assert validation_client.submitted_messages == []
+
+        pilot.app.exit()
+
+    await validation_app.close_client()
+
+    conflict_client = _FakeInteractiveClient(
+        submit_error=InteractiveClientError(
+            InteractiveClientErrorKind.CONFLICT,
+            "session is busy",
+        )
+    )
+    conflict_app = create_tui_app(
+        client=conflict_client,
+        initial_snapshot=_snapshot(),
+        launch_options=_launch_options(),
+    )
+
+    async with conflict_app.run_test(size=(100, 30)) as pilot:
+        composer = pilot.app.query_one(ComposerWidget)
+        composer.text = "keep this draft"
+        await pilot.pause()
+        await pilot.press("ctrl+enter")
+        feedback = pilot.app.query_one(ComposerFeedbackLine)
+
+        assert "Not sent: session is busy" in str(feedback.content)
+        assert composer.text == "keep this draft"
+        assert conflict_client.submitted_messages == []
+
+        pilot.app.exit()
+
+    await conflict_app.close_client()
+
+
+async def _run_network_and_retryable_feedback_test() -> None:
+    network_client = _FakeInteractiveClient(
+        submit_error=InteractiveClientError(
+            InteractiveClientErrorKind.RUNTIME_UNAVAILABLE,
+            "daemon unavailable",
+        )
+    )
+    network_app = create_tui_app(
+        client=network_client,
+        initial_snapshot=_snapshot(),
+        launch_options=_launch_options(),
+    )
+
+    async with network_app.run_test(size=(100, 30)) as pilot:
+        composer = pilot.app.query_one(ComposerWidget)
+        composer.text = "retry me"
+        await pilot.pause()
+        await pilot.press("ctrl+enter")
+        feedback = pilot.app.query_one(ComposerFeedbackLine)
+
+        assert "Network error: daemon unavailable" in str(feedback.content)
+        assert "Retry is safe" in str(feedback.content)
+        assert composer.text == "retry me"
+
+        pilot.app.exit()
+
+    await network_app.close_client()
+
+    retry_client = _FakeInteractiveClient(submit_error=RuntimeError("boom"))
+    retry_app = create_tui_app(
+        client=retry_client,
+        initial_snapshot=_snapshot(),
+        launch_options=_launch_options(),
+    )
+
+    async with retry_app.run_test(size=(100, 30)) as pilot:
+        composer = pilot.app.query_one(ComposerWidget)
+        composer.text = "still here"
+        await pilot.pause()
+        await pilot.press("ctrl+enter")
+        feedback = pilot.app.query_one(ComposerFeedbackLine)
+
+        assert "Send failed: boom" in str(feedback.content)
+        assert "Retry is safe" in str(feedback.content)
+        assert composer.text == "still here"
+
+        pilot.app.exit()
+
+    await retry_app.close_client()
+
+
+async def _run_unavailable_runtime_feedback_test() -> None:
+    client = _FakeInteractiveClient()
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=_snapshot(),
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
+        typed_app.update_conversation_state(
+            with_stream_status(
+                typed_app.state,
+                TerminalStreamStatus.UNAVAILABLE,
+                detail="lost stream",
+            )
+        )
+        composer = pilot.app.query_one(ComposerWidget)
+        composer.text = "preserve while unavailable"
+        await pilot.pause()
+        await pilot.press("ctrl+enter")
+        feedback = pilot.app.query_one(ComposerFeedbackLine)
+
+        assert "Runtime unavailable" in str(feedback.content)
+        assert "Runtime stream unavailable" in str(feedback.content)
+        assert "Retry is safe" in str(feedback.content)
+        assert composer.text == "preserve while unavailable"
+        assert client.submitted_messages == []
 
         pilot.app.exit()
 
@@ -501,10 +689,18 @@ def _launch_options() -> InteractiveLaunchOptions:
 
 
 class _FakeInteractiveClient:
-    def __init__(self, *, events: list[EventEnvelope] | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        events: list[EventEnvelope] | None = None,
+        submit_error: Exception | None = None,
+    ) -> None:
         self.closed = False
         self.fetch_count = 0
         self.events = events or []
+        self.submit_error = submit_error
+        self.submit_started: asyncio.Event | None = None
+        self.submit_release: asyncio.Event | None = None
         self.submitted_messages: list[str] = []
         self.submitted_answers: list[tuple[QuestionId, str]] = []
         self.resolved_approvals: list[tuple[ApprovalId, ApprovalDecision]] = []
@@ -518,6 +714,12 @@ class _FakeInteractiveClient:
         return _snapshot()
 
     async def submit_message(self, text: str) -> None:
+        if self.submit_started is not None:
+            self.submit_started.set()
+        if self.submit_release is not None:
+            await self.submit_release.wait()
+        if self.submit_error is not None:
+            raise self.submit_error
         self.submitted_messages.append(text)
 
     async def submit_answer(self, question_id: QuestionId, answer: str) -> None:
