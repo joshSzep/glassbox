@@ -26,6 +26,7 @@ from glassbox.core.events import AssistantMessageStarted
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import ModelCallCompleted
 from glassbox.core.events import ModelToolCallRequested
+from glassbox.core.events import SessionCompleted
 from glassbox.core.events import SessionFailed
 from glassbox.core.events import SessionStarted
 from glassbox.core.events import ToolArtifactRecorded
@@ -115,6 +116,113 @@ def test_reducer_tracks_live_assistant_streaming_text() -> None:
 
     assert state.messages[0].text == "Hello"
     assert state.messages[0].status == AssistantMessageStatus.STREAMING
+
+
+def test_reducer_orders_deltas_and_ignores_late_completed_stream_events() -> None:
+    session_id = new_session_id()
+    message_id = new_message_id()
+    state = reduce_events(
+        _state(session_id),
+        [
+            _event(
+                session_id,
+                3,
+                AssistantMessageDelta(message_id=message_id, delta="lo"),
+            ),
+            _event(session_id, 1, AssistantMessageStarted(message_id=message_id)),
+            _event(
+                session_id,
+                2,
+                AssistantMessageDelta(message_id=message_id, delta="Hel"),
+            ),
+            _event(
+                session_id,
+                4,
+                AssistantMessageCompleted(
+                    message_id=message_id,
+                    parts=[MessagePart(kind="text", text="Hello")],
+                ),
+            ),
+            _event(
+                session_id,
+                5,
+                AssistantMessageDelta(message_id=message_id, delta="!"),
+            ),
+            _event(
+                session_id,
+                6,
+                AssistantMessageCompleted(
+                    message_id=message_id,
+                    parts=[MessagePart(kind="text", text="Different")],
+                ),
+            ),
+        ],
+    )
+
+    assert state.messages[0].text == "Hello"
+    assert state.messages[0].status == AssistantMessageStatus.COMPLETED
+    assert state.messages[0].sequence == 4
+
+
+def test_reducer_marks_partial_assistant_stream_failed_on_turn_failure() -> None:
+    session_id = new_session_id()
+    user_message_id = new_message_id()
+    assistant_message_id = new_message_id()
+    turn_id = new_turn_id()
+    state = reduce_events(
+        _state(session_id),
+        [
+            _event(
+                session_id,
+                1,
+                TurnStarted(turn_id=turn_id, trigger_message_id=user_message_id),
+            ),
+            _event(
+                session_id,
+                2,
+                AssistantMessageStarted(message_id=assistant_message_id),
+            ),
+            _event(
+                session_id,
+                3,
+                AssistantMessageDelta(message_id=assistant_message_id, delta="Partial"),
+            ),
+            _event(session_id, 4, TurnFailed(turn_id=turn_id, error_message="boom")),
+            _event(
+                session_id,
+                5,
+                AssistantMessageCompleted(
+                    message_id=assistant_message_id,
+                    parts=[MessagePart(kind="text", text="Late final")],
+                ),
+            ),
+        ],
+    )
+
+    assert state.messages[0].text == "Partial"
+    assert state.messages[0].status == AssistantMessageStatus.FAILED
+    assert state.turns[0].messages[0].status == AssistantMessageStatus.FAILED
+
+
+def test_reducer_marks_partial_stream_interrupted_on_cancelled_session() -> None:
+    session_id = new_session_id()
+    message_id = new_message_id()
+    state = reduce_events(
+        _state(session_id),
+        [
+            _event(session_id, 1, AssistantMessageStarted(message_id=message_id)),
+            _event(
+                session_id,
+                2,
+                AssistantMessageDelta(message_id=message_id, delta="Half"),
+            ),
+            _event(session_id, 3, SessionCompleted(reason="cancelled")),
+        ],
+    )
+
+    assert state.messages[0].text == "Half"
+    assert state.messages[0].status == AssistantMessageStatus.INTERRUPTED
+    assert state.header.stream_status == TerminalStreamStatus.HISTORICAL_ONLY
 
 
 def test_reducer_tracks_tool_heavy_turn_state() -> None:

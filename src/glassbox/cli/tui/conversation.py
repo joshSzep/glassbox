@@ -97,6 +97,8 @@ class ConversationMessageKind(StrEnum):
 class AssistantMessageStatus(StrEnum):
     STREAMING = "streaming"
     COMPLETED = "completed"
+    INTERRUPTED = "interrupted"
+    FAILED = "failed"
 
 
 class ToolActivityStatus(StrEnum):
@@ -359,7 +361,15 @@ def apply_event(
 
     if isinstance(payload, SessionCompleted):
         return _with_header(
-            state,
+            _mark_streaming_assistant_messages(
+                state,
+                (
+                    AssistantMessageStatus.INTERRUPTED
+                    if payload.reason in {"cancelled", "interrupted"}
+                    else AssistantMessageStatus.COMPLETED
+                ),
+                event.sequence,
+            ),
             status=SessionStatus.COMPLETED,
             mode=TerminalMode.HISTORICAL_ONLY,
             stream_status=TerminalStreamStatus.HISTORICAL_ONLY,
@@ -369,7 +379,11 @@ def apply_event(
     if isinstance(payload, SessionFailed):
         return _with_failure(
             _with_header(
-                state,
+                _mark_streaming_assistant_messages(
+                    state,
+                    AssistantMessageStatus.FAILED,
+                    event.sequence,
+                ),
                 status=SessionStatus.FAILED,
                 mode=TerminalMode.FAILED,
                 stream_status=TerminalStreamStatus.HISTORICAL_ONLY,
@@ -611,12 +625,17 @@ def apply_event(
     if isinstance(payload, TurnFailed):
         return _with_failure(
             _with_header(
-                _update_turn(
-                    state,
-                    payload.turn_id,
-                    status="failed",
-                    sequence=event.sequence,
-                    failure_message=payload.error_message,
+                _mark_streaming_assistant_messages(
+                    _update_turn(
+                        state,
+                        payload.turn_id,
+                        status="failed",
+                        sequence=event.sequence,
+                        failure_message=payload.error_message,
+                    ),
+                    AssistantMessageStatus.FAILED,
+                    event.sequence,
+                    turn_id=payload.turn_id,
                 ),
                 status=SessionStatus.FAILED,
                 mode=TerminalMode.FAILED,
@@ -630,14 +649,22 @@ def apply_event(
         )
 
     if isinstance(payload, TurnCompleted):
-        return _with_header(
-            _update_turn(
+        state = _update_turn(
+            state,
+            payload.turn_id,
+            status="completed",
+            sequence=event.sequence,
+            completed_outcome=payload.outcome,
+        )
+        if payload.outcome == "failed":
+            state = _mark_streaming_assistant_messages(
                 state,
-                payload.turn_id,
-                status="completed",
-                sequence=event.sequence,
-                completed_outcome=payload.outcome,
-            ),
+                AssistantMessageStatus.FAILED,
+                event.sequence,
+                turn_id=payload.turn_id,
+            )
+        return _with_header(
+            state,
             status=SessionStatus.RUNNING,
             mode=TerminalMode.READY,
             current_turn_id=None,
@@ -868,13 +895,15 @@ def _append_assistant_delta(
     updated_message: ConversationMessage | None = None
     for message in state.messages:
         if message.message_id == message_id:
-            updated_message = _replace(
-                message,
-                text=f"{message.text}{delta}",
-                sequence=sequence,
-                status=AssistantMessageStatus.STREAMING,
-            )
-            messages.append(updated_message)
+            if message.status == AssistantMessageStatus.STREAMING:
+                updated_message = _replace(
+                    message,
+                    text=f"{message.text}{delta}",
+                    sequence=sequence,
+                )
+                messages.append(updated_message)
+            else:
+                messages.append(message)
         else:
             messages.append(message)
     state = _replace(state, messages=tuple(messages))
@@ -893,12 +922,19 @@ def _complete_assistant_message(
     updated_message: ConversationMessage | None = None
     for message in state.messages:
         if message.message_id == message_id:
-            updated_message = _replace(
-                message,
-                text=text or message.text,
-                sequence=sequence,
-                status=AssistantMessageStatus.COMPLETED,
-            )
+            if message.status in {
+                AssistantMessageStatus.COMPLETED,
+                AssistantMessageStatus.FAILED,
+                AssistantMessageStatus.INTERRUPTED,
+            }:
+                updated_message = message
+            else:
+                updated_message = _replace(
+                    message,
+                    text=text or message.text,
+                    sequence=sequence,
+                    status=AssistantMessageStatus.COMPLETED,
+                )
             messages.append(updated_message)
         else:
             messages.append(message)
@@ -918,6 +954,34 @@ def _complete_assistant_message(
     if any(turn.turn_id == updated_message.turn_id for turn in state.turns):
         return _replace_turn_message(state, updated_message)
     return _append_turn_message(state, updated_message.turn_id, updated_message)
+
+
+def _mark_streaming_assistant_messages(
+    state: TerminalConversationState,
+    status: AssistantMessageStatus,
+    sequence: int,
+    *,
+    turn_id: TurnId | None = None,
+) -> TerminalConversationState:
+    messages: list[ConversationMessage] = []
+    updated_messages: list[ConversationMessage] = []
+    for message in state.messages:
+        should_update = (
+            message.kind == ConversationMessageKind.ASSISTANT
+            and message.status == AssistantMessageStatus.STREAMING
+            and (turn_id is None or message.turn_id == turn_id)
+        )
+        if should_update:
+            updated_message = _replace(message, status=status, sequence=sequence)
+            messages.append(updated_message)
+            updated_messages.append(updated_message)
+        else:
+            messages.append(message)
+    state = _replace(state, messages=tuple(messages))
+    for message in updated_messages:
+        if message.turn_id is not None:
+            state = _replace_turn_message(state, message)
+    return state
 
 
 def _upsert_turn(

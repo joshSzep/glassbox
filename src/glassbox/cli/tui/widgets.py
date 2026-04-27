@@ -219,6 +219,10 @@ def _append_message(
         title = f"{title} (streaming)"
     elif status == AssistantMessageStatus.COMPLETED:
         title = f"{title} (completed)"
+    elif status == AssistantMessageStatus.INTERRUPTED:
+        title = f"{title} (interrupted)"
+    elif status == AssistantMessageStatus.FAILED:
+        title = f"{title} (failed)"
     _append_block(lines, title, text or "...", width)
 
 

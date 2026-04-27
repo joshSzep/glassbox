@@ -640,7 +640,7 @@ Completion notes:
 
 ### GBX-593: Implement Live Assistant Streaming In The Transcript
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-592`
 - Goal: make assistant output feel live while keeping canonical completed messages correct
 - Deliverables:
@@ -658,6 +658,15 @@ Completion notes:
   - manual real-provider or fake-stream smoke where practical
 - Done when:
   - users see the assistant answer unfold in the terminal without waiting for final completion
+
+Completion notes:
+
+- Extended assistant display status in [conversation.py](../src/glassbox/cli/tui/conversation.py) to distinguish streaming, completed, interrupted, and failed assistant output.
+- Made assistant delta handling ignore late deltas after completion and made duplicate/late completion payloads idempotent for already completed, failed, or interrupted streams.
+- Marked partial assistant streams failed on turn/session failure and interrupted on cancelled/interrupted session completion, preserving partial text for inspection.
+- Updated [widgets.py](../src/glassbox/cli/tui/widgets.py) so the transcript visibly labels completed, streaming, interrupted, and failed assistant output.
+- Added reducer and transcript tests in [test_cli_tui_conversation.py](../tests/unit/test_cli_tui_conversation.py) and [test_cli_tui_widgets.py](../tests/unit/test_cli_tui_widgets.py) for delta ordering, late events, duplicate completion, failure cleanup, interruption cleanup, and visible failed stream labels.
+- Validation: `uv run pytest tests/unit/test_cli_tui_conversation.py tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_app.py`; `uv run ruff check src/glassbox/cli/tui tests/unit/test_cli_tui_conversation.py tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_app.py`; `uv run ty check`.
 
 ---
 

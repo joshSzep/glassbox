@@ -11,10 +11,13 @@ from glassbox.cli.tui.widgets import render_footer_help
 from glassbox.cli.tui.widgets import render_session_header
 from glassbox.cli.tui.widgets import render_transcript
 from glassbox.core.events import AssistantMessageCompleted
+from glassbox.core.events import AssistantMessageDelta
+from glassbox.core.events import AssistantMessageStarted
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import ToolExecutionCompleted
 from glassbox.core.events import ToolExecutionStarted
 from glassbox.core.events import ToolOutputChunk
+from glassbox.core.events import TurnFailed
 from glassbox.core.events import TurnStarted
 from glassbox.core.events import UserMessageReceived
 from glassbox.core.ids import new_message_id
@@ -182,6 +185,35 @@ def test_transcript_empty_states_are_specific() -> None:
     )
 
     assert render_transcript(historical_state) == "No transcript messages yet."
+
+
+def test_transcript_distinguishes_failed_assistant_stream() -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    message_id = new_message_id()
+    state = reduce_events(
+        _state(session_id=session_id),
+        [
+            _event(
+                session_id,
+                1,
+                TurnStarted(turn_id=turn_id, trigger_message_id=new_message_id()),
+            ),
+            _event(session_id, 2, AssistantMessageStarted(message_id=message_id)),
+            _event(
+                session_id,
+                3,
+                AssistantMessageDelta(message_id=message_id, delta="Half"),
+            ),
+            _event(session_id, 4, TurnFailed(turn_id=turn_id, error_message="boom")),
+        ],
+    )
+
+    rendered = render_transcript(state, width=60)
+
+    assert "Assistant (failed)" in rendered
+    assert "Half" in rendered
+    assert "Turn failed" in rendered
 
 
 def _state(*, session_id=None):
