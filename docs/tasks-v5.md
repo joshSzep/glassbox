@@ -373,7 +373,7 @@ Completion notes:
 
 ### GBX-572: Add Terminal-App Module Boundaries
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-570`, `GBX-571`
 - Goal: create the TUI package structure without mixing full-screen UI code into the current command handlers
 - Deliverables:
@@ -391,6 +391,13 @@ Completion notes:
   - `uv run ty check`
 - Done when:
   - later tasks have a stable home for TUI implementation without bloating existing line-mode modules
+
+Completion notes:
+
+- Added the initial Textual package under [src/glassbox/cli/tui](../src/glassbox/cli/tui), split into app, client adapter, state, widgets, keybindings, and theme modules.
+- Added `create_tui_app` and `run_tui_app` seams so command handlers can launch the app against an `InteractiveSessionClient` without owning Textual internals.
+- Added construction, mount, and cleanup coverage in [test_cli_tui_app.py](../tests/unit/test_cli_tui_app.py).
+- Validation: `uv run pytest tests/unit/test_cli_tui_app.py tests/unit/test_tui_framework_smoke.py`; `uv run ruff check src/glassbox/cli/tui tests/unit/test_cli_tui_app.py`; `uv run ty check`.
 
 ### GBX-573: Align Dashboard Co-Hosting With The TUI Launch Lifecycle
 
