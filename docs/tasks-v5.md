@@ -315,7 +315,7 @@ Completion notes:
 
 ### GBX-570: Extract A Runtime-Agnostic Interactive Session Client
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-561`
 - Goal: separate terminal UI concerns from local and daemon session control so the TUI can use one client-shaped API
 - Deliverables:
@@ -334,6 +334,13 @@ Completion notes:
   - `uv run ruff check src/glassbox/cli tests/integration/test_cli_interactive_commands.py`
 - Done when:
   - the terminal UI can be built against one session-client contract instead of directly coupling to line-mode loops
+
+Completion notes:
+
+- Added the reusable client boundary in [interactive_client.py](../src/glassbox/cli/interactive_client.py), including local runtime and daemon HTTP/SSE implementations.
+- Routed daemon attach actions and SSE parsing through the extracted daemon client while preserving existing line-mode behavior.
+- Added focused coverage in [test_cli_interactive_client.py](../tests/unit/test_cli_interactive_client.py).
+- Validation: `uv run pytest tests/unit/test_cli_interactive_client.py tests/integration/test_cli_interactive_commands.py`; `uv run ruff check src/glassbox/cli/interactive_client.py src/glassbox/cli/daemon_attach.py tests/unit/test_cli_interactive_client.py`; `uv run ty check`.
 
 ### GBX-571: Preserve Or Retire Line Mode Behind An Explicit Boundary
 

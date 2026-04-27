@@ -2,15 +2,14 @@
 
 import argparse
 import asyncio
-import json
 import sys
-from collections.abc import AsyncIterator
 from contextlib import suppress
-from dataclasses import dataclass
 from uuid import UUID
 
 import httpx
 
+from glassbox.cli.interactive_client import DaemonInteractiveSessionClient
+from glassbox.cli.interactive_client import iter_sse_events
 from glassbox.cli.interactive_session import _interactive_blocked_input_message
 from glassbox.cli.interactive_session import _interactive_help_text
 from glassbox.cli.interactive_session import _interactive_mode
@@ -23,61 +22,11 @@ from glassbox.cli.renderer import InteractivePromptState
 from glassbox.cli.status_formatters import _format_current_turn_line
 from glassbox.cli.status_formatters import _format_next_action_line
 from glassbox.cli.status_formatters import _format_pending_question_line
-from glassbox.core.events import EventEnvelope
 from glassbox.core.events import SessionFailed
 from glassbox.core.models import SessionState
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import SessionStatus
 from glassbox.web.session_api import SessionSnapshotResponse
-
-
-@dataclass(frozen=True, slots=True)
-class _DaemonSessionClient:
-    client: httpx.AsyncClient
-    session_id: UUID
-    dashboard_url: str
-
-    async def fetch_snapshot(self) -> SessionSnapshotResponse:
-        response = await _request_runtime(
-            self.client,
-            "GET",
-            f"/sessions/{self.session_id}",
-            dashboard_url=self.dashboard_url,
-        )
-        if response.status_code == 404:
-            raise ValueError(f"unknown session_id: {self.session_id}")
-        response.raise_for_status()
-        return SessionSnapshotResponse.model_validate(response.json())
-
-    async def resolve_approval(self, approval_id: UUID, decision: str) -> None:
-        response = await _request_runtime(
-            self.client,
-            "POST",
-            f"/sessions/{self.session_id}/approvals/{approval_id}",
-            dashboard_url=self.dashboard_url,
-            json={"decision": decision},
-        )
-        _raise_for_conflict_or_missing(response)
-
-    async def submit_message(self, text: str) -> None:
-        response = await _request_runtime(
-            self.client,
-            "POST",
-            f"/sessions/{self.session_id}/messages",
-            dashboard_url=self.dashboard_url,
-            json={"text": text},
-        )
-        _raise_for_conflict_or_missing(response)
-
-    async def submit_answer(self, question_id: UUID, answer: str) -> None:
-        response = await _request_runtime(
-            self.client,
-            "POST",
-            f"/sessions/{self.session_id}/questions/{question_id}",
-            dashboard_url=self.dashboard_url,
-            json={"answer": answer},
-        )
-        _raise_for_conflict_or_missing(response)
 
 
 async def attach_via_daemon(
@@ -92,8 +41,12 @@ async def attach_via_daemon(
         base_url=dashboard_url.rstrip("/"),
         timeout=httpx.Timeout(5.0, connect=1.0, read=None, write=5.0),
     ) as client:
-        daemon_session = _DaemonSessionClient(client, session_id, dashboard_url)
-        snapshot = await daemon_session.fetch_snapshot()
+        daemon_session = DaemonInteractiveSessionClient(
+            client,
+            session_id,
+            dashboard_url,
+        )
+        snapshot = await daemon_session.fetch_response_snapshot()
         _ensure_snapshot_can_live_attach(snapshot)
 
         prompt_state = InteractivePromptState()
@@ -127,12 +80,12 @@ async def attach_via_daemon(
 
 
 async def _interactive_remote_session_loop(
-    daemon_session: _DaemonSessionClient,
+    daemon_session: DaemonInteractiveSessionClient,
     *,
     prompt_state: InteractivePromptState,
 ) -> int:
     while True:
-        snapshot = await daemon_session.fetch_snapshot()
+        snapshot = await daemon_session.fetch_response_snapshot()
         state = _session_state_from_snapshot(snapshot)
 
         if _is_terminal_status(state.status):
@@ -163,7 +116,7 @@ async def _interactive_remote_session_loop(
         finally:
             prompt_state.clear()
 
-        snapshot = await daemon_session.fetch_snapshot()
+        snapshot = await daemon_session.fetch_response_snapshot()
         state = _session_state_from_snapshot(snapshot)
         mode = _interactive_mode(state)
 
@@ -203,7 +156,7 @@ async def _interactive_remote_session_loop(
 
 
 async def _handle_remote_approval_action(
-    daemon_session: _DaemonSessionClient,
+    daemon_session: DaemonInteractiveSessionClient,
     *,
     state: SessionState,
     decision: ApprovalDecision,
@@ -216,11 +169,11 @@ async def _handle_remote_approval_action(
         print(_interactive_blocked_input_message(state, daemon_session.session_id))
         return
 
-    await daemon_session.resolve_approval(approval_id, decision.value)
+    await daemon_session.resolve_approval(approval_id, decision)
 
 
 async def _handle_remote_submit_action(
-    daemon_session: _DaemonSessionClient,
+    daemon_session: DaemonInteractiveSessionClient,
     *,
     state: SessionState,
     mode: str,
@@ -270,7 +223,7 @@ async def _render_live_events(
                         "Live runtime stream reconnected.",
                     )
                 reconnect_attempts = 0
-                async for event in _iter_sse_events(response):
+                async for event in iter_sse_events(response):
                     if stop_stream.is_set():
                         return
                     last_sequence = max(last_sequence, event.sequence)
@@ -287,55 +240,6 @@ async def _render_live_events(
                     f"{dashboard_url} while attached to session {session_id}: {exc}"
                 ) from exc
             await asyncio.sleep(0.1 * reconnect_attempts)
-
-
-async def _iter_sse_events(
-    response: httpx.Response,
-) -> AsyncIterator[EventEnvelope]:
-    data_lines: list[str] = []
-
-    async for line in response.aiter_lines():
-        if line.startswith(":"):
-            continue
-        if line == "":
-            if data_lines:
-                payload = json.loads("\n".join(data_lines))
-                event = EventEnvelope.model_validate(payload)
-                yield event
-            data_lines = []
-            continue
-        if line.startswith("event:"):
-            continue
-        if line.startswith("id:"):
-            continue
-        if line.startswith("data:"):
-            data_lines.append(line[len("data:") :].strip())
-
-    if data_lines:
-        payload = json.loads("\n".join(data_lines))
-        event = EventEnvelope.model_validate(payload)
-        yield event
-
-
-async def _request_runtime(
-    client: httpx.AsyncClient,
-    method: str,
-    path: str,
-    *,
-    dashboard_url: str,
-    **kwargs,
-) -> httpx.Response:
-    try:
-        return await client.request(method, path, **kwargs)
-    except httpx.HTTPError as exc:
-        raise ValueError(f"live runtime unavailable at {dashboard_url}: {exc}") from exc
-
-
-def _raise_for_conflict_or_missing(response: httpx.Response) -> None:
-    if response.status_code in {404, 409}:
-        detail = response.json().get("detail", response.text)
-        raise ValueError(str(detail))
-    response.raise_for_status()
 
 
 def _ensure_snapshot_can_live_attach(snapshot: SessionSnapshotResponse) -> None:
