@@ -1,0 +1,911 @@
+"""Pure terminal conversation state reducer for the TUI."""
+
+from dataclasses import dataclass
+from dataclasses import field
+from enum import StrEnum
+from uuid import UUID
+
+from glassbox.cli.interactive_client import InteractiveSessionSnapshot
+from glassbox.core.events import ApprovalRequested
+from glassbox.core.events import ApprovalResolved
+from glassbox.core.events import AssistantMessageCompleted
+from glassbox.core.events import AssistantMessageDelta
+from glassbox.core.events import AssistantMessageStarted
+from glassbox.core.events import ErrorRecorded
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import ModelToolCallRequested
+from glassbox.core.events import SessionCompleted
+from glassbox.core.events import SessionFailed
+from glassbox.core.events import SessionResumed
+from glassbox.core.events import SessionStarted
+from glassbox.core.events import ToolArtifactRecorded
+from glassbox.core.events import ToolExecutionCompleted
+from glassbox.core.events import ToolExecutionStarted
+from glassbox.core.events import ToolOutputChunk
+from glassbox.core.events import TranscriptMessageImported
+from glassbox.core.events import TurnCompleted
+from glassbox.core.events import TurnFailed
+from glassbox.core.events import TurnStarted
+from glassbox.core.events import TurnStatusChanged
+from glassbox.core.events import UserAnswerProvided
+from glassbox.core.events import UserMessageReceived
+from glassbox.core.events import UserQuestionAsked
+from glassbox.core.ids import ApprovalId
+from glassbox.core.ids import MessageId
+from glassbox.core.ids import QuestionId
+from glassbox.core.ids import SessionId
+from glassbox.core.ids import ToolCallId
+from glassbox.core.ids import TurnId
+from glassbox.core.models import MessagePart
+from glassbox.core.types import ApprovalDecision
+from glassbox.core.types import SessionStatus
+from glassbox.core.types import TurnStatus
+
+
+class TerminalStreamStatus(StrEnum):
+    LIVE = "live"
+    RECONNECTING = "reconnecting"
+    UNAVAILABLE = "unavailable"
+    HISTORICAL_ONLY = "historical_only"
+
+
+class TerminalMode(StrEnum):
+    STARTING = "starting"
+    READY = "ready"
+    THINKING = "thinking"
+    RUNNING_TOOL = "running_tool"
+    AWAITING_APPROVAL = "awaiting_approval"
+    AWAITING_ANSWER = "awaiting_answer"
+    FAILED = "failed"
+    HISTORICAL_ONLY = "historical_only"
+
+
+class ConversationMessageKind(StrEnum):
+    USER = "user"
+    ASSISTANT = "assistant"
+    SYSTEM = "system"
+    RUNTIME = "runtime"
+
+
+class AssistantMessageStatus(StrEnum):
+    STREAMING = "streaming"
+    COMPLETED = "completed"
+
+
+class ToolActivityStatus(StrEnum):
+    REQUESTED = "requested"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+
+
+@dataclass(frozen=True, slots=True)
+class TerminalHeaderState:
+    session_id: SessionId
+    status: SessionStatus
+    mode: TerminalMode
+    stream_status: TerminalStreamStatus = TerminalStreamStatus.LIVE
+    model_name: str | None = None
+    cwd: str | None = None
+    approval_mode: str | None = None
+    branch_label: str | None = None
+    dashboard_url: str | None = None
+    current_turn_id: TurnId | None = None
+    last_sequence: int = 0
+    stream_detail: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ComposerDraftState:
+    text: str = ""
+    question_id: QuestionId | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ConversationMessage:
+    kind: ConversationMessageKind
+    text: str
+    sequence: int
+    message_id: MessageId | None = None
+    turn_id: TurnId | None = None
+    status: AssistantMessageStatus | None = None
+    imported: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class ToolActivity:
+    tool_call_id: ToolCallId
+    turn_id: TurnId
+    tool_name: str
+    status: ToolActivityStatus
+    sequence: int
+    output: tuple[str, ...] = ()
+    summary: str | None = None
+    exit_code: int | None = None
+    artifact_paths: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class PendingApprovalState:
+    approval_id: ApprovalId
+    turn_id: TurnId
+    subject: str
+    reason: str
+    sequence: int
+    tool_call_id: ToolCallId | None = None
+    decision: ApprovalDecision | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class PendingQuestionState:
+    question_id: QuestionId
+    turn_id: TurnId
+    tool_call_id: ToolCallId
+    question: str
+    sequence: int
+    answer: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class FailureState:
+    message: str
+    sequence: int
+    turn_id: TurnId | None = None
+    retryable: bool | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ConversationTurn:
+    turn_id: TurnId
+    trigger_message_id: MessageId | None
+    status: TurnStatus | str
+    sequence: int
+    messages: tuple[ConversationMessage, ...] = ()
+    tools: tuple[ToolActivity, ...] = ()
+    completed_outcome: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class TerminalConversationState:
+    header: TerminalHeaderState
+    composer: ComposerDraftState = field(default_factory=ComposerDraftState)
+    messages: tuple[ConversationMessage, ...] = ()
+    turns: tuple[ConversationTurn, ...] = ()
+    pending_approval: PendingApprovalState | None = None
+    pending_question: PendingQuestionState | None = None
+    failure: FailureState | None = None
+
+
+def conversation_state_from_snapshot(
+    snapshot: InteractiveSessionSnapshot,
+) -> TerminalConversationState:
+    status = snapshot.state.status
+    stream_status = _stream_status_from_session_status(status)
+    return TerminalConversationState(
+        header=TerminalHeaderState(
+            session_id=snapshot.session_id,
+            status=status,
+            mode=_mode_from_session_status(status),
+            stream_status=stream_status,
+            model_name=snapshot.model_name,
+            cwd=snapshot.cwd,
+            approval_mode=snapshot.approval_mode,
+            dashboard_url=snapshot.dashboard_url,
+            current_turn_id=snapshot.state.current_turn_id,
+            last_sequence=snapshot.last_sequence,
+        ),
+        pending_question=(
+            PendingQuestionState(
+                question_id=snapshot.state.pending_question_id,
+                turn_id=snapshot.state.current_turn_id or UUID(int=0),
+                tool_call_id=UUID(int=0),
+                question=snapshot.pending_question_text or "",
+                sequence=snapshot.last_sequence,
+            )
+            if snapshot.state.pending_question_id is not None
+            else None
+        ),
+    )
+
+
+def reduce_events(
+    state: TerminalConversationState,
+    events: list[EventEnvelope] | tuple[EventEnvelope, ...],
+) -> TerminalConversationState:
+    for event in sorted(events, key=lambda item: item.sequence):
+        state = apply_event(state, event)
+    return state
+
+
+def apply_event(
+    state: TerminalConversationState,
+    event: EventEnvelope,
+) -> TerminalConversationState:
+    payload = event.payload
+    state = _with_last_sequence(state, event.sequence)
+
+    if isinstance(payload, SessionStarted):
+        return _with_header(
+            state,
+            status=SessionStatus.RUNNING,
+            mode=TerminalMode.READY,
+            model_name=payload.model_name,
+            cwd=payload.cwd,
+            approval_mode=payload.approval_mode,
+            branch_label=payload.branch_label,
+            dashboard_url=payload.dashboard_url,
+        )
+
+    if isinstance(payload, SessionResumed):
+        return _append_message(
+            state,
+            ConversationMessage(
+                kind=ConversationMessageKind.RUNTIME,
+                text=f"Resumed from sequence {payload.from_sequence}",
+                sequence=event.sequence,
+            ),
+        )
+
+    if isinstance(payload, SessionCompleted):
+        return _with_header(
+            state,
+            status=SessionStatus.COMPLETED,
+            mode=TerminalMode.HISTORICAL_ONLY,
+            stream_status=TerminalStreamStatus.HISTORICAL_ONLY,
+            current_turn_id=None,
+        )
+
+    if isinstance(payload, SessionFailed):
+        return _with_failure(
+            _with_header(
+                state,
+                status=SessionStatus.FAILED,
+                mode=TerminalMode.FAILED,
+                stream_status=TerminalStreamStatus.HISTORICAL_ONLY,
+                current_turn_id=None,
+            ),
+            FailureState(
+                message=payload.error_message,
+                sequence=event.sequence,
+                retryable=payload.retryable,
+            ),
+        )
+
+    if isinstance(payload, UserMessageReceived):
+        return _append_message(
+            state,
+            ConversationMessage(
+                kind=ConversationMessageKind.USER,
+                text=payload.text,
+                sequence=event.sequence,
+                message_id=payload.message_id,
+            ),
+        )
+
+    if isinstance(payload, TranscriptMessageImported):
+        imported_messages = tuple(
+            ConversationMessage(
+                kind=ConversationMessageKind(payload.role),
+                text=_text_from_parts(payload.parts),
+                sequence=event.sequence,
+                message_id=payload.message_id,
+                turn_id=payload.source_turn_id,
+                imported=True,
+            )
+            for _ in [payload]
+        )
+        for message in imported_messages:
+            state = _append_message(state, message)
+        return state
+
+    if isinstance(payload, TurnStarted):
+        turn = ConversationTurn(
+            turn_id=payload.turn_id,
+            trigger_message_id=payload.trigger_message_id,
+            status=TurnStatus.PENDING,
+            sequence=event.sequence,
+        )
+        return _with_header(
+            _upsert_turn(state, turn),
+            status=SessionStatus.RUNNING,
+            mode=TerminalMode.THINKING,
+            current_turn_id=payload.turn_id,
+        )
+
+    if isinstance(payload, TurnStatusChanged):
+        mode = _mode_from_turn_status(payload.status)
+        return _with_header(
+            _update_turn(
+                state,
+                payload.turn_id,
+                status=payload.status,
+                sequence=event.sequence,
+            ),
+            mode=mode,
+            current_turn_id=payload.turn_id,
+        )
+
+    if isinstance(payload, AssistantMessageStarted):
+        message = ConversationMessage(
+            kind=ConversationMessageKind.ASSISTANT,
+            text="",
+            sequence=event.sequence,
+            message_id=payload.message_id,
+            turn_id=state.header.current_turn_id,
+            status=AssistantMessageStatus.STREAMING,
+        )
+        return _append_message(state, message)
+
+    if isinstance(payload, AssistantMessageDelta):
+        return _append_assistant_delta(
+            state,
+            payload.message_id,
+            payload.delta,
+            event.sequence,
+        )
+
+    if isinstance(payload, AssistantMessageCompleted):
+        return _complete_assistant_message(
+            state,
+            payload.message_id,
+            _text_from_parts(payload.parts),
+            event.sequence,
+        )
+
+    if isinstance(payload, ModelToolCallRequested):
+        activity = ToolActivity(
+            tool_call_id=payload.tool_call_id,
+            turn_id=payload.turn_id,
+            tool_name=payload.tool_name,
+            status=ToolActivityStatus.REQUESTED,
+            sequence=event.sequence,
+        )
+        return _with_header(
+            _upsert_tool(state, activity),
+            mode=TerminalMode.RUNNING_TOOL,
+            current_turn_id=payload.turn_id,
+        )
+
+    if isinstance(payload, ToolExecutionStarted):
+        activity = ToolActivity(
+            tool_call_id=payload.tool_call_id,
+            turn_id=payload.turn_id,
+            tool_name=payload.tool_name,
+            status=ToolActivityStatus.RUNNING,
+            sequence=event.sequence,
+        )
+        return _with_header(
+            _upsert_tool(state, activity),
+            mode=TerminalMode.RUNNING_TOOL,
+            current_turn_id=payload.turn_id,
+        )
+
+    if isinstance(payload, ToolOutputChunk):
+        return _append_tool_output(
+            state,
+            payload.tool_call_id,
+            payload.chunk,
+            event.sequence,
+        )
+
+    if isinstance(payload, ToolArtifactRecorded):
+        return _append_tool_artifact(
+            state,
+            payload.tool_call_id,
+            payload.path,
+            event.sequence,
+        )
+
+    if isinstance(payload, ToolExecutionCompleted):
+        return _complete_tool(
+            state,
+            payload.tool_call_id,
+            success=payload.success,
+            summary=payload.summary,
+            exit_code=payload.exit_code,
+            sequence=event.sequence,
+        )
+
+    if isinstance(payload, ApprovalRequested):
+        approval = PendingApprovalState(
+            approval_id=payload.approval_id,
+            turn_id=payload.turn_id,
+            subject=payload.subject,
+            reason=payload.reason,
+            sequence=event.sequence,
+            tool_call_id=payload.tool_call_id,
+        )
+        return _with_header(
+            _replace(state, pending_approval=approval),
+            status=SessionStatus.AWAITING_APPROVAL,
+            mode=TerminalMode.AWAITING_APPROVAL,
+            current_turn_id=payload.turn_id,
+        )
+
+    if isinstance(payload, ApprovalResolved):
+        if state.pending_approval is None:
+            return state
+        approval = _replace(
+            state.pending_approval,
+            decision=payload.decision,
+            sequence=event.sequence,
+        )
+        return _with_header(
+            _replace(state, pending_approval=approval),
+            status=SessionStatus.RUNNING,
+            mode=TerminalMode.THINKING,
+        )
+
+    if isinstance(payload, UserQuestionAsked):
+        question = PendingQuestionState(
+            question_id=payload.question_id,
+            turn_id=payload.turn_id,
+            tool_call_id=payload.tool_call_id,
+            question=payload.question,
+            sequence=event.sequence,
+        )
+        return _with_header(
+            _replace(state, pending_question=question),
+            status=SessionStatus.AWAITING_USER_INPUT,
+            mode=TerminalMode.AWAITING_ANSWER,
+            current_turn_id=payload.turn_id,
+        )
+
+    if isinstance(payload, UserAnswerProvided):
+        if state.pending_question is None:
+            return state
+        question = _replace(
+            state.pending_question,
+            answer=payload.answer,
+            sequence=event.sequence,
+        )
+        return _with_header(
+            _replace(state, pending_question=question),
+            status=SessionStatus.RUNNING,
+            mode=TerminalMode.THINKING,
+        )
+
+    if isinstance(payload, TurnFailed):
+        return _with_failure(
+            _with_header(
+                _update_turn(
+                    state,
+                    payload.turn_id,
+                    status="failed",
+                    sequence=event.sequence,
+                ),
+                status=SessionStatus.FAILED,
+                mode=TerminalMode.FAILED,
+                current_turn_id=payload.turn_id,
+            ),
+            FailureState(
+                message=payload.error_message,
+                sequence=event.sequence,
+                turn_id=payload.turn_id,
+            ),
+        )
+
+    if isinstance(payload, TurnCompleted):
+        return _with_header(
+            _update_turn(
+                state,
+                payload.turn_id,
+                status="completed",
+                sequence=event.sequence,
+                completed_outcome=payload.outcome,
+            ),
+            status=SessionStatus.RUNNING,
+            mode=TerminalMode.READY,
+            current_turn_id=None,
+        )
+
+    if isinstance(payload, ErrorRecorded):
+        return _with_failure(
+            state,
+            FailureState(message=payload.message, sequence=event.sequence),
+        )
+
+    return state
+
+
+def with_composer_draft(
+    state: TerminalConversationState,
+    text: str,
+    *,
+    question_id: QuestionId | None = None,
+) -> TerminalConversationState:
+    return _replace(
+        state,
+        composer=ComposerDraftState(text=text, question_id=question_id),
+    )
+
+
+def with_stream_status(
+    state: TerminalConversationState,
+    stream_status: TerminalStreamStatus,
+    *,
+    detail: str | None = None,
+) -> TerminalConversationState:
+    mode = state.header.mode
+    if stream_status == TerminalStreamStatus.HISTORICAL_ONLY:
+        mode = TerminalMode.HISTORICAL_ONLY
+    return _with_header(
+        state,
+        stream_status=stream_status,
+        stream_detail=detail,
+        mode=mode,
+    )
+
+
+def _with_last_sequence(
+    state: TerminalConversationState,
+    sequence: int,
+) -> TerminalConversationState:
+    if sequence <= state.header.last_sequence:
+        return state
+    return _with_header(state, last_sequence=sequence)
+
+
+def _with_header(
+    state: TerminalConversationState, **changes
+) -> TerminalConversationState:
+    return _replace(state, header=_replace(state.header, **changes))
+
+
+def _with_failure(
+    state: TerminalConversationState,
+    failure: FailureState,
+) -> TerminalConversationState:
+    return _replace(state, failure=failure)
+
+
+def _append_message(
+    state: TerminalConversationState,
+    message: ConversationMessage,
+) -> TerminalConversationState:
+    state = _replace(state, messages=(*state.messages, message))
+    if message.turn_id is None:
+        return state
+    return _append_turn_message(state, message.turn_id, message)
+
+
+def _append_assistant_delta(
+    state: TerminalConversationState,
+    message_id: MessageId,
+    delta: str,
+    sequence: int,
+) -> TerminalConversationState:
+    messages = []
+    updated_message: ConversationMessage | None = None
+    for message in state.messages:
+        if message.message_id == message_id:
+            updated_message = _replace(
+                message,
+                text=f"{message.text}{delta}",
+                sequence=sequence,
+                status=AssistantMessageStatus.STREAMING,
+            )
+            messages.append(updated_message)
+        else:
+            messages.append(message)
+    state = _replace(state, messages=tuple(messages))
+    if updated_message is None or updated_message.turn_id is None:
+        return state
+    return _replace_turn_message(state, updated_message)
+
+
+def _complete_assistant_message(
+    state: TerminalConversationState,
+    message_id: MessageId,
+    text: str,
+    sequence: int,
+) -> TerminalConversationState:
+    messages = []
+    updated_message: ConversationMessage | None = None
+    for message in state.messages:
+        if message.message_id == message_id:
+            updated_message = _replace(
+                message,
+                text=text or message.text,
+                sequence=sequence,
+                status=AssistantMessageStatus.COMPLETED,
+            )
+            messages.append(updated_message)
+        else:
+            messages.append(message)
+    if updated_message is None:
+        updated_message = ConversationMessage(
+            kind=ConversationMessageKind.ASSISTANT,
+            text=text,
+            sequence=sequence,
+            message_id=message_id,
+            turn_id=state.header.current_turn_id,
+            status=AssistantMessageStatus.COMPLETED,
+        )
+        messages.append(updated_message)
+    state = _replace(state, messages=tuple(messages))
+    if updated_message.turn_id is None:
+        return state
+    if any(turn.turn_id == updated_message.turn_id for turn in state.turns):
+        return _replace_turn_message(state, updated_message)
+    return _append_turn_message(state, updated_message.turn_id, updated_message)
+
+
+def _upsert_turn(
+    state: TerminalConversationState,
+    turn: ConversationTurn,
+) -> TerminalConversationState:
+    turns = []
+    replaced = False
+    for existing in state.turns:
+        if existing.turn_id == turn.turn_id:
+            turns.append(turn)
+            replaced = True
+        else:
+            turns.append(existing)
+    if not replaced:
+        turns.append(turn)
+    return _replace(state, turns=tuple(turns))
+
+
+def _update_turn(
+    state: TerminalConversationState,
+    turn_id: TurnId,
+    **changes,
+) -> TerminalConversationState:
+    turns = []
+    found = False
+    for turn in state.turns:
+        if turn.turn_id == turn_id:
+            turns.append(_replace(turn, **changes))
+            found = True
+        else:
+            turns.append(turn)
+    if not found:
+        turns.append(
+            ConversationTurn(
+                turn_id=turn_id,
+                trigger_message_id=None,
+                status=changes.get("status", "unknown"),
+                sequence=changes.get("sequence", state.header.last_sequence),
+                completed_outcome=changes.get("completed_outcome"),
+            )
+        )
+    return _replace(state, turns=tuple(turns))
+
+
+def _append_turn_message(
+    state: TerminalConversationState,
+    turn_id: TurnId,
+    message: ConversationMessage,
+) -> TerminalConversationState:
+    state = _ensure_turn(state, turn_id, message.sequence)
+    return _update_turn_collection(
+        state,
+        turn_id,
+        lambda turn: _replace(turn, messages=(*turn.messages, message)),
+    )
+
+
+def _replace_turn_message(
+    state: TerminalConversationState,
+    message: ConversationMessage,
+) -> TerminalConversationState:
+    if message.turn_id is None:
+        return state
+    return _update_turn_collection(
+        state,
+        message.turn_id,
+        lambda turn: _replace(
+            turn,
+            messages=tuple(
+                message if item.message_id == message.message_id else item
+                for item in turn.messages
+            ),
+        ),
+    )
+
+
+def _upsert_tool(
+    state: TerminalConversationState,
+    activity: ToolActivity,
+) -> TerminalConversationState:
+    state = _ensure_turn(state, activity.turn_id, activity.sequence)
+    return _update_turn_collection(
+        state,
+        activity.turn_id,
+        lambda turn: _replace(
+            turn,
+            tools=_upsert_tool_tuple(turn.tools, activity),
+        ),
+    )
+
+
+def _append_tool_output(
+    state: TerminalConversationState,
+    tool_call_id: ToolCallId,
+    output: str,
+    sequence: int,
+) -> TerminalConversationState:
+    return _map_tool(
+        state,
+        tool_call_id,
+        lambda tool: _replace(
+            tool,
+            output=(*tool.output, output),
+            sequence=sequence,
+        ),
+    )
+
+
+def _append_tool_artifact(
+    state: TerminalConversationState,
+    tool_call_id: ToolCallId,
+    path: str | None,
+    sequence: int,
+) -> TerminalConversationState:
+    if path is None:
+        return state
+    return _map_tool(
+        state,
+        tool_call_id,
+        lambda tool: _replace(
+            tool,
+            artifact_paths=(*tool.artifact_paths, path),
+            sequence=sequence,
+        ),
+    )
+
+
+def _complete_tool(
+    state: TerminalConversationState,
+    tool_call_id: ToolCallId,
+    *,
+    success: bool,
+    summary: str,
+    exit_code: int | None,
+    sequence: int,
+) -> TerminalConversationState:
+    return _map_tool(
+        state,
+        tool_call_id,
+        lambda tool: _replace(
+            tool,
+            status=(
+                ToolActivityStatus.SUCCEEDED if success else ToolActivityStatus.FAILED
+            ),
+            summary=summary,
+            exit_code=exit_code,
+            sequence=sequence,
+        ),
+    )
+
+
+def _map_tool(
+    state: TerminalConversationState,
+    tool_call_id: ToolCallId,
+    update,
+) -> TerminalConversationState:
+    return _replace(
+        state,
+        turns=tuple(
+            _replace(
+                turn,
+                tools=tuple(
+                    update(tool) if tool.tool_call_id == tool_call_id else tool
+                    for tool in turn.tools
+                ),
+            )
+            for turn in state.turns
+        ),
+    )
+
+
+def _ensure_turn(
+    state: TerminalConversationState,
+    turn_id: TurnId,
+    sequence: int,
+) -> TerminalConversationState:
+    if any(turn.turn_id == turn_id for turn in state.turns):
+        return state
+    return _replace(
+        state,
+        turns=(
+            *state.turns,
+            ConversationTurn(
+                turn_id=turn_id,
+                trigger_message_id=None,
+                status="unknown",
+                sequence=sequence,
+            ),
+        ),
+    )
+
+
+def _update_turn_collection(
+    state: TerminalConversationState,
+    turn_id: TurnId,
+    update,
+) -> TerminalConversationState:
+    return _replace(
+        state,
+        turns=tuple(
+            update(turn) if turn.turn_id == turn_id else turn for turn in state.turns
+        ),
+    )
+
+
+def _upsert_tool_tuple(
+    tools: tuple[ToolActivity, ...],
+    activity: ToolActivity,
+) -> tuple[ToolActivity, ...]:
+    updated = []
+    replaced = False
+    for tool in tools:
+        if tool.tool_call_id == activity.tool_call_id:
+            updated.append(
+                _replace(
+                    activity,
+                    output=tool.output,
+                    artifact_paths=tool.artifact_paths,
+                    summary=activity.summary or tool.summary,
+                    exit_code=activity.exit_code
+                    if activity.exit_code is not None
+                    else tool.exit_code,
+                )
+            )
+            replaced = True
+        else:
+            updated.append(tool)
+    if not replaced:
+        updated.append(activity)
+    return tuple(updated)
+
+
+def _mode_from_session_status(status: SessionStatus) -> TerminalMode:
+    if status == SessionStatus.AWAITING_APPROVAL:
+        return TerminalMode.AWAITING_APPROVAL
+    if status == SessionStatus.AWAITING_USER_INPUT:
+        return TerminalMode.AWAITING_ANSWER
+    if status == SessionStatus.RUNNING:
+        return TerminalMode.READY
+    if status == SessionStatus.FAILED:
+        return TerminalMode.FAILED
+    if status in {
+        SessionStatus.COMPLETED,
+        SessionStatus.CANCELLED,
+    }:
+        return TerminalMode.HISTORICAL_ONLY
+    return TerminalMode.STARTING
+
+
+def _stream_status_from_session_status(status: SessionStatus) -> TerminalStreamStatus:
+    if status in {
+        SessionStatus.COMPLETED,
+        SessionStatus.FAILED,
+        SessionStatus.CANCELLED,
+    }:
+        return TerminalStreamStatus.HISTORICAL_ONLY
+    return TerminalStreamStatus.LIVE
+
+
+def _mode_from_turn_status(status: TurnStatus) -> TerminalMode:
+    if status == TurnStatus.EXECUTING_TOOL:
+        return TerminalMode.RUNNING_TOOL
+    if status == TurnStatus.AWAITING_APPROVAL:
+        return TerminalMode.AWAITING_APPROVAL
+    if status == TurnStatus.AWAITING_USER_INPUT:
+        return TerminalMode.AWAITING_ANSWER
+    if status == TurnStatus.FAILED:
+        return TerminalMode.FAILED
+    return TerminalMode.THINKING
+
+
+def _text_from_parts(parts: list[MessagePart]) -> str:
+    return "".join(part.text for part in parts if part.kind == "text")
+
+
+def _replace(obj, **changes):
+    from dataclasses import replace
+
+    return replace(obj, **changes)

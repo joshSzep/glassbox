@@ -434,7 +434,7 @@ Completion notes:
 
 ### GBX-580: Build A Pure Terminal Conversation State Reducer
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-570`, `GBX-563`
 - Goal: derive a chat-first terminal view model from canonical events, snapshots, and local UI drafts
 - Deliverables:
@@ -453,6 +453,13 @@ Completion notes:
   - `uv run ty check`
 - Done when:
   - TUI widgets can render a coherent conversation without each widget independently interpreting raw events
+
+Completion notes:
+
+- Added the pure Textual-free reducer in [conversation.py](../src/glassbox/cli/tui/conversation.py), deriving terminal header, conversation messages, turn shells, tool activity, pending approval/question, failure, stream, dashboard, and composer draft state from snapshots and events.
+- Event reduction is deterministic by sequence and keeps raw event sequence numbers on view-model records for diagnostics.
+- Added focused coverage in [test_cli_tui_conversation.py](../tests/unit/test_cli_tui_conversation.py) for normal, live streaming, tool-heavy, approval, question, failed, partial-history, reconnect, historical-only, and draft-separation cases.
+- Validation: `uv run pytest tests/unit/test_cli_tui_conversation.py`; `uv run ruff check src/glassbox/cli/tui/conversation.py tests/unit/test_cli_tui_conversation.py`; `uv run ty check`.
 
 ### GBX-581: Model Turn-Grouped Messages And Tool Activity
 
