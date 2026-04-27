@@ -1,6 +1,7 @@
 """Shared subprocess execution helpers for command-style tools."""
 
 import asyncio
+import signal
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -194,6 +195,16 @@ def resolve_workspace_cwd(workspace_root: Path, relative_path: str) -> Path:
 
 
 def _termination_signal_from_exit_code(exit_code: int) -> int | None:
-    if exit_code >= 0:
+    if exit_code < 0:
+        return abs(exit_code)
+
+    shell_signal_offset = 128
+    if exit_code <= shell_signal_offset:
         return None
-    return abs(exit_code)
+
+    signal_number = exit_code - shell_signal_offset
+    if any(
+        int(valid_signal) == signal_number for valid_signal in signal.valid_signals()
+    ):
+        return signal_number
+    return None
