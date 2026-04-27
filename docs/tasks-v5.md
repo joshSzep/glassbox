@@ -581,7 +581,7 @@ Completion notes:
 
 ### GBX-591: Add The TUI Header, Footer, And Theme Foundation
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-590`, `GBX-583`
 - Goal: establish a calm, coding-agent-oriented terminal visual system
 - Deliverables:
@@ -599,6 +599,14 @@ Completion notes:
   - manual review at common terminal sizes such as 80x24, 100x30, and wider panes
 - Done when:
   - the full-screen app has a coherent frame that orients users without overwhelming the chat
+
+Completion notes:
+
+- Added width-aware header/footer render helpers in [widgets.py](../src/glassbox/cli/tui/widgets.py), including dashboard URL disclosure on wider terminals and stable fallback labels on narrow terminals.
+- Updated the `SessionHeader` and `FooterHelp` widgets to refresh from mounted terminal width without relying on unavailable layout during composition.
+- Expanded [theme.py](../src/glassbox/cli/tui/theme.py) with restrained terminal surfaces plus reusable normal, muted, success, warning, danger, active, and focus status classes.
+- Added direct widget/theme coverage in [test_cli_tui_widgets.py](../tests/unit/test_cli_tui_widgets.py) for wide header rendering, narrow truncation, footer collapse, and theme hooks.
+- Validation: `uv run pytest tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_conversation.py`; `uv run ruff check src/glassbox/cli/tui tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_app.py`; `uv run ty check`.
 
 ### GBX-592: Render The Conversation Transcript Surface
 
