@@ -20,5 +20,8 @@ class TerminalClientAdapter:
     def stream_events(self, *, after_sequence: int = 0) -> AsyncIterator[EventEnvelope]:
         return self.client.stream_events(after_sequence=after_sequence)
 
+    async def submit_message(self, text: str) -> None:
+        await self.client.submit_message(text)
+
     async def close(self) -> None:
         await self.client.aclose()

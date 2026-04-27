@@ -2,6 +2,7 @@
 
 import asyncio
 from collections.abc import AsyncIterator
+from typing import cast
 
 from textual.widgets import Static
 
@@ -13,6 +14,7 @@ from glassbox.cli.tui import create_session_tui_app
 from glassbox.cli.tui import create_tui_app
 from glassbox.cli.tui.keybindings import TUI_KEY_BINDINGS
 from glassbox.cli.tui.state import session_dashboard_url
+from glassbox.cli.tui.widgets import ComposerWidget
 from glassbox.core.events import AssistantMessageDelta
 from glassbox.core.events import AssistantMessageStarted
 from glassbox.core.events import EventEnvelope
@@ -75,6 +77,25 @@ def test_tui_app_declares_latest_activity_keybinding() -> None:
     )
 
 
+def test_tui_app_declares_prompt_submit_keybinding() -> None:
+    assert any(
+        binding.key == "ctrl+enter" and binding.action == "submit_prompt"
+        for binding in TUI_KEY_BINDINGS
+    )
+
+
+def test_tui_app_submits_multiline_prompt_and_clears_draft() -> None:
+    asyncio.run(_run_prompt_submit_test())
+
+
+def test_tui_app_preserves_draft_during_live_updates() -> None:
+    asyncio.run(_run_draft_preservation_test())
+
+
+def test_tui_app_keeps_local_prompt_history() -> None:
+    asyncio.run(_run_prompt_history_test())
+
+
 async def _run_app_mount_test() -> None:
     client = _FakeInteractiveClient()
     app = create_tui_app(
@@ -86,12 +107,102 @@ async def _run_app_mount_test() -> None:
     async with app.run_test(size=(100, 30)) as pilot:
         header = pilot.app.query_one("#session-header", Static)
         conversation = pilot.app.query_one("#conversation-pane", Static)
-        composer = pilot.app.query_one("#composer", Static)
+        composer = pilot.app.query_one("#composer", ComposerWidget)
 
         assert "Glassbox" in str(header.content)
         assert str(app.state.header.session_id)[:8] in str(header.content)
         assert "Starting conversation" in str(conversation.content)
-        assert "plain composer ready" in str(composer.content)
+        assert composer.placeholder == (
+            "Write a prompt. Enter adds a line; Ctrl+Enter sends."
+        )
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_prompt_submit_test() -> None:
+    client = _FakeInteractiveClient()
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=_snapshot(),
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        composer = pilot.app.query_one(ComposerWidget)
+        composer.text = "Inspect this file\nThen summarize it"
+        await pilot.pause()
+
+        await pilot.press("ctrl+enter")
+        await pilot.pause()
+
+        assert client.submitted_messages == ["Inspect this file\nThen summarize it"]
+        assert composer.text == ""
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
+        assert typed_app.state.composer.text == ""
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_draft_preservation_test() -> None:
+    snapshot = _snapshot()
+    message_id = new_message_id()
+    client = _FakeInteractiveClient(
+        events=[
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=8,
+                payload=AssistantMessageStarted(message_id=message_id),
+            )
+        ]
+    )
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        composer = pilot.app.query_one(ComposerWidget)
+        composer.text = "keep my draft"
+        await pilot.pause()
+
+        assert composer.text == "keep my draft"
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
+        assert typed_app.state.composer.text == "keep my draft"
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_prompt_history_test() -> None:
+    client = _FakeInteractiveClient()
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=_snapshot(),
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        composer = pilot.app.query_one(ComposerWidget)
+        composer.text = "first prompt"
+        await pilot.press("ctrl+enter")
+        await pilot.pause()
+        composer.text = "second prompt"
+        await pilot.press("ctrl+enter")
+        await pilot.pause()
+
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
+        typed_app.action_prompt_history_previous()
+        assert composer.text == "second prompt"
+        typed_app.action_prompt_history_previous()
+        assert composer.text == "first prompt"
+        typed_app.action_prompt_history_next()
+        assert composer.text == "second prompt"
 
         pilot.app.exit()
 
@@ -182,6 +293,7 @@ class _FakeInteractiveClient:
         self.closed = False
         self.fetch_count = 0
         self.events = events or []
+        self.submitted_messages: list[str] = []
 
     @property
     def session_id(self):
@@ -192,7 +304,7 @@ class _FakeInteractiveClient:
         return _snapshot()
 
     async def submit_message(self, text: str) -> None:
-        return None
+        self.submitted_messages.append(text)
 
     async def submit_answer(self, question_id: QuestionId, answer: str) -> None:
         return None

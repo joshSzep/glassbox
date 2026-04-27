@@ -7,6 +7,7 @@ from glassbox.cli.tui.conversation import reduce_events
 from glassbox.cli.tui.conversation import with_runtime_owner
 from glassbox.cli.tui.conversation import with_stream_status
 from glassbox.cli.tui.theme import GLASSBOX_TUI_CSS
+from glassbox.cli.tui.widgets import composer_availability
 from glassbox.cli.tui.widgets import render_footer_help
 from glassbox.cli.tui.widgets import render_session_header
 from glassbox.cli.tui.widgets import render_transcript
@@ -99,6 +100,31 @@ def test_theme_defines_terminal_frame_surfaces() -> None:
         ".status-focus",
     ]:
         assert class_name in GLASSBOX_TUI_CSS
+
+
+def test_composer_availability_blocks_historical_and_reconnecting_states() -> None:
+    historical_state = conversation_state_from_snapshot(
+        InteractiveSessionSnapshot(
+            state=SessionState(
+                session_id=new_session_id(),
+                status=SessionStatus.COMPLETED,
+            )
+        )
+    )
+    reconnecting_state = with_stream_status(
+        _state(),
+        TerminalStreamStatus.RECONNECTING,
+    )
+
+    assert composer_availability(_state()).can_submit is True
+    assert composer_availability(historical_state).can_edit is False
+    assert composer_availability(historical_state).disabled_reason == (
+        "historical session"
+    )
+    assert composer_availability(reconnecting_state).can_submit is False
+    assert composer_availability(reconnecting_state).disabled_reason == (
+        "runtime reconnecting"
+    )
 
 
 def test_transcript_renders_chat_tools_and_failure() -> None:

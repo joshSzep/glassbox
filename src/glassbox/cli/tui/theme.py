@@ -37,6 +37,7 @@ Screen {
     border-top: solid $accent;
     background: #121518;
     color: #f3f4f4;
+    scrollbar-size-vertical: 1;
 }
 
 #footer {

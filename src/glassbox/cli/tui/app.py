@@ -7,6 +7,7 @@ from typing import ClassVar
 from textual.app import App
 from textual.app import ComposeResult
 from textual.binding import Binding
+from textual.widgets import TextArea
 
 from glassbox.cli.interactive_client import InteractiveSessionClient
 from glassbox.cli.interactive_client import InteractiveSessionSnapshot
@@ -16,12 +17,13 @@ from glassbox.cli.tui.conversation import TerminalConversationState
 from glassbox.cli.tui.conversation import TerminalStreamStatus
 from glassbox.cli.tui.conversation import apply_event
 from glassbox.cli.tui.conversation import conversation_state_from_snapshot
+from glassbox.cli.tui.conversation import with_composer_draft
 from glassbox.cli.tui.conversation import with_stream_status
 from glassbox.cli.tui.keybindings import TUI_KEY_BINDINGS
 from glassbox.cli.tui.state import session_dashboard_url
 from glassbox.cli.tui.theme import GLASSBOX_TUI_CSS
 from glassbox.cli.tui.widgets import ActionStripPlaceholder
-from glassbox.cli.tui.widgets import ComposerPlaceholder
+from glassbox.cli.tui.widgets import ComposerWidget
 from glassbox.cli.tui.widgets import ConversationPane
 from glassbox.cli.tui.widgets import FooterHelp
 from glassbox.cli.tui.widgets import SessionHeader
@@ -51,12 +53,14 @@ class GlassboxTerminalApp(App[None]):
             )
         self._stream_task: asyncio.Task[None] | None = None
         self._client_closed = False
+        self._prompt_history: list[str] = []
+        self._prompt_history_index: int | None = None
 
     def compose(self) -> ComposeResult:
         yield SessionHeader(self.state)
         yield ConversationPane(self.state)
         yield ActionStripPlaceholder(self.state)
-        yield ComposerPlaceholder(self.state, self.launch_options)
+        yield ComposerWidget(self.state, self.launch_options)
         yield FooterHelp()
 
     def on_mount(self) -> None:
@@ -89,13 +93,67 @@ class GlassboxTerminalApp(App[None]):
         self.query_one(SessionHeader).update_state(state)
         self.query_one(ConversationPane).update_state(state)
         self.query_one(ActionStripPlaceholder).update_state(state)
-        self.query_one(ComposerPlaceholder).update_state(
+        self.query_one(ComposerWidget).update_state(
             state,
             self.launch_options,
         )
 
     def action_latest(self) -> None:
         self.query_one(ConversationPane).jump_to_latest()
+
+    def on_text_area_changed(self, event: TextArea.Changed) -> None:
+        if not isinstance(event.text_area, ComposerWidget):
+            return
+        if event.text_area.is_syncing_state:
+            return
+        self._prompt_history_index = None
+        self.update_conversation_state(
+            with_composer_draft(self.state, event.text_area.text)
+        )
+
+    async def action_submit_prompt(self) -> None:
+        composer = self.query_one(ComposerWidget)
+        text = composer.text
+        if not composer.can_submit or not text.strip():
+            composer.show_submit_blocked()
+            return
+        await self.client_adapter.submit_message(text)
+        self._record_prompt_history(text)
+        self.update_conversation_state(with_composer_draft(self.state, ""))
+
+    def action_prompt_history_previous(self) -> None:
+        if not self._prompt_history:
+            return
+        if self._prompt_history_index is None:
+            self._prompt_history_index = len(self._prompt_history) - 1
+        else:
+            self._prompt_history_index = max(self._prompt_history_index - 1, 0)
+        self._load_prompt_history_entry()
+
+    def action_prompt_history_next(self) -> None:
+        if self._prompt_history_index is None:
+            return
+        self._prompt_history_index += 1
+        if self._prompt_history_index >= len(self._prompt_history):
+            self._prompt_history_index = None
+            text = ""
+        else:
+            text = self._prompt_history[self._prompt_history_index]
+        self.update_conversation_state(with_composer_draft(self.state, text))
+
+    def _record_prompt_history(self, text: str) -> None:
+        self._prompt_history.append(text)
+        self._prompt_history_index = None
+
+    def _load_prompt_history_entry(self) -> None:
+        if self._prompt_history_index is None:
+            return
+        self.update_conversation_state(
+            with_composer_draft(
+                self.state,
+                self._prompt_history[self._prompt_history_index],
+            )
+        )
 
     async def close_client(self) -> None:
         if self._client_closed:

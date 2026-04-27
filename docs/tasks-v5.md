@@ -674,7 +674,7 @@ Completion notes:
 
 ### GBX-600: Build The Multiline Composer
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-590`, `GBX-571`
 - Goal: make prompt entry feel like a modern coding-agent composer rather than a single `input()` line
 - Deliverables:
@@ -693,6 +693,15 @@ Completion notes:
   - manual paste test with multiline code or markdown
 - Done when:
   - users can write substantial coding prompts comfortably inside the terminal app
+
+Completion notes:
+
+- Replaced the placeholder composer with a multiline `TextArea`-backed `ComposerWidget` in [widgets.py](../src/glassbox/cli/tui/widgets.py), with soft wrapping, placeholder guidance, read-only blocked states, and local draft synchronization.
+- Added composer availability derivation for ready, active turn, pending approval, pending question, reconnecting, unavailable, failed, and historical states.
+- Wired `Ctrl+Enter`/`Ctrl+S` prompt submission through [app.py](../src/glassbox/cli/tui/app.py) and [client.py](../src/glassbox/cli/tui/client.py), preserving drafts until the client accepts the prompt.
+- Added local prompt history navigation in the app and composer widget, with previous/next history actions for the current TUI session.
+- Added Textual tests in [test_cli_tui_app.py](../tests/unit/test_cli_tui_app.py) for multiline submit, draft clearing, draft preservation during live updates, and prompt history; added availability tests in [test_cli_tui_widgets.py](../tests/unit/test_cli_tui_widgets.py).
+- Validation: `uv run pytest tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_conversation.py`; `uv run ruff check src/glassbox/cli/tui tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py`; `uv run ty check`.
 
 ### GBX-601: Add Command Palette And Shortcut Discovery
 

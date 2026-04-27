@@ -1,20 +1,34 @@
 """Textual widgets for the Glassbox terminal app shell."""
 
 from contextlib import suppress
+from dataclasses import dataclass
 from textwrap import wrap
+from typing import Any
 from typing import ClassVar
+from typing import cast
 
+from textual.binding import Binding
 from textual.widgets import Static
+from textual.widgets import TextArea
 
 from glassbox.cli.interactive_launch import InteractiveLaunchOptions
 from glassbox.cli.tui.conversation import AssistantMessageStatus
 from glassbox.cli.tui.conversation import ConversationMessageKind
 from glassbox.cli.tui.conversation import TerminalConversationState
 from glassbox.cli.tui.conversation import TerminalMode
+from glassbox.cli.tui.conversation import TerminalStreamStatus
 from glassbox.cli.tui.conversation import header_display_from_state
 from glassbox.cli.tui.conversation import terminal_action_from_state
 
 TRANSCRIPT_MIN_WIDTH = 36
+
+
+@dataclass(frozen=True, slots=True)
+class ComposerAvailability:
+    can_edit: bool
+    can_submit: bool
+    placeholder: str
+    disabled_reason: str | None = None
 
 
 class SessionHeader(Static):
@@ -87,28 +101,69 @@ class ActionStripPlaceholder(Static):
         return f"{action.title}: {action.description}"
 
 
-class ComposerPlaceholder(Static):
+class ComposerWidget(TextArea):
+    BINDINGS: ClassVar[list[Binding]] = [
+        Binding("ctrl+enter", "submit_prompt", "Send", show=False),
+        Binding("ctrl+s", "submit_prompt", "Send", show=False),
+        Binding("ctrl+up", "prompt_history_previous", "Previous prompt", show=False),
+        Binding("ctrl+down", "prompt_history_next", "Next prompt", show=False),
+    ]
+
     def __init__(
         self,
         state: TerminalConversationState,
         launch_options: InteractiveLaunchOptions,
     ) -> None:
-        super().__init__(self._render_state(state, launch_options), id="composer")
+        self._state = state
+        self._launch_options = launch_options
+        self._syncing_state = False
+        availability = composer_availability(state)
+        super().__init__(
+            text=state.composer.text,
+            id="composer",
+            placeholder=availability.placeholder,
+            soft_wrap=True,
+            show_line_numbers=False,
+        )
+        self.update_state(state, launch_options)
+
+    @property
+    def is_syncing_state(self) -> bool:
+        return self._syncing_state
+
+    @property
+    def can_submit(self) -> bool:
+        return composer_availability(self._state).can_submit
 
     def update_state(
         self,
         state: TerminalConversationState,
         launch_options: InteractiveLaunchOptions,
     ) -> None:
-        self.update(self._render_state(state, launch_options))
+        self._state = state
+        self._launch_options = launch_options
+        availability = composer_availability(state)
+        self.read_only = not availability.can_edit
+        self.placeholder = availability.placeholder
+        self.tooltip = availability.disabled_reason
+        if self.text != state.composer.text:
+            self._syncing_state = True
+            try:
+                self.text = state.composer.text
+            finally:
+                self._syncing_state = False
 
-    def _render_state(
-        self,
-        state: TerminalConversationState,
-        launch_options: InteractiveLaunchOptions,
-    ) -> str:
-        draft = f" draft: {state.composer.text}" if state.composer.text else ""
-        return f"{launch_options.default_mode.value} composer ready{draft}"
+    def show_submit_blocked(self) -> None:
+        self.placeholder = composer_availability(self._state).placeholder
+
+    async def action_submit_prompt(self) -> None:
+        await cast(Any, self.app).action_submit_prompt()
+
+    def action_prompt_history_previous(self) -> None:
+        cast(Any, self.app).action_prompt_history_previous()
+
+    def action_prompt_history_next(self) -> None:
+        cast(Any, self.app).action_prompt_history_next()
 
 
 class FooterHelp(Static):
@@ -161,6 +216,63 @@ def render_footer_help(*, width: int = 80) -> str:
     return _fit_line(
         "Ctrl+Q Quit | Ctrl+L Latest | Ctrl+P Palette | Ctrl+D Dashboard",
         width,
+    )
+
+
+def composer_availability(state: TerminalConversationState) -> ComposerAvailability:
+    if state.header.mode == TerminalMode.HISTORICAL_ONLY:
+        return ComposerAvailability(
+            can_edit=False,
+            can_submit=False,
+            placeholder="Session is historical; start or attach to a running session.",
+            disabled_reason="historical session",
+        )
+    if state.header.stream_status == TerminalStreamStatus.RECONNECTING:
+        return ComposerAvailability(
+            can_edit=False,
+            can_submit=False,
+            placeholder="Reconnecting to the runtime...",
+            disabled_reason="runtime reconnecting",
+        )
+    if state.header.stream_status == TerminalStreamStatus.UNAVAILABLE:
+        return ComposerAvailability(
+            can_edit=False,
+            can_submit=False,
+            placeholder="Runtime stream unavailable; reconnect before sending.",
+            disabled_reason="runtime stream unavailable",
+        )
+    if state.pending_approval is not None:
+        return ComposerAvailability(
+            can_edit=False,
+            can_submit=False,
+            placeholder="Resolve the pending approval before sending a prompt.",
+            disabled_reason="pending approval",
+        )
+    if state.pending_question is not None:
+        return ComposerAvailability(
+            can_edit=True,
+            can_submit=False,
+            placeholder="Answer the pending question from the action strip.",
+            disabled_reason="pending question",
+        )
+    if state.header.mode in {TerminalMode.THINKING, TerminalMode.RUNNING_TOOL}:
+        return ComposerAvailability(
+            can_edit=True,
+            can_submit=False,
+            placeholder="Agent is working; draft your next prompt here.",
+            disabled_reason="active turn",
+        )
+    if state.header.mode == TerminalMode.FAILED:
+        return ComposerAvailability(
+            can_edit=False,
+            can_submit=False,
+            placeholder="Session failed; inspect details before sending.",
+            disabled_reason="failed session",
+        )
+    return ComposerAvailability(
+        can_edit=True,
+        can_submit=True,
+        placeholder="Write a prompt. Enter adds a line; Ctrl+Enter sends.",
     )
 
 
