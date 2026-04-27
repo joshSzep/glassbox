@@ -800,7 +800,7 @@ Completion notes:
 
 ### GBX-610: Build First-Class Question Answer Workflow
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-582`, `GBX-600`, `GBX-602`
 - Goal: make pending `ask_user` questions feel like part of the conversation rather than a mode switch hidden in the prompt label
 - Deliverables:
@@ -818,6 +818,11 @@ Completion notes:
   - manual keyboard-only answer workflow review
 - Done when:
   - a pending question is visually first, easy to answer, and backed by reliable feedback
+
+Completion notes:
+- Added a first-class pending question action card, question-scoped answer drafts, and answer submission feedback for pending, accepted, stale/conflict, validation, runtime unavailable, and retryable failure states.
+- Preserved answer drafts across recoverable failures and stream updates while clearing accepted drafts only after client acceptance.
+- Validated with `uv run pytest tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_commands.py`, `uv run ruff check src/glassbox/cli/tui tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_commands.py`, and `uv run ty check`.
 
 ### GBX-611: Build First-Class Approval Workflow
 

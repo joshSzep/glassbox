@@ -5,6 +5,7 @@ from enum import StrEnum
 
 from glassbox.cli.tui.conversation import TerminalConversationState
 from glassbox.cli.tui.conversation import TerminalMode
+from glassbox.cli.tui.conversation import TerminalStreamStatus
 
 
 class TerminalCommandId(StrEnum):
@@ -194,8 +195,14 @@ def _disabled_reason(
         if state.pending_approval is None:
             return "no pending approval"
     if command_id == TerminalCommandId.SUBMIT_ANSWER:
-        if state.pending_question is None:
+        if state.pending_question is None or state.pending_question.answer is not None:
             return "no pending question"
+        if state.header.stream_status in {
+            TerminalStreamStatus.RECONNECTING,
+            TerminalStreamStatus.UNAVAILABLE,
+            TerminalStreamStatus.HISTORICAL_ONLY,
+        }:
+            return "runtime unavailable"
         if not state.composer.text.strip():
             return "answer draft is empty"
     if command_id == TerminalCommandId.INTERRUPT:

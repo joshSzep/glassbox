@@ -7,9 +7,12 @@ from glassbox.cli.tui.conversation import reduce_events
 from glassbox.cli.tui.conversation import with_runtime_owner
 from glassbox.cli.tui.conversation import with_stream_status
 from glassbox.cli.tui.theme import GLASSBOX_TUI_CSS
+from glassbox.cli.tui.widgets import ActionFeedback
+from glassbox.cli.tui.widgets import ActionFeedbackStatus
 from glassbox.cli.tui.widgets import ComposerSubmissionFeedback
 from glassbox.cli.tui.widgets import ComposerSubmissionStatus
 from glassbox.cli.tui.widgets import composer_availability
+from glassbox.cli.tui.widgets import render_action_strip
 from glassbox.cli.tui.widgets import render_composer_feedback
 from glassbox.cli.tui.widgets import render_footer_help
 from glassbox.cli.tui.widgets import render_session_header
@@ -24,7 +27,9 @@ from glassbox.core.events import ToolOutputChunk
 from glassbox.core.events import TurnFailed
 from glassbox.core.events import TurnStarted
 from glassbox.core.events import UserMessageReceived
+from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import new_message_id
+from glassbox.core.ids import new_question_id
 from glassbox.core.ids import new_session_id
 from glassbox.core.ids import new_tool_call_id
 from glassbox.core.ids import new_turn_id
@@ -161,6 +166,42 @@ def test_composer_availability_blocks_historical_and_reconnecting_states() -> No
     assert composer_availability(reconnecting_state).disabled_reason == (
         "runtime reconnecting"
     )
+
+
+def test_action_strip_renders_pending_question_card_with_feedback() -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    tool_call_id = new_tool_call_id()
+    question_id = new_question_id()
+    state = reduce_events(
+        _state(session_id=session_id),
+        [
+            _event(
+                session_id,
+                1,
+                UserQuestionAsked(
+                    question_id=question_id,
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    provider_tool_call_id="ask-1",
+                    question="Which file should I inspect?",
+                ),
+            )
+        ],
+    )
+
+    rendered = render_action_strip(
+        state,
+        ActionFeedback(
+            ActionFeedbackStatus.PENDING,
+            "Submitting answer to the runtime.",
+        ),
+    )
+
+    assert "Question: Which file should I inspect?" in rendered
+    assert "Answer draft: write in the composer" in rendered
+    assert "Ctrl+R submit answer" in rendered
+    assert "Sending: Submitting answer" in rendered
 
 
 def test_transcript_renders_chat_tools_and_failure() -> None:

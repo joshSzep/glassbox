@@ -28,6 +28,8 @@ from glassbox.cli.tui.conversation import with_stream_status
 from glassbox.cli.tui.keybindings import TUI_KEY_BINDINGS
 from glassbox.cli.tui.state import session_dashboard_url
 from glassbox.cli.tui.theme import GLASSBOX_TUI_CSS
+from glassbox.cli.tui.widgets import ActionFeedback
+from glassbox.cli.tui.widgets import ActionFeedbackStatus
 from glassbox.cli.tui.widgets import ActionStripPlaceholder
 from glassbox.cli.tui.widgets import CommandPaletteWidget
 from glassbox.cli.tui.widgets import ComposerAvailability
@@ -72,11 +74,12 @@ class GlassboxTerminalApp(App[None]):
         self._focused_before_palette = None
         self._details_visible = False
         self._composer_feedback: ComposerSubmissionFeedback | None = None
+        self._action_feedback: ActionFeedback | None = None
 
     def compose(self) -> ComposeResult:
         yield SessionHeader(self.state)
         yield ConversationPane(self.state)
-        yield ActionStripPlaceholder(self.state)
+        yield ActionStripPlaceholder(self.state, self._action_feedback)
         yield ComposerWidget(self.state, self.launch_options)
         yield ComposerFeedbackLine(self._composer_feedback)
         yield FooterHelp()
@@ -112,7 +115,10 @@ class GlassboxTerminalApp(App[None]):
             return
         self.query_one(SessionHeader).update_state(state)
         self.query_one(ConversationPane).update_state(state)
-        self.query_one(ActionStripPlaceholder).update_state(state)
+        self.query_one(ActionStripPlaceholder).update_state(
+            state,
+            self._action_feedback,
+        )
         self.query_one(ComposerWidget).update_state(
             state,
             self.launch_options,
@@ -150,8 +156,23 @@ class GlassboxTerminalApp(App[None]):
             and event.text_area.text != self.state.composer.text
         ):
             self._set_composer_feedback(None)
+        if (
+            self._action_feedback is not None
+            and event.text_area.text != self.state.composer.text
+        ):
+            self._set_action_feedback(None)
+        question_id = None
+        if (
+            self.state.pending_question is not None
+            and self.state.pending_question.answer is None
+        ):
+            question_id = self.state.pending_question.question_id
         self.update_conversation_state(
-            with_composer_draft(self.state, event.text_area.text)
+            with_composer_draft(
+                self.state,
+                event.text_area.text,
+                question_id=question_id,
+            )
         )
 
     async def action_submit_prompt(self) -> None:
@@ -220,6 +241,10 @@ class GlassboxTerminalApp(App[None]):
         self._focused_before_palette = None
 
     async def execute_terminal_command(self, command_id: TerminalCommandId) -> None:
+        if command_id == TerminalCommandId.SUBMIT_ANSWER:
+            self.close_command_palette(restore_focus=True)
+            await self._submit_pending_answer()
+            return
         item = command_item_by_id(command_items_for_state(self.state), command_id)
         if item is not None and not item.enabled:
             return
@@ -260,14 +285,6 @@ class GlassboxTerminalApp(App[None]):
                     self.state.pending_approval.approval_id,
                     ApprovalDecision.DENIED,
                 )
-            return
-        if command_id == TerminalCommandId.SUBMIT_ANSWER:
-            if self.state.pending_question is not None:
-                await self.client_adapter.submit_answer(
-                    self.state.pending_question.question_id,
-                    self.state.composer.text,
-                )
-                self.update_conversation_state(with_composer_draft(self.state, ""))
             return
         if command_id == TerminalCommandId.INTERRUPT:
             return
@@ -340,11 +357,79 @@ class GlassboxTerminalApp(App[None]):
         if self.is_mounted:
             self.query_one(ComposerFeedbackLine).update_feedback(feedback)
 
+    def _set_action_feedback(self, feedback: ActionFeedback | None) -> None:
+        self._action_feedback = feedback
+        if self.is_mounted:
+            self.query_one(ActionStripPlaceholder).update_state(
+                self.state,
+                feedback,
+            )
+
     def _is_prompt_submit_pending(self) -> bool:
         return (
             self._composer_feedback is not None
             and self._composer_feedback.status == ComposerSubmissionStatus.PENDING
         )
+
+    async def _submit_pending_answer(self) -> None:
+        question = self.state.pending_question
+        if question is None or question.answer is not None:
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.CONFLICT,
+                    "No pending question needs an answer.",
+                )
+            )
+            return
+        if self.state.header.stream_status in {
+            TerminalStreamStatus.RECONNECTING,
+            TerminalStreamStatus.UNAVAILABLE,
+            TerminalStreamStatus.HISTORICAL_ONLY,
+        }:
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.UNAVAILABLE_RUNTIME,
+                    self.state.header.stream_detail or "Runtime is not writable.",
+                    retryable=True,
+                )
+            )
+            return
+        answer = self.query_one(ComposerWidget).text
+        if not answer.strip():
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.VALIDATION_ERROR,
+                    "Write an answer in the composer before submitting.",
+                )
+            )
+            return
+        self._set_action_feedback(
+            ActionFeedback(
+                ActionFeedbackStatus.PENDING,
+                "Submitting answer to the runtime.",
+            )
+        )
+        try:
+            await self.client_adapter.submit_answer(question.question_id, answer)
+        except InteractiveClientError as exc:
+            self._set_action_feedback(_action_feedback_for_client_error(exc))
+            return
+        except Exception as exc:
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.RETRYABLE_FAILURE,
+                    str(exc) or "The answer was not accepted.",
+                    retryable=True,
+                )
+            )
+            return
+        self._set_action_feedback(
+            ActionFeedback(
+                ActionFeedbackStatus.ACCEPTED,
+                "Answer accepted. Waiting for session events.",
+            )
+        )
+        self.update_conversation_state(with_composer_draft(self.state, ""))
 
     async def close_client(self) -> None:
         if self._client_closed:
@@ -423,6 +508,34 @@ def _feedback_for_client_error(
         return ComposerSubmissionFeedback(ComposerSubmissionStatus.CONFLICT, str(error))
     return ComposerSubmissionFeedback(
         ComposerSubmissionStatus.RETRYABLE_FAILURE,
+        str(error),
+        retryable=True,
+    )
+
+
+def _action_feedback_for_client_error(
+    error: InteractiveClientError,
+) -> ActionFeedback:
+    if error.kind == InteractiveClientErrorKind.CONFLICT:
+        return ActionFeedback(ActionFeedbackStatus.CONFLICT, str(error))
+    if error.kind == InteractiveClientErrorKind.VALIDATION_ERROR:
+        return ActionFeedback(ActionFeedbackStatus.VALIDATION_ERROR, str(error))
+    if error.kind in {
+        InteractiveClientErrorKind.RUNTIME_UNAVAILABLE,
+        InteractiveClientErrorKind.STREAM_UNAVAILABLE,
+    }:
+        return ActionFeedback(
+            ActionFeedbackStatus.NETWORK_ERROR,
+            str(error),
+            retryable=True,
+        )
+    if error.kind in {
+        InteractiveClientErrorKind.UNKNOWN_SESSION,
+        InteractiveClientErrorKind.HISTORICAL_ONLY,
+    }:
+        return ActionFeedback(ActionFeedbackStatus.CONFLICT, str(error))
+    return ActionFeedback(
+        ActionFeedbackStatus.RETRYABLE_FAILURE,
         str(error),
         retryable=True,
     )

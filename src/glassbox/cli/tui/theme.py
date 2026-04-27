@@ -24,7 +24,7 @@ Screen {
 }
 
 #action-strip {
-    height: 3;
+    height: 5;
     padding: 0 1;
     border-top: solid $accent;
     background: #15181a;

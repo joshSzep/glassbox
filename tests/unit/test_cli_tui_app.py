@@ -172,6 +172,14 @@ def test_tui_app_submits_answer_from_keyboard_action() -> None:
     asyncio.run(_run_answer_shortcut_test())
 
 
+def test_tui_app_preserves_answer_draft_for_failures() -> None:
+    asyncio.run(_run_answer_failure_feedback_test())
+
+
+def test_tui_app_reports_stale_and_unavailable_question_answer_states() -> None:
+    asyncio.run(_run_answer_stale_and_unavailable_test())
+
+
 async def _run_app_mount_test() -> None:
     client = _FakeInteractiveClient()
     app = create_tui_app(
@@ -595,14 +603,18 @@ async def _run_answer_shortcut_test() -> None:
         composer = pilot.app.query_one(ComposerWidget)
         composer.text = "src/glassbox/cli/tui/app.py"
         await pilot.pause()
-
         typed_app = cast(GlassboxTerminalApp, pilot.app)
+
+        assert typed_app.state.composer.question_id == question_id
+
         await typed_app.action_submit_answer()
+        action_strip = pilot.app.query_one("#action-strip", Static)
 
         assert client.submitted_answers == [
             (question_id, "src/glassbox/cli/tui/app.py")
         ]
         assert composer.text == ""
+        assert "Accepted: Answer accepted" in str(action_strip.content)
 
         pilot.app.exit()
 
@@ -610,6 +622,124 @@ async def _run_answer_shortcut_test() -> None:
     await app.close_client()
 
     assert client.closed is True
+
+
+async def _run_answer_failure_feedback_test() -> None:
+    snapshot = _snapshot()
+    question_id = new_question_id()
+    turn_id = new_turn_id()
+    tool_call_id = new_tool_call_id()
+    client = _FakeInteractiveClient(
+        events=[
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=8,
+                payload=UserQuestionAsked(
+                    question_id=question_id,
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    provider_tool_call_id="ask-1",
+                    question="Which file?",
+                ),
+            )
+        ],
+        answer_error=InteractiveClientError(
+            InteractiveClientErrorKind.CONFLICT,
+            "question already answered",
+        ),
+    )
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        composer = pilot.app.query_one(ComposerWidget)
+        composer.text = "src/app.py"
+        await pilot.pause()
+
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
+        await typed_app.action_submit_answer()
+        action_strip = pilot.app.query_one("#action-strip", Static)
+
+        assert "Not sent: question already answered" in str(action_strip.content)
+        assert composer.text == "src/app.py"
+        assert client.submitted_answers == []
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_answer_stale_and_unavailable_test() -> None:
+    stale_client = _FakeInteractiveClient()
+    stale_app = create_tui_app(
+        client=stale_client,
+        initial_snapshot=_snapshot(),
+        launch_options=_launch_options(),
+    )
+    async with stale_app.run_test(size=(100, 30)) as pilot:
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
+        await typed_app.action_submit_answer()
+        action_strip = pilot.app.query_one("#action-strip", Static)
+
+        assert "Not sent: No pending question" in str(action_strip.content)
+        assert stale_client.submitted_answers == []
+
+        pilot.app.exit()
+
+    await stale_app.close_client()
+
+    snapshot = _snapshot()
+    question_id = new_question_id()
+    turn_id = new_turn_id()
+    tool_call_id = new_tool_call_id()
+    unavailable_client = _FakeInteractiveClient(
+        events=[
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=8,
+                payload=UserQuestionAsked(
+                    question_id=question_id,
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    provider_tool_call_id="ask-1",
+                    question="Which file?",
+                ),
+            )
+        ]
+    )
+    unavailable_app = create_tui_app(
+        client=unavailable_client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+    )
+    async with unavailable_app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
+        typed_app.update_conversation_state(
+            with_stream_status(
+                typed_app.state,
+                TerminalStreamStatus.UNAVAILABLE,
+                detail="lost stream",
+            )
+        )
+        composer = pilot.app.query_one(ComposerWidget)
+        composer.text = "src/app.py"
+        await pilot.pause()
+        await typed_app.action_submit_answer()
+        action_strip = pilot.app.query_one("#action-strip", Static)
+
+        assert "Runtime unavailable: lost stream" in str(action_strip.content)
+        assert "Retry is safe" in str(action_strip.content)
+        assert composer.text == "src/app.py"
+        assert unavailable_client.submitted_answers == []
+
+        pilot.app.exit()
+
+    await unavailable_app.close_client()
 
 
 async def _run_lifecycle_test() -> None:
@@ -694,11 +824,13 @@ class _FakeInteractiveClient:
         *,
         events: list[EventEnvelope] | None = None,
         submit_error: Exception | None = None,
+        answer_error: Exception | None = None,
     ) -> None:
         self.closed = False
         self.fetch_count = 0
         self.events = events or []
         self.submit_error = submit_error
+        self.answer_error = answer_error
         self.submit_started: asyncio.Event | None = None
         self.submit_release: asyncio.Event | None = None
         self.submitted_messages: list[str] = []
@@ -723,6 +855,8 @@ class _FakeInteractiveClient:
         self.submitted_messages.append(text)
 
     async def submit_answer(self, question_id: QuestionId, answer: str) -> None:
+        if self.answer_error is not None:
+            raise self.answer_error
         self.submitted_answers.append((question_id, answer))
 
     async def resolve_approval(

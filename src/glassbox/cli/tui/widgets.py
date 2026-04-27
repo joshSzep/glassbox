@@ -20,6 +20,7 @@ from glassbox.cli.tui.commands import command_items_for_state
 from glassbox.cli.tui.commands import filter_command_items
 from glassbox.cli.tui.conversation import AssistantMessageStatus
 from glassbox.cli.tui.conversation import ConversationMessageKind
+from glassbox.cli.tui.conversation import TerminalActionKind
 from glassbox.cli.tui.conversation import TerminalConversationState
 from glassbox.cli.tui.conversation import TerminalMode
 from glassbox.cli.tui.conversation import TerminalStreamStatus
@@ -50,6 +51,23 @@ class ComposerSubmissionStatus(StrEnum):
 @dataclass(frozen=True, slots=True)
 class ComposerSubmissionFeedback:
     status: ComposerSubmissionStatus
+    message: str
+    retryable: bool = False
+
+
+class ActionFeedbackStatus(StrEnum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    CONFLICT = "conflict"
+    VALIDATION_ERROR = "validation_error"
+    NETWORK_ERROR = "network_error"
+    UNAVAILABLE_RUNTIME = "unavailable_runtime"
+    RETRYABLE_FAILURE = "retryable_failure"
+
+
+@dataclass(frozen=True, slots=True)
+class ActionFeedback:
+    status: ActionFeedbackStatus
     message: str
     retryable: bool = False
 
@@ -115,15 +133,19 @@ class ConversationPane(Static):
 class ActionStripPlaceholder(Static):
     can_focus: ClassVar[bool] = True
 
-    def __init__(self, state: TerminalConversationState) -> None:
-        super().__init__(self._render_state(state), id="action-strip")
+    def __init__(
+        self,
+        state: TerminalConversationState,
+        feedback: ActionFeedback | None = None,
+    ) -> None:
+        super().__init__(render_action_strip(state, feedback), id="action-strip")
 
-    def update_state(self, state: TerminalConversationState) -> None:
-        self.update(self._render_state(state))
-
-    def _render_state(self, state: TerminalConversationState) -> str:
-        action = terminal_action_from_state(state)
-        return f"{action.title}: {action.description}"
+    def update_state(
+        self,
+        state: TerminalConversationState,
+        feedback: ActionFeedback | None = None,
+    ) -> None:
+        self.update(render_action_strip(state, feedback))
 
 
 class ComposerWidget(TextArea):
@@ -443,6 +465,50 @@ def render_composer_feedback(
     }[feedback.status]
     suffix = " Retry is safe." if feedback.retryable else ""
     return f"{prefix}: {feedback.message}{suffix}"
+
+
+def render_action_strip(
+    state: TerminalConversationState,
+    feedback: ActionFeedback | None = None,
+) -> str:
+    action = terminal_action_from_state(state)
+    if action.kind == TerminalActionKind.PENDING_QUESTION:
+        lines = [
+            f"Question: {action.description}",
+            _question_answer_line(action.answer_draft, state.composer.text),
+            _question_hint_line(action.related_tool_name),
+        ]
+    else:
+        lines = [f"{action.title}: {action.description}"]
+    if feedback is not None:
+        lines.append(render_action_feedback(feedback))
+    return "\n".join(lines)
+
+
+def render_action_feedback(feedback: ActionFeedback) -> str:
+    prefix = {
+        ActionFeedbackStatus.PENDING: "Sending",
+        ActionFeedbackStatus.ACCEPTED: "Accepted",
+        ActionFeedbackStatus.CONFLICT: "Not sent",
+        ActionFeedbackStatus.VALIDATION_ERROR: "Check answer",
+        ActionFeedbackStatus.NETWORK_ERROR: "Network error",
+        ActionFeedbackStatus.UNAVAILABLE_RUNTIME: "Runtime unavailable",
+        ActionFeedbackStatus.RETRYABLE_FAILURE: "Action failed",
+    }[feedback.status]
+    suffix = " Retry is safe." if feedback.retryable else ""
+    return f"{prefix}: {feedback.message}{suffix}"
+
+
+def _question_answer_line(answer_draft: str | None, composer_text: str) -> str:
+    draft = answer_draft if answer_draft is not None else composer_text
+    if draft.strip():
+        return f"Answer draft: {_fit_line(draft.strip(), 72)}"
+    return "Answer draft: write in the composer"
+
+
+def _question_hint_line(related_tool_name: str | None) -> str:
+    tool = f" | tool {related_tool_name}" if related_tool_name else ""
+    return f"Ctrl+R submit answer{tool}"
 
 
 def render_transcript(
