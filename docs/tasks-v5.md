@@ -988,7 +988,7 @@ Completion notes:
 
 ### GBX-622: Define And Implement Interruption Semantics
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-602`, `GBX-570`
 - Goal: make Ctrl+C, escape, quit, and possible turn cancellation behavior predictable and safe
 - Deliverables:
@@ -1005,6 +1005,11 @@ Completion notes:
   - integration or manual test for exiting during an active turn
 - Done when:
   - interruption and exit behavior feels intentional rather than terminal-default accidental
+
+Completion notes:
+- Documented the TUI interruption and exit contract in `docs/terminal-interaction-model-v5.md` for editing, transient UI, active turns, pending approvals/questions, reconnecting state, and app exit.
+- Implemented Escape transient cancellation, Ctrl+C transient cancellation/interruption feedback, guarded no-op runtime interruption where backend cancellation is missing, and double-confirm quit for active or ambiguous states.
+- Validated with `uv run pytest tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_commands.py`, `uv run ruff check src/glassbox/cli/tui tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py tests/unit/test_cli_tui_commands.py`, and `uv run ty check`.
 
 ### GBX-623: Harden Non-TTY And Plain Fallback Behavior
 

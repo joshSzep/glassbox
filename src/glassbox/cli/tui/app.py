@@ -21,6 +21,7 @@ from glassbox.cli.tui.commands import command_from_slash
 from glassbox.cli.tui.commands import command_item_by_id
 from glassbox.cli.tui.commands import command_items_for_state
 from glassbox.cli.tui.conversation import TerminalConversationState
+from glassbox.cli.tui.conversation import TerminalMode
 from glassbox.cli.tui.conversation import TerminalStreamStatus
 from glassbox.cli.tui.conversation import apply_event
 from glassbox.cli.tui.conversation import conversation_state_from_snapshot
@@ -80,6 +81,7 @@ class GlassboxTerminalApp(App[None]):
         self._details_visible = False
         self._composer_feedback: ComposerSubmissionFeedback | None = None
         self._action_feedback: ActionFeedback | None = None
+        self._quit_confirmation_pending = False
 
     def compose(self) -> ComposeResult:
         yield SessionHeader(self.state)
@@ -281,6 +283,10 @@ class GlassboxTerminalApp(App[None]):
         self._focused_before_palette = None
 
     async def execute_terminal_command(self, command_id: TerminalCommandId) -> None:
+        if command_id == TerminalCommandId.INTERRUPT:
+            self.close_command_palette(restore_focus=True)
+            self._handle_interrupt_request()
+            return
         if command_id == TerminalCommandId.SUBMIT_ANSWER:
             self.close_command_palette(restore_focus=True)
             await self._submit_pending_answer()
@@ -327,13 +333,11 @@ class GlassboxTerminalApp(App[None]):
         if command_id == TerminalCommandId.JUMP_LATEST:
             self.action_latest()
             return
-        if command_id == TerminalCommandId.INTERRUPT:
-            return
         if command_id == TerminalCommandId.CLEAR_TRANSCRIPT:
             self.query_one(ConversationPane).update("Transcript hidden locally.")
             return
         if command_id == TerminalCommandId.QUIT:
-            self.exit()
+            self._handle_quit_request()
 
     async def action_toggle_details(self) -> None:
         await self.execute_terminal_command(TerminalCommandId.TOGGLE_DETAILS)
@@ -355,6 +359,24 @@ class GlassboxTerminalApp(App[None]):
 
     async def action_interrupt(self) -> None:
         await self.execute_terminal_command(TerminalCommandId.INTERRUPT)
+
+    def action_cancel_transient(self) -> None:
+        if self.query_one(CommandPaletteWidget).display:
+            self.close_command_palette(restore_focus=True)
+            return
+        details = self.query_one(DetailsPane)
+        if details.display:
+            self._details_visible = False
+            details.display = False
+            self.query_one(ComposerWidget).focus()
+            return
+        if self._quit_confirmation_pending:
+            self._quit_confirmation_pending = False
+            self._set_action_feedback(
+                ActionFeedback(ActionFeedbackStatus.CONFLICT, "Quit cancelled.")
+            )
+            return
+        self._set_action_feedback(None)
 
     def action_prompt_history_previous(self) -> None:
         if not self._prompt_history:
@@ -405,6 +427,91 @@ class GlassboxTerminalApp(App[None]):
                 self.state,
                 feedback,
             )
+
+    def _handle_interrupt_request(self) -> None:
+        if self.query_one(CommandPaletteWidget).display:
+            self.close_command_palette(restore_focus=True)
+            return
+        details = self.query_one(DetailsPane)
+        if details.display:
+            self._details_visible = False
+            details.display = False
+            self.query_one(ComposerWidget).focus()
+            return
+        self._quit_confirmation_pending = False
+        if self.state.pending_approval is not None:
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.CONFLICT,
+                    "Resolve or deny the pending approval; no interrupt was sent.",
+                )
+            )
+            return
+        if self.state.pending_question is not None:
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.CONFLICT,
+                    "Answer the pending question; no interrupt was sent.",
+                )
+            )
+            return
+        if self.state.header.stream_status in {
+            TerminalStreamStatus.RECONNECTING,
+            TerminalStreamStatus.UNAVAILABLE,
+        }:
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.UNAVAILABLE_RUNTIME,
+                    "Runtime is not writable; no interrupt was sent.",
+                    retryable=True,
+                )
+            )
+            return
+        if self.state.header.current_turn_id is not None or self.state.header.mode in {
+            TerminalMode.THINKING,
+            TerminalMode.RUNNING_TOOL,
+        }:
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.CONFLICT,
+                    "Runtime turn interruption is not supported yet; "
+                    "session continues.",
+                )
+            )
+            return
+        self._set_action_feedback(
+            ActionFeedback(
+                ActionFeedbackStatus.CONFLICT,
+                "No active runtime action to interrupt.",
+            )
+        )
+
+    def _handle_quit_request(self) -> None:
+        if self._quit_confirmation_pending or not self._quit_requires_confirmation():
+            self.exit()
+            return
+        self._quit_confirmation_pending = True
+        self._set_action_feedback(
+            ActionFeedback(
+                ActionFeedbackStatus.CONFLICT,
+                "Press Ctrl+Q again to leave; the session will keep running.",
+            )
+        )
+
+    def _quit_requires_confirmation(self) -> bool:
+        return (
+            self.state.header.current_turn_id is not None
+            or self.state.pending_approval is not None
+            or self.state.pending_question is not None
+            or self.state.header.stream_status == TerminalStreamStatus.RECONNECTING
+            or self.state.header.mode
+            in {
+                TerminalMode.THINKING,
+                TerminalMode.RUNNING_TOOL,
+                TerminalMode.AWAITING_APPROVAL,
+                TerminalMode.AWAITING_ANSWER,
+            }
+        )
 
     def _is_prompt_submit_pending(self) -> bool:
         return (

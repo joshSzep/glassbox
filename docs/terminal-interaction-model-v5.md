@@ -141,6 +141,17 @@ The exact key choices may be refined during implementation, but the following be
 
 Live updates must never steal focus from the composer, command palette, approval decision, question answer, or confirmation modal.
 
+### Interruption And Exit Contract
+
+- `Escape` closes transient UI first: command palette, details pane, then any pending quit confirmation. It does not mutate runtime state.
+- `Ctrl+C` follows the same transient-UI cancellation rule before it is treated as an interruption request.
+- When a model/tool turn is active, `Ctrl+C` reports that backend turn interruption is not supported yet and leaves the session running.
+- During pending approval or pending question states, `Ctrl+C` does not deny, approve, answer, or abandon the turn; it tells the user to resolve the active action explicitly.
+- During reconnecting or unavailable runtime states, `Ctrl+C` does not send a mutation and reports that no interrupt was sent.
+- `Ctrl+Q` exits immediately from idle, historical, failed, or otherwise inspect-only states.
+- `Ctrl+Q` requires a second press when a turn, approval, question, or reconnecting state is active; the first press states that the session will keep running.
+- Exiting the TUI closes the terminal app and stream client only. It does not cancel or delete session state.
+
 ## Command Palette Contract
 
 The command palette replaces hidden slash-command discovery as the primary action discovery surface.

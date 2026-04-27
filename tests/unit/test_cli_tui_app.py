@@ -30,6 +30,7 @@ from glassbox.core.events import AssistantMessageStarted
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import ModelToolCallRequested
 from glassbox.core.events import ToolArtifactRecorded
+from glassbox.core.events import TurnStarted
 from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import QuestionId
@@ -121,6 +122,7 @@ def test_tui_app_declares_keyboard_navigation_keybindings() -> None:
         ("alt+x", "deny"),
         ("ctrl+r", "submit_answer"),
         ("ctrl+c", "interrupt"),
+        ("escape", "cancel_transient"),
     }
 
     assert expected.issubset(
@@ -198,6 +200,10 @@ def test_tui_app_reports_approval_resolution_feedback() -> None:
 
 def test_tui_app_reports_handoff_copy_and_open_feedback() -> None:
     asyncio.run(_run_handoff_feedback_test())
+
+
+def test_tui_app_handles_interrupt_and_quit_contract() -> None:
+    asyncio.run(_run_interrupt_and_quit_contract_test())
 
 
 async def _run_app_mount_test() -> None:
@@ -654,6 +660,10 @@ async def _run_keyboard_focus_test() -> None:
         assert details.display is True
         assert pilot.app.focused is details
 
+        await pilot.press("escape")
+        assert details.display is False
+        assert pilot.app.focused is pilot.app.query_one(ComposerWidget)
+
         pilot.app.exit()
 
     await app.close_client()
@@ -1032,6 +1042,53 @@ async def _run_handoff_feedback_test() -> None:
 
         await typed_app.execute_terminal_command(TerminalCommandId.OPEN_ARTIFACT_PATH)
         assert "Not sent: Artifact path is missing" in str(action_strip.content)
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_interrupt_and_quit_contract_test() -> None:
+    snapshot = _snapshot()
+    turn_id = new_turn_id()
+    client = _FakeInteractiveClient(
+        events=[
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=8,
+                payload=TurnStarted(
+                    turn_id=turn_id,
+                    trigger_message_id=new_message_id(),
+                ),
+            )
+        ]
+    )
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
+
+        await typed_app.execute_terminal_command(TerminalCommandId.INTERRUPT)
+        action_strip = pilot.app.query_one("#action-strip", Static)
+        assert "Runtime turn interruption is not supported yet" in str(
+            action_strip.content
+        )
+
+        await typed_app.execute_terminal_command(TerminalCommandId.QUIT)
+        assert "Press Ctrl+Q again to leave" in str(action_strip.content)
+
+        typed_app.action_cancel_transient()
+        assert "Quit cancelled" in str(action_strip.content)
+
+        await pilot.press("ctrl+p")
+        assert pilot.app.query_one(CommandPaletteWidget).display is True
+        await pilot.press("ctrl+c")
+        assert pilot.app.query_one(CommandPaletteWidget).display is False
 
         pilot.app.exit()
 
