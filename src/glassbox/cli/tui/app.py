@@ -13,6 +13,10 @@ from glassbox.cli.interactive_client import InteractiveSessionClient
 from glassbox.cli.interactive_client import InteractiveSessionSnapshot
 from glassbox.cli.interactive_launch import InteractiveLaunchOptions
 from glassbox.cli.tui.client import TerminalClientAdapter
+from glassbox.cli.tui.commands import TerminalCommandId
+from glassbox.cli.tui.commands import command_from_slash
+from glassbox.cli.tui.commands import command_item_by_id
+from glassbox.cli.tui.commands import command_items_for_state
 from glassbox.cli.tui.conversation import TerminalConversationState
 from glassbox.cli.tui.conversation import TerminalStreamStatus
 from glassbox.cli.tui.conversation import apply_event
@@ -23,10 +27,12 @@ from glassbox.cli.tui.keybindings import TUI_KEY_BINDINGS
 from glassbox.cli.tui.state import session_dashboard_url
 from glassbox.cli.tui.theme import GLASSBOX_TUI_CSS
 from glassbox.cli.tui.widgets import ActionStripPlaceholder
+from glassbox.cli.tui.widgets import CommandPaletteWidget
 from glassbox.cli.tui.widgets import ComposerWidget
 from glassbox.cli.tui.widgets import ConversationPane
 from glassbox.cli.tui.widgets import FooterHelp
 from glassbox.cli.tui.widgets import SessionHeader
+from glassbox.core.types import ApprovalDecision
 
 
 class GlassboxTerminalApp(App[None]):
@@ -55,6 +61,8 @@ class GlassboxTerminalApp(App[None]):
         self._client_closed = False
         self._prompt_history: list[str] = []
         self._prompt_history_index: int | None = None
+        self._focused_before_palette = None
+        self._details_visible = False
 
     def compose(self) -> ComposeResult:
         yield SessionHeader(self.state)
@@ -62,6 +70,7 @@ class GlassboxTerminalApp(App[None]):
         yield ActionStripPlaceholder(self.state)
         yield ComposerWidget(self.state, self.launch_options)
         yield FooterHelp()
+        yield CommandPaletteWidget(self.state)
 
     def on_mount(self) -> None:
         self._stream_task = asyncio.create_task(self._consume_live_events())
@@ -97,6 +106,7 @@ class GlassboxTerminalApp(App[None]):
             state,
             self.launch_options,
         )
+        self.query_one(CommandPaletteWidget).update_state(state)
 
     def action_latest(self) -> None:
         self.query_one(ConversationPane).jump_to_latest()
@@ -114,12 +124,83 @@ class GlassboxTerminalApp(App[None]):
     async def action_submit_prompt(self) -> None:
         composer = self.query_one(ComposerWidget)
         text = composer.text
+        command_id = command_from_slash(text)
+        if command_id is not None:
+            await self.execute_terminal_command(command_id)
+            return
         if not composer.can_submit or not text.strip():
             composer.show_submit_blocked()
             return
         await self.client_adapter.submit_message(text)
         self._record_prompt_history(text)
         self.update_conversation_state(with_composer_draft(self.state, ""))
+
+    def action_command_palette(self) -> None:
+        self.open_command_palette()
+
+    def open_command_palette(self) -> None:
+        self._focused_before_palette = self.focused
+        self.query_one(CommandPaletteWidget).open()
+
+    def close_command_palette(self, *, restore_focus: bool = False) -> None:
+        self.query_one(CommandPaletteWidget).close()
+        if restore_focus and self._focused_before_palette is not None:
+            self.set_focus(self._focused_before_palette)
+        self._focused_before_palette = None
+
+    async def execute_terminal_command(self, command_id: TerminalCommandId) -> None:
+        item = command_item_by_id(command_items_for_state(self.state), command_id)
+        if item is not None and not item.enabled:
+            return
+        self.close_command_palette(restore_focus=True)
+        if command_id == TerminalCommandId.STATUS:
+            return
+        if command_id == TerminalCommandId.OPEN_DASHBOARD:
+            if self.state.header.dashboard_url is not None:
+                self.open_url(self.state.header.dashboard_url)
+            return
+        if command_id == TerminalCommandId.COPY_SESSION_ID:
+            self.copy_to_clipboard(str(self.state.header.session_id))
+            return
+        if command_id == TerminalCommandId.COPY_DASHBOARD_URL:
+            if self.state.header.dashboard_url is not None:
+                self.copy_to_clipboard(self.state.header.dashboard_url)
+            return
+        if command_id == TerminalCommandId.TOGGLE_DETAILS:
+            self._details_visible = not self._details_visible
+            return
+        if command_id == TerminalCommandId.JUMP_LATEST:
+            self.action_latest()
+            return
+        if command_id == TerminalCommandId.APPROVE:
+            if self.state.pending_approval is not None:
+                await self.client_adapter.resolve_approval(
+                    self.state.pending_approval.approval_id,
+                    ApprovalDecision.APPROVED,
+                )
+            return
+        if command_id == TerminalCommandId.DENY:
+            if self.state.pending_approval is not None:
+                await self.client_adapter.resolve_approval(
+                    self.state.pending_approval.approval_id,
+                    ApprovalDecision.DENIED,
+                )
+            return
+        if command_id == TerminalCommandId.SUBMIT_ANSWER:
+            if self.state.pending_question is not None:
+                await self.client_adapter.submit_answer(
+                    self.state.pending_question.question_id,
+                    self.state.composer.text,
+                )
+                self.update_conversation_state(with_composer_draft(self.state, ""))
+            return
+        if command_id == TerminalCommandId.INTERRUPT:
+            return
+        if command_id == TerminalCommandId.CLEAR_TRANSCRIPT:
+            self.query_one(ConversationPane).update("Transcript hidden locally.")
+            return
+        if command_id == TerminalCommandId.QUIT:
+            self.exit()
 
     def action_prompt_history_previous(self) -> None:
         if not self._prompt_history:

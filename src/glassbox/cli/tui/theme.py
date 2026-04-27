@@ -47,6 +47,26 @@ Screen {
     color: #aab2b7;
 }
 
+#command-palette {
+    dock: top;
+    height: 10;
+    margin: 1 4;
+    padding: 1;
+    background: #202428;
+    color: #f3f4f4;
+    border: solid #8fc7ff;
+}
+
+#command-filter {
+    height: 1;
+    margin-bottom: 1;
+}
+
+#command-list {
+    height: 1fr;
+    color: #d7dbdd;
+}
+
 .status-normal {
     color: #e7e9ea;
 }

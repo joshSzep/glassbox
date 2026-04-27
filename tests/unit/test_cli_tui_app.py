@@ -12,16 +12,21 @@ from glassbox.cli.interactive_launch import InteractiveLaunchOptions
 from glassbox.cli.tui import GlassboxTerminalApp
 from glassbox.cli.tui import create_session_tui_app
 from glassbox.cli.tui import create_tui_app
+from glassbox.cli.tui.commands import TerminalCommandId
 from glassbox.cli.tui.keybindings import TUI_KEY_BINDINGS
 from glassbox.cli.tui.state import session_dashboard_url
+from glassbox.cli.tui.widgets import CommandPaletteWidget
 from glassbox.cli.tui.widgets import ComposerWidget
+from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import AssistantMessageDelta
 from glassbox.core.events import AssistantMessageStarted
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import QuestionId
+from glassbox.core.ids import new_approval_id
 from glassbox.core.ids import new_message_id
 from glassbox.core.ids import new_session_id
+from glassbox.core.ids import new_turn_id
 from glassbox.core.models import SessionState
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import SessionStatus
@@ -84,6 +89,13 @@ def test_tui_app_declares_prompt_submit_keybinding() -> None:
     )
 
 
+def test_tui_app_declares_command_palette_keybinding() -> None:
+    assert any(
+        binding.key == "ctrl+p" and binding.action == "command_palette"
+        for binding in TUI_KEY_BINDINGS
+    )
+
+
 def test_tui_app_submits_multiline_prompt_and_clears_draft() -> None:
     asyncio.run(_run_prompt_submit_test())
 
@@ -94,6 +106,14 @@ def test_tui_app_preserves_draft_during_live_updates() -> None:
 
 def test_tui_app_keeps_local_prompt_history() -> None:
     asyncio.run(_run_prompt_history_test())
+
+
+def test_tui_app_opens_filters_and_closes_command_palette() -> None:
+    asyncio.run(_run_command_palette_test())
+
+
+def test_tui_app_executes_palette_clipboard_and_approval_commands() -> None:
+    asyncio.run(_run_command_execution_test())
 
 
 async def _run_app_mount_test() -> None:
@@ -207,6 +227,74 @@ async def _run_prompt_history_test() -> None:
         pilot.app.exit()
 
     await app.close_client()
+
+
+async def _run_command_palette_test() -> None:
+    client = _FakeInteractiveClient()
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=_snapshot(),
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        palette = pilot.app.query_one(CommandPaletteWidget)
+        assert palette.display is False
+
+        await pilot.press("ctrl+p")
+        await pilot.press("d", "a", "s", "h")
+        command_list = pilot.app.query_one("#command-list", Static)
+
+        assert palette.display is True
+        assert "Open Dashboard" in str(command_list.content)
+        assert "Copy Dashboard URL" in str(command_list.content)
+
+        await pilot.press("escape")
+        assert palette.display is False
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_command_execution_test() -> None:
+    snapshot = _snapshot()
+    approval_id = new_approval_id()
+    turn_id = new_turn_id()
+    client = _FakeInteractiveClient(
+        events=[
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=8,
+                payload=ApprovalRequested(
+                    approval_id=approval_id,
+                    turn_id=turn_id,
+                    subject="run command",
+                    reason="needs permission",
+                ),
+            )
+        ]
+    )
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
+        await typed_app.execute_terminal_command(TerminalCommandId.COPY_SESSION_ID)
+        await typed_app.execute_terminal_command(TerminalCommandId.APPROVE)
+
+        assert pilot.app.clipboard == str(snapshot.session_id)
+        assert client.resolved_approvals == [
+            (approval_id, ApprovalDecision.APPROVED),
+        ]
+
+        pilot.app.exit()
+
+    await app.close_client()
     await app.close_client()
 
     assert client.closed is True
@@ -294,6 +382,8 @@ class _FakeInteractiveClient:
         self.fetch_count = 0
         self.events = events or []
         self.submitted_messages: list[str] = []
+        self.submitted_answers: list[tuple[QuestionId, str]] = []
+        self.resolved_approvals: list[tuple[ApprovalId, ApprovalDecision]] = []
 
     @property
     def session_id(self):
@@ -307,14 +397,14 @@ class _FakeInteractiveClient:
         self.submitted_messages.append(text)
 
     async def submit_answer(self, question_id: QuestionId, answer: str) -> None:
-        return None
+        self.submitted_answers.append((question_id, answer))
 
     async def resolve_approval(
         self,
         approval_id: ApprovalId,
         decision: ApprovalDecision,
     ) -> None:
-        return None
+        self.resolved_approvals.append((approval_id, decision))
 
     async def stream_events(
         self,

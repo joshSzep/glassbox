@@ -705,7 +705,7 @@ Completion notes:
 
 ### GBX-601: Add Command Palette And Shortcut Discovery
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-600`, `GBX-591`
 - Goal: replace hidden slash-command discovery with a modern keyboard command surface
 - Deliverables:
@@ -724,6 +724,16 @@ Completion notes:
   - accessibility-style keyboard review for pointer-free operation
 - Done when:
   - users can discover and execute terminal actions without memorizing hidden commands
+
+Completion notes:
+
+- Added a pure command registry in [commands.py](../src/glassbox/cli/tui/commands.py) covering status, dashboard, copy, details, latest, approval, answer, interrupt, clear-transcript, and quit commands.
+- Added context-aware command availability and disabled reasons for dashboard absence, missing approvals/questions, empty answer drafts, inactive turns, and empty transcripts.
+- Added slash-command compatibility aliases such as `/dashboard`, `/copy-session`, `/latest`, `/approve`, `/deny`, `/answer`, `/clear`, and `/quit` through the same registry.
+- Added a `Ctrl+P` command palette overlay in [widgets.py](../src/glassbox/cli/tui/widgets.py), with filtering, selection, shortcut display, disabled reasons, escape close, and enter execution.
+- Wired palette execution in [app.py](../src/glassbox/cli/tui/app.py) for dashboard open/copy, session ID copy, latest jump, approval decisions, answer submit, details toggle, local transcript clear, and quit.
+- Added registry tests in [test_cli_tui_commands.py](../tests/unit/test_cli_tui_commands.py) and Textual tests in [test_cli_tui_app.py](../tests/unit/test_cli_tui_app.py) for palette open/filter/close and command execution.
+- Validation: `uv run pytest tests/unit/test_cli_tui_commands.py tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py`; `uv run ruff check src/glassbox/cli/tui tests/unit/test_cli_tui_commands.py tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_widgets.py`; `uv run ty check`.
 
 ### GBX-602: Implement Keyboard-First Navigation And Focus Rules
 
