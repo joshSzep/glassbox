@@ -463,7 +463,7 @@ Completion notes:
 
 ### GBX-581: Model Turn-Grouped Messages And Tool Activity
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-580`
 - Goal: make terminal chat readable as a sequence of user intent, assistant reasoning/output, and tool work rather than isolated event lines
 - Deliverables:
@@ -481,6 +481,13 @@ Completion notes:
   - fixture coverage for tool output chunks and artifacts
 - Done when:
   - terminal transcript rendering can show useful tool work inline without flooding the conversation
+
+Completion notes:
+
+- Extended [conversation.py](../src/glassbox/cli/tui/conversation.py) with turn-grouped user and assistant messages, active assistant stream grouping, tool activity details, model metrics, turn failures, and imported partial-history fallback groups.
+- Tool activity now carries arguments, policy outcome/risk/source metadata, output chunks, clipped previews, artifact paths, exit code, result summary, and local expansion state.
+- Added reducer coverage in [test_cli_tui_conversation.py](../tests/unit/test_cli_tui_conversation.py) for trigger-message grouping, assistant stream grouping, tool policy/detail metadata, output clipping, expansion state, artifacts, and turn failure grouping.
+- Validation: `uv run pytest tests/unit/test_cli_tui_conversation.py`; `uv run ruff check src/glassbox/cli/tui/conversation.py tests/unit/test_cli_tui_conversation.py`; `uv run ty check`.
 
 ### GBX-582: Model Priority Actions For Questions And Approvals
 

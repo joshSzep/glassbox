@@ -13,11 +13,13 @@ from glassbox.cli.tui.conversation import conversation_state_from_snapshot
 from glassbox.cli.tui.conversation import reduce_events
 from glassbox.cli.tui.conversation import with_composer_draft
 from glassbox.cli.tui.conversation import with_stream_status
+from glassbox.cli.tui.conversation import with_tool_expanded
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import AssistantMessageCompleted
 from glassbox.core.events import AssistantMessageDelta
 from glassbox.core.events import AssistantMessageStarted
 from glassbox.core.events import EventEnvelope
+from glassbox.core.events import ModelCallCompleted
 from glassbox.core.events import ModelToolCallRequested
 from glassbox.core.events import SessionFailed
 from glassbox.core.events import ToolArtifactRecorded
@@ -178,6 +180,119 @@ def test_reducer_tracks_tool_heavy_turn_state() -> None:
     assert state.header.mode == TerminalMode.RUNNING_TOOL
 
 
+def test_reducer_groups_trigger_message_and_assistant_stream_in_turn() -> None:
+    session_id = new_session_id()
+    user_message_id = new_message_id()
+    assistant_message_id = new_message_id()
+    turn_id = new_turn_id()
+
+    state = reduce_events(
+        _state(session_id),
+        [
+            _event(
+                session_id,
+                1,
+                UserMessageReceived(message_id=user_message_id, text="Inspect this"),
+            ),
+            _event(
+                session_id,
+                2,
+                TurnStarted(turn_id=turn_id, trigger_message_id=user_message_id),
+            ),
+            _event(
+                session_id,
+                3,
+                AssistantMessageStarted(message_id=assistant_message_id),
+            ),
+            _event(
+                session_id,
+                4,
+                AssistantMessageDelta(message_id=assistant_message_id, delta="On it"),
+            ),
+            _event(
+                session_id,
+                5,
+                ModelCallCompleted(
+                    turn_id=turn_id,
+                    input_tokens=12,
+                    output_tokens=8,
+                    duration_ms=450,
+                ),
+            ),
+        ],
+    )
+
+    turn = state.turns[0]
+    assert [message.text for message in turn.messages] == ["Inspect this", "On it"]
+    assert turn.messages[0].turn_id == turn_id
+    assert turn.model_duration_ms == 450
+    assert turn.model_input_tokens == 12
+    assert turn.model_output_tokens == 8
+
+
+def test_reducer_keeps_tool_metadata_preview_and_expansion_state() -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    tool_call_id = new_tool_call_id()
+    long_output = "x" * 200
+
+    state = reduce_events(
+        _state(session_id),
+        [
+            _event(
+                session_id,
+                1,
+                ModelToolCallRequested(
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    tool_name="run_shell",
+                    arguments_json='{"cmd":"pytest"}',
+                    policy_outcome="approve",
+                    policy_risk_level="command",
+                    policy_source_kind="default",
+                    policy_source_label="command",
+                    policy_reason="shell command needs approval",
+                ),
+            ),
+            _event(
+                session_id,
+                2,
+                ToolOutputChunk(
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    stream="stdout",
+                    chunk=long_output,
+                ),
+            ),
+            _event(
+                session_id,
+                3,
+                ToolExecutionCompleted(
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    success=False,
+                    exit_code=1,
+                    summary="tests failed",
+                ),
+            ),
+        ],
+    )
+
+    tool = state.turns[0].tools[0]
+    assert tool.arguments_json == '{"cmd":"pytest"}'
+    assert tool.policy_risk_level == "command"
+    assert tool.policy_source_label == "command"
+    assert tool.exit_code == 1
+    assert tool.summary == "tests failed"
+    assert tool.output_truncated is True
+    assert tool.output_preview.endswith("...")
+
+    state = with_tool_expanded(state, tool_call_id, expanded=True)
+    assert tool_call_id in state.expanded_tool_ids
+    state = with_tool_expanded(state, tool_call_id, expanded=False)
+    assert tool_call_id not in state.expanded_tool_ids
+
+
 def test_reducer_tracks_pending_approval_and_resolution() -> None:
     session_id = new_session_id()
     turn_id = new_turn_id()
@@ -284,6 +399,22 @@ def test_reducer_preserves_partial_imported_history() -> None:
     assert state.messages[0].imported is True
     assert state.messages[0].text == "Inherited answer"
     assert state.messages[0].turn_id == source_turn_id
+    assert state.turns[0].turn_id == source_turn_id
+    assert state.turns[0].messages[0].imported is True
+
+
+def test_reducer_records_turn_failure_inside_group() -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    state = apply_event(
+        _state(session_id),
+        _event(session_id, 1, TurnFailed(turn_id=turn_id, error_message="tool boom")),
+    )
+
+    assert state.turns[0].turn_id == turn_id
+    assert state.turns[0].failure_message == "tool boom"
+    assert state.failure is not None
+    assert state.failure.message == "tool boom"
 
 
 def test_reducer_keeps_composer_draft_separate_from_events() -> None:

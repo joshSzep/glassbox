@@ -13,6 +13,7 @@ from glassbox.core.events import AssistantMessageDelta
 from glassbox.core.events import AssistantMessageStarted
 from glassbox.core.events import ErrorRecorded
 from glassbox.core.events import EventEnvelope
+from glassbox.core.events import ModelCallCompleted
 from glassbox.core.events import ModelToolCallRequested
 from glassbox.core.events import SessionCompleted
 from glassbox.core.events import SessionFailed
@@ -37,9 +38,14 @@ from glassbox.core.ids import SessionId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.models import MessagePart
+from glassbox.core.models import PolicyDecisionOutcome
+from glassbox.core.models import PolicyDecisionSourceKind
+from glassbox.core.models import PolicyRiskLevel
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import SessionStatus
 from glassbox.core.types import TurnStatus
+
+TOOL_OUTPUT_PREVIEW_CHARS = 160
 
 
 class TerminalStreamStatus(StrEnum):
@@ -119,10 +125,31 @@ class ToolActivity:
     tool_name: str
     status: ToolActivityStatus
     sequence: int
+    arguments_json: str | None = None
+    policy_outcome: PolicyDecisionOutcome | None = None
+    policy_risk_level: PolicyRiskLevel | None = None
+    policy_source_kind: PolicyDecisionSourceKind | None = None
+    policy_source_label: str | None = None
+    policy_reason: str | None = None
     output: tuple[str, ...] = ()
     summary: str | None = None
     exit_code: int | None = None
     artifact_paths: tuple[str, ...] = ()
+
+    @property
+    def output_text(self) -> str:
+        return "".join(self.output)
+
+    @property
+    def output_preview(self) -> str:
+        output_text = self.output_text
+        if len(output_text) <= TOOL_OUTPUT_PREVIEW_CHARS:
+            return output_text
+        return f"{output_text[:TOOL_OUTPUT_PREVIEW_CHARS]}..."
+
+    @property
+    def output_truncated(self) -> bool:
+        return len(self.output_text) > TOOL_OUTPUT_PREVIEW_CHARS
 
 
 @dataclass(frozen=True, slots=True)
@@ -163,6 +190,10 @@ class ConversationTurn:
     messages: tuple[ConversationMessage, ...] = ()
     tools: tuple[ToolActivity, ...] = ()
     completed_outcome: str | None = None
+    model_duration_ms: int | None = None
+    model_input_tokens: int | None = None
+    model_output_tokens: int | None = None
+    failure_message: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -174,6 +205,7 @@ class TerminalConversationState:
     pending_approval: PendingApprovalState | None = None
     pending_question: PendingQuestionState | None = None
     failure: FailureState | None = None
+    expanded_tool_ids: frozenset[ToolCallId] = frozenset()
 
 
 def conversation_state_from_snapshot(
@@ -305,8 +337,15 @@ def apply_event(
             status=TurnStatus.PENDING,
             sequence=event.sequence,
         )
+        state = _upsert_turn(state, turn)
+        state = _attach_trigger_message_to_turn(
+            state,
+            payload.turn_id,
+            payload.trigger_message_id,
+            event.sequence,
+        )
         return _with_header(
-            _upsert_turn(state, turn),
+            state,
             status=SessionStatus.RUNNING,
             mode=TerminalMode.THINKING,
             current_turn_id=payload.turn_id,
@@ -359,6 +398,12 @@ def apply_event(
             tool_name=payload.tool_name,
             status=ToolActivityStatus.REQUESTED,
             sequence=event.sequence,
+            arguments_json=payload.arguments_json,
+            policy_outcome=payload.policy_outcome,
+            policy_risk_level=payload.policy_risk_level,
+            policy_source_kind=payload.policy_source_kind,
+            policy_source_label=payload.policy_source_label,
+            policy_reason=payload.policy_reason,
         )
         return _with_header(
             _upsert_tool(state, activity),
@@ -373,6 +418,11 @@ def apply_event(
             tool_name=payload.tool_name,
             status=ToolActivityStatus.RUNNING,
             sequence=event.sequence,
+            policy_outcome=payload.policy_outcome,
+            policy_risk_level=payload.policy_risk_level,
+            policy_source_kind=payload.policy_source_kind,
+            policy_source_label=payload.policy_source_label,
+            policy_reason=payload.policy_reason,
         )
         return _with_header(
             _upsert_tool(state, activity),
@@ -404,6 +454,16 @@ def apply_event(
             summary=payload.summary,
             exit_code=payload.exit_code,
             sequence=event.sequence,
+        )
+
+    if isinstance(payload, ModelCallCompleted):
+        return _update_turn(
+            state,
+            payload.turn_id,
+            sequence=event.sequence,
+            model_duration_ms=payload.duration_ms,
+            model_input_tokens=payload.input_tokens,
+            model_output_tokens=payload.output_tokens,
         )
 
     if isinstance(payload, ApprovalRequested):
@@ -473,6 +533,7 @@ def apply_event(
                     payload.turn_id,
                     status="failed",
                     sequence=event.sequence,
+                    failure_message=payload.error_message,
                 ),
                 status=SessionStatus.FAILED,
                 mode=TerminalMode.FAILED,
@@ -535,6 +596,20 @@ def with_stream_status(
         stream_detail=detail,
         mode=mode,
     )
+
+
+def with_tool_expanded(
+    state: TerminalConversationState,
+    tool_call_id: ToolCallId,
+    *,
+    expanded: bool,
+) -> TerminalConversationState:
+    expanded_tool_ids = set(state.expanded_tool_ids)
+    if expanded:
+        expanded_tool_ids.add(tool_call_id)
+    else:
+        expanded_tool_ids.discard(tool_call_id)
+    return _replace(state, expanded_tool_ids=frozenset(expanded_tool_ids))
 
 
 def _with_last_sequence(
@@ -669,6 +744,10 @@ def _update_turn(
                 status=changes.get("status", "unknown"),
                 sequence=changes.get("sequence", state.header.last_sequence),
                 completed_outcome=changes.get("completed_outcome"),
+                model_duration_ms=changes.get("model_duration_ms"),
+                model_input_tokens=changes.get("model_input_tokens"),
+                model_output_tokens=changes.get("model_output_tokens"),
+                failure_message=changes.get("failure_message"),
             )
         )
     return _replace(state, turns=tuple(turns))
@@ -685,6 +764,30 @@ def _append_turn_message(
         turn_id,
         lambda turn: _replace(turn, messages=(*turn.messages, message)),
     )
+
+
+def _attach_trigger_message_to_turn(
+    state: TerminalConversationState,
+    turn_id: TurnId,
+    message_id: MessageId,
+    sequence: int,
+) -> TerminalConversationState:
+    messages = []
+    attached_message: ConversationMessage | None = None
+    for message in state.messages:
+        if message.message_id == message_id:
+            attached_message = _replace(
+                message,
+                turn_id=turn_id,
+                sequence=max(message.sequence, sequence),
+            )
+            messages.append(attached_message)
+        else:
+            messages.append(message)
+    state = _replace(state, messages=tuple(messages))
+    if attached_message is None:
+        return state
+    return _append_turn_message(state, turn_id, attached_message)
 
 
 def _replace_turn_message(
@@ -849,9 +952,20 @@ def _upsert_tool_tuple(
                     output=tool.output,
                     artifact_paths=tool.artifact_paths,
                     summary=activity.summary or tool.summary,
-                    exit_code=activity.exit_code
-                    if activity.exit_code is not None
-                    else tool.exit_code,
+                    exit_code=(
+                        activity.exit_code
+                        if activity.exit_code is not None
+                        else tool.exit_code
+                    ),
+                    arguments_json=activity.arguments_json or tool.arguments_json,
+                    policy_outcome=activity.policy_outcome or tool.policy_outcome,
+                    policy_risk_level=activity.policy_risk_level
+                    or tool.policy_risk_level,
+                    policy_source_kind=activity.policy_source_kind
+                    or tool.policy_source_kind,
+                    policy_source_label=activity.policy_source_label
+                    or tool.policy_source_label,
+                    policy_reason=activity.policy_reason or tool.policy_reason,
                 )
             )
             replaced = True
