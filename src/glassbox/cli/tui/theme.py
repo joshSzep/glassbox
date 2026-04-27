@@ -67,6 +67,16 @@ Screen {
     color: #d7dbdd;
 }
 
+#details-pane {
+    dock: right;
+    width: 36;
+    height: 1fr;
+    padding: 1;
+    background: #171a1d;
+    color: #d7dbdd;
+    border-left: solid #8fc7ff;
+}
+
 .status-normal {
     color: #e7e9ea;
 }

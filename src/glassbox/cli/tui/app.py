@@ -30,6 +30,7 @@ from glassbox.cli.tui.widgets import ActionStripPlaceholder
 from glassbox.cli.tui.widgets import CommandPaletteWidget
 from glassbox.cli.tui.widgets import ComposerWidget
 from glassbox.cli.tui.widgets import ConversationPane
+from glassbox.cli.tui.widgets import DetailsPane
 from glassbox.cli.tui.widgets import FooterHelp
 from glassbox.cli.tui.widgets import SessionHeader
 from glassbox.core.types import ApprovalDecision
@@ -70,6 +71,7 @@ class GlassboxTerminalApp(App[None]):
         yield ActionStripPlaceholder(self.state)
         yield ComposerWidget(self.state, self.launch_options)
         yield FooterHelp()
+        yield DetailsPane(self.state)
         yield CommandPaletteWidget(self.state)
 
     def on_mount(self) -> None:
@@ -106,10 +108,26 @@ class GlassboxTerminalApp(App[None]):
             state,
             self.launch_options,
         )
+        self.query_one(DetailsPane).update_state(state)
         self.query_one(CommandPaletteWidget).update_state(state)
 
     def action_latest(self) -> None:
         self.query_one(ConversationPane).jump_to_latest()
+
+    def action_focus_composer(self) -> None:
+        self.set_focus(self.query_one(ComposerWidget))
+
+    def action_focus_transcript(self) -> None:
+        self.set_focus(self.query_one(ConversationPane))
+
+    def action_focus_actions(self) -> None:
+        self.set_focus(self.query_one(ActionStripPlaceholder))
+
+    def action_transcript_page_up(self) -> None:
+        self.query_one(ConversationPane).scroll_page_up(animate=False)
+
+    def action_transcript_page_down(self) -> None:
+        self.query_one(ConversationPane).scroll_page_down(animate=False)
 
     def on_text_area_changed(self, event: TextArea.Changed) -> None:
         if not isinstance(event.text_area, ComposerWidget):
@@ -168,6 +186,10 @@ class GlassboxTerminalApp(App[None]):
             return
         if command_id == TerminalCommandId.TOGGLE_DETAILS:
             self._details_visible = not self._details_visible
+            details = self.query_one(DetailsPane)
+            details.toggle()
+            if details.display:
+                self.set_focus(details)
             return
         if command_id == TerminalCommandId.JUMP_LATEST:
             self.action_latest()
@@ -201,6 +223,27 @@ class GlassboxTerminalApp(App[None]):
             return
         if command_id == TerminalCommandId.QUIT:
             self.exit()
+
+    async def action_toggle_details(self) -> None:
+        await self.execute_terminal_command(TerminalCommandId.TOGGLE_DETAILS)
+
+    async def action_open_dashboard(self) -> None:
+        await self.execute_terminal_command(TerminalCommandId.OPEN_DASHBOARD)
+
+    async def action_copy_dashboard_url(self) -> None:
+        await self.execute_terminal_command(TerminalCommandId.COPY_DASHBOARD_URL)
+
+    async def action_approve(self) -> None:
+        await self.execute_terminal_command(TerminalCommandId.APPROVE)
+
+    async def action_deny(self) -> None:
+        await self.execute_terminal_command(TerminalCommandId.DENY)
+
+    async def action_submit_answer(self) -> None:
+        await self.execute_terminal_command(TerminalCommandId.SUBMIT_ANSWER)
+
+    async def action_interrupt(self) -> None:
+        await self.execute_terminal_command(TerminalCommandId.INTERRUPT)
 
     def action_prompt_history_previous(self) -> None:
         if not self._prompt_history:

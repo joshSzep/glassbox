@@ -95,6 +95,8 @@ class ConversationPane(Static):
 
 
 class ActionStripPlaceholder(Static):
+    can_focus: ClassVar[bool] = True
+
     def __init__(self, state: TerminalConversationState) -> None:
         super().__init__(self._render_state(state), id="action-strip")
 
@@ -274,6 +276,33 @@ class CommandPaletteWidget(Vertical):
             suffix = "" if item.enabled else f" - {item.disabled_reason}"
             lines.append(f"{marker} {item.spec.title}{shortcut}{suffix}")
         return "\n".join(lines)
+
+
+class DetailsPane(Static):
+    can_focus: ClassVar[bool] = True
+
+    def __init__(self, state: TerminalConversationState) -> None:
+        self._state = state
+        super().__init__(self._render_state(state), id="details-pane")
+        self.display = False
+
+    def update_state(self, state: TerminalConversationState) -> None:
+        self._state = state
+        self.update(self._render_state(state))
+
+    def toggle(self) -> None:
+        self.display = not self.display
+        if self.display:
+            self.focus()
+
+    def _render_state(self, state: TerminalConversationState) -> str:
+        return (
+            "Details\n"
+            f"session: {state.header.session_id}\n"
+            f"mode: {state.header.mode.value}\n"
+            f"stream: {state.header.stream_status.value}\n"
+            f"sequence: {state.header.last_sequence}"
+        )
 
 
 def render_session_header(

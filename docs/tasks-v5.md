@@ -737,7 +737,7 @@ Completion notes:
 
 ### GBX-602: Implement Keyboard-First Navigation And Focus Rules
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-600`, `GBX-601`
 - Goal: make the TUI fast and predictable without a pointer
 - Deliverables:
@@ -754,6 +754,16 @@ Completion notes:
   - manual keyboard-only review from app launch to prompt submit to approval resolution
 - Done when:
   - the terminal app can be operated fluidly from the keyboard for the core coding-agent workflow
+
+Completion notes:
+
+- Added keyboard actions in [keybindings.py](../src/glassbox/cli/tui/keybindings.py) for composer focus, transcript paging, latest jump, action/details access, command palette, dashboard open/copy, approval, denial, answer submit, interrupt, submit prompt, and quit.
+- Added app-level focus and dispatch rules in [app.py](../src/glassbox/cli/tui/app.py), routing shortcut actions through the same command execution path as the palette where possible.
+- Added a minimal focusable `DetailsPane` and focusable action strip in [widgets.py](../src/glassbox/cli/tui/widgets.py) so details and action workflows have keyboard targets before their richer Phase 61 implementations.
+- Preserved focus after palette close and moved focus deliberately after details toggles and composer focus commands; live updates continue updating state without stealing composer focus.
+- Reviewed shortcuts against current terminal/Textual usage: `Ctrl+Q`, `Ctrl+L`, `Ctrl+P`, `Ctrl+G`, `Ctrl+E`, `Ctrl+D`, `Alt+D`, `Alt+A`, `Alt+X`, `Ctrl+R`, `Ctrl+C`, `Ctrl+Enter`, and `Ctrl+S` are declared explicitly in one keybinding table.
+- Added Textual tests in [test_cli_tui_app.py](../tests/unit/test_cli_tui_app.py) for keybinding declarations, palette focus restoration, composer focus, details toggle/focus, and answer submission through the keyboard action path.
+- Validation: `uv run pytest tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_commands.py tests/unit/test_cli_tui_widgets.py`; `uv run ruff check src/glassbox/cli/tui tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_commands.py tests/unit/test_cli_tui_widgets.py`; `uv run ty check`.
 
 ### GBX-603: Add Prompt Submission Feedback And Recovery
 

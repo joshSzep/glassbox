@@ -17,15 +17,19 @@ from glassbox.cli.tui.keybindings import TUI_KEY_BINDINGS
 from glassbox.cli.tui.state import session_dashboard_url
 from glassbox.cli.tui.widgets import CommandPaletteWidget
 from glassbox.cli.tui.widgets import ComposerWidget
+from glassbox.cli.tui.widgets import DetailsPane
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import AssistantMessageDelta
 from glassbox.core.events import AssistantMessageStarted
 from glassbox.core.events import EventEnvelope
+from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import QuestionId
 from glassbox.core.ids import new_approval_id
 from glassbox.core.ids import new_message_id
+from glassbox.core.ids import new_question_id
 from glassbox.core.ids import new_session_id
+from glassbox.core.ids import new_tool_call_id
 from glassbox.core.ids import new_turn_id
 from glassbox.core.models import SessionState
 from glassbox.core.types import ApprovalDecision
@@ -96,6 +100,25 @@ def test_tui_app_declares_command_palette_keybinding() -> None:
     )
 
 
+def test_tui_app_declares_keyboard_navigation_keybindings() -> None:
+    expected = {
+        ("ctrl+g", "focus_composer"),
+        ("pageup", "transcript_page_up"),
+        ("pagedown", "transcript_page_down"),
+        ("ctrl+e", "toggle_details"),
+        ("ctrl+d", "open_dashboard"),
+        ("alt+d", "copy_dashboard_url"),
+        ("alt+a", "approve"),
+        ("alt+x", "deny"),
+        ("ctrl+r", "submit_answer"),
+        ("ctrl+c", "interrupt"),
+    }
+
+    assert expected.issubset(
+        {(binding.key, binding.action) for binding in TUI_KEY_BINDINGS}
+    )
+
+
 def test_tui_app_submits_multiline_prompt_and_clears_draft() -> None:
     asyncio.run(_run_prompt_submit_test())
 
@@ -114,6 +137,18 @@ def test_tui_app_opens_filters_and_closes_command_palette() -> None:
 
 def test_tui_app_executes_palette_clipboard_and_approval_commands() -> None:
     asyncio.run(_run_command_execution_test())
+
+
+def test_tui_app_restores_focus_after_command_palette() -> None:
+    asyncio.run(_run_palette_focus_restore_test())
+
+
+def test_tui_app_focuses_composer_and_toggles_details_from_keyboard() -> None:
+    asyncio.run(_run_keyboard_focus_test())
+
+
+def test_tui_app_submits_answer_from_keyboard_action() -> None:
+    asyncio.run(_run_answer_shortcut_test())
 
 
 async def _run_app_mount_test() -> None:
@@ -291,6 +326,95 @@ async def _run_command_execution_test() -> None:
         assert client.resolved_approvals == [
             (approval_id, ApprovalDecision.APPROVED),
         ]
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_palette_focus_restore_test() -> None:
+    client = _FakeInteractiveClient()
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=_snapshot(),
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        composer = pilot.app.query_one(ComposerWidget)
+        composer.focus()
+        await pilot.press("ctrl+p")
+        await pilot.press("escape")
+
+        assert pilot.app.focused is composer
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_keyboard_focus_test() -> None:
+    client = _FakeInteractiveClient()
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=_snapshot(),
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
+        await pilot.press("ctrl+g")
+        assert pilot.app.focused is pilot.app.query_one(ComposerWidget)
+
+        await typed_app.action_toggle_details()
+        details = pilot.app.query_one(DetailsPane)
+        assert details.display is True
+        assert pilot.app.focused is details
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_answer_shortcut_test() -> None:
+    snapshot = _snapshot()
+    question_id = new_question_id()
+    turn_id = new_turn_id()
+    tool_call_id = new_tool_call_id()
+    client = _FakeInteractiveClient(
+        events=[
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=8,
+                payload=UserQuestionAsked(
+                    question_id=question_id,
+                    turn_id=turn_id,
+                    tool_call_id=tool_call_id,
+                    provider_tool_call_id="ask-1",
+                    question="Which file?",
+                ),
+            )
+        ]
+    )
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        composer = pilot.app.query_one(ComposerWidget)
+        composer.text = "src/glassbox/cli/tui/app.py"
+        await pilot.pause()
+
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
+        await typed_app.action_submit_answer()
+
+        assert client.submitted_answers == [
+            (question_id, "src/glassbox/cli/tui/app.py")
+        ]
+        assert composer.text == ""
 
         pilot.app.exit()
 

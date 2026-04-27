@@ -62,6 +62,7 @@ _COMMAND_SPECS: tuple[TerminalCommandSpec, ...] = (
         TerminalCommandId.COPY_DASHBOARD_URL,
         "Copy Dashboard URL",
         "Copy the dashboard URL for this session",
+        "Alt+D",
         slash_aliases=("/copy-dashboard",),
     ),
     TerminalCommandSpec(
@@ -82,18 +83,21 @@ _COMMAND_SPECS: tuple[TerminalCommandSpec, ...] = (
         TerminalCommandId.APPROVE,
         "Approve",
         "Approve the pending action",
+        "Alt+A",
         slash_aliases=("/approve",),
     ),
     TerminalCommandSpec(
         TerminalCommandId.DENY,
         "Deny",
         "Deny the pending action",
+        "Alt+X",
         slash_aliases=("/deny",),
     ),
     TerminalCommandSpec(
         TerminalCommandId.SUBMIT_ANSWER,
         "Submit Answer",
         "Submit the current draft as the pending answer",
+        "Ctrl+R",
         slash_aliases=("/answer",),
     ),
     TerminalCommandSpec(

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from glassbox.cli.interactive_client import InteractiveSessionClient
 from glassbox.cli.interactive_client import InteractiveSessionSnapshot
 from glassbox.core.events import EventEnvelope
+from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import QuestionId
 from glassbox.core.types import ApprovalDecision
 
@@ -28,7 +29,11 @@ class TerminalClientAdapter:
     async def submit_answer(self, question_id: QuestionId, answer: str) -> None:
         await self.client.submit_answer(question_id, answer)
 
-    async def resolve_approval(self, approval_id, decision: ApprovalDecision) -> None:
+    async def resolve_approval(
+        self,
+        approval_id: ApprovalId,
+        decision: ApprovalDecision,
+    ) -> None:
         await self.client.resolve_approval(approval_id, decision)
 
     async def close(self) -> None:
