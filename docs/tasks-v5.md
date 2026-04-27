@@ -1038,7 +1038,7 @@ Completion notes:
 
 ### GBX-624: Validate Packaging And Dependency Footprint
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-562`, `GBX-590`, `GBX-623`
 - Goal: ensure the TUI dependency stack works in installed packages and normal operator environments
 - Deliverables:
@@ -1056,6 +1056,12 @@ Completion notes:
   - `uv run pytest` focused on CLI launch and fallback behavior
 - Done when:
   - the modern terminal client can ship as part of the normal Python package
+
+Completion notes:
+- Added packaging metadata coverage that protects the `glassbox` console script, the `textual>=6,<7` runtime dependency, the absence of Node/pnpm runtime dependencies, and dashboard static asset inclusion in wheel and sdist targets.
+- Updated release packaging guidance to build both wheel and sdist, smoke installed terminal commands, document the TUI dependency in operator terms, and name full-screen terminal limitations/fallback behavior.
+- Validated the release artifacts with `uv build --wheel --sdist`, inspected the built wheel and sdist for TUI modules and packaged dashboard assets, smoked installed-wheel `glassbox session chat --help`, `glassbox session attach --help`, explicit `--plain` fallback, and confirmed explicit TUI availability by launching the installed wheel in a supported integrated terminal.
+- Validated focused behavior with `uv run pytest tests/unit/test_packaging_metadata.py tests/unit/test_cli_interactive_launch.py`.
 
 ---
 
