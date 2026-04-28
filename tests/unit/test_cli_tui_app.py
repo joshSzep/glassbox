@@ -90,6 +90,10 @@ def test_tui_app_can_mount_and_close_client() -> None:
     asyncio.run(_run_app_mount_test())
 
 
+def test_tui_app_mounts_across_release_review_sizes() -> None:
+    asyncio.run(_run_release_review_size_test())
+
+
 def test_tui_app_ingests_live_events_into_transcript() -> None:
     asyncio.run(_run_live_event_test())
 
@@ -267,6 +271,32 @@ async def _run_app_mount_test() -> None:
         pilot.app.exit()
 
     await app.close_client()
+
+
+async def _run_release_review_size_test() -> None:
+    for terminal_size in ((120, 36), (100, 30), (80, 24), (60, 20)):
+        client = _FakeInteractiveClient()
+        app = create_tui_app(
+            client=client,
+            initial_snapshot=_snapshot(),
+            launch_options=_launch_options(),
+            dashboard_url="http://127.0.0.1:8765/",
+        )
+
+        async with app.run_test(size=terminal_size) as pilot:
+            header = pilot.app.query_one("#session-header", Static)
+            conversation = pilot.app.query_one(ConversationPane)
+            composer = pilot.app.query_one("#composer", ComposerWidget)
+
+            assert "Glassbox" in str(header.content)
+            assert "Starting conversation" in conversation.content_text
+            assert composer.placeholder == (
+                "Write a prompt. Enter sends; Ctrl+Enter adds a line."
+            )
+
+            pilot.app.exit()
+
+        await app.close_client()
 
 
 async def _run_prompt_submit_test() -> None:

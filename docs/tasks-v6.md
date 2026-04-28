@@ -1001,7 +1001,7 @@ Completion notes:
 
 ### GBX-691: Run Terminal Accessibility And Visual Review Pass
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-690`, `GBX-653`
 - Goal: validate the full-screen TUI across representative terminal sizes, keyboard workflows, fallback contexts, and accessibility constraints
 - Deliverables:
@@ -1018,6 +1018,12 @@ Completion notes:
   - manual review artifacts stored under the v6 evidence convention
 - Done when:
   - the terminal client has release-candidate manual evidence for the workflows automated tests cannot fully prove
+
+Completion notes:
+
+- Added [terminal-accessibility-review-v6.md](./terminal-accessibility-review-v6.md) with reviewed sizes, keyboard workflows, accessibility claims/non-claims, validation command, and follow-up status.
+- Added `test_tui_app_mounts_across_release_review_sizes` for `120x36`, `100x30`, `80x24`, and `60x20` Textual mount coverage.
+- Validation: focused terminal workflow suite passed (`138 passed`); focused app test rerun after adding release-size coverage.
 
 ### GBX-692: Run Dashboard Accessibility And Responsive Review Pass
 
