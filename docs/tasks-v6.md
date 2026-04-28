@@ -1224,7 +1224,7 @@ Completion notes:
 
 ### GBX-704: Make The v6 Release Candidate Decision
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-703`
 - Goal: make and record the final decision on whether the current build is ready to be treated as the v6 release candidate
 - Deliverables:
@@ -1241,6 +1241,13 @@ Completion notes:
   - no new code changes are required unless a release blocker is discovered
 - Done when:
   - the repo records a clear go/no-go v6 release-candidate decision with supporting evidence
+
+Completion notes:
+
+- Reran the full automated gate for the current guide-bearing build with `uv run python scripts/validate_v6_release_gate.py --evidence-dir .glassbox/releases/gbx-704-final-decision`; retained summary status is `passed`.
+- Added final manual validation evidence at `.glassbox/releases/gbx-704-final-decision/manual-validation.md` and reran advisory provider canary evidence into `.glassbox/releases/gbx-704-final-decision/provider-canary/provider-canary-summary.json`; the OpenAI `streaming-text` scenario passed.
+- Updated [v6-release-candidate.md](./v6-release-candidate.md) with the final GO decision, pass/fail table, retained evidence paths, accepted residual risks, and post-v6 follow-up backlog.
+- Decision: GO for v6 release candidate; no deterministic, package, daemon, recovery, provider-policy, manual-validation, or residual-risk blocker remains open.
 
 ---
 

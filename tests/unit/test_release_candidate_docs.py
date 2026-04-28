@@ -50,6 +50,9 @@ def test_v6_release_candidate_doc_covers_supported_operating_model() -> None:
         "## Known Residual Risks",
         "## Deliberate Non-Goals",
         "## Release Decision",
+        "Decision: GO for v6 release candidate.",
+        ".glassbox/releases/gbx-704-final-decision/summary.json",
+        "Post-v6 follow-up backlog",
     ):
         assert required_text in content
 

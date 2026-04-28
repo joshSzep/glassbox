@@ -183,10 +183,47 @@ removal of plain fallback.
 
 ## Release Decision
 
-The final go/no-go decision is recorded by `GBX-704` in this guide after the
-automated and manual evidence is reviewed. Until that update lands, this guide
-describes the supported v6 candidate posture and validation path, not a final
-release approval.
+Decision: GO for v6 release candidate.
+
+Decision date: 2026-04-28.
+
+Candidate build reviewed: `caa0e90`.
+
+Retained evidence:
+
+```text
+.glassbox/releases/gbx-704-final-decision/
+```
+
+Final pass/fail state:
+
+| Area | State | Evidence |
+| --- | --- | --- |
+| Automated v6 gate | passed | `.glassbox/releases/gbx-704-final-decision/summary.json` |
+| Manual validation | passed | `.glassbox/releases/gbx-704-final-decision/manual-validation.md` |
+| Provider canary policy | passed advisory run | `.glassbox/releases/gbx-704-final-decision/provider-canary/provider-canary-summary.json` |
+| Package smoke | passed | installed terminal/dashboard/daemon/eval stages in `summary.json` |
+| Daemon smoke | passed | installed daemon status/start/status/stop stages in `summary.json` |
+| Recovery smoke | passed | [recovery-maintenance-review-v6.md](./recovery-maintenance-review-v6.md) and manual manifest |
+| Residual risk review | accepted | known residual risks listed above |
+
+No deterministic blocker remains open. No manual blocker remains open. Provider
+canary evidence is advisory and passed for the retained `streaming-text` OpenAI
+scenario.
+
+All tasks in [tasks-v6.md](./tasks-v6.md) are expected to be complete after
+`GBX-704`; no open task is being carried as a release-candidate blocker.
+
+Post-v6 follow-up backlog:
+
+- broaden live-provider canary scenarios beyond the retained advisory
+  `streaming-text` evidence
+- consider promoting stable approval and ask-user replay cases from advisory to
+  deterministic release-candidate coverage
+- continue accessibility review with specific assistive technology pairings
+  before making broader public accessibility claims
+- consider longer installed-package dashboard smoke for high-priority dashboard
+  states if release time permits in a future cycle
 
 ## Guide Map
 
