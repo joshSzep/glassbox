@@ -3,8 +3,8 @@
 from textual.binding import Binding
 
 TUI_KEY_BINDINGS: list[Binding] = [
-    Binding("ctrl+q", "quit", "Quit", show=True),
-    Binding("ctrl+l", "latest", "Latest", show=True, priority=True),
+    Binding("ctrl+escape", "quit", "Quit", show=True, key_display="Ctrl+Esc"),
+    Binding("ctrl+l", "latest", "Bottom", show=True, priority=True),
     Binding("ctrl+p", "command_palette", "Palette", show=True),
     Binding("ctrl+g", "focus_composer", "Composer", show=True),
     Binding("pageup", "transcript_page_up", "Scroll Up", show=False, priority=True),

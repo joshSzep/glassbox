@@ -145,7 +145,7 @@ class ConversationPane(Log):
             self._follow_latest = self._is_at_latest()
 
     def watch_scroll_y(self, old_value: float, new_value: float) -> None:
-        _ = old_value
+        super().watch_scroll_y(old_value, new_value)
         if self.is_mounted:
             self._follow_latest = new_value >= self.max_scroll_y
 
@@ -295,6 +295,26 @@ class FooterHelp(Static):
         return max(self.size.width, 24)
 
 
+class CommandPaletteInput(Input):
+    async def on_key(self, event) -> None:
+        if event.key == "enter":
+            event.prevent_default()
+            event.stop()
+            await cast(Any, self.parent).execute_selected_command()
+        elif event.key == "down":
+            event.prevent_default()
+            event.stop()
+            cast(Any, self.parent).action_command_next()
+        elif event.key == "up":
+            event.prevent_default()
+            event.stop()
+            cast(Any, self.parent).action_command_previous()
+        elif event.key == "escape":
+            event.prevent_default()
+            event.stop()
+            cast(Any, self.app).close_command_palette(restore_focus=True)
+
+
 class CommandPaletteWidget(Vertical):
     BINDINGS: ClassVar[list[Binding]] = [
         Binding("escape", "close_palette", "Close", show=False),
@@ -312,7 +332,7 @@ class CommandPaletteWidget(Vertical):
         self.display = False
 
     def compose(self):
-        yield Input(placeholder="Search commands", id="command-filter")
+        yield CommandPaletteInput(placeholder="Search commands", id="command-filter")
         yield Static(self._render_items(), id="command-list")
 
     def open(self) -> None:
@@ -343,11 +363,14 @@ class CommandPaletteWidget(Vertical):
     def action_close_palette(self) -> None:
         cast(Any, self.app).close_command_palette(restore_focus=True)
 
-    def action_execute_selected_command(self) -> None:
+    async def action_execute_selected_command(self) -> None:
+        await self.execute_selected_command()
+
+    async def execute_selected_command(self) -> None:
         item = self.selected_item
         if item is None:
             return
-        cast(Any, self.app).execute_terminal_command(item.spec.command_id)
+        await cast(Any, self.app).execute_terminal_command(item.spec.command_id)
 
     def action_command_next(self) -> None:
         if self._filtered_items:
@@ -439,13 +462,13 @@ def render_session_header(
 
 def render_footer_help(*, width: int = 80) -> str:
     if width < 44:
-        return _fit_line("Ctrl+Q Quit", width)
+        return _fit_line("Ctrl+Esc Quit", width)
     if width < 64:
-        return _fit_line("Ctrl+Q Quit | Ctrl+L Latest", width)
+        return _fit_line("Ctrl+Esc Quit | Ctrl+L Bottom", width)
     if width < 84:
-        return _fit_line("Ctrl+Q Quit | Ctrl+L Latest | Ctrl+P Palette", width)
+        return _fit_line("Ctrl+Esc Quit | Ctrl+L Bottom | Ctrl+P Palette", width)
     return _fit_line(
-        "Ctrl+Q Quit | Ctrl+L Latest | Ctrl+P Palette | Ctrl+D Dashboard",
+        "Ctrl+Esc Quit | Ctrl+L Bottom | Ctrl+P Palette | Ctrl+D Dashboard",
         width,
     )
 

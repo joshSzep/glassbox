@@ -90,8 +90,8 @@ _COMMAND_SPECS: tuple[TerminalCommandSpec, ...] = (
     ),
     TerminalCommandSpec(
         TerminalCommandId.JUMP_LATEST,
-        "Jump To Latest",
-        "Scroll the transcript to the latest activity",
+        "Jump To Bottom",
+        "Scroll the transcript to the newest output",
         "Ctrl+L",
         ("/latest",),
     ),
@@ -133,7 +133,7 @@ _COMMAND_SPECS: tuple[TerminalCommandSpec, ...] = (
         TerminalCommandId.QUIT,
         "Quit",
         "Exit the terminal app",
-        "Ctrl+Q",
+        "Ctrl+Esc",
         ("/quit", "/exit"),
     ),
 )

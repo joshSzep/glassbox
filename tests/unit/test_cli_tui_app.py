@@ -117,6 +117,7 @@ def test_tui_app_declares_command_palette_keybinding() -> None:
 
 def test_tui_app_declares_keyboard_navigation_keybindings() -> None:
     expected = {
+        ("ctrl+escape", "quit"),
         ("ctrl+g", "focus_composer"),
         ("pageup", "transcript_page_up"),
         ("pagedown", "transcript_page_down"),
@@ -605,6 +606,14 @@ async def _run_command_palette_test() -> None:
 
         await pilot.press("escape")
         assert palette.display is False
+
+        await pilot.press("ctrl+p")
+        await pilot.press("c", "o", "p", "y", "-", "s", "e", "s", "s", "i", "o", "n")
+        await pilot.press("enter")
+        await pilot.pause()
+
+        assert palette.display is False
+        assert pilot.app.clipboard == str(app.state.header.session_id)
 
         pilot.app.exit()
 
@@ -1154,10 +1163,13 @@ async def _run_streaming_transcript_follow_latest_test() -> None:
 
         assert "token239" in conversation.content_text
         assert conversation.scroll_y == conversation.max_scroll_y
+        assert conversation.show_vertical_scrollbar is True
+        assert conversation.vertical_scrollbar.position == conversation.scroll_y
 
         await pilot.press("pageup")
         await pilot.pause()
         assert conversation.scroll_y < conversation.max_scroll_y
+        assert conversation.vertical_scrollbar.position == conversation.scroll_y
         manual_scroll_y = conversation.scroll_y
 
         typed_app = cast(GlassboxTerminalApp, pilot.app)
@@ -1176,9 +1188,12 @@ async def _run_streaming_transcript_follow_latest_test() -> None:
         assert conversation.scroll_y == manual_scroll_y
         assert conversation.scroll_y < conversation.max_scroll_y
 
-        typed_app.action_latest()
+        await pilot.press("ctrl+l")
         await pilot.pause()
+        action_strip = pilot.app.query_one("#action-strip", Static)
         assert conversation.scroll_y == conversation.max_scroll_y
+        assert conversation.vertical_scrollbar.position == conversation.scroll_y
+        assert "Showing latest transcript output" in str(action_strip.content)
 
         pilot.app.exit()
 
@@ -1251,7 +1266,7 @@ async def _run_interrupt_and_quit_contract_test() -> None:
         )
 
         await typed_app.execute_terminal_command(TerminalCommandId.QUIT)
-        assert "Press Ctrl+Q again to leave" in str(action_strip.content)
+        assert "Press Ctrl+Escape again to leave" in str(action_strip.content)
 
         typed_app.action_cancel_transient()
         assert "Quit cancelled" in str(action_strip.content)

@@ -26,7 +26,7 @@ The command runs Python format, lint, typecheck, the focused terminal workflow s
 - Details pane: selected tool context, policy, output clipping, artifacts, dashboard URL, and recent session counts are inspectable without crowding the main transcript.
 - Attach: persisted local sessions, daemon-owned live sessions, stale daemon metadata, unavailable runtime owners, and completed historical sessions resolve to honest TUI states.
 - Reconnect: stream retry, reconnected, unavailable, and blocked-mutation states are visible and covered by deterministic fake-client tests.
-- Interruption and exit: Escape, Ctrl+C, and Ctrl+Q follow the documented non-destructive interruption contract.
+- Interruption and exit: Escape, Ctrl+C, and Ctrl+Escape follow the documented non-destructive interruption contract.
 - Fallback: implicit unsupported terminal launches fall back to plain mode, explicit `--plain` remains available, and explicit `--tui` does not silently degrade.
 - Packaging: `textual>=6,<7`, the `glassbox` console script, wheel and sdist dashboard assets, and installed command smoke are validated.
 - Docs: getting started, interactive workflows, dashboard, release packaging, and this gate describe the modern terminal workflow without requiring users to inspect source code.

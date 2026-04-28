@@ -91,13 +91,13 @@ def test_session_header_fits_narrow_terminal_width() -> None:
 
 def test_footer_help_collapses_for_available_width() -> None:
     assert render_footer_help(width=100) == (
-        "Ctrl+Q Quit | Ctrl+L Latest | Ctrl+P Palette | Ctrl+D Dashboard"
+        "Ctrl+Esc Quit | Ctrl+L Bottom | Ctrl+P Palette | Ctrl+D Dashboard"
     )
     assert render_footer_help(width=70) == (
-        "Ctrl+Q Quit | Ctrl+L Latest | Ctrl+P Palette"
+        "Ctrl+Esc Quit | Ctrl+L Bottom | Ctrl+P Palette"
     )
-    assert render_footer_help(width=50) == "Ctrl+Q Quit | Ctrl+L Latest"
-    assert render_footer_help(width=30) == "Ctrl+Q Quit"
+    assert render_footer_help(width=50) == "Ctrl+Esc Quit | Ctrl+L Bottom"
+    assert render_footer_help(width=30) == "Ctrl+Esc Quit"
 
 
 def test_theme_defines_terminal_frame_surfaces() -> None:

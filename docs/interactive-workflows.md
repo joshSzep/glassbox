@@ -36,7 +36,7 @@ Inside the full-screen session:
 - `Ctrl+L` jumps to the latest activity, `Ctrl+E` toggles details, `Ctrl+D` opens the dashboard, `Alt+D` copies the dashboard URL, and `Ctrl+G` returns focus to the composer
 - `Escape` closes transient UI first, including the command palette or details pane, without mutating runtime state
 - `Ctrl+C` follows the interruption contract: it closes transient UI first and never silently abandons a live turn, approval, or question
-- `Ctrl+Q` quits immediately from idle or inspect-only states and asks for a second press when a live turn, approval, question, or reconnecting state could still be running
+- `Ctrl+Escape` quits immediately from idle or inspect-only states and asks for a second press when a live turn, approval, question, or reconnecting state could still be running
 
 Composer drafts are local UI state until submission succeeds. Recoverable failures preserve the draft so you can retry after reading the feedback.
 

@@ -616,7 +616,7 @@ Completion notes:
 - Deliverables:
   - scrollable transcript widget rendering user messages, assistant messages, active assistant stream, compact tool cards, system notices, and failures
   - latest-activity autoscroll behavior that does not fight deliberate user scrolling
-  - keyboard control to jump to latest activity
+  - keyboard control to jump to the bottom/latest activity
   - empty, starting, and no-message states
   - readable wrapping for markdown text, code blocks, file paths, and long tool names
 - Implementation notes:
@@ -761,7 +761,7 @@ Completion notes:
 - Added app-level focus and dispatch rules in [app.py](../src/glassbox/cli/tui/app.py), routing shortcut actions through the same command execution path as the palette where possible.
 - Added a minimal focusable `DetailsPane` and focusable action strip in [widgets.py](../src/glassbox/cli/tui/widgets.py) so details and action workflows have keyboard targets before their richer Phase 61 implementations.
 - Preserved focus after palette close and moved focus deliberately after details toggles and composer focus commands; live updates continue updating state without stealing composer focus.
-- Reviewed shortcuts against current terminal/Textual usage: `Ctrl+Q`, `Ctrl+L`, `Ctrl+P`, `Ctrl+G`, `Ctrl+E`, `Ctrl+D`, `Alt+D`, `Alt+A`, `Alt+X`, `Ctrl+R`, `Ctrl+C`, `Ctrl+Enter`, and `Ctrl+S` are declared explicitly in one keybinding table.
+- Reviewed shortcuts against current terminal/Textual usage: `Ctrl+Escape`, `Ctrl+L`, `Ctrl+P`, `Ctrl+G`, `Ctrl+E`, `Ctrl+D`, `Alt+D`, `Alt+A`, `Alt+X`, `Ctrl+R`, `Ctrl+C`, `Enter`, `Ctrl+Enter`, and `Ctrl+S` are declared explicitly in one keybinding table.
 - Added Textual tests in [test_cli_tui_app.py](../tests/unit/test_cli_tui_app.py) for keybinding declarations, palette focus restoration, composer focus, details toggle/focus, and answer submission through the keyboard action path.
 - Validation: `uv run pytest tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_commands.py tests/unit/test_cli_tui_widgets.py`; `uv run ruff check src/glassbox/cli/tui tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_commands.py tests/unit/test_cli_tui_widgets.py`; `uv run ty check`.
 

@@ -172,6 +172,12 @@ class GlassboxTerminalApp(App[None]):
 
     def action_latest(self) -> None:
         self.query_one(ConversationPane).jump_to_latest()
+        self._set_action_feedback(
+            ActionFeedback(
+                ActionFeedbackStatus.ACCEPTED,
+                "Showing latest transcript output.",
+            )
+        )
 
     def action_focus_composer(self) -> None:
         self.set_focus(self.query_one(ComposerWidget))
@@ -365,6 +371,9 @@ class GlassboxTerminalApp(App[None]):
     async def action_interrupt(self) -> None:
         await self.execute_terminal_command(TerminalCommandId.INTERRUPT)
 
+    async def action_quit(self) -> None:
+        self._handle_quit_request()
+
     def action_cancel_transient(self) -> None:
         if self.query_one(CommandPaletteWidget).display:
             self.close_command_palette(restore_focus=True)
@@ -499,7 +508,7 @@ class GlassboxTerminalApp(App[None]):
         self._set_action_feedback(
             ActionFeedback(
                 ActionFeedbackStatus.CONFLICT,
-                "Press Ctrl+Q again to leave; the session will keep running.",
+                "Press Ctrl+Escape again to leave; the session will keep running.",
             )
         )
 
