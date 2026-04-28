@@ -699,7 +699,7 @@ Completion notes:
 
 ### GBX-750: Define v7 Live Transport And Multi-Observer Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-711`
 - Goal: make the expected behavior for multiple dashboard tabs, terminal attach clients, daemon ownership, and lossy live delivery explicit before changing transport code
 - Deliverables:
@@ -715,6 +715,12 @@ Completion notes:
   - docs review against SSE route, TUI client, frontend SSE client, daemon commands, and observability output
 - Done when:
   - implementers have a precise v7 live-transport reliability target
+
+Completion notes:
+
+- Added [v7-live-transport-contract.md](./v7-live-transport-contract.md) with the v7 contract for single mutation ownership, multiple read-only observers, sequence cursor semantics, duplicate suppression, backpressure recovery, daemon/stale-owner recovery, terminal and dashboard reconnect behavior, non-goals, and operator guidance.
+- Defined a concrete test matrix for historical-plus-live SSE, slow subscribers, frontend SSE turbulence, TUI reconnect states, daemon attach recovery, multi-observer smoke, and observability counters.
+- Reviewed the contract against the current SSE route, runtime transport, frontend SSE client, terminal stream consumer, daemon commands, daemon attach path, and observability output.
 
 ### GBX-751: Add Transport Turbulence And Recovery Tests
 

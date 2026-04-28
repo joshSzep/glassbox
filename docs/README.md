@@ -18,6 +18,7 @@ Use this page to jump to the right level of detail.
 - [tasks-v6.md](./tasks-v6.md): plan release hardening, real cancellation, transport reliability, provider canaries, packaging discipline, manual QA evidence, and the v6 release-candidate gate
 - [tasks-v7.md](./tasks-v7.md): plan the post-v6 adoption, scale, eval portfolio, provider capability, policy governance, dashboard evidence, accessibility, onboarding, and release-signoff evolution
 - [v7-adoption-scale-contract.md](./v7-adoption-scale-contract.md): review the v7 adoption-and-scale scope, non-goals, evidence classes, release-readiness checklist, residual-risk shape, and pass/fail policy
+- [v7-live-transport-contract.md](./v7-live-transport-contract.md): review the v7 daemon, SSE, reconnect, backpressure, and multi-observer reliability contract
 - [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md): inspect the v7 baseline inventory for eval coverage, provider canaries, scale risks, daemon transport, policy governance, accessibility, onboarding, and weak coverage
 - [interactive-workflows.md](./interactive-workflows.md): use the full-screen `session chat` and `attach` TUI, plus `message`, `answer`, `approve`, `deny`, `resume`, and `status`
 - [dashboard.md](./dashboard.md): use the co-hosted dashboard as the paired operator console for terminal chat or run the standalone dashboard from `serve`
@@ -92,6 +93,7 @@ Use this page to jump to the right level of detail.
 - [tasks-v6.md](./tasks-v6.md): concrete v6 task graph for release hardening, cancellation, live transport reliability, provider canaries, packaging reproducibility, accessibility evidence, and release-candidate signoff
 - [tasks-v7.md](./tasks-v7.md): concrete v7 task graph for adoption, larger-session scale, deterministic eval expansion, provider capability matrices, daemon reliability, policy governance, dashboard evidence, accessibility, onboarding, and release signoff
 - [v7-adoption-scale-contract.md](./v7-adoption-scale-contract.md): v7 scope, non-goals, supported workflow set, v6 follow-up mapping, evidence classes, release-readiness checklist, residual-risk register shape, and pass/fail policy
+- [v7-live-transport-contract.md](./v7-live-transport-contract.md): v7 live transport, daemon ownership, reconnect, backpressure, and multi-observer contract
 - [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md): v7 inventory of current eval coverage, provider evidence, larger-session read paths, daemon and transport evidence, policy governance, accessibility, onboarding, recommended gate membership, and weak coverage
 - [team-workflows.md](./team-workflows.md): v2 ownership, identity, and handoff contract for portable team workflows
 - [v2-release-candidate.md](./v2-release-candidate.md): release-candidate readiness checklist and supported operating-model summary
