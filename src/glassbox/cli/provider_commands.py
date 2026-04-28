@@ -81,7 +81,7 @@ def _provider_canary_command(args: argparse.Namespace) -> int:
     output_dir = (
         Path(args.output_dir)
         if args.output_dir
-        else cwd / ".glassbox" / "evals" / "provider-canary"
+        else cwd / ".glassbox" / "provider-canary"
     )
     if not output_dir.is_absolute():
         output_dir = cwd / output_dir

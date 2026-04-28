@@ -19,6 +19,7 @@ from glassbox.core.events import AssistantMessageDelta
 from glassbox.core.events import ModelCallStarted
 from glassbox.llm import PydanticAIModelExecutor
 from glassbox.runtime import bootstrap as runtime_bootstrap
+from glassbox.runtime.provider_canary import run_provider_canary_sync
 from glassbox.store import initialize_database
 from glassbox.store import open_database
 
@@ -344,6 +345,65 @@ def test_provider_canary_cli_redacts_configured_secrets_in_summary(
     assert "https://api.example" not in retained
 
 
+def test_provider_canary_runs_default_multi_scenario_with_fake_provider(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    (tmp_path / ".env").write_text("OPENAI_API_KEY=dotenv-openai\n")
+
+    def fake_build_openai_model_executor(
+        model_name: str,
+        *,
+        api_key: str | None = None,
+        base_url: str | None = None,
+    ) -> PydanticAIModelExecutor:
+        assert model_name == "gpt-5.4"
+        assert api_key == "dotenv-openai"
+        assert base_url is None
+        return PydanticAIModelExecutor(
+            FunctionModel(
+                function=_provider_canary_model_response,
+                stream_function=_provider_canary_stream_model_response,
+                model_name=f"openai:{model_name}",
+            )
+        )
+
+    monkeypatch.setattr(
+        runtime_bootstrap,
+        "build_openai_model_executor",
+        fake_build_openai_model_executor,
+    )
+    output_dir = tmp_path / ".glassbox" / "provider-canary"
+
+    summary = run_provider_canary_sync(
+        tmp_path,
+        model_name="openai:gpt-5.4",
+        output_dir=output_dir,
+    )
+    retained = json.loads(
+        (output_dir / "provider-canary-summary.json").read_text(encoding="utf-8")
+    )
+
+    assert [definition.scenario_id for definition in summary.scenario_definitions] == [
+        "streaming-text",
+        "tool-call",
+        "approval",
+        "ask-user",
+        "cancellation",
+        "dashboard",
+        "daemon-attach",
+    ]
+    outcomes = {
+        scenario.scenario_id: scenario.outcome for scenario in summary.scenarios
+    }
+    assert outcomes["streaming-text"] == "passed"
+    assert outcomes["tool-call"] == "skipped"
+    assert summary.scenarios[0].automation_status == "automated"
+    assert summary.scenarios[1].automation_status == "preflight_only"
+    assert retained == summary.model_dump(mode="json")
+    assert "dotenv-openai" not in json.dumps(retained)
+
+
 def _provider_function_model_response(messages, _agent_info) -> ModelResponse:
     user_prompt_text = _latest_user_prompt(messages)
     assert user_prompt_text == "Inspect the repo"
@@ -360,6 +420,19 @@ def _provider_non_streaming_model_response(messages, _agent_info) -> ModelRespon
     user_prompt_text = _latest_user_prompt(messages)
     assert user_prompt_text == "Inspect the repo"
     return ModelResponse(parts=[TextPart(content="Provider fallback complete.")])
+
+
+def _provider_canary_model_response(messages, _agent_info) -> ModelResponse:
+    assert _latest_user_prompt(messages) == (
+        "Reply with a short provider canary acknowledgement."
+    )
+    return ModelResponse(parts=[TextPart(content="Provider canary complete.")])
+
+
+async def _provider_canary_stream_model_response(messages, _agent_info):
+    _ = _provider_canary_model_response(messages, _agent_info)
+    yield "Provider canary "
+    yield "complete."
 
 
 def _latest_user_prompt(messages) -> str | None:

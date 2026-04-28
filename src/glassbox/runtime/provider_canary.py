@@ -22,8 +22,88 @@ from glassbox.runtime.provider_diagnostics import ProviderDiagnosticsReport
 from glassbox.runtime.provider_diagnostics import build_provider_diagnostics_report
 
 type ProviderCanaryOutcome = Literal["passed", "failed", "skipped", "warning"]
+type ProviderCanaryAutomationStatus = Literal["automated", "preflight_only"]
 
-_DEFAULT_SCENARIOS = ("streaming-text",)
+_DEFAULT_SCENARIOS = (
+    "streaming-text",
+    "tool-call",
+    "approval",
+    "ask-user",
+    "cancellation",
+    "dashboard",
+    "daemon-attach",
+)
+
+
+class ProviderCanaryScenarioDefinition(BaseModel):
+    """Policy-owned advisory canary scenario metadata."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    scenario_id: str
+    automation_status: ProviderCanaryAutomationStatus
+    timeout_seconds: float
+    description: str
+    prompt: str | None = None
+
+
+_SCENARIO_DEFINITIONS = {
+    "streaming-text": ProviderCanaryScenarioDefinition(
+        scenario_id="streaming-text",
+        automation_status="automated",
+        timeout_seconds=60.0,
+        description=(
+            "Run a short provider-backed text turn and verify model and "
+            "assistant event evidence."
+        ),
+        prompt="Reply with a short provider canary acknowledgement.",
+    ),
+    "tool-call": ProviderCanaryScenarioDefinition(
+        scenario_id="tool-call",
+        automation_status="preflight_only",
+        timeout_seconds=60.0,
+        description=(
+            "Preflight provider/tool-call readiness before workflow-specific "
+            "live automation is available."
+        ),
+    ),
+    "approval": ProviderCanaryScenarioDefinition(
+        scenario_id="approval",
+        automation_status="preflight_only",
+        timeout_seconds=60.0,
+        description="Preflight provider behavior for approval-gated tool workflows.",
+    ),
+    "ask-user": ProviderCanaryScenarioDefinition(
+        scenario_id="ask-user",
+        automation_status="preflight_only",
+        timeout_seconds=60.0,
+        description=(
+            "Preflight provider behavior for ask-user suspension and resume workflows."
+        ),
+    ),
+    "cancellation": ProviderCanaryScenarioDefinition(
+        scenario_id="cancellation",
+        automation_status="preflight_only",
+        timeout_seconds=30.0,
+        description=(
+            "Preflight provider behavior for cancellation-sensitive workflow runs."
+        ),
+    ),
+    "dashboard": ProviderCanaryScenarioDefinition(
+        scenario_id="dashboard",
+        automation_status="preflight_only",
+        timeout_seconds=30.0,
+        description="Preflight dashboard compatibility for retained provider evidence.",
+    ),
+    "daemon-attach": ProviderCanaryScenarioDefinition(
+        scenario_id="daemon-attach",
+        automation_status="preflight_only",
+        timeout_seconds=30.0,
+        description=(
+            "Preflight daemon attach compatibility for provider-backed sessions."
+        ),
+    ),
+}
 
 
 class ProviderCanaryScenarioResult(BaseModel):
@@ -34,6 +114,8 @@ class ProviderCanaryScenarioResult(BaseModel):
     scenario_id: str
     outcome: ProviderCanaryOutcome
     detail: str
+    automation_status: ProviderCanaryAutomationStatus = "automated"
+    timeout_seconds: float | None = None
     event_family_counts: dict[str, int] = Field(default_factory=dict)
     session_id: str | None = None
     final_status: str | None = None
@@ -50,6 +132,7 @@ class ProviderCanarySummary(BaseModel):
     model_name: str
     diagnostics_state: str
     output_path: str
+    scenario_definitions: list[ProviderCanaryScenarioDefinition]
     scenarios: list[ProviderCanaryScenarioResult]
     capability_matrix: ProviderCapabilityMatrix
     skipped_reason: str | None = None
@@ -69,7 +152,10 @@ async def run_provider_canary(
         workspace_root,
         explicit_model_name=model_name,
     )
-    selected_scenarios = scenarios or list(_DEFAULT_SCENARIOS)
+    selected_scenarios = _selected_scenarios(scenarios)
+    scenario_definitions = [
+        _definition_for_scenario(scenario_id) for scenario_id in selected_scenarios
+    ]
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / "provider-canary-summary.json"
 
@@ -78,23 +164,44 @@ async def run_provider_canary(
             diagnostics,
             output_path=output_path,
             scenarios=selected_scenarios,
+            scenario_definitions=scenario_definitions,
             reason=_skip_reason(diagnostics),
         )
         _write_summary(output_path, summary)
         return summary
 
     results: list[ProviderCanaryScenarioResult] = []
-    for scenario_id in selected_scenarios:
-        if scenario_id != "streaming-text":
+    for definition in scenario_definitions:
+        if definition.automation_status != "automated":
             results.append(
                 ProviderCanaryScenarioResult(
-                    scenario_id=scenario_id,
+                    scenario_id=definition.scenario_id,
                     outcome="skipped",
-                    detail="scenario is policy-defined but not automated yet",
+                    detail=(
+                        "scenario is retained for preflight but not live-automated yet"
+                    ),
+                    automation_status=definition.automation_status,
+                    timeout_seconds=definition.timeout_seconds,
                 )
             )
             continue
-        results.append(await _run_streaming_text_canary(workspace_root, model_name))
+        try:
+            results.append(
+                await asyncio.wait_for(
+                    _run_streaming_text_canary(workspace_root, model_name, definition),
+                    timeout=definition.timeout_seconds,
+                )
+            )
+        except TimeoutError:
+            results.append(
+                ProviderCanaryScenarioResult(
+                    scenario_id=definition.scenario_id,
+                    outcome="failed",
+                    detail=f"scenario timed out after {definition.timeout_seconds:g}s",
+                    automation_status=definition.automation_status,
+                    timeout_seconds=definition.timeout_seconds,
+                )
+            )
 
     next_actions = [
         action
@@ -118,6 +225,7 @@ async def run_provider_canary(
         model_name=diagnostics.selected_model_name,
         diagnostics_state=diagnostics.state,
         output_path=str(output_path),
+        scenario_definitions=scenario_definitions,
         scenarios=results,
         capability_matrix=capability_matrix,
         skipped_reason=None,
@@ -149,6 +257,7 @@ def run_provider_canary_sync(
 async def _run_streaming_text_canary(
     workspace_root: Path,
     model_name: str,
+    definition: ProviderCanaryScenarioDefinition,
 ) -> ProviderCanaryScenarioResult:
     try:
         with open_runtime_context(workspace_root) as runtime_context:
@@ -163,7 +272,8 @@ async def _run_streaming_text_canary(
             )
             await service.submit_user_message(
                 state.session_id,
-                "Reply with a short provider canary acknowledgement.",
+                definition.prompt
+                or "Reply with a short provider canary acknowledgement.",
             )
             events = repository.read_session_events(state.session_id)
             final_state = repository.get_session_state(state.session_id)
@@ -172,6 +282,8 @@ async def _run_streaming_text_canary(
             scenario_id="streaming-text",
             outcome="failed",
             detail=f"live provider canary failed: {exc}",
+            automation_status=definition.automation_status,
+            timeout_seconds=definition.timeout_seconds,
         )
 
     counts = _event_family_counts(events)
@@ -189,6 +301,8 @@ async def _run_streaming_text_canary(
         scenario_id="streaming-text",
         outcome=outcome,
         detail=detail,
+        automation_status=definition.automation_status,
+        timeout_seconds=definition.timeout_seconds,
         event_family_counts=counts,
         session_id=str(state.session_id),
         final_status=final_state.status if final_state is not None else None,
@@ -212,6 +326,7 @@ def _skipped_summary(
     *,
     output_path: Path,
     scenarios: list[str],
+    scenario_definitions: list[ProviderCanaryScenarioDefinition],
     reason: str,
 ) -> ProviderCanarySummary:
     capability_results: dict[str, ProviderCapabilityResult] = {
@@ -224,11 +339,16 @@ def _skipped_summary(
         model_name=diagnostics.selected_model_name,
         diagnostics_state=diagnostics.state,
         output_path=str(output_path),
+        scenario_definitions=scenario_definitions,
         scenarios=[
             ProviderCanaryScenarioResult(
                 scenario_id=scenario_id,
                 outcome="skipped",
                 detail=reason,
+                automation_status=_definition_for_scenario(
+                    scenario_id
+                ).automation_status,
+                timeout_seconds=_definition_for_scenario(scenario_id).timeout_seconds,
             )
             for scenario_id in scenarios
         ],
@@ -251,6 +371,24 @@ def _skip_reason(diagnostics: ProviderDiagnosticsReport) -> str:
     if diagnostics.problems:
         return "; ".join(diagnostics.problems)
     return f"provider diagnostics state is {diagnostics.state}"
+
+
+def _selected_scenarios(scenarios: list[str] | None) -> list[str]:
+    return scenarios or list(_DEFAULT_SCENARIOS)
+
+
+def _definition_for_scenario(scenario_id: str) -> ProviderCanaryScenarioDefinition:
+    return _SCENARIO_DEFINITIONS.get(
+        scenario_id,
+        ProviderCanaryScenarioDefinition(
+            scenario_id=scenario_id,
+            automation_status="preflight_only",
+            timeout_seconds=30.0,
+            description=(
+                "Unknown scenario retained as a skipped advisory preflight row."
+            ),
+        ),
+    )
 
 
 def _write_summary(output_path: Path, summary: ProviderCanarySummary) -> None:

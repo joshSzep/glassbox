@@ -104,7 +104,10 @@ def _add_operations_parsers(
     provider_canary_run_parser.add_argument(
         "--output-dir",
         default=None,
-        help="directory for provider canary summary artifacts",
+        help=(
+            "directory for provider canary summary artifacts; defaults to "
+            ".glassbox/provider-canary"
+        ),
     )
     provider_canary_run_parser.add_argument(
         "--json",

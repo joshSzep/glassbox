@@ -494,7 +494,7 @@ Completion notes:
 
 ### GBX-732: Add Multi-Scenario Provider Canary Runs
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-730`, `GBX-731`
 - Goal: broaden advisory provider canaries beyond streaming text into representative tool, approval, ask-user, cancellation, dashboard, and daemon attach scenarios
 - Deliverables:
@@ -512,6 +512,14 @@ Completion notes:
   - optional manual live-provider run with retained redacted evidence
 - Done when:
   - provider canary output can explain a provider's observed behavior across core Glassbox workflows
+
+Completion notes:
+
+- Added provider canary scenario definitions for streaming text, tool call, approval, ask-user, cancellation, dashboard, and daemon attach workflows.
+- Default canary runs now retain all core scenario rows, include automation status and timeout metadata, and keep preflight-only scenarios explicitly skipped.
+- Moved the default retained artifact path to `.glassbox/provider-canary/provider-canary-summary.json`, with `--output-dir` still available for release evidence paths.
+- Added timeout handling and fake-provider orchestration coverage for the automated streaming scenario plus preflight-only multi-scenario summary output.
+- Validation: `uv run pytest tests/unit/test_runtime_provider_config.py tests/integration/test_provider_mode_runtime.py`.
 
 ### GBX-733: Surface Provider Capability Evidence In Release And Operator Workflows
 

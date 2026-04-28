@@ -177,8 +177,20 @@ manual or advisory follow-up is needed.
 Run all default advisory scenarios:
 
 ```bash
-uv run glassbox provider canary run --cwd . --output-dir .glassbox/releases/provider-canary
+uv run glassbox provider canary run --cwd .
 ```
+
+By default, summaries are written to
+`.glassbox/provider-canary/provider-canary-summary.json`. Use `--output-dir` to
+place a run under release evidence, for example
+`.glassbox/releases/provider-canary`.
+
+The default scenario set is `streaming-text`, `tool-call`, `approval`,
+`ask-user`, `cancellation`, `dashboard`, and `daemon-attach`. `streaming-text`
+runs a short live provider turn when diagnostics are ready. The remaining
+scenarios are retained as preflight-only rows until their workflow-specific live
+automation is available, so skipped rows should be read as explicit capability
+limits rather than silent success.
 
 Run one scenario:
 
