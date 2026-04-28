@@ -27,13 +27,13 @@ The v7 automated release-candidate gate is:
 uv run python scripts/validate_v7_release_gate.py
 ```
 
-The retained evidence directory used for the current focused manual pass is:
+The retained evidence directory used for the current automated release pass is:
 
 ```text
-.glassbox/releases/20260428T181210Z-v7-gate/
+.glassbox/releases/20260428T183535Z-v7-gate/
 ```
 
-That directory contains `summary.json`, `manual-validation.md`, provider-canary evidence, observability status, and projection-check output. It is local workspace state and is not committed to git.
+That directory contains the non-dry-run v7 gate `summary.json`. Focused manual evidence remains recorded in [manual-v7-release-validation.md](./manual-v7-release-validation.md), with local manual and provider artifacts retained from the GBX-784 pass. Local `.glassbox/` evidence is workspace state and is not committed to git.
 
 ## Supported Operating Model
 
@@ -144,19 +144,18 @@ Before treating a build as the v7 release candidate, complete this list:
 
 The current retained v7 evidence shows:
 
-- v7 gate dry run: passed and wrote planned-stage `summary.json`
+- full non-dry-run v7 gate: passed and wrote `.glassbox/releases/20260428T183535Z-v7-gate/summary.json`
 - focused terminal tests: `52 passed`
 - focused dashboard evidence tests: `14` Vitest tests passed
 - focused dashboard Playwright workflow: `1 passed`
 - package contents validation: passed for rebuilt wheel and sdist
 - compact installed-wheel onboarding/package smoke: passed for provider diagnostics and eval profile listing
 - recovery smoke: observability status and projection check outputs retained
-- provider canary: OpenAI `streaming-text` advisory scenario passed for `openai:gpt-5.4`; tool-call, approval, ask-user, cancellation, dashboard, and daemon-attach canaries were retained as preflight-only advisory skips
+- provider canary: the automated gate recorded provider canaries as explicitly skipped by default; prior focused evidence passed the OpenAI `streaming-text` advisory scenario for `openai:gpt-5.4`, while tool-call, approval, ask-user, cancellation, dashboard, and daemon-attach canaries remained preflight-only advisory skips
 - manual validation: no blocking issue recorded in the focused GBX-784 pass
 
 ## Known Residual Risks
 
-- The full blocking v7 gate has not yet been run in the retained evidence directory; the current automated evidence is a dry-run plan plus focused checks.
 - Provider-specific remote cancellation may not stop remote computation immediately, even when local cancellation state is recorded correctly.
 - Live-provider workflow canaries beyond `streaming-text` remain preflight-only advisory rows.
 - Accessibility claims remain limited to the named terminal and dashboard pairings already reviewed; no broad assistive-technology certification is claimed.
@@ -171,32 +170,32 @@ Multiple local observers are in scope. Multiple concurrent mutation owners are n
 
 ## Release Decision
 
-Decision: HOLD for v7 release candidate publication.
+Decision: GO for v7 release candidate publication.
 
 Decision date: 2026-04-28.
 
-Candidate build reviewed: `c3a352e`.
+Candidate build reviewed: `2e8c74d`.
 
 Retained evidence:
 
 ```text
-.glassbox/releases/20260428T181210Z-v7-gate/
+.glassbox/releases/20260428T183535Z-v7-gate/
 ```
 
 Final pass/fail state:
 
 | Area | State | Evidence |
 | --- | --- | --- |
-| Automated v7 gate | not passed | `.glassbox/releases/20260428T181210Z-v7-gate/summary.json` is dry-run planned-stage evidence only |
+| Automated v7 gate | passed | `.glassbox/releases/20260428T183535Z-v7-gate/summary.json` records a non-dry-run pass |
 | Manual validation | passed focused review | [manual-v7-release-validation.md](./manual-v7-release-validation.md) and local `manual-validation.md` |
-| Provider canary policy | passed advisory run | local `provider-canary/provider-canary-summary.json` |
+| Provider canary policy | advisory and non-blocking | the v7 gate records provider canaries as explicitly skipped by default; focused retained evidence records the streaming-text advisory pass and preflight-only workflow skips |
 | Package smoke | passed focused review | [release-packaging.md](./release-packaging.md) and [manual-v7-release-validation.md](./manual-v7-release-validation.md) |
 | Daemon/live transport smoke | passed focused task evidence | [v7-live-transport-contract.md](./v7-live-transport-contract.md) and v7 gate stage inventory |
 | Scale smoke | passed focused task evidence | [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md) and v7 performance budget gate stage |
 | Accessibility review | passed named pairings with non-claims | [terminal-accessibility-review-v7.md](./terminal-accessibility-review-v7.md) and [dashboard-accessibility-review-v7.md](./dashboard-accessibility-review-v7.md) |
-| Residual risk review | accepted for hold decision | known residual risks listed above |
+| Residual risk review | accepted for GO decision | known residual risks listed above |
 
-No manual blocker remains open in the focused evidence. The publication blocker is procedural and objective: run the full non-dry-run `scripts/validate_v7_release_gate.py` in the release evidence directory, retain the passing `summary.json`, and update this decision from `HOLD` to `GO` only if no deterministic blocker remains open.
+No manual blocker remains open in the focused evidence, and the procedural publication blocker is resolved by the full non-dry-run v7 gate pass. The remaining risks are bounded, documented, and accepted for this release-candidate publication decision.
 
 ## Related Files
 
