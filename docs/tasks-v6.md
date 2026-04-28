@@ -1197,7 +1197,7 @@ Completion notes:
 
 ### GBX-703: Publish The v6 Release Candidate Guide
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-701`, `GBX-702`
 - Goal: package the v6 operating model, validation path, known gaps, and non-goals into one operator-facing release-candidate guide
 - Deliverables:
@@ -1214,6 +1214,13 @@ Completion notes:
   - docs review against command help, release gate output, and known residual risks
 - Done when:
   - the v6 release candidate has a single operator-readable guide
+
+Completion notes:
+
+- Added [v6-release-candidate.md](./v6-release-candidate.md) with the supported operating model, primary operator flows, release-readiness checklist, current evidence summary, known residual risks, non-goals, decision placeholder, and guide map.
+- Linked the v6 release-candidate guide from the root README, docs hub, and getting-started guide.
+- Added release-candidate documentation guardrails for guide content and README links.
+- Validation: `uv run pytest tests/unit/test_release_candidate_docs.py`; docs review against command help, [v6-release-gate.md](./v6-release-gate.md), and retained Phase 70 evidence.
 
 ### GBX-704: Make The v6 Release Candidate Decision
 

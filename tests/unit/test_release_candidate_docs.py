@@ -35,6 +35,37 @@ def test_readmes_link_to_v2_release_candidate_guide() -> None:
     assert "v2-release-candidate.md" in getting_started
 
 
+def test_v6_release_candidate_doc_covers_supported_operating_model() -> None:
+    content = (REPO_ROOT / "docs" / "v6-release-candidate.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "## Supported Operating Model",
+        "uv run python scripts/validate_v6_release_gate.py",
+        "glassbox session cancel SESSION_ID",
+        "glassbox provider canary run",
+        "manual-validation.md",
+        "## Release-Readiness Checklist",
+        "## Known Residual Risks",
+        "## Deliberate Non-Goals",
+        "## Release Decision",
+    ):
+        assert required_text in content
+
+
+def test_readmes_link_to_v6_release_candidate_guide() -> None:
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+    getting_started = (REPO_ROOT / "docs" / "getting-started.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "docs/v6-release-candidate.md" in root_readme
+    assert "v6-release-candidate.md" in docs_readme
+    assert "v6-release-candidate.md" in getting_started
+
+
 def test_docs_hub_links_to_v6_phase_64_docs() -> None:
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
 

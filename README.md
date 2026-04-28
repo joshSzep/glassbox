@@ -79,6 +79,17 @@ Persistence is local to the selected workspace by default. Glassbox stores runti
 
 Glassbox team workflows remain local-first. A foreground `session chat` process or workspace daemon owns live mutation for one workspace, while session custody and handoff metadata are operator guidance rather than cloud authority or multi-user access control.
 
+## V6 Release Candidate
+
+The v6 release candidate hardens the local-first operating model around the
+full-screen terminal client, packaged dashboard, real cancellation, daemon
+ownership, deterministic replay/eval evidence, advisory provider canaries,
+installed-package smoke, and retained release evidence.
+
+Start with [docs/v6-release-candidate.md](docs/v6-release-candidate.md) when you
+need the supported v6 operating model, validation path, known residual risks,
+and release-candidate evidence expectations in one place.
+
 ## V2 Release Candidate
 
 The v2 release candidate packages the current local-first operating model as one
@@ -98,6 +109,7 @@ The root README is the shortest path into the project. The detailed operator and
 Start here based on what you need:
 
 - [docs/getting-started.md](docs/getting-started.md)
+- [docs/v6-release-candidate.md](docs/v6-release-candidate.md)
 - [docs/v2-release-candidate.md](docs/v2-release-candidate.md)
 - [docs/interactive-workflows.md](docs/interactive-workflows.md)
 - [docs/dashboard.md](docs/dashboard.md)

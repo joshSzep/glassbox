@@ -172,6 +172,7 @@ the convention in [manual-qa-evidence-v6.md](./manual-qa-evidence-v6.md).
 ## Where To Go Next
 
 - For the day-to-day full-screen chat workflow, read [interactive-workflows.md](./interactive-workflows.md).
+- For the v6 release-candidate operating model and validation path, read [v6-release-candidate.md](./v6-release-candidate.md).
 - For the supported v2 operating model and release checklist, read [v2-release-candidate.md](./v2-release-candidate.md).
 - For browser usage, read [dashboard.md](./dashboard.md).
 - For replay and eval workflows, read [replay-evals.md](./replay-evals.md).

@@ -10,6 +10,7 @@ Use this page to jump to the right level of detail.
 ## Start Here
 
 - [getting-started.md](./getting-started.md): install the project, run the first session, understand the local workspace layout, and use the default validation commands
+- [v6-release-candidate.md](./v6-release-candidate.md): review the supported v6 operating model, validation path, evidence expectations, known residual risks, and release decision
 - [v2-release-candidate.md](./v2-release-candidate.md): review the supported v2 operating model, release-readiness checklist, and explicit non-goals
 - [tasks-v3.md](./tasks-v3.md): plan the Next.js, TypeScript, Tailwind, Zustand, shadcn, and OpenAPI-driven SPA migration for the dashboard
 - [tasks-v4.md](./tasks-v4.md): plan the UX-focused evolution of the completed SPA into a stronger operator console
@@ -45,6 +46,7 @@ Use this page to jump to the right level of detail.
 ## Operator Guides
 
 - [v2-release-candidate.md](./v2-release-candidate.md): package the v2 workflow set into one release-candidate guide for operators and contributors
+- [v6-release-candidate.md](./v6-release-candidate.md): package the v6 release-candidate operating model, validation path, residual risks, and decision state for operators and contributors
 - [branching.md](./branching.md): inspect historical sessions, create child branches, and understand lineage fields
 - [replay-evals.md](./replay-evals.md): replay historical sessions, export bundles, run eval suites, and work through local-first regression gates
 - [runtime-context.md](./runtime-context.md): inspect repository context, runtime notes, working-set context, and artifact-backed summaries
@@ -69,6 +71,7 @@ Use this page to jump to the right level of detail.
 - [terminal-framework-decision-v5.md](./terminal-framework-decision-v5.md): v5 terminal framework decision, Textual rationale, alternatives, packaging notes, and smoke validation
 - [terminal-test-harness-v5.md](./terminal-test-harness-v5.md): v5 terminal TUI test layers, scenario matrix, stable invariants, manual review checklist, and artifact retention policy
 - [v5-terminal-release-gate.md](./v5-terminal-release-gate.md): v5 terminal UX release command, checklist, automated coverage map, manual validation, known gaps, and line-mode support decision
+- [v6-release-candidate.md](./v6-release-candidate.md): v6 release-candidate operating model, release-readiness checklist, evidence summary, non-goals, residual risks, and decision state
 - [v6-release-hardening.md](./v6-release-hardening.md): v6 hardening scope, non-goals, supported workflow set, evidence classes, v5 known-gap mapping, readiness checklist, residual-risk register, and pass/fail policy
 - [v6-release-gate.md](./v6-release-gate.md): v6 release-candidate command, automated stage map, installed smoke matrix, manual validation matrix, pass/fail policy, and residual risk register
 - [v6-release-inventory.md](./v6-release-inventory.md): v6 inventory of current automated checks, manual checks, weak coverage, gate recommendations, manual signoff recommendations, and evidence ownership
