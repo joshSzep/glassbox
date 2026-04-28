@@ -28,11 +28,12 @@ Then build the Python package:
 
 ```sh
 uv build --wheel --sdist
+uv run python scripts/validate_package_contents.py
 ```
 
-Before publishing, inspect the wheel contents and confirm `glassbox/web/static_next/index.html` and `_next/static/...` assets are present. Also confirm the package metadata includes `textual>=6,<7` and the `glassbox` console script. The FastAPI app validates the static export at startup time for dashboard requests: if `index.html` is missing or references a missing `/app/_next/...` file, `/` returns a developer-facing 503 that points back to `pnpm --dir frontend build`.
+Before publishing, validate the wheel and sdist contents and confirm `glassbox/web/static_next/index.html`, `_next/static/...` assets, Python package modules, source-distribution docs, `textual>=6,<7`, and the `glassbox` console script are present. The FastAPI app validates the static export at startup time for dashboard requests: if `index.html` is missing or references a missing `/app/_next/...` file, `/` returns a developer-facing 503 that points back to `pnpm --dir frontend build`.
 
-The v6 release gate also refreshes generated API files with `pnpm --dir frontend api:generate`, fails if `frontend/generated/openapi.json` or `frontend/generated/api-types.ts` changed, runs `pnpm --dir frontend build`, and validates `src/glassbox/web/static_next/` with `uv run python scripts/validate_frontend_release_assets.py` before packaging.
+The v6 release gate also refreshes generated API files with `pnpm --dir frontend api:generate`, fails if `frontend/generated/openapi.json` or `frontend/generated/api-types.ts` changed, runs `pnpm --dir frontend build`, validates `src/glassbox/web/static_next/` with `uv run python scripts/validate_frontend_release_assets.py`, builds both distributions, and runs `uv run python scripts/validate_package_contents.py`.
 
 ## Installed Package Smoke
 
@@ -59,7 +60,8 @@ Known terminal limitations for this release candidate:
 - `pnpm --dir frontend api:generate` left no diff in `frontend/generated/openapi.json` or `frontend/generated/api-types.ts`.
 - `src/glassbox/web/static_next/index.html` references only assets that exist under `src/glassbox/web/static_next/`.
 - `uv run pre-commit run --all-files` passed.
-- `uv build --wheel --sdist` produced distributions containing `glassbox/web/static_next/`.
+- `uv build --wheel --sdist` produced distributions containing `glassbox/web/static_next/`, runtime package modules, source docs, TUI dependency metadata, and the `glassbox` console script.
+- `uv run python scripts/validate_package_contents.py` passed against the built wheel and sdist.
 - Package metadata includes `textual>=6,<7` and the `glassbox` console script.
 - Installed-package terminal smoke passed for `session chat --help`, `session attach --help`, and explicit plain fallback.
 - Installed-package dashboard smoke passed without Node.js running.

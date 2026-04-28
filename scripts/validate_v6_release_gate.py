@@ -101,6 +101,10 @@ def build_gate_stages() -> list[GateStage]:
             ("uv", "run", "python", "scripts/validate_frontend_release_assets.py"),
         ),
         GateStage("package build", ("uv", "build", "--wheel", "--sdist")),
+        GateStage(
+            "package contents validation",
+            ("uv", "run", "python", "scripts/validate_package_contents.py"),
+        ),
     ]
 
 

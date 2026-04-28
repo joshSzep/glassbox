@@ -25,6 +25,7 @@ def test_v6_release_gate_script_runs_expected_checks() -> None:
         "frontend production build",
         "frontend static asset validation",
         "package build",
+        "package contents validation",
         "installed wheel smoke",
         "--evidence-dir",
         "summary.json",
@@ -45,6 +46,7 @@ def test_v6_release_gate_script_runs_expected_checks() -> None:
         "scripts/validate_frontend_release_assets.py",
         "frontend/generated/openapi.json",
         "frontend/generated/api-types.ts",
+        "scripts/validate_package_contents.py",
     ]
 
     for fragment in expected_fragments:

@@ -1,7 +1,14 @@
 """Packaging metadata tests for installed Glassbox distributions."""
 
+import io
+import tarfile
 import tomllib
+import zipfile
 from pathlib import Path
+
+from scripts.validate_package_contents import validate_distribution_contents
+from scripts.validate_package_contents import validate_sdist_contents
+from scripts.validate_package_contents import validate_wheel_contents
 
 PYPROJECT = Path(__file__).resolve().parents[2] / "pyproject.toml"
 
@@ -29,3 +36,109 @@ def test_build_targets_package_dashboard_static_assets() -> None:
     assert "src/glassbox/web/static_next/**" in hatch_config["wheel"]["artifacts"]
     assert "src/glassbox/web/static_next/**" in hatch_config["sdist"]["artifacts"]
     assert "src/glassbox" in hatch_config["wheel"]["packages"]
+
+
+def test_distribution_content_validator_accepts_complete_wheel_and_sdist(
+    tmp_path: Path,
+) -> None:
+    dist_dir = tmp_path / "dist"
+    dist_dir.mkdir()
+    wheel_path = dist_dir / "glassbox-0.1.0-py3-none-any.whl"
+    sdist_path = dist_dir / "glassbox-0.1.0.tar.gz"
+    _write_wheel(wheel_path)
+    _write_sdist(sdist_path)
+
+    assert validate_distribution_contents(dist_dir) == []
+
+
+def test_wheel_content_validator_reports_missing_metadata_and_assets(
+    tmp_path: Path,
+) -> None:
+    wheel_path = tmp_path / "glassbox-0.1.0-py3-none-any.whl"
+    with zipfile.ZipFile(wheel_path, mode="w") as wheel:
+        wheel.writestr("glassbox/__init__.py", "")
+        wheel.writestr("glassbox/cli/__init__.py", "")
+        wheel.writestr("glassbox/web/app.py", "")
+
+    problems = validate_wheel_contents(wheel_path)
+
+    assert (
+        "wheel missing required file: glassbox/web/static_next/index.html" in problems
+    )
+    assert (
+        "wheel missing required file under: glassbox/web/static_next/_next/" in problems
+    )
+    assert "wheel missing dist-info METADATA" in problems
+    assert "wheel missing console script entry_points.txt" in problems
+
+
+def test_sdist_content_validator_reports_missing_docs_and_static_assets(
+    tmp_path: Path,
+) -> None:
+    sdist_path = tmp_path / "glassbox-0.1.0.tar.gz"
+    _write_sdist(sdist_path, include_static_assets=False, include_docs=False)
+
+    problems = validate_sdist_contents(sdist_path)
+
+    assert "sdist missing required file: docs/release-packaging.md" in problems
+    assert (
+        "sdist missing required file: src/glassbox/web/static_next/index.html"
+        in problems
+    )
+    assert (
+        "sdist missing required file under: src/glassbox/web/static_next/_next/"
+        in problems
+    )
+
+
+def _write_wheel(path: Path) -> None:
+    with zipfile.ZipFile(path, mode="w") as wheel:
+        wheel.writestr("glassbox/__init__.py", "")
+        wheel.writestr("glassbox/cli/__init__.py", "")
+        wheel.writestr("glassbox/web/app.py", "")
+        wheel.writestr("glassbox/web/static_next/index.html", "<html></html>")
+        wheel.writestr("glassbox/web/static_next/_next/static/chunks/app.js", "")
+        wheel.writestr(
+            "glassbox-0.1.0.dist-info/METADATA",
+            "Name: glassbox\nRequires-Dist: textual<7,>=6\n",
+        )
+        wheel.writestr(
+            "glassbox-0.1.0.dist-info/entry_points.txt",
+            "[console_scripts]\nglassbox = glassbox.cli:main\n",
+        )
+
+
+def _write_sdist(
+    path: Path,
+    *,
+    include_static_assets: bool = True,
+    include_docs: bool = True,
+) -> None:
+    with tarfile.open(path, mode="w:gz") as sdist:
+        _add_tar_text(sdist, "glassbox-0.1.0/README.md", "# Glassbox\n")
+        _add_tar_text(sdist, "glassbox-0.1.0/LICENSE", "license\n")
+        _add_tar_text(sdist, "glassbox-0.1.0/pyproject.toml", "[project]\n")
+        if include_docs:
+            _add_tar_text(
+                sdist,
+                "glassbox-0.1.0/docs/release-packaging.md",
+                "# Release Packaging\n",
+            )
+        if include_static_assets:
+            _add_tar_text(
+                sdist,
+                "glassbox-0.1.0/src/glassbox/web/static_next/index.html",
+                "<html></html>",
+            )
+            _add_tar_text(
+                sdist,
+                "glassbox-0.1.0/src/glassbox/web/static_next/_next/static/chunks/app.js",
+                "console.log('glassbox');\n",
+            )
+
+
+def _add_tar_text(sdist: tarfile.TarFile, name: str, content: str) -> None:
+    encoded = content.encode("utf-8")
+    info = tarfile.TarInfo(name)
+    info.size = len(encoded)
+    sdist.addfile(info, io.BytesIO(encoded))

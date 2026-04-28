@@ -859,7 +859,7 @@ Completion notes:
 
 ### GBX-681: Expand Wheel And Sdist Content Validation
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-680`
 - Goal: prove release distributions contain the runtime, TUI dependency metadata, generated dashboard assets, docs needed for source distributions, and console script entrypoint
 - Deliverables:
@@ -875,6 +875,14 @@ Completion notes:
   - `uv run pytest tests/unit/test_packaging_metadata.py`
 - Done when:
   - missing package assets fail before a release artifact is published or manually smoke-tested
+
+Completion notes:
+
+- Added `scripts/validate_package_contents.py` to inspect the newest built wheel and sdist independently of the editable checkout.
+- Validates packaged dashboard shell/assets, package modules, source distribution docs, `textual>=6,<7` metadata, and the `glassbox` console script entrypoint.
+- Added release-gate integration immediately after `uv build --wheel --sdist` and fast unit coverage with synthetic wheel/sdist archives.
+- Updated release packaging docs with the package-content validation command and checklist expectations.
+- Validation: `uv build --wheel --sdist`; `uv run python scripts/validate_package_contents.py`; `uv run pytest tests/unit/test_packaging_metadata.py`; `uv run pytest tests/unit/test_v6_release_gate.py`; `uv run ruff check scripts tests`; `uv run ty check`.
 
 ### GBX-682: Add Installed-Package Smoke Matrix
 
