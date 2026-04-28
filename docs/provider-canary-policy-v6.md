@@ -25,6 +25,17 @@ provider-specific regression.
 Do not run canaries automatically in pre-commit hooks, default local tests, or
 ordinary deterministic release sign-off.
 
+Run the advisory command with:
+
+```bash
+uv run glassbox provider canary run --cwd . --model-name openai:gpt-5.4
+uv run glassbox provider canary run --cwd . --model-name anthropic:claude-sonnet-4 --json
+```
+
+The command writes `provider-canary-summary.json` under
+`.glassbox/evals/provider-canary/` by default. If credentials are unavailable, it
+writes a skipped advisory summary instead of failing normal local validation.
+
 ## Required Configuration
 
 OpenAI canaries require `OPENAI_API_KEY`. Anthropic canaries require

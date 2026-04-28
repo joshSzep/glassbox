@@ -185,7 +185,10 @@ def test_provider_mode_non_streaming_turn_falls_back_without_network(
 def test_provider_diagnostics_cli_reports_redacted_configuration(
     tmp_path: Path,
     capsys,
+    monkeypatch,
 ) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
     (tmp_path / ".env").write_text(
         "OPENAI_API_KEY=super-secret-openai\nOPENAI_BASE_URL=https://api.example\n",
         encoding="utf-8",
@@ -212,6 +215,89 @@ def test_provider_diagnostics_cli_reports_redacted_configuration(
     assert "super-secret-openai" not in captured.out
     assert payload["diagnostics"][0]["api_key_present"] is True
     assert payload["diagnostics"][0]["api_key_source"] == "dotenv"
+
+
+def test_provider_canary_cli_writes_skipped_summary_without_credentials(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
+    output_dir = tmp_path / "canary-output"
+
+    exit_code = main(
+        [
+            "provider",
+            "canary",
+            "run",
+            "--cwd",
+            str(tmp_path),
+            "--model-name",
+            "openai:gpt-5.4",
+            "--scenario",
+            "streaming-text",
+            "--scenario",
+            "approval",
+            "--output-dir",
+            str(output_dir),
+            "--json",
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    summary_path = output_dir / "provider-canary-summary.json"
+    retained = json.loads(summary_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert payload["advisory"] is True
+    assert payload["provider"] == "openai"
+    assert payload["diagnostics_state"] == "local_fallback"
+    assert [scenario["scenario_id"] for scenario in payload["scenarios"]] == [
+        "streaming-text",
+        "approval",
+    ]
+    assert {scenario["outcome"] for scenario in payload["scenarios"]} == {"skipped"}
+    assert retained == payload
+    assert "API_KEY" in payload["next_actions"][0]
+
+
+def test_provider_canary_cli_redacts_configured_secrets_in_summary(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
+    (tmp_path / ".env").write_text(
+        "OPENAI_BASE_URL=https://api.example\n",
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "canary-output"
+
+    exit_code = main(
+        [
+            "provider",
+            "canary",
+            "run",
+            "--cwd",
+            str(tmp_path),
+            "--model-name",
+            "openai:gpt-5.4",
+            "--output-dir",
+            str(output_dir),
+            "--json",
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    retained = (output_dir / "provider-canary-summary.json").read_text(encoding="utf-8")
+
+    assert exit_code == 0
+    assert payload["diagnostics_state"] == "missing_credentials"
+    assert payload["skipped_reason"] == "missing OPENAI_API_KEY"
+    assert "https://api.example" not in captured.out
+    assert "https://api.example" not in retained
 
 
 def _provider_function_model_response(messages, _agent_info) -> ModelResponse:

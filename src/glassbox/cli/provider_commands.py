@@ -1,17 +1,23 @@
 """CLI command handlers for provider diagnostics."""
 
 import argparse
+from pathlib import Path
 
 from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
+from glassbox.runtime.provider_canary import ProviderCanarySummary
+from glassbox.runtime.provider_canary import run_provider_canary_sync
 from glassbox.runtime.provider_diagnostics import ProviderDiagnosticsReport
 from glassbox.runtime.provider_diagnostics import build_provider_diagnostics_report
+from glassbox.runtime.workspace_profile import DEFAULT_MODEL_NAME
 
 
 def _provider_command(args: argparse.Namespace) -> int:
     provider_command = getattr(args, "provider_command", None)
     if provider_command == "diagnostics":
         return _provider_diagnostics_command(args)
+    if provider_command == "canary":
+        return _provider_canary_command(args)
     raise ValueError("specify a provider subcommand")
 
 
@@ -50,4 +56,44 @@ def _print_provider_diagnostics(report: ProviderDiagnosticsReport) -> None:
     if report.next_actions:
         print("Next:")
         for action in report.next_actions:
+            print(f"  - {action}")
+
+
+def _provider_canary_command(args: argparse.Namespace) -> int:
+    provider_canary_command = getattr(args, "provider_canary_command", None)
+    if provider_canary_command != "run":
+        raise ValueError("specify a provider canary subcommand")
+
+    cwd, _db_path = resolve_runtime_location(args)
+    model_name = args.model_name or DEFAULT_MODEL_NAME
+    output_dir = (
+        Path(args.output_dir)
+        if args.output_dir
+        else cwd / ".glassbox" / "evals" / "provider-canary"
+    )
+    if not output_dir.is_absolute():
+        output_dir = cwd / output_dir
+    summary = run_provider_canary_sync(
+        cwd,
+        model_name=model_name,
+        output_dir=output_dir,
+        scenarios=args.scenario,
+    )
+    if args.json:
+        print_json_output(summary.model_dump(mode="json"))
+    else:
+        _print_provider_canary_summary(summary)
+    return 0
+
+
+def _print_provider_canary_summary(summary: ProviderCanarySummary) -> None:
+    print("Provider canary: advisory")
+    print(f"Provider: {summary.provider}")
+    print(f"Model: {summary.model_name}")
+    print(f"Summary: {summary.output_path}")
+    for scenario in summary.scenarios:
+        print(f"{scenario.scenario_id}: {scenario.outcome} ({scenario.detail})")
+    if summary.next_actions:
+        print("Next:")
+        for action in summary.next_actions:
             print(f"  - {action}")

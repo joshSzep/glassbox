@@ -65,6 +65,54 @@ def _add_operations_parsers(
     )
     _add_runtime_location_arguments(provider_diagnostics_parser)
 
+    provider_canary_parser = provider_subparsers.add_parser(
+        "canary",
+        help="run advisory provider canaries",
+        description="Run optional advisory live-provider canary workflows.",
+    )
+    provider_canary_subparsers = provider_canary_parser.add_subparsers(
+        dest="provider_canary_command",
+        required=True,
+    )
+    provider_canary_run_parser = provider_canary_subparsers.add_parser(
+        "run",
+        help="run provider canary scenarios",
+        description=(
+            "Run advisory live-provider canaries when credentials are configured, "
+            "or write a structured skipped summary otherwise."
+        ),
+    )
+    provider_canary_run_parser.add_argument(
+        "--model-name",
+        default=None,
+        help="provider model identifier to canary; defaults to openai:gpt-5.4",
+    )
+    provider_canary_run_parser.add_argument(
+        "--scenario",
+        action="append",
+        choices=(
+            "streaming-text",
+            "tool-call",
+            "approval",
+            "ask-user",
+            "cancellation",
+            "dashboard",
+            "daemon-attach",
+        ),
+        help="scenario to select; may be repeated",
+    )
+    provider_canary_run_parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="directory for provider canary summary artifacts",
+    )
+    provider_canary_run_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print provider canary summary as JSON",
+    )
+    _add_runtime_location_arguments(provider_canary_run_parser)
+
     performance_parser = subparsers.add_parser(
         "performance",
         help="inspect larger-session performance expectations",

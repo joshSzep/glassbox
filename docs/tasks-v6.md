@@ -742,7 +742,7 @@ Completion notes:
 
 ### GBX-672: Add Advisory Provider-Canary Execution
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-670`, `GBX-671`
 - Goal: provide an optional command or eval profile path for real-provider canary scenarios that records structured advisory evidence
 - Deliverables:
@@ -759,6 +759,14 @@ Completion notes:
   - optional manual real-provider run when credentials are available
 - Done when:
   - maintainers can run and retain live-provider confidence evidence without making normal local validation depend on external services
+
+Completion notes:
+
+- Added `glassbox provider canary run` as an optional advisory command that writes `provider-canary-summary.json` with scenario outcomes, skipped reasons, provider/model metadata, and next actions.
+- Implemented credential-aware skip behavior through provider diagnostics, plus a minimal live `streaming-text` canary path when provider credentials are configured.
+- Added deterministic tests for command selection, missing-credential skip behavior, summary writing, scenario selection, and redaction of configured provider values.
+- Updated [provider-canary-policy-v6.md](./provider-canary-policy-v6.md) with the command workflow and retained artifact location.
+- Validation: `uv run pytest tests/integration/test_provider_mode_runtime.py`; `uv run ruff check src/glassbox/runtime src/glassbox/cli tests`; `uv run ty check`.
 
 ### GBX-673: Strengthen Policy Evidence And Audit Surfaces
 
