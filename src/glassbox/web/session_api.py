@@ -40,6 +40,10 @@ class ActiveToolCallResponse(BaseModel):
     policy_reason: str | None = None
 
 
+class ToolCallResponse(ActiveToolCallResponse):
+    """Tool-call detail row for paginated session reads."""
+
+
 class PendingApprovalResponse(BaseModel):
     approval_id: str
     turn_id: str
@@ -137,6 +141,66 @@ class ActionAcceptedResponse(BaseModel):
 
 class ErrorDetailResponse(BaseModel):
     detail: str
+
+
+class PageInfoResponse(BaseModel):
+    cursor: int
+    limit: int
+    next_cursor: int | None
+    has_more: bool
+    returned_count: int
+
+
+class EventLogEntryResponse(BaseModel):
+    event_id: str
+    session_id: str
+    sequence: int
+    event_type: str
+    event_version: int
+    created_at: datetime
+    payload: dict[str, object]
+
+
+class ArtifactDetailResponse(BaseModel):
+    sequence: int
+    event_type: str
+    artifact_id: str
+    artifact_kind: str
+    path: str | None = None
+    tool_call_id: str | None = None
+    turn_id: str
+    content_sha256: str | None = None
+    size_bytes: int | None = None
+
+
+class SessionTranscriptPageResponse(BaseModel):
+    session_id: str
+    page: PageInfoResponse
+    items: list[TranscriptMessageResponse]
+
+
+class SessionEventLogPageResponse(BaseModel):
+    session_id: str
+    page: PageInfoResponse
+    items: list[EventLogEntryResponse]
+
+
+class SessionToolCallPageResponse(BaseModel):
+    session_id: str
+    page: PageInfoResponse
+    items: list[ToolCallResponse]
+
+
+class SessionTurnMetricsPageResponse(BaseModel):
+    session_id: str
+    page: PageInfoResponse
+    items: list[TurnMetricsResponse]
+
+
+class SessionArtifactPageResponse(BaseModel):
+    session_id: str
+    page: PageInfoResponse
+    items: list[ArtifactDetailResponse]
 
 
 class SessionSummaryResponse(BaseModel):

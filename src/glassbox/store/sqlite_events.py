@@ -130,11 +130,12 @@ def read_session_events_after(
     connection: sqlite3.Connection,
     session_id: SessionId,
     after_sequence: int,
+    *,
+    limit: int | None = None,
 ) -> list[EventEnvelope]:
     """Read session events with a sequence greater than ``after_sequence``."""
 
-    rows = connection.execute(
-        """
+    query = """
         select
             session_id,
             sequence,
@@ -146,9 +147,13 @@ def read_session_events_after(
         from events
         where session_id = ? and sequence > ?
         order by sequence asc
-        """,
-        (str(session_id), after_sequence),
-    ).fetchall()
+    """
+    parameters: list[object] = [str(session_id), after_sequence]
+    if limit is not None:
+        query += " limit ?"
+        parameters.append(limit)
+
+    rows = connection.execute(query, parameters).fetchall()
     return [_event_from_row(row) for row in rows]
 
 

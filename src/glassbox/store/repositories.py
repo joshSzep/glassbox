@@ -69,8 +69,16 @@ class SQLiteSessionRepository:
     def list_transcript_messages(
         self,
         session_id: SessionId,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[TranscriptMessage]:
-        return query_store.list_transcript_messages(self._connection, session_id)
+        return query_store.list_transcript_messages(
+            self._connection,
+            session_id,
+            limit=limit,
+            offset=offset,
+        )
 
     def list_runtime_notes(
         self,
@@ -166,11 +174,14 @@ class SQLiteSessionRepository:
         self,
         session_id: SessionId,
         after_sequence: int,
+        *,
+        limit: int | None = None,
     ) -> list[EventEnvelope]:
         return event_store.read_session_events_after(
             self._connection,
             session_id,
             after_sequence,
+            limit=limit,
         )
 
     def read_events_by_correlation_id(
@@ -208,8 +219,16 @@ class SQLiteSessionRepository:
         session_id: SessionId,
         *,
         status: ToolExecutionStatus | None = None,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[ToolCallRecord]:
-        return query_store.list_tool_calls(self._connection, session_id, status=status)
+        return query_store.list_tool_calls(
+            self._connection,
+            session_id,
+            status=status,
+            limit=limit,
+            offset=offset,
+        )
 
     def list_approvals(
         self,
@@ -224,11 +243,13 @@ class SQLiteSessionRepository:
         session_id: SessionId,
         *,
         limit: int | None = None,
+        offset: int = 0,
     ) -> list[TurnMetricsRecord]:
         return query_store.list_turn_metrics(
             self._connection,
             session_id,
             limit=limit,
+            offset=offset,
         )
 
     def resolve_fork_point(

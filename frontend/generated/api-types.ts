@@ -111,6 +111,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/sessions/{session_id}/artifacts": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Session Artifact Page
+     * @description Return event-referenced artifact details for a session.
+     */
+    get: operations["get_session_artifact_page_sessions__session_id__artifacts_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/sessions/{session_id}/cancel": {
     parameters: {
       query?: never;
@@ -125,6 +145,26 @@ export interface paths {
      * @description Request cancellation of the active live turn for a session.
      */
     post: operations["cancel_session_turn_sessions__session_id__cancel_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/sessions/{session_id}/event-log": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Session Event Log Page
+     * @description Return canonical events after ``cursor`` sequence for a session.
+     */
+    get: operations["get_session_event_log_page_sessions__session_id__event_log_get"];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -210,6 +250,66 @@ export interface paths {
      * @description Submit an answer for a pending ask_user question.
      */
     post: operations["submit_session_answer_sessions__session_id__questions__question_id__post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/sessions/{session_id}/tool-calls": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Session Tool Call Page
+     * @description Return a bounded page of projected tool-call details.
+     */
+    get: operations["get_session_tool_call_page_sessions__session_id__tool_calls_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/sessions/{session_id}/transcript": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Session Transcript Page
+     * @description Return a bounded transcript page for a session.
+     */
+    get: operations["get_session_transcript_page_sessions__session_id__transcript_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/sessions/{session_id}/turn-metrics": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Session Turn Metrics Page
+     * @description Return a bounded page of projected turn metrics.
+     */
+    get: operations["get_session_turn_metrics_page_sessions__session_id__turn_metrics_get"];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -326,6 +426,27 @@ export interface components {
        */
       timed_out: boolean;
     };
+    /** ArtifactDetailResponse */
+    ArtifactDetailResponse: {
+      /** Artifact Id */
+      artifact_id: string;
+      /** Artifact Kind */
+      artifact_kind: string;
+      /** Content Sha256 */
+      content_sha256?: string | null;
+      /** Event Type */
+      event_type: string;
+      /** Path */
+      path?: string | null;
+      /** Sequence */
+      sequence: number;
+      /** Size Bytes */
+      size_bytes?: number | null;
+      /** Tool Call Id */
+      tool_call_id?: string | null;
+      /** Turn Id */
+      turn_id: string;
+    };
     /** BranchableTurnResponse */
     BranchableTurnResponse: {
       /**
@@ -367,6 +488,28 @@ export interface components {
     ErrorDetailResponse: {
       /** Detail */
       detail: string;
+    };
+    /** EventLogEntryResponse */
+    EventLogEntryResponse: {
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Event Id */
+      event_id: string;
+      /** Event Type */
+      event_type: string;
+      /** Event Version */
+      event_version: number;
+      /** Payload */
+      payload: {
+        [key: string]: unknown;
+      };
+      /** Sequence */
+      sequence: number;
+      /** Session Id */
+      session_id: string;
     };
     /**
      * EventTransportObservability
@@ -511,6 +654,19 @@ export interface components {
        * Format: date-time
        */
       updated_at: string;
+    };
+    /** PageInfoResponse */
+    PageInfoResponse: {
+      /** Cursor */
+      cursor: number;
+      /** Has More */
+      has_more: boolean;
+      /** Limit */
+      limit: number;
+      /** Next Cursor */
+      next_cursor: number | null;
+      /** Returned Count */
+      returned_count: number;
     };
     /** PendingApprovalResponse */
     PendingApprovalResponse: {
@@ -664,6 +820,22 @@ export interface components {
       /** Status */
       status: string | null;
     };
+    /** SessionArtifactPageResponse */
+    SessionArtifactPageResponse: {
+      /** Items */
+      items: components["schemas"]["ArtifactDetailResponse"][];
+      page: components["schemas"]["PageInfoResponse"];
+      /** Session Id */
+      session_id: string;
+    };
+    /** SessionEventLogPageResponse */
+    SessionEventLogPageResponse: {
+      /** Items */
+      items: components["schemas"]["EventLogEntryResponse"][];
+      page: components["schemas"]["PageInfoResponse"];
+      /** Session Id */
+      session_id: string;
+    };
     /** Format: uuid */
     SessionId: string;
     /** SessionQueueCountsResponse */
@@ -816,6 +988,30 @@ export interface components {
        */
       updated_at: string;
     };
+    /** SessionToolCallPageResponse */
+    SessionToolCallPageResponse: {
+      /** Items */
+      items: components["schemas"]["ToolCallResponse"][];
+      page: components["schemas"]["PageInfoResponse"];
+      /** Session Id */
+      session_id: string;
+    };
+    /** SessionTranscriptPageResponse */
+    SessionTranscriptPageResponse: {
+      /** Items */
+      items: components["schemas"]["TranscriptMessageResponse"][];
+      page: components["schemas"]["PageInfoResponse"];
+      /** Session Id */
+      session_id: string;
+    };
+    /** SessionTurnMetricsPageResponse */
+    SessionTurnMetricsPageResponse: {
+      /** Items */
+      items: components["schemas"]["TurnMetricsResponse"][];
+      page: components["schemas"]["PageInfoResponse"];
+      /** Session Id */
+      session_id: string;
+    };
     /** SubmitSessionAnswerRequest */
     SubmitSessionAnswerRequest: {
       /** Answer */
@@ -828,6 +1024,36 @@ export interface components {
     };
     /** Format: uuid */
     ToolCallId: string;
+    /**
+     * ToolCallResponse
+     * @description Tool-call detail row for paginated session reads.
+     */
+    ToolCallResponse: {
+      /** Completed At */
+      completed_at?: string | null;
+      /** Policy Outcome */
+      policy_outcome?: string | null;
+      /** Policy Reason */
+      policy_reason?: string | null;
+      /** Policy Risk Level */
+      policy_risk_level?: string | null;
+      /** Policy Source Kind */
+      policy_source_kind?: string | null;
+      /** Policy Source Label */
+      policy_source_label?: string | null;
+      /** Started At */
+      started_at: string | null;
+      /** Status */
+      status: string;
+      /** Summary */
+      summary?: string | null;
+      /** Tool Call Id */
+      tool_call_id: string;
+      /** Tool Name */
+      tool_name: string;
+      /** Turn Id */
+      turn_id: string;
+    };
     /** TranscriptMessageResponse */
     TranscriptMessageResponse: {
       /**
@@ -1123,6 +1349,49 @@ export interface operations {
       };
     };
   };
+  get_session_artifact_page_sessions__session_id__artifacts_get: {
+    parameters: {
+      query?: {
+        cursor?: number;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SessionArtifactPageResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   cancel_session_turn_sessions__session_id__cancel_post: {
     parameters: {
       query?: never;
@@ -1158,6 +1427,49 @@ export interface operations {
       };
       /** @description Conflict */
       409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_session_event_log_page_sessions__session_id__event_log_get: {
+    parameters: {
+      query?: {
+        cursor?: number;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SessionEventLogPageResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
         headers: {
           [name: string]: unknown;
         };
@@ -1351,6 +1663,135 @@ export interface operations {
       };
       /** @description Conflict */
       409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_session_tool_call_page_sessions__session_id__tool_calls_get: {
+    parameters: {
+      query?: {
+        cursor?: number;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SessionToolCallPageResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_session_transcript_page_sessions__session_id__transcript_get: {
+    parameters: {
+      query?: {
+        cursor?: number;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SessionTranscriptPageResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_session_turn_metrics_page_sessions__session_id__turn_metrics_get: {
+    parameters: {
+      query?: {
+        cursor?: number;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SessionTurnMetricsPageResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
         headers: {
           [name: string]: unknown;
         };

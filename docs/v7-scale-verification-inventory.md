@@ -184,6 +184,18 @@ Recommended v7 action: measure first in `GBX-740`, add typed paginated APIs in
 projection and artifact observability in `GBX-743`, and gate the resulting scale
 expectations in `GBX-744`.
 
+GBX-741 API contract:
+
+- `/sessions/{session_id}/transcript` pages projected transcript rows by offset
+  cursor and bounded limit
+- `/sessions/{session_id}/event-log` pages canonical event rows by last-seen
+  sequence cursor and bounded limit
+- `/sessions/{session_id}/tool-calls`, `/turn-metrics`, and `/artifacts` provide
+  bounded detail pages for the heavy inspector panes identified by GBX-740
+- the full snapshot endpoint remains unchanged for existing CLI, daemon attach,
+  and dashboard clients while new clients can move large detail panes to these
+  typed endpoints
+
 ## Daemon, Transport, And Multi-Observer Evidence
 
 Current daemon and transport behavior includes:

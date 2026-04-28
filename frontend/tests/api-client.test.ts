@@ -122,6 +122,51 @@ describe("createGlassboxApiClient", () => {
     expect(calls[4].init?.body).toBe(JSON.stringify({ branch_label: "alt", turn_id: "turn/1" }));
   });
 
+  it("shapes paginated session detail requests", async () => {
+    const { calls, fetch } = createMockFetch([
+      jsonResponse({
+        items: [],
+        page: { cursor: 0, has_more: false, limit: 20, next_cursor: null, returned_count: 0 },
+        session_id: "session/1",
+      }),
+      jsonResponse({
+        items: [],
+        page: { cursor: 20, has_more: false, limit: 20, next_cursor: null, returned_count: 0 },
+        session_id: "session/1",
+      }),
+      jsonResponse({
+        items: [],
+        page: { cursor: 0, has_more: false, limit: 10, next_cursor: null, returned_count: 0 },
+        session_id: "session/1",
+      }),
+      jsonResponse({
+        items: [],
+        page: { cursor: 0, has_more: false, limit: 5, next_cursor: null, returned_count: 0 },
+        session_id: "session/1",
+      }),
+      jsonResponse({
+        items: [],
+        page: { cursor: 0, has_more: false, limit: 12, next_cursor: null, returned_count: 0 },
+        session_id: "session/1",
+      }),
+    ]);
+    const client = createGlassboxApiClient({ fetch });
+
+    await client.getSessionTranscriptPage("session/1", { limit: 20 });
+    await client.getSessionEventLogPage("session/1", { cursor: 20, limit: 20 });
+    await client.getSessionToolCallPage("session/1", { limit: 10 });
+    await client.getSessionTurnMetricsPage("session/1", { limit: 5 });
+    await client.getSessionArtifactPage("session/1", { limit: 12 });
+
+    expect(calls.map((call) => call.input)).toEqual([
+      "/sessions/session%2F1/transcript?limit=20",
+      "/sessions/session%2F1/event-log?cursor=20&limit=20",
+      "/sessions/session%2F1/tool-calls?limit=10",
+      "/sessions/session%2F1/turn-metrics?limit=5",
+      "/sessions/session%2F1/artifacts?limit=12",
+    ]);
+  });
+
   it("normalizes FastAPI validation errors", async () => {
     const { fetch } = createMockFetch([
       jsonResponse(

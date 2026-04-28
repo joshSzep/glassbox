@@ -101,10 +101,11 @@ class FakeSessionRepository:
             else None
         )
 
-    def list_transcript_messages(self, session_id):
+    def list_transcript_messages(self, session_id, *, limit=None, offset=0):
         if self._session.session_id != session_id:
             return []
-        return list(self._transcript)
+        messages = list(self._transcript)[offset:]
+        return messages if limit is None else messages[:limit]
 
     def list_runtime_notes(self, session_id, *, include_inherited=True):
         if self._session.session_id != session_id:
@@ -151,8 +152,9 @@ class FakeSessionRepository:
             return []
         return list(self._events)
 
-    def read_session_events_after(self, session_id, after_sequence):
-        return []
+    def read_session_events_after(self, session_id, after_sequence, *, limit=None):
+        events = [event for event in self._events if event.sequence > after_sequence]
+        return events if limit is None else events[:limit]
 
     def read_events_by_correlation_id(
         self,
@@ -175,14 +177,19 @@ class FakeSessionRepository:
             projected_last_sequence=0,
         )
 
-    def list_tool_calls(self, session_id, *, status=None):
+    def list_tool_calls(self, session_id, *, status=None, limit=None, offset=0):
         if self._session.session_id != session_id:
             return []
         if status is None:
-            return list(self._tool_calls)
-        return [
-            tool_call for tool_call in self._tool_calls if tool_call.status == status
-        ]
+            tool_calls = list(self._tool_calls)
+        else:
+            tool_calls = [
+                tool_call
+                for tool_call in self._tool_calls
+                if tool_call.status == status
+            ]
+        tool_calls = tool_calls[offset:]
+        return tool_calls if limit is None else tool_calls[:limit]
 
     def list_approvals(self, session_id, *, status=None):
         if self._session.session_id != session_id:
@@ -191,7 +198,8 @@ class FakeSessionRepository:
             return list(self._approvals)
         return [approval for approval in self._approvals if approval.status == status]
 
-    def list_turn_metrics(self, session_id, *, limit=None):
+    def list_turn_metrics(self, session_id, *, limit=None, offset=0):
+        del offset
         return []
 
     def resolve_fork_point(self, session_id, *, turn_id=None):

@@ -65,8 +65,8 @@ class FakeSessionRepository:
     def get_session_state(self, session_id):
         return None
 
-    def list_transcript_messages(self, session_id):
-        return [
+    def list_transcript_messages(self, session_id, *, limit=None, offset=0):
+        messages = [
             TranscriptMessage(
                 message_id=new_session_id(),
                 role="user",
@@ -74,6 +74,8 @@ class FakeSessionRepository:
                 created_at=datetime.now(UTC),
             )
         ]
+        messages = messages[offset:]
+        return messages if limit is None else messages[:limit]
 
     def list_runtime_notes(self, session_id, *, include_inherited=True):
         return []
@@ -124,7 +126,8 @@ class FakeSessionRepository:
     def read_session_events(self, session_id):
         return []
 
-    def read_session_events_after(self, session_id, after_sequence):
+    def read_session_events_after(self, session_id, after_sequence, *, limit=None):
+        del limit
         return []
 
     def read_events_by_correlation_id(
@@ -148,13 +151,15 @@ class FakeSessionRepository:
             projected_last_sequence=0,
         )
 
-    def list_tool_calls(self, session_id, *, status=None):
+    def list_tool_calls(self, session_id, *, status=None, limit=None, offset=0):
+        del status, limit, offset
         return []
 
     def list_approvals(self, session_id, *, status=None):
         return []
 
-    def list_turn_metrics(self, session_id, *, limit=None):
+    def list_turn_metrics(self, session_id, *, limit=None, offset=0):
+        del limit, offset
         return []
 
     def resolve_fork_point(self, session_id, *, turn_id=None) -> ResolvedForkPoint:

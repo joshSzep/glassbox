@@ -22,11 +22,13 @@ from glassbox.store.sqlite_utils import _runtime_note_from_row
 def list_transcript_messages(
     connection: sqlite3.Connection,
     session_id: SessionId,
+    *,
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[TranscriptMessage]:
     """Read transcript messages for a session in conversation order."""
 
-    rows = connection.execute(
-        """
+    query = """
         select
             message_id,
             role,
@@ -35,9 +37,16 @@ def list_transcript_messages(
         from transcript_messages
         where session_id = ?
         order by created_at asc, message_id asc
-        """,
-        (str(session_id),),
-    ).fetchall()
+    """
+    parameters: list[object] = [str(session_id)]
+    if limit is not None:
+        query += " limit ?"
+        parameters.append(limit)
+    if offset:
+        query += " offset ?"
+        parameters.append(offset)
+
+    rows = connection.execute(query, parameters).fetchall()
     return [
         TranscriptMessage(
             message_id=row["message_id"],
@@ -97,6 +106,8 @@ def list_tool_calls(
     session_id: SessionId,
     *,
     status: ToolExecutionStatus | None = None,
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[ToolCallRecord]:
     """Read tool call records for a session, optionally filtered by status."""
 
@@ -123,6 +134,12 @@ def list_tool_calls(
         query += " and status = ?"
         parameters.append(status)
     query += " order by started_at asc"
+    if limit is not None:
+        query += " limit ?"
+        parameters.append(limit)
+    if offset:
+        query += " offset ?"
+        parameters.append(offset)
 
     rows = connection.execute(query, parameters).fetchall()
     return [
@@ -201,6 +218,7 @@ def list_turn_metrics(
     session_id: SessionId,
     *,
     limit: int | None = None,
+    offset: int = 0,
 ) -> list[TurnMetricsRecord]:
     """Read aggregated per-turn runtime metrics for a session."""
 
@@ -226,6 +244,9 @@ def list_turn_metrics(
     if limit is not None:
         query += " limit ?"
         parameters.append(limit)
+    if offset:
+        query += " offset ?"
+        parameters.append(offset)
 
     rows = connection.execute(query, parameters).fetchall()
     return [

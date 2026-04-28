@@ -66,6 +66,9 @@ class SessionRepository(Protocol):
     def list_transcript_messages(
         self,
         session_id: SessionId,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[TranscriptMessage]: ...
 
     def list_runtime_notes(
@@ -119,6 +122,8 @@ class SessionRepository(Protocol):
         self,
         session_id: SessionId,
         after_sequence: int,
+        *,
+        limit: int | None = None,
     ) -> list[EventEnvelope]: ...
 
     def read_events_by_correlation_id(
@@ -143,6 +148,8 @@ class SessionRepository(Protocol):
         session_id: SessionId,
         *,
         status: ToolExecutionStatus | None = None,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[ToolCallRecord]: ...
 
     def list_approvals(
@@ -157,6 +164,7 @@ class SessionRepository(Protocol):
         session_id: SessionId,
         *,
         limit: int | None = None,
+        offset: int = 0,
     ) -> list[TurnMetricsRecord]: ...
 
     def resolve_fork_point(

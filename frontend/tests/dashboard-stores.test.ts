@@ -49,7 +49,32 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
       status: "ok",
     }),
     getSessionAggregate: async () => makeSessionAggregate([]),
+    getSessionArtifactPage: async (sessionId) => ({
+      items: [],
+      page: { cursor: 0, has_more: false, limit: 100, next_cursor: null, returned_count: 0 },
+      session_id: sessionId,
+    }),
+    getSessionEventLogPage: async (sessionId) => ({
+      items: [],
+      page: { cursor: 0, has_more: false, limit: 100, next_cursor: null, returned_count: 0 },
+      session_id: sessionId,
+    }),
     getSessionSnapshot: async (sessionId) => makeSessionSnapshot(sessionId),
+    getSessionToolCallPage: async (sessionId) => ({
+      items: [],
+      page: { cursor: 0, has_more: false, limit: 100, next_cursor: null, returned_count: 0 },
+      session_id: sessionId,
+    }),
+    getSessionTranscriptPage: async (sessionId) => ({
+      items: [],
+      page: { cursor: 0, has_more: false, limit: 100, next_cursor: null, returned_count: 0 },
+      session_id: sessionId,
+    }),
+    getSessionTurnMetricsPage: async (sessionId) => ({
+      items: [],
+      page: { cursor: 0, has_more: false, limit: 100, next_cursor: null, returned_count: 0 },
+      session_id: sessionId,
+    }),
     listSessions: async () => [],
     cancelTurn: async () => ({ status: "ok" }),
     resolveApproval: async () => ({ status: "ok" }),

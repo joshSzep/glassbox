@@ -580,7 +580,7 @@ Completion notes:
 
 ### GBX-741: Add Paginated Session Read APIs
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-740`
 - Goal: reduce large-session snapshot cost by adding explicit transcript, event, tool-call, metric, and artifact-detail read APIs where full snapshots are too heavy
 - Deliverables:
@@ -600,6 +600,13 @@ Completion notes:
   - frontend typecheck if generated types change
 - Done when:
   - large session details can be read incrementally through typed APIs
+
+Completion notes:
+
+- Added typed paginated HTTP endpoints for transcript, event-log, tool-call, turn-metric, and artifact detail reads while keeping the existing full snapshot response backward compatible.
+- Extended SQLite read helpers with bounded limit/offset or sequence-cursor reads for transcript, tool-call, turn-metric, and event-log paths.
+- Regenerated frontend OpenAPI schema/types and added frontend API client methods for the new typed read pages.
+- Added focused integration coverage for ordering, cursor advancement, empty pages, invalid cursors/limits, and missing sessions in `tests/integration/test_web_session_pagination.py`.
 
 ### GBX-742: Add Dashboard Virtualization And Lazy Detail Loading
 

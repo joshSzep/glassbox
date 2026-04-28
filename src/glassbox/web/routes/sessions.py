@@ -9,6 +9,8 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import Query
 
+from glassbox.core.events import ReplayArtifactRecorded
+from glassbox.core.events import ToolArtifactRecorded
 from glassbox.runtime.daemon import RuntimeOwnerStatus
 from glassbox.runtime.daemon import inspect_runtime_owner
 from glassbox.runtime.session_queries import OPERATOR_SORT_PRIORITY
@@ -16,15 +18,26 @@ from glassbox.runtime.session_queries import SessionQueryService
 from glassbox.runtime.session_queries import WorkspaceRuntimeSummaryView
 from glassbox.web.app import RuntimeContextDep
 from glassbox.web.session_api import ActionAcceptedResponse
+from glassbox.web.session_api import ArtifactDetailResponse
 from glassbox.web.session_api import CancelSessionTurnRequest
 from glassbox.web.session_api import ErrorDetailResponse
+from glassbox.web.session_api import EventLogEntryResponse
 from glassbox.web.session_api import ForkSessionRequest
 from glassbox.web.session_api import ForkSessionResponse
+from glassbox.web.session_api import PageInfoResponse
 from glassbox.web.session_api import SessionAggregateResponse
+from glassbox.web.session_api import SessionArtifactPageResponse
+from glassbox.web.session_api import SessionEventLogPageResponse
 from glassbox.web.session_api import SessionSnapshotResponse
 from glassbox.web.session_api import SessionSummaryResponse
+from glassbox.web.session_api import SessionToolCallPageResponse
+from glassbox.web.session_api import SessionTranscriptPageResponse
+from glassbox.web.session_api import SessionTurnMetricsPageResponse
 from glassbox.web.session_api import SubmitSessionAnswerRequest
 from glassbox.web.session_api import SubmitSessionMessageRequest
+from glassbox.web.session_api import ToolCallResponse
+from glassbox.web.session_api import TranscriptMessageResponse
+from glassbox.web.session_api import TurnMetricsResponse
 from glassbox.web.session_api import build_fork_session_response
 from glassbox.web.session_api import build_session_aggregate_response
 from glassbox.web.session_api import build_session_snapshot_response
@@ -45,12 +58,35 @@ AggregateQueueParam = Literal[
 ]
 
 AggregateSortParam = Literal["priority", "updated_at"]
+PageCursorParam = Annotated[int, Query(ge=0)]
+PageLimitParam = Annotated[int, Query(ge=1, le=500)]
 
 
 def _query_service(context: RuntimeContextDep) -> SessionQueryService:
     return SessionQueryService(
         context.repositories.sessions,
         context.repositories.artifacts,
+    )
+
+
+def _ensure_session_exists(session_id: UUID, context: RuntimeContextDep) -> None:
+    if context.repositories.sessions.get_session(session_id) is None:
+        raise HTTPException(status_code=404, detail=f"session {session_id} not found")
+
+
+def _page_info(
+    *,
+    cursor: int,
+    limit: int,
+    returned_count: int,
+    next_cursor: int | None,
+) -> PageInfoResponse:
+    return PageInfoResponse(
+        cursor=cursor,
+        limit=limit,
+        next_cursor=next_cursor,
+        has_more=next_cursor is not None,
+        returned_count=returned_count,
     )
 
 
@@ -220,6 +256,191 @@ async def cancel_session_turn(
 
 
 @router.get(
+    "/{session_id}/transcript",
+    response_model=SessionTranscriptPageResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def get_session_transcript_page(
+    session_id: UUID,
+    context: RuntimeContextDep,
+    cursor: PageCursorParam = 0,
+    limit: PageLimitParam = 100,
+) -> SessionTranscriptPageResponse:
+    """Return a bounded transcript page for a session."""
+
+    _ensure_session_exists(session_id, context)
+    rows = context.repositories.sessions.list_transcript_messages(
+        session_id,
+        limit=limit + 1,
+        offset=cursor,
+    )
+    items = rows[:limit]
+    next_cursor = cursor + len(items) if len(rows) > limit else None
+    return SessionTranscriptPageResponse(
+        session_id=str(session_id),
+        page=_page_info(
+            cursor=cursor,
+            limit=limit,
+            returned_count=len(items),
+            next_cursor=next_cursor,
+        ),
+        items=[
+            TranscriptMessageResponse.model_validate(item.model_dump(mode="json"))
+            for item in items
+        ],
+    )
+
+
+@router.get(
+    "/{session_id}/event-log",
+    response_model=SessionEventLogPageResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def get_session_event_log_page(
+    session_id: UUID,
+    context: RuntimeContextDep,
+    cursor: PageCursorParam = 0,
+    limit: PageLimitParam = 100,
+) -> SessionEventLogPageResponse:
+    """Return canonical events after ``cursor`` sequence for a session."""
+
+    _ensure_session_exists(session_id, context)
+    rows = context.repositories.sessions.read_session_events_after(
+        session_id,
+        cursor,
+        limit=limit + 1,
+    )
+    items = rows[:limit]
+    next_cursor = items[-1].sequence if len(rows) > limit and items else None
+    return SessionEventLogPageResponse(
+        session_id=str(session_id),
+        page=_page_info(
+            cursor=cursor,
+            limit=limit,
+            returned_count=len(items),
+            next_cursor=next_cursor,
+        ),
+        items=[
+            EventLogEntryResponse(
+                event_id=str(event.event_id),
+                session_id=str(event.session_id),
+                sequence=event.sequence,
+                event_type=event.event_type,
+                event_version=event.event_version,
+                created_at=event.created_at,
+                payload=event.payload.model_dump(mode="json"),
+            )
+            for event in items
+        ],
+    )
+
+
+@router.get(
+    "/{session_id}/tool-calls",
+    response_model=SessionToolCallPageResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def get_session_tool_call_page(
+    session_id: UUID,
+    context: RuntimeContextDep,
+    cursor: PageCursorParam = 0,
+    limit: PageLimitParam = 100,
+) -> SessionToolCallPageResponse:
+    """Return a bounded page of projected tool-call details."""
+
+    _ensure_session_exists(session_id, context)
+    rows = context.repositories.sessions.list_tool_calls(
+        session_id,
+        limit=limit + 1,
+        offset=cursor,
+    )
+    items = rows[:limit]
+    next_cursor = cursor + len(items) if len(rows) > limit else None
+    return SessionToolCallPageResponse(
+        session_id=str(session_id),
+        page=_page_info(
+            cursor=cursor,
+            limit=limit,
+            returned_count=len(items),
+            next_cursor=next_cursor,
+        ),
+        items=[
+            ToolCallResponse.model_validate(item.model_dump(mode="json"))
+            for item in items
+        ],
+    )
+
+
+@router.get(
+    "/{session_id}/turn-metrics",
+    response_model=SessionTurnMetricsPageResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def get_session_turn_metrics_page(
+    session_id: UUID,
+    context: RuntimeContextDep,
+    cursor: PageCursorParam = 0,
+    limit: PageLimitParam = 100,
+) -> SessionTurnMetricsPageResponse:
+    """Return a bounded page of projected turn metrics."""
+
+    _ensure_session_exists(session_id, context)
+    rows = context.repositories.sessions.list_turn_metrics(
+        session_id,
+        limit=limit + 1,
+        offset=cursor,
+    )
+    items = rows[:limit]
+    next_cursor = cursor + len(items) if len(rows) > limit else None
+    return SessionTurnMetricsPageResponse(
+        session_id=str(session_id),
+        page=_page_info(
+            cursor=cursor,
+            limit=limit,
+            returned_count=len(items),
+            next_cursor=next_cursor,
+        ),
+        items=[
+            TurnMetricsResponse.model_validate(item.model_dump(mode="json"))
+            for item in items
+        ],
+    )
+
+
+@router.get(
+    "/{session_id}/artifacts",
+    response_model=SessionArtifactPageResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def get_session_artifact_page(
+    session_id: UUID,
+    context: RuntimeContextDep,
+    cursor: PageCursorParam = 0,
+    limit: PageLimitParam = 100,
+) -> SessionArtifactPageResponse:
+    """Return event-referenced artifact details for a session."""
+
+    _ensure_session_exists(session_id, context)
+    artifacts = [
+        _artifact_detail_from_event(event)
+        for event in context.repositories.sessions.read_session_events(session_id)
+        if isinstance(event.payload, ToolArtifactRecorded | ReplayArtifactRecorded)
+    ]
+    items = artifacts[cursor : cursor + limit]
+    next_cursor = cursor + len(items) if cursor + limit < len(artifacts) else None
+    return SessionArtifactPageResponse(
+        session_id=str(session_id),
+        page=_page_info(
+            cursor=cursor,
+            limit=limit,
+            returned_count=len(items),
+            next_cursor=next_cursor,
+        ),
+        items=items,
+    )
+
+
+@router.get(
     "/{session_id}",
     response_model=SessionSnapshotResponse,
     responses={404: {"model": ErrorDetailResponse}},
@@ -237,6 +458,21 @@ async def get_session_snapshot(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     return build_session_snapshot_response(snapshot)
+
+
+def _artifact_detail_from_event(event) -> ArtifactDetailResponse:
+    payload = event.payload
+    return ArtifactDetailResponse(
+        sequence=event.sequence,
+        event_type=event.event_type,
+        artifact_id=str(payload.artifact_id),
+        artifact_kind=payload.artifact_kind,
+        path=payload.path,
+        tool_call_id=str(payload.tool_call_id) if payload.tool_call_id else None,
+        turn_id=str(payload.turn_id),
+        content_sha256=payload.content_sha256,
+        size_bytes=payload.size_bytes,
+    )
 
 
 def _build_workspace_runtime_summary(

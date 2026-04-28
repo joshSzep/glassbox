@@ -4,6 +4,12 @@ export type HealthResponse = components["schemas"]["HealthResponse"];
 export type SessionSummaryResponse = components["schemas"]["SessionSummaryResponse"];
 export type SessionAggregateResponse = components["schemas"]["SessionAggregateResponse"];
 export type SessionSnapshotResponse = components["schemas"]["SessionSnapshotResponse"];
+export type SessionTranscriptPageResponse = components["schemas"]["SessionTranscriptPageResponse"];
+export type SessionEventLogPageResponse = components["schemas"]["SessionEventLogPageResponse"];
+export type SessionToolCallPageResponse = components["schemas"]["SessionToolCallPageResponse"];
+export type SessionTurnMetricsPageResponse =
+  components["schemas"]["SessionTurnMetricsPageResponse"];
+export type SessionArtifactPageResponse = components["schemas"]["SessionArtifactPageResponse"];
 export type ActionAcceptedResponse = components["schemas"]["ActionAcceptedResponse"];
 export type ForkSessionResponse = components["schemas"]["ForkSessionResponse"];
 export type ApprovalDecision = components["schemas"]["ApprovalDecision"];
@@ -13,6 +19,21 @@ export type FastApiValidationIssue = NonNullable<
 
 export type SessionAggregateQuery = NonNullable<
   paths["/sessions/aggregate"]["get"]["parameters"]["query"]
+>;
+export type SessionTranscriptPageQuery = NonNullable<
+  paths["/sessions/{session_id}/transcript"]["get"]["parameters"]["query"]
+>;
+export type SessionEventLogPageQuery = NonNullable<
+  paths["/sessions/{session_id}/event-log"]["get"]["parameters"]["query"]
+>;
+export type SessionToolCallPageQuery = NonNullable<
+  paths["/sessions/{session_id}/tool-calls"]["get"]["parameters"]["query"]
+>;
+export type SessionTurnMetricsPageQuery = NonNullable<
+  paths["/sessions/{session_id}/turn-metrics"]["get"]["parameters"]["query"]
+>;
+export type SessionArtifactPageQuery = NonNullable<
+  paths["/sessions/{session_id}/artifacts"]["get"]["parameters"]["query"]
 >;
 
 export type ApiErrorKind =
@@ -113,6 +134,61 @@ export function createGlassboxApiClient(options: GlassboxApiClientOptions = {}) 
         "GET",
         `/sessions/${encodeURIComponent(compareSessionId)}`,
         requestOptions,
+      ),
+
+    getSessionTranscriptPage: (
+      sessionId: string,
+      query: SessionTranscriptPageQuery = {},
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<SessionTranscriptPageResponse>(
+        "GET",
+        `/sessions/${encodeURIComponent(sessionId)}/transcript`,
+        { ...requestOptions, query },
+      ),
+
+    getSessionEventLogPage: (
+      sessionId: string,
+      query: SessionEventLogPageQuery = {},
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<SessionEventLogPageResponse>(
+        "GET",
+        `/sessions/${encodeURIComponent(sessionId)}/event-log`,
+        { ...requestOptions, query },
+      ),
+
+    getSessionToolCallPage: (
+      sessionId: string,
+      query: SessionToolCallPageQuery = {},
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<SessionToolCallPageResponse>(
+        "GET",
+        `/sessions/${encodeURIComponent(sessionId)}/tool-calls`,
+        { ...requestOptions, query },
+      ),
+
+    getSessionTurnMetricsPage: (
+      sessionId: string,
+      query: SessionTurnMetricsPageQuery = {},
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<SessionTurnMetricsPageResponse>(
+        "GET",
+        `/sessions/${encodeURIComponent(sessionId)}/turn-metrics`,
+        { ...requestOptions, query },
+      ),
+
+    getSessionArtifactPage: (
+      sessionId: string,
+      query: SessionArtifactPageQuery = {},
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<SessionArtifactPageResponse>(
+        "GET",
+        `/sessions/${encodeURIComponent(sessionId)}/artifacts`,
+        { ...requestOptions, query },
       ),
 
     resolveApproval: (
