@@ -139,26 +139,26 @@ Keyboard expectations:
 
 Use these scenarios when reviewing v7 dashboard evidence changes:
 
-| Scenario | Overview Signal | Primary Tab | Detail Evidence | Validation |
-| --- | --- | --- | --- | --- |
-| Pending policy approval for command | Awaiting approval, policy source, risk | Actions | Policy reason, source kind/label, related tool | Frontend action component test |
-| Repository rule denies publish command | Failed/blocked action cue | Evidence or Timeline | `denied by policy`, rule ID, reason | Policy + dashboard evidence test |
-| Workspace-scope invariant block | Failed/blocked action cue | Evidence or Timeline | `invariant block`, invariant label, reason | Policy + dashboard evidence test |
-| Child branch diverges after fork | Compare target shown | Compare | status, transcript, metrics, working-set deltas | Compare state and routing test |
-| Parent/child lineage navigation | Lineage available | Lineage | parent, children, forkable turns | Lineage component or Playwright workflow |
-| Slow provider call | Metrics cue if action-relevant | Metrics | model duration, tokens, turn ID | Metrics component test |
-| Slow local tool | Metrics cue if action-relevant | Metrics | tool duration, tool name, output/artifact pointer | Metrics component test |
-| Replay/eval failing artifact | Blocking verification cue | Evidence | artifact path, failing tests, freshness | Verification cue test |
-| Stale inherited artifact | Advisory drift cue | Evidence | provenance, inherited/freshness labels | Verification cue test |
-| Provider canary stale or missing | Advisory provider cue | Evidence | provider, model, freshness, non-signoff label | Evidence cue test |
-| Historical session with no retained artifacts | Neutral missing evidence | Evidence | missing evidence copy and CLI route | Session inspector test |
-| Mobile compare drill-in | Selected session remains clear | Compare | stacked anchors and differences | Screenshot or responsive component review |
+| Scenario                                      | Overview Signal                        | Primary Tab          | Detail Evidence                                   | Validation                                |
+| --------------------------------------------- | -------------------------------------- | -------------------- | ------------------------------------------------- | ----------------------------------------- |
+| Pending policy approval for command           | Awaiting approval, policy source, risk | Actions              | Policy reason, source kind/label, related tool    | Frontend action component test            |
+| Repository rule denies publish command        | Failed/blocked action cue              | Evidence or Timeline | `denied by policy`, rule ID, reason               | Policy + dashboard evidence test          |
+| Workspace-scope invariant block               | Failed/blocked action cue              | Evidence or Timeline | `invariant block`, invariant label, reason        | Policy + dashboard evidence test          |
+| Child branch diverges after fork              | Compare target shown                   | Compare              | status, transcript, metrics, working-set deltas   | Compare state and routing test            |
+| Parent/child lineage navigation               | Lineage available                      | Lineage              | parent, children, forkable turns                  | Lineage component or Playwright workflow  |
+| Slow provider call                            | Metrics cue if action-relevant         | Metrics              | model duration, tokens, turn ID                   | Metrics component test                    |
+| Slow local tool                               | Metrics cue if action-relevant         | Metrics              | tool duration, tool name, output/artifact pointer | Metrics component test                    |
+| Replay/eval failing artifact                  | Blocking verification cue              | Evidence             | artifact path, failing tests, freshness           | Verification cue test                     |
+| Stale inherited artifact                      | Advisory drift cue                     | Evidence             | provenance, inherited/freshness labels            | Verification cue test                     |
+| Provider canary stale or missing              | Advisory provider cue                  | Evidence             | provider, model, freshness, non-signoff label     | Evidence cue test                         |
+| Historical session with no retained artifacts | Neutral missing evidence               | Evidence             | missing evidence copy and CLI route               | Session inspector test                    |
+| Mobile compare drill-in                       | Selected session remains clear         | Compare              | stacked anchors and differences                   | Screenshot or responsive component review |
 
 ## Current Gaps To Close In Follow-On Tasks
 
 - Compare currently summarizes snapshot differences but does not yet align post-fork transcript ranges or policy outcome deltas.
 - Metrics currently show totals and raw rows but not slowest-turn, waiting-time, or workspace-level latency summaries.
-- Verification cues currently focus on artifact-backed replay/eval evidence and working-set provenance; provider capability and release freshness cues need a normalized evidence model.
-- Event evidence is reachable, but policy/eval/provider cues need stronger drill-in links to event sequence, artifact path, or recommended CLI command.
+- Verification cues now classify policy source, eval relevance, replay drift, provider canary status, and release freshness from retained snapshot/artifact evidence; future work can add deeper event-sequence links when the backend exposes them directly.
+- Event evidence is reachable, and cue drill-in currently routes through artifact paths, Actions, Timeline, Events, and recommended CLI commands rather than inline release-engineering detail.
 
 These gaps map directly to GBX-771, GBX-772, and GBX-773.

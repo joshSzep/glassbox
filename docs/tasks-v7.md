@@ -1011,7 +1011,7 @@ Completion notes:
 
 ### GBX-773: Integrate Policy, Eval, And Provider Evidence Cues
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-733`, `GBX-761`, `GBX-770`
 - Goal: connect policy traces, deterministic eval coverage, and advisory provider capability evidence into dashboard cues that guide operator judgment
 - Deliverables:
@@ -1029,6 +1029,13 @@ Completion notes:
   - screenshot archive update if visual hierarchy changes materially
 - Done when:
   - the dashboard helps operators distinguish runtime state, deterministic evidence, advisory evidence, and policy risk
+
+Completion notes:
+
+- Expanded dashboard verification cues to classify policy decision source, eval coverage relevance, replay drift, provider canary status, and release evidence freshness from retained snapshot/artifact evidence.
+- Kept provider canary evidence advisory even when retained artifacts report provider failures, so live-provider compatibility does not look like deterministic release signoff.
+- Added focused verification-cue tests for cue severity, missing evidence, stale release evidence, and advisory-versus-blocking provider labels.
+- Updated dashboard docs to explain cue interpretation and the CLI commands operators should use for deeper evidence.
 
 ---
 

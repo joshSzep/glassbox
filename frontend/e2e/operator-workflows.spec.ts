@@ -292,7 +292,7 @@ test("operator can inspect artifact-backed verification cues", async ({ page }) 
   const summary = page.getByLabel("Verification summary");
   await expect(summary).toBeVisible();
   await expect(summary.getByText("Blocking evidence", { exact: true })).toBeVisible();
-  await expect(summary.getByText("Advisory drift", { exact: true })).toBeVisible();
+  await expect(summary.getByText("Advisory evidence", { exact: true })).toBeVisible();
   await expect(summary.getByText("Verified artifacts", { exact: true })).toBeVisible();
   await expect(page.getByLabel(/Copyable artifact path evals\/impact\.json/)).toBeVisible();
 });

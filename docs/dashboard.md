@@ -100,24 +100,38 @@ The dashboard lets the operator:
 - request cancellation of an active live turn
 - create a fork from an allowed historical turn
 
-## Replay, Eval, And Verification Cues
+## Policy, Replay, Eval, Provider, And Verification Cues
 
-The v4 dashboard surfaces replay and eval evidence only when the persisted
-session snapshot already includes artifact summaries in its runtime context. The
-browser does not run replay or eval workflows, does not reinterpret their
-results, and does not replace the CLI as the authoritative execution path.
+The dashboard surfaces policy, replay, eval, provider canary, and release
+evidence only when the persisted session snapshot already includes that state or
+artifact summaries in its runtime context. The browser does not run replay,
+eval, provider canary, or release workflows, does not reinterpret their results,
+and does not replace the CLI as the authoritative execution path.
 
 Verification cues are promoted into the overview only when they can affect the
 next operator decision: blocking replay/eval evidence appears before actions,
 while advisory drift appears when an approval, question, or failure depends on
 artifact context. Detailed artifact paths, target paths, failing test names,
-freshness, inherited provenance, and timed-out state remain in the Evidence tab.
-Use the displayed artifact paths as copyable local references, then run the
-appropriate CLI command when reproduction or audit output is needed:
+freshness, inherited provenance, timed-out state, provider canary status, policy
+source labels, eval coverage relevance, and release evidence freshness remain in
+the Evidence tab.
+
+Read cue labels this way:
+
+- blocking replay/eval/release evidence reports failures, errors, or failing tests and should stop optimistic triage
+- advisory evidence is stale, inherited, timed out, or provider-canary evidence that needs judgment
+- provider canary evidence is advisory compatibility evidence, not deterministic release signoff
+- missing evidence is neutral; it means the snapshot does not retain that proof, not that verification passed
+
+Use displayed artifact paths as copyable local references, then run the
+appropriate CLI command when reproduction, coverage, provider, or audit output is
+needed:
 
 ```bash
 uv run glassbox replay run SESSION_ID --json
 uv run glassbox eval run --cwd .
+uv run glassbox eval audit --cwd .
+uv run glassbox provider canary evidence --cwd .
 uv run glassbox artifacts inspect --json
 ```
 
