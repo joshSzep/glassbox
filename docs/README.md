@@ -16,6 +16,7 @@ Use this page to jump to the right level of detail.
 - [tasks-v4.md](./tasks-v4.md): plan the UX-focused evolution of the completed SPA into a stronger operator console
 - [tasks-v5.md](./tasks-v5.md): plan the full-screen terminal client modernization for `glassbox session chat`
 - [tasks-v6.md](./tasks-v6.md): plan release hardening, real cancellation, transport reliability, provider canaries, packaging discipline, manual QA evidence, and the v6 release-candidate gate
+- [tasks-v7.md](./tasks-v7.md): plan the post-v6 adoption, scale, eval portfolio, provider capability, policy governance, dashboard evidence, accessibility, onboarding, and release-signoff evolution
 - [interactive-workflows.md](./interactive-workflows.md): use the full-screen `session chat` and `attach` TUI, plus `message`, `answer`, `approve`, `deny`, `resume`, and `status`
 - [dashboard.md](./dashboard.md): use the co-hosted dashboard as the paired operator console for terminal chat or run the standalone dashboard from `serve`
 - [dashboard-parity.md](./dashboard-parity.md): review the v3 SPA parity gate before replacing the legacy dashboard route
@@ -87,6 +88,7 @@ Use this page to jump to the right level of detail.
 - [tasks-v4.md](./tasks-v4.md): concrete v4 task graph for attention-first queue triage, real inspector tabs, priority actions, session narrative, evidence hierarchy, mobile drill-in, accessibility, and visual QA
 - [tasks-v5.md](./tasks-v5.md): concrete v5 task graph for replacing the line-mode interactive chat loop with a full-screen coding-agent terminal experience
 - [tasks-v6.md](./tasks-v6.md): concrete v6 task graph for release hardening, cancellation, live transport reliability, provider canaries, packaging reproducibility, accessibility evidence, and release-candidate signoff
+- [tasks-v7.md](./tasks-v7.md): concrete v7 task graph for adoption, larger-session scale, deterministic eval expansion, provider capability matrices, daemon reliability, policy governance, dashboard evidence, accessibility, onboarding, and release signoff
 - [team-workflows.md](./team-workflows.md): v2 ownership, identity, and handoff contract for portable team workflows
 - [v2-release-candidate.md](./v2-release-candidate.md): release-candidate readiness checklist and supported operating-model summary
 - [release-packaging.md](./release-packaging.md): Python distribution packaging path, SPA asset checks, and installed-dashboard smoke validation
