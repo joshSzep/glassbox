@@ -209,7 +209,7 @@ The intended v7 milestone order is:
 
 ### GBX-710: Define The v7 Adoption-And-Scale Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-704`
 - Goal: convert the v6 release-candidate decision and post-v6 backlog into one concrete v7 product contract
 - Deliverables:
@@ -227,6 +227,13 @@ The intended v7 milestone order is:
   - lightweight docs test if a new v7 contract document is added
 - Done when:
   - contributors have one code-aligned v7 contract that explains what must be true before calling the next release candidate ready
+
+Completion notes:
+
+- Added [v7-adoption-scale-contract.md](./v7-adoption-scale-contract.md) with v7 scope, non-goals, supported workflow set, v6 follow-up mapping, evidence classes, release-readiness checklist, residual-risk register shape, and pass/fail policy.
+- Preserved the local-first, event-sourced, deterministic-release-blocking boundary while keeping live-provider canaries advisory by default.
+- Added a documentation guardrail for the v7 contract contents.
+- Validation: `uv run pytest tests/unit/test_release_candidate_docs.py`.
 
 ### GBX-711: Inventory v7 Scale, Verification, Provider, And Adoption Gaps
 

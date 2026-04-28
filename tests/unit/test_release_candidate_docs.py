@@ -109,3 +109,24 @@ def test_v6_phase_64_docs_are_cross_linked() -> None:
     assert "v6-release-evidence.md" in inventory
     assert "v6-release-hardening.md" in evidence
     assert "v6-release-inventory.md" in evidence
+
+
+def test_v7_contract_covers_adoption_and_scale_boundary() -> None:
+    content = (REPO_ROOT / "docs" / "v7-adoption-scale-contract.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "## Scope",
+        "## Non-Goals",
+        "## Supported Workflow Set",
+        "## v6 Follow-Up Mapping",
+        "## Evidence Classes",
+        "## Release-Readiness Checklist",
+        "## Residual Risk Register Shape",
+        "## Pass And Fail Policy",
+        "Provider canary failures are advisory by default",
+        "Deterministic stage failure blocks the v7 release candidate.",
+        "tasks-v7.md",
+    ):
+        assert required_text in content
