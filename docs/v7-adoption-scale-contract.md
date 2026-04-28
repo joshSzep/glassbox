@@ -183,6 +183,7 @@ Initial expected residual-risk candidates are:
 ## Related Files
 
 - [tasks-v7.md](./tasks-v7.md)
+- [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md)
 - [v6-release-candidate.md](./v6-release-candidate.md)
 - [v6-release-gate.md](./v6-release-gate.md)
 - [replay-evals.md](./replay-evals.md)

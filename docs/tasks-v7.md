@@ -266,7 +266,7 @@ Completion notes:
 
 ### GBX-712: Update Documentation Discovery For v7
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-710`, `GBX-711`
 - Goal: make the v7 plan and baseline inventory discoverable from the documentation hub without requiring users to know the task file name
 - Deliverables:
@@ -282,6 +282,13 @@ Completion notes:
   - existing docs tests if present
 - Done when:
   - a contributor can discover the v7 plan and evidence expectations from the docs index
+
+Completion notes:
+
+- Updated [README.md](./README.md) in the docs hub to link [tasks-v7.md](./tasks-v7.md), [v7-adoption-scale-contract.md](./v7-adoption-scale-contract.md), and [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md) from the start-here and deep-reference sections.
+- Cross-linked [v7-adoption-scale-contract.md](./v7-adoption-scale-contract.md) and [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md) so the contract and inventory can be read together.
+- Added documentation guardrails for v7 docs hub discovery and v7 Phase 71 cross-linking.
+- Validation: `uv run pytest tests/unit/test_release_candidate_docs.py`.
 
 ---
 

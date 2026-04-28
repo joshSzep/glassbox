@@ -154,3 +154,29 @@ def test_v7_inventory_covers_scale_verification_and_adoption_gaps() -> None:
         "uv run glassbox command tree",
     ):
         assert required_text in content
+
+
+def test_docs_hub_links_to_v7_phase_71_docs() -> None:
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for doc_name in (
+        "tasks-v7.md",
+        "v7-adoption-scale-contract.md",
+        "v7-scale-verification-inventory.md",
+    ):
+        assert doc_name in docs_readme
+
+
+def test_v7_phase_71_docs_are_cross_linked() -> None:
+    task_graph = (REPO_ROOT / "docs" / "tasks-v7.md").read_text(encoding="utf-8")
+    contract = (REPO_ROOT / "docs" / "v7-adoption-scale-contract.md").read_text(
+        encoding="utf-8"
+    )
+    inventory = (REPO_ROOT / "docs" / "v7-scale-verification-inventory.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "v7-adoption-scale-contract.md" in task_graph
+    assert "v7-scale-verification-inventory.md" in task_graph
+    assert "v7-scale-verification-inventory.md" in contract
+    assert "v7-adoption-scale-contract.md" in inventory
