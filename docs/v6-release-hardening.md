@@ -114,6 +114,7 @@ Before marking a v6 release candidate ready, all of the following must be true:
 - Wheel and sdist contents are inspected automatically.
 - Installed-wheel smoke proves terminal help, plain fallback, dashboard serving, daemon command paths, and command inventory work without an editable checkout.
 - Deterministic eval smoke and release-report expectations are aligned with the documented profiles.
+- Dependency and toolchain freshness has been reviewed against `pyproject.toml`, `uv.lock`, `frontend/package.json`, and `frontend/pnpm-lock.yaml`.
 - Manual terminal, dashboard, recovery, and accessibility evidence exists for the release candidate.
 - Provider canaries either ran and retained advisory evidence or were explicitly skipped with a credential-unavailable reason.
 - The residual risk register contains only accepted non-blocking risks.

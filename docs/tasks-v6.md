@@ -944,7 +944,7 @@ Completion notes:
 
 ### GBX-684: Add Dependency And Toolchain Freshness Review
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-641`
 - Goal: make release readiness include an explicit review of runtime dependencies, frontend dependencies, Python version support, and toolchain assumptions
 - Deliverables:
@@ -960,6 +960,13 @@ Completion notes:
   - docs review against `pyproject.toml`, `uv.lock`, `frontend/package.json`, and `frontend/pnpm-lock.yaml`
 - Done when:
   - release signoff includes a conscious dependency/toolchain review rather than an implicit assumption that the lockfiles are fine
+
+Completion notes:
+
+- Added [dependency-toolchain-review-v6.md](./dependency-toolchain-review-v6.md) documenting Python 3.14 support, runtime/development dependency bounds and locked versions, frontend dependency/tooling posture, advisory audit commands, and residual risks.
+- Linked the dependency/toolchain review from release packaging and the v6 release-hardening checklist.
+- Kept this task to review/signoff documentation only; no broad dependency upgrades were made.
+- Validation: reviewed `pyproject.toml`, `uv.lock`, `frontend/package.json`, and `frontend/pnpm-lock.yaml`; `uv run ruff check .`; `uv run ty check`.
 
 ---
 
