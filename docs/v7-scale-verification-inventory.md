@@ -149,13 +149,33 @@ Current strengths:
 - v6 package and dashboard smoke prove the static dashboard can load from an
   installed wheel
 
+GBX-740 baseline fixture:
+
+- deterministic provider-free session with 120 completed turns, 240 transcript
+  messages, 80 read-only tool calls, 40 event-referenced artifacts, and 681
+  canonical events
+- aggregate baseline remains the existing operator-console shape: 60 sessions
+  with 25 render-critical rows returned for the dashboard queue surface
+- focused coverage lives in
+  `tests/integration/test_large_session_baselines.py` and records counts for
+  snapshot building, aggregate queries, projection health, transcript reads,
+  event-log reads, artifact inspection, and serialized dashboard payloads
+- `glassbox performance budgets` now names both time budgets and payload-size
+  budgets for snapshot, transcript, event-log, artifact, and render-critical
+  dashboard surfaces
+
 Current weak areas:
 
-- full snapshots can become too heavy for long transcripts and large event logs
-- raw event and transcript dashboard panes do not yet have a documented
-  pagination or virtualization contract
-- artifact pressure and projection rebuild cost are observable, but not yet tied
-  to v7 scale budgets or release validation
+- full snapshots include the complete transcript, runtime context, policy
+  summaries, and metric tail, so selected-session snapshots are the first
+  candidate for lazy detail loading as transcripts grow
+- raw event replay is cursor-based for SSE recovery, but dashboard event-log
+  inspection still lacks a typed paginated HTTP read API
+- transcript reads are projection-backed, but the dashboard transcript pane still
+  renders the full selected-session transcript instead of a virtualized window
+- artifact pressure and projection rebuild cost are observable, but maintenance
+  output still needs summarized count/size/age pressure cues before v7 release
+  validation
 - installed-package dashboard smoke is intentionally short and does not exercise
   deep large-session states
 

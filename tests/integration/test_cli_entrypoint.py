@@ -103,6 +103,9 @@ def test_cli_performance_budgets_prints_guidance(
     assert "event-stream append: 2000 ms" in captured.out
     assert "projection rebuild: 2000 ms" in captured.out
     assert "operator console aggregate: 3000 ms" in captured.out
+    assert "session snapshot build: 3000 ms" in captured.out
+    assert "session snapshot payload: 1500000 bytes" in captured.out
+    assert "dashboard render-critical payload: 300000 bytes" in captured.out
     assert "Guidance:" in captured.out
 
 

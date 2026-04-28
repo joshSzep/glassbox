@@ -554,7 +554,7 @@ Completion notes:
 
 ### GBX-740: Establish Larger-Session Performance Baselines
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-711`
 - Goal: measure current behavior for long transcripts, large event logs, many tool calls, many artifacts, and many sessions before changing APIs or UI paths
 - Deliverables:
@@ -571,6 +571,12 @@ Completion notes:
   - docs review against existing performance budget command output
 - Done when:
   - v7 has a measured baseline for larger-session scale work
+
+Completion notes:
+
+- Added deterministic larger-session fixture coverage in `tests/integration/large_session_fixture.py` and `tests/integration/test_large_session_baselines.py` with 120 turns, 240 transcript messages, 80 read-only tool calls, 40 event-referenced artifacts, and 681 canonical events.
+- Expanded `glassbox performance budgets` with snapshot, projection health, transcript, event-log, artifact inspection, and payload-size budgets for dashboard render-critical and selected-session payloads.
+- Updated [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md) with measured baseline shape, validation location, and the read-path risk list that feeds GBX-741 through GBX-744.
 
 ### GBX-741: Add Paginated Session Read APIs
 
