@@ -1043,7 +1043,7 @@ Completion notes:
 
 ### GBX-780: Add Named Accessibility Pairing Reviews
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-770`, `GBX-753`
 - Goal: move beyond broad manual accessibility review into named terminal, browser, and assistive-technology pairings before making stronger claims
 - Deliverables:
@@ -1061,6 +1061,13 @@ Completion notes:
   - manual review artifacts retained locally
 - Done when:
   - v7 accessibility claims name the pairings actually reviewed and no blocking issue remains open
+
+Completion notes:
+
+- Added [terminal-accessibility-review-v7.md](./terminal-accessibility-review-v7.md) naming the reviewed terminal/OS/keyboard pairings and keeping unexecuted screen-reader pairings as non-claims.
+- Added [dashboard-accessibility-review-v7.md](./dashboard-accessibility-review-v7.md) naming the reviewed Chromium/Playwright dashboard pairings, mobile/keyboard workflows, evidence-cue semantics, and screen-reader non-claims.
+- Added [manual-qa-evidence-v7.md](./manual-qa-evidence-v7.md) with the v7 manual evidence template for accessibility pairings, onboarding, packaging, recovery, provider canaries, attachments, and redaction.
+- Added an accessible label for the dashboard Evidence interpretation cue region and covered it in the focused verification-cue test.
 
 ### GBX-781: Improve First-Run Provider And Profile Onboarding
 

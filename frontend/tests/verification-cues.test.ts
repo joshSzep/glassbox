@@ -92,6 +92,7 @@ describe("verification cues", () => {
     expect(markup).toContain("Blocking evidence");
     expect(markup).toContain("Advisory evidence");
     expect(markup).toContain("Evidence interpretation");
+    expect(markup).toContain('aria-label="Evidence interpretation"');
     expect(markup).toContain("Policy decision source");
     expect(markup).toContain("Eval coverage relevance");
     expect(markup).toContain("Replay drift");

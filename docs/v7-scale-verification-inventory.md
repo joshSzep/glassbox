@@ -315,20 +315,24 @@ and trace evidence in `GBX-761`, add fixtures and eval recommendations in
 Current v6 manual evidence covers terminal sizes, dashboard viewports, keyboard
 workflows, screenshot archive results, and explicit claims and non-claims.
 
+GBX-780 adds named v7 pairing reviews:
+
+- [terminal-accessibility-review-v7.md](./terminal-accessibility-review-v7.md) names the VS Code integrated terminal on macOS with zsh and keyboard-only terminal-size families as reviewed evidence, while keeping macOS VoiceOver terminal behavior as a non-claim.
+- [dashboard-accessibility-review-v7.md](./dashboard-accessibility-review-v7.md) names Chromium through Playwright on macOS for desktop, mobile, and Evidence-tab workflows, while keeping browser/screen-reader pairings as non-claims until manually exercised.
+- [manual-qa-evidence-v7.md](./manual-qa-evidence-v7.md) defines where v7 manual accessibility evidence, attachments, redaction notes, and follow-up blockers should live under `.glassbox/releases/`.
+
 Current strengths:
 
 - terminal and dashboard manual reviews found no blocking issue for v6
 - dashboard e2e and screenshot workflows cover representative responsive states
-- docs do not overclaim formal certification
+- v7 docs now name the reviewed terminal and browser pairings and do not overclaim formal certification
 
 Current weak areas:
 
-- no named assistive-technology pairing is part of the release contract yet
-- terminal emulator variance and browser/screen-reader variance remain outside
-  the current evidence boundary
+- no screen-reader pairing was executed for GBX-780, so VoiceOver, NVDA, Narrator, and Orca behavior remain outside the claim boundary
+- terminal emulator variance and browser/screen-reader variance remain outside the current evidence boundary
 
-Recommended v7 action: add named pairing reviews in `GBX-780` before making any
-stronger public accessibility claim.
+Recommended v7 action: before making stronger public accessibility claims, run and retain a real terminal/screen-reader and browser/screen-reader pairing review in the v7 release evidence directory.
 
 ## Onboarding And Packaging
 

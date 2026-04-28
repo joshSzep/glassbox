@@ -122,7 +122,7 @@ export function VerificationCues({ data }: { data: DashboardState }) {
 
 function EvidenceCueList({ cues }: { cues: EvidenceCue[] }) {
   return (
-    <section className="mb-4">
+    <section aria-label="Evidence interpretation" className="mb-4">
       <p className="mb-2 text-xs font-semibold uppercase tracking-normal text-muted-foreground">
         Evidence interpretation
       </p>
