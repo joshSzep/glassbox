@@ -14,6 +14,12 @@ from glassbox.runtime.workspace_profile import DEFAULT_MODEL_NAME
 from glassbox.runtime.workspace_profile import load_workspace_profile
 
 type ProviderConfigSource = Literal["process-env", "dotenv", "unset"]
+type ProviderCredentialSource = Literal[
+    "process-env",
+    "dotenv",
+    "unset",
+    "not_applicable",
+]
 type ProviderDiagnosticState = Literal[
     "ready",
     "local_fallback",
@@ -22,8 +28,35 @@ type ProviderDiagnosticState = Literal[
     "invalid_workspace_profile",
     "invalid_provider_config",
 ]
+type ProviderBaseUrlPosture = Literal[
+    "default",
+    "custom",
+    "not_applicable",
+]
+type ProviderCapabilityAssumption = Literal[
+    "supported",
+    "assumed",
+    "unsupported",
+    "unknown",
+]
+type ProviderScenarioPreflightStatus = Literal[
+    "ready",
+    "skip",
+    "not_automated",
+    "unsupported",
+]
 
 _SUPPORTED_PROVIDER_PREFIXES = {"openai", "anthropic"}
+_ADVISORY_CANARY_SCENARIOS = (
+    "streaming-text",
+    "tool-call",
+    "approval",
+    "ask-user",
+    "cancellation",
+    "dashboard",
+    "daemon-attach",
+)
+_AUTOMATED_CANARY_SCENARIOS = {"streaming-text"}
 
 
 class ProviderSecretDiagnostic(BaseModel):
@@ -39,6 +72,31 @@ class ProviderSecretDiagnostic(BaseModel):
     missing_credentials: list[str]
 
 
+class ProviderScenarioPreflight(BaseModel):
+    """Offline expectation for one advisory canary scenario."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    scenario_id: str
+    status: ProviderScenarioPreflightStatus
+    reason: str
+
+
+class ProviderCapabilityPreflight(BaseModel):
+    """Offline provider capability assumptions used before canary execution."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    provider_family: str
+    configured_model: str
+    credential_source: ProviderCredentialSource
+    base_url_posture: ProviderBaseUrlPosture
+    streaming_assumption: ProviderCapabilityAssumption
+    tool_call_assumption: ProviderCapabilityAssumption
+    known_unsupported_scenarios: list[str]
+    scenario_preflight: list[ProviderScenarioPreflight]
+
+
 class ProviderDiagnosticsReport(BaseModel):
     """Operator-facing provider configuration diagnostic report."""
 
@@ -50,6 +108,7 @@ class ProviderDiagnosticsReport(BaseModel):
     selected_provider: str
     runtime_mode: str
     diagnostics: list[ProviderSecretDiagnostic]
+    capability_preflight: ProviderCapabilityPreflight
     problems: list[str]
     next_actions: list[str]
 
@@ -151,6 +210,21 @@ def build_provider_diagnostics_report(
             state = "local_fallback"
             runtime_mode = "local_fallback"
 
+    capability_preflight = _capability_preflight(
+        state=state,
+        selected_model_name=selected_model_name,
+        selected_provider=selected_provider,
+        runtime_mode=runtime_mode,
+        selected_diagnostic=next(
+            (
+                diagnostic
+                for diagnostic in diagnostics
+                if diagnostic.provider == selected_provider
+            ),
+            None,
+        ),
+    )
+
     return ProviderDiagnosticsReport(
         state=state,
         selected_model_name=selected_model_name,
@@ -158,6 +232,7 @@ def build_provider_diagnostics_report(
         selected_provider=selected_provider,
         runtime_mode=runtime_mode,
         diagnostics=diagnostics,
+        capability_preflight=capability_preflight,
         problems=problems,
         next_actions=next_actions,
     )
@@ -239,6 +314,113 @@ def _dotenv_keys(dotenv_path: Path) -> set[str]:
     return keys
 
 
+def _capability_preflight(
+    *,
+    state: ProviderDiagnosticState,
+    selected_model_name: str,
+    selected_provider: str,
+    runtime_mode: str,
+    selected_diagnostic: ProviderSecretDiagnostic | None,
+) -> ProviderCapabilityPreflight:
+    provider_ready = state == "ready" and runtime_mode in _SUPPORTED_PROVIDER_PREFIXES
+    local_mode = state == "ready" and runtime_mode == "local"
+    known_unsupported = (
+        list(_ADVISORY_CANARY_SCENARIOS)
+        if local_mode or state == "unsupported_model"
+        else []
+    )
+    return ProviderCapabilityPreflight(
+        provider_family=selected_provider,
+        configured_model=selected_model_name,
+        credential_source=_credential_source(
+            selected_diagnostic, local_mode=local_mode
+        ),
+        base_url_posture=_base_url_posture(selected_diagnostic, local_mode=local_mode),
+        streaming_assumption=(
+            "supported"
+            if provider_ready
+            else "unsupported"
+            if local_mode
+            else "unknown"
+        ),
+        tool_call_assumption=(
+            "assumed" if provider_ready else "unsupported" if local_mode else "unknown"
+        ),
+        known_unsupported_scenarios=known_unsupported,
+        scenario_preflight=[
+            _scenario_preflight(
+                scenario_id,
+                state=state,
+                provider_ready=provider_ready,
+                local_mode=local_mode,
+            )
+            for scenario_id in _ADVISORY_CANARY_SCENARIOS
+        ],
+    )
+
+
+def _credential_source(
+    selected_diagnostic: ProviderSecretDiagnostic | None,
+    *,
+    local_mode: bool,
+) -> ProviderCredentialSource:
+    if local_mode:
+        return "not_applicable"
+    if selected_diagnostic is None:
+        return "unset"
+    return selected_diagnostic.api_key_source
+
+
+def _base_url_posture(
+    selected_diagnostic: ProviderSecretDiagnostic | None,
+    *,
+    local_mode: bool,
+) -> ProviderBaseUrlPosture:
+    if local_mode:
+        return "not_applicable"
+    if selected_diagnostic is None or not selected_diagnostic.base_url_present:
+        return "default"
+    return "custom"
+
+
+def _scenario_preflight(
+    scenario_id: str,
+    *,
+    state: ProviderDiagnosticState,
+    provider_ready: bool,
+    local_mode: bool,
+) -> ProviderScenarioPreflight:
+    if local_mode:
+        return ProviderScenarioPreflight(
+            scenario_id=scenario_id,
+            status="unsupported",
+            reason="selected model uses the deterministic local runtime",
+        )
+    if state == "unsupported_model":
+        return ProviderScenarioPreflight(
+            scenario_id=scenario_id,
+            status="unsupported",
+            reason="selected model provider is not supported for live canaries",
+        )
+    if not provider_ready:
+        return ProviderScenarioPreflight(
+            scenario_id=scenario_id,
+            status="skip",
+            reason=f"provider diagnostics state is {state}",
+        )
+    if scenario_id not in _AUTOMATED_CANARY_SCENARIOS:
+        return ProviderScenarioPreflight(
+            scenario_id=scenario_id,
+            status="not_automated",
+            reason="scenario is policy-defined but not automated yet",
+        )
+    return ProviderScenarioPreflight(
+        scenario_id=scenario_id,
+        status="ready",
+        reason="credentials and provider family are ready for advisory execution",
+    )
+
+
 def _invalid_report(
     *,
     state: ProviderDiagnosticState,
@@ -254,6 +436,13 @@ def _invalid_report(
         selected_provider="unknown",
         runtime_mode="unavailable",
         diagnostics=[],
+        capability_preflight=_capability_preflight(
+            state=state,
+            selected_model_name=selected_model_name,
+            selected_provider="unknown",
+            runtime_mode="unavailable",
+            selected_diagnostic=None,
+        ),
         problems=[problem],
         next_actions=[next_action],
     )

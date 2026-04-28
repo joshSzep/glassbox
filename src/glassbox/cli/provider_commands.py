@@ -41,6 +41,18 @@ def _print_provider_diagnostics(report: ProviderDiagnosticsReport) -> None:
     )
     print(f"Selected provider: {report.selected_provider}")
     print(f"Runtime mode: {report.runtime_mode}")
+    print("Capability preflight:")
+    print(
+        f"  provider={report.capability_preflight.provider_family}; "
+        f"credential_source={report.capability_preflight.credential_source}; "
+        f"base_url={report.capability_preflight.base_url_posture}"
+    )
+    print(
+        f"  streaming={report.capability_preflight.streaming_assumption}; "
+        f"tool_calls={report.capability_preflight.tool_call_assumption}"
+    )
+    for scenario in report.capability_preflight.scenario_preflight:
+        print(f"  - {scenario.scenario_id}: {scenario.status} ({scenario.reason})")
     for diagnostic in report.diagnostics:
         print(
             f"{diagnostic.provider}: "

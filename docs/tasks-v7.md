@@ -468,7 +468,7 @@ Completion notes:
 
 ### GBX-731: Expand Provider Diagnostics For Capability Preflight
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-730`
 - Goal: make provider diagnostics explain whether a model is configured well enough for each advisory canary scenario before a run starts
 - Deliverables:
@@ -484,6 +484,13 @@ Completion notes:
   - focused CLI command tests
 - Done when:
   - operators can tell which canary scenarios are expected to run, skip, or fail before starting live-provider work
+
+Completion notes:
+
+- Added offline capability preflight fields to provider diagnostics for provider family, configured model, credential source, base URL posture, streaming and tool-call assumptions, known unsupported scenarios, and per-scenario readiness.
+- Updated diagnostics JSON and human output while preserving redaction and avoiding remote provider calls.
+- Updated [providers.md](./providers.md) with OpenAI, Anthropic, missing-credential, and local/unsupported preflight interpretation.
+- Validation: `uv run pytest tests/unit/test_runtime_provider_config.py tests/integration/test_provider_mode_runtime.py`.
 
 ### GBX-732: Add Multi-Scenario Provider Canary Runs
 

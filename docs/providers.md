@@ -134,6 +134,21 @@ The diagnostics command reports the selected model source, provider family,
 runtime mode, whether provider keys or base URLs are present, and which source
 provided each value. It never prints API key values.
 
+Diagnostics are offline. They do not contact a remote provider; they also report
+the configured model, credential source, base URL posture, streaming assumption,
+tool-call assumption, known unsupported scenarios, and the expected per-scenario
+canary preflight state.
+
+OpenAI with credentials configured reports `runtime_mode=openai`, a configured
+credential source such as `process-env` or `dotenv`, `base_url_posture=default`
+unless `OPENAI_BASE_URL` is set, and `streaming-text` as ready. Anthropic reports
+the same shape with `provider_family=anthropic` and `ANTHROPIC_*` sources.
+
+Missing credentials keep diagnostics redacted and mark canary scenarios as
+`skip`. Unsupported local model modes mark live-provider canary scenarios as
+`unsupported` because the deterministic local runtime does not exercise a remote
+provider.
+
 ## Advisory Provider Canaries
 
 Provider canaries are optional release confidence checks. They are useful when

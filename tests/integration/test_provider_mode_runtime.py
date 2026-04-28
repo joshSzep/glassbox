@@ -215,6 +215,41 @@ def test_provider_diagnostics_cli_reports_redacted_configuration(
     assert "super-secret-openai" not in captured.out
     assert payload["diagnostics"][0]["api_key_present"] is True
     assert payload["diagnostics"][0]["api_key_source"] == "dotenv"
+    assert payload["capability_preflight"]["credential_source"] == "dotenv"
+    assert payload["capability_preflight"]["base_url_posture"] == "custom"
+    assert payload["capability_preflight"]["scenario_preflight"][0]["status"] == (
+        "ready"
+    )
+    assert "super-secret-openai" not in str(payload["capability_preflight"])
+
+
+def test_provider_diagnostics_cli_prints_capability_preflight(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "secret-anthropic")
+    monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
+
+    exit_code = main(
+        [
+            "provider",
+            "diagnostics",
+            "--cwd",
+            str(tmp_path),
+            "--model-name",
+            "anthropic:claude-sonnet-4",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Capability preflight:" in captured.out
+    assert "provider=anthropic" in captured.out
+    assert "credential_source=process-env" in captured.out
+    assert "streaming=supported" in captured.out
+    assert "tool-call: not_automated" in captured.out
+    assert "secret-anthropic" not in captured.out
 
 
 def test_provider_canary_cli_writes_skipped_summary_without_credentials(

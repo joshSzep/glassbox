@@ -83,6 +83,17 @@ def test_provider_diagnostics_reports_local_mode(tmp_path: Path) -> None:
     assert report.selected_provider == "local"
     assert report.runtime_mode == "local"
     assert report.selected_model_source == "cli"
+    assert report.capability_preflight.credential_source == "not_applicable"
+    assert report.capability_preflight.streaming_assumption == "unsupported"
+    assert report.capability_preflight.known_unsupported_scenarios == [
+        "streaming-text",
+        "tool-call",
+        "approval",
+        "ask-user",
+        "cancellation",
+        "dashboard",
+        "daemon-attach",
+    ]
 
 
 def test_provider_diagnostics_reports_openai_configuration(tmp_path: Path) -> None:
@@ -98,6 +109,16 @@ def test_provider_diagnostics_reports_openai_configuration(tmp_path: Path) -> No
     openai = next(item for item in report.diagnostics if item.provider == "openai")
     assert openai.api_key_present is True
     assert openai.api_key_source == "process-env"
+    assert report.capability_preflight.provider_family == "openai"
+    assert report.capability_preflight.credential_source == "process-env"
+    assert report.capability_preflight.base_url_posture == "default"
+    assert report.capability_preflight.streaming_assumption == "supported"
+    assert report.capability_preflight.tool_call_assumption == "assumed"
+    assert report.capability_preflight.scenario_preflight[0].scenario_id == (
+        "streaming-text"
+    )
+    assert report.capability_preflight.scenario_preflight[0].status == "ready"
+    assert report.capability_preflight.scenario_preflight[1].status == "not_automated"
 
 
 def test_provider_diagnostics_reports_anthropic_dotenv_configuration(
@@ -134,6 +155,9 @@ def test_provider_diagnostics_reports_missing_credentials_for_partial_config(
     assert report.runtime_mode == "unavailable"
     assert report.problems == ["missing OPENAI_API_KEY"]
     assert "OPENAI_API_KEY" in report.next_actions[0]
+    assert {item.status for item in report.capability_preflight.scenario_preflight} == {
+        "skip"
+    }
 
 
 def test_provider_diagnostics_reports_unsupported_model_prefix(tmp_path: Path) -> None:
@@ -146,6 +170,9 @@ def test_provider_diagnostics_reports_unsupported_model_prefix(tmp_path: Path) -
     assert report.state == "unsupported_model"
     assert report.selected_provider == "other"
     assert "unsupported model provider" in report.problems[0]
+    assert {item.status for item in report.capability_preflight.scenario_preflight} == {
+        "unsupported"
+    }
 
 
 def test_provider_diagnostics_reports_invalid_workspace_profile(
