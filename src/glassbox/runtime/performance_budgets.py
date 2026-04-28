@@ -166,6 +166,56 @@ PAYLOAD_SIZE_BUDGETS: tuple[PayloadSizeBudget, ...] = (
             "printing every artifact by default in dashboard-facing paths."
         ),
     ),
+    PayloadSizeBudget(
+        surface="session transcript page payload",
+        scenario="serialize one paginated transcript window for a larger session",
+        fixture_size="80 of 240 transcript messages",
+        budget_bytes=180_000,
+        guidance=(
+            "If this regresses, reduce transcript row width or lower the dashboard "
+            "detail page size before widening the selected-session snapshot."
+        ),
+    ),
+    PayloadSizeBudget(
+        surface="session event-log page payload",
+        scenario="serialize one paginated canonical event window for a larger session",
+        fixture_size="80 of 681 canonical events",
+        budget_bytes=300_000,
+        guidance=(
+            "If this regresses, keep raw event payload expansion out of the "
+            "dashboard initial render path and inspect event serialization width."
+        ),
+    ),
+    PayloadSizeBudget(
+        surface="session tool-call page payload",
+        scenario="serialize one paginated tool-call window for a larger session",
+        fixture_size="80 tool calls",
+        budget_bytes=180_000,
+        guidance=(
+            "If this regresses, keep tool-call detail reads paginated and avoid "
+            "attaching verbose artifacts to tool-call rows."
+        ),
+    ),
+    PayloadSizeBudget(
+        surface="session turn-metrics page payload",
+        scenario="serialize one paginated metric window for a larger session",
+        fixture_size="80 of 120 turn metric rows",
+        budget_bytes=120_000,
+        guidance=(
+            "If this regresses, summarize metrics for dashboard overviews and keep "
+            "raw metric rows behind explicit detail loading."
+        ),
+    ),
+    PayloadSizeBudget(
+        surface="session artifact page payload",
+        scenario="serialize one paginated artifact window for a larger session",
+        fixture_size="40 event-referenced artifacts",
+        budget_bytes=120_000,
+        guidance=(
+            "If this regresses, separate artifact summaries from file inspection "
+            "metadata and keep artifact detail panes on demand."
+        ),
+    ),
 )
 
 

@@ -173,8 +173,9 @@ Current weak areas:
   the snapshot/runtime-context summaries until a future task makes those panes
   fully on-demand
 - artifact pressure and projection rebuild cost now have CLI, JSON, dashboard,
-  and observability cues; GBX-744 still needs to promote the scale expectations
-  into a repeatable gate
+  and observability cues; the v7 scale gate protects the current generated
+  larger-session expectations, but it is not a substitute for profiling extreme
+  workspaces before widening fixture sizes
 - installed-package dashboard smoke is intentionally short and does not exercise
   deep large-session states
 
@@ -205,6 +206,41 @@ GBX-742 dashboard behavior:
   API cursors
 - evidence and metric panes cap their rendered raw rows to prevent large
   histories from producing one giant initial DOM tree
+
+GBX-743 projection and artifact observability:
+
+- projection health includes estimated rebuild event count and projected progress
+  ratio in CLI projection checks, session payloads, generated API types,
+  dashboard projection details, and workspace observability status
+- artifact inspect/prune reports include managed counts, protected and candidate
+  sizes, retention-class counts, age, reclaimable bytes, total `.glassbox` size,
+  and configurable `--warning-threshold-mb` storage warnings
+- `glassbox observability status` now reports artifact pressure next to projection
+  lag and rebuild scope, keeping cleanup read-only unless operators explicitly
+  run prune without `--dry-run`
+
+GBX-744 scale gate recommendation:
+
+- backend scale gate: `uv run pytest tests/integration/test_large_session_scale_gate.py tests/integration/test_large_session_baselines.py tests/integration/test_web_session_pagination.py tests/integration/test_performance_budgets.py`
+- frontend scale smoke: `cd frontend && pnpm run typecheck && pnpm exec vitest run tests/dashboard-stores.test.ts`
+- promote these commands into the v7 release gate before release candidate signoff;
+  they use generated temporary fixtures and do not require committed bulky
+  artifacts
+- keep machine-specific timing advisory and prefer named payload budgets, page
+  sizes, counts, cursor behavior, and observability metadata as the blocking
+  assertions
+
+Residual risks and mitigations:
+
+- legacy clients can still request full selected-session snapshots; prefer the
+  paginated detail APIs for new dashboard panes and operator tooling
+- larger real workspaces may have many sessions, large artifacts, or slower disks
+  beyond the generated fixture; use `glassbox performance budgets`,
+  `glassbox observability status`, `glassbox projection check --all`, and
+  `glassbox artifacts inspect --warning-threshold-mb N` before release signoff
+- cleanup remains explicit: run `glassbox artifacts prune --dry-run` first, then
+  rerun without `--dry-run` only after reviewing protected, candidate, and missing
+  reference output
 
 ## Daemon, Transport, And Multi-Observer Evidence
 

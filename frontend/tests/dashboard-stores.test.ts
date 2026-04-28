@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { GlassboxApiError, type GlassboxApiClient } from "../api/client";
 import type { SessionEventStreamOptions, SessionStreamState, SseEventEnvelope } from "../api/sse";
+import type { components } from "@/generated/api-types";
 import { createConsoleStore, createSessionStore } from "../stores/dashboard-stores";
 import {
   makeEnvelope,
@@ -209,6 +210,67 @@ describe("session store", () => {
     expect(store.getState().detailPages.transcript.hasMore).toBe(false);
   });
 
+  it("keeps large-session detail hydration bounded to page windows", async () => {
+    const sessionId = "large-session";
+    const transcript = makeLargeTranscript(sessionId, 240);
+    const events = makeLargeEvents(sessionId, 681);
+    const metrics = makeLargeMetrics(120);
+    const calls: Array<{ cursor: number | undefined; kind: string; limit: number | undefined }> =
+      [];
+    const store = createSessionStore({
+      apiClient: createApiClient({
+        getSessionEventLogPage: async (requestedSessionId, query = {}) => {
+          calls.push({ cursor: query.cursor, kind: "events", limit: query.limit });
+          return makeDetailPage(requestedSessionId, events, query);
+        },
+        getSessionSnapshot: async (requestedSessionId) =>
+          makeSessionSnapshot(requestedSessionId, {
+            last_sequence: events.length,
+            transcript,
+            turn_metrics: metrics,
+          }),
+        getSessionTranscriptPage: async (requestedSessionId, query = {}) => {
+          calls.push({ cursor: query.cursor, kind: "transcript", limit: query.limit });
+          return makeDetailPage(requestedSessionId, transcript, query);
+        },
+        getSessionTurnMetricsPage: async (requestedSessionId, query = {}) => {
+          calls.push({ cursor: query.cursor, kind: "metrics", limit: query.limit });
+          return makeDetailPage(requestedSessionId, metrics, query);
+        },
+      }),
+    });
+
+    await store.getState().loadSession(sessionId);
+
+    expect(store.getState().data.transcript).toHaveLength(80);
+    expect(store.getState().data.eventLog).toHaveLength(80);
+    expect(store.getState().data.turnMetrics).toHaveLength(80);
+    expect(store.getState().detailPages.transcript).toMatchObject({
+      hasMore: true,
+      nextCursor: 80,
+      state: "loaded",
+    });
+    expect(calls).toEqual([
+      { cursor: undefined, kind: "transcript", limit: 80 },
+      { cursor: undefined, kind: "events", limit: 80 },
+      { cursor: undefined, kind: "metrics", limit: 80 },
+    ]);
+
+    await store.getState().loadMoreTranscript();
+    await store.getState().loadMoreEvents();
+    await store.getState().loadMoreMetrics();
+
+    expect(store.getState().data.transcript).toHaveLength(160);
+    expect(store.getState().data.eventLog).toHaveLength(160);
+    expect(store.getState().data.turnMetrics).toHaveLength(120);
+    expect(store.getState().detailPages.metrics.hasMore).toBe(false);
+    expect(calls.slice(3)).toEqual([
+      { cursor: 80, kind: "transcript", limit: 80 },
+      { cursor: 80, kind: "events", limit: 80 },
+      { cursor: 80, kind: "metrics", limit: 80 },
+    ]);
+  });
+
   it("ignores stale selected-session responses", async () => {
     const first = deferred<ReturnType<typeof makeSessionSnapshot>>();
     const second = deferred<ReturnType<typeof makeSessionSnapshot>>();
@@ -378,3 +440,74 @@ describe("session store", () => {
     expect(store.getState().loadState).toBe("loading");
   });
 });
+
+type EventLogEntry = components["schemas"]["EventLogEntryResponse"];
+type PageInfo = components["schemas"]["PageInfoResponse"];
+type TranscriptMessage = components["schemas"]["TranscriptMessageResponse"];
+type TurnMetrics = components["schemas"]["TurnMetricsResponse"];
+
+function makeDetailPage<T>(
+  sessionId: string,
+  items: T[],
+  query: { cursor?: number; limit?: number },
+): { items: T[]; page: PageInfo; session_id: string } {
+  const cursor = query.cursor ?? 0;
+  const limit = query.limit ?? 80;
+  const pageItems = items.slice(cursor, cursor + limit);
+  const nextCursor = cursor + pageItems.length;
+  return {
+    items: pageItems,
+    page: {
+      cursor,
+      has_more: nextCursor < items.length,
+      limit,
+      next_cursor: nextCursor < items.length ? nextCursor : null,
+      returned_count: pageItems.length,
+    },
+    session_id: sessionId,
+  };
+}
+
+function makeLargeTranscript(sessionId: string, count: number): TranscriptMessage[] {
+  return Array.from({ length: count }, (_, index) => ({
+    created_at: timestamp(index),
+    message_id: `${sessionId}-message-${index + 1}`,
+    parts: [{ kind: "text", text: `large transcript message ${index}` }],
+    role: index % 2 === 0 ? "user" : "assistant",
+  }));
+}
+
+function makeLargeEvents(sessionId: string, count: number): EventLogEntry[] {
+  return Array.from({ length: count }, (_, index) => ({
+    created_at: timestamp(index),
+    event_id: `${sessionId}-event-${index + 1}`,
+    event_type: index % 2 === 0 ? "UserMessageReceived" : "AssistantMessageCompleted",
+    event_version: 1,
+    payload: { index },
+    sequence: index + 1,
+    session_id: sessionId,
+  }));
+}
+
+function makeLargeMetrics(count: number): TurnMetrics[] {
+  return Array.from({ length: count }, (_, index) => ({
+    completed_at: timestamp(index + 1),
+    failed_tool_call_count: 0,
+    model_call_count: 1,
+    model_duration_ms_total: 35 + (index % 8),
+    model_input_tokens_total: 120 + index,
+    model_output_tokens_total: 48 + index,
+    started_at: timestamp(index),
+    succeeded_tool_call_count: index < 80 ? 1 : 0,
+    tool_call_count: index < 80 ? 1 : 0,
+    tool_duration_ms_total: index < 80 ? 15 : 0,
+    turn_duration_ms: 50 + (index % 8),
+    turn_id: `turn-${index + 1}`,
+  }));
+}
+
+function timestamp(index: number): string {
+  const minutes = Math.floor(index / 60);
+  const seconds = index % 60;
+  return `2026-04-23T00:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}Z`;
+}

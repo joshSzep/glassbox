@@ -667,7 +667,7 @@ Completion notes:
 
 ### GBX-744: Add Larger-Session Scale Gate Coverage
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-741`, `GBX-742`, `GBX-743`
 - Goal: convert larger-session scale expectations into repeatable automated and manual validation surfaces
 - Deliverables:
@@ -685,6 +685,13 @@ Completion notes:
   - dry-run release gate update if a gate script changes
 - Done when:
   - larger-session behavior is protected by explicit validation rather than hope
+
+Completion notes:
+
+- Added `tests/integration/test_large_session_scale_gate.py` as a focused generated-fixture gate for paginated backend detail APIs, payload budgets, projection rebuild-scope observability, and artifact pressure observability.
+- Extended `glassbox performance budgets` with named payload budgets for transcript, event-log, tool-call, turn-metric, and artifact page responses.
+- Added a dashboard store scale smoke that hydrates 240 transcript messages, 681 event rows, and 120 metric rows through bounded first pages and load-more flows.
+- Documented the v7 scale-gate recommendation, residual risks, and operator mitigations in the scale verification inventory.
 
 ---
 
