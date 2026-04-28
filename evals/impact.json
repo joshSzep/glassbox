@@ -52,9 +52,15 @@
             "path_globs": [
                 "src/glassbox/runtime/*approval*.py",
                 "src/glassbox/cli/*approval*.py",
-                "src/glassbox/web/*approval*.py"
+                "src/glassbox/web/*approval*.py",
+                "src/glassbox/web/routes/approvals.py",
+                "frontend/**/*approval*.ts",
+                "frontend/**/*approval*.tsx"
             ],
-            "capabilities": ["approval_flow"]
+            "owners": ["runtime.approval"],
+            "capabilities": ["approval_flow"],
+            "case_ids": ["approval.approved-patch"],
+            "notes": "Approval-related runtime, CLI, web, or dashboard action changes should re-run the curated approval replay case plus focused integration tests for denial and UI-specific resolution behavior."
         },
         {
             "rule_id": "runtime-ask-user",

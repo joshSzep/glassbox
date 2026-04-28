@@ -296,7 +296,7 @@ Completion notes:
 
 ### GBX-720: Promote Approval Workflow Eval Coverage
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-711`
 - Goal: make approval workflow behavior part of the curated deterministic eval portfolio instead of relying only on integration and release-gate evidence
 - Deliverables:
@@ -315,6 +315,13 @@ Completion notes:
   - focused approval integration tests
 - Done when:
   - approval workflow drift can be detected through repository-owned deterministic eval evidence
+
+Completion notes:
+
+- Added `approval.approved-patch` as an advisory deterministic eval case with a replay bundle generated from a confirm-mode `apply_patch` session.
+- Updated `approval_flow` coverage and approval impact rules so approval-related runtime, CLI, web, and dashboard action changes recommend the curated case.
+- Documented the protected approval contract in [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md): persisted approval request, approval decision, resumed tool execution, and completed assistant output are deterministic; denial-specific and live dashboard resolution behavior remain focused integration evidence.
+- Validation: `uv run glassbox eval run approval.approved-patch --cwd .`, `uv run glassbox eval audit --cwd .`, and focused approval integration tests.
 
 ### GBX-721: Promote Ask-User Workflow Eval Coverage
 

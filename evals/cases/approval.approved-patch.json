@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "approval.approved-patch",
+  "title": "Approved patch resumes through approval workflow",
+  "bundle_path": "../bundles/approval.approved-patch.json",
+  "tags": ["approval", "tooling"],
+  "notes": "Exercises a confirm-mode apply_patch request that pauses for approval, records the approval decision, resumes the tool execution, and completes the assistant turn.",
+  "release_contract": {
+    "owner": "runtime.approval",
+    "capabilities": ["approval_flow"],
+    "severity": "high",
+    "verification_stages": ["advisory"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-28T00:00:00Z",
+      "source_session_id": "4145190c-2ca3-4d83-a566-39bce0c7c463",
+      "rationale": "Promoted for GBX-720 to make approval-request and approval-resume behavior visible in repository-owned deterministic eval evidence."
+    }
+  ]
+}

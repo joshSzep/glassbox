@@ -45,6 +45,7 @@ Current checked-in cases:
 | `context.branch-inherited` | branch lineage and inherited context coverage |
 | `context.artifact` | strict artifact-context drift coverage, advisory |
 | `context.artifact-relaxed` | selected-invariant artifact-context coverage, advisory |
+| `approval.approved-patch` | advisory approval request, approval resolution, and tool-resumption coverage |
 | `cancellation.cancelled-turn` | advisory cancelled-turn evidence |
 
 Current profiles:
@@ -60,7 +61,9 @@ Current profiles:
 Current release-critical coverage is strongest for smoke validation, replay
 portability, branching, and context inheritance. Current advisory or weak areas:
 
-- `approval_flow` has no expected deterministic eval case yet
+- `approval_flow` now has advisory deterministic coverage for approved
+  `apply_patch` resumption through `approval.approved-patch`; denial-specific
+  and dashboard-specific resolution behavior remains integration evidence
 - `ask_user_flow` has no expected deterministic eval case yet
 - `cancellation` has one advisory case, but model-call, tool-execution, repeated
   cancellation, and reconnect-sensitive variants are not represented
@@ -181,6 +184,8 @@ Current strengths:
 - path escape and destructive command blocks are hard invariants
 - risky writes and commands are approval-gated unless approval mode blocks them
 - `ask_user` is explicitly separated from approval semantics
+- `approval.approved-patch` protects the persisted approval request, approval
+  decision, resumed tool execution, and completed assistant-output event contract
 - policy outcomes carry source, risk, and reason fields in current event payloads
   for tool-related events
 - CLI and dashboard approval workflows are already implemented

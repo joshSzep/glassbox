@@ -73,9 +73,9 @@
       "kind": "operator_workflow",
       "criticality": "important",
       "verification_stages": ["advisory"],
-      "expected_case_ids": [],
+      "expected_case_ids": ["approval.approved-patch"],
       "coverage_mode": "single_case",
-      "notes": "Covered by integration and release-gate policy evidence until a curated replay or eval case is stable enough for deterministic report sign-off."
+      "notes": "Curated replay evidence covers an approved apply_patch request from ApprovalRequested through ApprovalResolved, resumed execution, and completed assistant output. Denial-specific UX and live dashboard resolution behavior remain covered by focused integration tests."
     },
     {
       "capability_id": "ask_user_flow",
