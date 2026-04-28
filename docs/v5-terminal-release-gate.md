@@ -105,7 +105,7 @@ Real-provider workflows when available:
 
 ## Known Non-Blocking Gaps
 
-- Backend cancellation of an in-flight model/tool turn is not implemented; Ctrl+C reports this honestly and does not pretend to cancel the runtime.
+- Backend cancellation of an in-flight model/tool turn moves to the v6 hardening path; [v6-cancellation-contract.md](./v6-cancellation-contract.md) defines the replacement for the old informational-only Ctrl+C behavior.
 - Terminal visual review is manual. Automated tests cover semantic regions and workflow outcomes, not pixel-perfect layout.
 - The focused scenario suite uses deterministic fake clients and seeded events; real provider behavior still needs manual review for release signoff.
 - Full screen support depends on terminal capabilities. Unsupported terminals, redirected streams, CI-like environments, and `TERM=dumb` use plain fallback unless `--tui` was explicitly requested.

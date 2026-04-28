@@ -344,7 +344,7 @@ Completion notes:
 
 ### GBX-650: Define The Cancellation Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-640`
 - Goal: define how operators request cancellation and how the runtime records, executes, reports, and replays cancellation without corrupting event-sourced state
 - Deliverables:
@@ -362,6 +362,13 @@ Completion notes:
   - docs review against TUI, dashboard, and session command behavior
 - Done when:
   - cancellation has a clear backend contract that the runtime, TUI, dashboard, and replay code can implement consistently
+
+Completion notes:
+
+- Added [v6-cancellation-contract.md](./v6-cancellation-contract.md) defining cancellation scope, event ordering, state rules, outcome classes, and replay/eval policy.
+- Updated [architecture.md](./architecture.md), [terminal-interaction-model-v5.md](./terminal-interaction-model-v5.md), and [v5-terminal-release-gate.md](./v5-terminal-release-gate.md) to point from the old v5 interruption gap to the v6 backend contract.
+- Added cancellation event payload models and turn status values in `glassbox.core`, with projection handling for cancelled turn completion.
+- Validation: `uv run pytest tests/unit/test_core_events.py tests/unit/test_core_types.py`.
 
 ### GBX-651: Thread Cancellation Through Turn Execution
 

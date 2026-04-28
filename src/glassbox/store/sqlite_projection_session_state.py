@@ -8,6 +8,7 @@ from glassbox.core.events import EventEnvelope
 from glassbox.core.events import SessionCompleted
 from glassbox.core.events import SessionFailed
 from glassbox.core.events import SessionStarted
+from glassbox.core.events import TurnCancelled
 from glassbox.core.events import TurnCompleted
 from glassbox.core.events import TurnFailed
 from glassbox.core.events import TurnStarted
@@ -49,8 +50,11 @@ def _apply_session_state_projection(
         status = SessionStatus.RUNNING
     elif isinstance(payload, TurnCompleted):
         current_turn_id = None
-        if payload.outcome == "completed":
+        if payload.outcome in {"completed", "cancelled"}:
             status = SessionStatus.RUNNING
+    elif isinstance(payload, TurnCancelled):
+        current_turn_id = None
+        status = SessionStatus.RUNNING
     elif isinstance(payload, TurnFailed):
         current_turn_id = None
         status = SessionStatus.RUNNING

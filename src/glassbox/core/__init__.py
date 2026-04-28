@@ -5,6 +5,9 @@ from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import AssistantMessageCompleted
 from glassbox.core.events import AssistantMessageDelta
 from glassbox.core.events import AssistantMessageStarted
+from glassbox.core.events import CancellationAcknowledged
+from glassbox.core.events import CancellationFailed
+from glassbox.core.events import CancellationRequested
 from glassbox.core.events import ErrorRecorded
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import EventPayload
@@ -19,10 +22,12 @@ from glassbox.core.events import SessionFailed
 from glassbox.core.events import SessionResumed
 from glassbox.core.events import SessionStarted
 from glassbox.core.events import ToolArtifactRecorded
+from glassbox.core.events import ToolExecutionCancelled
 from glassbox.core.events import ToolExecutionCompleted
 from glassbox.core.events import ToolExecutionStarted
 from glassbox.core.events import ToolOutputChunk
 from glassbox.core.events import TranscriptMessageImported
+from glassbox.core.events import TurnCancelled
 from glassbox.core.events import TurnCompleted
 from glassbox.core.events import TurnFailed
 from glassbox.core.events import TurnStarted
@@ -76,6 +81,9 @@ __all__ = [
     "AssistantMessageDelta",
     "AssistantMessageStarted",
     "ArtifactId",
+    "CancellationAcknowledged",
+    "CancellationFailed",
+    "CancellationRequested",
     "ErrorRecorded",
     "EventId",
     "EventEnvelope",
@@ -108,6 +116,7 @@ __all__ = [
     "ToolArtifactRecorded",
     "ToolCallRecord",
     "ToolExecutionCompleted",
+    "ToolExecutionCancelled",
     "ToolExecutionStarted",
     "ToolOutputChunk",
     "ToolExecutionStatus",
@@ -115,6 +124,7 @@ __all__ = [
     "TranscriptMessage",
     "TurnId",
     "TurnCompleted",
+    "TurnCancelled",
     "TurnFailed",
     "TurnStarted",
     "TurnStatus",

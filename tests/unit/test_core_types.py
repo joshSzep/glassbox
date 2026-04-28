@@ -25,7 +25,7 @@ from glassbox.core import new_turn_id
     ("adapter_type", "raw_value", "expected"),
     [
         (SessionStatus, "running", SessionStatus.RUNNING),
-        (TurnStatus, "building_context", TurnStatus.BUILDING_CONTEXT),
+        (TurnStatus, "cancelled", TurnStatus.CANCELLED),
         (ToolExecutionStatus, "authorized", ToolExecutionStatus.AUTHORIZED),
         (ApprovalStatus, "pending", ApprovalStatus.PENDING),
         (ApprovalMode, "confirm", ApprovalMode.CONFIRM),

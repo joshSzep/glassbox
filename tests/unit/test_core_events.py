@@ -11,6 +11,9 @@ from glassbox.core import ApprovalDecision
 from glassbox.core import ApprovalRequested
 from glassbox.core import ApprovalResolved
 from glassbox.core import AssistantMessageCompleted
+from glassbox.core import CancellationAcknowledged
+from glassbox.core import CancellationFailed
+from glassbox.core import CancellationRequested
 from glassbox.core import ErrorRecorded
 from glassbox.core import EventEnvelope
 from glassbox.core import EventPayloadType
@@ -18,6 +21,7 @@ from glassbox.core import MessagePart
 from glassbox.core import SessionStarted
 from glassbox.core import ToolOutputChunk
 from glassbox.core import TranscriptMessageImported
+from glassbox.core import TurnCancelled
 from glassbox.core import TurnStatus
 from glassbox.core import TurnStatusChanged
 from glassbox.core import UserMessageReceived
@@ -139,6 +143,69 @@ def test_turn_status_changed_uses_shared_turn_status_type() -> None:
     )
 
     assert payload.status == TurnStatus.EXECUTING_TOOL
+
+
+def test_cancellation_payloads_round_trip_through_event_union() -> None:
+    adapter = TypeAdapter(EventPayloadType)
+    turn_id = new_turn_id()
+    tool_call_id = new_tool_call_id()
+
+    requested = adapter.validate_python(
+        {
+            "event_type": "CancellationRequested",
+            "turn_id": turn_id,
+            "requested_by": "terminal",
+            "reason": "operator pressed Ctrl+C",
+        }
+    )
+    acknowledged = adapter.validate_python(
+        {
+            "event_type": "CancellationAcknowledged",
+            "turn_id": turn_id,
+            "repeated": True,
+        }
+    )
+    turn_cancelled = adapter.validate_python(
+        {
+            "event_type": "TurnCancelled",
+            "turn_id": turn_id,
+            "reason": "operator requested cancellation",
+            "stage": "model_call",
+        }
+    )
+    tool_cancelled = adapter.validate_python(
+        {
+            "event_type": "ToolExecutionCancelled",
+            "turn_id": turn_id,
+            "tool_call_id": tool_call_id,
+            "summary": "cancelled by operator",
+        }
+    )
+    failed = adapter.validate_python(
+        {
+            "event_type": "CancellationFailed",
+            "turn_id": turn_id,
+            "reason": "turn already completed",
+        }
+    )
+
+    assert isinstance(requested, CancellationRequested)
+    assert isinstance(acknowledged, CancellationAcknowledged)
+    assert isinstance(turn_cancelled, TurnCancelled)
+    assert tool_cancelled.tool_call_id == tool_call_id
+    assert isinstance(failed, CancellationFailed)
+
+
+def test_turn_cancelled_rejects_unknown_stage() -> None:
+    with pytest.raises(ValidationError):
+        TurnCancelled.model_validate(
+            {
+                "event_type": "TurnCancelled",
+                "turn_id": new_turn_id(),
+                "reason": "operator requested cancellation",
+                "stage": "approval_queue",
+            }
+        )
 
 
 def test_assistant_message_completed_uses_message_parts() -> None:

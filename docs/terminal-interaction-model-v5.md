@@ -145,7 +145,7 @@ Live updates must never steal focus from the composer, command palette, approval
 
 - `Escape` closes transient UI first: command palette, details pane, then any pending quit confirmation. It does not mutate runtime state.
 - `Ctrl+C` follows the same transient-UI cancellation rule before it is treated as an interruption request.
-- When a model/tool turn is active, `Ctrl+C` reports that backend turn interruption is not supported yet and leaves the session running.
+- When a model/tool turn is active, `Ctrl+C` follows the backend cancellation contract in [v6-cancellation-contract.md](./v6-cancellation-contract.md) when the runtime owner supports it; older or unavailable owners must report that no cancellation was sent.
 - During pending approval or pending question states, `Ctrl+C` does not deny, approve, answer, or abandon the turn; it tells the user to resolve the active action explicitly.
 - During reconnecting or unavailable runtime states, `Ctrl+C` does not send a mutation and reports that no interrupt was sent.
 - `Ctrl+Escape` exits immediately from idle, historical, failed, or otherwise inspect-only states.

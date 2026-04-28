@@ -29,8 +29,24 @@ from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import TurnStatus
 
 ToolOutputStream = Literal["stdout", "stderr", "structured"]
-TurnOutcome = Literal["completed", "awaiting_approval", "awaiting_user_input", "failed"]
+TurnOutcome = Literal[
+    "completed",
+    "awaiting_approval",
+    "awaiting_user_input",
+    "cancelled",
+    "failed",
+]
 ErrorScope = Literal["session", "turn", "tool", "web"]
+CancellationStage = Literal[
+    "preparation",
+    "model_call",
+    "tool_execution",
+    "awaiting_approval",
+    "awaiting_user_input",
+    "resumption",
+    "reconnecting_stream",
+    "unknown",
+]
 
 
 class EventPayload(BaseModel):
@@ -123,6 +139,42 @@ class TurnFailed(EventPayload):
     event_type: Literal["TurnFailed"] = "TurnFailed"
     turn_id: TurnId
     error_message: str
+
+
+class CancellationRequested(EventPayload):
+    event_type: Literal["CancellationRequested"] = "CancellationRequested"
+    turn_id: TurnId
+    requested_by: str = "operator"
+    reason: str | None = None
+
+
+class CancellationAcknowledged(EventPayload):
+    event_type: Literal["CancellationAcknowledged"] = "CancellationAcknowledged"
+    turn_id: TurnId
+    requested_by: str = "runtime"
+    repeated: bool = False
+
+
+class TurnCancelled(EventPayload):
+    event_type: Literal["TurnCancelled"] = "TurnCancelled"
+    turn_id: TurnId
+    reason: str
+    stage: CancellationStage = "unknown"
+
+
+class ToolExecutionCancelled(EventPayload):
+    event_type: Literal["ToolExecutionCancelled"] = "ToolExecutionCancelled"
+    turn_id: TurnId
+    tool_call_id: ToolCallId
+    summary: str
+    exit_code: int | None = None
+
+
+class CancellationFailed(EventPayload):
+    event_type: Literal["CancellationFailed"] = "CancellationFailed"
+    turn_id: TurnId | None = None
+    reason: str
+    retryable: bool = False
 
 
 class ModelCallStarted(EventPayload):
@@ -277,6 +329,11 @@ EventPayloadType = Annotated[
     | TurnStatusChanged
     | TurnCompleted
     | TurnFailed
+    | CancellationRequested
+    | CancellationAcknowledged
+    | TurnCancelled
+    | ToolExecutionCancelled
+    | CancellationFailed
     | ModelCallStarted
     | ModelCallCompleted
     | ModelToolCallRequested

@@ -25,8 +25,10 @@ class TurnStatus(StrEnum):
     EXECUTING_TOOL = "executing_tool"
     AWAITING_APPROVAL = "awaiting_approval"
     AWAITING_USER_INPUT = "awaiting_user_input"
+    CANCELLING = "cancelling"
     ASSEMBLING_RESPONSE = "assembling_response"
     COMPLETED = "completed"
+    CANCELLED = "cancelled"
     FAILED = "failed"
 
 

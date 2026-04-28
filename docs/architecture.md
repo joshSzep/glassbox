@@ -136,6 +136,11 @@ policy about when a turn starts, resumes, fails, or completes, but it does not
 own every detail of preparation, event recording, tool execution, or model-loop
 state transitions inline.
 
+For v6 cancellation semantics, the turn engine also treats cancellation as a
+live-turn mutation rather than a UI-only interruption. See
+[v6-cancellation-contract.md](./v6-cancellation-contract.md) for the persisted
+event contract, state rules, and replay/eval expectations.
+
 The implemented runtime split keeps those boundaries explicit:
 
 - `runtime/turn_preparation.py` assembles the prepared turn and its runtime context
