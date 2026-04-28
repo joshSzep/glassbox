@@ -18,6 +18,9 @@ from glassbox.core import SessionConfig
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import ReplayArtifactRecorded
+from glassbox.core.events import ToolExecutionCancelled
+from glassbox.core.events import ToolExecutionStarted
+from glassbox.core.events import TurnCancelled
 from glassbox.core.events import TurnCompleted
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import SessionStatus
@@ -33,6 +36,7 @@ from glassbox.store.repositories import SQLiteSessionRepository
 from glassbox.store.sqlite import initialize_database
 from glassbox.store.sqlite import open_database
 from glassbox.tools import ApprovalMode
+from glassbox.tools import ToolExecutionResult
 from glassbox.tools import ToolPolicyContext
 from glassbox.tools import ToolPolicyEngine
 from glassbox.tools import ToolRuntime
@@ -70,6 +74,29 @@ def _build_turn_engine(
             ),
         ),
     )
+
+
+class _CancellableApprovedPatchRuntime(ToolRuntime):
+    async def execute_approved(
+        self,
+        prepared,
+        on_output_chunk=None,
+        *,
+        cancellation_controller=None,
+    ) -> ToolExecutionResult:
+        del on_output_chunk
+        if cancellation_controller is None:
+            raise AssertionError("approved tool execution must receive cancellation")
+        await cancellation_controller.wait()
+        return ToolExecutionResult(
+            event_tool_call_id=prepared.event_tool_call_id,
+            provider_tool_call_id=prepared.provider_tool_call_id,
+            tool_name=prepared.tool_name,
+            success=False,
+            output_payload={"failure_category": "cancelled", "cancelled": True},
+            summary="cancelled during approved tool execution",
+            error_message="cancelled during approved tool execution",
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -226,6 +253,104 @@ def test_approval_approve_resumes_turn_and_executes_tool(tmp_path: Path) -> None
             and ev.payload.decision == ApprovalDecision.APPROVED
             for ev in all_events
         )
+
+    asyncio.run(scenario())
+
+
+def test_approval_resume_can_cancel_approved_tool_execution(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            bus: EventBus[EventEnvelope] = EventBus()
+            artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+            turn_engine = TurnEngine(
+                repository,
+                bus,
+                TurnContextBuilder(repository),
+                lambda _session: PydanticAIModelAdapter(
+                    ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+                ),
+                lambda _session: PydanticAIModelExecutor(
+                    FunctionModel(
+                        function=_patch_then_text,
+                        model_name="openai:gpt-5.4",
+                    )
+                ),
+                lambda session: _CancellableApprovedPatchRuntime(
+                    build_patch_tool_registry(session.cwd),
+                    ToolPolicyEngine(),
+                    ToolPolicyContext(
+                        workspace_root=session.cwd,
+                        approval_mode=ApprovalMode.CONFIRM,
+                    ),
+                ),
+                artifact_repository=artifact_repository,
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+
+            async with bus.subscribe() as subscription:
+                state = await supervisor.start_session(
+                    SessionConfig(
+                        model_name="openai:gpt-5.4",
+                        cwd=tmp_path,
+                        approval_mode="confirm",
+                    )
+                )
+                await subscription.get()  # SessionStarted
+                await supervisor.submit_user_message(
+                    state.session_id,
+                    "Patch the repo.",
+                )
+                approval_id = None
+
+                while True:
+                    event = await subscription.get()
+                    if isinstance(event.payload, ApprovalRequested):
+                        approval_id = event.payload.approval_id
+                    if isinstance(event.payload, TurnCompleted):
+                        break
+
+                assert approval_id is not None
+                resume_task = asyncio.create_task(
+                    supervisor.resolve_approval(
+                        state.session_id,
+                        approval_id,
+                        ApprovalDecision.APPROVED,
+                    )
+                )
+                while True:
+                    event = await subscription.get()
+                    if isinstance(event.payload, ToolExecutionStarted):
+                        turn_id = event.payload.turn_id
+                        break
+
+                await supervisor.cancel_turn(
+                    state.session_id,
+                    turn_id=turn_id,
+                    requested_by="test",
+                    reason="stop approved tool",
+                )
+                await resume_task
+
+            final_state = repository.get_session_state(state.session_id)
+            all_events = repository.read_session_events(state.session_id)
+        finally:
+            connection.close()
+
+        assert final_state is not None
+        assert final_state.status == SessionStatus.RUNNING
+        assert final_state.current_turn_id is None
+        assert any(
+            isinstance(event.payload, ToolExecutionCancelled) for event in all_events
+        )
+        cancelled_turn = next(
+            event.payload
+            for event in all_events
+            if isinstance(event.payload, TurnCancelled)
+        )
+        assert cancelled_turn.stage == "tool_execution"
+        assert cancelled_turn.reason == "cancelled during approved tool execution"
 
     asyncio.run(scenario())
 

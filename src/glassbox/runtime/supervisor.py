@@ -237,6 +237,16 @@ class SessionSupervisor(SessionService):
             requested_by=requested_by,
             reason=reason,
         ):
+            if state.status == SessionStatus.AWAITING_APPROVAL:
+                raise ValueError(
+                    f"session {session_id} is awaiting approval; resolve or deny "
+                    "the approval before requesting turn cancellation"
+                )
+            if state.status == SessionStatus.AWAITING_USER_INPUT:
+                raise ValueError(
+                    f"session {session_id} is awaiting user input; answer the "
+                    "pending question before requesting turn cancellation"
+                )
             raise ValueError(f"session {session_id} has no cancellable active turn")
 
         logger.info(

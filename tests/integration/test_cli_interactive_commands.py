@@ -738,6 +738,96 @@ def test_cli_chat_redraws_prompt_and_routes_answer_after_question_arrives_mid_pr
     assert transcript[-1].parts[0].text == "I will use: blue"
 
 
+def test_cli_cancel_reports_live_runtime_unavailable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from datetime import UTC
+    from datetime import datetime
+
+    from glassbox.runtime.daemon import RuntimeOwnerRecord
+    from glassbox.runtime.daemon import RuntimeOwnerStatus
+
+    db_path, session_id = _run_baseline_session(tmp_path)
+    baseline_db_path = db_path
+
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_commands.inspect_runtime_owner",
+        lambda cwd, db_path=None: RuntimeOwnerStatus(
+            state="running",
+            record=RuntimeOwnerRecord(
+                pid=12345,
+                workspace_root=tmp_path,
+                database_path=baseline_db_path,
+                host="127.0.0.1",
+                port=9999,
+                dashboard_url="http://127.0.0.1:9999/",
+                started_at=datetime(2025, 1, 1, tzinfo=UTC),
+            ),
+            health="unreachable",
+        ),
+    )
+
+    exit_code = main(
+        [
+            "session",
+            "cancel",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert (
+        "live runtime unavailable at http://127.0.0.1:9999/; cannot cancel session"
+    ) in captured.err
+
+
+def test_cli_cancel_clears_stale_owner_before_local_attempt(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    owner_path = tmp_path / ".glassbox" / "runtime-owner.json"
+    owner_path.write_text(
+        json.dumps(
+            {
+                "pid": 999999,
+                "workspace_root": str(tmp_path),
+                "database_path": str(db_path),
+                "host": "127.0.0.1",
+                "port": 8765,
+                "dashboard_url": "http://127.0.0.1:8765/",
+                "started_at": "2025-01-01T00:00:00Z",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "session",
+            "cancel",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "has no cancellable active turn" in captured.err
+    assert owner_path.exists() is False
+
+
 def test_cli_chat_redraws_prompt_and_routes_approval_after_request_arrives_mid_prompt(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

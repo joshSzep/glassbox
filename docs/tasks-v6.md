@@ -492,7 +492,7 @@ Completion notes:
 
 ### GBX-655: Harden Cancellation Under Attach And Daemon Ownership
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-653`, `GBX-654`
 - Goal: prove cancellation works when the live runtime owner is a daemon and the operator is attached through terminal or browser clients
 - Deliverables:
@@ -509,6 +509,14 @@ Completion notes:
   - focused web/API tests for daemon-owned cancellation if route behavior changes
 - Done when:
   - cancellation behaves consistently across local, attached, daemon-owned, and reconnecting live sessions
+
+Completion notes:
+
+- Threaded the active turn cancellation controller into approved-tool resumption so cancellation during an approved long-running tool is observed and recorded as `ToolExecutionCancelled` plus `TurnCancelled`.
+- Added scriptable conflict messages for suspended approval/question states so cancellation attempts do not look like generic failures.
+- Added daemon status guidance for `glassbox session cancel SESSION_ID`, including JSON status command metadata.
+- Added daemon-owned `session cancel` coverage, unavailable-runtime and stale-owner CLI handling tests, and local/daemon interactive-client cancellation request shaping.
+- Validation: `uv run pytest tests/integration/test_approval_workflow.py tests/unit/test_cli_interactive_client.py tests/integration/test_daemon_runtime.py tests/integration/test_cli_interactive_commands.py`, `uv run ruff check src/glassbox tests`, and `uv run ty check`.
 
 ---
 

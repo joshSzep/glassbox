@@ -40,7 +40,9 @@ from glassbox.tools import ToolRuntime
 ModelAdapterFactory = Callable[[SessionRecord], ModelAdapter]
 ModelExecutorFactory = Callable[[SessionRecord], ModelExecutor]
 ToolRuntimeFactory = Callable[[SessionRecord], ToolRuntime]
-PreparedTurnHook = Callable[[PreparedTurnRun], Awaitable[None]]
+PreparedTurnHook = Callable[
+    [PreparedTurnRun, TurnCancellationController], Awaitable[None]
+]
 
 logger = get_runtime_logger("turn_engine")
 
@@ -156,7 +158,10 @@ class TurnEngine:
             turn_id=turn_id,
         )
 
-        async def continue_with_user_answer(prepared_run: PreparedTurnRun) -> None:
+        async def continue_with_user_answer(
+            prepared_run: PreparedTurnRun,
+            _cancellation_controller: TurnCancellationController,
+        ) -> None:
             resume_state.extend_conversation(prepared_run.conversation)
 
         await self._run_prepared_turn(
@@ -209,6 +214,7 @@ class TurnEngine:
 
         async def continue_with_approval_resolution(
             prepared_run: PreparedTurnRun,
+            cancellation_controller: TurnCancellationController,
         ) -> None:
             resume_state.extend_conversation(prepared_run.conversation)
 
@@ -222,7 +228,7 @@ class TurnEngine:
                     turn_id=turn_id,
                     tool_runtime=prepared_run.tool_runtime,
                     tool_call=resume_state.to_model_tool_call(),
-                    cancellation_controller=None,
+                    cancellation_controller=cancellation_controller,
                 )
                 prepared_run.conversation.append(execution_result.to_model_request())
                 return
@@ -261,7 +267,7 @@ class TurnEngine:
             prepared_run = self._turn_preparation.prepare(session_id, session)
             cancellation_controller.raise_if_requested("preparation")
             if before_model_loop is not None:
-                await before_model_loop(prepared_run)
+                await before_model_loop(prepared_run, cancellation_controller)
                 cancellation_controller.raise_if_requested("resumption")
 
             await self._run_model_loop(

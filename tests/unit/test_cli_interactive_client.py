@@ -1,6 +1,7 @@
 """Tests for the reusable interactive terminal session client boundary."""
 
 import asyncio
+import json
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -96,6 +97,7 @@ def test_local_client_mutations_delegate_to_session_service(tmp_path: Path) -> N
     session_id = new_session_id()
     question_id = new_question_id()
     approval_id = new_approval_id()
+    turn_id = new_turn_id()
     repository = _FakeSessionRepository(
         session_id=session_id,
         state=SessionState(session_id=session_id, status=SessionStatus.RUNNING),
@@ -116,12 +118,44 @@ def test_local_client_mutations_delegate_to_session_service(tmp_path: Path) -> N
             ApprovalDecision.APPROVED,
         )
     )
+    asyncio.run(client.cancel_turn(turn_id, reason="operator interrupt"))
 
     assert service.calls == [
         ("message", session_id, "hello"),
         ("answer", session_id, question_id, "blue"),
         ("approval", session_id, approval_id, ApprovalDecision.APPROVED),
+        ("cancel", session_id, turn_id, "terminal", "operator interrupt"),
     ]
+
+
+def test_daemon_client_posts_cancel_request() -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"status": "ok"})
+
+    http_client = httpx.AsyncClient(
+        base_url="http://127.0.0.1:8765",
+        transport=httpx.MockTransport(handler),
+    )
+    client = DaemonInteractiveSessionClient(
+        http_client,
+        session_id,
+        "http://127.0.0.1:8765/",
+    )
+
+    asyncio.run(client.cancel_turn(turn_id, reason="stop now"))
+
+    asyncio.run(client.aclose())
+    assert len(requests) == 1
+    assert requests[0].url.path == f"/sessions/{session_id}/cancel"
+    assert json.loads(requests[0].content) == {
+        "reason": "stop now",
+        "turn_id": str(turn_id),
+    }
 
 
 def test_daemon_client_maps_conflict_response_to_common_error() -> None:
@@ -225,6 +259,16 @@ class _FakeSessionService:
         decision: ApprovalDecision,
     ) -> None:
         self.calls.append(("approval", session_id, approval_id, decision))
+
+    async def cancel_turn(
+        self,
+        session_id: Any,
+        turn_id: Any = None,
+        *,
+        requested_by: str = "operator",
+        reason: str | None = None,
+    ) -> None:
+        self.calls.append(("cancel", session_id, turn_id, requested_by, reason))
 
 
 class _FakeEventTransport:

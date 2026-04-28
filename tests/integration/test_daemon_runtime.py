@@ -101,6 +101,10 @@ def test_daemon_start_status_duplicate_rejection_and_stop(
         assert "Owner metadata:" in status_capture.out
         assert "Session index:" in status_capture.out
         assert "Attach: glassbox session attach SESSION_ID" in status_capture.out
+        assert (
+            "Cancel active turn: glassbox session cancel SESSION_ID"
+            in status_capture.out
+        )
         assert "Stop: glassbox daemon stop" in status_capture.out
 
         exit_code = main(
@@ -184,6 +188,9 @@ def test_daemon_status_json_reports_discovery_and_health(
         assert payload["stderr_log_path"].endswith(".glassbox/runtime-owner.stderr.log")
         assert payload["commands"]["attach"].startswith(
             "glassbox session attach SESSION_ID --cwd "
+        )
+        assert payload["commands"]["cancel"].startswith(
+            "glassbox session cancel SESSION_ID --cwd "
         )
         assert payload["commands"]["status_json"].endswith(" --json")
     finally:
@@ -380,6 +387,49 @@ def test_cli_attach_routes_live_session_through_daemon_and_can_reattach(
         assert transcript[-1].parts[0].text == (
             "I received your request: Add one more note."
         )
+    finally:
+        _stop_daemon_if_running(tmp_path)
+
+
+def test_cli_cancel_routes_to_daemon_and_reports_idle_conflict(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    port = _reserve_port()
+
+    try:
+        exit_code = main(
+            [
+                "daemon",
+                "start",
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+                "--port",
+                str(port),
+            ]
+        )
+        _ = capsys.readouterr()
+
+        assert exit_code == 0
+
+        exit_code = main(
+            [
+                "session",
+                "cancel",
+                str(session_id),
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+            ]
+        )
+        captured = capsys.readouterr()
+
+        assert exit_code == 1
+        assert "has no cancellable active turn" in captured.err
     finally:
         _stop_daemon_if_running(tmp_path)
 

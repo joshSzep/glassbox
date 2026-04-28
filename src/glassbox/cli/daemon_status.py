@@ -14,6 +14,7 @@ class RuntimeOwnerCommands:
     status: str
     status_json: str
     attach: str
+    cancel: str
     stop: str
 
     def as_json(self) -> dict[str, str]:
@@ -22,6 +23,7 @@ class RuntimeOwnerCommands:
             "status": self.status,
             "status_json": self.status_json,
             "attach": self.attach,
+            "cancel": self.cancel,
             "stop": self.stop,
         }
 
@@ -123,6 +125,7 @@ def render_runtime_owner_status(report: RuntimeOwnerStatusReport) -> list[str]:
             [
                 f"Health: {report.health}",
                 f"Attach: {report.commands.attach}",
+                f"Cancel active turn: {report.commands.cancel}",
                 f"Stop: {report.commands.stop}",
             ]
         )
@@ -147,6 +150,7 @@ def _runtime_owner_commands(cwd: Path, db_path: Path | None) -> RuntimeOwnerComm
         status=f"glassbox daemon status {quoted_location}",
         status_json=f"glassbox daemon status {quoted_location} --json",
         attach=f"glassbox session attach SESSION_ID {quoted_location}",
+        cancel=f"glassbox session cancel SESSION_ID {quoted_location}",
         stop=f"glassbox daemon stop {quoted_location}",
     )
 
