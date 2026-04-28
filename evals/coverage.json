@@ -116,9 +116,14 @@
       "kind": "operator_workflow",
       "criticality": "important",
       "verification_stages": ["advisory"],
-      "expected_case_ids": ["cancellation.cancelled-turn"],
-      "coverage_mode": "single_case",
-      "notes": "Advisory fixture proving cancelled turns replay as explicit evidence rather than generic failures."
+      "expected_case_ids": [
+        "cancellation.cancelled-turn",
+        "cancellation.model-call",
+        "cancellation.tool-execution",
+        "cancellation.repeated-request"
+      ],
+      "coverage_mode": "multi_case",
+      "notes": "Advisory fixtures prove model-call, tool-execution, and repeated/reconnect-sensitive local cancellation evidence replays explicitly rather than as generic failures. Provider remote-computation stop behavior and live socket timing remain advisory or integration evidence."
     }
   ]
 }

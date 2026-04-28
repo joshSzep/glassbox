@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "cancellation.tool-execution",
+  "title": "Tool-execution cancellation remains replay-stable evidence",
+  "bundle_path": "../bundles/cancellation.tool-execution.json",
+  "tags": ["cancellation"],
+  "notes": "Compact deterministic fixture for local tool-execution cancellation evidence, including ToolExecutionCancelled and a tool_execution TurnCancelled stage without wall-clock timing expectations.",
+  "release_contract": {
+    "owner": "runtime.cancellation",
+    "capabilities": ["cancellation"],
+    "severity": "medium",
+    "verification_stages": ["advisory"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-28T00:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-00000000c010",
+      "rationale": "Promoted for GBX-723 to cover local tool-execution cancellation evidence without relying on provider or wall-clock behavior."
+    }
+  ]
+}

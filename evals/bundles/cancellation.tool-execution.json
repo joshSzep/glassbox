@@ -1,0 +1,95 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Run a cancellable workspace tool"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "operator cancelled running tool",
+        "turn_id": "00000000-0000-0000-0000-00000000c011"
+      },
+      {
+        "event": "acknowledged",
+        "turn_id": "00000000-0000-0000-0000-00000000c011"
+      },
+      {
+        "event": "tool_cancelled",
+        "summary": "apply_patch cancelled before completion",
+        "turn_id": "00000000-0000-0000-0000-00000000c011"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "operator cancelled running tool",
+        "stage": "tool_execution",
+        "turn_id": "00000000-0000-0000-0000-00000000c011"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "ModelToolCallRequested",
+      "ToolExecutionStarted",
+      "CancellationRequested",
+      "CancellationAcknowledged",
+      "ToolExecutionCancelled",
+      "TurnStatusChanged",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "questions": [],
+    "tool_calls": [
+      {
+        "status": "cancelled",
+        "summary": "apply_patch cancelled before completion",
+        "tool_name": "apply_patch"
+      }
+    ],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Run a cancellable workspace tool"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-00000000c010",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "reason": "operator cancelled running tool",
+        "stage": "tool_execution",
+        "tool_call_id": "00000000-0000-0000-0000-00000000c012"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

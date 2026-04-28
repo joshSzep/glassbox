@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "cancellation.model-call",
+  "title": "Model-call cancellation remains replay-stable evidence",
+  "bundle_path": "../bundles/cancellation.cancelled-turn.json",
+  "tags": ["cancellation"],
+  "notes": "Names the existing cancelled-turn bundle as explicit model-call-stage cancellation evidence for v7 coverage accounting.",
+  "release_contract": {
+    "owner": "runtime.cancellation",
+    "capabilities": ["cancellation"],
+    "severity": "medium",
+    "verification_stages": ["advisory"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-28T00:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-00000000c000",
+      "rationale": "Promoted for GBX-723 to make model-call-stage cancellation explicit in the multi-case cancellation coverage contract."
+    }
+  ]
+}

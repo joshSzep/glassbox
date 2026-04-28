@@ -51,6 +51,9 @@ Current checked-in cases:
 | `dashboard.action-answer` | advisory dashboard answer action mapped to canonical question events |
 | `daemon.attach-persisted-actions` | advisory daemon attach contract for persisted action history |
 | `cancellation.cancelled-turn` | advisory cancelled-turn evidence |
+| `cancellation.model-call` | advisory model-call-stage cancellation evidence |
+| `cancellation.tool-execution` | advisory tool-execution cancellation evidence |
+| `cancellation.repeated-request` | advisory repeated/reconnect-sensitive cancellation evidence |
 
 Current profiles:
 
@@ -71,8 +74,10 @@ portability, branching, and context inheritance. Current advisory or weak areas:
 - `ask_user_flow` now has advisory deterministic coverage for persisted
   question, answer, and resumed assistant output through `ask-user.answer-resume`;
   operator timing and UI-specific validation remain integration evidence
-- `cancellation` has one advisory case, but model-call, tool-execution, repeated
-  cancellation, and reconnect-sensitive variants are not represented
+- `cancellation` now has advisory multi-case coverage for model-call,
+  tool-execution, and repeated/reconnect-sensitive local cancellation evidence;
+  provider remote-computation stop behavior and live socket timing remain outside
+  deterministic replay
 - dashboard-originated approval and answer actions now have advisory
   deterministic coverage where replay can represent canonical events; explicit
   action-origin metadata is not persisted, so live dashboard route behavior stays
@@ -292,7 +297,7 @@ redacted evidence or explicit skip reasons.
 | --- | --- | --- |
 | Approval eval | advisory deterministic approval case plus integration workflow evidence | denial and live dashboard resolution remain integration-focused |
 | Ask-user eval | advisory deterministic answer-resume case plus integration workflow evidence | operator timing and UI validation remain integration-focused |
-| Cancellation variants | one advisory cancelled-turn eval case | limited model-call, tool-execution, repeated-request, and reconnect variants |
+| Cancellation variants | advisory multi-case replay coverage for model-call, tool-execution, and repeated/reconnect-sensitive evidence | provider remote-computation stop behavior and live socket timing remain advisory or integration evidence |
 | Provider canaries | diagnostics plus limited advisory scenarios | no capability matrix or broad scenario set |
 | Large sessions | performance command and ordinary snapshot/dashboard tests | no measured pagination, virtualization, or large-session gate |
 | Daemon and dashboard actions | advisory replay cases for persisted event semantics plus web/daemon tests | no deterministic action-origin metadata or live process lifecycle replay |

@@ -17,6 +17,29 @@
             ]
         },
         {
+            "rule_id": "runtime-cancellation",
+            "title": "Cancellation runtime surfaces",
+            "path_globs": [
+                "src/glassbox/runtime/cancellation.py",
+                "src/glassbox/runtime/turn_engine.py",
+                "src/glassbox/runtime/turn_event_recorder.py",
+                "src/glassbox/runtime/turn_tool_executor.py",
+                "src/glassbox/runtime/model_loop.py",
+                "src/glassbox/tools/_subprocess.py",
+                "src/glassbox/web/routes/sessions.py",
+                "src/glassbox/cli/*interactive*.py"
+            ],
+            "owners": ["runtime.cancellation"],
+            "capabilities": ["cancellation"],
+            "case_ids": [
+                "cancellation.cancelled-turn",
+                "cancellation.model-call",
+                "cancellation.tool-execution",
+                "cancellation.repeated-request"
+            ],
+            "notes": "Cancellation runtime changes should run the multi-case advisory cancellation set plus focused unit and integration coverage for model calls, local tool cancellation, and subprocess classification."
+        },
+        {
             "rule_id": "runtime-context",
             "title": "Runtime context derivation",
             "path_globs": [

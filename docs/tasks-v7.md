@@ -382,7 +382,7 @@ Completion notes:
 
 ### GBX-723: Expand Cancellation Eval Variants
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-711`
 - Goal: broaden cancellation eval coverage beyond the current cancelled-turn baseline into representative model-call, tool-execution, and reconnect-sensitive variants
 - Deliverables:
@@ -399,6 +399,13 @@ Completion notes:
   - focused cancellation unit and integration tests
 - Done when:
   - cancellation regressions across core local stages are visible in deterministic eval evidence
+
+Completion notes:
+
+- Added `cancellation.model-call`, `cancellation.tool-execution`, and `cancellation.repeated-request` advisory cases, with compact bundles for tool-execution and repeated/reconnect-sensitive cancellation evidence.
+- Updated `cancellation` capability coverage to `multi_case` and added cancellation impact rules for model-loop, turn-engine, turn-event, tool-execution, subprocess, web cancel, and interactive CLI paths.
+- Documented the cancellation replay boundary in [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md): local persisted cancellation evidence is deterministic; provider remote-computation stop behavior, live socket timing, and wall-clock assertions remain outside replay.
+- Validation: `uv run glassbox eval run cancellation.model-call cancellation.tool-execution cancellation.repeated-request --cwd .`, `uv run glassbox eval audit --cwd .`, and focused cancellation unit/integration tests.
 
 ### GBX-724: Add v7 Eval Profile And Release-Signoff Updates
 

@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "cancellation.repeated-request",
+  "title": "Repeated cancellation requests remain replay-stable evidence",
+  "bundle_path": "../bundles/cancellation.repeated-request.json",
+  "tags": ["cancellation"],
+  "notes": "Compact deterministic fixture for reconnect-sensitive repeated cancellation evidence, preserving repeated acknowledgement semantics without socket or wall-clock assumptions.",
+  "release_contract": {
+    "owner": "runtime.cancellation",
+    "capabilities": ["cancellation"],
+    "severity": "medium",
+    "verification_stages": ["advisory"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-28T00:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-00000000c020",
+      "rationale": "Promoted for GBX-723 to cover repeated cancellation acknowledgement and reconnect-sensitive persisted evidence without replaying live sockets."
+    }
+  ]
+}
