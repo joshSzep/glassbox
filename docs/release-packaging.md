@@ -16,6 +16,40 @@ pnpm --dir frontend build
 
 The frontend build exports the Next.js app and copies `frontend/out/` into `src/glassbox/web/static_next/`. The `pyproject.toml` wheel and sdist targets include `src/glassbox/web/static_next/**` as release artifacts.
 
+## Installed Users Versus Source Builders
+
+Installed-package users should only need Python and the packaged wheel. They can
+run these commands without Node.js or pnpm:
+
+```sh
+glassbox --help
+glassbox provider diagnostics --cwd .
+glassbox session chat --plain --no-dashboard --cwd .
+glassbox dashboard serve --cwd .
+glassbox daemon status --cwd .
+glassbox eval profile list --cwd .
+```
+
+Source builders need Python 3.14, `uv`, Node.js 24 through Corepack, pnpm, and a
+fresh frontend static export. Build from source in this order:
+
+```sh
+uv sync
+corepack enable
+pnpm --dir frontend install --frozen-lockfile
+pnpm --dir frontend api:generate
+pnpm --dir frontend build
+uv run python scripts/validate_frontend_release_assets.py
+uv build --wheel --sdist
+uv run python scripts/validate_package_contents.py
+```
+
+If generated API files are stale, `pnpm --dir frontend api:generate` followed by
+the gate's generated-API diff check should show the changed files. If packaged
+dashboard assets are stale or missing, `scripts/validate_frontend_release_assets.py`
+reports the missing generated API file, missing `index.html`, or missing
+`/app/_next/...` asset reference before the package is built.
+
 ## Validate Before Packaging
 
 Run the normal repository gates:
@@ -39,9 +73,16 @@ The v6 release gate also refreshes generated API files with `pnpm --dir frontend
 
 For release candidates, install the built wheel into a clean environment and run:
 
+Use `uv run --no-project --refresh --isolated --with dist/glassbox-*.whl ...`
+when smoking a rebuilt wheel with the same project version from a source
+checkout. `--no-project` prevents the checkout from shadowing the installed
+wheel, and `--refresh` prevents uv from reusing an older cached install.
+
 ```sh
 glassbox --help
 glassbox command tree
+glassbox provider diagnostics --cwd . --model-name openai:gpt-5.4
+glassbox provider diagnostics --cwd <profile-workspace>
 glassbox session chat --help
 glassbox session attach --help
 glassbox session chat --plain --no-dashboard --cwd .
@@ -49,10 +90,18 @@ glassbox dashboard serve --cwd . --host 127.0.0.1 --port 8765
 glassbox daemon status --json --cwd .
 glassbox daemon start --cwd . --host 127.0.0.1 --port 8766
 glassbox daemon stop --cwd .
+glassbox eval profile list --cwd .
 glassbox eval run smoke.hello --cwd .
 ```
 
 `glassbox --help`, `command tree`, `session chat --help`, and `session attach --help` prove the installed console script can import the command inventory and TUI dependency stack. The explicit `--plain` smoke protects fallback behavior in clean environments where a full-screen TUI is not practical. The v6 gate starts the dashboard from the installed wheel and requests `/`, `/app`, and one referenced `/app/_next/...` asset without a Node process. It also runs daemon status/start/stop in a temporary workspace and executes the deterministic `smoke.hello` eval against copied eval fixtures.
+
+The v7 smoke matrix also runs provider diagnostics with an explicit model,
+provider diagnostics against an example `glassbox.profile.json`, and eval profile
+listing before the deterministic eval smoke. Retain clean-environment smoke notes
+under `.glassbox/releases/YYYYMMDDTHHMMSSZ-v7-gate/onboarding/` or
+`.glassbox/releases/YYYYMMDDTHHMMSSZ-v7-gate/packaging/` when preparing a v7
+candidate.
 
 Known terminal limitations for this release candidate:
 
@@ -69,10 +118,10 @@ Known terminal limitations for this release candidate:
 - `uv build --wheel --sdist` produced distributions containing `glassbox/web/static_next/`, runtime package modules, source docs, TUI dependency metadata, and the `glassbox` console script.
 - `uv run python scripts/validate_package_contents.py` passed against the built wheel and sdist.
 - Package metadata includes `textual>=6,<7` and the `glassbox` console script.
-- Installed-package terminal smoke passed for root help, `command tree`, `session chat --help`, `session attach --help`, and explicit plain fallback.
+- Installed-package terminal smoke passed for root help, `command tree`, `session chat --help`, `session attach --help`, explicit plain fallback, provider diagnostics, and profile-example diagnostics.
 - Installed-package dashboard smoke passed for `/`, `/app`, and a representative static asset without Node.js running.
 - Installed-package daemon smoke passed for status/start/stop in a temporary workspace.
-- Installed-package deterministic eval smoke passed for `smoke.hello` in a temporary workspace with copied eval fixtures.
+- Installed-package eval smoke passed for profile listing and `smoke.hello` in a temporary workspace with copied eval fixtures.
 
 ## v6 Release Hardening
 

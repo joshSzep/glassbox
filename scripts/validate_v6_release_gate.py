@@ -286,6 +286,7 @@ def _run_installed_wheel_smoke(summary: dict[str, Any], wheel_path: Path) -> int
     with tempfile.TemporaryDirectory(prefix="glassbox-v6-gate-") as temp_dir:
         smoke_root = Path(temp_dir)
         _prepare_eval_smoke_workspace(smoke_root / "eval")
+        _prepare_profile_smoke_workspace(smoke_root / "profile")
 
         smoke_checks = build_installed_wheel_smoke_checks(wheel_path, smoke_root)
         daemon_stop_check = next(
@@ -323,6 +324,8 @@ def build_installed_wheel_smoke_checks(
     """Return installed-wheel smoke commands for isolated workspaces."""
 
     terminal_workspace = smoke_root / "terminal"
+    provider_workspace = smoke_root / "provider"
+    profile_workspace = smoke_root / "profile"
     daemon_workspace = smoke_root / "daemon"
     eval_workspace = smoke_root / "eval"
     daemon_host = "127.0.0.1"
@@ -356,6 +359,28 @@ def build_installed_wheel_smoke_checks(
                 str(terminal_workspace),
             ),
             input_text="/exit\n",
+        ),
+        InstalledSmokeCheck(
+            "installed first-run: provider diagnostics",
+            _installed_glassbox_command(
+                wheel_path,
+                "provider",
+                "diagnostics",
+                "--cwd",
+                str(provider_workspace),
+                "--model-name",
+                "openai:gpt-5.4",
+            ),
+        ),
+        InstalledSmokeCheck(
+            "installed first-run: profile example",
+            _installed_glassbox_command(
+                wheel_path,
+                "provider",
+                "diagnostics",
+                "--cwd",
+                str(profile_workspace),
+            ),
         ),
         InstalledSmokeCheck(
             "installed daemon: status before start",
@@ -404,6 +429,17 @@ def build_installed_wheel_smoke_checks(
             ),
         ),
         InstalledSmokeCheck(
+            "installed eval: profile list",
+            _installed_glassbox_command(
+                wheel_path,
+                "eval",
+                "profile",
+                "list",
+                "--cwd",
+                str(eval_workspace),
+            ),
+        ),
+        InstalledSmokeCheck(
             "installed eval: deterministic smoke",
             _installed_glassbox_command(
                 wheel_path,
@@ -442,6 +478,8 @@ def _installed_glassbox_command(wheel_path: Path, *args: str) -> tuple[str, ...]
     return (
         "uv",
         "run",
+        "--no-project",
+        "--refresh",
         "--isolated",
         "--with",
         str(wheel_path),
@@ -518,6 +556,25 @@ def _run_installed_dashboard_static_smoke(
 def _prepare_eval_smoke_workspace(workspace: Path) -> None:
     workspace.mkdir(parents=True, exist_ok=True)
     shutil.copytree(REPO_ROOT / "evals", workspace / "evals")
+
+
+def _prepare_profile_smoke_workspace(workspace: Path) -> None:
+    workspace.mkdir(parents=True, exist_ok=True)
+    (workspace / "glassbox.profile.json").write_text(
+        json.dumps(
+            {
+                "profile_version": 1,
+                "runtime": {
+                    "model_name": "local-test-model",
+                    "approval_mode": "never",
+                },
+                "verification": {"eval_profile": "commit-smoke"},
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
 
 def _allocate_local_port() -> int:

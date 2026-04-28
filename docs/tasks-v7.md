@@ -1099,7 +1099,7 @@ Completion notes:
 
 ### GBX-782: Harden Installed Package And Source Builder Onboarding
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-781`, `GBX-744`
 - Goal: reduce setup friction and packaging surprises for installed-package users and source builders
 - Deliverables:
@@ -1117,6 +1117,12 @@ Completion notes:
   - frontend build and static asset validation if packaged dashboard changes
 - Done when:
   - installed users and source builders have tested, documented setup paths
+
+Completion notes:
+
+- Expanded installed-wheel smoke with first-run provider diagnostics, provider diagnostics against an example `glassbox.profile.json`, and eval profile listing alongside the existing terminal, dashboard, daemon, and deterministic eval checks.
+- Package content validation now requires the first-run/provider/profile/manual-evidence docs that source builders and release reviewers need in sdists.
+- Updated [release-packaging.md](./release-packaging.md), [v6-release-gate.md](./v6-release-gate.md), and [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md) to separate installed-user expectations from source-builder requirements and to name the v7 clean-environment evidence path.
 
 ### GBX-783: Add The v7 Release Gate Or Extend The v6 Gate
 

@@ -22,7 +22,11 @@ SDIST_REQUIRED_SUFFIXES = (
     "README.md",
     "LICENSE",
     "pyproject.toml",
+    "docs/getting-started.md",
+    "docs/providers.md",
     "docs/release-packaging.md",
+    "docs/workspace-profiles.md",
+    "docs/manual-qa-evidence-v7.md",
     "src/glassbox/web/static_next/index.html",
 )
 SDIST_REQUIRED_PREFIXES = ("src/glassbox/web/static_next/_next/",)

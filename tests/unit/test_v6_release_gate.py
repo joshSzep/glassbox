@@ -33,8 +33,11 @@ def test_v6_release_gate_script_runs_expected_checks() -> None:
         "package contents validation",
         "installed wheel smoke",
         "installed terminal: root help",
+        "installed first-run: provider diagnostics",
+        "installed first-run: profile example",
         "installed daemon: start",
         "installed dashboard: static routes",
+        "installed eval: profile list",
         "installed eval: deterministic smoke",
         "--evidence-dir",
         "summary.json",
@@ -136,16 +139,34 @@ def test_v6_release_gate_builds_installed_smoke_matrix(tmp_path: Path) -> None:
         "installed terminal: chat help",
         "installed terminal: attach help",
         "installed terminal: plain fallback",
+        "installed first-run: provider diagnostics",
+        "installed first-run: profile example",
         "installed daemon: status before start",
         "installed daemon: start",
         "installed daemon: status after start",
         "installed daemon: stop",
+        "installed eval: profile list",
         "installed eval: deterministic smoke",
     ]
-    expected_prefix = ("uv", "run", "--isolated", "--with", str(wheel_path))
-    assert all(check.command[:5] == expected_prefix for check in checks)
+    expected_prefix = (
+        "uv",
+        "run",
+        "--no-project",
+        "--refresh",
+        "--isolated",
+        "--with",
+        str(wheel_path),
+    )
+    assert all(check.command[:7] == expected_prefix for check in checks)
     assert checks[4].input_text == "/exit\n"
-    assert "9876" in checks[6].command
+    assert checks[5].command[-4:] == (
+        "--cwd",
+        str(tmp_path / "provider"),
+        "--model-name",
+        "openai:gpt-5.4",
+    )
+    assert checks[6].command[-2:] == ("--cwd", str(tmp_path / "profile"))
+    assert "9876" in checks[8].command
 
 
 def test_v6_release_gate_builds_dashboard_smoke_command(tmp_path: Path) -> None:
@@ -157,7 +178,15 @@ def test_v6_release_gate_builds_dashboard_smoke_command(tmp_path: Path) -> None:
         port=9877,
     )
 
-    assert command[:5] == ("uv", "run", "--isolated", "--with", str(wheel_path))
+    assert command[:7] == (
+        "uv",
+        "run",
+        "--no-project",
+        "--refresh",
+        "--isolated",
+        "--with",
+        str(wheel_path),
+    )
     assert command[-6:] == (
         "--cwd",
         str(tmp_path),
@@ -180,8 +209,11 @@ def test_v6_release_gate_doc_maps_script_stages() -> None:
         "installed terminal: chat help",
         "installed terminal: attach help",
         "installed terminal: plain fallback",
+        "installed first-run: provider diagnostics",
+        "installed first-run: profile example",
         "installed daemon: start",
         "installed dashboard: static routes",
+        "installed eval: profile list",
         "installed eval: deterministic smoke",
     ]:
         assert f"`{smoke_label}`" in doc

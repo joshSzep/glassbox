@@ -81,6 +81,10 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     problems = validate_sdist_contents(sdist_path)
 
     assert "sdist missing required file: docs/release-packaging.md" in problems
+    assert "sdist missing required file: docs/getting-started.md" in problems
+    assert "sdist missing required file: docs/providers.md" in problems
+    assert "sdist missing required file: docs/workspace-profiles.md" in problems
+    assert "sdist missing required file: docs/manual-qa-evidence-v7.md" in problems
     assert (
         "sdist missing required file: src/glassbox/web/static_next/index.html"
         in problems
@@ -121,8 +125,28 @@ def _write_sdist(
         if include_docs:
             _add_tar_text(
                 sdist,
+                "glassbox-0.1.0/docs/getting-started.md",
+                "# Getting Started\n",
+            )
+            _add_tar_text(
+                sdist,
+                "glassbox-0.1.0/docs/providers.md",
+                "# Provider Setup\n",
+            )
+            _add_tar_text(
+                sdist,
                 "glassbox-0.1.0/docs/release-packaging.md",
                 "# Release Packaging\n",
+            )
+            _add_tar_text(
+                sdist,
+                "glassbox-0.1.0/docs/workspace-profiles.md",
+                "# Workspace Profiles\n",
+            )
+            _add_tar_text(
+                sdist,
+                "glassbox-0.1.0/docs/manual-qa-evidence-v7.md",
+                "# v7 Manual QA Evidence Archive\n",
             )
         if include_static_assets:
             _add_tar_text(

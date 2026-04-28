@@ -63,10 +63,13 @@ After package validation, the gate runs installed-wheel smoke from the newest
 | `installed terminal: chat help` | interactive chat parser and TUI dependency stack import |
 | `installed terminal: attach help` | attach parser and TUI dependency stack import |
 | `installed terminal: plain fallback` | explicit plain mode starts and exits in a clean workspace |
+| `installed first-run: provider diagnostics` | provider diagnostics and first-run checklist run without Node.js        |
+| `installed first-run: profile example`      | an example `glassbox.profile.json` is accepted by installed diagnostics |
 | `installed daemon: status before start` | daemon status is scriptable before ownership exists |
 | `installed daemon: start` | daemon starts from the installed wheel |
 | `installed daemon: status after start` | daemon reports running state after start |
 | `installed daemon: stop` | daemon stops and releases ownership metadata |
+| `installed eval: profile list` | installed eval profile listing can read packaged/copied eval fixtures |
 | `installed eval: deterministic smoke` | installed eval runner executes `smoke.hello` |
 | `installed dashboard: static routes` | installed dashboard serves `/`, `/app`, and a `_next` asset |
 

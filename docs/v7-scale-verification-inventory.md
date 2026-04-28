@@ -343,7 +343,8 @@ Current onboarding and packaging paths include:
 - workspace profile docs
 - release packaging docs
 - package content validation
-- installed terminal, daemon, dashboard, and eval smoke in the v6 gate
+- installed terminal, first-run diagnostics, profile-example, daemon, dashboard,
+  eval profile listing, and eval smoke in the release gate
 
 Current strengths:
 
@@ -355,14 +356,14 @@ Current strengths:
 
 Current weak areas:
 
-- first-run provider and profile guidance is spread across multiple docs
-- installed-package smoke is intentionally short
-- source-builder stale asset and generated API guidance could be more visible
-- example profile snippets could reduce first-session friction
+- installed-package smoke is intentionally short and should remain a smoke, not
+  a full manual QA substitute
+- source-builder stale asset and generated API guidance is documented, but v7
+  release evidence still needs a clean-environment run
 
-Recommended v7 action: improve first-run provider and profile onboarding in
-`GBX-781`, harden installed-package and source-builder onboarding in `GBX-782`,
-then include those expectations in `GBX-783` through `GBX-785`.
+Recommended v7 action: include the GBX-781/GBX-782 onboarding and package smoke
+expectations in `GBX-783` through `GBX-785`, with clean-environment evidence
+retained under the v7 release path.
 
 ## Recommended v7 Gate Membership
 
