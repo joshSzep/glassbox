@@ -264,6 +264,16 @@ class FakeSessionService:
     ) -> SessionState:
         return SessionState(session_id=session_id, status=SessionStatus.COMPLETED)
 
+    async def cancel_turn(
+        self,
+        session_id,
+        turn_id=None,
+        *,
+        requested_by: str = "operator",
+        reason: str | None = None,
+    ) -> None:
+        return None
+
     async def submit_user_message(self, session_id, text: str) -> None:
         return None
 

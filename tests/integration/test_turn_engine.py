@@ -18,6 +18,7 @@ from glassbox.core import EventEnvelope
 from glassbox.core import SessionConfig
 from glassbox.core import SessionStatus
 from glassbox.core.events import ReplayArtifactRecorded
+from glassbox.core.events import TurnCancelled
 from glassbox.llm import ModelProviderConfig
 from glassbox.llm import PydanticAIModelAdapter
 from glassbox.llm import PydanticAIModelExecutor
@@ -346,6 +347,89 @@ def test_turn_engine_records_replay_manifests_for_text_only_turn(
         )
         assert turn_output_manifest["outcome"] == "completed"
         assert turn_output_manifest["assistant_text"] == "Repo inspection complete."
+
+    asyncio.run(scenario())
+
+
+def test_turn_engine_records_cancelled_turn_for_in_flight_model_call(
+    tmp_path: Path,
+) -> None:
+    started = asyncio.Event()
+
+    async def blocking_stream_response(_messages, _agent_info):
+        started.set()
+        await asyncio.Event().wait()
+        yield "unreachable"
+
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = TurnEngine(
+                repository,
+                bus,
+                TurnContextBuilder(repository),
+                lambda _session: PydanticAIModelAdapter(
+                    ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+                ),
+                lambda _session: PydanticAIModelExecutor(
+                    FunctionModel(
+                        function=_function_model_response,
+                        stream_function=blocking_stream_response,
+                        model_name="openai:gpt-5.4",
+                    )
+                ),
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+
+            state = await supervisor.start_session(config)
+            submit_task = asyncio.create_task(
+                supervisor.submit_user_message(state.session_id, "Inspect the repo")
+            )
+            await started.wait()
+            await supervisor.cancel_turn(
+                state.session_id,
+                requested_by="test",
+                reason="operator requested cancellation",
+            )
+            await submit_task
+
+            persisted_events = repository.read_session_events(state.session_id)
+            session_state = repository.get_session_state(state.session_id)
+        finally:
+            connection.close()
+
+        assert [
+            event.event_type
+            for event in persisted_events
+            if event.event_type
+            in {
+                "CancellationRequested",
+                "CancellationAcknowledged",
+                "TurnCancelled",
+                "TurnCompleted",
+            }
+        ][-4:] == [
+            "CancellationRequested",
+            "CancellationAcknowledged",
+            "TurnCancelled",
+            "TurnCompleted",
+        ]
+        turn_cancelled = next(
+            event.payload
+            for event in persisted_events
+            if isinstance(event.payload, TurnCancelled)
+        )
+        assert turn_cancelled.stage == "model_call"
+        assert session_state is not None
+        assert session_state.status == SessionStatus.RUNNING
+        assert session_state.current_turn_id is None
 
     asyncio.run(scenario())
 

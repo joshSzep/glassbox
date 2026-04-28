@@ -1,7 +1,9 @@
 """Shared model-loop control flow for live turns and replay-backed execution."""
 
+import asyncio
 from collections.abc import Awaitable
 from collections.abc import Callable
+from contextlib import suppress
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import UTC
@@ -19,6 +21,8 @@ from glassbox.llm import ModelExecutionResult
 from glassbox.llm import ModelExecutor
 from glassbox.llm import ModelToolCall
 from glassbox.llm import PreparedModelTurn
+from glassbox.runtime.cancellation import TurnCancellationController
+from glassbox.runtime.cancellation import TurnCancellationRequested
 
 type ModelLoopSuspension = Literal["awaiting_approval", "awaiting_user_input"]
 
@@ -89,6 +93,7 @@ class ModelLoopRunner:
         state: ModelConversationState,
         model_adapter: ModelAdapter,
         model_executor: ModelExecutor,
+        cancellation_controller: TurnCancellationController | None = None,
         on_model_call_start: ModelCallStartHandler,
         on_record_model_call: ModelCallRecordHandler,
         on_stream_event: StreamEventHandler,
@@ -97,6 +102,8 @@ class ModelLoopRunner:
         on_assistant_completed: AssistantCompleteHandler,
     ) -> ModelLoopSuspension | None:
         while True:
+            if cancellation_controller is not None:
+                cancellation_controller.raise_if_requested("preparation")
             call_index = state.next_model_call_index()
             continuation_turn = state.continuation_turn()
             on_model_call_start(
@@ -108,16 +115,22 @@ class ModelLoopRunner:
             on_record_model_call(continuation_turn, call_index)
 
             start = perf_counter()
-            result = await model_executor.execute_stream(
+            result = await _execute_stream_with_cancellation(
+                model_executor,
                 continuation_turn,
                 stream_translator=model_adapter.new_stream_translator(),
                 on_event=on_stream_event,
+                cancellation_controller=cancellation_controller,
             )
             duration_ms = max(0, int((perf_counter() - start) * 1000))
+            if cancellation_controller is not None:
+                cancellation_controller.raise_if_requested("model_call")
             on_model_call_completed(result, call_index, duration_ms)
 
             if result.tool_calls:
                 state.append_message(result.model_response)
+                if cancellation_controller is not None:
+                    cancellation_controller.raise_if_requested("tool_execution")
                 tool_loop_outcome = await on_tool_calls(result.tool_calls, state)
                 if tool_loop_outcome is not None:
                     return tool_loop_outcome
@@ -151,3 +164,48 @@ def initial_model_messages(prepared_turn: PreparedModelTurn) -> list[ModelMessag
         )
     )
     return messages
+
+
+async def _execute_stream_with_cancellation(
+    model_executor: ModelExecutor,
+    continuation_turn: PreparedModelTurn,
+    *,
+    stream_translator,
+    on_event: StreamEventHandler,
+    cancellation_controller: TurnCancellationController | None,
+):
+    if cancellation_controller is None:
+        return await model_executor.execute_stream(
+            continuation_turn,
+            stream_translator=stream_translator,
+            on_event=on_event,
+        )
+
+    execute_task = asyncio.create_task(
+        model_executor.execute_stream(
+            continuation_turn,
+            stream_translator=stream_translator,
+            on_event=on_event,
+        )
+    )
+    cancel_task = asyncio.create_task(cancellation_controller.wait())
+    done, pending = await asyncio.wait(
+        {execute_task, cancel_task},
+        return_when=asyncio.FIRST_COMPLETED,
+    )
+    if cancel_task in done and execute_task not in done:
+        execute_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await execute_task
+        snapshot = cancel_task.result()
+        raise TurnCancellationRequested(
+            stage="model_call",
+            reason=snapshot.reason or "operator requested cancellation",
+        )
+
+    cancel_task.cancel()
+    for task in pending:
+        task.cancel()
+    with suppress(asyncio.CancelledError):
+        await cancel_task
+    return execute_task.result()

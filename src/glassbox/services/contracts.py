@@ -255,6 +255,15 @@ class SessionService(Protocol):
         reason: str = "stopped",
     ) -> SessionState: ...
 
+    async def cancel_turn(
+        self,
+        session_id: SessionId,
+        turn_id: TurnId | None = None,
+        *,
+        requested_by: str = "operator",
+        reason: str | None = None,
+    ) -> None: ...
+
     async def submit_user_message(self, session_id: SessionId, text: str) -> None: ...
 
     async def resolve_approval(

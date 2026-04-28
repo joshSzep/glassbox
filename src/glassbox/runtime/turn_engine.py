@@ -18,6 +18,8 @@ from glassbox.llm import ModelAdapter
 from glassbox.llm import ModelExecutor
 from glassbox.llm import ModelToolCall
 from glassbox.llm import PreparedModelTurn
+from glassbox.runtime.cancellation import TurnCancellationController
+from glassbox.runtime.cancellation import TurnCancellationRequested
 from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.logging import get_runtime_logger
 from glassbox.runtime.logging import runtime_log_extra
@@ -84,6 +86,7 @@ class TurnEngine:
         )
         self._turn_resumption = SuspendedTurnResumption(session_repository)
         self._tool_executor = TurnToolExecutor(self._event_recorder)
+        self._active_cancellations: dict[object, TurnCancellationController] = {}
 
     async def run_for_user_message(self, event: EventEnvelope) -> None:
         """Process one persisted user message through the turn execution flow."""
@@ -252,9 +255,13 @@ class TurnEngine:
         before_model_loop: PreparedTurnHook | None = None,
     ) -> None:
         try:
+            cancellation_controller = TurnCancellationController(turn_id)
+            self._active_cancellations[session_id] = cancellation_controller
             prepared_run = self._turn_preparation.prepare(session_id, session)
+            cancellation_controller.raise_if_requested("preparation")
             if before_model_loop is not None:
                 await before_model_loop(prepared_run)
+                cancellation_controller.raise_if_requested("resumption")
 
             await self._run_model_loop(
                 session_id,
@@ -268,6 +275,14 @@ class TurnEngine:
                 assistant_message_id=assistant_message_id,
                 assistant_started=assistant_started,
                 starting_model_call_index=starting_model_call_index,
+                cancellation_controller=cancellation_controller,
+            )
+        except TurnCancellationRequested as exc:
+            self._event_recorder.record_cancelled_turn(
+                session_id,
+                turn_id=turn_id,
+                reason=exc.reason,
+                stage=exc.stage,
             )
         except Exception as exc:
             self._event_recorder.record_failed_turn(
@@ -279,6 +294,34 @@ class TurnEngine:
                 question_id=question_id,
             )
             raise
+        finally:
+            active_controller = self._active_cancellations.get(session_id)
+            if active_controller is not None and active_controller.turn_id == turn_id:
+                self._active_cancellations.pop(session_id, None)
+
+    def request_turn_cancellation(
+        self,
+        session_id,
+        *,
+        turn_id=None,
+        requested_by: str = "operator",
+        reason: str | None = None,
+    ) -> bool:
+        controller = self._active_cancellations.get(session_id)
+        if controller is None:
+            return False
+        if turn_id is not None and controller.turn_id != turn_id:
+            return False
+
+        repeated = controller.request(reason)
+        self._event_recorder.record_cancellation_requested(
+            session_id,
+            turn_id=controller.turn_id,
+            requested_by=requested_by,
+            reason=reason,
+            repeated=repeated,
+        )
+        return True
 
     async def _run_model_loop(
         self,
@@ -294,6 +337,7 @@ class TurnEngine:
         assistant_message_id: MessageId,
         assistant_started: bool,
         starting_model_call_index: int,
+        cancellation_controller: TurnCancellationController | None,
     ) -> None:
         """Run the model call + tool execution loop to completion or suspension."""
 
@@ -370,6 +414,7 @@ class TurnEngine:
             state=state,
             model_adapter=model_adapter,
             model_executor=model_executor,
+            cancellation_controller=cancellation_controller,
             on_model_call_start=on_model_call_start,
             on_record_model_call=on_record_model_call,
             on_stream_event=on_stream_event,

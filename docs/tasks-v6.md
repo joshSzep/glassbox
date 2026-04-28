@@ -372,7 +372,7 @@ Completion notes:
 
 ### GBX-651: Thread Cancellation Through Turn Execution
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-650`
 - Goal: make the turn engine and model loop respond to a runtime cancellation request during an active turn
 - Deliverables:
@@ -392,6 +392,13 @@ Completion notes:
   - `uv run ty check`
 - Done when:
   - active turns can be cancelled in deterministic runtime tests with clear persisted outcomes
+
+Completion notes:
+
+- Added cooperative turn cancellation primitives in `runtime/cancellation.py` and threaded them through `ModelLoopRunner`, `TurnEngine`, and `SessionSupervisor.cancel_turn`.
+- Active model calls are raced against a cancellation request so the runtime records `CancellationRequested`, `CancellationAcknowledged`, `TurnCancelled`, and `TurnCompleted(outcome="cancelled")` instead of relying on unobserved task cancellation.
+- Added focused model-loop tests for cancellation before a model call and during an in-flight model call, plus a turn-engine integration test for persisted cancellation outcomes.
+- Validation: `uv run pytest tests/unit/test_model_loop.py tests/integration/test_turn_engine.py` and `uv run ty check`.
 
 ### GBX-652: Make Tool Execution Cancellable
 

@@ -3,18 +3,22 @@
 import asyncio
 from typing import cast
 
+import pytest
 from pydantic_ai.messages import ModelRequest
 from pydantic_ai.messages import ModelResponse
 from pydantic_ai.messages import TextPart
 from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.models import ModelRequestParameters
 
+from glassbox.core import new_turn_id
 from glassbox.llm import ModelExecutionResult
 from glassbox.llm import ModelProviderConfig
 from glassbox.llm import ModelTextDelta
 from glassbox.llm import ModelToolCall
 from glassbox.llm import PreparedModelTurn
 from glassbox.llm import PydanticAIModelAdapter
+from glassbox.runtime.cancellation import TurnCancellationController
+from glassbox.runtime.cancellation import TurnCancellationRequested
 from glassbox.runtime.model_loop import ModelConversationState
 from glassbox.runtime.model_loop import ModelLoopRunner
 
@@ -46,6 +50,32 @@ class _FakeExecutor:
         for chunk in _text_chunks(result.assistant_text):
             on_event(ModelTextDelta(text=chunk))
         return result
+
+
+class _BlockingExecutor:
+    def __init__(self) -> None:
+        self.started = asyncio.Event()
+
+    async def execute(self, prepared_turn: PreparedModelTurn) -> ModelExecutionResult:
+        return await self.execute_stream(
+            prepared_turn,
+            stream_translator=PydanticAIModelAdapter(
+                ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+            ).new_stream_translator(),
+            on_event=lambda _event: None,
+        )
+
+    async def execute_stream(
+        self,
+        prepared_turn: PreparedModelTurn,
+        *,
+        stream_translator,
+        on_event,
+    ) -> ModelExecutionResult:
+        del prepared_turn, stream_translator, on_event
+        self.started.set()
+        await asyncio.Event().wait()
+        raise AssertionError("blocking executor should be cancelled")
 
 
 def test_model_loop_runner_completes_text_only_response() -> None:
@@ -205,6 +235,75 @@ def test_model_loop_runner_returns_typed_suspension() -> None:
 
         assert suspension == "awaiting_user_input"
         assert completed == []
+
+    asyncio.run(scenario())
+
+
+def test_model_loop_runner_stops_before_model_call_when_already_cancelled() -> None:
+    async def scenario() -> None:
+        runner = ModelLoopRunner()
+        state = ModelConversationState.from_prepared_turn(_prepared_turn())
+        adapter = PydanticAIModelAdapter(
+            ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+        )
+        executor = _FakeExecutor([_text_result("should not run")])
+        cancellation = TurnCancellationController(new_turn_id())
+        cancellation.request("operator requested cancellation")
+
+        try:
+            await runner.run(
+                state=state,
+                model_adapter=adapter,
+                model_executor=executor,
+                cancellation_controller=cancellation,
+                on_model_call_start=lambda *_args: None,
+                on_record_model_call=lambda *_args: None,
+                on_stream_event=lambda _event: None,
+                on_model_call_completed=lambda *_args: None,
+                on_tool_calls=_unexpected_tool_calls,
+                on_assistant_completed=lambda _assistant_text: None,
+            )
+        except TurnCancellationRequested as exc:
+            assert exc.stage == "preparation"
+        else:
+            raise AssertionError("expected cancellation")
+
+        assert executor.calls == []
+
+    asyncio.run(scenario())
+
+
+def test_model_loop_runner_cancels_in_flight_model_call() -> None:
+    async def scenario() -> None:
+        runner = ModelLoopRunner()
+        state = ModelConversationState.from_prepared_turn(_prepared_turn())
+        adapter = PydanticAIModelAdapter(
+            ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+        )
+        executor = _BlockingExecutor()
+        cancellation = TurnCancellationController(new_turn_id())
+
+        run_task = asyncio.create_task(
+            runner.run(
+                state=state,
+                model_adapter=adapter,
+                model_executor=executor,
+                cancellation_controller=cancellation,
+                on_model_call_start=lambda *_args: None,
+                on_record_model_call=lambda *_args: None,
+                on_stream_event=lambda _event: None,
+                on_model_call_completed=lambda *_args: None,
+                on_tool_calls=_unexpected_tool_calls,
+                on_assistant_completed=lambda _assistant_text: None,
+            )
+        )
+        await executor.started.wait()
+        cancellation.request("operator requested cancellation")
+
+        with pytest.raises(TurnCancellationRequested) as exc_info:
+            await run_task
+
+        assert exc_info.value.stage == "model_call"
 
     asyncio.run(scenario())
 

@@ -221,6 +221,34 @@ class SessionSupervisor(SessionService):
         )
         return self._require_session_state(session_id)
 
+    async def cancel_turn(
+        self,
+        session_id: SessionId,
+        turn_id: TurnId | None = None,
+        *,
+        requested_by: str = "operator",
+        reason: str | None = None,
+    ) -> None:
+        state = self._require_session_state(session_id)
+        self._ensure_session_is_active(state, action="cancel turn for")
+        if self._turn_engine is None or not self._turn_engine.request_turn_cancellation(
+            session_id,
+            turn_id=turn_id,
+            requested_by=requested_by,
+            reason=reason,
+        ):
+            raise ValueError(f"session {session_id} has no cancellable active turn")
+
+        logger.info(
+            "turn_cancellation_requested",
+            extra=runtime_log_extra(
+                runtime_event="turn_cancellation_requested",
+                session_id=session_id,
+                turn_id=turn_id,
+                requested_by=requested_by,
+            ),
+        )
+
     async def submit_user_message(self, session_id: SessionId, text: str) -> None:
         state = self._require_session_state(session_id)
         self._ensure_session_can_accept_input(state)

@@ -8,10 +8,15 @@ from typing import cast
 from glassbox.core.events import AssistantMessageCompleted
 from glassbox.core.events import AssistantMessageDelta
 from glassbox.core.events import AssistantMessageStarted
+from glassbox.core.events import CancellationAcknowledged
+from glassbox.core.events import CancellationFailed
+from glassbox.core.events import CancellationRequested
+from glassbox.core.events import CancellationStage
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import ModelCallCompleted
 from glassbox.core.events import ModelCallStarted
 from glassbox.core.events import SessionFailed
+from glassbox.core.events import TurnCancelled
 from glassbox.core.events import TurnCompleted
 from glassbox.core.events import TurnFailed
 from glassbox.core.events import TurnStarted
@@ -257,6 +262,89 @@ class TurnEventRecorder:
                 "approval_id": str(approval_id) if approval_id is not None else None,
                 "question_id": str(question_id) if question_id is not None else None,
             },
+        )
+
+    def record_cancellation_requested(
+        self,
+        session_id,
+        *,
+        turn_id,
+        requested_by: str,
+        reason: str | None,
+        repeated: bool,
+    ) -> None:
+        self._append_and_publish(
+            session_id,
+            [
+                CancellationRequested(
+                    turn_id=turn_id,
+                    requested_by=requested_by,
+                    reason=reason,
+                ),
+                CancellationAcknowledged(
+                    turn_id=turn_id,
+                    repeated=repeated,
+                ),
+                TurnStatusChanged(
+                    turn_id=turn_id,
+                    status=TurnStatus.CANCELLING,
+                ),
+            ],
+        )
+
+    def record_cancelled_turn(
+        self,
+        session_id,
+        *,
+        turn_id,
+        reason: str,
+        stage: CancellationStage,
+    ) -> None:
+        logger.info(
+            "turn_cancelled",
+            extra=runtime_log_extra(
+                runtime_event="turn_cancelled",
+                session_id=session_id,
+                turn_id=turn_id,
+                stage=stage,
+                reason=reason,
+            ),
+        )
+        self._append_and_publish(
+            session_id,
+            [
+                TurnStatusChanged(
+                    turn_id=turn_id,
+                    status=TurnStatus.CANCELLED,
+                ),
+                TurnCancelled(turn_id=turn_id, reason=reason, stage=stage),
+                TurnCompleted(turn_id=turn_id, outcome="cancelled"),
+            ],
+        )
+        self._record_replay_turn_output(
+            session_id,
+            turn_id=turn_id,
+            outcome="cancelled",
+            details={"reason": reason, "stage": stage},
+        )
+
+    def record_cancellation_failed(
+        self,
+        session_id,
+        *,
+        turn_id,
+        reason: str,
+        retryable: bool = False,
+    ) -> None:
+        self._append_and_publish(
+            session_id,
+            [
+                CancellationFailed(
+                    turn_id=turn_id,
+                    reason=reason,
+                    retryable=retryable,
+                )
+            ],
         )
 
     def _append_and_publish(
