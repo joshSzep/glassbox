@@ -99,8 +99,12 @@ def test_tui_app_declares_latest_activity_keybinding() -> None:
 
 def test_tui_app_declares_prompt_submit_keybinding() -> None:
     assert any(
-        binding.key == "ctrl+enter" and binding.action == "submit_prompt"
-        for binding in TUI_KEY_BINDINGS
+        binding.key == "enter" and binding.action == "submit_prompt"
+        for binding in ComposerWidget.BINDINGS
+    )
+    assert any(
+        binding.key == "ctrl+enter" and binding.action == "insert_newline"
+        for binding in ComposerWidget.BINDINGS
     )
 
 
@@ -230,14 +234,17 @@ async def _run_app_mount_test() -> None:
     async with app.run_test(size=(100, 30)) as pilot:
         header = pilot.app.query_one("#session-header", Static)
         conversation = pilot.app.query_one(ConversationPane)
+        action_strip = pilot.app.query_one("#action-strip", Static)
         composer = pilot.app.query_one("#composer", ComposerWidget)
 
         assert "Glassbox" in str(header.content)
         assert str(app.state.header.session_id)[:8] in str(header.content)
         assert "Starting conversation" in conversation.content_text
+        assert action_strip.display is False
         assert pilot.app.focused is composer
+        assert composer.size.height > 3
         assert composer.placeholder == (
-            "Write a prompt. Enter adds a line; Ctrl+Enter sends."
+            "Write a prompt. Enter sends; Ctrl+Enter adds a line."
         )
 
         pilot.app.exit()
@@ -255,10 +262,19 @@ async def _run_prompt_submit_test() -> None:
 
     async with app.run_test(size=(100, 30)) as pilot:
         composer = pilot.app.query_one(ComposerWidget)
-        composer.text = "Inspect this file\nThen summarize it"
+        composer.text = "Inspect this file"
         await pilot.pause()
 
         await pilot.press("ctrl+enter")
+        await pilot.pause()
+
+        assert composer.text == "\nInspect this file"
+        assert client.submitted_messages == []
+
+        composer.text = "Inspect this file\nThen summarize it"
+        await pilot.pause()
+
+        await pilot.press("enter")
         await pilot.pause()
 
         assert client.submitted_messages == ["Inspect this file\nThen summarize it"]
@@ -288,12 +304,12 @@ async def _run_pending_submission_feedback_test() -> None:
         composer.text = "long prompt"
         await pilot.pause()
 
-        submit_task = asyncio.create_task(pilot.press("ctrl+enter"))
+        submit_task = asyncio.create_task(pilot.press("enter"))
         await client.submit_started.wait()
         feedback = pilot.app.query_one(ComposerFeedbackLine)
 
         assert "Sending: Waiting for the runtime" in str(feedback.content)
-        assert composer.text == "long prompt"
+        assert composer.text == ""
 
         client.submit_release.set()
         await submit_task
@@ -315,7 +331,7 @@ async def _run_validation_and_conflict_feedback_test() -> None:
     )
 
     async with validation_app.run_test(size=(100, 30)) as pilot:
-        await pilot.press("ctrl+enter")
+        await pilot.press("enter")
         feedback = pilot.app.query_one(ComposerFeedbackLine)
 
         assert "Check prompt: Write a prompt before sending" in str(feedback.content)
@@ -341,7 +357,7 @@ async def _run_validation_and_conflict_feedback_test() -> None:
         composer = pilot.app.query_one(ComposerWidget)
         composer.text = "keep this draft"
         await pilot.pause()
-        await pilot.press("ctrl+enter")
+        await pilot.press("enter")
         feedback = pilot.app.query_one(ComposerFeedbackLine)
 
         assert "Not sent: session is busy" in str(feedback.content)
@@ -370,7 +386,7 @@ async def _run_network_and_retryable_feedback_test() -> None:
         composer = pilot.app.query_one(ComposerWidget)
         composer.text = "retry me"
         await pilot.pause()
-        await pilot.press("ctrl+enter")
+        await pilot.press("enter")
         feedback = pilot.app.query_one(ComposerFeedbackLine)
 
         assert "Network error: daemon unavailable" in str(feedback.content)
@@ -392,7 +408,7 @@ async def _run_network_and_retryable_feedback_test() -> None:
         composer = pilot.app.query_one(ComposerWidget)
         composer.text = "still here"
         await pilot.pause()
-        await pilot.press("ctrl+enter")
+        await pilot.press("enter")
         feedback = pilot.app.query_one(ComposerFeedbackLine)
 
         assert "Send failed: boom" in str(feedback.content)
@@ -424,7 +440,7 @@ async def _run_unavailable_runtime_feedback_test() -> None:
         composer = pilot.app.query_one(ComposerWidget)
         composer.text = "preserve while unavailable"
         await pilot.pause()
-        await pilot.press("ctrl+enter")
+        await pilot.press("enter")
         feedback = pilot.app.query_one(ComposerFeedbackLine)
 
         assert "Runtime unavailable" in str(feedback.content)
@@ -548,10 +564,10 @@ async def _run_prompt_history_test() -> None:
     async with app.run_test(size=(100, 30)) as pilot:
         composer = pilot.app.query_one(ComposerWidget)
         composer.text = "first prompt"
-        await pilot.press("ctrl+enter")
+        await pilot.press("enter")
         await pilot.pause()
         composer.text = "second prompt"
-        await pilot.press("ctrl+enter")
+        await pilot.press("enter")
         await pilot.pause()
 
         typed_app = cast(GlassboxTerminalApp, pilot.app)
@@ -1094,7 +1110,7 @@ async def _run_approval_slash_command_test() -> None:
 
         composer.text = "/approve"
         await pilot.pause()
-        await pilot.press("ctrl+enter")
+        await pilot.press("enter")
         action_strip = pilot.app.query_one("#action-strip", Static)
 
         assert client.resolved_approvals == [(approval_id, ApprovalDecision.APPROVED)]
@@ -1142,8 +1158,24 @@ async def _run_streaming_transcript_follow_latest_test() -> None:
         await pilot.press("pageup")
         await pilot.pause()
         assert conversation.scroll_y < conversation.max_scroll_y
+        manual_scroll_y = conversation.scroll_y
 
         typed_app = cast(GlassboxTerminalApp, pilot.app)
+        typed_app.apply_runtime_event(
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=10,
+                payload=AssistantMessageDelta(
+                    message_id=message_id,
+                    delta=" live update after manual scroll",
+                ),
+            )
+        )
+        await pilot.pause()
+
+        assert conversation.scroll_y == manual_scroll_y
+        assert conversation.scroll_y < conversation.max_scroll_y
+
         typed_app.action_latest()
         await pilot.pause()
         assert conversation.scroll_y == conversation.max_scroll_y

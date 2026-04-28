@@ -129,12 +129,12 @@ class ConversationPane(Log):
             self.scroll_y = self.max_scroll_y
 
     def page_up(self) -> None:
-        self._follow_latest = False
         with suppress(Exception):
             self.scroll_y = max(
                 self.scroll_y - max(self.size.height - 1, 1),
                 0,
             )
+            self._follow_latest = False
 
     def page_down(self) -> None:
         with suppress(Exception):
@@ -143,6 +143,11 @@ class ConversationPane(Log):
                 self.max_scroll_y,
             )
             self._follow_latest = self._is_at_latest()
+
+    def watch_scroll_y(self, old_value: float, new_value: float) -> None:
+        _ = old_value
+        if self.is_mounted:
+            self._follow_latest = new_value >= self.max_scroll_y
 
     def show_local_message(self, message: str) -> None:
         self._replace_content(message)
@@ -173,18 +178,21 @@ class ActionStripPlaceholder(Static):
         feedback: ActionFeedback | None = None,
     ) -> None:
         super().__init__(render_action_strip(state, feedback), id="action-strip")
+        self.display = _should_show_action_strip(state, feedback)
 
     def update_state(
         self,
         state: TerminalConversationState,
         feedback: ActionFeedback | None = None,
     ) -> None:
+        self.display = _should_show_action_strip(state, feedback)
         self.update(render_action_strip(state, feedback))
 
 
 class ComposerWidget(TextArea):
     BINDINGS: ClassVar[list[Binding]] = [
-        Binding("ctrl+enter", "submit_prompt", "Send", show=False),
+        Binding("enter", "submit_prompt", "Send", show=False),
+        Binding("ctrl+enter", "insert_newline", "New line", show=False),
         Binding("ctrl+s", "submit_prompt", "Send", show=False),
         Binding("ctrl+up", "prompt_history_previous", "Previous prompt", show=False),
         Binding("ctrl+down", "prompt_history_next", "Next prompt", show=False),
@@ -227,6 +235,7 @@ class ComposerWidget(TextArea):
         self.read_only = not availability.can_edit
         self.placeholder = availability.placeholder
         self.tooltip = availability.disabled_reason
+        self.styles.height = _composer_height_for_state(state)
         if self.text != state.composer.text:
             self._syncing_state = True
             try:
@@ -234,11 +243,24 @@ class ComposerWidget(TextArea):
             finally:
                 self._syncing_state = False
 
+    async def on_key(self, event) -> None:
+        if event.key == "enter":
+            event.prevent_default()
+            event.stop()
+            await self.action_submit_prompt()
+        elif event.key == "ctrl+enter":
+            event.prevent_default()
+            event.stop()
+            self.action_insert_newline()
+
     def show_submit_blocked(self) -> None:
         self.placeholder = composer_availability(self._state).placeholder
 
     async def action_submit_prompt(self) -> None:
         await cast(Any, self.app).action_submit_prompt()
+
+    def action_insert_newline(self) -> None:
+        self.insert("\n")
 
     def action_prompt_history_previous(self) -> None:
         cast(Any, self.app).action_prompt_history_previous()
@@ -481,7 +503,7 @@ def composer_availability(state: TerminalConversationState) -> ComposerAvailabil
     return ComposerAvailability(
         can_edit=True,
         can_submit=True,
-        placeholder="Write a prompt. Enter adds a line; Ctrl+Enter sends.",
+        placeholder="Write a prompt. Enter sends; Ctrl+Enter adds a line.",
     )
 
 
@@ -525,6 +547,21 @@ def render_action_strip(
     if feedback is not None:
         lines.append(render_action_feedback(feedback))
     return "\n".join(lines)
+
+
+def _should_show_action_strip(
+    state: TerminalConversationState,
+    feedback: ActionFeedback | None,
+) -> bool:
+    if feedback is not None:
+        return True
+    return terminal_action_from_state(state).kind != TerminalActionKind.PROMPT
+
+
+def _composer_height_for_state(state: TerminalConversationState) -> int:
+    if terminal_action_from_state(state).kind == TerminalActionKind.PROMPT:
+        return 8
+    return 3
 
 
 def render_action_feedback(feedback: ActionFeedback) -> str:

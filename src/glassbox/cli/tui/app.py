@@ -247,12 +247,15 @@ class GlassboxTerminalApp(App[None]):
                 "Waiting for the runtime to accept the prompt.",
             )
         )
+        self.update_conversation_state(with_composer_draft(self.state, ""))
         try:
             await self.client_adapter.submit_message(text)
         except InteractiveClientError as exc:
+            self.update_conversation_state(with_composer_draft(self.state, text))
             self._set_composer_feedback(_feedback_for_client_error(exc))
             return
         except Exception as exc:
+            self.update_conversation_state(with_composer_draft(self.state, text))
             self._set_composer_feedback(
                 ComposerSubmissionFeedback(
                     ComposerSubmissionStatus.RETRYABLE_FAILURE,
@@ -268,7 +271,6 @@ class GlassboxTerminalApp(App[None]):
                 "Prompt accepted. Waiting for session events.",
             )
         )
-        self.update_conversation_state(with_composer_draft(self.state, ""))
 
     def action_command_palette(self) -> None:
         self.open_command_palette()

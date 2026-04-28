@@ -23,6 +23,5 @@ TUI_KEY_BINDINGS: list[Binding] = [
     Binding("ctrl+r", "submit_answer", "Answer", show=False),
     Binding("ctrl+c", "interrupt", "Interrupt", show=False),
     Binding("escape", "cancel_transient", "Cancel", show=False),
-    Binding("ctrl+enter", "submit_prompt", "Send", show=True),
     Binding("ctrl+s", "submit_prompt", "Send", show=False),
 ]
