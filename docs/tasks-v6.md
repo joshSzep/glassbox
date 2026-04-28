@@ -1140,7 +1140,7 @@ Completion notes:
 
 ### GBX-701: Run The Automated v6 Gate And Fix Blocking Failures
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-700`
 - Goal: execute the full automated v6 gate and resolve any blocking failures without weakening the gate
 - Deliverables:
@@ -1156,6 +1156,14 @@ Completion notes:
   - `uv run python scripts/validate_v6_release_gate.py`
 - Done when:
   - the automated v6 gate passes and leaves retained evidence
+
+Completion notes:
+
+- Ran `uv run python scripts/validate_v6_release_gate.py --evidence-dir .glassbox/releases/gbx-701-automated-gate` successfully.
+- Retained automated evidence at `.glassbox/releases/gbx-701-automated-gate/summary.json` with `status: passed`.
+- Passed deterministic stages: Python format/lint/typecheck, focused cancellation suite, focused transport/daemon suite, focused terminal/dashboard suite, full Python tests (`755 passed`), deterministic eval smoke, frontend lint/typecheck/tests/API generation/API freshness/build/static validation, package build, package contents validation, and installed-wheel terminal/daemon/eval/dashboard smoke.
+- Provider canaries were skipped by default with the retained advisory reason: pass `--include-provider-canaries` to run when configured.
+- No blocking failures were found and no gate weakening was required.
 
 ### GBX-702: Run Manual Release Candidate Validation
 
