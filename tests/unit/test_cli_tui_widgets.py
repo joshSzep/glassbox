@@ -240,6 +240,7 @@ def test_action_strip_renders_pending_approval_card_with_risk_context() -> None:
                     tool_call_id=tool_call_id,
                     subject="run rm command",
                     reason="destructive shell command",
+                    policy_outcome="approve",
                     policy_risk_level="command",
                     policy_source_kind="rule",
                     policy_source_label="deny-dangerous-shell",
@@ -253,13 +254,14 @@ def test_action_strip_renders_pending_approval_card_with_risk_context() -> None:
         ActionFeedback(ActionFeedbackStatus.ACCEPTED, "Approval accepted."),
     )
 
-    assert "Approval: run rm command" in rendered
+    assert "Policy Approval Required: run rm command" in rendered
+    assert "policy approval required" in rendered
     assert "destructive shell command" in rendered
     assert "tool shell" in rendered
     assert "risk command" in rendered
-    assert "policy deny-dangerous-shell" in rendered
+    assert "source rule:deny-dangerous-shell" in rendered
     assert f"id {approval_id}" in rendered
-    assert "Alt+A approve | Alt+X deny | Ctrl+E details" in rendered
+    assert "Primary: Alt+A approve | Alt+X deny | Ctrl+E policy details" in rendered
     assert "Accepted: Approval accepted." in rendered
 
 
@@ -487,6 +489,7 @@ def test_details_pane_renders_selected_tool_output_policy() -> None:
                     policy_outcome="approve",
                     policy_risk_level="command",
                     policy_source_label="confirm-shell",
+                    policy_reason="approval required: command execution is gated",
                 ),
             ),
             _event(
@@ -522,12 +525,80 @@ def test_details_pane_renders_selected_tool_output_policy() -> None:
     assert "recent: 0 messages | 1 turns | 2 tools" in rendered
     assert "selected tool: shell [requested]" in rendered
     assert f"tool id: {selected_tool_id}" in rendered
-    assert "policy: outcome approve | risk command | source confirm-shell" in rendered
+    assert (
+        "policy: policy approval required | risk command | source confirm-shell"
+        in rendered
+    )
+    assert "policy reason: approval required: command execution is gated" in rendered
     assert "output:" in rendered
     assert "dashboard has full output" in rendered
     assert "artifact:" in rendered
     assert str(first_tool_id) not in rendered
     assert all(len(line) <= 78 for line in lines if line)
+
+
+def test_details_pane_distinguishes_denied_policy_and_invariant_block() -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    denied_tool_id = new_tool_call_id()
+    blocked_tool_id = new_tool_call_id()
+    state = reduce_events(
+        _state(session_id=session_id),
+        [
+            _event(
+                session_id,
+                1,
+                ModelToolCallRequested(
+                    turn_id=turn_id,
+                    tool_call_id=denied_tool_id,
+                    tool_name="run_command",
+                    arguments_json='{"command":"pnpm publish"}',
+                    policy_outcome="deny",
+                    policy_risk_level="command",
+                    policy_source_kind="rule",
+                    policy_source_label="deny-package-publish",
+                    policy_reason="blocked: workspace policy rule denied tool",
+                ),
+            ),
+            _event(
+                session_id,
+                2,
+                ModelToolCallRequested(
+                    turn_id=turn_id,
+                    tool_call_id=blocked_tool_id,
+                    tool_name="apply_patch",
+                    arguments_json='{"path":"../secrets"}',
+                    policy_outcome="blocked",
+                    policy_risk_level="workspace_write",
+                    policy_source_kind="invariant",
+                    policy_source_label="workspace_scope",
+                    policy_reason="blocked: path '../secrets' is outside workspace",
+                ),
+            ),
+        ],
+    )
+
+    denied_state = with_tool_expanded(state, denied_tool_id, expanded=True)
+    blocked_state = with_tool_expanded(state, blocked_tool_id, expanded=True)
+
+    denied_rendered = render_details_pane(denied_state, width=86)
+    blocked_rendered = render_details_pane(blocked_state, width=86)
+
+    assert (
+        "policy: denied by policy | risk command | source rule:deny-package-publish"
+        in denied_rendered
+    )
+    assert (
+        "policy reason: blocked: workspace policy rule denied tool" in denied_rendered
+    )
+    assert (
+        "policy: invariant block | risk workspace_write | "
+        "source invariant:workspace_scope" in blocked_rendered
+    )
+    assert (
+        "policy reason: blocked: path '../secrets' is outside workspace"
+        in blocked_rendered
+    )
 
 
 def test_transcript_empty_states_are_specific() -> None:

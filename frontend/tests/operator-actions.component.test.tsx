@@ -68,20 +68,52 @@ describe("operator action component harness", () => {
               tool_name: "read_file",
               turn_id: "turn-1",
             },
+            {
+              completed_at: null,
+              policy_outcome: "deny",
+              policy_reason: "blocked: workspace policy rule denied tool",
+              policy_risk_level: "command",
+              policy_source_kind: "rule",
+              policy_source_label: "deny-package-publish",
+              started_at: "2026-04-23T00:00:03Z",
+              status: "failed",
+              summary: "Policy denied publish command",
+              tool_call_id: "tool-denied",
+              tool_name: "run_command",
+              turn_id: "turn-1",
+            },
+            {
+              completed_at: null,
+              policy_outcome: "blocked",
+              policy_reason: "blocked: path '../secrets' is outside workspace",
+              policy_risk_level: "workspace_write",
+              policy_source_kind: "invariant",
+              policy_source_label: "workspace_scope",
+              started_at: "2026-04-23T00:00:04Z",
+              status: "failed",
+              summary: "Policy blocked out-of-workspace write",
+              tool_call_id: "tool-blocked",
+              tool_name: "apply_patch",
+              turn_id: "turn-1",
+            },
           ],
           currentTurn: { status: "running", turn_id: "turn-1" },
         }}
       />,
     );
 
-    expect(screen.getByText("approve")).toBeVisible();
+    expect(screen.getByText("approval required")).toBeVisible();
     expect(screen.getByText("medium risk")).toBeVisible();
     expect(screen.getAllByText("tool_policy:workspace-write")[0]).toBeVisible();
     expect(screen.getByText("read_file")).toBeVisible();
-    expect(screen.getByText("allow")).toBeVisible();
+    expect(screen.getByText("advisory risk accepted")).toBeVisible();
     expect(screen.getByText("read_only risk")).toBeVisible();
     expect(screen.getByText("default:read_only")).toBeVisible();
     expect(screen.getByText("allowed: read-only tool within workspace scope")).toBeVisible();
+    expect(screen.getByText("denied by policy")).toBeVisible();
+    expect(screen.getByText("rule:deny-package-publish")).toBeVisible();
+    expect(screen.getByText("invariant block")).toBeVisible();
+    expect(screen.getByText("invariant:workspace_scope")).toBeVisible();
 
     await user.clear(screen.getByLabelText("Continue session"));
     await user.type(screen.getByLabelText("Continue session"), "Inspect the degraded queue");

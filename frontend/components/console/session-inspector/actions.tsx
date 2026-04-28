@@ -20,6 +20,12 @@ import {
 import { ForkDialog } from "@/components/console/session-inspector/actions/fork-dialog";
 import { SectionHeader } from "@/components/console/session-inspector/actions/section-header";
 import { Pane } from "@/components/console/session-inspector/frame";
+import {
+  policyDecisionLabel,
+  policyDecisionVariant,
+  policyRiskLabel,
+  policySourceLabel,
+} from "@/components/console/session-inspector/policy-evidence";
 import type { SessionStreamState } from "@/api/sse";
 import type { DashboardState } from "@/state/session-state";
 import type { ActionStatus, DraftState } from "@/stores/dashboard-stores";
@@ -95,9 +101,15 @@ export function OperatorActionPane({
               title="Active tools"
             />
             {data.activeToolCalls.map((tool) => {
-              const policySource = [tool.policy_source_kind, tool.policy_source_label]
-                .filter(Boolean)
-                .join(":");
+              const policyDecision = policyDecisionLabel(
+                tool.policy_outcome,
+                tool.policy_source_kind,
+              );
+              const policyRisk = policyRiskLabel(tool.policy_risk_level);
+              const policySource = policySourceLabel(
+                tool.policy_source_kind,
+                tool.policy_source_label,
+              );
 
               return (
                 <article
@@ -107,12 +119,17 @@ export function OperatorActionPane({
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="break-words text-sm font-medium">{tool.tool_name}</p>
                     <Badge variant="outline">{tool.status}</Badge>
-                    {tool.policy_outcome ? (
-                      <Badge variant="info">{tool.policy_outcome}</Badge>
+                    {policyDecision ? (
+                      <Badge
+                        variant={policyDecisionVariant(
+                          tool.policy_outcome,
+                          tool.policy_source_kind,
+                        )}
+                      >
+                        {policyDecision}
+                      </Badge>
                     ) : null}
-                    {tool.policy_risk_level ? (
-                      <Badge variant="outline">{tool.policy_risk_level} risk</Badge>
-                    ) : null}
+                    {policyRisk ? <Badge variant="outline">{policyRisk}</Badge> : null}
                     {policySource ? <Badge variant="outline">{policySource}</Badge> : null}
                   </div>
                   <p className="text-sm text-muted-foreground">

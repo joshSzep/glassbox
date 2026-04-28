@@ -896,7 +896,7 @@ Completion notes:
 
 ### GBX-763: Improve Policy UX For Approvals And Blocked Actions
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-761`, `GBX-762`
 - Goal: make policy-driven approval and blocked-action states easier to understand and act on in terminal and dashboard workflows
 - Deliverables:
@@ -914,6 +914,13 @@ Completion notes:
   - relevant Playwright workflow if dashboard behavior changes materially
 - Done when:
   - policy decisions are clearer at the moment an operator must act
+
+Completion notes:
+
+- Updated TUI approval copy to say `policy approval required`, surface source kind plus label, and make approve/deny the primary action hierarchy while keeping details on `Ctrl+E`.
+- Updated TUI details evidence to label allowed advisory risk, policy denies, policy blocks, and invariant blocks distinctly, including the policy reason when present.
+- Added dashboard policy evidence labels shared by approval cards, active-tool cards, and compact action summaries so approvals, advisory allow decisions, policy denies, and invariant blocks render differently.
+- Documented the user-facing policy labels in [tool-policy.md](./tool-policy.md) and added focused TUI/frontend tests for the new explanation states.
 
 ---
 

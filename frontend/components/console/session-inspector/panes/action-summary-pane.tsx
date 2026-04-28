@@ -2,6 +2,10 @@ import { ListChecks } from "lucide-react";
 
 import { DataList, DataListItem, DataListLabel, DataListMeta } from "@/components/ui/data-list";
 import { Pane } from "@/components/console/session-inspector/frame";
+import {
+  policyDecisionLabel,
+  policySourceLabel,
+} from "@/components/console/session-inspector/policy-evidence";
 import type { DashboardState } from "@/state/session-state";
 
 export function ActionSummaryPane({ data }: { data: DashboardState }) {
@@ -76,7 +80,13 @@ function compactPolicyEvidence({
   sourceLabel?: string | null;
 }): string {
   const source = [sourceKind, sourceLabel].filter(Boolean).join(":");
-  const summary = [outcome, riskLevel, source].filter(Boolean).join(" / ");
+  const summary = [
+    policyDecisionLabel(outcome, sourceKind),
+    riskLevel,
+    policySourceLabel(sourceKind, sourceLabel) ?? source,
+  ]
+    .filter(Boolean)
+    .join(" / ");
   if (!summary) {
     return fallback;
   }

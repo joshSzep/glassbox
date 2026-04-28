@@ -200,6 +200,15 @@ pane uses the same evidence for active tools and approvals so an operator can
 confirm whether a decision came from a hard invariant, a repository rule, or a
 default risk posture before acting.
 
+User-facing terminals and dashboard badges use these labels:
+
+- `advisory risk accepted`: the action was allowed, but the risk/source remains
+  visible as evidence
+- `approval required`: the action is paused until an operator approves or denies
+  it
+- `denied by policy`: repository policy denied the action
+- `invariant block`: a non-overridable runtime guard blocked the action
+
 Portable session exports include a `policy_decisions` array built from the
 canonical event log. Each entry points back to the event sequence, tool call or
 approval ID, and the structured trace above. This makes handoff packages

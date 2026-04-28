@@ -227,6 +227,7 @@ class TerminalActionState:
     related_tool_name: str | None = None
     subject: str | None = None
     reason: str | None = None
+    policy_outcome: PolicyDecisionOutcome | None = None
     policy_risk_level: PolicyRiskLevel | None = None
     policy_source_kind: PolicyDecisionSourceKind | None = None
     policy_source_label: str | None = None
@@ -794,6 +795,7 @@ def terminal_action_from_state(
             related_tool_name=related_tool.tool_name if related_tool else None,
             subject=approval.subject,
             reason=approval.reason,
+            policy_outcome=approval.policy_outcome,
             policy_risk_level=approval.policy_risk_level,
             policy_source_kind=approval.policy_source_kind,
             policy_source_label=approval.policy_source_label,

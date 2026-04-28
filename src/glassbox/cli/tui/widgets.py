@@ -727,9 +727,9 @@ def render_action_strip(
         ]
     elif action.kind == TerminalActionKind.PENDING_APPROVAL:
         lines = [
-            f"Approval: {action.subject or action.description}",
+            f"{_approval_title(action)}: {action.subject or action.description}",
             _approval_context_line(action),
-            "Alt+A approve | Alt+X deny | Ctrl+E details",
+            "Primary: Alt+A approve | Alt+X deny | Ctrl+E policy details",
         ]
     else:
         lines = [f"{action.title}: {action.description}"]
@@ -825,15 +825,18 @@ def _tool_details_lines(
         lines.append(f"args: {_fit_line(tool.arguments_json, width - 6)}")
     policy_parts: list[str] = []
     if tool.policy_outcome is not None:
-        policy_parts.append(f"outcome {_enum_or_string_value(tool.policy_outcome)}")
+        policy_parts.append(
+            _policy_decision_label(tool.policy_outcome, tool.policy_source_kind)
+        )
     if tool.policy_risk_level is not None:
         policy_parts.append(f"risk {_enum_or_string_value(tool.policy_risk_level)}")
-    if tool.policy_source_label:
-        policy_parts.append(f"source {tool.policy_source_label}")
-    elif tool.policy_source_kind is not None:
-        policy_parts.append(f"source {_enum_or_string_value(tool.policy_source_kind)}")
+    source = _policy_source_label(tool.policy_source_kind, tool.policy_source_label)
+    if source:
+        policy_parts.append(f"source {source}")
     if policy_parts:
         lines.append("policy: " + " | ".join(policy_parts))
+    if tool.policy_reason:
+        lines.append(f"policy reason: {_fit_line(tool.policy_reason, width - 15)}")
     if tool.summary:
         lines.append(f"summary: {_fit_line(tool.summary, width - 9)}")
     if tool.exit_code is not None:
@@ -866,19 +869,62 @@ def _question_hint_line(related_tool_name: str | None) -> str:
 
 def _approval_context_line(action: TerminalActionState) -> str:
     parts: list[str] = []
+    if action.policy_outcome is not None:
+        parts.append(
+            _policy_decision_label(action.policy_outcome, action.policy_source_kind)
+        )
     if action.reason:
         parts.append(_fit_line(action.reason, 34))
     if action.related_tool_name:
         parts.append(f"tool {action.related_tool_name}")
     if action.policy_risk_level is not None:
         parts.append(f"risk {_enum_or_string_value(action.policy_risk_level)}")
-    if action.policy_source_label:
-        parts.append(f"policy {action.policy_source_label}")
-    elif action.policy_source_kind is not None:
-        parts.append(f"policy {_enum_or_string_value(action.policy_source_kind)}")
+    source = _policy_source_label(action.policy_source_kind, action.policy_source_label)
+    if source:
+        parts.append(f"source {source}")
     if action.approval_id is not None:
         parts.append(f"id {action.approval_id}")
     return " | ".join(parts) if parts else action.description
+
+
+def _approval_title(action: TerminalActionState) -> str:
+    if action.policy_outcome is not None:
+        return _policy_decision_label(
+            action.policy_outcome,
+            action.policy_source_kind,
+        ).title()
+    return "Approval"
+
+
+def _policy_decision_label(
+    outcome: object,
+    source_kind: object | None = None,
+) -> str:
+    outcome_value = _enum_or_string_value(outcome)
+    source_value = (
+        _enum_or_string_value(source_kind) if source_kind is not None else None
+    )
+    if outcome_value == "approve":
+        return "policy approval required"
+    if outcome_value == "deny":
+        return "denied by policy"
+    if outcome_value == "blocked" and source_value == "invariant":
+        return "invariant block"
+    if outcome_value == "blocked":
+        return "blocked by policy"
+    if outcome_value == "allow":
+        return "advisory risk accepted"
+    return f"outcome {outcome_value}"
+
+
+def _policy_source_label(source_kind: object | None, source_label: str | None) -> str:
+    if source_kind is not None and source_label:
+        return f"{_enum_or_string_value(source_kind)}:{source_label}"
+    if source_label:
+        return source_label
+    if source_kind is not None:
+        return _enum_or_string_value(source_kind)
+    return ""
 
 
 def _enum_or_string_value(value: object) -> str:

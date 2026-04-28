@@ -2,6 +2,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InlineActionFeedback, isBlockedByNonRetryableFailure } from "./action-feedback";
 import type { SessionStreamState } from "@/api/sse";
+import {
+  policyDecisionLabel,
+  policyDecisionVariant,
+  policyRiskLabel,
+  policySourceLabel,
+} from "@/components/console/session-inspector/policy-evidence";
 import type { DashboardState, PendingApproval } from "@/state/session-state";
 import type { ActionStatus } from "@/stores/dashboard-stores";
 
@@ -21,21 +27,23 @@ export function ApprovalCard({
   stream: SessionStreamState;
 }) {
   const blocked = pending || isBlockedByNonRetryableFailure(action, "approval");
-  const policySource = [approval.policy_source_kind, approval.policy_source_label]
-    .filter(Boolean)
-    .join(":");
+  const policyDecision = policyDecisionLabel(approval.policy_outcome, approval.policy_source_kind);
+  const policyRisk = policyRiskLabel(approval.policy_risk_level);
+  const policySource = policySourceLabel(approval.policy_source_kind, approval.policy_source_label);
 
   return (
     <article className="grid gap-3 border-t pt-3 first:border-t-0 first:pt-0">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <p className="break-words text-sm font-medium">{approval.subject}</p>
-          {approval.policy_outcome ? (
-            <Badge variant="warning">{approval.policy_outcome}</Badge>
+          {policyDecision ? (
+            <Badge
+              variant={policyDecisionVariant(approval.policy_outcome, approval.policy_source_kind)}
+            >
+              {policyDecision}
+            </Badge>
           ) : null}
-          {approval.policy_risk_level ? (
-            <Badge variant="outline">{approval.policy_risk_level} risk</Badge>
-          ) : null}
+          {policyRisk ? <Badge variant="outline">{policyRisk}</Badge> : null}
           {policySource ? <Badge variant="outline">{policySource}</Badge> : null}
         </div>
         <p className="mt-1 text-sm text-muted-foreground">{approval.reason}</p>
