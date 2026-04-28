@@ -1164,6 +1164,7 @@ async def _run_streaming_transcript_follow_latest_test() -> None:
         assert "token239" in conversation.content_text
         assert conversation.scroll_y == conversation.max_scroll_y
         assert conversation.show_vertical_scrollbar is True
+        assert conversation.show_horizontal_scrollbar is False
         assert conversation.vertical_scrollbar.position == conversation.scroll_y
 
         await pilot.press("pageup")
@@ -1322,7 +1323,7 @@ async def _run_live_event_test() -> None:
         await pilot.pause()
         conversation = pilot.app.query_one(ConversationPane)
 
-        assert "Assistant (streaming)" in conversation.content_text
+        assert "Assistant" not in conversation.content_text
         assert "hello" in conversation.content_text
 
         pilot.app.exit()

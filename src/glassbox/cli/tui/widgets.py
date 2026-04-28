@@ -9,10 +9,12 @@ from typing import Any
 from typing import ClassVar
 from typing import cast
 
+from rich.text import Text
 from textual.binding import Binding
 from textual.containers import Vertical
+from textual.events import Resize
 from textual.widgets import Input
-from textual.widgets import Log
+from textual.widgets import RichLog
 from textual.widgets import Static
 from textual.widgets import TextArea
 
@@ -34,6 +36,17 @@ from glassbox.cli.tui.conversation import terminal_action_from_state
 
 TRANSCRIPT_MIN_WIDTH = 36
 DETAILS_OUTPUT_PREVIEW_CHARS = 1200
+TRANSCRIPT_USER_STYLE = "#8fc7ff"
+TRANSCRIPT_ASSISTANT_STYLE = "#7bd88f"
+TRANSCRIPT_RUNTIME_STYLE = "#aab2b7"
+TRANSCRIPT_SYSTEM_STYLE = "#f5d36b"
+TRANSCRIPT_FAILURE_STYLE = "#ff6b6b"
+
+
+@dataclass(frozen=True, slots=True)
+class TranscriptRenderLine:
+    text: str
+    style: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,28 +113,38 @@ class SessionHeader(Static):
         return max(self.size.width, 36)
 
 
-class ConversationPane(Log):
+class ConversationPane(RichLog):
     can_focus: ClassVar[bool] = True
 
     def __init__(self, state: TerminalConversationState) -> None:
         self._state = state
         self._follow_latest = True
-        super().__init__(id="conversation-pane", auto_scroll=True)
+        self._content_text = ""
+        super().__init__(
+            id="conversation-pane",
+            auto_scroll=True,
+            min_width=1,
+            wrap=False,
+            markup=False,
+        )
 
     @property
     def content_text(self) -> str:
-        return "\n".join(self.lines)
+        return self._content_text
 
     def on_mount(self) -> None:
         self.update_state(self._state)
 
-    def on_resize(self) -> None:
+    def on_resize(self, event: Resize) -> None:
+        super().on_resize(event)
         self.update_state(self._state)
 
     def update_state(self, state: TerminalConversationState) -> None:
         self._follow_latest = self._follow_latest and self._is_at_latest()
         self._state = state
-        self._replace_content(render_transcript(state, width=self._render_width()))
+        self._replace_content(
+            render_transcript_lines(state, width=self._render_width())
+        )
 
     def jump_to_latest(self) -> None:
         self._follow_latest = True
@@ -150,18 +173,28 @@ class ConversationPane(Log):
             self._follow_latest = new_value >= self.max_scroll_y
 
     def show_local_message(self, message: str) -> None:
-        self._replace_content(message)
+        self._replace_content(_plain_transcript_lines(message))
 
-    def _replace_content(self, text: str) -> None:
+    def _replace_content(self, lines: list[TranscriptRenderLine]) -> None:
         self.clear()
-        self.write_lines(text.splitlines() or [""])
+        self._content_text = "\n".join(line.text for line in lines)
+        width = self._render_width()
+        for line in lines:
+            self.write(
+                Text(line.text, style=line.style or ""),
+                width=width,
+                scroll_end=False,
+            )
         if self._follow_latest:
             self.call_after_refresh(self.jump_to_latest)
 
     def _render_width(self) -> int:
         if not self.is_mounted:
             return 80
-        return max(self.size.width, TRANSCRIPT_MIN_WIDTH)
+        content_width = self.scrollable_content_region.width
+        if content_width > 0:
+            return content_width
+        return max(self.size.width - 2, 1)
 
     def _is_at_latest(self) -> bool:
         if not self.is_mounted:
@@ -725,22 +758,49 @@ def render_transcript(
     *,
     width: int = 80,
 ) -> str:
+    return "\n".join(line.text for line in render_transcript_lines(state, width=width))
+
+
+def render_transcript_lines(
+    state: TerminalConversationState,
+    *,
+    width: int = 80,
+) -> list[TranscriptRenderLine]:
     width = max(width, TRANSCRIPT_MIN_WIDTH)
-    lines: list[str] = []
+    lines: list[TranscriptRenderLine] = []
     if not _has_visible_transcript_content(state):
-        return _empty_transcript_text(state)
+        return [
+            TranscriptRenderLine(
+                _empty_transcript_text(state),
+                TRANSCRIPT_RUNTIME_STYLE,
+            )
+        ]
 
     for message in state.messages:
         _append_message(lines, message.kind, message.text, width, message.status)
 
     for turn in state.turns:
         if turn.failure_message:
-            _append_block(lines, "Turn failed", turn.failure_message, width)
+            _append_block(
+                lines,
+                "Turn failed",
+                turn.failure_message,
+                width,
+                title_style=TRANSCRIPT_FAILURE_STYLE,
+                body_style=TRANSCRIPT_FAILURE_STYLE,
+            )
 
     if state.failure is not None:
-        _append_block(lines, "Failure", state.failure.message, width)
+        _append_block(
+            lines,
+            "Failure",
+            state.failure.message,
+            width,
+            title_style=TRANSCRIPT_FAILURE_STYLE,
+            body_style=TRANSCRIPT_FAILURE_STYLE,
+        )
 
-    return "\n".join(lines)
+    return lines
 
 
 def _has_visible_transcript_content(state: TerminalConversationState) -> bool:
@@ -749,14 +809,28 @@ def _has_visible_transcript_content(state: TerminalConversationState) -> bool:
     return any(turn.failure_message for turn in state.turns)
 
 
-def _message_label(kind: ConversationMessageKind) -> str:
+def _message_style(kind: ConversationMessageKind) -> str:
     if kind == ConversationMessageKind.USER:
-        return "You"
+        return TRANSCRIPT_USER_STYLE
     if kind == ConversationMessageKind.ASSISTANT:
-        return "Assistant"
+        return TRANSCRIPT_ASSISTANT_STYLE
     if kind == ConversationMessageKind.RUNTIME:
-        return "Runtime"
-    return "System"
+        return TRANSCRIPT_RUNTIME_STYLE
+    return TRANSCRIPT_SYSTEM_STYLE
+
+
+def _message_status_marker(status: AssistantMessageStatus | None) -> str | None:
+    if status == AssistantMessageStatus.INTERRUPTED:
+        return "[interrupted]"
+    if status == AssistantMessageStatus.FAILED:
+        return "[failed]"
+    return None
+
+
+def _message_status_style(status: AssistantMessageStatus | None) -> str:
+    if status == AssistantMessageStatus.FAILED:
+        return TRANSCRIPT_FAILURE_STYLE
+    return TRANSCRIPT_SYSTEM_STYLE
 
 
 def _empty_transcript_text(state: TerminalConversationState) -> str:
@@ -768,26 +842,23 @@ def _empty_transcript_text(state: TerminalConversationState) -> str:
 
 
 def _append_message(
-    lines: list[str],
+    lines: list[TranscriptRenderLine],
     kind: ConversationMessageKind,
     text: str,
     width: int,
     status: AssistantMessageStatus | None,
 ) -> None:
-    title = _message_label(kind)
-    if status == AssistantMessageStatus.STREAMING:
-        title = f"{title} (streaming)"
-    elif status == AssistantMessageStatus.COMPLETED:
-        title = f"{title} (completed)"
-    elif status == AssistantMessageStatus.INTERRUPTED:
-        title = f"{title} (interrupted)"
-    elif status == AssistantMessageStatus.FAILED:
-        title = f"{title} (failed)"
-    _append_block(lines, title, text or "...", width)
+    if lines:
+        lines.append(TranscriptRenderLine(""))
+    style = _message_style(kind)
+    for raw_line in (text or "...").splitlines() or [""]:
+        _append_wrapped_line(lines, raw_line, width, style)
+    if marker := _message_status_marker(status):
+        _append_wrapped_line(lines, marker, width, _message_status_style(status))
 
 
 def _append_tool(
-    lines: list[str],
+    lines: list[TranscriptRenderLine],
     tool: ToolActivity,
     state: TerminalConversationState,
     width: int,
@@ -870,18 +941,31 @@ def _expanded_tool_details(tool: ToolActivity, width: int) -> list[str]:
     return details
 
 
-def _append_block(lines: list[str], title: str, text: str, width: int) -> None:
+def _append_block(
+    lines: list[TranscriptRenderLine],
+    title: str,
+    text: str,
+    width: int,
+    *,
+    title_style: str | None = TRANSCRIPT_SYSTEM_STYLE,
+    body_style: str | None = None,
+) -> None:
     if lines:
-        lines.append("")
-    lines.append(_fit_line(title, width))
+        lines.append(TranscriptRenderLine(""))
+    lines.append(TranscriptRenderLine(_fit_line(title, width), title_style))
     for raw_line in text.splitlines() or [""]:
-        _append_wrapped_line(lines, raw_line, width)
+        _append_wrapped_line(lines, raw_line, width, body_style)
 
 
-def _append_wrapped_line(lines: list[str], value: str, width: int) -> None:
-    line_width = max(width - 2, 12)
+def _append_wrapped_line(
+    lines: list[TranscriptRenderLine],
+    value: str,
+    width: int,
+    style: str | None,
+) -> None:
+    line_width = max(width, 12)
     if value.startswith("```"):
-        lines.append("  " + _fit_line(value, line_width))
+        lines.append(TranscriptRenderLine(_fit_line(value, line_width), style))
         return
     wrapped = wrap(
         value,
@@ -891,10 +975,14 @@ def _append_wrapped_line(lines: list[str], value: str, width: int) -> None:
         replace_whitespace=False,
     )
     if not wrapped:
-        lines.append("")
+        lines.append(TranscriptRenderLine("", style))
         return
     for line in wrapped:
-        lines.append("  " + line)
+        lines.append(TranscriptRenderLine(line, style))
+
+
+def _plain_transcript_lines(text: str) -> list[TranscriptRenderLine]:
+    return [TranscriptRenderLine(line) for line in text.splitlines() or [""]]
 
 
 def _dashboard_hint(

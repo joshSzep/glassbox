@@ -19,6 +19,7 @@ from glassbox.cli.tui.widgets import render_details_pane
 from glassbox.cli.tui.widgets import render_footer_help
 from glassbox.cli.tui.widgets import render_session_header
 from glassbox.cli.tui.widgets import render_transcript
+from glassbox.cli.tui.widgets import render_transcript_lines
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import AssistantMessageCompleted
 from glassbox.core.events import AssistantMessageDelta
@@ -103,6 +104,7 @@ def test_footer_help_collapses_for_available_width() -> None:
 def test_theme_defines_terminal_frame_surfaces() -> None:
     assert "#session-header" in GLASSBOX_TUI_CSS
     assert "#conversation-pane" in GLASSBOX_TUI_CSS
+    assert "overflow-x: hidden;" in GLASSBOX_TUI_CSS
     assert "#action-strip" in GLASSBOX_TUI_CSS
     assert "#composer" in GLASSBOX_TUI_CSS
     assert "#composer-feedback" in GLASSBOX_TUI_CSS
@@ -324,9 +326,20 @@ def test_transcript_renders_chat_without_tool_logs() -> None:
 
     rendered = render_transcript(state, width=54)
     lines = rendered.splitlines()
+    styled_lines = render_transcript_lines(state, width=54)
+    user_line = next(
+        line for line in styled_lines if line.text.startswith("Please inspect")
+    )
+    assistant_line = next(
+        line for line in styled_lines if line.text == "I found the transcript."
+    )
 
-    assert "You" in rendered
-    assert "Assistant (completed)" in rendered
+    assert "You" not in rendered
+    assert "Assistant" not in rendered
+    assert "Please inspect" in rendered
+    assert "I found the transcript." in rendered
+    assert not any(line.startswith("  ") for line in lines)
+    assert user_line.style != assistant_line.style
     assert "Tool:" not in rendered
     assert "read complete" not in rendered
     assert "output: opened widgets.py" not in rendered
@@ -555,7 +568,8 @@ def test_transcript_distinguishes_failed_assistant_stream() -> None:
 
     rendered = render_transcript(state, width=60)
 
-    assert "Assistant (failed)" in rendered
+    assert "Assistant" not in rendered
+    assert "[failed]" in rendered
     assert "Half" in rendered
     assert "Turn failed" in rendered
 

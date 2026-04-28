@@ -20,6 +20,7 @@ Screen {
     padding: 1;
     background: #101214;
     color: #e7e9ea;
+    overflow-x: hidden;
     overflow-y: auto;
 }
 

@@ -236,7 +236,7 @@ def _streaming_scenario() -> TerminalWorkflowScenario:
         ),
         expected_mode=TerminalMode.THINKING,
         expected_action=TerminalActionKind.ACTIVE_TURN_WAIT,
-        transcript_contains=("Assistant (streaming)", "Reading now"),
+        transcript_contains=("Reading now",),
         action_contains=("Working", "assistant is still working"),
     )
 
@@ -414,7 +414,7 @@ def _failed_turn_scenario() -> TerminalWorkflowScenario:
         ),
         expected_mode=TerminalMode.FAILED,
         expected_action=TerminalActionKind.FAILED,
-        transcript_contains=("Assistant (failed)", "Turn failed"),
+        transcript_contains=("Half", "[failed]", "Turn failed"),
         action_contains=("Session failed", "boom"),
     )
 
