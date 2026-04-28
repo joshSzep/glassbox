@@ -178,6 +178,9 @@ function pendingLabel(kind: ActionKind): string {
   if (kind === "answer") {
     return "submitting answer";
   }
+  if (kind === "cancel") {
+    return "requesting cancellation";
+  }
   if (kind === "fork") {
     return "creating fork";
   }
@@ -190,6 +193,9 @@ function successLabel(kind: ActionKind): string {
   }
   if (kind === "answer") {
     return "answer submitted";
+  }
+  if (kind === "cancel") {
+    return "cancellation requested";
   }
   if (kind === "fork") {
     return "fork created";

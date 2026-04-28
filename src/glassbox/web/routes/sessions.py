@@ -16,6 +16,7 @@ from glassbox.runtime.session_queries import SessionQueryService
 from glassbox.runtime.session_queries import WorkspaceRuntimeSummaryView
 from glassbox.web.app import RuntimeContextDep
 from glassbox.web.session_api import ActionAcceptedResponse
+from glassbox.web.session_api import CancelSessionTurnRequest
 from glassbox.web.session_api import ErrorDetailResponse
 from glassbox.web.session_api import ForkSessionRequest
 from glassbox.web.session_api import ForkSessionResponse
@@ -178,6 +179,39 @@ async def submit_session_answer(
             session_id,
             question_id,
             body.answer,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    return ActionAcceptedResponse(status="ok")
+
+
+@router.post(
+    "/{session_id}/cancel",
+    response_model=ActionAcceptedResponse,
+    status_code=200,
+    responses={
+        404: {"model": ErrorDetailResponse},
+        409: {"model": ErrorDetailResponse},
+    },
+)
+async def cancel_session_turn(
+    session_id: UUID,
+    body: CancelSessionTurnRequest,
+    context: RuntimeContextDep,
+) -> ActionAcceptedResponse:
+    """Request cancellation of the active live turn for a session."""
+
+    repo = context.repositories.sessions
+    if repo.get_session(session_id) is None:
+        raise HTTPException(status_code=404, detail=f"session {session_id} not found")
+
+    try:
+        await context.services.session_service.cancel_turn(
+            session_id,
+            turn_id=body.turn_id,
+            requested_by="api",
+            reason=body.reason,
         )
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

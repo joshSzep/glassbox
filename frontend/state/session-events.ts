@@ -166,7 +166,49 @@ export function applySessionEvent(
           turnMetrics: completedMetrics,
         };
       }
+      if (payload.outcome === "cancelled") {
+        return {
+          ...next,
+          activeToolCalls: [],
+          canFork: true,
+          currentTurn: { outcome: "cancelled", status: "cancelled", turn_id: turnId },
+          forkBlockedReason: null,
+          pendingApprovalId: null,
+          pendingApprovals: [],
+          pendingQuestionId: null,
+          pendingQuestionText: null,
+          status: "running",
+          turnMetrics: completedMetrics,
+        };
+      }
       return { ...next, turnMetrics: completedMetrics };
+    }
+    case "CancellationRequested": {
+      const turnId = stringOrNull(payload.turn_id);
+      return {
+        ...next,
+        currentTurn:
+          turnId === null
+            ? next.currentTurn
+            : { ...next.currentTurn, status: "cancelling", turn_id: turnId },
+        forkBlockedReason: "Cancellation is pending for the active turn.",
+      };
+    }
+    case "TurnCancelled": {
+      const turnId = stringOrNull(payload.turn_id);
+      if (turnId === null) {
+        return next;
+      }
+      return {
+        ...next,
+        activeToolCalls: [],
+        currentTurn: { outcome: "cancelled", status: "cancelled", turn_id: turnId },
+        pendingApprovalId: null,
+        pendingApprovals: [],
+        pendingQuestionId: null,
+        pendingQuestionText: null,
+        status: "running",
+      };
     }
     case "ApprovalRequested": {
       const approvalId = stringOrNull(payload.approval_id);
@@ -316,6 +358,17 @@ export function applySessionEvent(
             metrics.tool_duration_ms_total +
             (durationBetween(activeToolCall?.started_at ?? null, envelope.created_at) ?? 0),
         })),
+      };
+    }
+    case "ToolExecutionCancelled": {
+      const toolCallId = stringOrNull(payload.tool_call_id);
+      return {
+        ...next,
+        activeToolCalls: next.activeToolCalls.map((item) =>
+          item.tool_call_id === toolCallId
+            ? { ...item, status: "cancelled", summary: stringOrNull(payload.summary) }
+            : item,
+        ),
       };
     }
     case "ModelCallCompleted": {

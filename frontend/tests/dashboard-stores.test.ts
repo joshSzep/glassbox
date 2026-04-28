@@ -45,6 +45,7 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
     getSessionAggregate: async () => makeSessionAggregate([]),
     getSessionSnapshot: async (sessionId) => makeSessionSnapshot(sessionId),
     listSessions: async () => [],
+    cancelTurn: async () => ({ status: "ok" }),
     resolveApproval: async () => ({ status: "ok" }),
     submitAnswer: async () => ({ status: "ok" }),
     submitMessage: async () => ({ status: "ok" }),

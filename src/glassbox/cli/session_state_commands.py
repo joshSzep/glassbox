@@ -58,6 +58,7 @@ def _status_command(args: argparse.Namespace) -> int:
 def _session_command(args: argparse.Namespace) -> int:
     from glassbox.cli.interactive_commands import _answer_command
     from glassbox.cli.interactive_commands import _attach_command
+    from glassbox.cli.interactive_commands import _cancel_command
     from glassbox.cli.interactive_commands import _chat_command
     from glassbox.cli.interactive_commands import _fork_command
     from glassbox.cli.interactive_commands import _message_command
@@ -75,6 +76,8 @@ def _session_command(args: argparse.Namespace) -> int:
         return _attach_command(args)
     if args.session_command == "message":
         return _message_command(args)
+    if args.session_command == "cancel":
+        return _cancel_command(args)
     if args.session_command == "answer":
         return _answer_command(args)
     if args.session_command == "approve":

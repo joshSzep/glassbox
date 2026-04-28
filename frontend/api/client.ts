@@ -155,6 +155,22 @@ export function createGlassboxApiClient(options: GlassboxApiClientOptions = {}) 
         },
       ),
 
+    cancelTurn: (
+      input: { sessionId: string; reason?: string | null; turnId?: string | null },
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<ActionAcceptedResponse>(
+        "POST",
+        `/sessions/${encodeURIComponent(input.sessionId)}/cancel`,
+        {
+          ...requestOptions,
+          body: {
+            reason: input.reason ?? null,
+            turn_id: input.turnId ?? null,
+          },
+        },
+      ),
+
     forkSession: (
       input: { sessionId: string; turnId?: string | null; branchLabel?: string | null },
       requestOptions?: RequestOptions,

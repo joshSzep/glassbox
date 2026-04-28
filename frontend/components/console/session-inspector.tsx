@@ -47,6 +47,7 @@ export type SessionInspectorProps = {
   onForkLabelChange?: (text: string) => void;
   onOpenSession?: (sessionId: string) => void;
   onPromptChange?: (text: string) => void;
+  onRequestCancellation?: () => void;
   onResolveApproval?: (input: { approvalId: string; decision: "approved" | "denied" }) => void;
   onSelectTab?: (tab: InspectorTab) => void;
   onSubmitAnswer?: (questionId: string) => void;
@@ -69,6 +70,7 @@ export function SessionInspector({
   onForkLabelChange,
   onOpenSession,
   onPromptChange,
+  onRequestCancellation,
   onResolveApproval,
   onSelectTab,
   onSubmitAnswer,
@@ -138,6 +140,7 @@ export function SessionInspector({
         }}
         onOpenSession={onOpenSession}
         onPromptChange={onPromptChange}
+        onRequestCancellation={onRequestCancellation}
         onResolveApproval={onResolveApproval}
         onSubmitAnswer={onSubmitAnswer}
         onSubmitPrompt={onSubmitPrompt}
@@ -162,6 +165,7 @@ function InspectorTabContent({
   onOpenForkTurn,
   onOpenSession,
   onPromptChange,
+  onRequestCancellation,
   onResolveApproval,
   onSubmitAnswer,
   onSubmitPrompt,
@@ -182,6 +186,7 @@ function InspectorTabContent({
       onFork={onFork}
       onForkLabelChange={onForkLabelChange}
       onPromptChange={onPromptChange}
+      onRequestCancellation={onRequestCancellation}
       onResolveApproval={onResolveApproval}
       onSubmitAnswer={onSubmitAnswer}
       onSubmitPrompt={onSubmitPrompt}

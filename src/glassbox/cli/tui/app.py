@@ -298,7 +298,7 @@ class GlassboxTerminalApp(App[None]):
     async def execute_terminal_command(self, command_id: TerminalCommandId) -> None:
         if command_id == TerminalCommandId.INTERRUPT:
             self.close_command_palette(restore_focus=True)
-            self._handle_interrupt_request()
+            await self._handle_interrupt_request()
             return
         if command_id == TerminalCommandId.SUBMIT_ANSWER:
             self.close_command_palette(restore_focus=True)
@@ -460,7 +460,7 @@ class GlassboxTerminalApp(App[None]):
                 feedback,
             )
 
-    def _handle_interrupt_request(self) -> None:
+    async def _handle_interrupt_request(self) -> None:
         if self.query_one(CommandPaletteWidget).display:
             self.close_command_palette(restore_focus=True)
             return
@@ -503,11 +503,27 @@ class GlassboxTerminalApp(App[None]):
             TerminalMode.THINKING,
             TerminalMode.RUNNING_TOOL,
         }:
+            try:
+                await self.client_adapter.cancel_turn(
+                    self.state.header.current_turn_id,
+                    reason="operator requested cancellation from terminal",
+                )
+            except InteractiveClientError as exc:
+                self._set_action_feedback(_action_feedback_for_client_error(exc))
+                return
+            except Exception as exc:
+                self._set_action_feedback(
+                    ActionFeedback(
+                        ActionFeedbackStatus.UNAVAILABLE_RUNTIME,
+                        str(exc) or "Cancellation request failed.",
+                        retryable=True,
+                    )
+                )
+                return
             self._set_action_feedback(
                 ActionFeedback(
-                    ActionFeedbackStatus.CONFLICT,
-                    "Runtime turn interruption is not supported yet; "
-                    "session continues.",
+                    ActionFeedbackStatus.ACCEPTED,
+                    "Cancellation requested. Waiting for runtime confirmation.",
                 )
             )
             return

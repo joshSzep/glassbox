@@ -117,6 +117,12 @@ export function WorkspaceConsole() {
               void sessionStore.getState().loadSession(sessionId);
             }}
             onPromptChange={(text) => sessionStore.getState().setComposerText(text)}
+            onRequestCancellation={() => {
+              void (async () => {
+                await sessionStore.getState().requestCancellation();
+                await refreshSelectedSession();
+              })();
+            }}
             onResolveApproval={(input) => {
               void (async () => {
                 await sessionStore.getState().resolveApproval(input);

@@ -4,6 +4,7 @@ import asyncio
 import sqlite3
 from pathlib import Path
 from typing import Any
+from typing import cast
 
 import httpx
 from pydantic_ai.messages import ModelRequest
@@ -16,6 +17,8 @@ from pydantic_ai.models.function import FunctionModel
 from glassbox.core import EventEnvelope
 from glassbox.core import SessionConfig
 from glassbox.core.events import UserQuestionAsked
+from glassbox.core.ids import SessionId
+from glassbox.core.ids import TurnId
 from glassbox.core.ids import new_question_id
 from glassbox.llm import ModelProviderConfig
 from glassbox.llm import PydanticAIModelAdapter
@@ -29,6 +32,7 @@ from glassbox.runtime.context import RuntimeServices
 from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.supervisor import SessionSupervisor
 from glassbox.runtime.turn_engine import TurnEngine
+from glassbox.services import SessionService
 from glassbox.store.repositories import FilesystemArtifactRepository
 from glassbox.store.repositories import SQLiteSessionRepository
 from glassbox.store.sqlite import initialize_database
@@ -137,6 +141,117 @@ def test_post_session_message_returns_404_for_unknown_session(tmp_path: Path) ->
                 )
 
             assert response.status_code == 404
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_post_session_cancel_returns_404_for_unknown_session(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app, _ = _make_app(tmp_path, connection)
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.post(
+                    "/sessions/00000000-0000-0000-0000-000000000099/cancel",
+                    json={},
+                )
+
+            assert response.status_code == 404
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_post_session_cancel_calls_session_service(tmp_path: Path) -> None:
+    class FakeSessionService:
+        def __init__(self) -> None:
+            self.calls: list[tuple[SessionId, TurnId | None, str, str | None]] = []
+
+        async def cancel_turn(
+            self,
+            session_id: SessionId,
+            turn_id: TurnId | None = None,
+            *,
+            requested_by: str = "operator",
+            reason: str | None = None,
+        ) -> None:
+            self.calls.append((session_id, turn_id, requested_by, reason))
+
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            runtime_context = _build_runtime_context(connection, tmp_path)
+            state = await runtime_context.services.session_service.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+            fake_service = FakeSessionService()
+            app = create_app(
+                RuntimeContext(
+                    repositories=runtime_context.repositories,
+                    services=RuntimeServices(
+                        session_service=cast(SessionService, fake_service)
+                    ),
+                    infrastructure=runtime_context.infrastructure,
+                )
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.post(
+                    f"/sessions/{state.session_id}/cancel",
+                    json={"reason": "user request", "turn_id": None},
+                )
+
+            assert response.status_code == 200
+            assert response.json() == {"status": "ok"}
+            assert fake_service.calls == [
+                (state.session_id, None, "api", "user request")
+            ]
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_post_session_cancel_returns_409_for_non_cancellable_session(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app, runtime_context = _make_app(tmp_path, connection)
+            state = await runtime_context.services.session_service.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.post(
+                    f"/sessions/{state.session_id}/cancel",
+                    json={},
+                )
+
+            assert response.status_code == 409
+            assert "no cancellable active turn" in response.json()["detail"]
         finally:
             connection.close()
 

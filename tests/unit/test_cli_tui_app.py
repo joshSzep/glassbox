@@ -37,6 +37,7 @@ from glassbox.core.events import UserMessageReceived
 from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import QuestionId
+from glassbox.core.ids import TurnId
 from glassbox.core.ids import new_approval_id
 from glassbox.core.ids import new_artifact_id
 from glassbox.core.ids import new_message_id
@@ -1370,9 +1371,10 @@ async def _run_interrupt_and_quit_contract_test() -> None:
 
         await typed_app.execute_terminal_command(TerminalCommandId.INTERRUPT)
         action_strip = pilot.app.query_one("#action-strip", Static)
-        assert "Runtime turn interruption is not supported yet" in str(
-            action_strip.content
-        )
+        assert client.cancelled_turns == [
+            (turn_id, "operator requested cancellation from terminal")
+        ]
+        assert "Cancellation requested" in str(action_strip.content)
 
         await typed_app.execute_terminal_command(TerminalCommandId.QUIT)
         assert "Press Ctrl+Escape again to leave" in str(action_strip.content)
@@ -1474,6 +1476,7 @@ class _FakeInteractiveClient:
         submit_error: Exception | None = None,
         answer_error: Exception | None = None,
         approval_error: Exception | None = None,
+        cancel_error: Exception | None = None,
         stream_errors: list[Exception] | None = None,
     ) -> None:
         self.closed = False
@@ -1484,11 +1487,13 @@ class _FakeInteractiveClient:
         self.submit_error = submit_error
         self.answer_error = answer_error
         self.approval_error = approval_error
+        self.cancel_error = cancel_error
         self.submit_started: asyncio.Event | None = None
         self.submit_release: asyncio.Event | None = None
         self.submitted_messages: list[str] = []
         self.submitted_answers: list[tuple[QuestionId, str]] = []
         self.resolved_approvals: list[tuple[ApprovalId, ApprovalDecision]] = []
+        self.cancelled_turns: list[tuple[TurnId | None, str | None]] = []
 
     @property
     def session_id(self):
@@ -1520,6 +1525,16 @@ class _FakeInteractiveClient:
         if self.approval_error is not None:
             raise self.approval_error
         self.resolved_approvals.append((approval_id, decision))
+
+    async def cancel_turn(
+        self,
+        turn_id: TurnId | None = None,
+        *,
+        reason: str | None = None,
+    ) -> None:
+        if self.cancel_error is not None:
+            raise self.cancel_error
+        self.cancelled_turns.append((turn_id, reason))
 
     async def stream_events(
         self,

@@ -51,9 +51,14 @@ def _apply_session_state_projection(
     elif isinstance(payload, TurnCompleted):
         current_turn_id = None
         if payload.outcome in {"completed", "cancelled"}:
+            if payload.outcome == "cancelled":
+                pending_approval_id = None
+                pending_question_id = None
             status = SessionStatus.RUNNING
     elif isinstance(payload, TurnCancelled):
         current_turn_id = None
+        pending_approval_id = None
+        pending_question_id = None
         status = SessionStatus.RUNNING
     elif isinstance(payload, TurnFailed):
         current_turn_id = None

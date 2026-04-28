@@ -14,6 +14,7 @@ from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import QuestionId
 from glassbox.core.ids import SessionId
+from glassbox.core.ids import TurnId
 from glassbox.core.models import SessionState
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import SessionStatus
@@ -76,6 +77,13 @@ class InteractiveSessionClient(Protocol):
         decision: ApprovalDecision,
     ) -> None: ...
 
+    async def cancel_turn(
+        self,
+        turn_id: TurnId | None = None,
+        *,
+        reason: str | None = None,
+    ) -> None: ...
+
     def stream_events(
         self, *, after_sequence: int = 0
     ) -> AsyncIterator[EventEnvelope]: ...
@@ -135,6 +143,19 @@ class LocalInteractiveSessionClient:
             self.session_id,
             approval_id,
             decision,
+        )
+
+    async def cancel_turn(
+        self,
+        turn_id: TurnId | None = None,
+        *,
+        reason: str | None = None,
+    ) -> None:
+        await self.runtime_context.services.session_service.cancel_turn(
+            self.session_id,
+            turn_id=turn_id,
+            requested_by="terminal",
+            reason=reason,
         )
 
     async def stream_events(
@@ -237,6 +258,21 @@ class DaemonInteractiveSessionClient:
             f"/sessions/{self.session_id}/approvals/{approval_id}",
             dashboard_url=self.dashboard_url,
             json={"decision": decision.value},
+        )
+        _raise_for_action_error(response)
+
+    async def cancel_turn(
+        self,
+        turn_id: TurnId | None = None,
+        *,
+        reason: str | None = None,
+    ) -> None:
+        response = await _request_runtime(
+            self.client,
+            "POST",
+            f"/sessions/{self.session_id}/cancel",
+            dashboard_url=self.dashboard_url,
+            json={"reason": reason, "turn_id": str(turn_id) if turn_id else None},
         )
         _raise_for_action_error(response)
 

@@ -75,6 +75,7 @@ describe("createGlassboxApiClient", () => {
       jsonResponse({ status: "ok" }),
       jsonResponse({ status: "ok" }),
       jsonResponse({ status: "ok" }),
+      jsonResponse({ status: "ok" }),
       jsonResponse({ child_session_id: "child" }),
       jsonResponse({ session_id: "compare" }),
     ]);
@@ -87,6 +88,7 @@ describe("createGlassboxApiClient", () => {
     });
     await client.submitMessage({ sessionId: "session/1", text: "Continue" });
     await client.submitAnswer({ answer: "blue", questionId: "question/1", sessionId: "session/1" });
+    await client.cancelTurn({ reason: "stop", sessionId: "session/1", turnId: "turn/1" });
     await client.forkSession({ branchLabel: "alt", sessionId: "session/1", turnId: "turn/1" });
     await client.getCompareSessionSnapshot("compare/1");
 
@@ -94,13 +96,15 @@ describe("createGlassboxApiClient", () => {
       "/sessions/session%2F1/approvals/approval%2F1",
       "/sessions/session%2F1/messages",
       "/sessions/session%2F1/questions/question%2F1",
+      "/sessions/session%2F1/cancel",
       "/sessions/session%2F1/fork",
       "/sessions/compare%2F1",
     ]);
     expect(calls[0].init?.body).toBe(JSON.stringify({ decision: "approved" }));
     expect(calls[1].init?.body).toBe(JSON.stringify({ text: "Continue" }));
     expect(calls[2].init?.body).toBe(JSON.stringify({ answer: "blue" }));
-    expect(calls[3].init?.body).toBe(JSON.stringify({ branch_label: "alt", turn_id: "turn/1" }));
+    expect(calls[3].init?.body).toBe(JSON.stringify({ reason: "stop", turn_id: "turn/1" }));
+    expect(calls[4].init?.body).toBe(JSON.stringify({ branch_label: "alt", turn_id: "turn/1" }));
   });
 
   it("normalizes FastAPI validation errors", async () => {

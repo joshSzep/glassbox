@@ -1,6 +1,6 @@
 "use client";
 
-import { ListChecks, MessageSquareText, SendHorizontal, ShieldCheck } from "lucide-react";
+import { ListChecks, MessageSquareText, SendHorizontal, ShieldCheck, Square } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ export function OperatorActionPane({
   onFork,
   onForkLabelChange,
   onPromptChange,
+  onRequestCancellation,
   onResolveApproval,
   onSubmitAnswer,
   onSubmitPrompt,
@@ -41,6 +42,7 @@ export function OperatorActionPane({
   onFork?: (input?: { branchLabel?: string | null; turnId?: string | null }) => void;
   onForkLabelChange?: (text: string) => void;
   onPromptChange?: (text: string) => void;
+  onRequestCancellation?: () => void;
   onResolveApproval?: (input: { approvalId: string; decision: "approved" | "denied" }) => void;
   onSubmitAnswer?: (questionId: string) => void;
   onSubmitPrompt?: () => void;
@@ -50,6 +52,7 @@ export function OperatorActionPane({
   const questionId = data.pendingQuestionId;
   const answerText = questionId === null ? "" : (drafts.answerTextByQuestionId[questionId] ?? "");
   const canPrompt = data.status === "running" && data.sessionFailureMessage === null;
+  const canCancel = data.currentTurn?.status === "running";
 
   return (
     <Pane icon={ListChecks} title="Operator actions">
@@ -110,6 +113,25 @@ export function OperatorActionPane({
               Submit answer
             </Button>
           </form>
+        ) : null}
+
+        {canCancel ? (
+          <section className="space-y-3 rounded-md border border-warning bg-card p-3">
+            <SectionHeader
+              detail="Request cancellation from the live runtime owner. Partial output remains in the session evidence."
+              icon={<Square className="h-4 w-4" aria-hidden="true" />}
+              title="Cancel active turn"
+            />
+            <InlineActionFeedback action={action} data={data} kind="cancel" stream={stream} />
+            <Button
+              disabled={pending || isBlockedByNonRetryableFailure(action, "cancel")}
+              onClick={() => onRequestCancellation?.()}
+              type="button"
+              variant="secondary"
+            >
+              Cancel turn
+            </Button>
+          </section>
         ) : null}
 
         <form

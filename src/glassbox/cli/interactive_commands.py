@@ -4,6 +4,8 @@ import argparse
 import asyncio
 from pathlib import Path
 
+import httpx
+
 from glassbox.cli.daemon_attach import attach_tui_via_daemon
 from glassbox.cli.daemon_attach import attach_via_daemon
 from glassbox.cli.interactive_client import LocalInteractiveSessionClient
@@ -282,6 +284,55 @@ async def _message_command_async(args: argparse.Namespace) -> int:
             args.prompt,
         )
         await asyncio.sleep(0)
+
+    return await _run_with_renderer(cwd, db_path, action)
+
+
+def _cancel_command(args: argparse.Namespace) -> int:
+    return asyncio.run(_cancel_command_async(args))
+
+
+async def _cancel_command_async(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    daemon_status = inspect_runtime_owner(cwd, db_path=db_path)
+    if daemon_status.state == "running" and daemon_status.record is not None:
+        if daemon_status.health != "ok":
+            raise ValueError(
+                "live runtime unavailable at "
+                f"{daemon_status.record.dashboard_url}; cannot cancel session "
+                f"{args.session_id}"
+            )
+        async with httpx.AsyncClient(
+            base_url=daemon_status.record.dashboard_url,
+            timeout=httpx.Timeout(5.0, connect=1.0, read=5.0, write=5.0),
+        ) as client:
+            response = await client.post(
+                f"/sessions/{args.session_id}/cancel",
+                json={
+                    "reason": args.reason,
+                    "turn_id": str(args.turn_id) if args.turn_id else None,
+                },
+            )
+        if response.status_code in {404, 409, 422}:
+            raise ValueError(response.json().get("detail", response.text))
+        response.raise_for_status()
+        print(f"Cancellation requested for session {args.session_id}")
+        return 0
+
+    cwd, db_path = resolve_runtime_location(
+        args,
+        require_daemon_unowned_for="cancel a local session turn",
+    )
+
+    async def action(runtime_context: RuntimeContext, _prompt_state) -> None:
+        await runtime_context.services.session_service.cancel_turn(
+            args.session_id,
+            turn_id=args.turn_id,
+            requested_by="cli",
+            reason=args.reason,
+        )
+        await asyncio.sleep(0)
+        print(f"Cancellation requested for session {args.session_id}")
 
     return await _run_with_renderer(cwd, db_path, action)
 

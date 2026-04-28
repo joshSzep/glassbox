@@ -126,6 +126,11 @@ class SubmitSessionAnswerRequest(BaseModel):
     answer: str
 
 
+class CancelSessionTurnRequest(BaseModel):
+    turn_id: UUID | None = None
+    reason: str | None = None
+
+
 class ActionAcceptedResponse(BaseModel):
     status: str
 

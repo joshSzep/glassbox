@@ -115,6 +115,28 @@ def _add_session_workflow_parsers(
     message_parser.add_argument("prompt", help="user prompt to submit")
     _add_runtime_location_arguments(message_parser)
 
+    cancel_parser = session_subparsers.add_parser(
+        "cancel",
+        help="request cancellation of an active turn",
+        description=(
+            "Request cancellation of the active live turn in an existing session."
+        ),
+    )
+    cancel_parser.add_argument("session_id", type=_parse_uuid)
+    cancel_parser.add_argument(
+        "--turn",
+        dest="turn_id",
+        type=_parse_uuid,
+        default=None,
+        help="optional active turn identifier to cancel",
+    )
+    cancel_parser.add_argument(
+        "--reason",
+        default=None,
+        help="optional cancellation reason recorded with the request",
+    )
+    _add_runtime_location_arguments(cancel_parser)
+
     answer_parser = session_subparsers.add_parser(
         "answer",
         help="answer a pending ask_user question",

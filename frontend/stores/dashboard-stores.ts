@@ -18,7 +18,7 @@ import {
 } from "@/state/session-state";
 
 export type LoadState = "failed" | "idle" | "loaded" | "loading";
-export type ActionKind = "answer" | "approval" | "fork" | "prompt";
+export type ActionKind = "answer" | "approval" | "cancel" | "fork" | "prompt";
 
 export type ActionStatus = {
   error: string | null;
@@ -70,6 +70,7 @@ export type SessionStoreState = {
   loadCompareSession: (sessionId: string) => Promise<void>;
   loadSession: (sessionId: string) => Promise<void>;
   loadState: LoadState;
+  requestCancellation: () => Promise<void>;
   resetForRoute: (sessionId?: string | null) => void;
   resolveApproval: (input: {
     approvalId: string;
@@ -261,6 +262,26 @@ export function createSessionStore({
       }
     },
     loadState: "idle",
+    requestCancellation: async () => {
+      const data = get().data;
+      const sessionId = requireSelectedSessionId(data);
+      const currentActionRequestId = ++actionRequestId;
+      set({ action: { error: null, kind: "cancel", state: "pending" } });
+      try {
+        await apiClient.cancelTurn({
+          reason: "operator requested cancellation from dashboard",
+          sessionId,
+          turnId: data.currentTurn?.turn_id ?? null,
+        });
+        if (currentActionRequestId === actionRequestId) {
+          set({ action: { error: null, kind: "cancel", state: "succeeded" } });
+        }
+      } catch (error) {
+        if (currentActionRequestId === actionRequestId) {
+          set({ action: { error: errorMessage(error), kind: "cancel", state: "failed" } });
+        }
+      }
+    },
     resetForRoute: (sessionId = null) => {
       sessionRequestId += 1;
       compareRequestId += 1;

@@ -43,12 +43,18 @@ describe("operator action component harness", () => {
       onCompareSession: vi.fn(),
       onOpenSession: vi.fn(),
       onPromptChange: vi.fn(),
+      onRequestCancellation: vi.fn(),
       onResolveApproval: vi.fn(),
       onSubmitAnswer: vi.fn(),
       onSubmitPrompt: vi.fn(),
     };
 
-    render(<ActionHarness callbacks={callbacks} />);
+    render(
+      <ActionHarness
+        callbacks={callbacks}
+        dataOverrides={{ currentTurn: { status: "running", turn_id: "turn-1" } }}
+      />,
+    );
 
     await user.clear(screen.getByLabelText("Continue session"));
     await user.type(screen.getByLabelText("Continue session"), "Inspect the degraded queue");
@@ -56,6 +62,9 @@ describe("operator action component harness", () => {
 
     expect(callbacks.onPromptChange).toHaveBeenLastCalledWith("Inspect the degraded queue");
     expect(callbacks.onSubmitPrompt).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "Cancel turn" }));
+    expect(callbacks.onRequestCancellation).toHaveBeenCalledTimes(1);
 
     await user.type(screen.getByLabelText("Answer pending question"), "Use the main branch");
     await user.click(screen.getByRole("button", { name: "Submit answer" }));
@@ -254,6 +263,7 @@ function makeCallbacks() {
     onCompareSession: vi.fn(),
     onOpenSession: vi.fn(),
     onPromptChange: vi.fn(),
+    onRequestCancellation: vi.fn(),
     onResolveApproval: vi.fn(),
     onSubmitAnswer: vi.fn(),
     onSubmitPrompt: vi.fn(),
@@ -267,6 +277,7 @@ type ActionHarnessProps = {
     onCompareSession: (sessionId: string) => void;
     onOpenSession: (sessionId: string) => void;
     onPromptChange: (text: string) => void;
+    onRequestCancellation: () => void;
     onResolveApproval: (input: { approvalId: string; decision: "approved" | "denied" }) => void;
     onSubmitAnswer: (questionId: string) => void;
     onSubmitPrompt: () => void;
@@ -325,6 +336,7 @@ function ActionHarness({
         callbacks.onPromptChange(text);
         setDrafts((current) => ({ ...current, composerText: text }));
       }}
+      onRequestCancellation={callbacks.onRequestCancellation}
       onCompareSession={callbacks.onCompareSession}
       onOpenSession={callbacks.onOpenSession}
       onResolveApproval={callbacks.onResolveApproval}

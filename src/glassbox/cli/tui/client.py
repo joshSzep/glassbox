@@ -8,6 +8,7 @@ from glassbox.cli.interactive_client import InteractiveSessionSnapshot
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import QuestionId
+from glassbox.core.ids import TurnId
 from glassbox.core.types import ApprovalDecision
 
 
@@ -35,6 +36,14 @@ class TerminalClientAdapter:
         decision: ApprovalDecision,
     ) -> None:
         await self.client.resolve_approval(approval_id, decision)
+
+    async def cancel_turn(
+        self,
+        turn_id: TurnId | None = None,
+        *,
+        reason: str | None = None,
+    ) -> None:
+        await self.client.cancel_turn(turn_id=turn_id, reason=reason)
 
     async def close(self) -> None:
         await self.client.aclose()

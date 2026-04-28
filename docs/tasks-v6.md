@@ -432,7 +432,7 @@ Completion notes:
 
 ### GBX-653: Expose Cancellation Through CLI, TUI, Dashboard, And API
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-651`, `GBX-652`
 - Goal: let operators request cancellation from every live control surface without changing the canonical runtime authority model
 - Deliverables:
@@ -452,6 +452,13 @@ Completion notes:
   - `pnpm --dir frontend typecheck` and `pnpm --dir frontend test` when applicable
 - Done when:
   - users can request cancellation from terminal, dashboard, and scriptable command surfaces with consistent outcomes
+
+Completion notes:
+
+- Added `POST /sessions/{session_id}/cancel`, `SessionService.cancel_turn`, daemon/local interactive-client support, and a scriptable `glassbox session cancel` command.
+- Wired the TUI interrupt path to backend cancellation for active turns, replacing the old informational-only interruption message when a writable runtime is available.
+- Added dashboard API client/store/action-pane support for cancelling active turns, plus live SSE handling for cancellation event types.
+- Validation: `uv run pytest tests/integration/test_web_session_interaction.py tests/unit/test_cli_tui_app.py` and frontend typecheck/tests.
 
 ### GBX-654: Add Cancellation Replay And Eval Semantics
 
