@@ -11,7 +11,7 @@ export function ActionSummaryPane({ data }: { data: DashboardState }) {
         {data.pendingApprovals.map((approval) => (
           <DataListItem key={approval.approval_id}>
             <DataListLabel>{approval.subject}</DataListLabel>
-            <DataListMeta>{approval.reason}</DataListMeta>
+            <DataListMeta>{formatApprovalEvidence(approval)}</DataListMeta>
           </DataListItem>
         ))}
         {data.pendingQuestionId !== null ? (
@@ -23,7 +23,7 @@ export function ActionSummaryPane({ data }: { data: DashboardState }) {
         {data.activeToolCalls.map((tool) => (
           <DataListItem key={tool.tool_call_id}>
             <DataListLabel>{tool.tool_name}</DataListLabel>
-            <DataListMeta>{tool.summary ?? tool.status}</DataListMeta>
+            <DataListMeta>{formatToolEvidence(tool)}</DataListMeta>
           </DataListItem>
         ))}
         {data.pendingApprovals.length === 0 &&
@@ -36,4 +36,49 @@ export function ActionSummaryPane({ data }: { data: DashboardState }) {
       </DataList>
     </Pane>
   );
+}
+
+function formatApprovalEvidence(approval: DashboardState["pendingApprovals"][number]): string {
+  return compactPolicyEvidence({
+    fallback: approval.reason,
+    outcome: approval.policy_outcome,
+    reason: approval.reason,
+    riskLevel: approval.policy_risk_level,
+    sourceKind: approval.policy_source_kind,
+    sourceLabel: approval.policy_source_label,
+  });
+}
+
+function formatToolEvidence(tool: DashboardState["activeToolCalls"][number]): string {
+  return compactPolicyEvidence({
+    fallback: tool.summary ?? tool.status,
+    outcome: tool.policy_outcome,
+    reason: tool.policy_reason,
+    riskLevel: tool.policy_risk_level,
+    sourceKind: tool.policy_source_kind,
+    sourceLabel: tool.policy_source_label,
+  });
+}
+
+function compactPolicyEvidence({
+  fallback,
+  outcome,
+  reason,
+  riskLevel,
+  sourceKind,
+  sourceLabel,
+}: {
+  fallback: string;
+  outcome?: string | null;
+  reason?: string | null;
+  riskLevel?: string | null;
+  sourceKind?: string | null;
+  sourceLabel?: string | null;
+}): string {
+  const source = [sourceKind, sourceLabel].filter(Boolean).join(":");
+  const summary = [outcome, riskLevel, source].filter(Boolean).join(" / ");
+  if (!summary) {
+    return fallback;
+  }
+  return reason ? `${summary}: ${reason}` : summary;
 }

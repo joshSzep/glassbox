@@ -178,6 +178,38 @@ Differences from approval gating:
 In other words, approvals are for gated risky actions; `ask_user` is for model-
 driven operator input during a safe conversational workflow.
 
+## Inspecting Policy Evidence
+
+Every evaluated tool request records policy evidence from the decision that was
+made at runtime. The durable trace includes:
+
+- `outcome`: `allow`, `approve`, `deny`, or `blocked`
+- `risk_level`: `read_only`, `workspace_write`, or `command`
+- `source_kind`: `invariant`, `rule`, or `default`
+- `source_label`: the invariant name, rule ID, or default risk bucket that won
+- `reason`: the operator-facing explanation for the decision
+
+Use `glassbox session status SESSION_ID` for a quick operator view. Pending
+approvals and recent tool activity include the outcome, risk level, policy
+source kind and label, and the reason that explains why the tool was allowed,
+paused for approval, denied, or blocked.
+
+In the dashboard, pending approval cards show the policy outcome, risk level,
+and source as separate badges, with the reason below the subject. The Actions
+pane uses the same evidence for active tools and approvals so an operator can
+confirm whether a decision came from a hard invariant, a repository rule, or a
+default risk posture before acting.
+
+Portable session exports include a `policy_decisions` array built from the
+canonical event log. Each entry points back to the event sequence, tool call or
+approval ID, and the structured trace above. This makes handoff packages
+inspectable even after the live session has moved on.
+
+Replay tool-request manifests preserve the evaluated `policy_decision` for the
+captured request. Treat that as replay/eval evidence: a replay that changes the
+effective decision surface should be reviewed as policy drift, even if the tool
+schema and transcript are otherwise unchanged.
+
 ## Operator Expectations
 
 You can reliably expect the following:

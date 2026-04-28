@@ -1,6 +1,13 @@
 "use client";
 
-import { ListChecks, MessageSquareText, SendHorizontal, ShieldCheck, Square } from "lucide-react";
+import {
+  ListChecks,
+  MessageSquareText,
+  SendHorizontal,
+  ShieldCheck,
+  Square,
+  Wrench,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,6 +84,43 @@ export function OperatorActionPane({
                 stream={stream}
               />
             ))}
+          </section>
+        ) : null}
+
+        {data.activeToolCalls.length > 0 ? (
+          <section className="space-y-3 rounded-md border bg-card p-3">
+            <SectionHeader
+              detail="Running tool calls with their policy decision evidence."
+              icon={<Wrench className="h-4 w-4" aria-hidden="true" />}
+              title="Active tools"
+            />
+            {data.activeToolCalls.map((tool) => {
+              const policySource = [tool.policy_source_kind, tool.policy_source_label]
+                .filter(Boolean)
+                .join(":");
+
+              return (
+                <article
+                  className="grid gap-2 border-t pt-3 first:border-t-0 first:pt-0"
+                  key={tool.tool_call_id}
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="break-words text-sm font-medium">{tool.tool_name}</p>
+                    <Badge variant="outline">{tool.status}</Badge>
+                    {tool.policy_outcome ? (
+                      <Badge variant="info">{tool.policy_outcome}</Badge>
+                    ) : null}
+                    {tool.policy_risk_level ? (
+                      <Badge variant="outline">{tool.policy_risk_level} risk</Badge>
+                    ) : null}
+                    {policySource ? <Badge variant="outline">{policySource}</Badge> : null}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {tool.policy_reason ?? tool.summary ?? "Tool is running."}
+                  </p>
+                </article>
+              );
+            })}
           </section>
         ) : null}
 

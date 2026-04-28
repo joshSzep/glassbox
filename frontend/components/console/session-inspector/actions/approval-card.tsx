@@ -21,16 +21,22 @@ export function ApprovalCard({
   stream: SessionStreamState;
 }) {
   const blocked = pending || isBlockedByNonRetryableFailure(action, "approval");
+  const policySource = [approval.policy_source_kind, approval.policy_source_label]
+    .filter(Boolean)
+    .join(":");
 
   return (
     <article className="grid gap-3 border-t pt-3 first:border-t-0 first:pt-0">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <p className="break-words text-sm font-medium">{approval.subject}</p>
-          <Badge variant={approval.policy_risk_level === "high" ? "destructive" : "warning"}>
-            {approval.policy_risk_level} risk
-          </Badge>
-          <Badge variant="outline">{approval.policy_source_label}</Badge>
+          {approval.policy_outcome ? (
+            <Badge variant="warning">{approval.policy_outcome}</Badge>
+          ) : null}
+          {approval.policy_risk_level ? (
+            <Badge variant="outline">{approval.policy_risk_level} risk</Badge>
+          ) : null}
+          {policySource ? <Badge variant="outline">{policySource}</Badge> : null}
         </div>
         <p className="mt-1 text-sm text-muted-foreground">{approval.reason}</p>
         <p className="mt-1 text-xs text-muted-foreground">Requested {approval.requested_at}</p>

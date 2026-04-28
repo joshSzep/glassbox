@@ -88,6 +88,10 @@ def _seed_pending_approval(tmp_path: Path) -> tuple[Path, UUID, UUID]:
                     turn_id=new_turn_id(),
                     reason="needs confirmation",
                     subject="run shell command",
+                    policy_outcome="approve",
+                    policy_risk_level="command",
+                    policy_source_kind="default",
+                    policy_source_label="command",
                 ),
             )
         )

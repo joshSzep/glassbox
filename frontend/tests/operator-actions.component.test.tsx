@@ -52,9 +52,36 @@ describe("operator action component harness", () => {
     render(
       <ActionHarness
         callbacks={callbacks}
-        dataOverrides={{ currentTurn: { status: "running", turn_id: "turn-1" } }}
+        dataOverrides={{
+          activeToolCalls: [
+            {
+              completed_at: null,
+              policy_outcome: "allow",
+              policy_reason: "allowed: read-only tool within workspace scope",
+              policy_risk_level: "read_only",
+              policy_source_kind: "default",
+              policy_source_label: "read_only",
+              started_at: "2026-04-23T00:00:02Z",
+              status: "running",
+              summary: "Inspect README",
+              tool_call_id: "tool-active",
+              tool_name: "read_file",
+              turn_id: "turn-1",
+            },
+          ],
+          currentTurn: { status: "running", turn_id: "turn-1" },
+        }}
       />,
     );
+
+    expect(screen.getByText("approve")).toBeVisible();
+    expect(screen.getByText("medium risk")).toBeVisible();
+    expect(screen.getAllByText("tool_policy:workspace-write")[0]).toBeVisible();
+    expect(screen.getByText("read_file")).toBeVisible();
+    expect(screen.getByText("allow")).toBeVisible();
+    expect(screen.getByText("read_only risk")).toBeVisible();
+    expect(screen.getByText("default:read_only")).toBeVisible();
+    expect(screen.getByText("allowed: read-only tool within workspace scope")).toBeVisible();
 
     await user.clear(screen.getByLabelText("Continue session"));
     await user.type(screen.getByLabelText("Continue session"), "Inspect the degraded queue");

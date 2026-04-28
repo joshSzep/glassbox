@@ -21,6 +21,7 @@ from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import new_approval_id
 from glassbox.core.ids import new_question_id
+from glassbox.core.models import PolicyDecisionTrace
 from glassbox.core.types import TurnStatus
 from glassbox.llm import ModelToolCall
 from glassbox.runtime.cancellation import TurnCancellationController
@@ -111,6 +112,9 @@ class TurnToolExecutor:
     ) -> ModelLoopSuspension | None:
         for tool_call in tool_calls:
             prepared_tool_call = tool_runtime.prepare_tool_call(tool_call)
+            policy_trace = PolicyDecisionTrace.from_decision(
+                prepared_tool_call.policy_decision
+            )
             self._hooks._append_and_publish(
                 session_id,
                 [
@@ -133,6 +137,7 @@ class TurnToolExecutor:
                             prepared_tool_call.policy_decision.source_label
                         ),
                         policy_reason=prepared_tool_call.policy_decision.reason,
+                        policy_trace=policy_trace,
                     )
                 ],
             )
@@ -201,6 +206,9 @@ class TurnToolExecutor:
                     tool_name=prepared_tool_call.tool_name,
                 ),
             )
+            policy_trace = PolicyDecisionTrace.from_decision(
+                prepared_tool_call.policy_decision
+            )
             self._hooks._append_and_publish(
                 session_id,
                 [
@@ -221,6 +229,7 @@ class TurnToolExecutor:
                         policy_source_label=(
                             prepared_tool_call.policy_decision.source_label
                         ),
+                        policy_trace=policy_trace,
                         tool_call_id=prepared_tool_call.event_tool_call_id,
                         provider_tool_call_id=prepared_tool_call.provider_tool_call_id,
                     ),
@@ -331,6 +340,9 @@ class TurnToolExecutor:
         approved: bool,
         cancellation_controller: TurnCancellationController | None = None,
     ) -> ToolExecutionResult:
+        policy_trace = PolicyDecisionTrace.from_decision(
+            prepared_tool_call.policy_decision
+        )
         self._hooks._append_and_publish(
             session_id,
             [
@@ -347,6 +359,7 @@ class TurnToolExecutor:
                     policy_source_kind=prepared_tool_call.policy_decision.source_kind,
                     policy_source_label=prepared_tool_call.policy_decision.source_label,
                     policy_reason=prepared_tool_call.policy_decision.reason,
+                    policy_trace=policy_trace,
                 ),
             ],
         )

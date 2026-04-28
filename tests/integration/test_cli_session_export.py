@@ -103,6 +103,16 @@ def test_cli_session_export_captures_paused_approval_handoff(
     assert payload.handoff.next_action_summary == "Resolve pending approval"
     assert payload.pending_approvals[0].approval_id == approval_id
     assert payload.pending_approvals[0].subject == "run shell command"
+    assert len(payload.policy_decisions) == 1
+    decision = payload.policy_decisions[0]
+    assert decision.event_type == "ApprovalRequested"
+    assert decision.approval_id == str(approval_id)
+    assert decision.subject == "run shell command"
+    assert decision.trace.outcome == "approve"
+    assert decision.trace.risk_level == "command"
+    assert decision.trace.source_kind == "default"
+    assert decision.trace.source_label == "command"
+    assert decision.trace.reason == "needs confirmation"
     assert "secret-value" not in raw_package
     assert "ANTHROPIC_API_KEY=<redacted>" in raw_package
 

@@ -10,13 +10,17 @@ from pathlib import Path
 from pydantic import BaseModel
 from pydantic import ConfigDict
 
+from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import EventEnvelope
+from glassbox.core.events import ModelToolCallRequested
 from glassbox.core.events import ReplayArtifactRecorded
 from glassbox.core.events import ToolArtifactRecorded
+from glassbox.core.events import ToolExecutionStarted
 from glassbox.core.ids import SessionId
 from glassbox.core.models import ApprovalRecord
 from glassbox.core.models import MessagePart
+from glassbox.core.models import PolicyDecisionTrace
 from glassbox.core.models import TranscriptMessage
 from glassbox.runtime import session_export_models
 from glassbox.runtime.session_export_models import SessionExportArtifactReference
@@ -25,6 +29,7 @@ from glassbox.runtime.session_export_models import SessionExportHandoff
 from glassbox.runtime.session_export_models import SessionExportLineage
 from glassbox.runtime.session_export_models import SessionExportMetadata
 from glassbox.runtime.session_export_models import SessionExportPayload
+from glassbox.runtime.session_export_models import SessionExportPolicyDecision
 from glassbox.runtime.session_export_models import SessionExportTranscriptMessage
 from glassbox.runtime.session_export_models import SessionExportWorkspace
 from glassbox.runtime.session_queries import BranchableTurnView
@@ -136,6 +141,7 @@ def build_session_export_payload(
         ),
         turn_metrics=snapshot.turn_metrics,
         artifact_references=_artifact_references(events, redaction_context),
+        policy_decisions=_policy_decisions(events, redaction_context),
         event_count=len(events),
         events=[_event_summary(event) for event in events],
         redaction_notes=list(_REDACTION_NOTES),
@@ -326,6 +332,81 @@ def _artifact_references(
             )
         )
     return references
+
+
+def _policy_decisions(
+    events: Sequence[EventEnvelope],
+    redaction_context: _RedactionContext,
+) -> list[SessionExportPolicyDecision]:
+    decisions: list[SessionExportPolicyDecision] = []
+    for event in events:
+        payload = event.payload
+        if not isinstance(
+            payload,
+            ModelToolCallRequested | ToolExecutionStarted | ApprovalRequested,
+        ):
+            continue
+        trace = _policy_trace(payload)
+        if trace is None:
+            continue
+        decisions.append(
+            SessionExportPolicyDecision(
+                sequence=event.sequence,
+                event_type=event.event_type,
+                turn_id=_stringify_optional(payload.turn_id),
+                tool_call_id=_stringify_optional(
+                    getattr(payload, "tool_call_id", None)
+                ),
+                approval_id=_stringify_optional(getattr(payload, "approval_id", None)),
+                tool_name=_redact_optional_text(
+                    getattr(payload, "tool_name", None),
+                    redaction_context,
+                ),
+                subject=_redact_optional_text(
+                    getattr(payload, "subject", None),
+                    redaction_context,
+                ),
+                trace=trace.model_copy(
+                    update={
+                        "source_label": _redact_text(
+                            trace.source_label,
+                            redaction_context,
+                        ),
+                        "reason": _redact_text(trace.reason, redaction_context),
+                    }
+                ),
+            )
+        )
+    return decisions
+
+
+def _policy_trace(
+    payload: ModelToolCallRequested | ToolExecutionStarted | ApprovalRequested,
+) -> PolicyDecisionTrace | None:
+    if payload.policy_trace is not None:
+        return payload.policy_trace
+
+    reason = (
+        payload.reason
+        if isinstance(payload, ApprovalRequested)
+        else payload.policy_reason
+    )
+    if (
+        payload.policy_outcome is None
+        or payload.policy_risk_level is None
+        or payload.policy_source_kind is None
+        or payload.policy_source_label is None
+        or reason is None
+    ):
+        return None
+
+    return PolicyDecisionTrace(
+        outcome=payload.policy_outcome,
+        risk_level=payload.policy_risk_level,
+        source_kind=payload.policy_source_kind,
+        source_label=payload.policy_source_label,
+        reason=reason,
+    )
 
 
 def _event_summary(event: EventEnvelope) -> SessionExportEventSummary:

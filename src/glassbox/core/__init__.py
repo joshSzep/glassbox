@@ -55,6 +55,7 @@ from glassbox.core.models import ForkedSession
 from glassbox.core.models import InheritedTranscriptMessage
 from glassbox.core.models import MessagePart
 from glassbox.core.models import PolicyDecision
+from glassbox.core.models import PolicyDecisionTrace
 from glassbox.core.models import ProjectionHealth
 from glassbox.core.models import ResolvedForkPoint
 from glassbox.core.models import RuntimeNoteRecord
@@ -97,6 +98,7 @@ __all__ = [
     "ModelCallStarted",
     "ModelToolCallRequested",
     "PolicyDecision",
+    "PolicyDecisionTrace",
     "ProjectionHealth",
     "QuestionId",
     "ResolvedForkPoint",

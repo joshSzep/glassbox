@@ -236,6 +236,28 @@ class PolicyDecision(BaseModel):
     source_label: str
 
 
+class PolicyDecisionTrace(BaseModel):
+    """Persistable explanation of one tool-policy decision."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    outcome: PolicyDecisionOutcome
+    risk_level: PolicyRiskLevel
+    source_kind: PolicyDecisionSourceKind
+    source_label: str
+    reason: str
+
+    @classmethod
+    def from_decision(cls, decision: PolicyDecision) -> PolicyDecisionTrace:
+        return cls(
+            outcome=decision.outcome,
+            risk_level=decision.risk_level,
+            source_kind=decision.source_kind,
+            source_label=decision.source_label,
+            reason=decision.reason,
+        )
+
+
 class PolicyActivitySummary(BaseModel):
     """Concise session or turn summary of policy decisions."""
 

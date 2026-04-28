@@ -272,16 +272,24 @@ def test_approval_approve_resumes_turn_and_executes_tool(tmp_path: Path) -> None
         assert requested.policy_source_kind == "default"
         assert requested.policy_source_label == "workspace_write"
         assert requested.policy_reason is not None
+        assert requested.policy_trace is not None
+        assert requested.policy_trace.outcome == requested.policy_outcome
+        assert requested.policy_trace.risk_level == requested.policy_risk_level
+        assert requested.policy_trace.source_kind == requested.policy_source_kind
+        assert requested.policy_trace.source_label == requested.policy_source_label
+        assert requested.policy_trace.reason == requested.policy_reason
         assert approval_requested.policy_outcome == requested.policy_outcome
         assert approval_requested.policy_risk_level == requested.policy_risk_level
         assert approval_requested.policy_source_kind == requested.policy_source_kind
         assert approval_requested.policy_source_label == requested.policy_source_label
         assert approval_requested.reason == requested.policy_reason
+        assert approval_requested.policy_trace == requested.policy_trace
         assert tool_started.policy_outcome == requested.policy_outcome
         assert tool_started.policy_risk_level == requested.policy_risk_level
         assert tool_started.policy_source_kind == requested.policy_source_kind
         assert tool_started.policy_source_label == requested.policy_source_label
         assert tool_started.policy_reason == requested.policy_reason
+        assert tool_started.policy_trace == requested.policy_trace
 
     asyncio.run(scenario())
 

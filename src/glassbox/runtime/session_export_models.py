@@ -11,6 +11,7 @@ from glassbox.core.ids import SessionId
 from glassbox.core.models import ApprovalRecord
 from glassbox.core.models import MessagePart
 from glassbox.core.models import MessageRole
+from glassbox.core.models import PolicyDecisionTrace
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TurnMetricsRecord
 from glassbox.runtime.session_queries import BranchableTurnView
@@ -116,6 +117,20 @@ class SessionExportEventSummary(BaseModel):
     approval_id: str | None = None
 
 
+class SessionExportPolicyDecision(BaseModel):
+    """Portable policy evidence captured from canonical events."""
+
+    model_config = ConfigDict(extra="forbid")
+    sequence: int = Field(ge=0)
+    event_type: str
+    turn_id: str | None = None
+    tool_call_id: str | None = None
+    approval_id: str | None = None
+    tool_name: str | None = None
+    subject: str | None = None
+    trace: PolicyDecisionTrace
+
+
 class SessionExportPayload(BaseModel):
     """Inspectable portable session export package."""
 
@@ -133,6 +148,7 @@ class SessionExportPayload(BaseModel):
     artifact_references: list[SessionExportArtifactReference] = Field(
         default_factory=list
     )
+    policy_decisions: list[SessionExportPolicyDecision] = Field(default_factory=list)
     event_count: int = Field(ge=0)
     events: list[SessionExportEventSummary] = Field(default_factory=list)
     redaction_notes: list[str] = Field(default_factory=list)

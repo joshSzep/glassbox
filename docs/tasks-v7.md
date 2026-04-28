@@ -840,7 +840,7 @@ Completion notes:
 
 ### GBX-761: Add Policy Explanation And Trace Evidence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-760`
 - Goal: make tool-policy decisions explainable across CLI, dashboard, event evidence, and replay/eval artifacts
 - Deliverables:
@@ -858,6 +858,13 @@ Completion notes:
   - web/dashboard tests if evidence surfaces change
 - Done when:
   - an operator can answer why a tool decision happened from persisted evidence
+
+Completion notes:
+
+- Added a structured `PolicyDecisionTrace` and persisted it on tool request, approval request, and tool execution-start events while preserving the existing flat policy fields for compatibility.
+- Added portable `policy_decisions` entries to session exports, reconstructed from canonical events and redacted with the rest of the handoff package.
+- Made dashboard approval/action evidence explicit across policy outcome, risk level, source kind/label, and reason; CLI status already includes the same fields for pending approvals and recent tool activity.
+- Documented how to inspect policy evidence in CLI status, dashboard actions, session exports, and replay request manifests.
 
 ### GBX-762: Add Repository Policy Fixtures And Eval Recommendations
 
