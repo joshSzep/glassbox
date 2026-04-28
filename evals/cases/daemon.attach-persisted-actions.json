@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "daemon.attach-persisted-actions",
+  "title": "Daemon attach uses persisted action history",
+  "bundle_path": "../bundles/approval.approved-patch.json",
+  "tags": ["daemon", "approval"],
+  "notes": "Reuses the approval.approved-patch replay bundle to protect the persisted event history that attach and reconnect flows read after daemon ownership changes. Replay does not prove live daemon process health, socket availability, or stale-owner recovery.",
+  "release_contract": {
+    "owner": "runtime.daemon",
+    "capabilities": ["daemon_attach"],
+    "severity": "medium",
+    "verification_stages": ["advisory"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-28T00:00:00Z",
+      "source_session_id": "4145190c-2ca3-4d83-a566-39bce0c7c463",
+      "rationale": "Promoted for GBX-722 as the replay-representable daemon attach contract: durable canonical events remain available after live ownership changes, while process lifecycle behavior stays integration-only."
+    }
+  ]
+}

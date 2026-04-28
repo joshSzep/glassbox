@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "dashboard.action-answer",
+  "title": "Dashboard answer action preserves canonical question events",
+  "bundle_path": "../bundles/ask-user.answer-resume.json",
+  "tags": ["dashboard", "ask-user"],
+  "notes": "Reuses the ask-user.answer-resume replay bundle as dashboard answer evidence because dashboard answer submission writes the same canonical UserAnswerProvided event and replay does not persist action-origin metadata.",
+  "release_contract": {
+    "owner": "web.dashboard",
+    "capabilities": ["dashboard_actions"],
+    "severity": "medium",
+    "verification_stages": ["advisory"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-28T00:00:00Z",
+      "source_session_id": "582edab5-085b-4fc0-a0f9-7450c343d1ce",
+      "rationale": "Promoted for GBX-722 as the replay-representable dashboard answer action contract: canonical question and answer events plus answer-aware resumed output."
+    }
+  ]
+}

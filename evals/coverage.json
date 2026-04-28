@@ -88,6 +88,29 @@
       "notes": "Curated replay evidence covers an ask_user request through UserQuestionAsked, UserAnswerProvided, and answer-aware assistant resumption. Operator timing, empty-answer validation, and UI-specific error states remain focused integration evidence."
     },
     {
+      "capability_id": "dashboard_actions",
+      "title": "Dashboard action semantics",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["advisory"],
+      "expected_case_ids": [
+        "dashboard.action-approval",
+        "dashboard.action-answer"
+      ],
+      "coverage_mode": "multi_case",
+      "notes": "Replay protects the canonical approval and answer events that dashboard actions write. Dashboard-origin metadata is not persisted yet, so HTTP route behavior, optimistic UI, and live daemon transport remain focused integration or frontend evidence."
+    },
+    {
+      "capability_id": "daemon_attach",
+      "title": "Daemon attach persisted-event contract",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["advisory"],
+      "expected_case_ids": ["daemon.attach-persisted-actions"],
+      "coverage_mode": "single_case",
+      "notes": "Replay protects the persisted event history that attach and reconnect flows consume. Live daemon process health, sockets, and stale-owner recovery remain integration and release-smoke evidence."
+    },
+    {
       "capability_id": "cancellation",
       "title": "Operator cancellation evidence",
       "kind": "operator_workflow",

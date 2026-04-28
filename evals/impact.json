@@ -82,6 +82,42 @@
             "notes": "Ask-user, answer, question, or resumption changes should re-run the curated answer-resume replay case plus focused tests for validation and UI error handling."
         },
         {
+            "rule_id": "dashboard-actions",
+            "title": "Dashboard action surfaces",
+            "path_globs": [
+                "src/glassbox/web/routes/sessions.py",
+                "src/glassbox/web/routes/approvals.py",
+                "frontend/**/*action*.ts",
+                "frontend/**/*action*.tsx",
+                "frontend/**/*dashboard*.ts",
+                "frontend/**/*dashboard*.tsx",
+                "frontend/**/*store*.ts",
+                "frontend/**/*store*.tsx"
+            ],
+            "owners": ["web.dashboard"],
+            "capabilities": ["dashboard_actions"],
+            "case_ids": [
+                "dashboard.action-approval",
+                "dashboard.action-answer"
+            ],
+            "notes": "Dashboard action changes should review the replay-representable canonical event cases and keep live route or optimistic UI behavior in focused web/frontend tests."
+        },
+        {
+            "rule_id": "runtime-daemon-attach",
+            "title": "Daemon attach and persisted-session access",
+            "path_globs": [
+                "src/glassbox/runtime/daemon*.py",
+                "src/glassbox/cli/*daemon*.py",
+                "src/glassbox/cli/*interactive*.py",
+                "src/glassbox/web/routes/sessions.py",
+                "docs/persistent-runtime.md"
+            ],
+            "owners": ["runtime.daemon"],
+            "capabilities": ["daemon_attach"],
+            "case_ids": ["daemon.attach-persisted-actions"],
+            "notes": "Daemon attach changes should pair persisted-event replay evidence with focused daemon lifecycle tests for process health, port conflicts, and stale-owner recovery."
+        },
+        {
             "rule_id": "eval-profile-governance",
             "title": "Eval profile governance metadata",
             "path_globs": ["evals/profiles.json"],

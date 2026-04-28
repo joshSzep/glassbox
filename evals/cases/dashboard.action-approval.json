@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "dashboard.action-approval",
+  "title": "Dashboard approval action preserves canonical approval events",
+  "bundle_path": "../bundles/approval.approved-patch.json",
+  "tags": ["dashboard", "approval"],
+  "notes": "Reuses the approval.approved-patch replay bundle as dashboard action evidence because dashboard approval resolution writes the same canonical ApprovalResolved event and replay does not persist action-origin metadata.",
+  "release_contract": {
+    "owner": "web.dashboard",
+    "capabilities": ["dashboard_actions"],
+    "severity": "medium",
+    "verification_stages": ["advisory"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-28T00:00:00Z",
+      "source_session_id": "4145190c-2ca3-4d83-a566-39bce0c7c463",
+      "rationale": "Promoted for GBX-722 as the replay-representable dashboard approval action contract: canonical approval events and resumed tool execution, with live route behavior covered by web integration tests."
+    }
+  ]
+}

@@ -354,7 +354,7 @@ Completion notes:
 
 ### GBX-722: Promote Daemon Attach And Dashboard Action Eval Coverage
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-720`, `GBX-721`
 - Goal: add deterministic coverage for daemon-backed attach and dashboard-originated actions where replay can represent the behavior without live process assumptions
 - Deliverables:
@@ -372,6 +372,13 @@ Completion notes:
   - frontend action tests if dashboard action contracts change
 - Done when:
   - dashboard and daemon-adjacent action semantics have deterministic regression evidence where replay can validly prove them
+
+Completion notes:
+
+- Added advisory case manifests `dashboard.action-approval`, `dashboard.action-answer`, and `daemon.attach-persisted-actions` over the replay-representable approval and ask-user bundles from GBX-720 and GBX-721.
+- Added `dashboard_actions` and `daemon_attach` capability coverage plus impact rules for web routes, dashboard/frontend action surfaces, daemon ownership, and attach-related CLI paths.
+- Documented the boundary in [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md): replay protects canonical persisted action events and attach-readable history; action-origin metadata, live daemon process health, socket behavior, optimistic UI, and stale-owner recovery remain integration, frontend, and release-smoke evidence.
+- Validation: `uv run glassbox eval run dashboard.action-approval dashboard.action-answer daemon.attach-persisted-actions --cwd .`, `uv run glassbox eval audit --cwd .`, and focused daemon/web session interaction tests.
 
 ### GBX-723: Expand Cancellation Eval Variants
 

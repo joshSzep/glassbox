@@ -47,6 +47,9 @@ Current checked-in cases:
 | `context.artifact-relaxed` | selected-invariant artifact-context coverage, advisory |
 | `approval.approved-patch` | advisory approval request, approval resolution, and tool-resumption coverage |
 | `ask-user.answer-resume` | advisory ask-user question, answer, and resumed-output coverage |
+| `dashboard.action-approval` | advisory dashboard approval action mapped to canonical approval events |
+| `dashboard.action-answer` | advisory dashboard answer action mapped to canonical question events |
+| `daemon.attach-persisted-actions` | advisory daemon attach contract for persisted action history |
 | `cancellation.cancelled-turn` | advisory cancelled-turn evidence |
 
 Current profiles:
@@ -70,8 +73,13 @@ portability, branching, and context inheritance. Current advisory or weak areas:
   operator timing and UI-specific validation remain integration evidence
 - `cancellation` has one advisory case, but model-call, tool-execution, repeated
   cancellation, and reconnect-sensitive variants are not represented
-- dashboard-originated actions and daemon attach semantics are covered by tests
-  and release smoke, not curated deterministic eval cases
+- dashboard-originated approval and answer actions now have advisory
+  deterministic coverage where replay can represent canonical events; explicit
+  action-origin metadata is not persisted, so live dashboard route behavior stays
+  focused integration and frontend evidence
+- daemon attach now has advisory deterministic coverage for the persisted event
+  history used after attach or reconnect; live process health, socket behavior,
+  and stale-owner recovery remain integration and release-smoke evidence
 
 Recommended v7 action: prioritize `GBX-720`, `GBX-721`, `GBX-722`, and
 `GBX-723`, then update profiles and coverage in `GBX-724`.
@@ -162,6 +170,9 @@ Current strengths:
 - installed daemon status/start/status/stop smoke is part of the v6 gate
 - daemon status reports workspace metadata, health, and suggested next actions
 - persisted events recover missed live delivery after reconnect
+- `daemon.attach-persisted-actions` protects the replay-representable persisted
+  event history that attach and reconnect flows consume after live ownership
+  changes
 
 Current weak areas:
 
@@ -279,11 +290,12 @@ redacted evidence or explicit skip reasons.
 
 | Area | Current coverage | v7 gap |
 | --- | --- | --- |
-| Approval eval | integration and release-gate workflow evidence | no curated deterministic eval case |
-| Ask-user eval | integration and release-gate workflow evidence | no curated deterministic eval case |
+| Approval eval | advisory deterministic approval case plus integration workflow evidence | denial and live dashboard resolution remain integration-focused |
+| Ask-user eval | advisory deterministic answer-resume case plus integration workflow evidence | operator timing and UI validation remain integration-focused |
 | Cancellation variants | one advisory cancelled-turn eval case | limited model-call, tool-execution, repeated-request, and reconnect variants |
 | Provider canaries | diagnostics plus limited advisory scenarios | no capability matrix or broad scenario set |
 | Large sessions | performance command and ordinary snapshot/dashboard tests | no measured pagination, virtualization, or large-session gate |
+| Daemon and dashboard actions | advisory replay cases for persisted event semantics plus web/daemon tests | no deterministic action-origin metadata or live process lifecycle replay |
 | Multi-observer transport | SSE and daemon tests | no explicit multiple-observer product smoke |
 | Policy governance | policy docs and tests | limited fixtures, explanations, and eval recommendation mapping |
 | Dashboard evidence | inspector panes and verification cues | branch compare, metrics, policy, eval, and provider evidence can be more analytical |
