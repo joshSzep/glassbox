@@ -19,7 +19,9 @@ from glassbox.core import SessionConfig
 from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import TurnId
+from glassbox.core.ids import new_approval_id
 from glassbox.core.ids import new_question_id
+from glassbox.core.types import ApprovalDecision
 from glassbox.llm import ModelProviderConfig
 from glassbox.llm import PydanticAIModelAdapter
 from glassbox.llm import PydanticAIModelExecutor
@@ -252,6 +254,90 @@ def test_post_session_cancel_returns_409_for_non_cancellable_session(
 
             assert response.status_code == 409
             assert "no cancellable active turn" in response.json()["detail"]
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_mutation_endpoints_align_conflict_status_and_copy(tmp_path: Path) -> None:
+    class ConflictingSessionService:
+        async def submit_user_message(self, *_args) -> None:
+            raise ValueError("concurrent mutation rejected by live owner")
+
+        async def provide_user_answer(self, *_args) -> None:
+            raise ValueError("concurrent mutation rejected by live owner")
+
+        async def resolve_approval(self, *_args) -> None:
+            raise ValueError("concurrent mutation rejected by live owner")
+
+        async def fork_session(self, *_args, **_kwargs):
+            raise ValueError("concurrent mutation rejected by live owner")
+
+        async def cancel_turn(self, *_args, **_kwargs) -> None:
+            raise ValueError("concurrent mutation rejected by live owner")
+
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            runtime_context = _build_runtime_context(connection, tmp_path)
+            state = await runtime_context.services.session_service.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+            app = create_app(
+                RuntimeContext(
+                    repositories=runtime_context.repositories,
+                    services=RuntimeServices(
+                        session_service=cast(
+                            SessionService,
+                            ConflictingSessionService(),
+                        )
+                    ),
+                    infrastructure=runtime_context.infrastructure,
+                )
+            )
+            question_id = new_question_id()
+            approval_id = new_approval_id()
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                responses = [
+                    await client.post(
+                        f"/sessions/{state.session_id}/messages",
+                        json={"text": "another prompt"},
+                    ),
+                    await client.post(
+                        f"/sessions/{state.session_id}/questions/{question_id}",
+                        json={"answer": "blue"},
+                    ),
+                    await client.post(
+                        f"/sessions/{state.session_id}/approvals/{approval_id}",
+                        json={"decision": ApprovalDecision.APPROVED.value},
+                    ),
+                    await client.post(
+                        f"/sessions/{state.session_id}/approvals/{approval_id}",
+                        json={"decision": ApprovalDecision.DENIED.value},
+                    ),
+                    await client.post(
+                        f"/sessions/{state.session_id}/fork",
+                        json={"branch_label": "parallel"},
+                    ),
+                    await client.post(
+                        f"/sessions/{state.session_id}/cancel",
+                        json={"reason": "parallel request"},
+                    ),
+                ]
+
+            assert {response.status_code for response in responses} == {409}
+            assert {response.json()["detail"] for response in responses} == {
+                "concurrent mutation rejected by live owner"
+            }
         finally:
             connection.close()
 

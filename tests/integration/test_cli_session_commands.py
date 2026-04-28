@@ -1,6 +1,7 @@
 """Integration tests for non-interactive CLI session commands."""
 
 import json
+import os
 from contextlib import nullcontext
 from pathlib import Path
 from uuid import UUID
@@ -29,6 +30,26 @@ from tests.integration.cli_test_support import _run_baseline_session
 from tests.integration.cli_test_support import _seed_pending_approval
 from tests.integration.cli_test_support import _seed_pending_question_status
 from tests.integration.cli_test_support import _seed_status_projection_details
+
+
+def _write_running_owner_metadata(workspace_root: Path, db_path: Path) -> None:
+    owner_path = workspace_root / ".glassbox" / "runtime-owner.json"
+    owner_path.parent.mkdir(parents=True, exist_ok=True)
+    owner_path.write_text(
+        json.dumps(
+            {
+                "pid": os.getpid(),
+                "workspace_root": str(workspace_root),
+                "database_path": str(db_path),
+                "host": "127.0.0.1",
+                "port": 8765,
+                "dashboard_url": "http://127.0.0.1:8765/",
+                "started_at": "2025-01-01T00:00:00Z",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
 
 def test_cli_help_lists_session_oriented_commands(
@@ -70,6 +91,78 @@ def test_cli_session_help_lists_session_subcommands(
     assert "run" in captured.out
     assert "chat" in captured.out
     assert "status" in captured.out
+
+
+@pytest.mark.parametrize(
+    ("argv", "action"),
+    [
+        (["session", "run", "hello"], "start a local session runner"),
+        (
+            ["session", "resume", "00000000-0000-0000-0000-000000000001"],
+            "resume a session locally",
+        ),
+        (
+            [
+                "session",
+                "message",
+                "00000000-0000-0000-0000-000000000001",
+                "hello",
+            ],
+            "submit a message locally",
+        ),
+        (
+            [
+                "session",
+                "answer",
+                "00000000-0000-0000-0000-000000000001",
+                "00000000-0000-0000-0000-000000000002",
+                "blue",
+            ],
+            "answer a question locally",
+        ),
+        (
+            [
+                "session",
+                "approve",
+                "00000000-0000-0000-0000-000000000001",
+                "00000000-0000-0000-0000-000000000003",
+            ],
+            "resolve an approval locally",
+        ),
+        (
+            [
+                "session",
+                "deny",
+                "00000000-0000-0000-0000-000000000001",
+                "00000000-0000-0000-0000-000000000003",
+            ],
+            "resolve an approval locally",
+        ),
+        (
+            ["session", "fork", "00000000-0000-0000-0000-000000000001"],
+            "fork a session locally",
+        ),
+        (
+            ["session", "import", "handoff.json"],
+            "import a session handoff package locally",
+        ),
+    ],
+)
+def test_cli_local_mutations_are_rejected_while_daemon_owns_workspace(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    argv: list[str],
+    action: str,
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    _write_running_owner_metadata(tmp_path, db_path)
+
+    exit_code = main([*argv, "--cwd", str(tmp_path), "--db-path", str(db_path)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert f"cannot {action}" in captured.err
+    assert "workspace runtime is owned by glassbox daemon" in captured.err
 
 
 def test_cli_replay_help_lists_replay_subcommands(

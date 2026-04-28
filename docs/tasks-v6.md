@@ -659,7 +659,7 @@ Completion notes:
 
 ### GBX-665: Validate Mutation Ownership Under Concurrent Clients
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-663`
 - Goal: ensure local commands, TUI, dashboard, and daemon-owned sessions cannot accidentally create competing live mutation owners
 - Deliverables:
@@ -676,6 +676,14 @@ Completion notes:
   - frontend action-state tests if browser conflict handling changes
 - Done when:
   - concurrent client attempts produce safe, understandable outcomes without corrupting session state
+
+Completion notes:
+
+- Added parameterized CLI coverage proving local `run`, `resume`, `message`, `answer`, `approve`, `deny`, `fork`, and `import` mutations are rejected while daemon owner metadata is running.
+- Added API coverage proving concurrent prompt, answer, approval, denial, fork, and cancellation conflicts align on HTTP `409` and shared response copy.
+- Reused Phase 66 daemon attach/cleanup coverage to preserve daemon-routed attach and local fallback after stale owner cleanup.
+- Added [mutation-ownership-v6.md](./mutation-ownership-v6.md) documenting the single-owner mutation contract for CLI, dashboard/API, and terminal attach clients.
+- Validation: `uv run pytest tests/integration/test_daemon_runtime.py tests/integration/test_web_session_interaction.py tests/integration/test_cli_session_commands.py`; `uv run ruff check docs scripts src tests`; `uv run ty check`.
 
 ---
 
