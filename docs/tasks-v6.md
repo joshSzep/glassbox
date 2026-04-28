@@ -716,7 +716,7 @@ Completion notes:
 
 ### GBX-671: Add Provider Configuration Diagnostics
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-670`
 - Goal: make provider setup failures easier to diagnose before starting a real session or canary workflow
 - Deliverables:
@@ -732,6 +732,13 @@ Completion notes:
   - `uv run ruff check src/glassbox/runtime src/glassbox/cli tests`
 - Done when:
   - operators can understand provider configuration problems before a live turn fails
+
+Completion notes:
+
+- Added `glassbox provider diagnostics` with text and JSON output for selected model source, provider family, runtime mode, credential presence, source hints, problems, and next actions without printing secret values.
+- Added redacted provider diagnostics covering local fallback, OpenAI, Anthropic, missing credentials, unsupported model prefixes, malformed `.env`, and invalid `glassbox.profile.json` cases.
+- Updated [providers.md](./providers.md) with preflight diagnostic usage and secret-handling expectations.
+- Validation: `uv run pytest tests/unit/test_runtime_provider_config.py tests/integration/test_provider_mode_runtime.py`; `uv run ruff check src/glassbox/runtime src/glassbox/cli tests`.
 
 ### GBX-672: Add Advisory Provider-Canary Execution
 

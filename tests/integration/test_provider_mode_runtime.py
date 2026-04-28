@@ -1,6 +1,7 @@
 """Integration tests for provider-mode runtime execution without network access."""
 
 import asyncio
+import json
 import sqlite3
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from pydantic_ai.messages import TextPart
 from pydantic_ai.messages import UserPromptPart
 from pydantic_ai.models.function import FunctionModel
 
+from glassbox.cli import main
 from glassbox.core import SessionConfig
 from glassbox.core.events import AssistantMessageCompleted
 from glassbox.core.events import AssistantMessageDelta
@@ -178,6 +180,38 @@ def test_provider_mode_non_streaming_turn_falls_back_without_network(
         assert transcript[-1].parts[0].text == "Provider fallback complete."
 
     asyncio.run(scenario())
+
+
+def test_provider_diagnostics_cli_reports_redacted_configuration(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    (tmp_path / ".env").write_text(
+        "OPENAI_API_KEY=super-secret-openai\nOPENAI_BASE_URL=https://api.example\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "provider",
+            "diagnostics",
+            "--cwd",
+            str(tmp_path),
+            "--model-name",
+            "openai:gpt-5.4",
+            "--json",
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["state"] == "ready"
+    assert payload["selected_provider"] == "openai"
+    assert payload["runtime_mode"] == "openai"
+    assert "super-secret-openai" not in captured.out
+    assert payload["diagnostics"][0]["api_key_present"] is True
+    assert payload["diagnostics"][0]["api_key_source"] == "dotenv"
 
 
 def _provider_function_model_response(messages, _agent_info) -> ModelResponse:

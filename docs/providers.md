@@ -122,3 +122,14 @@ Unexpected local fallback:
 - Symptom: Glassbox appears to run without contacting a real provider
 - Cause: no provider runtime config was present, so Glassbox used the deterministic local executor
 - Fix: set the provider API key in the process environment or `.env` for the selected `--cwd`
+
+Preflight diagnostics:
+
+```bash
+uv run glassbox provider diagnostics --cwd . --model-name openai:gpt-5.4
+uv run glassbox provider diagnostics --cwd . --json
+```
+
+The diagnostics command reports the selected model source, provider family,
+runtime mode, whether provider keys or base URLs are present, and which source
+provided each value. It never prints API key values.

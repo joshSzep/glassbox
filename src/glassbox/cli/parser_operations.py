@@ -36,6 +36,35 @@ def _add_operations_parsers(
     )
     _add_runtime_location_arguments(observability_status_parser)
 
+    provider_parser = subparsers.add_parser(
+        "provider",
+        help="diagnose provider runtime configuration",
+        description="Inspect redacted provider runtime configuration diagnostics.",
+    )
+    provider_subparsers = provider_parser.add_subparsers(
+        dest="provider_command",
+        required=True,
+    )
+    provider_diagnostics_parser = provider_subparsers.add_parser(
+        "diagnostics",
+        help="print provider setup diagnostics",
+        description=(
+            "Print redacted provider setup diagnostics before starting a live "
+            "session or provider canary."
+        ),
+    )
+    provider_diagnostics_parser.add_argument(
+        "--model-name",
+        default=None,
+        help="model identifier to diagnose; overrides glassbox.profile.json",
+    )
+    provider_diagnostics_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print provider diagnostics as JSON",
+    )
+    _add_runtime_location_arguments(provider_diagnostics_parser)
+
     performance_parser = subparsers.add_parser(
         "performance",
         help="inspect larger-session performance expectations",
