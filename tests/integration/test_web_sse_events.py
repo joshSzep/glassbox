@@ -10,6 +10,7 @@ route handler.
 import asyncio
 import json
 import sqlite3
+from dataclasses import replace
 from pathlib import Path
 
 import httpx
@@ -18,8 +19,11 @@ import pytest
 from glassbox.core import EventEnvelope
 from glassbox.core import SessionCompleted
 from glassbox.core import SessionConfig
+from glassbox.core import UserMessageReceived
+from glassbox.core import new_message_id
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.runtime.supervisor import SessionSupervisor
+from glassbox.runtime.transport import InProcessEventTransport
 from glassbox.store.sqlite import initialize_database
 from glassbox.store.sqlite import open_database
 from glassbox.web import create_app
@@ -451,6 +455,75 @@ def test_sse_disconnect_cleans_up_transport_subscription(tmp_path: Path) -> None
                 runtime_context.infrastructure.event_transport.stats().subscriber_count
                 == 0
             )
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_sse_reconnect_replays_events_dropped_by_slow_live_subscriber(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            original_context = _build_runtime_context(connection, tmp_path)
+            transport = InProcessEventTransport(subscriber_queue_size=1)
+            runtime_context = replace(
+                original_context,
+                infrastructure=replace(
+                    original_context.infrastructure,
+                    event_bus=transport,
+                ),
+            )
+            supervisor = SessionSupervisor(
+                runtime_context.repositories.sessions,
+                runtime_context.infrastructure.event_bus,
+            )
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+            state = await supervisor.start_session(config)
+            repo = runtime_context.repositories.sessions
+            last_seen_sequence = repo.read_session_events(state.session_id)[-1].sequence
+            persisted_events = repo.append_events(
+                [
+                    EventEnvelope(
+                        session_id=state.session_id,
+                        sequence=0,
+                        payload=UserMessageReceived(
+                            message_id=new_message_id(),
+                            text=f"message {index}",
+                        ),
+                    )
+                    for index in range(3)
+                ]
+            )
+
+            async with transport.subscribe() as slow_subscription:
+                for event in persisted_events:
+                    transport.publish(event)
+
+                assert (await slow_subscription.get()).sequence == persisted_events[
+                    -1
+                ].sequence
+                assert transport.stats().dropped_events == 2
+
+            frames = await _collect_all_frames(
+                _event_stream(
+                    _MockRequest(disconnect_after=0),
+                    runtime_context,
+                    state.session_id,
+                    last_seen_sequence,
+                )
+            )
+            parsed = _parse_sse_frames("".join(frames))
+
+            assert [int(frame["id"]) for frame in parsed] == [
+                event.sequence for event in persisted_events
+            ]
         finally:
             connection.close()
 

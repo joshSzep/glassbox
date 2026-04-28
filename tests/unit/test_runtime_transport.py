@@ -45,6 +45,28 @@ def test_in_process_event_transport_tracks_last_published_sequence() -> None:
     asyncio.run(scenario())
 
 
+def test_in_process_event_transport_drops_oldest_item_for_slow_subscribers() -> None:
+    async def scenario() -> None:
+        transport: InProcessEventTransport[_SequencedEvent] = InProcessEventTransport(
+            subscriber_queue_size=2
+        )
+
+        async with transport.subscribe() as subscription:
+            transport.publish(_SequencedEvent(sequence=1))
+            transport.publish(_SequencedEvent(sequence=2))
+            transport.publish(_SequencedEvent(sequence=3))
+
+            assert (await subscription.get()).sequence == 2
+            assert (await subscription.get()).sequence == 3
+            stats = transport.stats()
+            assert stats.dropped_events == 1
+            assert stats.queue_capacity == 2
+            assert stats.max_queue_depth == 2
+            assert stats.last_published_sequence == 3
+
+    asyncio.run(scenario())
+
+
 def test_in_process_event_transport_fans_out_to_multiple_subscribers() -> None:
     async def scenario() -> None:
         transport: InProcessEventTransport[int] = InProcessEventTransport()

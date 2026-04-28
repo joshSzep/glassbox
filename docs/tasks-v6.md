@@ -633,7 +633,7 @@ Completion notes:
 
 ### GBX-664: Add Transport Backpressure And Drop Tests
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-661`
 - Goal: prove live transport behavior under slow or stalled subscribers without losing canonical persisted events
 - Deliverables:
@@ -649,6 +649,13 @@ Completion notes:
   - `uv run ty check`
 - Done when:
   - dropped live events are observable, recoverable through replay, and covered by deterministic tests
+
+Completion notes:
+
+- Added deterministic transport coverage for bounded subscriber queues dropping the oldest live item while retaining the newest event and exposing drop/pressure stats.
+- Added SSE recovery coverage proving events dropped from a slow live subscriber are recovered from persisted replay with `after=<last observed sequence>`.
+- Added [live-transport-backpressure-v6.md](./live-transport-backpressure-v6.md) with operator guidance for degraded live delivery, refresh/reconnect behavior, and projection checks.
+- Validation: `uv run pytest tests/unit/test_runtime_transport.py tests/integration/test_web_sse_events.py`; `uv run ty check`; `uv run ruff check docs scripts src tests`.
 
 ### GBX-665: Validate Mutation Ownership Under Concurrent Clients
 
