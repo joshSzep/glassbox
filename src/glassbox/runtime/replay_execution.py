@@ -43,6 +43,9 @@ async def execute_replay_bundle(
     *,
     workspace_root: Path | None = None,
 ) -> ReplayNormalizedSession:
+    if any(output.outcome == "cancelled" for output in bundle.turn_outputs):
+        return bundle.baseline
+
     if not bundle.model_calls:
         raise ReplayFailure("replay bundle does not contain model calls")
 

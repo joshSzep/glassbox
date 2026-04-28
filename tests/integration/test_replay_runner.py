@@ -29,6 +29,11 @@ from glassbox.runtime.bus import EventBus
 from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.eval_runner import EvalRunner
 from glassbox.runtime.replay import ReplayRunner
+from glassbox.runtime.replay_models import ReplayCancellationSnapshot
+from glassbox.runtime.replay_models import ReplayFinalStateSnapshot
+from glassbox.runtime.replay_models import ReplayNormalizedSession
+from glassbox.runtime.replay_models import ReplayTranscriptMessage
+from glassbox.runtime.replay_models import ReplayTranscriptPart
 from glassbox.runtime.supervisor import SessionSupervisor
 from glassbox.runtime.turn_engine import TurnEngine
 from glassbox.store.repositories import FilesystemArtifactRepository
@@ -267,6 +272,92 @@ def test_replay_runner_matches_text_only_session(tmp_path: Path) -> None:
 
         assert result.outcome == "exact_match"
         assert result.replay == result.baseline
+
+    asyncio.run(scenario())
+
+
+def test_replay_runner_treats_cancelled_bundle_as_recorded_evidence(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        bundle_path = tmp_path / "cancelled-turn.json"
+        bundle_path.write_text(
+            json.dumps(
+                {
+                    "actions": [
+                        {
+                            "action_type": "user_message",
+                            "text": "Start slow work",
+                        }
+                    ],
+                    "baseline": ReplayNormalizedSession(
+                        transcript=[
+                            ReplayTranscriptMessage(
+                                role="user",
+                                parts=[
+                                    ReplayTranscriptPart(
+                                        kind="text",
+                                        text="Start slow work",
+                                    )
+                                ],
+                            )
+                        ],
+                        tool_calls=[],
+                        approvals=[],
+                        questions=[],
+                        cancellations=[
+                            ReplayCancellationSnapshot(
+                                turn_id="00000000-0000-0000-0000-00000000c001",
+                                event="turn_cancelled",
+                                reason="operator requested cancellation",
+                                stage="model_call",
+                            )
+                        ],
+                        event_families=[
+                            "SessionStarted",
+                            "UserMessageReceived",
+                            "TurnStarted",
+                            "TurnCancelled",
+                            "TurnCompleted",
+                        ],
+                        final_state=ReplayFinalStateSnapshot(status="running"),
+                    ).model_dump(mode="json"),
+                    "bundle_kind": "glassbox_replay_bundle",
+                    "bundle_version": 1,
+                    "model_calls": [],
+                    "session_config": {
+                        "approval_mode": "confirm",
+                        "cwd": str(tmp_path),
+                        "model_name": "openai:gpt-5.4",
+                    },
+                    "source_session_id": "00000000-0000-0000-0000-00000000c000",
+                    "tool_requests": [],
+                    "tool_results": [],
+                    "turn_outputs": [
+                        {
+                            "artifact_kind": "replay_turn_output",
+                            "details": {
+                                "reason": "operator requested cancellation",
+                                "stage": "model_call",
+                            },
+                            "manifest_version": 1,
+                            "outcome": "cancelled",
+                        }
+                    ],
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        result = await ReplayRunner().replay_bundle_file(bundle_path)
+
+        assert result.outcome == "exact_match"
+        assert result.triage is not None
+        assert "cancellation" in result.triage.headline
+        assert result.baseline is not None
+        assert result.baseline.cancellations[0].event == "turn_cancelled"
 
     asyncio.run(scenario())
 

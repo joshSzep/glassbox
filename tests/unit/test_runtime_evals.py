@@ -42,6 +42,7 @@ def test_load_eval_case_defaults_to_exact_match_expectation(tmp_path: Path) -> N
         "tool_calls",
         "approvals",
         "questions",
+        "cancellations",
         "event_families",
         "final_state",
     )

@@ -132,6 +132,16 @@ uv run glassbox eval case refresh tooling.readme SESSION_ID \
 - `unsupported session`: the replay artifact or bundle schema is unsupported
 - `replay failure`: the baseline could not be replayed at all
 
+Cancelled turns are normalized as cancellation evidence, not ordinary failures.
+Replay bundles preserve `CancellationRequested`, `CancellationAcknowledged`,
+`ToolExecutionCancelled`, `TurnCancelled`, and cancelled turn-output artifacts as
+behavioral evidence. A bundle whose final recorded turn was intentionally
+cancelled replays to the recorded cancellation baseline, because the operator's
+wall-clock cancellation timing is not a deterministic provider behavior to
+reproduce. If cancellation evidence changes, evals report `cancellations drift`
+or `final_state drift` instead of timeout, provider failure, or generic tool
+failure.
+
 ## Local-First Verification Policy
 
 Glassbox assumes a direct-to-`main` workflow where the important regression barrier happens before `git commit`.
@@ -211,6 +221,10 @@ When commit-time eval fails:
 2. Open `.glassbox/evals/pre-commit/summary.json`.
 3. Open the failing `.glassbox/evals/pre-commit/CASE_ID.json` artifact.
 4. Fix the accidental drift or intentionally refresh the baseline.
+
+For cancelled-turn cases, inspect the cancellation event family and the retained
+turn-output artifact before refreshing. A matching cancellation outcome means the
+operator interruption was preserved; missing cancellation evidence is drift.
 
 When GitHub pre-commit fails after local success:
 

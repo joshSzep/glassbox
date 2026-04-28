@@ -13,6 +13,20 @@ def build_replay_result(**kwargs: Any) -> ReplayResult:
 
 def build_replay_triage(result: ReplayResult) -> ReplayTriage:
     if result.outcome == "exact_match":
+        if result.baseline is not None and result.baseline.cancellations:
+            return ReplayTriage(
+                severity="info",
+                classification="exact_match",
+                headline=(
+                    "replay preserved the recorded cancellation outcome and final "
+                    "state without treating operator cancellation as failure"
+                ),
+                impacted_dimensions=["cancellations", "final_state"],
+                recommended_inspection_path=(
+                    "Inspect cancellation events, cancelled tool output, and the "
+                    "replay turn-output artifact for the recorded turn."
+                ),
+            )
         return ReplayTriage(
             severity="info",
             classification="exact_match",
@@ -235,6 +249,11 @@ def behavioral_inspection_path(dimension: str | None) -> str:
         return "Inspect approval request and resolution events in the replayed session."
     if dimension == "questions":
         return "Inspect ask_user question and answer events in the replayed session."
+    if dimension == "cancellations":
+        return (
+            "Inspect cancellation requested, acknowledged, tool-cancelled, and "
+            "turn-cancelled events plus retained partial output artifacts."
+        )
     if dimension == "event_families":
         return (
             "Inspect the replay session event stream for added or missing event "

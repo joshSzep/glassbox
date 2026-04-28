@@ -151,6 +151,7 @@ class ReplayTurnOutputManifest(BaseModel):
         "completed",
         "awaiting_approval",
         "awaiting_user_input",
+        "cancelled",
         "failed",
     ]
     assistant_text: str | None = None
@@ -289,6 +290,7 @@ def build_replay_turn_output_manifest(
         "completed",
         "awaiting_approval",
         "awaiting_user_input",
+        "cancelled",
         "failed",
     ],
     assistant_text: str | None = None,

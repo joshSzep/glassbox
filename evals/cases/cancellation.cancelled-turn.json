@@ -1,0 +1,18 @@
+{
+  "manifest_version": 1,
+  "case_id": "cancellation.cancelled-turn",
+  "title": "Cancelled turns remain replay-stable evidence",
+  "bundle_path": "../bundles/cancellation.cancelled-turn.json",
+  "tags": ["cancellation"],
+  "notes": "Minimal deterministic fixture for replaying an operator-cancelled turn without wall-clock timing expectations.",
+  "release_contract": {
+    "owner": "runtime.replay",
+    "capabilities": ["cancellation"],
+    "severity": "medium",
+    "verification_stages": ["advisory"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  }
+}

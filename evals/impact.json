@@ -10,7 +10,11 @@
                 "src/glassbox/cli/replay_eval_*.py",
             ],
             "owners": ["runtime.replay"],
-            "capabilities": ["smoke_validation", "replay_portability"],
+            "capabilities": [
+                "smoke_validation",
+                "replay_portability",
+                "cancellation",
+            ],
         },
         {
             "rule_id": "runtime-context",

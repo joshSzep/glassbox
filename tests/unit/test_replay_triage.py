@@ -5,10 +5,12 @@ from glassbox.runtime.replay import ReplayNormalizedSession
 from glassbox.runtime.replay import ReplayResult
 from glassbox.runtime.replay import build_replay_triage
 from glassbox.runtime.replay_compare import collect_mismatches
+from glassbox.runtime.replay_models import ReplayCancellationSnapshot
 
 
 def _normalized_session(
     *,
+    cancellations: list[ReplayCancellationSnapshot] | None = None,
     event_families: list[str] | None = None,
 ) -> ReplayNormalizedSession:
     return ReplayNormalizedSession(
@@ -16,6 +18,7 @@ def _normalized_session(
         tool_calls=[],
         approvals=[],
         questions=[],
+        cancellations=cancellations or [],
         event_families=event_families or ["SessionStarted", "TurnCompleted"],
         final_state=ReplayFinalStateSnapshot(status="completed"),
     )
@@ -59,6 +62,43 @@ def test_build_replay_triage_classifies_context_source_drift() -> None:
     assert triage.drift_sources == ["runtime_notes"]
     assert triage.recommended_inspection_path is not None
     assert "runtime note inputs" in triage.recommended_inspection_path
+
+
+def test_collect_mismatches_reports_cancellation_dimension() -> None:
+    baseline = _normalized_session(
+        cancellations=[
+            ReplayCancellationSnapshot(
+                turn_id="turn-1",
+                event="turn_cancelled",
+                reason="operator requested cancellation",
+                stage="model_call",
+            )
+        ]
+    )
+    replay = _normalized_session()
+
+    assert collect_mismatches(baseline, replay) == ["cancellations drift"]
+
+
+def test_build_replay_triage_explains_exact_cancelled_replay() -> None:
+    baseline = _normalized_session(
+        cancellations=[
+            ReplayCancellationSnapshot(
+                turn_id="turn-1",
+                event="turn_cancelled",
+                reason="operator requested cancellation",
+                stage="tool_execution",
+            )
+        ]
+    )
+
+    triage = build_replay_triage(
+        ReplayResult(outcome="exact_match", baseline=baseline, replay=baseline)
+    )
+
+    assert triage.classification == "exact_match"
+    assert "cancellation" in triage.headline
+    assert triage.impacted_dimensions == ["cancellations", "final_state"]
 
 
 def test_replay_behavioral_drift_characterization_preserves_ordered_guidance() -> None:

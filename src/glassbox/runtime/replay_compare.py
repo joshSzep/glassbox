@@ -3,8 +3,13 @@
 from collections.abc import Sequence
 from typing import Any
 
+from glassbox.core.events import CancellationAcknowledged
+from glassbox.core.events import CancellationFailed
+from glassbox.core.events import CancellationRequested
 from glassbox.core.events import EventEnvelope
+from glassbox.core.events import ToolExecutionCancelled
 from glassbox.core.events import TranscriptMessageImported
+from glassbox.core.events import TurnCancelled
 from glassbox.core.events import UserAnswerProvided
 from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import SessionId
@@ -13,6 +18,7 @@ from glassbox.core.models import SessionRecord
 from glassbox.runtime.replay_failures import ReplayFailure
 from glassbox.runtime.replay_models import ReplayApprovalSnapshot
 from glassbox.runtime.replay_models import ReplayBundle
+from glassbox.runtime.replay_models import ReplayCancellationSnapshot
 from glassbox.runtime.replay_models import ReplayFinalStateSnapshot
 from glassbox.runtime.replay_models import ReplayLineageSnapshot
 from glassbox.runtime.replay_models import ReplayNormalizedSession
@@ -78,6 +84,7 @@ def normalize_session(
             for approval in repository.list_approvals(session_id)
         ],
         questions=normalize_questions(events),
+        cancellations=normalize_cancellations(events),
         event_families=[
             event.event_type
             for event in events
@@ -113,6 +120,62 @@ def normalize_questions(
     return questions
 
 
+def normalize_cancellations(
+    events: Sequence[EventEnvelope],
+) -> list[ReplayCancellationSnapshot]:
+    cancellations: list[ReplayCancellationSnapshot] = []
+    for event in events:
+        payload = event.payload
+        if isinstance(payload, CancellationRequested):
+            cancellations.append(
+                ReplayCancellationSnapshot(
+                    turn_id=str(payload.turn_id),
+                    event="requested",
+                    reason=payload.reason,
+                )
+            )
+            continue
+        if isinstance(payload, CancellationAcknowledged):
+            cancellations.append(
+                ReplayCancellationSnapshot(
+                    turn_id=str(payload.turn_id),
+                    event="acknowledged",
+                    reason="repeated" if payload.repeated else None,
+                )
+            )
+            continue
+        if isinstance(payload, TurnCancelled):
+            cancellations.append(
+                ReplayCancellationSnapshot(
+                    turn_id=str(payload.turn_id),
+                    event="turn_cancelled",
+                    reason=payload.reason,
+                    stage=payload.stage,
+                )
+            )
+            continue
+        if isinstance(payload, ToolExecutionCancelled):
+            cancellations.append(
+                ReplayCancellationSnapshot(
+                    turn_id=str(payload.turn_id),
+                    event="tool_cancelled",
+                    summary=payload.summary,
+                )
+            )
+            continue
+        if isinstance(payload, CancellationFailed):
+            if payload.turn_id is None:
+                continue
+            cancellations.append(
+                ReplayCancellationSnapshot(
+                    turn_id=str(payload.turn_id),
+                    event="failed",
+                    reason=payload.reason,
+                )
+            )
+    return cancellations
+
+
 def collect_mismatches(
     baseline: ReplayNormalizedSession,
     replay: ReplayNormalizedSession,
@@ -128,6 +191,7 @@ def collect_mismatches(
         "tool_calls",
         "approvals",
         "questions",
+        "cancellations",
         "event_families",
         "final_state",
     ):

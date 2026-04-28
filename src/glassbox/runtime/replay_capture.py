@@ -118,6 +118,7 @@ class ReplayArtifactRecorder:
             "completed",
             "awaiting_approval",
             "awaiting_user_input",
+            "cancelled",
             "failed",
         ],
         assistant_text: str | None = None,

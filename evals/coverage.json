@@ -85,6 +85,16 @@
       "expected_case_ids": [],
       "coverage_mode": "single_case",
       "notes": "Declared as a release-critical gap until a curated replay or eval case lands."
+    },
+    {
+      "capability_id": "cancellation",
+      "title": "Operator cancellation evidence",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["advisory"],
+      "expected_case_ids": ["cancellation.cancelled-turn"],
+      "coverage_mode": "single_case",
+      "notes": "Advisory fixture proving cancelled turns replay as explicit evidence rather than generic failures."
     }
   ]
 }

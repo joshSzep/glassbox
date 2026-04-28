@@ -200,6 +200,7 @@ def _mismatch_invariant(mismatch: str) -> EvalInvariant | None:
         "tool_calls",
         "approvals",
         "questions",
+        "cancellations",
         "event_families",
         "final_state",
     }:

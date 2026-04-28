@@ -92,7 +92,10 @@ class ReplayBundleStore:
             for manifest in manifests
             if isinstance(manifest, ReplayTurnOutputManifest)
         ]
-        if not model_calls:
+        has_cancelled_turn = any(
+            output.outcome == "cancelled" for output in turn_outputs
+        )
+        if not model_calls and not has_cancelled_turn:
             raise ReplayFailure("session does not contain replay model call manifests")
 
         return ReplayBundle(
@@ -110,6 +113,7 @@ class ReplayBundleStore:
                 source_events,
                 model_calls,
                 tool_requests,
+                allow_cancelled_incomplete=has_cancelled_turn,
             ),
             tool_requests=tool_requests,
             tool_results=tool_results,
@@ -341,6 +345,8 @@ def build_recorded_model_calls(
     events: Sequence[EventEnvelope],
     model_call_manifests: Sequence[ReplayModelCallManifest],
     tool_request_manifests: Sequence[ReplayToolRequestManifest],
+    *,
+    allow_cancelled_incomplete: bool = False,
 ) -> list[ReplayRecordedModelCall]:
     model_start_indexes = [
         index
@@ -355,10 +361,17 @@ def build_recorded_model_calls(
     recorded_calls: list[ReplayRecordedModelCall] = []
     tool_request_index = 0
     for model_index, start_index in enumerate(model_start_indexes):
-        completed_index, completed_payload = find_model_call_completed_event(
+        completed = find_model_call_completed_event(
             events,
             start_index=start_index,
+            allow_missing=allow_cancelled_incomplete,
         )
+        if completed is None:
+            recorded_calls.append(
+                ReplayRecordedModelCall(manifest=model_call_manifests[model_index])
+            )
+            continue
+        completed_index, completed_payload = completed
         text_deltas = [
             event.payload.delta
             for event in events[start_index:completed_index]
@@ -423,7 +436,8 @@ def find_model_call_completed_event(
     events: Sequence[EventEnvelope],
     *,
     start_index: int,
-) -> tuple[int, ModelCallCompleted]:
+    allow_missing: bool = False,
+) -> tuple[int, ModelCallCompleted] | None:
     start_payload = cast(ModelCallStarted, events[start_index].payload)
     for event_index in range(start_index + 1, len(events)):
         payload = events[event_index].payload
@@ -432,6 +446,8 @@ def find_model_call_completed_event(
             and payload.turn_id == start_payload.turn_id
         ):
             return event_index, payload
+    if allow_missing:
+        return None
     raise ReplayFailure("session is missing a matching ModelCallCompleted event")
 
 

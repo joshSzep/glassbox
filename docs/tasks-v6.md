@@ -462,7 +462,7 @@ Completion notes:
 
 ### GBX-654: Add Cancellation Replay And Eval Semantics
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-653`
 - Goal: ensure cancelled turns remain inspectable, replayable where meaningful, and evaluable without being misclassified as ordinary failures
 - Deliverables:
@@ -481,6 +481,14 @@ Completion notes:
   - deterministic eval smoke
 - Done when:
   - cancellation no longer appears as an ambiguous failure in replay, eval, or release evidence
+
+Completion notes:
+
+- Added cancellation snapshots to normalized replay comparison and eval invariants, so cancellation evidence can drift independently from transcript, tool, and final-state behavior.
+- Allowed cancelled turn-output manifests in replay bundles, including incomplete model-call fixtures, and replay cancelled bundles to their recorded baseline because operator cancellation timing is not deterministic provider behavior.
+- Added triage copy that treats matching cancelled turns as preserved cancellation evidence rather than timeout, provider, tool, or generic replay failure.
+- Added advisory repository eval fixture `cancellation.cancelled-turn` plus coverage/impact metadata for the cancellation capability.
+- Validation: `uv run pytest tests/unit/test_replay_orchestrator.py tests/unit/test_replay_triage.py tests/integration/test_replay_runner.py tests/unit/test_runtime_evals.py tests/unit/test_eval_recommendations.py`, `uv run glassbox eval run cancellation.cancelled-turn`, and `uv run glassbox eval run --profile commit-smoke`.
 
 ### GBX-655: Harden Cancellation Under Attach And Daemon Ownership
 

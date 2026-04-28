@@ -16,6 +16,7 @@ type EvalInvariant = Literal[
     "tool_calls",
     "approvals",
     "questions",
+    "cancellations",
     "event_families",
     "final_state",
 ]
@@ -40,6 +41,7 @@ ALL_EVAL_INVARIANTS: tuple[EvalInvariant, ...] = (
     "tool_calls",
     "approvals",
     "questions",
+    "cancellations",
     "event_families",
     "final_state",
 )

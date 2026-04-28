@@ -122,6 +122,25 @@ class ReplayQuestionSnapshot(BaseModel):
     answer: str | None = None
 
 
+class ReplayCancellationSnapshot(BaseModel):
+    """Normalized cancellation evidence used for replay comparison."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    turn_id: str
+    event: Literal[
+        "requested",
+        "acknowledged",
+        "turn_cancelled",
+        "tool_cancelled",
+        "failed",
+    ]
+    stage: str | None = None
+    reason: str | None = None
+    tool_name: str | None = None
+    summary: str | None = None
+
+
 class ReplayLineageSnapshot(BaseModel):
     """Normalized session lineage metadata used for replay comparison."""
 
@@ -156,6 +175,7 @@ class ReplayNormalizedSession(BaseModel):
     tool_calls: list[ReplayToolCallSnapshot]
     approvals: list[ReplayApprovalSnapshot]
     questions: list[ReplayQuestionSnapshot]
+    cancellations: list[ReplayCancellationSnapshot] = Field(default_factory=list)
     event_families: list[str]
     final_state: ReplayFinalStateSnapshot
 

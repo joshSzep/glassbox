@@ -8,6 +8,7 @@ from glassbox.runtime.replay_models import REPLAY_BUNDLE_VERSION
 from glassbox.runtime.replay_models import ReplayAction
 from glassbox.runtime.replay_models import ReplayApprovalSnapshot
 from glassbox.runtime.replay_models import ReplayBundle
+from glassbox.runtime.replay_models import ReplayCancellationSnapshot
 from glassbox.runtime.replay_models import ReplayFinalStateSnapshot
 from glassbox.runtime.replay_models import ReplayLineageSnapshot
 from glassbox.runtime.replay_models import ReplayNormalizedSession
@@ -86,6 +87,7 @@ __all__ = [
     "ReplayAction",
     "ReplayApprovalSnapshot",
     "ReplayBundle",
+    "ReplayCancellationSnapshot",
     "ReplayFinalStateSnapshot",
     "ReplayLineageSnapshot",
     "ReplayNormalizedSession",
