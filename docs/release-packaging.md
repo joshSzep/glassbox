@@ -59,3 +59,7 @@ Known terminal limitations for this release candidate:
 - Package metadata includes `textual>=6,<7` and the `glassbox` console script.
 - Installed-package terminal smoke passed for `session chat --help`, `session attach --help`, and explicit plain fallback.
 - Installed-package dashboard smoke passed without Node.js running.
+
+## v6 Release Hardening
+
+The v6 release-hardening path expands package validation into the broader release-candidate gate. Use [v6-release-hardening.md](./v6-release-hardening.md) for the release contract, [v6-release-inventory.md](./v6-release-inventory.md) for the current validation inventory, and [v6-release-evidence.md](./v6-release-evidence.md) for the retained `summary.json` evidence format.

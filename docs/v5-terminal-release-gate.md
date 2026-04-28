@@ -123,3 +123,7 @@ The retained behavior is:
 - one-shot commands remain the preferred automation surface for scripts and recovery workflows
 
 Do not remove plain line mode until the project has a separate migration task that replaces unsupported-terminal and redirected-stream workflows with an equally reliable operator path.
+
+## v6 Hardening Follow-Up
+
+The v6 release-hardening work builds on this terminal gate rather than replacing it immediately. Use [v6-release-hardening.md](./v6-release-hardening.md) for the broader release contract, [v6-release-inventory.md](./v6-release-inventory.md) for the validation inventory, and [v6-release-evidence.md](./v6-release-evidence.md) for retained gate evidence.

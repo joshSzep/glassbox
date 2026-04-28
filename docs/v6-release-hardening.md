@@ -155,6 +155,8 @@ The default v6 pass/fail policy is conservative.
 ## Related Files
 
 - [tasks-v6.md](./tasks-v6.md)
+- [v6-release-inventory.md](./v6-release-inventory.md)
+- [v6-release-evidence.md](./v6-release-evidence.md)
 - [v5-terminal-release-gate.md](./v5-terminal-release-gate.md)
 - [release-packaging.md](./release-packaging.md)
 - [v2-release-candidate.md](./v2-release-candidate.md)

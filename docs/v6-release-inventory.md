@@ -109,6 +109,7 @@ Until that exists, contributors should keep using:
 
 - [tasks-v6.md](./tasks-v6.md)
 - [v6-release-hardening.md](./v6-release-hardening.md)
+- [v6-release-evidence.md](./v6-release-evidence.md)
 - [v5-terminal-release-gate.md](./v5-terminal-release-gate.md)
 - [v4-ux-release-gate.md](./v4-ux-release-gate.md)
 - [release-packaging.md](./release-packaging.md)

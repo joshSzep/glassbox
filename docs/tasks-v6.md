@@ -314,7 +314,7 @@ Completion notes:
 
 ### GBX-644: Update Documentation Discovery For v6
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-640`, `GBX-643`
 - Goal: make the v6 hardening plan and release gate discoverable from the documentation hub without requiring users to know the task file name
 - Deliverables:
@@ -330,6 +330,13 @@ Completion notes:
   - existing docs tests if present
 - Done when:
   - a contributor can discover the v6 plan and gate from the docs index
+
+Completion notes:
+
+- Updated [README.md](./README.md) in the docs hub to link [tasks-v6.md](./tasks-v6.md), [v6-release-hardening.md](./v6-release-hardening.md), [v6-release-inventory.md](./v6-release-inventory.md), and [v6-release-evidence.md](./v6-release-evidence.md) from the start-here and deep-reference sections.
+- Added v6 hardening cross-links to [v5-terminal-release-gate.md](./v5-terminal-release-gate.md) and [release-packaging.md](./release-packaging.md).
+- Expanded `tests/unit/test_release_candidate_docs.py` with guardrails for v6 Phase 64 documentation discovery and cross-linking.
+- Validation: `uv run pytest tests/unit/test_release_candidate_docs.py`.
 
 ---
 
