@@ -770,7 +770,7 @@ Completion notes:
 
 ### GBX-673: Strengthen Policy Evidence And Audit Surfaces
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-641`
 - Goal: make tool-policy decisions, approval requirements, blocked actions, and risk summaries easier to audit in terminal, dashboard, replay, and release artifacts
 - Deliverables:
@@ -787,6 +787,13 @@ Completion notes:
   - dashboard/TUI tests if display changes
 - Done when:
   - an operator can explain why a tool was allowed, blocked, or approval-gated from persisted evidence
+
+Completion notes:
+
+- Reviewed persisted policy metadata and added regression coverage proving `ModelToolCallRequested`, `ApprovalRequested`, and resumed `ToolExecutionStarted` preserve policy outcome, risk, source, label, and reason.
+- Improved CLI policy summary copy to direct operators from aggregate counts to pending approvals and recent tool activity where source/reason details are printed.
+- Added [policy-evidence-v6.md](./policy-evidence-v6.md) documenting persisted evidence, CLI/dashboard audit surfaces, and current deterministic release evidence versus the remaining curated eval gap.
+- Validation: `uv run pytest tests/unit/test_tools_policy.py tests/integration/test_approval_workflow.py tests/integration/test_web_approval_resolution.py`; `uv run ruff check src/glassbox/runtime src/glassbox/cli tests`; `uv run ty check`.
 
 ### GBX-674: Add Context Budget And Drift Confidence Checks
 

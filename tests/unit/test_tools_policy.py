@@ -5,6 +5,8 @@ from pathlib import Path
 import pytest
 from pydantic import BaseModel
 
+from glassbox.cli.policy_formatters import format_policy_summary
+from glassbox.core.models import PolicyActivitySummary
 from glassbox.tools import DEFAULT_TOOL_POLICY_PATH
 from glassbox.tools import ApprovalMode
 from glassbox.tools import ToolPolicyContext
@@ -185,6 +187,23 @@ def test_policy_blocks_destructive_commands() -> None:
     assert decision.risk_level == "command"
     assert decision.source_kind == "invariant"
     assert decision.source_label == "destructive_command"
+
+
+def test_policy_summary_points_to_source_and_reason_details() -> None:
+    summary = PolicyActivitySummary(
+        total_decisions=2,
+        allow_count=1,
+        approve_count=1,
+        workspace_write_count=1,
+        command_count=1,
+        highest_risk_level="command",
+    )
+
+    rendered = format_policy_summary(summary)
+
+    assert "2 decision(s)" in rendered
+    assert "highest command" in rendered
+    assert "source/reason detail in approvals and recent tool activity" in rendered
 
 
 def test_policy_evaluates_registered_tools_consistently() -> None:

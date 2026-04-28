@@ -17,6 +17,7 @@ from glassbox.core import EventEnvelope
 from glassbox.core import SessionConfig
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import ApprovalResolved
+from glassbox.core.events import ModelToolCallRequested
 from glassbox.core.events import ReplayArtifactRecorded
 from glassbox.core.events import ToolExecutionCancelled
 from glassbox.core.events import ToolExecutionStarted
@@ -253,6 +254,34 @@ def test_approval_approve_resumes_turn_and_executes_tool(tmp_path: Path) -> None
             and ev.payload.decision == ApprovalDecision.APPROVED
             for ev in all_events
         )
+        requested = next(
+            ev.payload
+            for ev in all_events
+            if isinstance(ev.payload, ModelToolCallRequested)
+        )
+        approval_requested = next(
+            ev.payload for ev in all_events if isinstance(ev.payload, ApprovalRequested)
+        )
+        tool_started = next(
+            ev.payload
+            for ev in all_events
+            if isinstance(ev.payload, ToolExecutionStarted)
+        )
+        assert requested.policy_outcome == "approve"
+        assert requested.policy_risk_level == "workspace_write"
+        assert requested.policy_source_kind == "default"
+        assert requested.policy_source_label == "workspace_write"
+        assert requested.policy_reason is not None
+        assert approval_requested.policy_outcome == requested.policy_outcome
+        assert approval_requested.policy_risk_level == requested.policy_risk_level
+        assert approval_requested.policy_source_kind == requested.policy_source_kind
+        assert approval_requested.policy_source_label == requested.policy_source_label
+        assert approval_requested.reason == requested.policy_reason
+        assert tool_started.policy_outcome == requested.policy_outcome
+        assert tool_started.policy_risk_level == requested.policy_risk_level
+        assert tool_started.policy_source_kind == requested.policy_source_kind
+        assert tool_started.policy_source_label == requested.policy_source_label
+        assert tool_started.policy_reason == requested.policy_reason
 
     asyncio.run(scenario())
 

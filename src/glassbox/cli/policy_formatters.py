@@ -34,5 +34,6 @@ def format_policy_summary(summary: PolicyActivitySummary) -> str:
         f"deny {summary.deny_count}, blocked {summary.blocked_count}; "
         f"risk read_only {summary.read_only_count}, "
         f"workspace_write {summary.workspace_write_count}, "
-        f"command {summary.command_count}; highest {highest_risk}"
+        f"command {summary.command_count}; highest {highest_risk}; "
+        "source/reason detail in approvals and recent tool activity"
     )
