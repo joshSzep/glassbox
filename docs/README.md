@@ -27,6 +27,7 @@ Use this page to jump to the right level of detail.
 - [terminal-test-harness-v5.md](./terminal-test-harness-v5.md): review the v5 terminal TUI test harness and manual review artifact policy
 - [v5-terminal-release-gate.md](./v5-terminal-release-gate.md): validate the v5 terminal UX release gate with automated coverage, packaging smoke, manual review, known gaps, and the plain-mode decision
 - [v6-release-hardening.md](./v6-release-hardening.md): review the v6 release-hardening contract, evidence classes, v5 gap mapping, readiness checklist, and residual-risk policy
+- [v6-release-gate.md](./v6-release-gate.md): run the objective v6 release-candidate gate and review pass/fail policy, coverage, manual evidence, provider-canary, and residual-risk requirements
 - [v6-release-inventory.md](./v6-release-inventory.md): inspect the current validation inventory, weak coverage areas, recommended v6 gate membership, and manual signoff split
 - [v6-release-evidence.md](./v6-release-evidence.md): understand the retained v6 `summary.json` evidence format, artifact pointers, manual evidence manifest, and redaction rules
 - [manual-qa-evidence-v6.md](./manual-qa-evidence-v6.md): record v6 terminal, dashboard, recovery, provider-canary, and accessibility manual evidence without committing large generated artifacts
@@ -69,6 +70,7 @@ Use this page to jump to the right level of detail.
 - [terminal-test-harness-v5.md](./terminal-test-harness-v5.md): v5 terminal TUI test layers, scenario matrix, stable invariants, manual review checklist, and artifact retention policy
 - [v5-terminal-release-gate.md](./v5-terminal-release-gate.md): v5 terminal UX release command, checklist, automated coverage map, manual validation, known gaps, and line-mode support decision
 - [v6-release-hardening.md](./v6-release-hardening.md): v6 hardening scope, non-goals, supported workflow set, evidence classes, v5 known-gap mapping, readiness checklist, residual-risk register, and pass/fail policy
+- [v6-release-gate.md](./v6-release-gate.md): v6 release-candidate command, automated stage map, installed smoke matrix, manual validation matrix, pass/fail policy, and residual risk register
 - [v6-release-inventory.md](./v6-release-inventory.md): v6 inventory of current automated checks, manual checks, weak coverage, gate recommendations, manual signoff recommendations, and evidence ownership
 - [v6-release-evidence.md](./v6-release-evidence.md): v6 release evidence directory, automated summary schema, stage schema, related artifact pointers, manual evidence manifest, and redaction rules
 - [manual-qa-evidence-v6.md](./manual-qa-evidence-v6.md): v6 manual QA evidence directory convention, manifest template, retention policy, and redaction rules

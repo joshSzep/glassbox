@@ -4,11 +4,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+from scripts.validate_v6_release_gate import build_gate_stages
 from scripts.validate_v6_release_gate import build_installed_dashboard_smoke_command
 from scripts.validate_v6_release_gate import build_installed_wheel_smoke_checks
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GATE_SCRIPT = REPO_ROOT / "scripts" / "validate_v6_release_gate.py"
+GATE_DOC = REPO_ROOT / "docs" / "v6-release-gate.md"
 
 
 def test_v6_release_gate_script_runs_expected_checks() -> None:
@@ -164,3 +166,30 @@ def test_v6_release_gate_builds_dashboard_smoke_command(tmp_path: Path) -> None:
         "--port",
         "9877",
     )
+
+
+def test_v6_release_gate_doc_maps_script_stages() -> None:
+    doc = GATE_DOC.read_text(encoding="utf-8")
+
+    for stage in build_gate_stages():
+        assert f"`{stage.label}`" in doc
+
+    for smoke_label in [
+        "installed terminal: root help",
+        "installed terminal: command tree",
+        "installed terminal: chat help",
+        "installed terminal: attach help",
+        "installed terminal: plain fallback",
+        "installed daemon: start",
+        "installed dashboard: static routes",
+        "installed eval: deterministic smoke",
+    ]:
+        assert f"`{smoke_label}`" in doc
+
+    for policy in [
+        "Deterministic stage failure blocks",
+        "Provider-canary skips do not block",
+        "Provider-canary failures are advisory by default",
+        "Manual accessibility or UX findings block",
+    ]:
+        assert policy in doc

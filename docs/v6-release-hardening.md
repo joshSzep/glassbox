@@ -2,7 +2,7 @@
 
 This document defines the v6 release-hardening contract for Glassbox. It turns the completed v2 runtime, v3 SPA migration, v4 operator-console UX, and v5 full-screen terminal client into one release-candidate readiness model.
 
-For the implementation task graph, use [tasks-v6.md](./tasks-v6.md). For the current terminal gate that v6 builds on, use [v5-terminal-release-gate.md](./v5-terminal-release-gate.md). For package build details, use [release-packaging.md](./release-packaging.md).
+For the implementation task graph, use [tasks-v6.md](./tasks-v6.md). For the objective release-candidate gate, use [v6-release-gate.md](./v6-release-gate.md). For the current terminal gate that v6 builds on, use [v5-terminal-release-gate.md](./v5-terminal-release-gate.md). For package build details, use [release-packaging.md](./release-packaging.md).
 
 ## Scope
 
@@ -156,6 +156,7 @@ The default v6 pass/fail policy is conservative.
 ## Related Files
 
 - [tasks-v6.md](./tasks-v6.md)
+- [v6-release-gate.md](./v6-release-gate.md)
 - [v6-release-inventory.md](./v6-release-inventory.md)
 - [v6-release-evidence.md](./v6-release-evidence.md)
 - [v5-terminal-release-gate.md](./v5-terminal-release-gate.md)

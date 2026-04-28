@@ -1113,7 +1113,7 @@ Completion notes:
 
 ### GBX-700: Define The v6 Release Candidate Gate
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-642`, `GBX-655`, `GBX-665`, `GBX-672`, `GBX-684`, `GBX-694`
 - Goal: define the final pass/fail gate for calling a build the v6 release candidate
 - Deliverables:
@@ -1130,6 +1130,13 @@ Completion notes:
   - dry-run or focused script validation if the v6 gate supports it
 - Done when:
   - there is one objective v6 release-candidate gate that combines automated validation and manual evidence expectations
+
+Completion notes:
+
+- Added [v6-release-gate.md](./v6-release-gate.md) with release command, automated stages, installed-wheel smoke matrix, manual validation matrix, coverage map, pass/fail policy, v5 gap decision, residual risk register, and evidence artifact requirements.
+- Linked the gate from the docs hub, release packaging guide, and v6 release-hardening contract.
+- Added `test_v6_release_gate_doc_maps_script_stages` so the gate doc names the scripted stages, installed smoke labels, and core pass/fail policy.
+- Validation: `uv run pytest tests/unit/test_v6_release_gate.py`; `uv run python scripts/validate_v6_release_gate.py --dry-run --evidence-dir .glassbox/releases/gbx-700-dry-run`.
 
 ### GBX-701: Run The Automated v6 Gate And Fix Blocking Failures
 
