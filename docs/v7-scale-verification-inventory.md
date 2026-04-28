@@ -46,6 +46,7 @@ Current checked-in cases:
 | `context.artifact` | strict artifact-context drift coverage, advisory |
 | `context.artifact-relaxed` | selected-invariant artifact-context coverage, advisory |
 | `approval.approved-patch` | advisory approval request, approval resolution, and tool-resumption coverage |
+| `ask-user.answer-resume` | advisory ask-user question, answer, and resumed-output coverage |
 | `cancellation.cancelled-turn` | advisory cancelled-turn evidence |
 
 Current profiles:
@@ -64,7 +65,9 @@ portability, branching, and context inheritance. Current advisory or weak areas:
 - `approval_flow` now has advisory deterministic coverage for approved
   `apply_patch` resumption through `approval.approved-patch`; denial-specific
   and dashboard-specific resolution behavior remains integration evidence
-- `ask_user_flow` has no expected deterministic eval case yet
+- `ask_user_flow` now has advisory deterministic coverage for persisted
+  question, answer, and resumed assistant output through `ask-user.answer-resume`;
+  operator timing and UI-specific validation remain integration evidence
 - `cancellation` has one advisory case, but model-call, tool-execution, repeated
   cancellation, and reconnect-sensitive variants are not represented
 - dashboard-originated actions and daemon attach semantics are covered by tests
@@ -186,6 +189,9 @@ Current strengths:
 - `ask_user` is explicitly separated from approval semantics
 - `approval.approved-patch` protects the persisted approval request, approval
   decision, resumed tool execution, and completed assistant-output event contract
+- `ask-user.answer-resume` protects persisted operator questions, answers, and
+  answer-aware resumed assistant output without treating operator timing as a
+  deterministic replay invariant
 - policy outcomes carry source, risk, and reason fields in current event payloads
   for tool-related events
 - CLI and dashboard approval workflows are already implemented

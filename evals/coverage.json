@@ -83,9 +83,9 @@
       "kind": "operator_workflow",
       "criticality": "important",
       "verification_stages": ["advisory"],
-      "expected_case_ids": [],
+      "expected_case_ids": ["ask-user.answer-resume"],
       "coverage_mode": "single_case",
-      "notes": "Covered by integration and release-gate workflow evidence until a curated replay or eval case is stable enough for deterministic report sign-off."
+      "notes": "Curated replay evidence covers an ask_user request through UserQuestionAsked, UserAnswerProvided, and answer-aware assistant resumption. Operator timing, empty-answer validation, and UI-specific error states remain focused integration evidence."
     },
     {
       "capability_id": "cancellation",

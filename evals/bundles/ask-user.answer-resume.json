@@ -1,0 +1,955 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Pick a colour"
+    },
+    {
+      "action_type": "user_answer",
+      "answer": "blue"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "cancellations": [],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TurnStatusChanged",
+      "TurnStatusChanged",
+      "ModelCallStarted",
+      "AssistantMessageStarted",
+      "ModelCallCompleted",
+      "ModelToolCallRequested",
+      "TurnStatusChanged",
+      "UserQuestionAsked",
+      "TurnCompleted",
+      "UserAnswerProvided",
+      "TurnStatusChanged",
+      "TurnStatusChanged",
+      "ModelCallStarted",
+      "ModelCallCompleted",
+      "TurnStatusChanged",
+      "AssistantMessageCompleted",
+      "TurnStatusChanged",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Pick a colour"
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": ""
+          }
+        ],
+        "role": "assistant"
+      },
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "I will use: blue"
+          }
+        ],
+        "role": "assistant"
+      }
+    ],
+    "questions": [
+      {
+        "answer": "blue",
+        "question": "What colour should I use?"
+      }
+    ],
+    "tool_calls": [
+      {
+        "status": "requested",
+        "tool_name": "ask_user"
+      }
+    ],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Pick a colour"
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": ""
+          }
+        ],
+        "role": "assistant"
+      },
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "I will use: blue"
+          }
+        ],
+        "role": "assistant"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "inherited_messages": [],
+  "inherited_runtime_notes": [],
+  "model_calls": [
+    {
+      "input_tokens": 927,
+      "manifest": {
+        "artifact_kind": "replay_model_call",
+        "call_index": 1,
+        "enriched_context_fingerprint": "548d556333fa5a602837f0b3b94deef795126b9d4727f5cc9c9257e926bc25df",
+        "enriched_context_sources": [
+          {
+            "fingerprint": "bd79e562d24334c3e116d4548e1112ca0e2fe8e171094ca3d72583ce41182aa7",
+            "inherited": false,
+            "provenance_class": "recomputed_summary",
+            "schema_version": 1,
+            "source_name": "repository_context",
+            "summary": "Workspace: glassbox"
+          }
+        ],
+        "manifest_version": 1,
+        "prepared_turn": {
+          "message_history": [
+            {
+              "message_kind": "request",
+              "parts": [
+                {
+                  "content": "You are Glassbox, a terminal-first agent running inside an event-driven runtime.\nWork from the transcript, tool results, and supplied context rather than inventing hidden state.\nTreat tool calls and approvals as explicit runtime actions, not as assumptions.\n\nOutput style:\n- Be concise, factual, and explicit about uncertainty.\n- Do not claim an action succeeded unless the transcript or a tool result shows it succeeded.\n- If you are blocked by policy, approvals, or missing tool access, say so directly.\n\nTool usage:\n- Use tools when they materially improve correctness or let you inspect the workspace.\n- Never invent tool outputs, side effects, or file changes.\n- Arguments for tool calls must match the declared JSON schema.\nAvailable tools:\napply_patch: Edit a file within the workspace by replacing an exact string with new content.  Set old_text to an empty string to overwrite the entire file (and create it if it does not exist).  The replacement must match exactly once; ambiguous or missing matches are rejected.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for applying one text replacement to a workspace file.\\n\\nWhen ``old_text`` is an empty string the full file is overwritten with\\n``new_text`` (and the file is created if it does not yet exist).  When\\n``old_text`` is non-empty it must match *exactly once* in the current file\\ncontent; zero or multiple matches are both treated as errors.\", \"properties\": {\"new_text\": {\"default\": \"\", \"description\": \"Replacement text.\", \"title\": \"New Text\", \"type\": \"string\"}, \"old_text\": {\"default\": \"\", \"description\": \"Exact text to find and replace.  Empty string means overwrite the entire file with new_text.\", \"title\": \"Old Text\", \"type\": \"string\"}, \"path\": {\"description\": \"File path relative to the workspace root.\", \"minLength\": 1, \"title\": \"Path\", \"type\": \"string\"}}, \"required\": [\"path\"], \"title\": \"ApplyPatchArgs\", \"type\": \"object\"}\nask_user: Pause the current turn and ask the operator a question. The turn resumes automatically once the operator provides an answer.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for asking the operator a question.\", \"properties\": {\"question\": {\"description\": \"The question to present to the operator.\", \"minLength\": 1, \"title\": \"Question\", \"type\": \"string\"}}, \"required\": [\"question\"], \"title\": \"AskUserArgs\", \"type\": \"object\"}\ngit_status: Get the current git status of the workspace: branch name, staged files, modified files, and untracked files.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for inspecting git status of the workspace.\", \"properties\": {\"cwd\": {\"default\": \".\", \"description\": \"Working directory relative to the workspace root.\", \"title\": \"Cwd\", \"type\": \"string\"}}, \"title\": \"GitStatusArgs\", \"type\": \"object\"}\nlist_dir: List directory contents inside the workspace.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for listing one directory inside the workspace.\", \"properties\": {\"limit\": {\"default\": 100, \"maximum\": 500, \"minimum\": 1, \"title\": \"Limit\", \"type\": \"integer\"}, \"path\": {\"default\": \".\", \"title\": \"Path\", \"type\": \"string\"}}, \"title\": \"ListDirArgs\", \"type\": \"object\"}\nread_file: Read text from a file inside the workspace.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for reading one text file inside the workspace.\", \"properties\": {\"end_line\": {\"anyOf\": [{\"minimum\": 1, \"type\": \"integer\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"End Line\"}, \"path\": {\"title\": \"Path\", \"type\": \"string\"}, \"start_line\": {\"default\": 1, \"minimum\": 1, \"title\": \"Start Line\", \"type\": \"integer\"}}, \"required\": [\"path\"], \"title\": \"ReadFileArgs\", \"type\": \"object\"}\nrun_command: Run a shell command inside the workspace directory. stdout and stderr are captured and streamed as output chunks.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for running one shell command inside the workspace.\", \"properties\": {\"command\": {\"description\": \"Shell command to execute.\", \"minLength\": 1, \"title\": \"Command\", \"type\": \"string\"}, \"cwd\": {\"default\": \".\", \"description\": \"Working directory relative to the workspace root.\", \"title\": \"Cwd\", \"type\": \"string\"}, \"timeout\": {\"default\": 30, \"description\": \"Maximum seconds to wait before killing the process.\", \"maximum\": 300, \"minimum\": 1, \"title\": \"Timeout\", \"type\": \"integer\"}}, \"required\": [\"command\"], \"title\": \"RunCommandArgs\", \"type\": \"object\"}\nrun_tests: Run pytest in the workspace. Paths can target specific test files or directories; an empty list runs the full test suite.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for running pytest in the workspace.\", \"properties\": {\"keywords\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"default\": null, \"description\": \"Pytest -k expression to filter tests by keyword.\", \"title\": \"Keywords\"}, \"paths\": {\"description\": \"Test paths or files to run relative to the workspace root. Empty list runs the full test suite.\", \"items\": {\"type\": \"string\"}, \"title\": \"Paths\", \"type\": \"array\"}, \"timeout\": {\"default\": 60, \"description\": \"Maximum seconds to wait before killing the test run.\", \"maximum\": 600, \"minimum\": 1, \"title\": \"Timeout\", \"type\": \"integer\"}}, \"title\": \"RunTestsArgs\", \"type\": \"object\"}\nsearch_files: Search workspace text files for matching text.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for searching workspace text files.\", \"properties\": {\"limit\": {\"default\": 20, \"maximum\": 200, \"minimum\": 1, \"title\": \"Limit\", \"type\": \"integer\"}, \"path\": {\"default\": \".\", \"title\": \"Path\", \"type\": \"string\"}, \"query\": {\"minLength\": 1, \"title\": \"Query\", \"type\": \"string\"}}, \"required\": [\"query\"], \"title\": \"SearchFilesArgs\", \"type\": \"object\"}\n\nApproval policy:\n- Current approval mode: never.\n- If a requested action needs approval, stop and ask for approval rather than implying it already happened.\n- No approval request is currently pending.",
+                  "part_kind": "system_prompt"
+                }
+              ]
+            },
+            {
+              "message_kind": "request",
+              "parts": [
+                {
+                  "content": "Pick a colour",
+                  "part_kind": "user_prompt"
+                }
+              ]
+            }
+          ],
+          "model_name": "openai:gpt-5.4",
+          "model_settings": {},
+          "request_parameters": {
+            "allow_image_output": false,
+            "allow_text_output": true,
+            "tool_names": [
+              "apply_patch",
+              "ask_user",
+              "git_status",
+              "list_dir",
+              "read_file",
+              "run_command",
+              "run_tests",
+              "search_files"
+            ]
+          }
+        },
+        "runtime_config": {
+          "allow_image_output": false,
+          "allow_text_output": true,
+          "fingerprint": "10a7d7a99f91606bf2828d3fcef42aada2d5e0d2721b32b4215c6e9ad2866df3",
+          "model_name": "openai:gpt-5.4",
+          "model_settings": {},
+          "tool_names": [
+            "apply_patch",
+            "ask_user",
+            "git_status",
+            "list_dir",
+            "read_file",
+            "run_command",
+            "run_tests",
+            "search_files"
+          ]
+        },
+        "turn_context": {
+          "artifact_context": {
+            "additional_summary_count": 0,
+            "summaries": []
+          },
+          "available_tools": [
+            {
+              "description": "Edit a file within the workspace by replacing an exact string with new content.  Set old_text to an empty string to overwrite the entire file (and create it if it does not exist).  The replacement must match exactly once; ambiguous or missing matches are rejected.",
+              "name": "apply_patch",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for applying one text replacement to a workspace file.\n\nWhen ``old_text`` is an empty string the full file is overwritten with\n``new_text`` (and the file is created if it does not yet exist).  When\n``old_text`` is non-empty it must match *exactly once* in the current file\ncontent; zero or multiple matches are both treated as errors.",
+                "properties": {
+                  "new_text": {
+                    "default": "",
+                    "description": "Replacement text.",
+                    "title": "New Text",
+                    "type": "string"
+                  },
+                  "old_text": {
+                    "default": "",
+                    "description": "Exact text to find and replace.  Empty string means overwrite the entire file with new_text.",
+                    "title": "Old Text",
+                    "type": "string"
+                  },
+                  "path": {
+                    "description": "File path relative to the workspace root.",
+                    "minLength": 1,
+                    "title": "Path",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "title": "ApplyPatchArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Pause the current turn and ask the operator a question. The turn resumes automatically once the operator provides an answer.",
+              "name": "ask_user",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for asking the operator a question.",
+                "properties": {
+                  "question": {
+                    "description": "The question to present to the operator.",
+                    "minLength": 1,
+                    "title": "Question",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "question"
+                ],
+                "title": "AskUserArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Get the current git status of the workspace: branch name, staged files, modified files, and untracked files.",
+              "name": "git_status",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for inspecting git status of the workspace.",
+                "properties": {
+                  "cwd": {
+                    "default": ".",
+                    "description": "Working directory relative to the workspace root.",
+                    "title": "Cwd",
+                    "type": "string"
+                  }
+                },
+                "title": "GitStatusArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "List directory contents inside the workspace.",
+              "name": "list_dir",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for listing one directory inside the workspace.",
+                "properties": {
+                  "limit": {
+                    "default": 100,
+                    "maximum": 500,
+                    "minimum": 1,
+                    "title": "Limit",
+                    "type": "integer"
+                  },
+                  "path": {
+                    "default": ".",
+                    "title": "Path",
+                    "type": "string"
+                  }
+                },
+                "title": "ListDirArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Read text from a file inside the workspace.",
+              "name": "read_file",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for reading one text file inside the workspace.",
+                "properties": {
+                  "end_line": {
+                    "anyOf": [
+                      {
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "End Line"
+                  },
+                  "path": {
+                    "title": "Path",
+                    "type": "string"
+                  },
+                  "start_line": {
+                    "default": 1,
+                    "minimum": 1,
+                    "title": "Start Line",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "title": "ReadFileArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Run a shell command inside the workspace directory. stdout and stderr are captured and streamed as output chunks.",
+              "name": "run_command",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for running one shell command inside the workspace.",
+                "properties": {
+                  "command": {
+                    "description": "Shell command to execute.",
+                    "minLength": 1,
+                    "title": "Command",
+                    "type": "string"
+                  },
+                  "cwd": {
+                    "default": ".",
+                    "description": "Working directory relative to the workspace root.",
+                    "title": "Cwd",
+                    "type": "string"
+                  },
+                  "timeout": {
+                    "default": 30,
+                    "description": "Maximum seconds to wait before killing the process.",
+                    "maximum": 300,
+                    "minimum": 1,
+                    "title": "Timeout",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "command"
+                ],
+                "title": "RunCommandArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Run pytest in the workspace. Paths can target specific test files or directories; an empty list runs the full test suite.",
+              "name": "run_tests",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for running pytest in the workspace.",
+                "properties": {
+                  "keywords": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "description": "Pytest -k expression to filter tests by keyword.",
+                    "title": "Keywords"
+                  },
+                  "paths": {
+                    "description": "Test paths or files to run relative to the workspace root. Empty list runs the full test suite.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "title": "Paths",
+                    "type": "array"
+                  },
+                  "timeout": {
+                    "default": 60,
+                    "description": "Maximum seconds to wait before killing the test run.",
+                    "maximum": 600,
+                    "minimum": 1,
+                    "title": "Timeout",
+                    "type": "integer"
+                  }
+                },
+                "title": "RunTestsArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Search workspace text files for matching text.",
+              "name": "search_files",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for searching workspace text files.",
+                "properties": {
+                  "limit": {
+                    "default": 20,
+                    "maximum": 200,
+                    "minimum": 1,
+                    "title": "Limit",
+                    "type": "integer"
+                  },
+                  "path": {
+                    "default": ".",
+                    "title": "Path",
+                    "type": "string"
+                  },
+                  "query": {
+                    "minLength": 1,
+                    "title": "Query",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "title": "SearchFilesArgs",
+                "type": "object"
+              }
+            }
+          ],
+          "current_turn_id": "9fc27c27-30b4-424a-951d-47fddbca9bf5",
+          "last_sequence": 4,
+          "memory_notes": [],
+          "policy": {
+            "approval_mode": "never",
+            "pending_approval_id": null
+          },
+          "repo_context": "Workspace: glassbox\nHigh-signal paths: README.md, pyproject.toml, src/, tests/, docs/, evals/, frontend/\nTop-level directories: dist/, docs/, evals/, frontend/, scripts/, src/, tests/\nTop-level files: LICENSE, README.md, glassbox.png, pyproject.toml, uv.lock\nProject markers: python_pyproject, src_layout, tests_present, docs_present, evals_present, frontend_present",
+          "session_id": "582edab5-085b-4fc0-a0f9-7450c343d1ce",
+          "session_status": "running",
+          "transcript": [
+            {
+              "created_at": "2026-04-28T12:17:26.943514Z",
+              "message_id": "2d0ee453-6185-4f39-ae4b-ac28f41d0d58",
+              "parts": [
+                {
+                  "kind": "text",
+                  "text": "Pick a colour"
+                }
+              ],
+              "role": "user"
+            }
+          ],
+          "working_set": {
+            "additional_item_count": 0,
+            "items": []
+          }
+        }
+      },
+      "output_tokens": 9,
+      "text_deltas": [],
+      "tool_calls": [
+        {
+          "arguments": {
+            "question": "What colour should I use?"
+          },
+          "provider_tool_call_id": "provider-ask-1",
+          "tool_name": "ask_user"
+        }
+      ]
+    },
+    {
+      "assistant_text": "I will use: blue",
+      "input_tokens": 941,
+      "manifest": {
+        "artifact_kind": "replay_model_call",
+        "call_index": 2,
+        "enriched_context_fingerprint": "6b9ee6e8028acec31aca9d399d6879ee7f094ef681c377072ceed693092a1bbc",
+        "enriched_context_sources": [
+          {
+            "fingerprint": "bd79e562d24334c3e116d4548e1112ca0e2fe8e171094ca3d72583ce41182aa7",
+            "inherited": false,
+            "provenance_class": "recomputed_summary",
+            "schema_version": 1,
+            "source_name": "repository_context",
+            "summary": "Workspace: glassbox"
+          },
+          {
+            "additional_item_count": 0,
+            "fingerprint": "1b5a2d093f342376d2b09286e47112662eff3e7fe5041f5d506b2fbd57ee42cf",
+            "inherited": false,
+            "item_count": 1,
+            "provenance_class": "recomputed_summary",
+            "schema_version": 1,
+            "source_name": "working_set",
+            "summary": "1 working-set item"
+          }
+        ],
+        "manifest_version": 1,
+        "prepared_turn": {
+          "message_history": [
+            {
+              "message_kind": "request",
+              "parts": [
+                {
+                  "content": "You are Glassbox, a terminal-first agent running inside an event-driven runtime.\nWork from the transcript, tool results, and supplied context rather than inventing hidden state.\nTreat tool calls and approvals as explicit runtime actions, not as assumptions.\n\nOutput style:\n- Be concise, factual, and explicit about uncertainty.\n- Do not claim an action succeeded unless the transcript or a tool result shows it succeeded.\n- If you are blocked by policy, approvals, or missing tool access, say so directly.\n\nTool usage:\n- Use tools when they materially improve correctness or let you inspect the workspace.\n- Never invent tool outputs, side effects, or file changes.\n- Arguments for tool calls must match the declared JSON schema.\nAvailable tools:\napply_patch: Edit a file within the workspace by replacing an exact string with new content.  Set old_text to an empty string to overwrite the entire file (and create it if it does not exist).  The replacement must match exactly once; ambiguous or missing matches are rejected.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for applying one text replacement to a workspace file.\\n\\nWhen ``old_text`` is an empty string the full file is overwritten with\\n``new_text`` (and the file is created if it does not yet exist).  When\\n``old_text`` is non-empty it must match *exactly once* in the current file\\ncontent; zero or multiple matches are both treated as errors.\", \"properties\": {\"new_text\": {\"default\": \"\", \"description\": \"Replacement text.\", \"title\": \"New Text\", \"type\": \"string\"}, \"old_text\": {\"default\": \"\", \"description\": \"Exact text to find and replace.  Empty string means overwrite the entire file with new_text.\", \"title\": \"Old Text\", \"type\": \"string\"}, \"path\": {\"description\": \"File path relative to the workspace root.\", \"minLength\": 1, \"title\": \"Path\", \"type\": \"string\"}}, \"required\": [\"path\"], \"title\": \"ApplyPatchArgs\", \"type\": \"object\"}\nask_user: Pause the current turn and ask the operator a question. The turn resumes automatically once the operator provides an answer.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for asking the operator a question.\", \"properties\": {\"question\": {\"description\": \"The question to present to the operator.\", \"minLength\": 1, \"title\": \"Question\", \"type\": \"string\"}}, \"required\": [\"question\"], \"title\": \"AskUserArgs\", \"type\": \"object\"}\ngit_status: Get the current git status of the workspace: branch name, staged files, modified files, and untracked files.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for inspecting git status of the workspace.\", \"properties\": {\"cwd\": {\"default\": \".\", \"description\": \"Working directory relative to the workspace root.\", \"title\": \"Cwd\", \"type\": \"string\"}}, \"title\": \"GitStatusArgs\", \"type\": \"object\"}\nlist_dir: List directory contents inside the workspace.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for listing one directory inside the workspace.\", \"properties\": {\"limit\": {\"default\": 100, \"maximum\": 500, \"minimum\": 1, \"title\": \"Limit\", \"type\": \"integer\"}, \"path\": {\"default\": \".\", \"title\": \"Path\", \"type\": \"string\"}}, \"title\": \"ListDirArgs\", \"type\": \"object\"}\nread_file: Read text from a file inside the workspace.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for reading one text file inside the workspace.\", \"properties\": {\"end_line\": {\"anyOf\": [{\"minimum\": 1, \"type\": \"integer\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"End Line\"}, \"path\": {\"title\": \"Path\", \"type\": \"string\"}, \"start_line\": {\"default\": 1, \"minimum\": 1, \"title\": \"Start Line\", \"type\": \"integer\"}}, \"required\": [\"path\"], \"title\": \"ReadFileArgs\", \"type\": \"object\"}\nrun_command: Run a shell command inside the workspace directory. stdout and stderr are captured and streamed as output chunks.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for running one shell command inside the workspace.\", \"properties\": {\"command\": {\"description\": \"Shell command to execute.\", \"minLength\": 1, \"title\": \"Command\", \"type\": \"string\"}, \"cwd\": {\"default\": \".\", \"description\": \"Working directory relative to the workspace root.\", \"title\": \"Cwd\", \"type\": \"string\"}, \"timeout\": {\"default\": 30, \"description\": \"Maximum seconds to wait before killing the process.\", \"maximum\": 300, \"minimum\": 1, \"title\": \"Timeout\", \"type\": \"integer\"}}, \"required\": [\"command\"], \"title\": \"RunCommandArgs\", \"type\": \"object\"}\nrun_tests: Run pytest in the workspace. Paths can target specific test files or directories; an empty list runs the full test suite.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for running pytest in the workspace.\", \"properties\": {\"keywords\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"default\": null, \"description\": \"Pytest -k expression to filter tests by keyword.\", \"title\": \"Keywords\"}, \"paths\": {\"description\": \"Test paths or files to run relative to the workspace root. Empty list runs the full test suite.\", \"items\": {\"type\": \"string\"}, \"title\": \"Paths\", \"type\": \"array\"}, \"timeout\": {\"default\": 60, \"description\": \"Maximum seconds to wait before killing the test run.\", \"maximum\": 600, \"minimum\": 1, \"title\": \"Timeout\", \"type\": \"integer\"}}, \"title\": \"RunTestsArgs\", \"type\": \"object\"}\nsearch_files: Search workspace text files for matching text.\nSchema: {\"additionalProperties\": false, \"description\": \"Arguments for searching workspace text files.\", \"properties\": {\"limit\": {\"default\": 20, \"maximum\": 200, \"minimum\": 1, \"title\": \"Limit\", \"type\": \"integer\"}, \"path\": {\"default\": \".\", \"title\": \"Path\", \"type\": \"string\"}, \"query\": {\"minLength\": 1, \"title\": \"Query\", \"type\": \"string\"}}, \"required\": [\"query\"], \"title\": \"SearchFilesArgs\", \"type\": \"object\"}\n\nApproval policy:\n- Current approval mode: never.\n- If a requested action needs approval, stop and ask for approval rather than implying it already happened.\n- No approval request is currently pending.",
+                  "part_kind": "system_prompt"
+                }
+              ]
+            },
+            {
+              "message_kind": "request",
+              "parts": [
+                {
+                  "content": "Pick a colour",
+                  "part_kind": "user_prompt"
+                }
+              ]
+            },
+            {
+              "message_kind": "response",
+              "parts": [
+                {
+                  "content": "",
+                  "part_kind": "text"
+                }
+              ]
+            },
+            {
+              "message_kind": "response",
+              "parts": [
+                {
+                  "arguments": {
+                    "question": "What colour should I use?"
+                  },
+                  "part_kind": "tool_call",
+                  "tool_call_id": "provider-ask-1",
+                  "tool_name": "ask_user"
+                }
+              ]
+            },
+            {
+              "message_kind": "request",
+              "parts": [
+                {
+                  "content": {
+                    "answer": "blue"
+                  },
+                  "part_kind": "tool_return",
+                  "tool_call_id": "provider-ask-1",
+                  "tool_name": "ask_user"
+                }
+              ]
+            }
+          ],
+          "model_name": "openai:gpt-5.4",
+          "model_settings": {},
+          "request_parameters": {
+            "allow_image_output": false,
+            "allow_text_output": true,
+            "tool_names": [
+              "apply_patch",
+              "ask_user",
+              "git_status",
+              "list_dir",
+              "read_file",
+              "run_command",
+              "run_tests",
+              "search_files"
+            ]
+          }
+        },
+        "runtime_config": {
+          "allow_image_output": false,
+          "allow_text_output": true,
+          "fingerprint": "10a7d7a99f91606bf2828d3fcef42aada2d5e0d2721b32b4215c6e9ad2866df3",
+          "model_name": "openai:gpt-5.4",
+          "model_settings": {},
+          "tool_names": [
+            "apply_patch",
+            "ask_user",
+            "git_status",
+            "list_dir",
+            "read_file",
+            "run_command",
+            "run_tests",
+            "search_files"
+          ]
+        },
+        "turn_context": {
+          "artifact_context": {
+            "additional_summary_count": 0,
+            "summaries": []
+          },
+          "available_tools": [
+            {
+              "description": "Edit a file within the workspace by replacing an exact string with new content.  Set old_text to an empty string to overwrite the entire file (and create it if it does not exist).  The replacement must match exactly once; ambiguous or missing matches are rejected.",
+              "name": "apply_patch",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for applying one text replacement to a workspace file.\n\nWhen ``old_text`` is an empty string the full file is overwritten with\n``new_text`` (and the file is created if it does not yet exist).  When\n``old_text`` is non-empty it must match *exactly once* in the current file\ncontent; zero or multiple matches are both treated as errors.",
+                "properties": {
+                  "new_text": {
+                    "default": "",
+                    "description": "Replacement text.",
+                    "title": "New Text",
+                    "type": "string"
+                  },
+                  "old_text": {
+                    "default": "",
+                    "description": "Exact text to find and replace.  Empty string means overwrite the entire file with new_text.",
+                    "title": "Old Text",
+                    "type": "string"
+                  },
+                  "path": {
+                    "description": "File path relative to the workspace root.",
+                    "minLength": 1,
+                    "title": "Path",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "title": "ApplyPatchArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Pause the current turn and ask the operator a question. The turn resumes automatically once the operator provides an answer.",
+              "name": "ask_user",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for asking the operator a question.",
+                "properties": {
+                  "question": {
+                    "description": "The question to present to the operator.",
+                    "minLength": 1,
+                    "title": "Question",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "question"
+                ],
+                "title": "AskUserArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Get the current git status of the workspace: branch name, staged files, modified files, and untracked files.",
+              "name": "git_status",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for inspecting git status of the workspace.",
+                "properties": {
+                  "cwd": {
+                    "default": ".",
+                    "description": "Working directory relative to the workspace root.",
+                    "title": "Cwd",
+                    "type": "string"
+                  }
+                },
+                "title": "GitStatusArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "List directory contents inside the workspace.",
+              "name": "list_dir",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for listing one directory inside the workspace.",
+                "properties": {
+                  "limit": {
+                    "default": 100,
+                    "maximum": 500,
+                    "minimum": 1,
+                    "title": "Limit",
+                    "type": "integer"
+                  },
+                  "path": {
+                    "default": ".",
+                    "title": "Path",
+                    "type": "string"
+                  }
+                },
+                "title": "ListDirArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Read text from a file inside the workspace.",
+              "name": "read_file",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for reading one text file inside the workspace.",
+                "properties": {
+                  "end_line": {
+                    "anyOf": [
+                      {
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "End Line"
+                  },
+                  "path": {
+                    "title": "Path",
+                    "type": "string"
+                  },
+                  "start_line": {
+                    "default": 1,
+                    "minimum": 1,
+                    "title": "Start Line",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "title": "ReadFileArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Run a shell command inside the workspace directory. stdout and stderr are captured and streamed as output chunks.",
+              "name": "run_command",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for running one shell command inside the workspace.",
+                "properties": {
+                  "command": {
+                    "description": "Shell command to execute.",
+                    "minLength": 1,
+                    "title": "Command",
+                    "type": "string"
+                  },
+                  "cwd": {
+                    "default": ".",
+                    "description": "Working directory relative to the workspace root.",
+                    "title": "Cwd",
+                    "type": "string"
+                  },
+                  "timeout": {
+                    "default": 30,
+                    "description": "Maximum seconds to wait before killing the process.",
+                    "maximum": 300,
+                    "minimum": 1,
+                    "title": "Timeout",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "command"
+                ],
+                "title": "RunCommandArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Run pytest in the workspace. Paths can target specific test files or directories; an empty list runs the full test suite.",
+              "name": "run_tests",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for running pytest in the workspace.",
+                "properties": {
+                  "keywords": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "description": "Pytest -k expression to filter tests by keyword.",
+                    "title": "Keywords"
+                  },
+                  "paths": {
+                    "description": "Test paths or files to run relative to the workspace root. Empty list runs the full test suite.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "title": "Paths",
+                    "type": "array"
+                  },
+                  "timeout": {
+                    "default": 60,
+                    "description": "Maximum seconds to wait before killing the test run.",
+                    "maximum": 600,
+                    "minimum": 1,
+                    "title": "Timeout",
+                    "type": "integer"
+                  }
+                },
+                "title": "RunTestsArgs",
+                "type": "object"
+              }
+            },
+            {
+              "description": "Search workspace text files for matching text.",
+              "name": "search_files",
+              "parameters_json_schema": {
+                "additionalProperties": false,
+                "description": "Arguments for searching workspace text files.",
+                "properties": {
+                  "limit": {
+                    "default": 20,
+                    "maximum": 200,
+                    "minimum": 1,
+                    "title": "Limit",
+                    "type": "integer"
+                  },
+                  "path": {
+                    "default": ".",
+                    "title": "Path",
+                    "type": "string"
+                  },
+                  "query": {
+                    "minLength": 1,
+                    "title": "Query",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "title": "SearchFilesArgs",
+                "type": "object"
+              }
+            }
+          ],
+          "current_turn_id": null,
+          "last_sequence": 17,
+          "memory_notes": [],
+          "policy": {
+            "approval_mode": "never",
+            "pending_approval_id": null
+          },
+          "repo_context": "Workspace: glassbox\nHigh-signal paths: README.md, pyproject.toml, src/, tests/, docs/, evals/, frontend/\nTop-level directories: dist/, docs/, evals/, frontend/, scripts/, src/, tests/\nTop-level files: LICENSE, README.md, glassbox.png, pyproject.toml, uv.lock\nProject markers: python_pyproject, src_layout, tests_present, docs_present, evals_present, frontend_present",
+          "session_id": "582edab5-085b-4fc0-a0f9-7450c343d1ce",
+          "session_status": "running",
+          "transcript": [
+            {
+              "created_at": "2026-04-28T12:17:26.943514Z",
+              "message_id": "2d0ee453-6185-4f39-ae4b-ac28f41d0d58",
+              "parts": [
+                {
+                  "kind": "text",
+                  "text": "Pick a colour"
+                }
+              ],
+              "role": "user"
+            },
+            {
+              "created_at": "2026-04-28T12:17:26.945971Z",
+              "message_id": "d4673082-40eb-4e8b-8db9-ac6e5ac26d2c",
+              "parts": [
+                {
+                  "kind": "text",
+                  "text": ""
+                }
+              ],
+              "role": "assistant"
+            }
+          ],
+          "working_set": {
+            "additional_item_count": 0,
+            "items": [
+              {
+                "inherited": false,
+                "reasons": [
+                  "ask_user: requested"
+                ],
+                "signal_types": [
+                  "tool_call"
+                ],
+                "subject": "ask_user",
+                "subject_kind": "tool",
+                "summary": "recent tool execution"
+              }
+            ]
+          }
+        }
+      },
+      "output_tokens": 13,
+      "text_deltas": [],
+      "tool_calls": []
+    }
+  ],
+  "session_config": {
+    "approval_mode": "never",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "582edab5-085b-4fc0-a0f9-7450c343d1ce",
+  "tool_requests": [
+    {
+      "artifact_kind": "replay_tool_request",
+      "manifest_version": 1,
+      "policy_decision": {
+        "allowed": true,
+        "outcome": "allow",
+        "reason": "allowed: read-only tool within workspace scope",
+        "requires_approval": false,
+        "risk_level": "read_only",
+        "source_kind": "default",
+        "source_label": "read_only"
+      },
+      "provider_tool_call_id": "provider-ask-1",
+      "tool_call_id": "432e702f-ea3b-4b1f-af42-2f11bfc7d64e",
+      "tool_name": "ask_user",
+      "validated_arguments": {
+        "question": "What colour should I use?"
+      }
+    }
+  ],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "details": {
+        "question": "What colour should I use?",
+        "question_id": "599a372f-4544-44ce-b66b-211e30ef74f4",
+        "tool_call_id": "432e702f-ea3b-4b1f-af42-2f11bfc7d64e"
+      },
+      "manifest_version": 1,
+      "outcome": "awaiting_user_input"
+    },
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": "I will use: blue",
+      "details": {},
+      "manifest_version": 1,
+      "outcome": "completed"
+    }
+  ]
+}

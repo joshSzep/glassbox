@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "ask-user.answer-resume",
+  "title": "Ask-user answer resumes assistant turn",
+  "bundle_path": "../bundles/ask-user.answer-resume.json",
+  "tags": ["ask-user", "tooling"],
+  "notes": "Exercises an ask_user tool call that pauses for an operator answer, persists UserQuestionAsked and UserAnswerProvided, and resumes with answer-aware assistant output.",
+  "release_contract": {
+    "owner": "runtime.ask-user",
+    "capabilities": ["ask_user_flow"],
+    "severity": "high",
+    "verification_stages": ["advisory"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-28T00:00:00Z",
+      "source_session_id": "582edab5-085b-4fc0-a0f9-7450c343d1ce",
+      "rationale": "Promoted for GBX-721 to make ask_user question, answer, and resumed assistant-output behavior visible in repository-owned deterministic eval evidence."
+    }
+  ]
+}

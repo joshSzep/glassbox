@@ -69,9 +69,17 @@
                 "src/glassbox/tools/ask_user.py",
                 "src/glassbox/runtime/*question*.py",
                 "src/glassbox/runtime/*ask*.py",
-                "src/glassbox/cli/*answer*.py"
+                "src/glassbox/cli/*answer*.py",
+                "src/glassbox/web/routes/sessions.py",
+                "frontend/**/*answer*.ts",
+                "frontend/**/*answer*.tsx",
+                "frontend/**/*question*.ts",
+                "frontend/**/*question*.tsx"
             ],
-            "capabilities": ["ask_user_flow"]
+            "owners": ["runtime.ask-user"],
+            "capabilities": ["ask_user_flow"],
+            "case_ids": ["ask-user.answer-resume"],
+            "notes": "Ask-user, answer, question, or resumption changes should re-run the curated answer-resume replay case plus focused tests for validation and UI error handling."
         },
         {
             "rule_id": "eval-profile-governance",

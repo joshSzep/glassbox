@@ -325,7 +325,7 @@ Completion notes:
 
 ### GBX-721: Promote Ask-User Workflow Eval Coverage
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-711`
 - Goal: make `ask_user` suspension and answer resumption part of the curated deterministic eval portfolio
 - Deliverables:
@@ -344,6 +344,13 @@ Completion notes:
   - focused ask-user integration tests
 - Done when:
   - ask-user workflow drift can be detected through repository-owned deterministic eval evidence
+
+Completion notes:
+
+- Added `ask-user.answer-resume` as an advisory deterministic eval case with a replay bundle generated from an `ask_user` suspension and answer-resumption session.
+- Updated `ask_user_flow` coverage and ask-user impact rules so ask, answer, question, web-route, and dashboard action changes recommend the curated case.
+- Documented the deterministic expectation in [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md): persisted question, answer, and answer-aware resumed output are covered; operator timing and UI-specific validation remain focused integration evidence.
+- Validation: `uv run glassbox eval run ask-user.answer-resume --cwd .`, `uv run glassbox eval audit --cwd .`, and focused ask-user integration tests.
 
 ### GBX-722: Promote Daemon Attach And Dashboard Action Eval Coverage
 
