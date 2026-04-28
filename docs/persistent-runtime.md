@@ -107,10 +107,26 @@ uv run glassbox daemon stop --cwd .
 - If the dashboard cannot find a direct `?session=...` URL, open the root
   session index printed by `daemon status` and select the session there.
 
+For broader recovery and maintenance checks, use the read-only commands before
+mutating state:
+
+```bash
+uv run glassbox observability status --cwd . --json
+uv run glassbox projection check --cwd . --all
+uv run glassbox artifacts inspect --cwd . --json
+uv run glassbox artifacts prune --cwd . --dry-run --json
+uv run glassbox backup create --cwd . --json
+```
+
+Run `projection rebuild`, `backup restore`, and non-dry-run artifact pruning only
+after the inspected next action matches your intent. For release-candidate
+recovery evidence, see [recovery-maintenance-review-v6.md](./recovery-maintenance-review-v6.md).
+
 ## Related Guides
 
 - [interactive-workflows.md](./interactive-workflows.md)
 - [team-workflows.md](./team-workflows.md)
 - [dashboard.md](./dashboard.md)
 - [workspace-profiles.md](./workspace-profiles.md)
+- [recovery-maintenance-review-v6.md](./recovery-maintenance-review-v6.md)
 - [tasks-v2.md](./tasks-v2.md)

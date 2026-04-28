@@ -133,3 +133,30 @@ uv run glassbox provider diagnostics --cwd . --json
 The diagnostics command reports the selected model source, provider family,
 runtime mode, whether provider keys or base URLs are present, and which source
 provided each value. It never prints API key values.
+
+## Advisory Provider Canaries
+
+Provider canaries are optional release confidence checks. They are useful when
+credentials are available, but they are not part of the deterministic release
+gate and should not replace replay/eval signoff.
+
+Run all default advisory scenarios:
+
+```bash
+uv run glassbox provider canary run --cwd . --output-dir .glassbox/releases/provider-canary
+```
+
+Run one scenario:
+
+```bash
+uv run glassbox provider canary run --cwd . --scenario streaming-text --json
+```
+
+Keep canary artifacts redacted. Store only the provider family, scenario status,
+high-level state transitions, and any release-relevant failure summary. Do not
+store raw prompts, responses, API keys, or provider request metadata unless they
+have been reviewed and redacted.
+
+See [provider-canary-policy-v6.md](./provider-canary-policy-v6.md) and
+[manual-qa-evidence-v6.md](./manual-qa-evidence-v6.md) for release evidence
+retention.

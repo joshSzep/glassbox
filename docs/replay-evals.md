@@ -247,6 +247,9 @@ The repository-owned profile manifest carries two explicit tracks:
 `glassbox eval report` is intentionally deterministic-only.
 See [provider-canary-policy-v6.md](./provider-canary-policy-v6.md) for when and
 how live-provider canaries may be retained as advisory release evidence.
+Manual release evidence should link the retained eval summary rather than paste
+large generated JSON into docs. Use [manual-qa-evidence-v6.md](./manual-qa-evidence-v6.md)
+for the release-candidate artifact shape.
 
 ## Related Files
 
@@ -254,3 +257,4 @@ how live-provider canaries may be retained as advisory release evidence.
 - [providers.md](./providers.md)
 - [branching.md](./branching.md)
 - [runtime-context.md](./runtime-context.md)
+- [manual-qa-evidence-v6.md](./manual-qa-evidence-v6.md)

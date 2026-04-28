@@ -8,6 +8,9 @@ Glassbox is a local-first CLI agent harness with a live dashboard. It is built a
 - [uv](https://docs.astral.sh/uv/)
 - Node.js 24 and pnpm through Corepack for v3 SPA development and validation
 
+Installed-package users do not need Node.js or pnpm at runtime. The release
+wheel includes the static dashboard assets and the full-screen terminal client.
+
 ## Install The Project
 
 From the repository root:
@@ -74,6 +77,7 @@ glassbox session chat [PROMPT]
 glassbox session list [--status STATUS] [--limit N] [--json]
 glassbox session attach SESSION_ID
 glassbox session message SESSION_ID PROMPT
+glassbox session cancel SESSION_ID [--turn TURN_ID] [--reason REASON]
 glassbox session answer SESSION_ID QUESTION_ID ANSWER
 glassbox session approve SESSION_ID APPROVAL_ID
 glassbox session deny SESSION_ID APPROVAL_ID
@@ -103,6 +107,8 @@ glassbox backup inspect ARCHIVE [--json]
 glassbox backup restore ARCHIVE [--force] [--json]
 glassbox projection check [SESSION_ID | --all]
 glassbox projection rebuild [SESSION_ID | --all]
+glassbox provider diagnostics [--model-name MODEL] [--json]
+glassbox provider canary run [--scenario SCENARIO] [--output-dir DIR] [--json]
 glassbox dashboard serve
 glassbox daemon start
 glassbox daemon status [--json]
@@ -136,7 +142,7 @@ pnpm --dir frontend format:check
 pnpm --dir frontend lint
 pnpm --dir frontend typecheck
 pnpm --dir frontend test
-pnpm --dir frontend exec next build
+pnpm --dir frontend build
 pnpm --dir frontend test:e2e
 ```
 
@@ -152,10 +158,23 @@ uv run ty check src/glassbox/cli/__init__.py
 uv run glassbox eval run --tag smoke --cwd .
 ```
 
+Release-candidate validation adds packaged-dashboard, installed-wheel,
+deterministic eval, dependency/toolchain, provider-canary, and manual QA
+evidence. Use the v6 release gate and evidence guides when preparing a release:
+
+```bash
+uv run python scripts/validate_v6_release_gate.py
+```
+
+Manual release notes and screenshots belong under `.glassbox/releases/...` using
+the convention in [manual-qa-evidence-v6.md](./manual-qa-evidence-v6.md).
+
 ## Where To Go Next
 
 - For the day-to-day full-screen chat workflow, read [interactive-workflows.md](./interactive-workflows.md).
 - For the supported v2 operating model and release checklist, read [v2-release-candidate.md](./v2-release-candidate.md).
 - For browser usage, read [dashboard.md](./dashboard.md).
 - For replay and eval workflows, read [replay-evals.md](./replay-evals.md).
+- For provider setup and advisory canaries, read [providers.md](./providers.md).
+- For v6 release evidence and installed-package expectations, read [release-packaging.md](./release-packaging.md) and [v6-release-hardening.md](./v6-release-hardening.md).
 - For the architecture and persistence contracts, read [architecture.md](./architecture.md) and [database.md](./database.md).

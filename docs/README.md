@@ -30,6 +30,9 @@ Use this page to jump to the right level of detail.
 - [v6-release-inventory.md](./v6-release-inventory.md): inspect the current validation inventory, weak coverage areas, recommended v6 gate membership, and manual signoff split
 - [v6-release-evidence.md](./v6-release-evidence.md): understand the retained v6 `summary.json` evidence format, artifact pointers, manual evidence manifest, and redaction rules
 - [manual-qa-evidence-v6.md](./manual-qa-evidence-v6.md): record v6 terminal, dashboard, recovery, provider-canary, and accessibility manual evidence without committing large generated artifacts
+- [terminal-accessibility-review-v6.md](./terminal-accessibility-review-v6.md): review terminal size, keyboard, and accessibility evidence for the v6 release-candidate track
+- [dashboard-accessibility-review-v6.md](./dashboard-accessibility-review-v6.md): review dashboard responsive, keyboard, screenshot, and accessibility evidence for v6
+- [recovery-maintenance-review-v6.md](./recovery-maintenance-review-v6.md): review recovery and maintenance command evidence for v6
 - [frontend-testing.md](./frontend-testing.md): write v3 SPA unit, transport, store, and React component tests with Vitest and Testing Library
 - [operator-console.md](./operator-console.md): understand the v2 multi-session console model, v3 SPA UX contract, action queues, runtime-health semantics, and backend/frontend contracts
 - [persistent-runtime.md](./persistent-runtime.md): run a workspace daemon, inspect runtime health, attach from another terminal, and recover stale ownership
@@ -69,6 +72,9 @@ Use this page to jump to the right level of detail.
 - [v6-release-inventory.md](./v6-release-inventory.md): v6 inventory of current automated checks, manual checks, weak coverage, gate recommendations, manual signoff recommendations, and evidence ownership
 - [v6-release-evidence.md](./v6-release-evidence.md): v6 release evidence directory, automated summary schema, stage schema, related artifact pointers, manual evidence manifest, and redaction rules
 - [manual-qa-evidence-v6.md](./manual-qa-evidence-v6.md): v6 manual QA evidence directory convention, manifest template, retention policy, and redaction rules
+- [terminal-accessibility-review-v6.md](./terminal-accessibility-review-v6.md): v6 terminal review sizes, keyboard workflows, validation results, claims, and non-claims
+- [dashboard-accessibility-review-v6.md](./dashboard-accessibility-review-v6.md): v6 dashboard viewport, keyboard, screenshot archive, validation, claims, and non-claims
+- [recovery-maintenance-review-v6.md](./recovery-maintenance-review-v6.md): v6 observability, projection, artifact, backup, eval, daemon, and installed-dashboard recovery review
 - [frontend-testing.md](./frontend-testing.md): v3 SPA frontend-native test harness, fixture strategy, and focused test-writing guidance
 - [operator-console.md](./operator-console.md): v2 operator-console information architecture, v3 SPA UX contract, and queue/health semantics for multi-session inspection
 - [v4-ux-release-gate.md](./v4-ux-release-gate.md): v4 UX gate command, checklist, automated coverage map, screenshot review path, manual validation, and known gaps

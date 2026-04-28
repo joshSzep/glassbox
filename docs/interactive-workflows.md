@@ -28,7 +28,7 @@ uv run glassbox session chat "Inspect the repository" --cwd .
 Inside the full-screen session:
 
 - the transcript is the main surface for prompts, streaming assistant output, tool activity, failures, and compact evidence
-- the composer accepts multiline prompts; `Enter` adds a line and `Ctrl+Enter` sends
+- the composer accepts multiline prompts; `Enter` sends and `Ctrl+Enter` adds a line
 - the action strip appears for pending approvals, pending `ask_user` questions, active turns, historical sessions, and runtime recovery states
 - approvals use `Alt+A` to approve and `Alt+X` to deny when the pending action is current
 - pending questions use the composer for the answer draft and `Ctrl+R` to submit
@@ -83,6 +83,7 @@ Completed, failed, cancelled, imported, or otherwise historical sessions open as
 Use the command that matches the current actionable state:
 
 - `glassbox session message SESSION_ID PROMPT` sends a fresh user prompt when the session is idle and running
+- `glassbox session cancel SESSION_ID --reason REASON` requests cancellation of the active live turn
 - `glassbox session answer SESSION_ID QUESTION_ID ANSWER` answers a pending `ask_user` question when the session is awaiting user input
 - `glassbox session approve SESSION_ID APPROVAL_ID` or `glassbox session deny SESSION_ID APPROVAL_ID` resolves a pending approval when the session is awaiting approval
 - `glassbox session resume SESSION_ID` reloads a persisted session after restart without sending a new prompt
@@ -96,6 +97,16 @@ Example:
 uv run glassbox session status SESSION_ID --cwd .
 uv run glassbox session message SESSION_ID "Continue with the next step" --cwd .
 ```
+
+Request cancellation of an active turn:
+
+```bash
+uv run glassbox session cancel SESSION_ID --reason "operator requested stop" --cwd .
+```
+
+Cancellation is recorded as event-sourced evidence. Replay and eval report an
+intentional cancellation as cancellation drift or final-state drift if the
+recorded event family changes; it is not treated as an ordinary timeout.
 
 Answer a pending `ask_user` question:
 
@@ -141,6 +152,7 @@ The shipped interactive terminal UX now has these honest boundaries:
 - If the runtime becomes unavailable, inspect the latest transcript and use `glassbox daemon status --cwd .` when a daemon owns the workspace.
 - If a completed session opens historical-only, use the dashboard or export/import workflows for inspection, or start a new chat/fork when continuation is needed.
 - If dashboard startup is unavailable during `session chat`, the terminal chat can continue. Use `glassbox dashboard serve --cwd .` later to inspect persisted sessions.
+- If cancellation appears stuck, inspect `glassbox session status SESSION_ID --cwd .` and the dashboard timeline before retrying mutation commands.
 
 ## V2 Ownership Decision
 
@@ -223,3 +235,4 @@ handoff contract.
 - [team-workflows.md](./team-workflows.md)
 - [branching.md](./branching.md)
 - [tool-policy.md](./tool-policy.md)
+- [v6-cancellation-contract.md](./v6-cancellation-contract.md)

@@ -95,6 +95,7 @@ The dashboard lets the operator:
 - submit the next prompt for an idle running session
 - answer a pending `ask_user` question
 - resolve a pending approval
+- request cancellation of an active live turn
 - create a fork from an allowed historical turn
 
 ## Replay, Eval, And Verification Cues
@@ -118,6 +119,10 @@ uv run glassbox eval run --cwd .
 uv run glassbox artifacts inspect --json
 ```
 
+Cancellation cues appear as live turn state and event-stream updates. Treat a
+cancelled turn as intentional operator evidence, then use replay/eval if you
+need to prove the cancellation event family remains stable.
+
 ## Troubleshooting
 
 - If you used `glassbox session chat --no-dashboard`, start `glassbox dashboard serve` and open `/`.
@@ -125,6 +130,7 @@ uv run glassbox artifacts inspect --json
 - If you are attached through the TUI and no dashboard URL is present, open the command palette to confirm whether the dashboard is unavailable or start `glassbox dashboard serve --cwd .` separately.
 - If `/` reports that SPA assets have not been built, run `pnpm --dir frontend build` from the repository root before serving the development checkout.
 - If the selected session shows `live unavailable`, treat the snapshot as persisted history unless another runtime is known to be driving it.
+- If cancellation, approval, or answer controls are disabled, inspect the visible disabled reason and confirm the session is not historical-only.
 - If a direct `?session=...` URL is stale or invalid, the dashboard returns to the session index instead of leaving the browser stuck.
 
 ## Related Guides
@@ -136,3 +142,4 @@ uv run glassbox artifacts inspect --json
 - [persistent-runtime.md](./persistent-runtime.md)
 - [branching.md](./branching.md)
 - [runtime-context.md](./runtime-context.md)
+- [v6-cancellation-contract.md](./v6-cancellation-contract.md)

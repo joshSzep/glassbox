@@ -1082,7 +1082,7 @@ Completion notes:
 
 ### GBX-694: Refresh Public Operator Docs For v6
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-691`, `GBX-692`, `GBX-693`
 - Goal: update user-facing docs so they describe the release-hardened workflow instead of task-file intentions
 - Deliverables:
@@ -1099,6 +1099,13 @@ Completion notes:
   - existing docs/link tests if present
 - Done when:
   - a new user can understand the v6-supported operating model and validation path from operator docs alone
+
+Completion notes:
+
+- Updated public operator docs for v6 cancellation, provider diagnostics/canaries, release evidence, installed-package expectations, recovery commands, and known residual limitations.
+- Corrected the documented TUI composer key behavior to `Enter` sends and `Ctrl+Enter` inserts a newline.
+- Updated the docs hub with links to the v6 terminal, dashboard, and recovery review artifacts.
+- Validation: docs review against `glassbox command tree`, implemented CLI parsers, release gate docs, and Phase 69 evidence artifacts.
 
 ---
 
