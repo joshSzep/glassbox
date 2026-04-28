@@ -40,13 +40,19 @@ The v6 release gate also refreshes generated API files with `pnpm --dir frontend
 For release candidates, install the built wheel into a clean environment and run:
 
 ```sh
+glassbox --help
+glassbox command tree
 glassbox session chat --help
 glassbox session attach --help
 glassbox session chat --plain --no-dashboard --cwd .
 glassbox dashboard serve --cwd . --host 127.0.0.1 --port 8765
+glassbox daemon status --json --cwd .
+glassbox daemon start --cwd . --host 127.0.0.1 --port 8766
+glassbox daemon stop --cwd .
+glassbox eval run smoke.hello --cwd .
 ```
 
-`session chat --help` and `session attach --help` prove the installed console script can import the TUI dependency stack. The explicit `--plain` smoke protects fallback behavior in clean environments where a full-screen TUI is not practical. Open `http://127.0.0.1:8765/` and confirm the operator console loads without a Node process. Also open `http://127.0.0.1:8765/?session=SESSION_ID` against a known persisted session when one is available.
+`glassbox --help`, `command tree`, `session chat --help`, and `session attach --help` prove the installed console script can import the command inventory and TUI dependency stack. The explicit `--plain` smoke protects fallback behavior in clean environments where a full-screen TUI is not practical. The v6 gate starts the dashboard from the installed wheel and requests `/`, `/app`, and one referenced `/app/_next/...` asset without a Node process. It also runs daemon status/start/stop in a temporary workspace and executes the deterministic `smoke.hello` eval against copied eval fixtures.
 
 Known terminal limitations for this release candidate:
 
@@ -63,8 +69,10 @@ Known terminal limitations for this release candidate:
 - `uv build --wheel --sdist` produced distributions containing `glassbox/web/static_next/`, runtime package modules, source docs, TUI dependency metadata, and the `glassbox` console script.
 - `uv run python scripts/validate_package_contents.py` passed against the built wheel and sdist.
 - Package metadata includes `textual>=6,<7` and the `glassbox` console script.
-- Installed-package terminal smoke passed for `session chat --help`, `session attach --help`, and explicit plain fallback.
-- Installed-package dashboard smoke passed without Node.js running.
+- Installed-package terminal smoke passed for root help, `command tree`, `session chat --help`, `session attach --help`, and explicit plain fallback.
+- Installed-package dashboard smoke passed for `/`, `/app`, and a representative static asset without Node.js running.
+- Installed-package daemon smoke passed for status/start/stop in a temporary workspace.
+- Installed-package deterministic eval smoke passed for `smoke.hello` in a temporary workspace with copied eval fixtures.
 
 ## v6 Release Hardening
 

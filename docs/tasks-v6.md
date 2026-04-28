@@ -886,7 +886,7 @@ Completion notes:
 
 ### GBX-682: Add Installed-Package Smoke Matrix
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-681`
 - Goal: verify the built wheel works in a clean environment across terminal, dashboard, daemon, replay/eval, and fallback paths
 - Deliverables:
@@ -903,6 +903,15 @@ Completion notes:
   - focused test for smoke command construction if factored
 - Done when:
   - the release gate proves the installed wheel is usable without the editable checkout or frontend toolchain
+
+Completion notes:
+
+- Expanded installed-wheel smoke in `scripts/validate_v6_release_gate.py` to cover root help, command tree, chat help, attach help, explicit plain fallback, daemon status/start/stop, deterministic `smoke.hello` eval, and dashboard static routes.
+- Dashboard smoke starts the installed wheel server and requests `/`, `/app`, and a referenced `/app/_next/...` asset without Node.js.
+- Each smoke group uses temporary workspaces; eval smoke copies repository eval fixtures into its temporary workspace, and daemon smoke stops the daemon as part of the matrix.
+- Added focused tests for installed smoke command construction.
+- Updated release packaging docs with the installed smoke matrix.
+- Validation: `uv run pytest tests/unit/test_v6_release_gate.py`; `uv run python scripts/validate_v6_release_gate.py --dry-run`; installed-wheel smoke helper against `dist/glassbox-0.1.0-py3-none-any.whl`; `uv run ruff check scripts tests`; `uv run ty check`.
 
 ### GBX-683: Align Pre-Commit, Eval Profiles, And Release Gate Expectations
 

@@ -4,15 +4,21 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+import shutil
+import socket
 import subprocess
 import sys
 import tempfile
+import time
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib.error import URLError
+from urllib.request import urlopen
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DIST_DIR = REPO_ROOT / "dist"
@@ -53,6 +59,15 @@ class GateStage:
 
     label: str
     command: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class InstalledSmokeCheck:
+    """One installed-wheel smoke command."""
+
+    label: str
+    command: tuple[str, ...]
+    input_text: str | None = None
 
 
 def build_gate_stages() -> list[GateStage]:
@@ -269,88 +284,288 @@ def _latest_glassbox_wheel() -> Path | None:
 def _run_installed_wheel_smoke(summary: dict[str, Any], wheel_path: Path) -> int:
     print(f"\n==> installed wheel smoke ({wheel_path.name})")
     with tempfile.TemporaryDirectory(prefix="glassbox-v6-gate-") as temp_dir:
-        smoke_checks: list[tuple[str, tuple[str, ...], str | None]] = [
-            (
-                "installed command tree",
-                (
-                    "uv",
-                    "run",
-                    "--isolated",
-                    "--with",
-                    str(wheel_path),
-                    "glassbox",
-                    "command",
-                    "tree",
-                ),
-                None,
-            ),
-            (
-                "installed chat help",
-                (
-                    "uv",
-                    "run",
-                    "--isolated",
-                    "--with",
-                    str(wheel_path),
-                    "glassbox",
-                    "session",
-                    "chat",
-                    "--help",
-                ),
-                None,
-            ),
-            (
-                "installed attach help",
-                (
-                    "uv",
-                    "run",
-                    "--isolated",
-                    "--with",
-                    str(wheel_path),
-                    "glassbox",
-                    "session",
-                    "attach",
-                    "--help",
-                ),
-                None,
-            ),
-            (
-                "installed plain fallback",
-                (
-                    "uv",
-                    "run",
-                    "--isolated",
-                    "--with",
-                    str(wheel_path),
-                    "glassbox",
-                    "session",
-                    "chat",
-                    "--plain",
-                    "--no-dashboard",
-                    "--cwd",
-                    temp_dir,
-                ),
-                "/exit\n",
-            ),
-        ]
+        smoke_root = Path(temp_dir)
+        _prepare_eval_smoke_workspace(smoke_root / "eval")
 
-        for label, command, input_text in smoke_checks:
-            started_at = _now_iso()
-            exit_code = _run(label, command, input_text=input_text)
-            ended_at = _now_iso()
-            _record_stage_result(
-                summary,
-                label=label,
-                command=command,
-                status="passed" if exit_code == 0 else "failed",
-                exit_code=exit_code,
-                started_at=started_at,
-                ended_at=ended_at,
-            )
+        smoke_checks = build_installed_wheel_smoke_checks(wheel_path, smoke_root)
+        daemon_stop_check = next(
+            check for check in smoke_checks if check.label == "installed daemon: stop"
+        )
+        daemon_started = False
+        for check in smoke_checks:
+            exit_code = _run_installed_smoke_check(summary, check)
+            if check.label == "installed daemon: start" and exit_code == 0:
+                daemon_started = True
+            if check.label == "installed daemon: stop" and exit_code == 0:
+                daemon_started = False
             if exit_code != 0:
+                if daemon_started and check.label != "installed daemon: stop":
+                    _run_installed_smoke_check(summary, daemon_stop_check)
                 return exit_code
+
+        exit_code = _run_installed_dashboard_static_smoke(
+            summary,
+            wheel_path,
+            smoke_root / "dashboard",
+        )
+        if exit_code != 0:
+            return exit_code
     print("\nV6 release gate passed.")
     return 0
+
+
+def build_installed_wheel_smoke_checks(
+    wheel_path: Path,
+    smoke_root: Path,
+    *,
+    daemon_port: int | None = None,
+) -> list[InstalledSmokeCheck]:
+    """Return installed-wheel smoke commands for isolated workspaces."""
+
+    terminal_workspace = smoke_root / "terminal"
+    daemon_workspace = smoke_root / "daemon"
+    eval_workspace = smoke_root / "eval"
+    daemon_host = "127.0.0.1"
+    daemon_port_text = str(daemon_port if daemon_port is not None else 8766)
+    return [
+        InstalledSmokeCheck(
+            "installed terminal: root help",
+            _installed_glassbox_command(wheel_path, "--help"),
+        ),
+        InstalledSmokeCheck(
+            "installed terminal: command tree",
+            _installed_glassbox_command(wheel_path, "command", "tree"),
+        ),
+        InstalledSmokeCheck(
+            "installed terminal: chat help",
+            _installed_glassbox_command(wheel_path, "session", "chat", "--help"),
+        ),
+        InstalledSmokeCheck(
+            "installed terminal: attach help",
+            _installed_glassbox_command(wheel_path, "session", "attach", "--help"),
+        ),
+        InstalledSmokeCheck(
+            "installed terminal: plain fallback",
+            _installed_glassbox_command(
+                wheel_path,
+                "session",
+                "chat",
+                "--plain",
+                "--no-dashboard",
+                "--cwd",
+                str(terminal_workspace),
+            ),
+            input_text="/exit\n",
+        ),
+        InstalledSmokeCheck(
+            "installed daemon: status before start",
+            _installed_glassbox_command(
+                wheel_path,
+                "daemon",
+                "status",
+                "--json",
+                "--cwd",
+                str(daemon_workspace),
+            ),
+        ),
+        InstalledSmokeCheck(
+            "installed daemon: start",
+            _installed_glassbox_command(
+                wheel_path,
+                "daemon",
+                "start",
+                "--host",
+                daemon_host,
+                "--port",
+                daemon_port_text,
+                "--cwd",
+                str(daemon_workspace),
+            ),
+        ),
+        InstalledSmokeCheck(
+            "installed daemon: status after start",
+            _installed_glassbox_command(
+                wheel_path,
+                "daemon",
+                "status",
+                "--json",
+                "--cwd",
+                str(daemon_workspace),
+            ),
+        ),
+        InstalledSmokeCheck(
+            "installed daemon: stop",
+            _installed_glassbox_command(
+                wheel_path,
+                "daemon",
+                "stop",
+                "--cwd",
+                str(daemon_workspace),
+            ),
+        ),
+        InstalledSmokeCheck(
+            "installed eval: deterministic smoke",
+            _installed_glassbox_command(
+                wheel_path,
+                "eval",
+                "run",
+                "smoke.hello",
+                "--cwd",
+                str(eval_workspace),
+            ),
+        ),
+    ]
+
+
+def build_installed_dashboard_smoke_command(
+    wheel_path: Path,
+    workspace: Path,
+    *,
+    port: int,
+) -> tuple[str, ...]:
+    """Return the long-running dashboard command used by installed smoke."""
+
+    return _installed_glassbox_command(
+        wheel_path,
+        "dashboard",
+        "serve",
+        "--cwd",
+        str(workspace),
+        "--host",
+        "127.0.0.1",
+        "--port",
+        str(port),
+    )
+
+
+def _installed_glassbox_command(wheel_path: Path, *args: str) -> tuple[str, ...]:
+    return (
+        "uv",
+        "run",
+        "--isolated",
+        "--with",
+        str(wheel_path),
+        "glassbox",
+        *args,
+    )
+
+
+def _run_installed_smoke_check(
+    summary: dict[str, Any],
+    check: InstalledSmokeCheck,
+) -> int:
+    started_at = _now_iso()
+    exit_code = _run(check.label, check.command, input_text=check.input_text)
+    ended_at = _now_iso()
+    _record_stage_result(
+        summary,
+        label=check.label,
+        command=check.command,
+        status="passed" if exit_code == 0 else "failed",
+        exit_code=exit_code,
+        started_at=started_at,
+        ended_at=ended_at,
+    )
+    return exit_code
+
+
+def _run_installed_dashboard_static_smoke(
+    summary: dict[str, Any],
+    wheel_path: Path,
+    workspace: Path,
+) -> int:
+    workspace.mkdir(parents=True, exist_ok=True)
+    port = _allocate_local_port()
+    command = build_installed_dashboard_smoke_command(
+        wheel_path,
+        workspace,
+        port=port,
+    )
+    label = "installed dashboard: static routes"
+    started_at = _now_iso()
+    process = subprocess.Popen(
+        command,
+        cwd=REPO_ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    exit_code = 1
+    try:
+        base_url = f"http://127.0.0.1:{port}"
+        index_html = _wait_for_http_text(f"{base_url}/")
+        app_html = _http_text(f"{base_url}/app")
+        asset_path = _first_static_asset_path(app_html or index_html)
+        _http_bytes(f"{base_url}{asset_path}")
+        exit_code = 0
+    except (TimeoutError, URLError, ValueError) as exc:
+        print(f"\nV6 release gate failed: {label}: {exc}", file=sys.stderr)
+    finally:
+        _terminate_process(process)
+        ended_at = _now_iso()
+        _record_stage_result(
+            summary,
+            label=label,
+            command=command,
+            status="passed" if exit_code == 0 else "failed",
+            exit_code=exit_code,
+            started_at=started_at,
+            ended_at=ended_at,
+        )
+    return exit_code
+
+
+def _prepare_eval_smoke_workspace(workspace: Path) -> None:
+    workspace.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(REPO_ROOT / "evals", workspace / "evals")
+
+
+def _allocate_local_port() -> int:
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
+def _wait_for_http_text(url: str, *, timeout_seconds: float = 15.0) -> str:
+    deadline = time.monotonic() + timeout_seconds
+    last_error: Exception | None = None
+    while time.monotonic() < deadline:
+        try:
+            return _http_text(url)
+        except URLError as exc:
+            last_error = exc
+            time.sleep(0.1)
+    raise TimeoutError(f"timed out waiting for {url}: {last_error}")
+
+
+def _http_text(url: str) -> str:
+    return _http_bytes(url).decode("utf-8", errors="replace")
+
+
+def _http_bytes(url: str) -> bytes:
+    with urlopen(url, timeout=5.0) as response:
+        if response.status != 200:
+            raise ValueError(f"{url} returned HTTP {response.status}")
+        return response.read()
+
+
+def _first_static_asset_path(html: str) -> str:
+    match = re.search(r'(?:src|href)="(/app/_next/[^"]+)"', html)
+    if match is None:
+        raise ValueError("dashboard shell did not reference an /app/_next asset")
+    return match.group(1)
+
+
+def _terminate_process(process: subprocess.Popen[str]) -> None:
+    if process.poll() is not None:
+        process.communicate(timeout=1)
+        return
+    process.terminate()
+    try:
+        process.communicate(timeout=5)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.communicate(timeout=5)
 
 
 def _format_command(command: Sequence[str]) -> str:

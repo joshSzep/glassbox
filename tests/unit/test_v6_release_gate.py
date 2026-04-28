@@ -4,6 +4,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+from scripts.validate_v6_release_gate import build_installed_dashboard_smoke_command
+from scripts.validate_v6_release_gate import build_installed_wheel_smoke_checks
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GATE_SCRIPT = REPO_ROOT / "scripts" / "validate_v6_release_gate.py"
 
@@ -27,6 +30,10 @@ def test_v6_release_gate_script_runs_expected_checks() -> None:
         "package build",
         "package contents validation",
         "installed wheel smoke",
+        "installed terminal: root help",
+        "installed daemon: start",
+        "installed dashboard: static routes",
+        "installed eval: deterministic smoke",
         "--evidence-dir",
         "summary.json",
         "--include-provider-canaries",
@@ -110,3 +117,50 @@ def test_v6_release_gate_dry_run_writes_summary(tmp_path: Path) -> None:
     assert summary["stages"]
     assert summary["stages"][0]["status"] == "planned"
     assert summary["next_actions"] == ["rerun without --dry-run to execute the gate"]
+
+
+def test_v6_release_gate_builds_installed_smoke_matrix(tmp_path: Path) -> None:
+    wheel_path = Path("dist/glassbox-0.1.0-py3-none-any.whl")
+    checks = build_installed_wheel_smoke_checks(
+        wheel_path,
+        tmp_path,
+        daemon_port=9876,
+    )
+
+    labels = [check.label for check in checks]
+    assert labels == [
+        "installed terminal: root help",
+        "installed terminal: command tree",
+        "installed terminal: chat help",
+        "installed terminal: attach help",
+        "installed terminal: plain fallback",
+        "installed daemon: status before start",
+        "installed daemon: start",
+        "installed daemon: status after start",
+        "installed daemon: stop",
+        "installed eval: deterministic smoke",
+    ]
+    expected_prefix = ("uv", "run", "--isolated", "--with", str(wheel_path))
+    assert all(check.command[:5] == expected_prefix for check in checks)
+    assert checks[4].input_text == "/exit\n"
+    assert "9876" in checks[6].command
+
+
+def test_v6_release_gate_builds_dashboard_smoke_command(tmp_path: Path) -> None:
+    wheel_path = Path("dist/glassbox-0.1.0-py3-none-any.whl")
+
+    command = build_installed_dashboard_smoke_command(
+        wheel_path,
+        tmp_path,
+        port=9877,
+    )
+
+    assert command[:5] == ("uv", "run", "--isolated", "--with", str(wheel_path))
+    assert command[-6:] == (
+        "--cwd",
+        str(tmp_path),
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "9877",
+    )
