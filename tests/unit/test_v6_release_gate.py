@@ -23,6 +23,8 @@ def test_v6_release_gate_script_runs_expected_checks() -> None:
         "frontend production build",
         "package build",
         "installed wheel smoke",
+        "--evidence-dir",
+        "summary.json",
         "--include-provider-canaries",
         "live-provider-canary",
         "--dry-run",
@@ -45,9 +47,16 @@ def test_v6_release_gate_script_runs_expected_checks() -> None:
         assert test_path in script
 
 
-def test_v6_release_gate_dry_run_lists_stages() -> None:
+def test_v6_release_gate_dry_run_lists_stages(tmp_path: Path) -> None:
+    evidence_dir = tmp_path / "evidence"
     result = subprocess.run(
-        [sys.executable, str(GATE_SCRIPT), "--dry-run"],
+        [
+            sys.executable,
+            str(GATE_SCRIPT),
+            "--dry-run",
+            "--evidence-dir",
+            str(evidence_dir),
+        ],
         cwd=REPO_ROOT,
         check=False,
         capture_output=True,
@@ -60,3 +69,36 @@ def test_v6_release_gate_dry_run_lists_stages() -> None:
     assert "focused cancellation suite" in result.stdout
     assert "advisory provider canaries: skipped by default" in result.stdout
     assert "installed wheel smoke" in result.stdout
+
+
+def test_v6_release_gate_dry_run_writes_summary(tmp_path: Path) -> None:
+    evidence_dir = tmp_path / "evidence"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(GATE_SCRIPT),
+            "--dry-run",
+            "--evidence-dir",
+            str(evidence_dir),
+        ],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    summary_path = evidence_dir / "summary.json"
+    assert summary_path.is_file()
+
+    import json
+
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert summary["schema_version"] == 1
+    assert summary["gate"] == "v6-release"
+    assert summary["status"] == "dry_run"
+    assert summary["options"]["dry_run"] is True
+    assert summary["artifacts"]["dist_dir"] == "dist"
+    assert summary["stages"]
+    assert summary["stages"][0]["status"] == "planned"
+    assert summary["next_actions"] == ["rerun without --dry-run to execute the gate"]

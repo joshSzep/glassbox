@@ -286,7 +286,7 @@ Completion notes:
 
 ### GBX-643: Define Release Evidence Artifacts
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-642`
 - Goal: make release validation output inspectable after the command finishes instead of relying only on terminal scrollback
 - Deliverables:
@@ -304,6 +304,13 @@ Completion notes:
   - docs review against release packaging and replay/eval report conventions
 - Done when:
   - release validation leaves behind a structured local evidence trail that can be inspected or attached to a release candidate
+
+Completion notes:
+
+- Added [v6-release-evidence.md](./v6-release-evidence.md) with the default evidence directory, `summary.json` schema, stage record schema, related artifact pointers, provisional manual evidence manifest, redaction rules, and pass/failure use.
+- Updated `scripts/validate_v6_release_gate.py` to accept `--evidence-dir`, write retained `summary.json` artifacts for dry-run, pass, and failure paths, record stage outcomes, record advisory provider-canary skips, and print the evidence summary path.
+- Expanded `tests/unit/test_v6_release_gate.py` to verify dry-run evidence serialization.
+- Validation: `uv run pytest tests/unit/test_v6_release_gate.py`.
 
 ### GBX-644: Update Documentation Discovery For v6
 
