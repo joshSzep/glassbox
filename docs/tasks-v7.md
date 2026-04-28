@@ -955,7 +955,7 @@ Completion notes:
 
 ### GBX-771: Expand Branch Compare And Lineage Analysis
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-770`
 - Goal: help operators understand what changed across forked sessions and why a branch differs from its parent
 - Deliverables:
@@ -973,6 +973,13 @@ Completion notes:
   - Playwright lineage workflow coverage if behavior changes materially
 - Done when:
   - branch comparison explains meaningful session differences without requiring raw event inspection
+
+Completion notes:
+
+- Expanded the dashboard Compare pane to build an explicit compare analysis from the selected and compared snapshots without adding initial-load backend cost.
+- Added aligned sections for branch metadata, transcript divergence, tool activity, policy outcomes, runtime/projection state, and metric deltas.
+- Kept route behavior and lineage compare/open actions unchanged while making selected compare targets more explainable from persisted snapshots.
+- Updated frontend inspector tests to cover the richer compare evidence, shared/current-only/compared-only transcript analysis, policy totals, route links, and session-state normalization.
 
 ### GBX-772: Add Turn Metrics And Latency Analytics
 

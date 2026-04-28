@@ -133,13 +133,23 @@ describe("session inspector", () => {
     expect(compareMarkup).toContain("Compare");
     expect(compareMarkup).toContain("Compare session anchors");
     expect(compareMarkup).toContain("Difference summary");
+    expect(compareMarkup).toContain("Branch metadata");
+    expect(compareMarkup).toContain("Transcript divergence");
+    expect(compareMarkup).toContain("Shared transcript");
+    expect(compareMarkup).toContain("Current-only messages");
+    expect(compareMarkup).toContain("Tool activity");
+    expect(compareMarkup).toContain("Policy outcomes");
+    expect(compareMarkup).toContain("Runtime and projection");
+    expect(compareMarkup).toContain("2 shared");
+    expect(compareMarkup).toContain("2 total, 1 allowed, 1 approval, 0 denied, 0 blocked");
     expect(compareMarkup).toContain("Latest messages");
     expect(compareMarkup).toContain("Compare metrics");
     expect(compareMarkup).toContain("Status change");
     expect(compareMarkup).toContain("Working set");
     expect(compareMarkup).toContain("Open compared");
     expect(compareMarkup).toContain("parent-1");
-    expect(compareMarkup).not.toContain("frontend/app/page.tsx");
+    expect(compareMarkup).toContain("Only here working set");
+    expect(compareMarkup).toContain("frontend/app/page.tsx");
 
     const evidenceMarkup = renderInspectorTab(data, "evidence");
     expect(evidenceMarkup).toContain("Verification cues");
@@ -342,6 +352,17 @@ describe("session inspector", () => {
             ],
           },
         }),
+        session_policy_summary: {
+          allow_count: 1,
+          approve_count: 1,
+          blocked_count: 0,
+          command_count: 0,
+          deny_count: 0,
+          highest_risk_level: "workspace_write",
+          read_only_count: 1,
+          total_decisions: 2,
+          workspace_write_count: 1,
+        },
         transcript: [
           {
             created_at: "2026-04-23T00:00:00Z",
@@ -380,12 +401,35 @@ describe("session inspector", () => {
         makeSessionSnapshot("parent-1", {
           branch_label: "mainline",
           parent_session_id: null,
+          session_policy_summary: {
+            allow_count: 1,
+            approve_count: 0,
+            blocked_count: 0,
+            command_count: 0,
+            deny_count: 0,
+            highest_risk_level: "read_only",
+            read_only_count: 1,
+            total_decisions: 1,
+            workspace_write_count: 0,
+          },
           transcript: [
             {
               created_at: "2026-04-23T00:00:00Z",
-              message_id: "parent-message-1",
-              parts: [{ kind: "text", text: "Original prompt" }],
+              message_id: "message-1",
+              parts: [{ kind: "text", text: "Inspect the console" }],
               role: "user",
+            },
+            {
+              created_at: "2026-04-23T00:00:01Z",
+              message_id: "message-2",
+              parts: [{ kind: "text", text: "I will inspect the console." }],
+              role: "assistant",
+            },
+            {
+              created_at: "2026-04-23T00:00:02Z",
+              message_id: "parent-message-3",
+              parts: [{ kind: "text", text: "Parent branch paused here." }],
+              role: "assistant",
             },
           ],
         }),
