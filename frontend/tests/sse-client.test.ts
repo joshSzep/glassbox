@@ -43,6 +43,11 @@ class FakeEventSource implements EventSourceLike {
     const event = { data: JSON.stringify(envelope) };
     this.listeners.get(envelope.event_type)?.forEach((listener) => listener(event));
   }
+
+  emitRaw(eventType: string, data: string): void {
+    const event = { data };
+    this.listeners.get(eventType)?.forEach((listener) => listener(event));
+  }
 }
 
 function resetFakeEventSources(): void {
@@ -142,6 +147,48 @@ describe("createSessionEventStream", () => {
     expect(FakeEventSource.instances[1].url).toBe("/sessions/session-1/events?after=5");
     expect(firstSource.closed).toBe(true);
     expect(states.map((state) => state.status)).toContain("reconnecting");
+  });
+
+  it("ignores duplicate or older sequence frames before dispatch", () => {
+    resetFakeEventSources();
+    const received: SseEventEnvelope[] = [];
+    const stream = createSessionEventStream({
+      EventSourceImpl: FakeEventSource,
+      afterSequence: 4,
+      onEnvelope: (receivedEnvelope) => received.push(receivedEnvelope),
+      sessionId: "session-1",
+    });
+
+    stream.start();
+    FakeEventSource.instances[0].open();
+    FakeEventSource.instances[0].emit(envelope(4, "AssistantMessageCompleted"));
+    FakeEventSource.instances[0].emit(envelope(3, "AssistantMessageCompleted"));
+    FakeEventSource.instances[0].emit(envelope(5, "AssistantMessageCompleted"));
+    FakeEventSource.instances[0].emit(envelope(5, "AssistantMessageCompleted"));
+
+    expect(received.map((receivedEnvelope) => receivedEnvelope.sequence)).toEqual([5]);
+    expect(stream.getState()).toMatchObject({ lastSequence: 5, status: "live" });
+  });
+
+  it("reports invalid live frames without advancing the resume cursor", () => {
+    resetFakeEventSources();
+    const errors: GlassboxSseError[] = [];
+    const received: SseEventEnvelope[] = [];
+    const stream = createSessionEventStream({
+      EventSourceImpl: FakeEventSource,
+      afterSequence: 6,
+      onEnvelope: (receivedEnvelope) => received.push(receivedEnvelope),
+      onError: (error) => errors.push(error),
+      sessionId: "session-1",
+    });
+
+    stream.start();
+    FakeEventSource.instances[0].open();
+    FakeEventSource.instances[0].emitRaw("AssistantMessageCompleted", "not json");
+
+    expect(errors).toHaveLength(1);
+    expect(received).toEqual([]);
+    expect(stream.getState()).toMatchObject({ lastSequence: 6, status: "live" });
   });
 
   it("marks the stream unavailable after retry attempts are exhausted", () => {

@@ -356,6 +356,56 @@ def test_sse_suppresses_live_events_already_replayed_from_history(
     asyncio.run(scenario())
 
 
+def test_sse_skips_duplicate_live_frame_before_delivering_next_event(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            runtime_context = _build_runtime_context(connection, tmp_path)
+            bus = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(runtime_context.repositories.sessions, bus)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+            state = await supervisor.start_session(config)
+            repo = runtime_context.repositories.sessions
+            last_event = repo.read_session_events(state.session_id)[-1]
+            next_event = EventEnvelope(
+                session_id=state.session_id,
+                sequence=last_event.sequence + 1,
+                payload=UserMessageReceived(
+                    message_id=new_message_id(),
+                    text="after duplicate",
+                ),
+            )
+
+            async def publish_live_frames() -> None:
+                await asyncio.sleep(0.01)
+                bus.publish(last_event)
+                bus.publish(next_event)
+
+            publisher = asyncio.create_task(publish_live_frames())
+            frames = await _collect_all_frames(
+                _event_stream(
+                    _MockRequest(disconnect_after=2),
+                    runtime_context,
+                    state.session_id,
+                    last_event.sequence,
+                )
+            )
+            await publisher
+            parsed = _parse_sse_frames("".join(frames))
+
+            assert [int(frame["id"]) for frame in parsed] == [next_event.sequence]
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
 def test_sse_emits_keepalive_when_live_stream_is_idle(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

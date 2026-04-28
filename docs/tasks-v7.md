@@ -724,7 +724,7 @@ Completion notes:
 
 ### GBX-751: Add Transport Turbulence And Recovery Tests
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-750`
 - Goal: strengthen automated coverage for dropped events, reconnect gaps, duplicate live events, slow subscribers, daemon stop, and dashboard refresh behavior
 - Deliverables:
@@ -743,6 +743,13 @@ Completion notes:
   - TUI client tests if terminal stream handling changes
 - Done when:
   - common live transport failures are covered by deterministic tests and recover through persisted events
+
+Completion notes:
+
+- Added backend SSE coverage for duplicate live frames arriving before the next event, preserving sequence-based duplicate suppression while still delivering the newer event.
+- Hardened the browser SSE client to ignore duplicate or older sequence frames before dispatching them into dashboard state, and added frontend tests for duplicate suppression plus invalid frame handling without advancing the resume cursor.
+- Added TUI stream coverage for terminal session events moving the terminal to historical-only posture after applying the final persisted event.
+- Validated focused runtime transport, web SSE, TUI, frontend SSE, typecheck, ruff, and ty checks.
 
 ### GBX-752: Harden Daemon Attach And Stale Owner Recovery
 

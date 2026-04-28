@@ -227,7 +227,11 @@ export function createSessionEventStream(options: SessionEventStreamOptions) {
       return;
     }
 
-    setState({ lastSequence: Math.max(state.lastSequence, envelope.sequence) });
+    if (envelope.sequence <= state.lastSequence) {
+      return;
+    }
+
+    setState({ lastSequence: envelope.sequence });
     options.onEnvelope?.(envelope);
 
     if (TERMINAL_EVENT_TYPES.has(envelope.event_type)) {

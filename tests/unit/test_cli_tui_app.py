@@ -31,6 +31,7 @@ from glassbox.core.events import AssistantMessageDelta
 from glassbox.core.events import AssistantMessageStarted
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import ModelToolCallRequested
+from glassbox.core.events import SessionCompleted
 from glassbox.core.events import ToolArtifactRecorded
 from glassbox.core.events import TurnStarted
 from glassbox.core.events import UserMessageReceived
@@ -174,6 +175,10 @@ def test_tui_app_reconnects_after_latest_delivered_sequence() -> None:
 
 def test_tui_app_reports_unavailable_stream_after_retry_exhaustion() -> None:
     asyncio.run(_run_stream_retry_exhaustion_test())
+
+
+def test_tui_app_moves_to_historical_state_after_terminal_stream_event() -> None:
+    asyncio.run(_run_stream_terminal_event_test())
 
 
 def test_tui_app_preserves_draft_during_live_updates() -> None:
@@ -597,6 +602,37 @@ async def _run_stream_retry_exhaustion_test() -> None:
 
         assert client.stream_after_sequences == [7, 7, 7, 7]
         assert "unavailable: stream unavailable after 3 retries" in str(header.content)
+        assert composer.read_only is True
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_stream_terminal_event_test() -> None:
+    snapshot = _snapshot()
+    client = _FakeInteractiveClient(
+        events=[
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=8,
+                payload=SessionCompleted(reason="done"),
+            )
+        ]
+    )
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        header = pilot.app.query_one("#session-header", Static)
+        composer = pilot.app.query_one(ComposerWidget)
+
+        assert client.stream_after_sequences == [7]
+        assert "historical | historical" in str(header.content)
         assert composer.read_only is True
 
         pilot.app.exit()
