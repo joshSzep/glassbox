@@ -116,6 +116,26 @@ def _add_operations_parsers(
     )
     _add_runtime_location_arguments(provider_canary_run_parser)
 
+    provider_canary_evidence_parser = provider_canary_subparsers.add_parser(
+        "evidence",
+        help="show retained provider canary evidence",
+        description=(
+            "Show the latest retained advisory provider capability matrix "
+            "evidence without treating it as deterministic release signoff."
+        ),
+    )
+    provider_canary_evidence_parser.add_argument(
+        "--path",
+        default=None,
+        help="specific provider-canary-summary.json path to inspect",
+    )
+    provider_canary_evidence_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print retained provider canary evidence as JSON",
+    )
+    _add_runtime_location_arguments(provider_canary_evidence_parser)
+
     performance_parser = subparsers.add_parser(
         "performance",
         help="inspect larger-session performance expectations",

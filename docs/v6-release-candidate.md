@@ -123,6 +123,10 @@ uv run glassbox provider canary run \
   --cwd . \
   --output-dir .glassbox/releases/v6-rc-candidate/provider-canary \
   --json
+uv run glassbox provider canary evidence \
+  --cwd . \
+  --path .glassbox/releases/v6-rc-candidate/provider-canary/provider-canary-summary.json \
+  --json
 ```
 
 ## Release-Readiness Checklist

@@ -11,6 +11,8 @@ from pydantic import ConfigDict
 from pydantic import Field
 
 from glassbox.runtime.daemon import RuntimeOwnerStatus
+from glassbox.runtime.provider_canary import ProviderCanaryEvidenceSummary
+from glassbox.runtime.provider_canary import load_provider_canary_evidence
 from glassbox.runtime.transport import RuntimeEventTransportStats
 from glassbox.services import SessionRepository
 
@@ -86,6 +88,7 @@ class WorkspaceObservabilityReport(BaseModel):
     runtime: RuntimeObservability
     projections: ProjectionObservability
     verification: VerificationObservability
+    provider_canary: ProviderCanaryEvidenceSummary
     next_actions: list[str] = Field(default_factory=list)
 
 
@@ -111,9 +114,10 @@ def build_workspace_observability_report(
     )
     projections = build_projection_observability(session_repository)
     verification = build_verification_observability(workspace_root)
+    provider_canary = load_provider_canary_evidence(workspace_root)
     next_actions = [
         action
-        for section in (runtime, projections, verification)
+        for section in (runtime, projections, verification, provider_canary)
         for action in section.next_actions
     ]
     return WorkspaceObservabilityReport(
@@ -121,6 +125,7 @@ def build_workspace_observability_report(
         runtime=runtime,
         projections=projections,
         verification=verification,
+        provider_canary=provider_canary,
         next_actions=next_actions,
     )
 

@@ -5,7 +5,9 @@ from pathlib import Path
 
 from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
+from glassbox.runtime.provider_canary import ProviderCanaryEvidenceSummary
 from glassbox.runtime.provider_canary import ProviderCanarySummary
+from glassbox.runtime.provider_canary import load_provider_canary_evidence
 from glassbox.runtime.provider_canary import run_provider_canary_sync
 from glassbox.runtime.provider_diagnostics import ProviderDiagnosticsReport
 from glassbox.runtime.provider_diagnostics import build_provider_diagnostics_report
@@ -73,6 +75,8 @@ def _print_provider_diagnostics(report: ProviderDiagnosticsReport) -> None:
 
 def _provider_canary_command(args: argparse.Namespace) -> int:
     provider_canary_command = getattr(args, "provider_canary_command", None)
+    if provider_canary_command == "evidence":
+        return _provider_canary_evidence_command(args)
     if provider_canary_command != "run":
         raise ValueError("specify a provider canary subcommand")
 
@@ -98,6 +102,19 @@ def _provider_canary_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def _provider_canary_evidence_command(args: argparse.Namespace) -> int:
+    cwd, _db_path = resolve_runtime_location(args)
+    evidence = load_provider_canary_evidence(
+        cwd,
+        summary_path=Path(args.path) if args.path else None,
+    )
+    if args.json:
+        print_json_output(evidence.model_dump(mode="json"))
+    else:
+        _print_provider_canary_evidence(evidence)
+    return 0
+
+
 def _print_provider_canary_summary(summary: ProviderCanarySummary) -> None:
     print("Provider canary: advisory")
     print(f"Provider: {summary.provider}")
@@ -115,4 +132,28 @@ def _print_provider_canary_summary(summary: ProviderCanarySummary) -> None:
     if summary.next_actions:
         print("Next:")
         for action in summary.next_actions:
+            print(f"  - {action}")
+
+
+def _print_provider_canary_evidence(evidence: ProviderCanaryEvidenceSummary) -> None:
+    print(f"Provider canary evidence: {evidence.latest_status}")
+    print(f"Retained summaries: {evidence.summary_count}")
+    if evidence.latest_summary_path is not None:
+        print(f"Latest summary: {evidence.latest_summary_path}")
+    if evidence.provider is not None:
+        print(f"Provider: {evidence.provider}")
+    if evidence.model_name is not None:
+        print(f"Model: {evidence.model_name}")
+    print(
+        "Scenarios: "
+        f"{evidence.passed_count} passed, "
+        f"{evidence.skipped_count} skipped, "
+        f"{evidence.warning_count} warning, "
+        f"{evidence.failed_count} failed"
+    )
+    print(f"Capability matrix rows: {evidence.matrix_entry_count}")
+    print(f"Stale: {'yes' if evidence.stale else 'no'}")
+    if evidence.next_actions:
+        print("Next:")
+        for action in evidence.next_actions:
             print(f"  - {action}")

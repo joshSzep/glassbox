@@ -102,6 +102,7 @@ Current provider commands:
 
 - `glassbox provider diagnostics`
 - `glassbox provider canary run`
+- `glassbox provider canary evidence`
 
 Current canary behavior is advisory by design. The v6 release candidate retained
 one `streaming-text` OpenAI canary scenario, while deterministic evals remained
@@ -116,15 +117,16 @@ Current strengths:
   reason is retained
 - provider canary summaries now include a redacted advisory capability matrix
   shape for provider/model/scenario evidence
+- retained provider capability evidence is discoverable from provider commands
+  and observability without becoming deterministic release authority
 
 Current weak areas:
 
 - provider capability evidence is scenario-limited
 - the durable matrix shape now exists, but more scenario rows still need
   automated preflight and execution coverage
-- diagnostics do not yet preflight every canary scenario
-- provider evidence is not yet surfaced as a reusable operator artifact outside
-  a single retained release run
+- dashboard-specific cues remain future work; observability now carries the
+  operator-facing retained-evidence cue
 
 Recommended v7 action: define the matrix in `GBX-730`, expand diagnostics in
 `GBX-731`, broaden scenario execution in `GBX-732`, and surface retained matrix

@@ -198,6 +198,19 @@ Run one scenario:
 uv run glassbox provider canary run --cwd . --scenario streaming-text --json
 ```
 
+Inspect the latest retained advisory evidence:
+
+```bash
+uv run glassbox provider canary evidence --cwd .
+uv run glassbox provider canary evidence --cwd . --json
+```
+
+`glassbox observability status` also reports a provider-canary cue with the
+latest retained status. `missing` means no retained advisory evidence was found.
+`stale`, `skipped`, `warning`, and `failed` states should prompt operator review,
+but they are still advisory and must not be confused with deterministic release
+signoff.
+
 Keep canary artifacts redacted. Store only the provider family, scenario status,
 high-level state transitions, and any release-relevant failure summary. Do not
 store raw prompts, responses, API keys, or provider request metadata unless they

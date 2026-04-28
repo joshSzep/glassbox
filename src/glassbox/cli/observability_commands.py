@@ -62,6 +62,13 @@ def _print_observability_report(report: WorkspaceObservabilityReport) -> None:
     )
     if report.verification.latest_summary_path is not None:
         print(f"Latest eval summary: {report.verification.latest_summary_path}")
+    print(
+        "Provider canary: "
+        f"{report.provider_canary.latest_status} "
+        f"({report.provider_canary.summary_count} retained summary/summaries)"
+    )
+    if report.provider_canary.latest_summary_path is not None:
+        print(f"Latest provider canary: {report.provider_canary.latest_summary_path}")
     if not report.next_actions:
         print("Next: no immediate action")
         return

@@ -523,7 +523,7 @@ Completion notes:
 
 ### GBX-733: Surface Provider Capability Evidence In Release And Operator Workflows
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-732`
 - Goal: make provider capability evidence easy to inspect from release evidence, provider commands, and dashboard or observability surfaces without confusing it with deterministic release signoff
 - Deliverables:
@@ -540,6 +540,13 @@ Completion notes:
   - observability or dashboard tests if those surfaces change
 - Done when:
   - advisory provider evidence is discoverable, interpretable, and clearly separated from blocking deterministic evidence
+
+Completion notes:
+
+- Added `glassbox provider canary evidence` for inspecting the latest retained provider capability matrix summary or a specific retained summary path.
+- Surfaced provider-canary retained-evidence status in `glassbox observability status` JSON and human output, including missing, stale, skipped, warning, failed, and passed states.
+- Updated [providers.md](./providers.md), [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md), and [v6-release-candidate.md](./v6-release-candidate.md) with release/operator evidence pointers and advisory interpretation.
+- Validation: `uv run pytest tests/unit/test_runtime_provider_config.py tests/integration/test_provider_mode_runtime.py`.
 
 ---
 

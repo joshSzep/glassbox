@@ -404,6 +404,68 @@ def test_provider_canary_runs_default_multi_scenario_with_fake_provider(
     assert "dotenv-openai" not in json.dumps(retained)
 
 
+def test_provider_canary_evidence_cli_and_observability_surface_latest_run(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
+    output_dir = tmp_path / ".glassbox" / "provider-canary"
+
+    run_exit_code = main(
+        [
+            "provider",
+            "canary",
+            "run",
+            "--cwd",
+            str(tmp_path),
+            "--model-name",
+            "openai:gpt-5.4",
+            "--output-dir",
+            str(output_dir),
+            "--json",
+        ]
+    )
+    capsys.readouterr()
+    assert run_exit_code == 0
+
+    evidence_exit_code = main(
+        [
+            "provider",
+            "canary",
+            "evidence",
+            "--cwd",
+            str(tmp_path),
+            "--json",
+        ]
+    )
+    evidence_output = capsys.readouterr()
+    evidence_payload = json.loads(evidence_output.out)
+
+    assert evidence_exit_code == 0
+    assert evidence_payload["latest_status"] == "skipped"
+    assert evidence_payload["summary_count"] == 1
+    assert evidence_payload["skipped_count"] == 7
+    assert evidence_payload["matrix_entry_count"] == 7
+
+    observability_exit_code = main(
+        [
+            "observability",
+            "status",
+            "--cwd",
+            str(tmp_path),
+            "--json",
+        ]
+    )
+    observability_output = capsys.readouterr()
+    observability_payload = json.loads(observability_output.out)
+
+    assert observability_exit_code == 0
+    assert observability_payload["provider_canary"]["latest_status"] == "skipped"
+    assert observability_payload["provider_canary"]["summary_count"] == 1
+
+
 def _provider_function_model_response(messages, _agent_info) -> ModelResponse:
     user_prompt_text = _latest_user_prompt(messages)
     assert user_prompt_text == "Inspect the repo"

@@ -5,6 +5,7 @@ import json
 from datetime import UTC
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 from typing import Literal
 
 from pydantic import BaseModel
@@ -23,6 +24,13 @@ from glassbox.runtime.provider_diagnostics import build_provider_diagnostics_rep
 
 type ProviderCanaryOutcome = Literal["passed", "failed", "skipped", "warning"]
 type ProviderCanaryAutomationStatus = Literal["automated", "preflight_only"]
+type ProviderCanaryEvidenceStatus = Literal[
+    "missing",
+    "passed",
+    "failed",
+    "warning",
+    "skipped",
+]
 
 _DEFAULT_SCENARIOS = (
     "streaming-text",
@@ -33,6 +41,7 @@ _DEFAULT_SCENARIOS = (
     "dashboard",
     "daemon-attach",
 )
+_EVIDENCE_STALE_AFTER_SECONDS = 7 * 24 * 60 * 60
 
 
 class ProviderCanaryScenarioDefinition(BaseModel):
@@ -137,6 +146,28 @@ class ProviderCanarySummary(BaseModel):
     capability_matrix: ProviderCapabilityMatrix
     skipped_reason: str | None = None
     next_actions: list[str]
+
+
+class ProviderCanaryEvidenceSummary(BaseModel):
+    """Compact index for retained provider-canary evidence."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    summary_count: int
+    latest_summary_path: str | None = None
+    latest_generated_at: str | None = None
+    latest_status: ProviderCanaryEvidenceStatus
+    provider: str | None = None
+    model_name: str | None = None
+    diagnostics_state: str | None = None
+    scenario_count: int = 0
+    matrix_entry_count: int = 0
+    passed_count: int = 0
+    skipped_count: int = 0
+    warning_count: int = 0
+    failed_count: int = 0
+    stale: bool = False
+    next_actions: list[str] = Field(default_factory=list)
 
 
 async def run_provider_canary(
@@ -251,6 +282,54 @@ def run_provider_canary_sync(
             output_dir=output_dir,
             scenarios=scenarios,
         )
+    )
+
+
+def load_provider_canary_evidence(
+    workspace_root: Path,
+    *,
+    summary_path: Path | None = None,
+) -> ProviderCanaryEvidenceSummary:
+    """Load a compact advisory summary for retained provider-canary evidence."""
+
+    summaries = _provider_canary_summary_paths(workspace_root, summary_path)
+    if not summaries:
+        return ProviderCanaryEvidenceSummary(
+            summary_count=0,
+            latest_status="missing",
+            next_actions=[
+                f"glassbox provider canary run --cwd {workspace_root}",
+            ],
+        )
+
+    latest_path = summaries[0]
+    payload = _load_summary_payload(latest_path)
+    summary = ProviderCanarySummary.model_validate(payload)
+    outcome_counts = _outcome_counts(summary.scenarios)
+    latest_status = _evidence_status(outcome_counts)
+    stale = _is_stale(latest_path)
+    next_actions = [f"inspect provider canary evidence {latest_path}"]
+    if stale:
+        next_actions.append(f"glassbox provider canary run --cwd {workspace_root}")
+    if latest_status in {"failed", "warning", "skipped"}:
+        next_actions.extend(summary.next_actions)
+
+    return ProviderCanaryEvidenceSummary(
+        summary_count=len(summaries),
+        latest_summary_path=str(latest_path),
+        latest_generated_at=summary.generated_at,
+        latest_status=latest_status,
+        provider=summary.provider,
+        model_name=summary.model_name,
+        diagnostics_state=summary.diagnostics_state,
+        scenario_count=len(summary.scenarios),
+        matrix_entry_count=len(summary.capability_matrix.entries),
+        passed_count=outcome_counts["passed"],
+        skipped_count=outcome_counts["skipped"],
+        warning_count=outcome_counts["warning"],
+        failed_count=outcome_counts["failed"],
+        stale=stale,
+        next_actions=next_actions,
     )
 
 
@@ -396,3 +475,59 @@ def _write_summary(output_path: Path, summary: ProviderCanarySummary) -> None:
         json.dumps(summary.model_dump(mode="json"), indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+
+
+def _provider_canary_summary_paths(
+    workspace_root: Path,
+    summary_path: Path | None,
+) -> list[Path]:
+    if summary_path is not None:
+        resolved = (
+            summary_path
+            if summary_path.is_absolute()
+            else workspace_root / summary_path
+        )
+        return [resolved] if resolved.exists() else []
+    evidence_root = workspace_root / ".glassbox"
+    if not evidence_root.exists():
+        return []
+    return sorted(
+        evidence_root.glob("**/provider-canary-summary.json"),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+
+
+def _load_summary_payload(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _outcome_counts(
+    scenarios: list[ProviderCanaryScenarioResult],
+) -> dict[ProviderCanaryOutcome, int]:
+    counts: dict[ProviderCanaryOutcome, int] = {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0,
+        "warning": 0,
+    }
+    for scenario in scenarios:
+        counts[scenario.outcome] += 1
+    return counts
+
+
+def _evidence_status(
+    outcome_counts: dict[ProviderCanaryOutcome, int],
+) -> ProviderCanaryEvidenceStatus:
+    if outcome_counts["failed"] > 0:
+        return "failed"
+    if outcome_counts["warning"] > 0:
+        return "warning"
+    if outcome_counts["skipped"] > 0:
+        return "skipped" if outcome_counts["passed"] == 0 else "warning"
+    return "passed"
+
+
+def _is_stale(path: Path) -> bool:
+    age_seconds = datetime.now(UTC).timestamp() - path.stat().st_mtime
+    return age_seconds > _EVIDENCE_STALE_AFTER_SECONDS
