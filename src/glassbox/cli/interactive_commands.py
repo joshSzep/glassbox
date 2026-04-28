@@ -8,6 +8,7 @@ import httpx
 
 from glassbox.cli.daemon_attach import attach_tui_via_daemon
 from glassbox.cli.daemon_attach import attach_via_daemon
+from glassbox.cli.daemon_status import build_runtime_owner_status_report
 from glassbox.cli.interactive_client import LocalInteractiveSessionClient
 from glassbox.cli.interactive_launch import InteractiveLaunchMode
 from glassbox.cli.interactive_launch import interactive_launch_options_from_args
@@ -177,10 +178,14 @@ async def _attach_command_async(args: argparse.Namespace) -> int:
     if daemon_status.state == "running":
         assert daemon_status.record is not None
         if daemon_status.health != "ok":
+            report = build_runtime_owner_status_report(daemon_status, cwd, db_path)
             raise ValueError(
                 "live runtime unavailable at "
                 f"{daemon_status.record.dashboard_url}; cannot attach session "
-                f"{args.session_id}"
+                f"{args.session_id}\n"
+                f"Inspect health: {report.health_url}\n"
+                f"Status: {report.commands.status}\n"
+                f"Recover: {report.commands.stop} && {report.commands.start}"
             )
         if launch_mode == InteractiveLaunchMode.TUI:
             return await attach_tui_via_daemon(

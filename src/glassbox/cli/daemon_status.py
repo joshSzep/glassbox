@@ -107,6 +107,7 @@ def render_runtime_owner_status(report: RuntimeOwnerStatusReport) -> list[str]:
             [
                 "Runtime owner: none",
                 f"Start: {report.commands.start}",
+                f"Next: {report.commands.start}",
             ]
         )
         return lines
@@ -134,14 +135,20 @@ def render_runtime_owner_status(report: RuntimeOwnerStatusReport) -> list[str]:
                 [
                     f"Inspect health: {report.health_url}",
                     f"Recover: {report.commands.stop} && {report.commands.start}",
+                    "Next: inspect "
+                    f"{report.health_url}; if unreachable persists, run "
+                    f"{report.commands.stop} && {report.commands.start}",
                 ]
             )
+        else:
+            lines.append(f"Next: {report.commands.attach}")
     elif report.state == "stale":
         lines.extend(
             [
                 "Health: unavailable (owner process is not running)",
                 f"Recover: {report.commands.start}",
                 f"Clear stale owner: {report.commands.stop}",
+                f"Next: {report.commands.stop}; then {report.commands.start}",
             ]
         )
     return lines

@@ -753,7 +753,7 @@ Completion notes:
 
 ### GBX-752: Harden Daemon Attach And Stale Owner Recovery
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-750`, `GBX-751`
 - Goal: make daemon-backed attach and stale-owner recovery clearer and more reliable under real local process churn
 - Deliverables:
@@ -771,6 +771,13 @@ Completion notes:
   - observability tests if output changes
 - Done when:
   - daemon attach and stale-owner failures are understandable, recoverable, and protected by tests
+
+Completion notes:
+
+- Added explicit `Next:` recovery guidance to daemon status output for not-running, healthy running, unreachable running, and stale-owner states while preserving existing start/attach/stop command lines.
+- Enriched `session attach` failures against unhealthy daemon owners with health inspection, status, and stop/start recovery commands.
+- Extended daemon integration assertions for stale metadata cleanup and unreachable health guidance, alongside existing occupied-port and local fallback coverage.
+- Validated daemon attach/session command integration tests plus ruff and ty checks.
 
 ### GBX-753: Add Multi-Observer Dashboard And Terminal Smoke
 

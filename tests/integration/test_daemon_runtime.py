@@ -302,6 +302,8 @@ def test_daemon_status_reports_stale_recovery_commands(
     assert "Health: unavailable (owner process is not running)" in captured.out
     assert "Recover: glassbox daemon start" in captured.out
     assert "Clear stale owner: glassbox daemon stop" in captured.out
+    assert "Next: glassbox daemon stop" in captured.out
+    assert "then glassbox daemon start" in captured.out
 
 
 def test_daemon_start_reports_process_startup_failure(
@@ -383,6 +385,7 @@ def test_daemon_status_reports_unreachable_health_recovery(
     assert "Health: unreachable" in captured.out
     assert "Inspect health: http://127.0.0.1:9999/healthz" in captured.out
     assert "Recover: glassbox daemon stop" in captured.out
+    assert "Next: inspect http://127.0.0.1:9999/healthz" in captured.out
 
 
 def test_daemon_stop_timeout_reports_pid_and_keeps_metadata(
@@ -660,6 +663,9 @@ def test_cli_attach_reports_live_runtime_unavailable(
         "live runtime unavailable at http://127.0.0.1:9999/; cannot attach session"
         in captured.err
     )
+    assert "Inspect health: http://127.0.0.1:9999/healthz" in captured.err
+    assert "Status: glassbox daemon status" in captured.err
+    assert "Recover: glassbox daemon stop" in captured.err
 
 
 def test_cli_attach_reports_historical_only_session_when_daemon_is_running(
