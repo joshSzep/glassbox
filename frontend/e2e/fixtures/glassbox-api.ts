@@ -88,6 +88,35 @@ export async function installGlassboxApiFixture(
     await page.route(`**/sessions/${sessionId}`, (route) =>
       route.fulfill({ json: makeV4ScenarioSnapshot(sessionId, scenarioId) }),
     );
+    await page.route(`**/sessions/${sessionId}/transcript**`, (route) => {
+      const snapshot = makeV4ScenarioSnapshot(sessionId, scenarioId);
+      route.fulfill({
+        json: {
+          items: snapshot.transcript,
+          page: makeFixturePage(snapshot.transcript.length),
+          session_id: sessionId,
+        },
+      });
+    });
+    await page.route(`**/sessions/${sessionId}/event-log**`, (route) => {
+      route.fulfill({
+        json: {
+          items: makeFixtureEventLog(sessionId, scenarioId),
+          page: makeFixturePage(3),
+          session_id: sessionId,
+        },
+      });
+    });
+    await page.route(`**/sessions/${sessionId}/turn-metrics**`, (route) => {
+      const snapshot = makeV4ScenarioSnapshot(sessionId, scenarioId);
+      route.fulfill({
+        json: {
+          items: snapshot.turn_metrics,
+          page: makeFixturePage(snapshot.turn_metrics.length),
+          session_id: sessionId,
+        },
+      });
+    });
   }
 
   await page.route("**/sessions/*/messages", (route) => recordAction(route, state));
@@ -98,6 +127,28 @@ export async function installGlassboxApiFixture(
   );
 
   return state;
+}
+
+function makeFixturePage(returnedCount: number) {
+  return {
+    cursor: 0,
+    has_more: false,
+    limit: 80,
+    next_cursor: null,
+    returned_count: returnedCount,
+  };
+}
+
+function makeFixtureEventLog(sessionId: string, scenarioId: ScreenshotScenarioId) {
+  return makeV4ScenarioSseEnvelopes(scenarioId, sessionId).map((event) => ({
+    created_at: "2026-04-23T00:00:00Z",
+    event_id: `event-${event.sequence}`,
+    event_type: event.event_type,
+    event_version: 1,
+    payload: event.payload,
+    sequence: event.sequence,
+    session_id: sessionId,
+  }));
 }
 
 export function scenarioRoute(scenarioId: ScreenshotScenarioId): string {

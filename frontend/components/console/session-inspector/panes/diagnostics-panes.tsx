@@ -1,13 +1,17 @@
 import type { ReactNode } from "react";
-import { Activity, ScrollText, TerminalSquare } from "lucide-react";
+import { ChevronDown, Activity, ScrollText, TerminalSquare } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { DataList, DataListItem, DataListLabel, DataListMeta } from "@/components/ui/data-list";
 import { EmptyLine, Pane } from "@/components/console/session-inspector/frame";
 import { formatDuration } from "@/components/console/session-inspector/format";
 import { MetricSummary, summarizeTurnMetrics } from "./shared";
 import type { SessionStreamState } from "@/api/sse";
 import type { DashboardState } from "@/state/session-state";
+import type { DetailPageStatus } from "@/stores/dashboard-stores";
+
+const DETAIL_RENDER_WINDOW = 80;
 
 export function RuntimePane({ data }: { data: DashboardState }) {
   const context = data.runtimeContext;
@@ -87,8 +91,17 @@ export function RuntimePane({ data }: { data: DashboardState }) {
   );
 }
 
-export function MetricsPane({ data }: { data: DashboardState }) {
+export function MetricsPane({
+  data,
+  onLoadMore,
+  page,
+}: {
+  data: DashboardState;
+  onLoadMore?: () => void;
+  page?: DetailPageStatus;
+}) {
   const totals = summarizeTurnMetrics(data.turnMetrics);
+  const visibleMetrics = data.turnMetrics.slice(0, DETAIL_RENDER_WINDOW);
 
   return (
     <Pane icon={Activity} title="Metrics">
@@ -108,7 +121,7 @@ export function MetricsPane({ data }: { data: DashboardState }) {
           <details className="rounded-md border bg-card p-3" open>
             <summary className="cursor-pointer text-sm font-medium">Raw turn metrics</summary>
             <DataList className="mt-3" density="compact">
-              {data.turnMetrics.map((metric) => (
+              {visibleMetrics.map((metric) => (
                 <DataListItem key={metric.turn_id}>
                   <DataListLabel>{metric.turn_id}</DataListLabel>
                   <DataListMeta>
@@ -123,6 +136,7 @@ export function MetricsPane({ data }: { data: DashboardState }) {
                 </DataListItem>
               ))}
             </DataList>
+            <LoadMoreDetail label="turn metrics" onLoadMore={onLoadMore} page={page} />
           </details>
         </div>
       )}
@@ -132,9 +146,13 @@ export function MetricsPane({ data }: { data: DashboardState }) {
 
 export function EvidencePane({
   data,
+  eventPage,
+  onLoadMoreEvents,
   stream,
 }: {
   data: DashboardState;
+  eventPage?: DetailPageStatus;
+  onLoadMoreEvents?: () => void;
   stream: SessionStreamState;
 }) {
   const recentLiveOutput = data.liveOutput.slice(-6);
@@ -189,12 +207,13 @@ export function EvidencePane({
               <DataListMeta>sequence {event.sequence}</DataListMeta>
             </DataListItem>
           ))}
+          <LoadMoreDetail label="events" onLoadMore={onLoadMoreEvents} page={eventPage} />
         </EvidenceList>
         <EvidenceList
           title="Raw metric details"
           empty="No raw metric rows are attached to this snapshot."
         >
-          {data.turnMetrics.map((metric) => (
+          {data.turnMetrics.slice(0, DETAIL_RENDER_WINDOW).map((metric) => (
             <DataListItem key={metric.turn_id}>
               <DataListLabel>{metric.turn_id}</DataListLabel>
               <DataListMeta>
@@ -206,6 +225,39 @@ export function EvidencePane({
         </EvidenceList>
       </div>
     </Pane>
+  );
+}
+
+function LoadMoreDetail({
+  label,
+  onLoadMore,
+  page,
+}: {
+  label: string;
+  onLoadMore?: () => void;
+  page?: DetailPageStatus;
+}) {
+  if (page === undefined || !page.hasMore) {
+    return null;
+  }
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-3">
+      <Button
+        disabled={page.state === "loading"}
+        onClick={onLoadMore}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        <ChevronDown className="h-4 w-4" aria-hidden="true" />
+        {page.state === "loading" ? "Loading" : `Load more ${label}`}
+      </Button>
+      {page.error !== null ? (
+        <p className="text-xs text-destructive">{page.error}</p>
+      ) : (
+        <p className="text-xs text-muted-foreground">Next cursor {page.nextCursor}</p>
+      )}
+    </div>
   );
 }
 

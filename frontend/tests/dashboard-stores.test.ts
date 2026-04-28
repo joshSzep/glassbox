@@ -66,12 +66,12 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
       session_id: sessionId,
     }),
     getSessionTranscriptPage: async (sessionId) => ({
-      items: [],
-      page: { cursor: 0, has_more: false, limit: 100, next_cursor: null, returned_count: 0 },
+      items: makeSessionSnapshot(sessionId).transcript,
+      page: { cursor: 0, has_more: false, limit: 100, next_cursor: null, returned_count: 1 },
       session_id: sessionId,
     }),
     getSessionTurnMetricsPage: async (sessionId) => ({
-      items: [],
+      items: makeSessionSnapshot(sessionId).turn_metrics,
       page: { cursor: 0, has_more: false, limit: 100, next_cursor: null, returned_count: 0 },
       session_id: sessionId,
     }),
@@ -175,6 +175,38 @@ describe("session store", () => {
     expect(store.getState().data.sessionId).toBe("session-1");
     expect(store.getState().drafts.composerText).toBe("draft prompt");
     expect(store.getState().drafts.answerTextByQuestionId["question-1"]).toBe("draft answer");
+  });
+
+  it("loads additional session detail pages on demand", async () => {
+    const store = createSessionStore({
+      apiClient: createApiClient({
+        getSessionTranscriptPage: async (sessionId, query = {}) => ({
+          items: makeSessionSnapshot(sessionId).transcript.map((message) => ({
+            ...message,
+            message_id: `message-${query.cursor ?? 0}`,
+          })),
+          page: {
+            cursor: query.cursor ?? 0,
+            has_more: query.cursor === undefined,
+            limit: query.limit ?? 80,
+            next_cursor: query.cursor === undefined ? 1 : null,
+            returned_count: 1,
+          },
+          session_id: sessionId,
+        }),
+      }),
+    });
+
+    await store.getState().loadSession("session-1");
+    expect(store.getState().detailPages.transcript.hasMore).toBe(true);
+
+    await store.getState().loadMoreTranscript();
+
+    expect(store.getState().data.transcript.map((message) => message.message_id)).toEqual([
+      "message-0",
+      "message-1",
+    ]);
+    expect(store.getState().detailPages.transcript.hasMore).toBe(false);
   });
 
   it("ignores stale selected-session responses", async () => {

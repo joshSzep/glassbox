@@ -19,6 +19,16 @@ import {
 
 export type LoadState = "failed" | "idle" | "loaded" | "loading";
 export type ActionKind = "answer" | "approval" | "cancel" | "fork" | "prompt";
+export type DetailPageKind = "events" | "metrics" | "transcript";
+
+export type DetailPageStatus = {
+  error: string | null;
+  hasMore: boolean;
+  nextCursor: number | null;
+  state: LoadState;
+};
+
+export type DetailPageState = Record<DetailPageKind, DetailPageStatus>;
 
 export type ActionStatus = {
   error: string | null;
@@ -60,6 +70,7 @@ export type SessionStoreState = {
   clearCompareSession: () => void;
   connectStream: () => void;
   data: DashboardState;
+  detailPages: DetailPageState;
   disconnectStream: () => void;
   drafts: DraftState;
   error: string | null;
@@ -68,6 +79,9 @@ export type SessionStoreState = {
     turnId?: string | null;
   }) => Promise<string | null>;
   loadCompareSession: (sessionId: string) => Promise<void>;
+  loadMoreEvents: () => Promise<void>;
+  loadMoreMetrics: () => Promise<void>;
+  loadMoreTranscript: () => Promise<void>;
   loadSession: (sessionId: string) => Promise<void>;
   loadState: LoadState;
   requestCancellation: () => Promise<void>;
@@ -180,6 +194,7 @@ export function createSessionStore({
       streamHandle.start();
     },
     data: createDashboardState(),
+    detailPages: createIdleDetailPageState(),
     disconnectStream: () => {
       closeStream();
       set({ stream: createIdleStreamState() });
@@ -233,23 +248,51 @@ export function createSessionStore({
         }));
       }
     },
+    loadMoreEvents: async () => {
+      await loadDetailPage({ apiClient, get, kind: "events", set });
+    },
+    loadMoreMetrics: async () => {
+      await loadDetailPage({ apiClient, get, kind: "metrics", set });
+    },
+    loadMoreTranscript: async () => {
+      await loadDetailPage({ apiClient, get, kind: "transcript", set });
+    },
     loadSession: async (sessionId) => {
       const currentRequestId = ++sessionRequestId;
       closeStream();
       set((state) => ({
         data: { ...state.data, selectedSessionId: sessionId },
+        detailPages: createLoadingDetailPageState(),
         error: null,
         loadState: "loading",
         stream: createIdleStreamState(),
       }));
 
       try {
-        const snapshot = await apiClient.getSessionSnapshot(sessionId);
+        const [snapshot, transcriptPage, eventPage, metricsPage] = await Promise.all([
+          apiClient.getSessionSnapshot(sessionId),
+          apiClient.getSessionTranscriptPage(sessionId, { limit: DETAIL_PAGE_SIZE }),
+          apiClient.getSessionEventLogPage(sessionId, { limit: DETAIL_PAGE_SIZE }),
+          apiClient.getSessionTurnMetricsPage(sessionId, { limit: DETAIL_PAGE_SIZE }),
+        ]);
         if (currentRequestId !== sessionRequestId) {
           return;
         }
         set((state) => ({
-          data: hydrateSelectedSession(state.data, snapshot),
+          data: {
+            ...hydrateSelectedSession(state.data, snapshot),
+            eventLog: eventPage.items.map((event) => ({
+              event_type: event.event_type,
+              sequence: event.sequence,
+            })),
+            transcript: transcriptPage.items,
+            turnMetrics: metricsPage.items,
+          },
+          detailPages: {
+            events: pageStatusFromResponse(eventPage.page),
+            metrics: pageStatusFromResponse(metricsPage.page),
+            transcript: pageStatusFromResponse(transcriptPage.page),
+          },
           error: null,
           loadState: "loaded",
           stream: { ...state.stream, lastSequence: snapshot.last_sequence },
@@ -290,6 +333,7 @@ export function createSessionStore({
       set((state) => ({
         action: createIdleActionStatus(),
         data: { ...createDashboardState(), selectedSessionId: sessionId },
+        detailPages: createIdleDetailPageState(),
         drafts: state.drafts,
         error: null,
         loadState: sessionId === null ? "idle" : "loading",
@@ -392,6 +436,120 @@ function createEmptyDraftState(): DraftState {
 
 function createIdleActionStatus(): ActionStatus {
   return { error: null, kind: null, state: "idle" };
+}
+
+const DETAIL_PAGE_SIZE = 80;
+
+function createIdleDetailPageState(): DetailPageState {
+  return {
+    events: createDetailPageStatus("idle"),
+    metrics: createDetailPageStatus("idle"),
+    transcript: createDetailPageStatus("idle"),
+  };
+}
+
+function createLoadingDetailPageState(): DetailPageState {
+  return {
+    events: createDetailPageStatus("loading"),
+    metrics: createDetailPageStatus("loading"),
+    transcript: createDetailPageStatus("loading"),
+  };
+}
+
+function createDetailPageStatus(state: LoadState): DetailPageStatus {
+  return { error: null, hasMore: false, nextCursor: null, state };
+}
+
+function pageStatusFromResponse(page: {
+  has_more: boolean;
+  next_cursor: number | null;
+}): DetailPageStatus {
+  return {
+    error: null,
+    hasMore: page.has_more,
+    nextCursor: page.next_cursor,
+    state: "loaded",
+  };
+}
+
+async function loadDetailPage({
+  apiClient,
+  get,
+  kind,
+  set,
+}: {
+  apiClient: GlassboxApiClient;
+  get: StoreApi<SessionStoreState>["getState"];
+  kind: DetailPageKind;
+  set: StoreApi<SessionStoreState>["setState"];
+}) {
+  const state = get();
+  const sessionId = requireSelectedSessionId(state.data);
+  const currentPage = state.detailPages[kind];
+  if (!currentPage.hasMore || currentPage.nextCursor === null || currentPage.state === "loading") {
+    return;
+  }
+
+  set((nextState) => ({
+    detailPages: {
+      ...nextState.detailPages,
+      [kind]: { ...nextState.detailPages[kind], error: null, state: "loading" },
+    },
+  }));
+
+  try {
+    if (kind === "transcript") {
+      const page = await apiClient.getSessionTranscriptPage(sessionId, {
+        cursor: currentPage.nextCursor,
+        limit: DETAIL_PAGE_SIZE,
+      });
+      set((nextState) => ({
+        data: { ...nextState.data, transcript: [...nextState.data.transcript, ...page.items] },
+        detailPages: { ...nextState.detailPages, transcript: pageStatusFromResponse(page.page) },
+      }));
+      return;
+    }
+    if (kind === "events") {
+      const page = await apiClient.getSessionEventLogPage(sessionId, {
+        cursor: currentPage.nextCursor,
+        limit: DETAIL_PAGE_SIZE,
+      });
+      set((nextState) => ({
+        data: {
+          ...nextState.data,
+          eventLog: [
+            ...nextState.data.eventLog,
+            ...page.items.map((event) => ({
+              event_type: event.event_type,
+              sequence: event.sequence,
+            })),
+          ],
+        },
+        detailPages: { ...nextState.detailPages, events: pageStatusFromResponse(page.page) },
+      }));
+      return;
+    }
+
+    const page = await apiClient.getSessionTurnMetricsPage(sessionId, {
+      cursor: currentPage.nextCursor,
+      limit: DETAIL_PAGE_SIZE,
+    });
+    set((nextState) => ({
+      data: { ...nextState.data, turnMetrics: [...nextState.data.turnMetrics, ...page.items] },
+      detailPages: { ...nextState.detailPages, metrics: pageStatusFromResponse(page.page) },
+    }));
+  } catch (error) {
+    set((nextState) => ({
+      detailPages: {
+        ...nextState.detailPages,
+        [kind]: {
+          ...nextState.detailPages[kind],
+          error: errorMessage(error),
+          state: "failed",
+        },
+      },
+    }));
+  }
 }
 
 function createIdleStreamState(): SessionStreamState {

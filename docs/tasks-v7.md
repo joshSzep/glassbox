@@ -610,7 +610,7 @@ Completion notes:
 
 ### GBX-742: Add Dashboard Virtualization And Lazy Detail Loading
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-741`
 - Goal: keep the dashboard responsive for long transcripts, large event logs, and heavy evidence panes
 - Deliverables:
@@ -629,6 +629,12 @@ Completion notes:
   - frontend lint, typecheck, tests, and build
 - Done when:
   - long sessions remain inspectable in the dashboard without rendering the entire history at once
+
+Completion notes:
+
+- Dashboard session loads now hydrate transcript, event-log, and turn-metric detail panes through the GBX-741 paginated APIs and retain per-pane cursor/load/error state.
+- Transcript, metrics, and event evidence panes render bounded windows with explicit load-more controls so large sessions do not inflate the initial DOM.
+- Store and inspector tests cover initial detail hydration, on-demand page loading, and existing live-stream/session workflows.
 
 ### GBX-743: Improve Projection And Artifact Scale Observability
 

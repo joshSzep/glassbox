@@ -82,6 +82,7 @@ export function WorkspaceConsole() {
             action={sessionState.action}
             activeTab={route.tab}
             data={sessionState.data}
+            detailPages={sessionState.detailPages}
             drafts={sessionState.drafts}
             error={sessionState.error}
             loadState={sessionState.loadState}
@@ -110,6 +111,15 @@ export function WorkspaceConsole() {
               })();
             }}
             onForkLabelChange={(text) => sessionStore.getState().setForkLabel(text)}
+            onLoadMoreEvents={() => {
+              void sessionStore.getState().loadMoreEvents();
+            }}
+            onLoadMoreMetrics={() => {
+              void sessionStore.getState().loadMoreMetrics();
+            }}
+            onLoadMoreTranscript={() => {
+              void sessionStore.getState().loadMoreTranscript();
+            }}
             onOpenSession={(sessionId) => {
               const nextRoute = openLineageTargetRoute(route, sessionId);
               navigate(nextRoute);

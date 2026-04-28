@@ -196,6 +196,17 @@ GBX-741 API contract:
   and dashboard clients while new clients can move large detail panes to these
   typed endpoints
 
+GBX-742 dashboard behavior:
+
+- selected session loads hydrate transcript, event-log, and turn-metric panes via
+  the typed GBX-741 page APIs while preserving the full snapshot route for the
+  session shell and legacy clients
+- transcript rendering keeps a bounded recent-turn window with an explicit
+  earlier-turn expander, and detail panes expose load-more controls backed by
+  API cursors
+- evidence and metric panes cap their rendered raw rows to prevent large
+  histories from producing one giant initial DOM tree
+
 ## Daemon, Transport, And Multi-Observer Evidence
 
 Current daemon and transport behavior includes:

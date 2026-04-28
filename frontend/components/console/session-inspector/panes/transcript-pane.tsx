@@ -1,6 +1,8 @@
-import { MessageSquareText } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, MessageSquareText } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EmptyLine, Pane } from "@/components/console/session-inspector/frame";
 import {
   formatDuration,
@@ -14,9 +16,23 @@ import {
   type SessionNarrativeItem,
   type SessionNarrativeTurn,
 } from "@/state/session-state";
+import type { DetailPageStatus } from "@/stores/dashboard-stores";
 
-export function TranscriptPane({ data }: { data: DashboardState }) {
+const INITIAL_TURN_WINDOW = 40;
+
+export function TranscriptPane({
+  data,
+  onLoadMore,
+  page,
+}: {
+  data: DashboardState;
+  onLoadMore?: () => void;
+  page?: DetailPageStatus;
+}) {
+  const [visibleTurnCount, setVisibleTurnCount] = useState(INITIAL_TURN_WINDOW);
   const narrative = buildSessionNarrative(data);
+  const visibleTurns = narrative.turns.slice(-visibleTurnCount);
+  const hiddenTurnCount = Math.max(narrative.turns.length - visibleTurns.length, 0);
   const latestTurn = narrative.turns.at(-1) ?? null;
   const pendingTurn = narrative.turns.find((turn) =>
     turn.items.some((item) => item.kind === "approval" || item.kind === "question"),
@@ -37,13 +53,56 @@ export function TranscriptPane({ data }: { data: DashboardState }) {
             {failedTurn !== undefined ? <JumpLink label="Failed turn" turn={failedTurn} /> : null}
           </div>
           <div className="space-y-4" aria-label="Session narrative turns">
-            {narrative.turns.map((turn) => (
+            {hiddenTurnCount > 0 ? (
+              <Button
+                onClick={() => setVisibleTurnCount((count) => count + INITIAL_TURN_WINDOW)}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                Show {Math.min(hiddenTurnCount, INITIAL_TURN_WINDOW)} earlier turns
+              </Button>
+            ) : null}
+            {visibleTurns.map((turn) => (
               <NarrativeTurnCard key={turn.id} turn={turn} />
             ))}
           </div>
+          <LoadMoreDetail page={page} onLoadMore={onLoadMore} />
         </div>
       )}
     </Pane>
+  );
+}
+
+function LoadMoreDetail({
+  onLoadMore,
+  page,
+}: {
+  onLoadMore?: () => void;
+  page?: DetailPageStatus;
+}) {
+  if (page === undefined || !page.hasMore) {
+    return null;
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-md border bg-card p-3">
+      <Button
+        disabled={page.state === "loading"}
+        onClick={onLoadMore}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        <ChevronDown className="h-4 w-4" aria-hidden="true" />
+        {page.state === "loading" ? "Loading" : "Load more transcript"}
+      </Button>
+      {page.error !== null ? (
+        <p className="text-xs text-destructive">{page.error}</p>
+      ) : (
+        <p className="text-xs text-muted-foreground">Next cursor {page.nextCursor}</p>
+      )}
+    </div>
   );
 }
 

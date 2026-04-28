@@ -22,6 +22,7 @@ import type { SessionStreamState } from "@/api/sse";
 import type { AppQueue, InspectorTab } from "@/routing/app-route";
 import type { DashboardState } from "@/state/session-state";
 import type { ActionStatus, DraftState, LoadState } from "@/stores/dashboard-stores";
+import type { DetailPageState } from "@/stores/dashboard-stores";
 
 type ForkDialogRequest = { requestId: number; turnId: string | null };
 
@@ -32,11 +33,17 @@ const emptyDrafts: DraftState = {
   forkLabel: "",
   selectedCompareTargetId: null,
 };
+const idleDetailPages: DetailPageState = {
+  events: { error: null, hasMore: false, nextCursor: null, state: "idle" },
+  metrics: { error: null, hasMore: false, nextCursor: null, state: "idle" },
+  transcript: { error: null, hasMore: false, nextCursor: null, state: "idle" },
+};
 
 export type SessionInspectorProps = {
   action?: ActionStatus;
   activeTab: InspectorTab;
   data: DashboardState;
+  detailPages?: DetailPageState;
   drafts?: DraftState;
   error: string | null;
   loadState: LoadState;
@@ -45,6 +52,9 @@ export type SessionInspectorProps = {
   onCompareSession?: (sessionId: string) => void;
   onFork?: (input?: { branchLabel?: string | null; turnId?: string | null }) => void;
   onForkLabelChange?: (text: string) => void;
+  onLoadMoreEvents?: () => void;
+  onLoadMoreMetrics?: () => void;
+  onLoadMoreTranscript?: () => void;
   onOpenSession?: (sessionId: string) => void;
   onPromptChange?: (text: string) => void;
   onRequestCancellation?: () => void;
@@ -60,6 +70,7 @@ export function SessionInspector({
   action = idleAction,
   activeTab,
   data,
+  detailPages = idleDetailPages,
   drafts = emptyDrafts,
   error,
   loadState,
@@ -68,6 +79,9 @@ export function SessionInspector({
   onCompareSession,
   onFork,
   onForkLabelChange,
+  onLoadMoreEvents,
+  onLoadMoreMetrics,
+  onLoadMoreTranscript,
   onOpenSession,
   onPromptChange,
   onRequestCancellation,
@@ -124,6 +138,7 @@ export function SessionInspector({
         action={action}
         activeTab={activeTab}
         data={data}
+        detailPages={detailPages}
         drafts={drafts}
         forkDialogRequest={forkDialogRequest}
         onAnswerTextChange={onAnswerTextChange}
@@ -131,6 +146,9 @@ export function SessionInspector({
         onCompareSession={onCompareSession}
         onFork={onFork}
         onForkLabelChange={onForkLabelChange}
+        onLoadMoreEvents={onLoadMoreEvents}
+        onLoadMoreMetrics={onLoadMoreMetrics}
+        onLoadMoreTranscript={onLoadMoreTranscript}
         onClearForkDialogRequest={() => {
           setForkDialogRequest(null);
         }}
@@ -154,6 +172,7 @@ function InspectorTabContent({
   action,
   activeTab,
   data,
+  detailPages = idleDetailPages,
   drafts,
   forkDialogRequest,
   onAnswerTextChange,
@@ -161,6 +180,9 @@ function InspectorTabContent({
   onCompareSession,
   onFork,
   onForkLabelChange,
+  onLoadMoreEvents,
+  onLoadMoreMetrics,
+  onLoadMoreTranscript,
   onClearForkDialogRequest,
   onOpenForkTurn,
   onOpenSession,
@@ -208,7 +230,17 @@ function InspectorTabContent({
 
   switch (activeTab) {
     case "transcript":
-      return <TabPanel activeTab={activeTab}>{<TranscriptPane data={data} />}</TabPanel>;
+      return (
+        <TabPanel activeTab={activeTab}>
+          {
+            <TranscriptPane
+              data={data}
+              page={detailPages.transcript}
+              onLoadMore={onLoadMoreTranscript}
+            />
+          }
+        </TabPanel>
+      );
     case "timeline":
       return (
         <TabPanel activeTab={activeTab}>
@@ -227,14 +259,32 @@ function InspectorTabContent({
       return (
         <TabPanel activeTab={activeTab} className="xl:grid-cols-2">
           <VerificationCues data={data} />
-          <EvidencePane data={data} stream={stream} />
+          <EvidencePane
+            data={data}
+            eventPage={detailPages.events}
+            onLoadMoreEvents={onLoadMoreEvents}
+            stream={stream}
+          />
         </TabPanel>
       );
     case "metrics":
-      return <TabPanel activeTab={activeTab}>{<MetricsPane data={data} />}</TabPanel>;
+      return (
+        <TabPanel activeTab={activeTab}>
+          {<MetricsPane data={data} page={detailPages.metrics} onLoadMore={onLoadMoreMetrics} />}
+        </TabPanel>
+      );
     case "events":
       return (
-        <TabPanel activeTab={activeTab}>{<EvidencePane data={data} stream={stream} />}</TabPanel>
+        <TabPanel activeTab={activeTab}>
+          {
+            <EvidencePane
+              data={data}
+              eventPage={detailPages.events}
+              onLoadMoreEvents={onLoadMoreEvents}
+              stream={stream}
+            />
+          }
+        </TabPanel>
       );
     case "overview":
     default:
