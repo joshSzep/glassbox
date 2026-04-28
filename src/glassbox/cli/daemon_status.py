@@ -129,6 +129,13 @@ def render_runtime_owner_status(report: RuntimeOwnerStatusReport) -> list[str]:
                 f"Stop: {report.commands.stop}",
             ]
         )
+        if report.health != "ok":
+            lines.extend(
+                [
+                    f"Inspect health: {report.health_url}",
+                    f"Recover: {report.commands.stop} && {report.commands.start}",
+                ]
+            )
     elif report.state == "stale":
         lines.extend(
             [

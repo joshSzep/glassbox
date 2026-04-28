@@ -1,6 +1,7 @@
 """Integration tests for the workspace-scoped daemon runtime owner."""
 
 import json
+import os
 import socket
 from datetime import UTC
 from datetime import datetime
@@ -14,6 +15,7 @@ from glassbox.cli.interactive_launch import InteractiveLaunchMode
 from glassbox.cli.interactive_launch import InteractiveLaunchOptions
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import SessionCompleted
+from glassbox.runtime.daemon import stop_runtime_owner
 from glassbox.store.repositories import SQLiteSessionRepository
 from glassbox.store.sqlite import open_database
 from tests.integration.cli_test_support import _run_baseline_session
@@ -33,6 +35,33 @@ def _stop_daemon_if_running(workspace_root: Path) -> None:
     owner_path = _runtime_owner_path(workspace_root)
     if owner_path.exists():
         main(["daemon", "stop", "--cwd", str(workspace_root)])
+
+
+def _write_owner_metadata(
+    workspace_root: Path,
+    *,
+    pid: int,
+    port: int = 8765,
+    db_path: Path | None = None,
+) -> None:
+    owner_path = _runtime_owner_path(workspace_root)
+    owner_path.parent.mkdir(parents=True, exist_ok=True)
+    database_path = db_path or workspace_root / ".glassbox" / "glassbox.sqlite3"
+    owner_path.write_text(
+        json.dumps(
+            {
+                "pid": pid,
+                "workspace_root": str(workspace_root),
+                "database_path": str(database_path),
+                "host": "127.0.0.1",
+                "port": port,
+                "dashboard_url": f"http://127.0.0.1:{port}/",
+                "started_at": "2025-01-01T00:00:00Z",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
 
 def test_cli_help_lists_daemon_command(capsys: pytest.CaptureFixture[str]) -> None:
@@ -263,23 +292,7 @@ def test_daemon_status_reports_stale_recovery_commands(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    owner_path = _runtime_owner_path(tmp_path)
-    owner_path.parent.mkdir(parents=True, exist_ok=True)
-    owner_path.write_text(
-        json.dumps(
-            {
-                "pid": 999999,
-                "workspace_root": str(tmp_path),
-                "database_path": str(tmp_path / ".glassbox" / "glassbox.sqlite3"),
-                "host": "127.0.0.1",
-                "port": 8765,
-                "dashboard_url": "http://127.0.0.1:8765/",
-                "started_at": "2025-01-01T00:00:00Z",
-            }
-        )
-        + "\n",
-        encoding="utf-8",
-    )
+    _write_owner_metadata(tmp_path, pid=999999)
 
     exit_code = main(["daemon", "status", "--cwd", str(tmp_path)])
     captured = capsys.readouterr()
@@ -289,6 +302,104 @@ def test_daemon_status_reports_stale_recovery_commands(
     assert "Health: unavailable (owner process is not running)" in captured.out
     assert "Recover: glassbox daemon start" in captured.out
     assert "Clear stale owner: glassbox daemon stop" in captured.out
+
+
+def test_daemon_start_reports_process_startup_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    class _ExitedProcess:
+        pid = 4242
+
+        def poll(self) -> int:
+            return 1
+
+    monkeypatch.setattr(
+        "glassbox.runtime.daemon.subprocess.Popen",
+        lambda *args, **kwargs: _ExitedProcess(),
+    )
+
+    exit_code = main(
+        [
+            "daemon",
+            "start",
+            "--cwd",
+            str(tmp_path),
+            "--port",
+            str(_reserve_port()),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "daemon failed to reach a healthy startup state" in captured.err
+    assert "runtime-owner.stderr.log" in captured.err
+
+
+def test_daemon_start_reports_port_conflict(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as handle:
+        handle.bind(("127.0.0.1", 0))
+        handle.listen()
+        port = int(handle.getsockname()[1])
+
+        exit_code = main(
+            [
+                "daemon",
+                "start",
+                "--cwd",
+                str(tmp_path),
+                "--port",
+                str(port),
+            ]
+        )
+        captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "requested host/port appears unavailable" in captured.err
+    assert "runtime-owner.stderr.log" in captured.err
+    assert not _runtime_owner_path(tmp_path).exists()
+
+
+def test_daemon_status_reports_unreachable_health_recovery(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _write_owner_metadata(tmp_path, pid=os.getpid(), port=9999)
+    monkeypatch.setattr(
+        "glassbox.runtime.daemon._probe_healthz",
+        lambda dashboard_url: "unreachable",
+    )
+
+    exit_code = main(["daemon", "status", "--cwd", str(tmp_path)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Status: running" in captured.out
+    assert "Health: unreachable" in captured.out
+    assert "Inspect health: http://127.0.0.1:9999/healthz" in captured.out
+    assert "Recover: glassbox daemon stop" in captured.out
+
+
+def test_daemon_stop_timeout_reports_pid_and_keeps_metadata(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _write_owner_metadata(tmp_path, pid=12345)
+    monkeypatch.setattr(
+        "glassbox.runtime.daemon._process_is_alive",
+        lambda pid: True,
+    )
+    monkeypatch.setattr("glassbox.runtime.daemon.os.kill", lambda pid, signum: None)
+
+    with pytest.raises(ValueError, match="daemon pid 12345 did not shut down"):
+        stop_runtime_owner(tmp_path, shutdown_timeout_seconds=0.01)
+
+    assert _runtime_owner_path(tmp_path).exists()
 
 
 def test_cli_attach_routes_live_session_through_daemon_and_can_reattach(
@@ -653,3 +764,52 @@ def test_cli_attach_reports_stale_runtime_owner_then_falls_back_locally(
     assert exit_code == 0
     assert "Workspace daemon owner metadata is stale" in captured.out
     assert f"Attached to session {session_id}" in captured.out
+
+
+def test_cli_attach_uses_local_runtime_after_owner_metadata_cleanup(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    _write_owner_metadata(tmp_path, pid=999999, db_path=db_path)
+    interactive_inputs = iter(["Continue after cleanup.", "/exit"])
+
+    exit_code = main(
+        [
+            "daemon",
+            "stop",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    stop_capture = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Removed stale workspace daemon owner metadata." in stop_capture.out
+    assert not _runtime_owner_path(tmp_path).exists()
+
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_session._read_interactive_input",
+        lambda prompt: next(interactive_inputs),
+    )
+
+    exit_code = main(
+        [
+            "session",
+            "attach",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    attach_capture = capsys.readouterr()
+
+    assert exit_code == 0
+    assert f"Attached to session {session_id}" in attach_capture.out
+    assert "Attached to live session" not in attach_capture.out
+    assert "Queued user message: Continue after cleanup." in attach_capture.out

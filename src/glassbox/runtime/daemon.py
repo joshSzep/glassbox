@@ -290,6 +290,11 @@ def _startup_failure_message(cwd: Path, *, db_path: Path | None) -> str:
     _clear_stale_runtime_owner_paths(paths)
     log_tail = _tail_text(paths.stderr_log_path)
     if log_tail:
+        if _looks_like_port_conflict(log_tail):
+            return (
+                "daemon failed because the requested host/port appears unavailable; "
+                f"see {paths.stderr_log_path}\n{log_tail}"
+            )
         return (
             "daemon failed to reach a healthy startup state; "
             f"see {paths.stderr_log_path}\n{log_tail}"
@@ -405,3 +410,12 @@ def _tail_text(path: Path, *, max_chars: int = 1200) -> str:
     except OSError:
         return ""
     return content[-max_chars:].strip()
+
+
+def _looks_like_port_conflict(log_tail: str) -> bool:
+    normalized = log_tail.lower()
+    return (
+        "address already in use" in normalized
+        or "error while attempting to bind" in normalized
+        or "errno 48" in normalized
+    )

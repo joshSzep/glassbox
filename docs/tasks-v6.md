@@ -605,7 +605,7 @@ Completion notes:
 
 ### GBX-663: Harden Daemon Lifecycle And Owner Metadata Recovery
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-660`
 - Goal: make daemon start, stop, status, stale metadata cleanup, and attach recovery boringly reliable across local development and release smoke
 - Deliverables:
@@ -622,6 +622,14 @@ Completion notes:
   - installed-wheel daemon smoke once packaging support is in the v6 gate
 - Done when:
   - daemon lifecycle failures have deterministic tests and clear recovery guidance
+
+Completion notes:
+
+- Added deterministic daemon lifecycle tests for process startup failure, port conflict, unreachable health/status recovery guidance, stop timeout, and local attach after stale owner cleanup.
+- Improved daemon status output for `running` owners with unreachable health by printing the health URL and stop/start recovery command.
+- Made startup failure copy call out requested host/port conflicts when the owner stderr log indicates bind failure.
+- Added [daemon-release-smoke-v6.md](./daemon-release-smoke-v6.md) for start/status/attach/stop release validation and stale owner recovery.
+- Validation: `uv run pytest tests/integration/test_daemon_runtime.py`; `uv run ruff check docs scripts src tests`; `uv run ty check`.
 
 ### GBX-664: Add Transport Backpressure And Drop Tests
 
