@@ -164,6 +164,10 @@ def test_tui_app_reconnects_stream_and_resumes_from_last_sequence() -> None:
     asyncio.run(_run_stream_reconnect_success_test())
 
 
+def test_tui_app_reconnects_after_latest_delivered_sequence() -> None:
+    asyncio.run(_run_stream_reconnect_after_live_event_test())
+
+
 def test_tui_app_reports_unavailable_stream_after_retry_exhaustion() -> None:
     asyncio.run(_run_stream_retry_exhaustion_test())
 
@@ -499,6 +503,42 @@ async def _run_stream_reconnect_success_test() -> None:
         assert client.stream_after_sequences == [7, 7]
         assert "live: reconnected" in str(header.content)
         assert "hello" in conversation.content_text
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_stream_reconnect_after_live_event_test() -> None:
+    snapshot = _snapshot()
+    message_id = new_message_id()
+    client = _FakeInteractiveClient(
+        events=[
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=8,
+                payload=AssistantMessageStarted(message_id=message_id),
+            ),
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=9,
+                payload=AssistantMessageDelta(message_id=message_id, delta="resumed"),
+            ),
+        ],
+        stream_errors_after_events=[RuntimeError("temporary stream break")],
+    )
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        conversation = pilot.app.query_one(ConversationPane)
+
+        assert client.stream_after_sequences == [7, 9]
+        assert "resumed" in conversation.content_text
 
         pilot.app.exit()
 
@@ -1478,11 +1518,13 @@ class _FakeInteractiveClient:
         approval_error: Exception | None = None,
         cancel_error: Exception | None = None,
         stream_errors: list[Exception] | None = None,
+        stream_errors_after_events: list[Exception] | None = None,
     ) -> None:
         self.closed = False
         self.fetch_count = 0
         self.events = events or []
         self.stream_errors = stream_errors or []
+        self.stream_errors_after_events = stream_errors_after_events or []
         self.stream_after_sequences: list[int] = []
         self.submit_error = submit_error
         self.answer_error = answer_error
@@ -1547,6 +1589,8 @@ class _FakeInteractiveClient:
         for event in self.events:
             if event.sequence > after_sequence:
                 yield event
+        if self.stream_errors_after_events:
+            raise self.stream_errors_after_events.pop(0)
 
     async def aclose(self) -> None:
         self.closed = True

@@ -13,7 +13,10 @@ import sqlite3
 from pathlib import Path
 
 import httpx
+import pytest
 
+from glassbox.core import EventEnvelope
+from glassbox.core import SessionCompleted
 from glassbox.core import SessionConfig
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.runtime.supervisor import SessionSupervisor
@@ -286,7 +289,11 @@ def test_sse_delivers_live_events(tmp_path: Path) -> None:
             # after=last_seq skips history; disconnect_after=1 lets one live
             # iteration run before the generator exits.
             mock_request = _MockRequest(disconnect_after=1)
-            live_event = all_events[-1]
+            live_event = EventEnvelope(
+                session_id=state.session_id,
+                sequence=last_seq + 1,
+                payload=SessionCompleted(reason="live"),
+            )
 
             async def publish_after_delay() -> None:
                 await asyncio.sleep(0.05)
@@ -305,6 +312,145 @@ def test_sse_delivers_live_events(tmp_path: Path) -> None:
             assert len(parsed) >= 1
             data = json.loads(parsed[0]["data"])
             assert data["session_id"] == str(state.session_id)
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_sse_suppresses_live_events_already_replayed_from_history(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            runtime_context = _build_runtime_context(connection, tmp_path)
+            bus = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(runtime_context.repositories.sessions, bus)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+            state = await supervisor.start_session(config)
+            live_duplicate = runtime_context.repositories.sessions.read_session_events(
+                state.session_id
+            )[-1]
+
+            mock_request = _MockRequest(disconnect_after=1)
+            stream = _event_stream(mock_request, runtime_context, state.session_id, 0)
+            first_frame = await anext(stream)
+
+            bus.publish(live_duplicate)
+            remaining_frames = [frame async for frame in stream]
+
+            parsed = _parse_sse_frames(first_frame + "".join(remaining_frames))
+            assert [frame["id"] for frame in parsed] == [str(live_duplicate.sequence)]
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_sse_emits_keepalive_when_live_stream_is_idle(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            runtime_context = _build_runtime_context(connection, tmp_path)
+            bus = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(runtime_context.repositories.sessions, bus)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+            state = await supervisor.start_session(config)
+            last_seq = runtime_context.repositories.sessions.read_session_events(
+                state.session_id
+            )[-1].sequence
+
+            monkeypatch.setattr("glassbox.web.routes.events._KEEPALIVE_INTERVAL", 0.001)
+            mock_request = _MockRequest(disconnect_after=1)
+            frames = await _collect_all_frames(
+                _event_stream(mock_request, runtime_context, state.session_id, last_seq)
+            )
+
+            assert frames == [": keepalive\n\n"]
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_sse_replays_completed_sessions_without_live_owner(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            runtime_context = _build_runtime_context(connection, tmp_path)
+            bus = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(runtime_context.repositories.sessions, bus)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+            state = await supervisor.start_session(config)
+            runtime_context.repositories.sessions.append_events(
+                [
+                    EventEnvelope(
+                        session_id=state.session_id,
+                        sequence=0,
+                        payload=SessionCompleted(reason="done"),
+                    )
+                ]
+            )
+
+            mock_request = _MockRequest(disconnect_after=0)
+            frames = await _collect_all_frames(
+                _event_stream(mock_request, runtime_context, state.session_id, 0)
+            )
+
+            parsed = _parse_sse_frames("".join(frames))
+            assert [frame["event"] for frame in parsed] == [
+                "SessionStarted",
+                "SessionCompleted",
+            ]
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_sse_disconnect_cleans_up_transport_subscription(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            runtime_context = _build_runtime_context(connection, tmp_path)
+            bus = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(runtime_context.repositories.sessions, bus)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+            state = await supervisor.start_session(config)
+            last_seq = runtime_context.repositories.sessions.read_session_events(
+                state.session_id
+            )[-1].sequence
+
+            mock_request = _MockRequest(disconnect_after=0)
+            frames = await _collect_all_frames(
+                _event_stream(mock_request, runtime_context, state.session_id, last_seq)
+            )
+
+            assert frames == []
+            assert (
+                runtime_context.infrastructure.event_transport.stats().subscriber_count
+                == 0
+            )
         finally:
             connection.close()
 

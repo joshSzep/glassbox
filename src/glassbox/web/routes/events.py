@@ -63,11 +63,13 @@ async def _event_stream(
     if repo.get_session(session_id) is None:
         raise HTTPException(status_code=404, detail=f"session {session_id} not found")
 
+    last_delivered_sequence = after_sequence
     async with transport.subscribe() as subscription:
         # Replay all persisted events after the requested sequence.
         historical = repo.read_session_events_after(session_id, after_sequence)
         for event in historical:
             if event.session_id == session_id:
+                last_delivered_sequence = max(last_delivered_sequence, event.sequence)
                 yield _serialize_event(event)
 
         # Stream live events until the client disconnects.
@@ -83,7 +85,10 @@ async def _event_stream(
 
             if event.session_id != session_id:
                 continue
+            if event.sequence <= last_delivered_sequence:
+                continue
 
+            last_delivered_sequence = event.sequence
             yield _serialize_event(event)
 
 

@@ -577,7 +577,7 @@ Completion notes:
 
 ### GBX-662: Harden SSE Reconnect And Historical Replay Boundaries
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-661`
 - Goal: make reconnect behavior predictable when clients reload, streams drop, or sequence cursors lag behind persisted state
 - Deliverables:
@@ -594,6 +594,14 @@ Completion notes:
   - `pnpm --dir frontend test` for SSE client/store behavior if frontend changes
 - Done when:
   - clients can reconnect from the last observed sequence without missing or duplicating user-visible state
+
+Completion notes:
+
+- Added route-side duplicate suppression across the historical replay/live subscription boundary using the highest delivered event sequence.
+- Added deterministic SSE tests for duplicate suppression, keepalive comments, completed-session replay, disconnect cleanup, and existing cursor behavior.
+- Added TUI coverage proving reconnect retries resume from the latest delivered sequence after live events are applied.
+- Added [sse-cursor-semantics-v6.md](./sse-cursor-semantics-v6.md) documenting the shared server, dashboard, TUI, and terminal attach cursor contract.
+- Validation: `uv run pytest tests/integration/test_web_sse_events.py tests/unit/test_cli_tui_app.py`; `pnpm --dir frontend test`; `uv run ruff check docs scripts src tests`; `uv run ty check`.
 
 ### GBX-663: Harden Daemon Lifecycle And Owner Metadata Recovery
 
