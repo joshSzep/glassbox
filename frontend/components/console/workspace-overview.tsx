@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { ArrowLeft, CheckCircle2, RefreshCcw, ShieldAlert } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { DataList, DataListItem, DataListLabel, DataListMeta } from "@/components/ui/data-list";
 import { QueueNavigation } from "@/components/console/workspace-overview/queue-navigation";
 import { queueDescriptor } from "@/components/console/workspace-overview/queue-descriptors";
 import { SessionAttentionRows } from "@/components/console/workspace-overview/session-attention-rows";
@@ -10,7 +11,7 @@ import { WorkspaceStatusRail } from "@/components/console/workspace-overview/wor
 import { WorkspaceSummary } from "@/components/console/workspace-overview/workspace-summary";
 import { buildAppRoute, type AppQueue } from "@/routing/app-route";
 import type { SessionStreamState } from "@/api/sse";
-import type { DashboardState } from "@/state/session-state";
+import type { DashboardState, SessionSummary } from "@/state/session-state";
 import type { ConsoleFilters, LoadState } from "@/stores/dashboard-stores";
 
 export type WorkspaceOverviewProps = {
@@ -65,6 +66,7 @@ export function WorkspaceOverview({
               onSelectQueue={onSelectQueue}
               selectedQueue={selectedQueue}
             />
+            <WorkspaceMetricsSnapshot data={data} selectedQueue={selectedQueue} />
           </aside>
 
           <section className="flex min-w-0 flex-col gap-4">
@@ -128,6 +130,113 @@ export function WorkspaceOverview({
       </div>
     </main>
   );
+}
+
+function WorkspaceMetricsSnapshot({
+  data,
+  selectedQueue,
+}: {
+  data: DashboardState;
+  selectedQueue: ConsoleFilters["queue"];
+}) {
+  const visibleSessions = data.sessionIndex;
+  const oldestVisible = oldestUpdatedSession(visibleSessions);
+  const newestVisible = newestUpdatedSession(visibleSessions);
+  const waitingCount = visibleSessions.filter(
+    (session) => session.pending_approval_id !== null || session.pending_question_id !== null,
+  ).length;
+  const failedCount = visibleSessions.filter(
+    (session) => session.session_failure_message !== null || session.status === "failed",
+  ).length;
+  const degradedCount = visibleSessions.filter(
+    (session) => session.projection_health?.degraded || session.projection_health?.state !== "ok",
+  ).length;
+
+  return (
+    <section
+      aria-label="Workspace metric patterns"
+      className="rounded-md border border-border/80 bg-card p-3 text-card-foreground shadow-sm"
+    >
+      <div className="mb-2 flex items-center justify-between gap-3 px-1">
+        <h2 className="text-sm font-semibold uppercase tracking-normal text-muted-foreground">
+          Metric Patterns
+        </h2>
+        <Badge variant={visibleSessions.length > 0 ? "info" : "muted"}>
+          {visibleSessions.length} visible
+        </Badge>
+      </div>
+      <DataList density="compact">
+        <DataListItem>
+          <DataListLabel>Queue timing</DataListLabel>
+          <DataListMeta>
+            {oldestVisible === null || newestVisible === null
+              ? "No visible queue rows to compare."
+              : `${selectedQueue} spans ${formatQueueSpan(oldestVisible.updated_at, newestVisible.updated_at)} of visible updates.`}
+          </DataListMeta>
+        </DataListItem>
+        <DataListItem>
+          <DataListLabel>Action waits</DataListLabel>
+          <DataListMeta>
+            {waitingCount} visible session{waitingCount === 1 ? "" : "s"} waiting on operator input.
+          </DataListMeta>
+        </DataListItem>
+        <DataListItem>
+          <DataListLabel>Failure pattern</DataListLabel>
+          <DataListMeta>
+            {failedCount} visible failed session{failedCount === 1 ? "" : "s"}; inspect session
+            Metrics for local runtime cost.
+          </DataListMeta>
+        </DataListItem>
+        <DataListItem>
+          <DataListLabel>Projection pressure</DataListLabel>
+          <DataListMeta>
+            {degradedCount} visible degraded projection{degradedCount === 1 ? "" : "s"}; canonical
+            events remain authoritative.
+          </DataListMeta>
+        </DataListItem>
+      </DataList>
+    </section>
+  );
+}
+
+function oldestUpdatedSession(sessions: SessionSummary[]): SessionSummary | null {
+  return byUpdatedAt(sessions, "oldest");
+}
+
+function newestUpdatedSession(sessions: SessionSummary[]): SessionSummary | null {
+  return byUpdatedAt(sessions, "newest");
+}
+
+function byUpdatedAt(sessions: SessionSummary[], direction: "newest" | "oldest") {
+  let selected: SessionSummary | null = null;
+  let selectedTime = direction === "newest" ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY;
+  for (const session of sessions) {
+    const time = Date.parse(session.updated_at);
+    if (!Number.isFinite(time)) {
+      continue;
+    }
+    if (direction === "newest" ? time > selectedTime : time < selectedTime) {
+      selected = session;
+      selectedTime = time;
+    }
+  }
+  return selected;
+}
+
+function formatQueueSpan(oldest: string, newest: string): string {
+  const oldestTime = Date.parse(oldest);
+  const newestTime = Date.parse(newest);
+  if (!Number.isFinite(oldestTime) || !Number.isFinite(newestTime)) {
+    return "unknown timing";
+  }
+  const spanMs = Math.max(newestTime - oldestTime, 0);
+  if (spanMs < 60_000) {
+    return `${Math.round(spanMs / 1000)}s`;
+  }
+  if (spanMs < 3_600_000) {
+    return `${Math.round(spanMs / 60_000)}m`;
+  }
+  return `${Math.round(spanMs / 3_600_000)}h`;
 }
 
 function MobileReturnToQueues({

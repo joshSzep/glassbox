@@ -51,6 +51,11 @@ describe("workspace overview console", () => {
     expect(markup).toContain("runtime online");
     expect(markup).toContain("projection fresh");
     expect(markup).toContain("Queue approvals");
+    expect(markup).toContain("Metric Patterns");
+    expect(markup).toContain("Workspace metric patterns");
+    expect(markup).toContain("Queue timing");
+    expect(markup).toContain("Action waits");
+    expect(markup).toContain("Projection pressure");
     expect(markup).toContain("/tmp/glassbox");
     expect(markup).toContain("approval-session");
     expect(markup).toContain("Approve command execution");

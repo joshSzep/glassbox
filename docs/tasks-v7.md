@@ -983,7 +983,7 @@ Completion notes:
 
 ### GBX-772: Add Turn Metrics And Latency Analytics
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-770`, `GBX-740`
 - Goal: make turn duration, model call latency, token counts, tool execution time, cancellation timing, and failure patterns easier to inspect across one session and the workspace queue
 - Deliverables:
@@ -1001,6 +1001,13 @@ Completion notes:
   - dashboard e2e if charts or workflow navigation change materially
 - Done when:
   - operators can identify slow or costly turns from local evidence
+
+Completion notes:
+
+- Added session-level latency analysis to the dashboard Metrics pane using retained turn metrics, with neutral observed-value copy instead of undocumented failure thresholds.
+- Distinguished provider latency, tool execution latency, token cost, failed-tool patterns, approval/answer waits, and replay/eval drift context.
+- Added a workspace metric-pattern snapshot to the queue overview using aggregate rows for visible queue timing, action waits, failure patterns, and projection pressure.
+- Kept the implementation frontend-only because existing projections and paginated metric APIs already expose the needed local evidence for this refinement.
 
 ### GBX-773: Integrate Policy, Eval, And Provider Evidence Cues
 

@@ -164,6 +164,12 @@ describe("session inspector", () => {
     const metricsMarkup = renderInspectorTab(data, "metrics");
     expect(metricsMarkup).toContain("Metrics");
     expect(metricsMarkup).toContain("Metrics summary");
+    expect(metricsMarkup).toContain("Latency analysis");
+    expect(metricsMarkup).toContain("Provider latency");
+    expect(metricsMarkup).toContain("Tool execution latency");
+    expect(metricsMarkup).toContain("Approval or answer wait");
+    expect(metricsMarkup).toContain("Replay or eval drift");
+    expect(metricsMarkup).toContain("Cost and failure patterns");
     expect(metricsMarkup).toContain("Raw turn metrics");
     expect(metricsMarkup).toContain("Tokens");
     expect(metricsMarkup).toContain("6.5s");
