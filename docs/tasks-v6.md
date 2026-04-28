@@ -974,7 +974,7 @@ Completion notes:
 
 ### GBX-690: Define Manual QA Evidence Archive For v6
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-643`
 - Goal: define where manual terminal, dashboard, provider-canary, daemon, packaging, and accessibility evidence lives for a release candidate
 - Deliverables:
@@ -991,6 +991,13 @@ Completion notes:
   - optional schema validation for manual evidence manifests if added
 - Done when:
   - manual release checks have a defined artifact shape and retention policy
+
+Completion notes:
+
+- Added [manual-qa-evidence-v6.md](./manual-qa-evidence-v6.md) with the `.glassbox/releases/<candidate>/manual-validation.md` convention, retained subdirectories, checklist template, artifact rules, and redaction policy.
+- Updated [v6-release-evidence.md](./v6-release-evidence.md) so the manual manifest is no longer provisional.
+- Linked the manual QA evidence guide from the docs hub.
+- Validation: docs review against the v4 screenshot archive and v5 terminal manual review policy.
 
 ### GBX-691: Run Terminal Accessibility And Visual Review Pass
 

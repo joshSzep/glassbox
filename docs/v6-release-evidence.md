@@ -67,20 +67,18 @@ Use these conventions:
 - eval summaries remain under `.glassbox/evals/`
 - frontend Playwright and screenshot artifacts remain under `frontend/test-results/`
 - daemon owner logs remain under `.glassbox/runtime-owner.*.log`
-- manual validation notes should live under the same release evidence directory once `GBX-690` defines the final manual manifest
+- manual validation notes live under the same release evidence directory using the manifest in [manual-qa-evidence-v6.md](./manual-qa-evidence-v6.md)
 
 ## Manual Evidence Manifest
 
-Until `GBX-690` defines the final manual QA manifest, use this provisional shape inside the same evidence directory:
+Use the final manual QA manifest in [manual-qa-evidence-v6.md](./manual-qa-evidence-v6.md) inside the same evidence directory:
 
 ```text
 manual-validation.md
 ```
 
-Recommended sections:
+Required review areas:
 
-- release candidate identifier
-- automated summary path
 - terminal review notes and terminal sizes
 - dashboard review notes and viewport sizes
 - screen-reader and accessibility claims/non-claims
@@ -88,8 +86,7 @@ Recommended sections:
 - daemon lifecycle smoke notes
 - recovery and maintenance smoke notes
 - provider canary run or skip reason
-- blocking issues
-- accepted residual risks
+- blocking issues and accepted residual risks
 
 Manual artifacts such as screenshots, terminal transcripts, and redacted logs should be linked from that manifest using local relative paths.
 
@@ -112,3 +109,4 @@ A failing automated summary should show the failed stage and next action. Fix th
 - [v6-release-hardening.md](./v6-release-hardening.md)
 - [v6-release-inventory.md](./v6-release-inventory.md)
 - [release-packaging.md](./release-packaging.md)
+- [manual-qa-evidence-v6.md](./manual-qa-evidence-v6.md)
