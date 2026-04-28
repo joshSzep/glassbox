@@ -928,7 +928,7 @@ Completion notes:
 
 ### GBX-770: Define Dashboard Evidence v7 UX Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-711`, `GBX-741`
 - Goal: define how the dashboard should present branch comparison, metrics, policy evidence, replay/eval evidence, and provider capability evidence for real operator decisions
 - Deliverables:
@@ -945,6 +945,13 @@ Completion notes:
   - no production code changes required unless small mismatches are found
 - Done when:
   - dashboard evidence improvements have a specific UX target and validation matrix
+
+Completion notes:
+
+- Added [dashboard-evidence-v7.md](./dashboard-evidence-v7.md) with the v7 UX target for branch comparison, lineage, metrics, policy trace evidence, replay/eval evidence, provider capability evidence, and release/eval cues.
+- Defined priority rules for what belongs in overview versus transcript, timeline, actions, lineage, compare, runtime, evidence, events, and metrics tabs.
+- Captured mobile drill-in and keyboard workflow expectations for heavy evidence surfaces without changing production code.
+- Added a scenario matrix for v7 dashboard evidence review and called out follow-on gaps for GBX-771, GBX-772, and GBX-773.
 
 ### GBX-771: Expand Branch Compare And Lineage Analysis
 

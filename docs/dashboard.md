@@ -73,6 +73,8 @@ The browser first reads `GET /sessions/{session_id}` and then subscribes to `GET
 The v2 operator-console model builds on this shell rather than replacing it. See
 [operator-console.md](./operator-console.md) for the multi-session overview,
 queue, health, and priority contract that future dashboard tasks should follow.
+For the v7 evidence, comparison, metrics, policy, provider, and release-cue
+target, see [dashboard-evidence-v7.md](./dashboard-evidence-v7.md).
 
 ## Live-State Meanings
 
