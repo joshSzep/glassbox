@@ -241,6 +241,8 @@ The repository-owned profile manifest carries two explicit tracks:
 - `live-provider-canary` profiles are advisory and non-blocking
 
 `glassbox eval report` is intentionally deterministic-only.
+See [provider-canary-policy-v6.md](./provider-canary-policy-v6.md) for when and
+how live-provider canaries may be retained as advisory release evidence.
 
 ## Related Files
 

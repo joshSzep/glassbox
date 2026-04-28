@@ -691,7 +691,7 @@ Completion notes:
 
 ### GBX-670: Define Live-Provider Canary Policy
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-640`
 - Goal: define how real-provider validation participates in release confidence without undermining deterministic local release gates
 - Deliverables:
@@ -707,6 +707,12 @@ Completion notes:
   - docs review against provider configuration and eval profile manifests
 - Done when:
   - the repo has a clear provider-canary policy that can be automated without becoming a mandatory dependency for all contributors
+
+Completion notes:
+
+- Added [provider-canary-policy-v6.md](./provider-canary-policy-v6.md) defining advisory live-provider canary scope, required credentials, scenario matrix, failure interpretation, artifact retention, and redaction rules.
+- Linked the policy from [providers.md](./providers.md) and [replay-evals.md](./replay-evals.md), preserving deterministic replay/eval as the default blocking release gate.
+- Validation: reviewed against [providers.md](./providers.md), [replay-evals.md](./replay-evals.md), and `evals/profiles.json`; `uv run glassbox eval profile list --track live-provider-canary --json --cwd .`.
 
 ### GBX-671: Add Provider Configuration Diagnostics
 

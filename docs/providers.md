@@ -5,6 +5,10 @@ For the docs hub and workflow guides, start at [README.md](./README.md). For loc
 Glassbox can execute turns against real OpenAI and Anthropic providers when
 provider credentials are available at runtime.
 
+Optional live-provider release confidence follows
+[provider-canary-policy-v6.md](./provider-canary-policy-v6.md). Canary evidence
+is advisory and does not replace deterministic replay/eval gates.
+
 ## Supported Providers
 
 The current real-provider scope is:
