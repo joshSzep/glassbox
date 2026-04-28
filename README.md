@@ -90,6 +90,17 @@ Start with [docs/v6-release-candidate.md](docs/v6-release-candidate.md) when you
 need the supported v6 operating model, validation path, known residual risks,
 and release-candidate evidence expectations in one place.
 
+## V7 Release Candidate
+
+The v7 release-candidate track expands the v6 operating model with stronger
+eval coverage, advisory provider evidence, larger-session scale checks,
+daemon/live-transport reliability, dashboard evidence cues, accessibility
+pairing reviews, and first-run/package onboarding.
+
+Start with [docs/v7-release-candidate.md](docs/v7-release-candidate.md) when you
+need the supported v7 operating model, release gate, retained manual evidence,
+known residual risks, and current go/no-go decision in one place.
+
 ## V2 Release Candidate
 
 The v2 release candidate packages the current local-first operating model as one
@@ -109,6 +120,7 @@ The root README is the shortest path into the project. The detailed operator and
 Start here based on what you need:
 
 - [docs/getting-started.md](docs/getting-started.md)
+- [docs/v7-release-candidate.md](docs/v7-release-candidate.md)
 - [docs/v6-release-candidate.md](docs/v6-release-candidate.md)
 - [docs/v2-release-candidate.md](docs/v2-release-candidate.md)
 - [docs/interactive-workflows.md](docs/interactive-workflows.md)

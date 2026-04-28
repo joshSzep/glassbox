@@ -18,6 +18,7 @@ Use this page to jump to the right level of detail.
 - [tasks-v6.md](./tasks-v6.md): plan release hardening, real cancellation, transport reliability, provider canaries, packaging discipline, manual QA evidence, and the v6 release-candidate gate
 - [tasks-v7.md](./tasks-v7.md): plan the post-v6 adoption, scale, eval portfolio, provider capability, policy governance, dashboard evidence, accessibility, onboarding, and release-signoff evolution
 - [v7-adoption-scale-contract.md](./v7-adoption-scale-contract.md): review the v7 adoption-and-scale scope, non-goals, evidence classes, release-readiness checklist, residual-risk shape, and pass/fail policy
+- [v7-release-candidate.md](./v7-release-candidate.md): review the v7 operating model, release gate, evidence summary, residual risks, and current hold decision before publishing a candidate
 - [v7-live-transport-contract.md](./v7-live-transport-contract.md): review the v7 daemon, SSE, reconnect, backpressure, and multi-observer reliability contract
 - [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md): inspect the v7 baseline inventory for eval coverage, provider canaries, scale risks, daemon transport, policy governance, accessibility, onboarding, and weak coverage
 - [v7-release-gate.md](./v7-release-gate.md): run the canonical v7 automated release-candidate gate with v6 coverage, v7 eval/dashboard/onboarding evidence, advisory provider canaries, installed smoke, and retained `summary.json`
@@ -102,6 +103,7 @@ Use this page to jump to the right level of detail.
 - [tasks-v6.md](./tasks-v6.md): concrete v6 task graph for release hardening, cancellation, live transport reliability, provider canaries, packaging reproducibility, accessibility evidence, and release-candidate signoff
 - [tasks-v7.md](./tasks-v7.md): concrete v7 task graph for adoption, larger-session scale, deterministic eval expansion, provider capability matrices, daemon reliability, policy governance, dashboard evidence, accessibility, onboarding, and release signoff
 - [v7-adoption-scale-contract.md](./v7-adoption-scale-contract.md): v7 scope, non-goals, supported workflow set, v6 follow-up mapping, evidence classes, release-readiness checklist, residual-risk register shape, and pass/fail policy
+- [v7-release-candidate.md](./v7-release-candidate.md): v7 release-candidate operating model, validation path, evidence status, residual risks, non-goals, and hold/go decision
 - [v7-live-transport-contract.md](./v7-live-transport-contract.md): v7 live transport, daemon ownership, reconnect, backpressure, and multi-observer contract
 - [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md): v7 inventory of current eval coverage, provider evidence, larger-session read paths, daemon and transport evidence, policy governance, accessibility, onboarding, recommended gate membership, and weak coverage
 - [v7-release-gate.md](./v7-release-gate.md): v7 automated gate command, stage map, advisory provider-canary policy, installed smoke inheritance, evidence summary, and pass/fail policy

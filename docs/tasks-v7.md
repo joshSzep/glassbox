@@ -1184,7 +1184,7 @@ Completion notes:
 
 ### GBX-785: Publish The v7 Release Candidate Guide And Decision
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-783`, `GBX-784`
 - Goal: package the v7 operating model, validation path, known gaps, non-goals, and final go/no-go decision into one operator-facing guide
 - Deliverables:
@@ -1203,6 +1203,12 @@ Completion notes:
   - release-candidate documentation guardrails if present
 - Done when:
   - the repo records a clear go/no-go v7 release-candidate decision with supporting evidence
+
+Completion notes:
+
+- Added [v7-release-candidate.md](./v7-release-candidate.md), covering the v7 supported operating model, primary operator flows, release-readiness checklist, evidence summary, residual risks, non-goals, and final decision table.
+- The recorded decision is `HOLD` for v7 release-candidate publication because the retained automated gate evidence is a dry run; the guide names the full non-dry-run v7 gate as the objective publication blocker.
+- Linked the guide from the root README and docs hub, and included the v7 release guide plus GBX-784 manual-validation summary in sdist package-content validation.
 
 ---
 
