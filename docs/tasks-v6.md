@@ -524,7 +524,7 @@ Completion notes:
 
 ### GBX-660: Audit Live Transport And Runtime Ownership Failure Modes
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-641`
 - Goal: establish a concrete failure-mode baseline for SSE streams, in-process transport, daemon ownership, and reconnect behavior before hardening changes begin
 - Deliverables:
@@ -541,6 +541,12 @@ Completion notes:
   - manual or deterministic transcript of at least one reconnect-style workflow
 - Done when:
   - implementers have a code-aligned baseline for live transport and runtime ownership reliability
+
+Completion notes:
+
+- Added [v6-live-transport-runtime-ownership-audit.md](./v6-live-transport-runtime-ownership-audit.md) covering current SSE replay/live semantics, in-process transport drop behavior, daemon ownership routing, dashboard and terminal reconnect behavior, observability state, preserved semantics, and known risks.
+- Recorded a deterministic reconnect transcript based on existing SSE tests and grouped follow-up issues by user-visible severity and release risk.
+- Validation: `uv run pytest tests/unit/test_runtime_transport.py tests/integration/test_web_sse_events.py tests/integration/test_daemon_runtime.py tests/integration/test_observability_status.py`.
 
 ### GBX-661: Strengthen Runtime Transport Observability
 
