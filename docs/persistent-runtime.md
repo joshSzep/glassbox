@@ -68,6 +68,19 @@ interactive mode.
 If no daemon owns the workspace, `attach` falls back to reopening an actionable
 persisted session locally.
 
+## Observe From Multiple Clients
+
+The daemon supports multiple local observers for one session. You can keep the
+dashboard open in more than one browser tab and attach from a terminal while the
+same workspace runtime remains the only mutation owner. Each observer resumes the
+event stream from its own last seen sequence, and duplicate or replayed frames
+are ignored by sequence.
+
+Observer-only terminal actions such as `/status`, `/help`, and `/exit` do not
+change the transcript. Mutating actions from attached terminals still route
+through the daemon APIs so the runtime owner serializes prompts, approvals,
+answers, and cancellation requests.
+
 ## Stop The Runtime
 
 Stop the active owner when you want local commands such as `run`, `chat`,

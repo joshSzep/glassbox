@@ -505,6 +505,73 @@ def test_cli_attach_routes_live_session_through_daemon_and_can_reattach(
         _stop_daemon_if_running(tmp_path)
 
 
+def test_cli_attach_can_observe_daemon_session_without_mutating_transcript(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        initial_transcript = repository.list_transcript_messages(session_id)
+    finally:
+        connection.close()
+
+    port = _reserve_port()
+    interactive_inputs = iter(["/status", "/exit"])
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_session._read_interactive_input",
+        lambda prompt: next(interactive_inputs),
+    )
+
+    try:
+        exit_code = main(
+            [
+                "daemon",
+                "start",
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+                "--port",
+                str(port),
+            ]
+        )
+        _ = capsys.readouterr()
+        assert exit_code == 0
+
+        exit_code = main(
+            [
+                "session",
+                "attach",
+                str(session_id),
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+            ]
+        )
+        captured = capsys.readouterr()
+
+        assert exit_code == 0
+        assert f"Attached to live session {session_id}" in captured.out
+        assert "Leaving interactive session" in captured.out
+
+        connection = open_database(db_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            transcript = repository.list_transcript_messages(session_id)
+        finally:
+            connection.close()
+
+        assert [message.message_id for message in transcript] == [
+            message.message_id for message in initial_transcript
+        ]
+    finally:
+        _stop_daemon_if_running(tmp_path)
+
+
 def test_cli_cancel_routes_to_daemon_and_reports_idle_conflict(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

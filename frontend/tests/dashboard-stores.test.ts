@@ -353,6 +353,47 @@ describe("session store", () => {
     expect(store.getState().stream.status).toBe("historical_snapshot");
   });
 
+  it("keeps repeated session observers independent while sharing the same resume cursor", async () => {
+    const streams: FakeStreamHandle[] = [];
+    const createEventStream = (options: SessionEventStreamOptions) => {
+      const stream = new FakeStreamHandle(options);
+      streams.push(stream);
+      return stream;
+    };
+    const firstStore = createSessionStore({
+      apiClient: createApiClient(),
+      createEventStream,
+    });
+    const secondStore = createSessionStore({
+      apiClient: createApiClient(),
+      createEventStream,
+    });
+
+    await firstStore.getState().loadSession("session-1");
+    await secondStore.getState().loadSession("session-1");
+    firstStore.getState().connectStream();
+    secondStore.getState().connectStream();
+
+    const liveEnvelope = makeEnvelope(9, "UserMessageReceived", {
+      message_id: "message-observed",
+      text: "seen by both observers",
+    });
+    streams[0]?.emit(liveEnvelope);
+    streams[1]?.emit(liveEnvelope);
+
+    expect(streams).toHaveLength(2);
+    expect(streams.map((stream) => stream.options.afterSequence)).toEqual([4, 4]);
+    expect(firstStore.getState().data.transcript.at(-1)?.message_id).toBe("message-observed");
+    expect(secondStore.getState().data.transcript.at(-1)?.message_id).toBe("message-observed");
+
+    firstStore.getState().disconnectStream();
+    expect(streams[0]?.closed).toBe(true);
+    expect(streams[1]?.closed).toBe(false);
+
+    secondStore.getState().disconnectStream();
+    expect(streams[1]?.closed).toBe(true);
+  });
+
   it("calls typed action helpers without mutating canonical session data", async () => {
     const calls: string[] = [];
     const store = createSessionStore({

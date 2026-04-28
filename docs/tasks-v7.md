@@ -781,7 +781,7 @@ Completion notes:
 
 ### GBX-753: Add Multi-Observer Dashboard And Terminal Smoke
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-751`, `GBX-752`
 - Goal: validate that multiple read-only observers can inspect the same session while one local owner remains authoritative for mutation
 - Deliverables:
@@ -799,6 +799,14 @@ Completion notes:
   - daemon attach smoke
 - Done when:
   - multiple observers are a tested local workflow rather than an accidental side effect
+
+Completion notes:
+
+- Added backend SSE smoke proving two simultaneous subscribers on the same session both receive the same next live event through the runtime event transport.
+- Added frontend store lifecycle smoke for two repeated session observers sharing the same resume cursor while keeping stream handles and disconnects independent.
+- Added daemon-backed terminal observer smoke where `/status` plus `/exit` attaches to a live daemon session without mutating transcript messages.
+- Documented supported multi-observer behavior and mutation ownership limits in the persistent runtime guide.
+- Validated focused web SSE, daemon runtime, frontend store/SSE, frontend typecheck, ruff, and ty checks.
 
 ---
 

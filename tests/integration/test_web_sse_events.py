@@ -10,8 +10,11 @@ route handler.
 import asyncio
 import json
 import sqlite3
+from collections.abc import AsyncGenerator
+from collections.abc import AsyncIterator
 from dataclasses import replace
 from pathlib import Path
+from typing import cast
 
 import httpx
 import pytest
@@ -90,6 +93,10 @@ async def _collect_all_frames(gen) -> list[str]:
     async for frame in gen:
         frames.append(frame)
     return frames
+
+
+async def _next_stream_frame(stream: AsyncIterator[str]) -> str:
+    return await anext(stream)
 
 
 # ---------------------------------------------------------------------------
@@ -400,6 +407,89 @@ def test_sse_skips_duplicate_live_frame_before_delivering_next_event(
             parsed = _parse_sse_frames("".join(frames))
 
             assert [int(frame["id"]) for frame in parsed] == [next_event.sequence]
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_sse_fans_out_live_events_to_multiple_session_observers(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            runtime_context = _build_runtime_context(connection, tmp_path)
+            bus = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(runtime_context.repositories.sessions, bus)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+            state = await supervisor.start_session(config)
+            repo = runtime_context.repositories.sessions
+            last_event = repo.read_session_events(state.session_id)[-1]
+            live_event = EventEnvelope(
+                session_id=state.session_id,
+                sequence=last_event.sequence + 1,
+                payload=UserMessageReceived(
+                    message_id=new_message_id(),
+                    text="observed by both streams",
+                ),
+            )
+
+            first_stream = cast(
+                AsyncGenerator[str],
+                _event_stream(
+                    _MockRequest(disconnect_after=1),
+                    runtime_context,
+                    state.session_id,
+                    last_event.sequence,
+                ),
+            )
+            second_stream = cast(
+                AsyncGenerator[str],
+                _event_stream(
+                    _MockRequest(disconnect_after=1),
+                    runtime_context,
+                    state.session_id,
+                    last_event.sequence,
+                ),
+            )
+            first_frame_task = asyncio.create_task(_next_stream_frame(first_stream))
+            second_frame_task = asyncio.create_task(_next_stream_frame(second_stream))
+            try:
+                for _ in range(10):
+                    if (
+                        runtime_context.infrastructure.event_transport.stats().subscriber_count
+                        == 2
+                    ):
+                        break
+                    await asyncio.sleep(0)
+
+                assert (
+                    runtime_context.infrastructure.event_transport.stats().subscriber_count
+                    == 2
+                )
+
+                bus.publish(live_event)
+                first_frame, second_frame = await asyncio.gather(
+                    first_frame_task,
+                    second_frame_task,
+                )
+
+                first_parsed = _parse_sse_frames(first_frame)
+                second_parsed = _parse_sse_frames(second_frame)
+                assert [int(frame["id"]) for frame in first_parsed] == [
+                    live_event.sequence
+                ]
+                assert [int(frame["id"]) for frame in second_parsed] == [
+                    live_event.sequence
+                ]
+            finally:
+                await first_stream.aclose()
+                await second_stream.aclose()
         finally:
             connection.close()
 
