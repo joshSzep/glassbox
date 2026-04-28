@@ -1057,7 +1057,7 @@ Completion notes:
 
 ### GBX-693: Validate Recovery And Maintenance Workflows Manually
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-663`, `GBX-683`, `GBX-690`
 - Goal: prove the non-chat operational surfaces that matter during real use: projections, artifacts, backup, observability, replay/eval, and daemon recovery
 - Deliverables:
@@ -1073,6 +1073,12 @@ Completion notes:
   - manual evidence stored under the v6 evidence convention
 - Done when:
   - release evidence covers the maintenance workflows operators need when something goes wrong
+
+Completion notes:
+
+- Added [recovery-maintenance-review-v6.md](./recovery-maintenance-review-v6.md) with workflow coverage, temporary-workspace command smoke, installed-dashboard smoke, next-action review, and follow-up status.
+- Validated observability, projections, artifacts, backup create/inspect/restore, eval run/report, daemon status/lifecycle coverage, and installed dashboard static routes.
+- Validation: focused recovery integration suite passed (`91 passed`); command smoke passed in temporary workspaces; installed dashboard static route smoke passed against `dist/glassbox-0.1.0-py3-none-any.whl`.
 
 ### GBX-694: Refresh Public Operator Docs For v6
 
