@@ -15,6 +15,9 @@ from glassbox.core import SessionConfig
 from glassbox.core.events import AssistantMessageCompleted
 from glassbox.core.events import ModelCallStarted
 from glassbox.runtime.bootstrap import open_runtime_context
+from glassbox.runtime.provider_capability_matrix import ProviderCapabilityMatrix
+from glassbox.runtime.provider_capability_matrix import ProviderCapabilityResult
+from glassbox.runtime.provider_capability_matrix import build_provider_capability_matrix
 from glassbox.runtime.provider_diagnostics import ProviderDiagnosticsReport
 from glassbox.runtime.provider_diagnostics import build_provider_diagnostics_report
 
@@ -48,6 +51,7 @@ class ProviderCanarySummary(BaseModel):
     diagnostics_state: str
     output_path: str
     scenarios: list[ProviderCanaryScenarioResult]
+    capability_matrix: ProviderCapabilityMatrix
     skipped_reason: str | None = None
     next_actions: list[str]
 
@@ -98,6 +102,15 @@ async def run_provider_canary(
         if result.outcome in {"failed", "warning"}
         for action in [f"inspect provider canary scenario {result.scenario_id}"]
     ]
+    capability_results: dict[str, ProviderCapabilityResult] = {
+        result.scenario_id: result.outcome for result in results
+    }
+    capability_matrix = build_provider_capability_matrix(
+        diagnostics,
+        scenario_ids=selected_scenarios,
+        results=capability_results,
+        details={result.scenario_id: result.detail for result in results},
+    )
     summary = ProviderCanarySummary(
         generated_at=datetime.now(UTC).isoformat(),
         advisory=True,
@@ -106,6 +119,7 @@ async def run_provider_canary(
         diagnostics_state=diagnostics.state,
         output_path=str(output_path),
         scenarios=results,
+        capability_matrix=capability_matrix,
         skipped_reason=None,
         next_actions=next_actions,
     )
@@ -200,6 +214,9 @@ def _skipped_summary(
     scenarios: list[str],
     reason: str,
 ) -> ProviderCanarySummary:
+    capability_results: dict[str, ProviderCapabilityResult] = {
+        scenario_id: "skipped" for scenario_id in scenarios
+    }
     return ProviderCanarySummary(
         generated_at=datetime.now(UTC).isoformat(),
         advisory=True,
@@ -215,6 +232,12 @@ def _skipped_summary(
             )
             for scenario_id in scenarios
         ],
+        capability_matrix=build_provider_capability_matrix(
+            diagnostics,
+            scenario_ids=scenarios,
+            results=capability_results,
+            skipped_reason=reason,
+        ),
         skipped_reason=reason,
         next_actions=diagnostics.next_actions,
     )

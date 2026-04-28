@@ -93,6 +93,13 @@ def _print_provider_canary_summary(summary: ProviderCanarySummary) -> None:
     print(f"Summary: {summary.output_path}")
     for scenario in summary.scenarios:
         print(f"{scenario.scenario_id}: {scenario.outcome} ({scenario.detail})")
+    print("Capability matrix:")
+    for entry in summary.capability_matrix.entries:
+        print(
+            f"  - {entry.scenario_id}: {entry.result}; "
+            f"credentials={entry.credential_state}; "
+            f"redaction={entry.redaction_status}"
+        )
     if summary.next_actions:
         print("Next:")
         for action in summary.next_actions:

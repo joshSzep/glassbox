@@ -442,7 +442,7 @@ Completion notes:
 
 ### GBX-730: Define Provider Capability Matrix Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-711`
 - Goal: define a structured local evidence model for provider capabilities without making live-provider checks deterministic release blockers
 - Deliverables:
@@ -458,6 +458,13 @@ Completion notes:
   - docs review against [providers.md](./providers.md) and [v6-release-candidate.md](./v6-release-candidate.md)
 - Done when:
   - provider canary evidence has a reviewable matrix shape that can survive across releases
+
+Completion notes:
+
+- Added provider capability matrix models covering provider, model, scenario, credential state, streaming, tool calls, approval, ask-user, cancellation, dashboard compatibility, daemon attach compatibility, result, skipped reason, and redaction status.
+- Threaded the matrix into provider canary summary JSON and human output without changing live-provider pass/fail policy.
+- Updated [providers.md](./providers.md) and [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md) to explain advisory interpretation, redaction, credential handling, and separation from deterministic release signoff.
+- Validation: `uv run pytest tests/unit/test_runtime_provider_config.py tests/integration/test_provider_mode_runtime.py`.
 
 ### GBX-731: Expand Provider Diagnostics For Capability Preflight
 

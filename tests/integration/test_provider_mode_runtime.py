@@ -257,6 +257,15 @@ def test_provider_canary_cli_writes_skipped_summary_without_credentials(
         "streaming-text",
         "approval",
     ]
+    matrix_scenarios = [
+        entry["scenario_id"] for entry in payload["capability_matrix"]["entries"]
+    ]
+    assert matrix_scenarios == [
+        "streaming-text",
+        "approval",
+    ]
+    assert payload["capability_matrix"]["deterministic_release_blocking"] is False
+    assert payload["capability_matrix"]["entries"][0]["redaction_status"] == "redacted"
     assert {scenario["outcome"] for scenario in payload["scenarios"]} == {"skipped"}
     assert retained == payload
     assert "API_KEY" in payload["next_actions"][0]

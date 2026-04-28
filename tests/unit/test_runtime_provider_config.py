@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 
+from glassbox.runtime.provider_capability_matrix import ProviderCapabilityResult
+from glassbox.runtime.provider_capability_matrix import build_provider_capability_matrix
 from glassbox.runtime.provider_config import load_runtime_provider_config
 from glassbox.runtime.provider_diagnostics import build_provider_diagnostics_report
 
@@ -159,3 +161,38 @@ def test_provider_diagnostics_reports_invalid_workspace_profile(
     assert report.state == "invalid_workspace_profile"
     assert report.runtime_mode == "unavailable"
     assert "invalid workspace profile" in report.problems[0]
+
+
+def test_provider_capability_matrix_serializes_redacted_evidence(
+    tmp_path: Path,
+) -> None:
+    report = build_provider_diagnostics_report(
+        tmp_path,
+        explicit_model_name="openai:gpt-5.4",
+        environ={"OPENAI_API_KEY": "secret-openai"},
+    )
+
+    results: dict[str, ProviderCapabilityResult] = {
+        "streaming-text": "passed",
+        "approval": "skipped",
+    }
+    matrix = build_provider_capability_matrix(
+        report,
+        scenario_ids=["streaming-text", "approval"],
+        results=results,
+        details={"streaming-text": "provider text turn completed"},
+        skipped_reason="approval scenario not automated yet",
+    )
+    payload = matrix.model_dump(mode="json")
+
+    assert payload["advisory"] is True
+    assert payload["deterministic_release_blocking"] is False
+    assert payload["provider"] == "openai"
+    assert payload["entries"][0]["credential_state"] == "configured"
+    assert payload["entries"][0]["streaming_support"] == "supported"
+    assert payload["entries"][0]["redaction_status"] == "redacted"
+    assert payload["entries"][1]["approval_behavior"] == "supported"
+    assert payload["entries"][1]["skipped_reason"] == (
+        "approval scenario not automated yet"
+    )
+    assert "secret-openai" not in str(payload)

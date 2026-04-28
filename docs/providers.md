@@ -140,6 +140,25 @@ Provider canaries are optional release confidence checks. They are useful when
 credentials are available, but they are not part of the deterministic release
 gate and should not replace replay/eval signoff.
 
+Canary evidence is retained as a provider capability matrix. Each matrix row is
+advisory and records the provider, model, scenario, credential state, streaming
+support, tool-call support, approval behavior, ask-user behavior, cancellation
+behavior, dashboard compatibility, daemon attach compatibility, result, skipped
+reason, and redaction status. The matrix must not contain API keys, raw prompts,
+raw model responses, or provider request metadata.
+
+Interpretation is intentionally conservative:
+
+- `passed` means the advisory canary observed the expected redacted event shape.
+- `warning` means the canary ran but did not observe the complete expected shape.
+- `failed` means the canary command hit an execution error.
+- `skipped` means credentials, scenario support, or provider support were missing
+  and the reason should be reviewed rather than treated as a silent pass.
+
+Deterministic replay/eval reports remain the blocking release authority. Provider
+matrix rows help reviewers understand provider-specific behavior and decide what
+manual or advisory follow-up is needed.
+
 Run all default advisory scenarios:
 
 ```bash

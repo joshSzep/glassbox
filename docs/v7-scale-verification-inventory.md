@@ -114,12 +114,14 @@ Current strengths:
 - missing or partial provider config is surfaced before unexpected remote use
 - provider canary skips are allowed when credentials are unavailable, provided a
   reason is retained
+- provider canary summaries now include a redacted advisory capability matrix
+  shape for provider/model/scenario evidence
 
 Current weak areas:
 
 - provider capability evidence is scenario-limited
-- there is no durable matrix comparing provider family, model, scenario,
-  credential state, result, and redaction status
+- the durable matrix shape now exists, but more scenario rows still need
+  automated preflight and execution coverage
 - diagnostics do not yet preflight every canary scenario
 - provider evidence is not yet surfaced as a reusable operator artifact outside
   a single retained release run
