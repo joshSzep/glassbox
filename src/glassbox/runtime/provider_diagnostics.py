@@ -111,6 +111,7 @@ class ProviderDiagnosticsReport(BaseModel):
     capability_preflight: ProviderCapabilityPreflight
     problems: list[str]
     next_actions: list[str]
+    onboarding_steps: list[str]
 
 
 def build_provider_diagnostics_report(
@@ -178,7 +179,8 @@ def build_provider_diagnostics_report(
             f"unsupported model provider or empty model: {selected_model_name}"
         )
         next_actions.append(
-            "choose an unprefixed local model, openai:MODEL, or anthropic:MODEL"
+            "choose an unprefixed local model, openai:MODEL, or anthropic:MODEL; "
+            "then rerun provider diagnostics before starting a session"
         )
         state: ProviderDiagnosticState = "unsupported_model"
         runtime_mode = "unavailable"
@@ -195,7 +197,8 @@ def build_provider_diagnostics_report(
         )
         if selected_diagnostic.missing_credentials:
             next_actions.append(
-                f"set {provider.upper()}_API_KEY or remove partial overrides"
+                f"set {provider.upper()}_API_KEY in the process environment or .env; "
+                "otherwise remove the partial provider override"
             )
             state = "missing_credentials"
             runtime_mode = "unavailable"
@@ -205,7 +208,7 @@ def build_provider_diagnostics_report(
         else:
             next_actions.append(
                 f"set {provider.upper()}_API_KEY to use the real provider; "
-                "otherwise local fallback will run"
+                "otherwise use an unprefixed local model for deterministic fallback"
             )
             state = "local_fallback"
             runtime_mode = "local_fallback"
@@ -235,7 +238,31 @@ def build_provider_diagnostics_report(
         capability_preflight=capability_preflight,
         problems=problems,
         next_actions=next_actions,
+        onboarding_steps=_onboarding_steps(
+            selected_model_name=selected_model_name,
+            selected_model_source=selected_model_source,
+        ),
     )
+
+
+def _onboarding_steps(
+    *,
+    selected_model_name: str,
+    selected_model_source: str,
+) -> list[str]:
+    return [
+        "Run provider diagnostics before the first live-provider session: "
+        f"glassbox provider diagnostics --cwd . --model-name {selected_model_name}",
+        "Keep provider API keys in the process environment or .env at --cwd; "
+        "never store secrets in glassbox.profile.json.",
+        "Put reviewable defaults in glassbox.profile.json, for example "
+        f"runtime.model_name={selected_model_name} "
+        f"(current source: {selected_model_source}).",
+        "Start the first chat with glassbox session chat --cwd .; the terminal "
+        "header and command palette show the paired dashboard URL.",
+        "Validate the local checkout with glassbox eval run --profile commit-smoke "
+        "--cwd . or the repository's documented pre-commit checks.",
+    ]
 
 
 def _selected_model_name(
@@ -445,4 +472,8 @@ def _invalid_report(
         ),
         problems=[problem],
         next_actions=[next_action],
+        onboarding_steps=_onboarding_steps(
+            selected_model_name=selected_model_name,
+            selected_model_source=selected_model_source,
+        ),
     )

@@ -109,6 +109,35 @@ def test_cli_performance_budgets_prints_guidance(
     assert "Guidance:" in captured.out
 
 
+def test_cli_provider_diagnostics_prints_first_run_checklist(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = main(
+        [
+            "provider",
+            "diagnostics",
+            "--cwd",
+            str(tmp_path),
+            "--model-name",
+            "openai:gpt-5.4",
+        ]
+    )
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Provider diagnostics: local_fallback" in captured.out
+    assert "First-run checklist:" in captured.out
+    assert (
+        "glassbox provider diagnostics --cwd . --model-name openai:gpt-5.4"
+        in captured.out
+    )
+    assert "glassbox.profile.json" in captured.out
+    assert "dashboard URL" in captured.out
+    assert "commit-smoke" in captured.out
+
+
 def test_python_module_entrypoint_prints_help(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

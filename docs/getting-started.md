@@ -29,6 +29,42 @@ uv run glassbox --help
 python -m glassbox --help
 ```
 
+## First-Run Provider And Profile Setup
+
+Run provider diagnostics before the first live-provider session. Diagnostics are
+offline and redacted; they show the selected model source, provider family,
+credential posture, advisory canary readiness, and next actions.
+
+```bash
+uv run glassbox provider diagnostics --cwd . --model-name openai:gpt-5.4
+uv run glassbox provider diagnostics --cwd . --json
+```
+
+Use environment variables or `.env` at the selected `--cwd` for provider
+credentials. Keep reviewable defaults, never secrets, in `glassbox.profile.json`:
+
+```json
+{
+  "profile_version": 1,
+  "runtime": {
+    "model_name": "openai:gpt-5.4",
+    "approval_mode": "confirm"
+  },
+  "verification": {
+    "eval_profile": "commit-smoke"
+  }
+}
+```
+
+After the first session starts, the terminal header and command palette show the
+paired dashboard URL. Use the local eval profile as the smallest repository
+validation check:
+
+```bash
+uv run glassbox session chat --cwd .
+uv run glassbox eval run --profile commit-smoke --cwd .
+```
+
 ## Start The First Session
 
 The default conversational entrypoint is `glassbox session chat`. In a supported

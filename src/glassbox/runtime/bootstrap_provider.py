@@ -53,7 +53,9 @@ def build_model_executor_factory(
                 local_executor_builder=local_executor_builder,
             )
         raise ProviderRuntimeConfigFailure(
-            f"unsupported model provider configured for session: {provider}",
+            f"unsupported model provider configured for session: {provider}; "
+            "use openai:MODEL, anthropic:MODEL, or an unprefixed local model, "
+            "then rerun provider diagnostics before retrying",
             retryable=False,
         )
 
@@ -76,7 +78,9 @@ def build_provider_executor(
 
     if provider_secret_config.api_key is None:
         raise ProviderRuntimeConfigFailure(
-            f"missing {provider_name} API key for configured provider runtime",
+            f"missing {provider_name} API key for configured provider runtime; "
+            f"set {provider_name.upper()}_API_KEY in the process environment or .env "
+            "at --cwd, or remove partial provider overrides",
             retryable=False,
         )
 
@@ -107,7 +111,8 @@ def validate_provider_base_url(provider_name: str, base_url: str) -> None:
     parsed_url = urlparse(base_url)
     if parsed_url.scheme not in {"http", "https"} or parsed_url.netloc == "":
         raise ProviderRuntimeConfigFailure(
-            f"invalid {provider_name} base URL runtime config",
+            f"invalid {provider_name} base URL runtime config; use an http(s) URL "
+            f"or remove {provider_name.upper()}_BASE_URL",
             retryable=False,
         )
 

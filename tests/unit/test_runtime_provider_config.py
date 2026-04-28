@@ -94,6 +94,9 @@ def test_provider_diagnostics_reports_local_mode(tmp_path: Path) -> None:
         "dashboard",
         "daemon-attach",
     ]
+    assert any("dashboard URL" in step for step in report.onboarding_steps)
+    assert any("glassbox.profile.json" in step for step in report.onboarding_steps)
+    assert any("commit-smoke" in step for step in report.onboarding_steps)
 
 
 def test_provider_diagnostics_reports_openai_configuration(tmp_path: Path) -> None:
@@ -155,6 +158,7 @@ def test_provider_diagnostics_reports_missing_credentials_for_partial_config(
     assert report.runtime_mode == "unavailable"
     assert report.problems == ["missing OPENAI_API_KEY"]
     assert "OPENAI_API_KEY" in report.next_actions[0]
+    assert "process environment or .env" in report.next_actions[0]
     assert {item.status for item in report.capability_preflight.scenario_preflight} == {
         "skip"
     }
@@ -170,6 +174,7 @@ def test_provider_diagnostics_reports_unsupported_model_prefix(tmp_path: Path) -
     assert report.state == "unsupported_model"
     assert report.selected_provider == "other"
     assert "unsupported model provider" in report.problems[0]
+    assert "rerun provider diagnostics" in report.next_actions[0]
     assert {item.status for item in report.capability_preflight.scenario_preflight} == {
         "unsupported"
     }

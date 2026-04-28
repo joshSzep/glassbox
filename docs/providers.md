@@ -30,6 +30,29 @@ Model selection defaults can live in `glassbox.profile.json`; provider
 credentials still come from runtime-only environment configuration described
 below.
 
+## First-Run Diagnostics
+
+Start with diagnostics before running a real provider session:
+
+```bash
+uv run glassbox provider diagnostics --cwd . --model-name openai:gpt-5.4
+```
+
+The human-readable output includes a first-run checklist for provider
+diagnostics, model selection, `glassbox.profile.json`, the paired dashboard URL,
+and a small validation command. The JSON output includes the same redacted
+`onboarding_steps` field for package smoke and scripted setup checks.
+
+Common first-run outcomes:
+
+- `ready`: credentials and selected provider family are configured.
+- `local_fallback`: no provider credentials are configured, so use an unprefixed
+  local model or set the provider API key before expecting a remote call.
+- `missing_credentials`: a partial provider override, such as a base URL without
+  an API key, must be completed or removed.
+- `unsupported_model`: choose `openai:MODEL`, `anthropic:MODEL`, or an
+  unprefixed local model.
+
 ## Environment Variables
 
 OpenAI:
@@ -101,19 +124,19 @@ events.
 
 Missing API key:
 
-- Symptom: `Session failed: missing OpenAI API key for configured provider runtime`
+- Symptom: `Session failed: missing OpenAI API key for configured provider runtime; set OPENAI_API_KEY in the process environment or .env at --cwd, or remove partial provider overrides`
 - Cause: a provider-specific override is present, but the matching API key is missing
-- Fix: set the required `*_API_KEY` variable or remove the partial provider override
+- Fix: set the required `*_API_KEY` variable in the process environment or `.env`, then rerun `glassbox provider diagnostics --cwd .`; otherwise remove the partial provider override
 
 Unsupported provider prefix:
 
-- Symptom: `Session failed: unsupported model provider configured for session: other`
+- Symptom: `Session failed: unsupported model provider configured for session: other; use openai:MODEL, anthropic:MODEL, or an unprefixed local model, then rerun provider diagnostics before retrying`
 - Cause: the `--model-name` provider prefix is not currently supported for real-provider execution
-- Fix: use an `openai:` or `anthropic:` model name
+- Fix: use an `openai:` or `anthropic:` model name, or an unprefixed local model for deterministic fallback; rerun diagnostics before starting a session
 
 Invalid base URL:
 
-- Symptom: `Session failed: invalid OpenAI base URL runtime config`
+- Symptom: `Session failed: invalid OpenAI base URL runtime config; use an http(s) URL or remove OPENAI_BASE_URL`
 - Cause: the provider base URL is not a valid `http` or `https` URL
 - Fix: correct the base URL or remove the override
 
@@ -217,5 +240,5 @@ store raw prompts, responses, API keys, or provider request metadata unless they
 have been reviewed and redacted.
 
 See [provider-canary-policy-v6.md](./provider-canary-policy-v6.md) and
-[manual-qa-evidence-v6.md](./manual-qa-evidence-v6.md) for release evidence
+[manual-qa-evidence-v7.md](./manual-qa-evidence-v7.md) for release evidence
 retention.

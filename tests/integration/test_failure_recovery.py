@@ -287,13 +287,13 @@ def test_cli_run_with_partial_provider_config_emits_session_failed(
         "Session failed: missing OpenAI API key for configured provider runtime"
         in captured.out
     )
-    assert (
-        captured.err.strip() == "missing OpenAI API key for configured provider runtime"
-    )
+    assert "set OPENAI_API_KEY" in captured.err
     assert any(isinstance(event.payload, TurnFailed) for event in events)
     assert len(session_failed_events) == 1
     assert session_failed_events[0].error_message == (
-        "missing OpenAI API key for configured provider runtime"
+        "missing OpenAI API key for configured provider runtime; set OPENAI_API_KEY "
+        "in the process environment or .env at --cwd, or remove partial provider "
+        "overrides"
     )
     assert session_failed_events[0].retryable is False
     assert state is not None
@@ -344,13 +344,12 @@ def test_cli_chat_with_unsupported_provider_emits_session_failed(
         "Session failed: unsupported model provider configured for session: other"
         in captured.out
     )
-    assert (
-        captured.err.strip()
-        == "unsupported model provider configured for session: other"
-    )
+    assert "use openai:MODEL" in captured.err
     assert len(session_failed_events) == 1
     assert session_failed_events[0].error_message == (
-        "unsupported model provider configured for session: other"
+        "unsupported model provider configured for session: other; use openai:MODEL, "
+        "anthropic:MODEL, or an unprefixed local model, then rerun provider "
+        "diagnostics before retrying"
     )
     assert state is not None
     assert state.status == SessionStatus.FAILED
@@ -384,13 +383,12 @@ def test_cli_run_with_unsupported_provider_emits_session_failed(
         "Session failed: unsupported model provider configured for session: other"
         in captured.out
     )
-    assert (
-        captured.err.strip()
-        == "unsupported model provider configured for session: other"
-    )
+    assert "use openai:MODEL" in captured.err
     assert len(session_failed_events) == 1
     assert session_failed_events[0].error_message == (
-        "unsupported model provider configured for session: other"
+        "unsupported model provider configured for session: other; use openai:MODEL, "
+        "anthropic:MODEL, or an unprefixed local model, then rerun provider "
+        "diagnostics before retrying"
     )
     assert state is not None
     assert state.status == SessionStatus.FAILED
@@ -425,10 +423,11 @@ def test_cli_run_redacts_provider_secrets_from_surfaced_config_errors(
 
     assert exit_code == 1
     assert "Session failed: invalid OpenAI base URL runtime config" in captured.out
-    assert captured.err.strip() == "invalid OpenAI base URL runtime config"
+    assert "remove OPENAI_BASE_URL" in captured.err
     assert len(session_failed_events) == 1
     assert session_failed_events[0].error_message == (
-        "invalid OpenAI base URL runtime config"
+        "invalid OpenAI base URL runtime config; use an http(s) URL or remove "
+        "OPENAI_BASE_URL"
     )
     assert secret not in captured.out
     assert secret not in captured.err

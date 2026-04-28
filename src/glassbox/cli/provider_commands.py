@@ -71,6 +71,9 @@ def _print_provider_diagnostics(report: ProviderDiagnosticsReport) -> None:
         print("Next:")
         for action in report.next_actions:
             print(f"  - {action}")
+    print("First-run checklist:")
+    for step in report.onboarding_steps:
+        print(f"  - {step}")
 
 
 def _provider_canary_command(args: argparse.Namespace) -> int:

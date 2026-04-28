@@ -141,7 +141,9 @@ def test_model_executor_factory_rejects_unsupported_provider() -> None:
 
     with pytest.raises(
         ProviderRuntimeConfigFailure,
-        match="unsupported model provider configured for session: other",
+        match=(
+            "unsupported model provider configured for session: other; use openai:MODEL"
+        ),
     ):
         executor_factory(_session_record("other:model"))
 
@@ -155,7 +157,9 @@ def test_model_executor_factory_rejects_missing_api_key_for_partial_config() -> 
 
     with pytest.raises(
         ProviderRuntimeConfigFailure,
-        match="missing OpenAI API key for configured provider runtime",
+        match=(
+            "missing OpenAI API key for configured provider runtime; set OPENAI_API_KEY"
+        ),
     ):
         executor_factory(_session_record("openai:gpt-5.4"))
 
@@ -170,7 +174,7 @@ def test_model_executor_factory_redacts_secret_on_invalid_provider_base_url() ->
 
     with pytest.raises(
         ProviderRuntimeConfigFailure,
-        match="invalid OpenAI base URL runtime config",
+        match=r"invalid OpenAI base URL runtime config; use an http\(s\) URL",
     ) as exc_info:
         executor_factory(_session_record("openai:gpt-5.4"))
 

@@ -1071,7 +1071,7 @@ Completion notes:
 
 ### GBX-781: Improve First-Run Provider And Profile Onboarding
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-731`
 - Goal: make the first successful local session easier for new users without weakening local-first or secret-handling boundaries
 - Deliverables:
@@ -1089,6 +1089,13 @@ Completion notes:
   - installed-package smoke if startup behavior changes
 - Done when:
   - a new local user can discover the minimum provider and profile setup path without reading task docs
+
+Completion notes:
+
+- Provider diagnostics now emits a redacted first-run checklist covering provider diagnostics, model selection, `glassbox.profile.json`, the paired dashboard URL, and the `commit-smoke` validation path.
+- Provider diagnostics JSON includes `onboarding_steps` for installed-package smoke and scripted setup checks.
+- Provider runtime failures now include actionable missing-credential, unsupported-provider, and invalid-base-URL remediation text that surfaces in terminal and dashboard failure state without exposing secrets.
+- Updated [getting-started.md](./getting-started.md), [providers.md](./providers.md), and [workspace-profiles.md](./workspace-profiles.md) with first-run diagnostics commands, profile examples, and clearer provider troubleshooting.
 
 ### GBX-782: Harden Installed Package And Source Builder Onboarding
 

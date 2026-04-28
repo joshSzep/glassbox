@@ -63,6 +63,60 @@ For provider settings only, precedence is different: process environment values
 override `.env`, and both remain runtime-only local configuration. Profiles do
 not read or write provider secrets.
 
+## Example Profiles
+
+OpenAI with reviewable approval defaults:
+
+```json
+{
+  "profile_version": 1,
+  "runtime": {
+    "model_name": "openai:gpt-5.4",
+    "approval_mode": "confirm"
+  },
+  "verification": {
+    "eval_profile": "commit-smoke"
+  }
+}
+```
+
+Anthropic with a stricter review posture:
+
+```json
+{
+  "profile_version": 1,
+  "runtime": {
+    "model_name": "anthropic:claude-sonnet-4",
+    "approval_mode": "review"
+  },
+  "verification": {
+    "eval_profile": "advisory-context"
+  }
+}
+```
+
+Offline deterministic local workflow:
+
+```json
+{
+  "profile_version": 1,
+  "runtime": {
+    "model_name": "local-test-model",
+    "approval_mode": "never"
+  },
+  "verification": {
+    "eval_profile": "commit-smoke"
+  }
+}
+```
+
+After editing a profile, run:
+
+```bash
+uv run glassbox provider diagnostics --cwd .
+uv run glassbox eval run --profile commit-smoke --cwd .
+```
+
 ## Safety Rules
 
 Profiles are reviewable repository files. They intentionally do not support API
