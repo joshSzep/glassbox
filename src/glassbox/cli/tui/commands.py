@@ -17,6 +17,7 @@ class TerminalCommandId(StrEnum):
     COPY_ARTIFACT_PATH = "copy_artifact_path"
     OPEN_ARTIFACT_PATH = "open_artifact_path"
     TOGGLE_DETAILS = "toggle_details"
+    TOGGLE_MARKDOWN = "toggle_markdown"
     JUMP_LATEST = "jump_latest"
     APPROVE = "approve"
     DENY = "deny"
@@ -87,6 +88,12 @@ _COMMAND_SPECS: tuple[TerminalCommandSpec, ...] = (
         "Show or hide the details surface",
         "Ctrl+E",
         ("/details",),
+    ),
+    TerminalCommandSpec(
+        TerminalCommandId.TOGGLE_MARKDOWN,
+        "Toggle Markdown Rendering",
+        "Render chat messages as Markdown in the transcript",
+        slash_aliases=("/markdown", "/md"),
     ),
     TerminalCommandSpec(
         TerminalCommandId.JUMP_LATEST,

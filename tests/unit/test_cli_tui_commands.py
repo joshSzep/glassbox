@@ -32,6 +32,7 @@ def test_command_registry_exposes_expected_palette_actions() -> None:
     assert TerminalCommandId.COPY_ARTIFACT_PATH in command_ids
     assert TerminalCommandId.OPEN_ARTIFACT_PATH in command_ids
     assert TerminalCommandId.TOGGLE_DETAILS in command_ids
+    assert TerminalCommandId.TOGGLE_MARKDOWN in command_ids
     assert TerminalCommandId.JUMP_LATEST in command_ids
     assert TerminalCommandId.APPROVE in command_ids
     assert TerminalCommandId.DENY in command_ids
@@ -51,6 +52,10 @@ def test_command_registry_filters_by_title_description_and_slash_alias() -> None
     assert [
         item.spec.command_id for item in filter_command_items(items, "/latest")
     ] == [TerminalCommandId.JUMP_LATEST]
+    markdown_command_ids = [
+        item.spec.command_id for item in filter_command_items(items, "markdown")
+    ]
+    assert markdown_command_ids == [TerminalCommandId.TOGGLE_MARKDOWN]
 
 
 def test_command_registry_reports_contextual_disabled_reasons() -> None:
@@ -116,6 +121,8 @@ def test_command_registry_enables_approval_and_answer_commands() -> None:
 
 def test_command_from_slash_routes_compatibility_aliases() -> None:
     assert command_from_slash("/dashboard") == TerminalCommandId.OPEN_DASHBOARD
+    assert command_from_slash("/markdown") == TerminalCommandId.TOGGLE_MARKDOWN
+    assert command_from_slash("/md") == TerminalCommandId.TOGGLE_MARKDOWN
     assert command_from_slash("/copy-session now") == TerminalCommandId.COPY_SESSION_ID
     assert command_from_slash("/copy-artifact") == TerminalCommandId.COPY_ARTIFACT_PATH
     assert command_from_slash("hello") is None

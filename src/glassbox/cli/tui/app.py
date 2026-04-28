@@ -79,6 +79,7 @@ class GlassboxTerminalApp(App[None]):
         self._prompt_history_index: int | None = None
         self._focused_before_palette = None
         self._details_visible = False
+        self._transcript_markdown_enabled = True
         self._composer_feedback: ComposerSubmissionFeedback | None = None
         self._action_feedback: ActionFeedback | None = None
         self._quit_confirmation_pending = False
@@ -157,7 +158,10 @@ class GlassboxTerminalApp(App[None]):
         if not self.is_mounted:
             return
         self.query_one(SessionHeader).update_state(state)
-        self.query_one(ConversationPane).update_state(state)
+        self.query_one(ConversationPane).update_state(
+            state,
+            render_markdown=self._transcript_markdown_enabled,
+        )
         self.query_one(ActionStripPlaceholder).update_state(
             state,
             self._action_feedback,
@@ -338,6 +342,20 @@ class GlassboxTerminalApp(App[None]):
             details.toggle()
             if details.display:
                 self.set_focus(details)
+            return
+        if command_id == TerminalCommandId.TOGGLE_MARKDOWN:
+            self._transcript_markdown_enabled = not self._transcript_markdown_enabled
+            self.query_one(ConversationPane).update_state(
+                self.state,
+                render_markdown=self._transcript_markdown_enabled,
+            )
+            state_label = "enabled" if self._transcript_markdown_enabled else "disabled"
+            self._set_action_feedback(
+                ActionFeedback(
+                    ActionFeedbackStatus.ACCEPTED,
+                    f"Markdown rendering {state_label}.",
+                )
+            )
             return
         if command_id == TerminalCommandId.JUMP_LATEST:
             self.action_latest()

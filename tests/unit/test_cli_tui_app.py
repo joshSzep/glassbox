@@ -26,12 +26,14 @@ from glassbox.cli.tui.widgets import ConversationPane
 from glassbox.cli.tui.widgets import DetailsPane
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import ApprovalResolved
+from glassbox.core.events import AssistantMessageCompleted
 from glassbox.core.events import AssistantMessageDelta
 from glassbox.core.events import AssistantMessageStarted
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import ModelToolCallRequested
 from glassbox.core.events import ToolArtifactRecorded
 from glassbox.core.events import TurnStarted
+from glassbox.core.events import UserMessageReceived
 from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import QuestionId
@@ -42,6 +44,7 @@ from glassbox.core.ids import new_question_id
 from glassbox.core.ids import new_session_id
 from glassbox.core.ids import new_tool_call_id
 from glassbox.core.ids import new_turn_id
+from glassbox.core.models import MessagePart
 from glassbox.core.models import SessionState
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import SessionStatus
@@ -180,6 +183,10 @@ def test_tui_app_executes_palette_clipboard_and_approval_commands() -> None:
     asyncio.run(_run_command_execution_test())
 
 
+def test_tui_app_toggles_markdown_transcript_rendering() -> None:
+    asyncio.run(_run_markdown_toggle_test())
+
+
 def test_tui_app_restores_focus_after_command_palette() -> None:
     asyncio.run(_run_palette_focus_restore_test())
 
@@ -210,6 +217,10 @@ def test_tui_app_approval_slash_commands_are_typeable() -> None:
 
 def test_tui_app_follows_latest_streaming_transcript() -> None:
     asyncio.run(_run_streaming_transcript_follow_latest_test())
+
+
+def test_tui_app_scrolls_markdown_streaming_transcript() -> None:
+    asyncio.run(_run_streaming_transcript_follow_latest_test(render_markdown=True))
 
 
 def test_tui_app_details_wrap_full_dashboard_url() -> None:
@@ -654,6 +665,76 @@ async def _run_command_execution_test() -> None:
         assert client.resolved_approvals == [
             (approval_id, ApprovalDecision.APPROVED),
         ]
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_markdown_toggle_test() -> None:
+    snapshot = _snapshot()
+    user_message_id = new_message_id()
+    assistant_message_id = new_message_id()
+    client = _FakeInteractiveClient(
+        events=[
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=8,
+                payload=UserMessageReceived(
+                    message_id=user_message_id,
+                    text="Please keep **bold** visible.",
+                ),
+            ),
+            EventEnvelope(
+                session_id=snapshot.session_id,
+                sequence=9,
+                payload=AssistantMessageCompleted(
+                    message_id=assistant_message_id,
+                    parts=[
+                        MessagePart(
+                            kind="text",
+                            text="## Result\n\n- **done**\n- `code`",
+                        )
+                    ],
+                ),
+            ),
+        ]
+    )
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        conversation = pilot.app.query_one(ConversationPane)
+        assert conversation.markdown_enabled is True
+        assert "**done**" in conversation.content_text
+
+        rendered_text = "\n".join(strip.text for strip in conversation.lines)
+        assert "done" in rendered_text
+        assert "**done**" not in rendered_text
+
+        await app.execute_terminal_command(TerminalCommandId.TOGGLE_MARKDOWN)
+        await pilot.pause()
+
+        action_strip = pilot.app.query_one("#action-strip", Static)
+        rendered_text = "\n".join(strip.text for strip in conversation.lines)
+
+        assert conversation.markdown_enabled is False
+        assert "Markdown rendering disabled" in str(action_strip.content)
+        assert "**done**" in conversation.content_text
+        assert "**done**" in rendered_text
+
+        await app.execute_terminal_command(TerminalCommandId.TOGGLE_MARKDOWN)
+        await pilot.pause()
+
+        rendered_text = "\n".join(strip.text for strip in conversation.lines)
+        assert conversation.markdown_enabled is True
+        assert "Markdown rendering enabled" in str(action_strip.content)
+        assert "done" in rendered_text
+        assert "**done**" not in rendered_text
 
         pilot.app.exit()
 
@@ -1130,10 +1211,20 @@ async def _run_approval_slash_command_test() -> None:
     await app.close_client()
 
 
-async def _run_streaming_transcript_follow_latest_test() -> None:
+async def _run_streaming_transcript_follow_latest_test(
+    *,
+    render_markdown: bool = False,
+) -> None:
     snapshot = _snapshot()
     message_id = new_message_id()
-    long_response = " ".join(f"token{i:03d}" for i in range(240))
+    if render_markdown:
+        long_response = "\n".join(
+            f"- **item {index:03d}**: streaming markdown content" for index in range(90)
+        )
+        expected_tail = "item 089"
+    else:
+        long_response = " ".join(f"token{i:03d}" for i in range(240))
+        expected_tail = "token239"
     client = _FakeInteractiveClient(
         events=[
             EventEnvelope(
@@ -1159,25 +1250,42 @@ async def _run_streaming_transcript_follow_latest_test() -> None:
 
     async with app.run_test(size=(60, 16)) as pilot:
         await pilot.pause()
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
         conversation = pilot.app.query_one(ConversationPane)
+        if conversation.markdown_enabled is not render_markdown:
+            await typed_app.execute_terminal_command(TerminalCommandId.TOGGLE_MARKDOWN)
+            await pilot.pause()
 
-        assert "token239" in conversation.content_text
+        assert conversation.markdown_enabled is render_markdown
+        assert expected_tail in conversation.content_text
         assert conversation.scroll_y == conversation.max_scroll_y
         assert conversation.show_vertical_scrollbar is True
         assert conversation.show_horizontal_scrollbar is False
         assert conversation.vertical_scrollbar.position == conversation.scroll_y
 
-        await pilot.press("pageup")
+        if render_markdown:
+            typed_app.apply_runtime_event(
+                EventEnvelope(
+                    session_id=snapshot.session_id,
+                    sequence=10,
+                    payload=AssistantMessageDelta(
+                        message_id=message_id,
+                        delta="\n- **late item**: still streaming",
+                    ),
+                )
+            )
+            conversation.page_up()
+        else:
+            await pilot.press("pageup")
         await pilot.pause()
         assert conversation.scroll_y < conversation.max_scroll_y
         assert conversation.vertical_scrollbar.position == conversation.scroll_y
         manual_scroll_y = conversation.scroll_y
 
-        typed_app = cast(GlassboxTerminalApp, pilot.app)
         typed_app.apply_runtime_event(
             EventEnvelope(
                 session_id=snapshot.session_id,
-                sequence=10,
+                sequence=11 if render_markdown else 10,
                 payload=AssistantMessageDelta(
                     message_id=message_id,
                     delta=" live update after manual scroll",

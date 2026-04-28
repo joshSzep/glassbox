@@ -9,6 +9,7 @@ from typing import Any
 from typing import ClassVar
 from typing import cast
 
+from rich.markdown import Markdown
 from rich.text import Text
 from textual.binding import Binding
 from textual.containers import Vertical
@@ -47,6 +48,13 @@ TRANSCRIPT_FAILURE_STYLE = "#ff6b6b"
 class TranscriptRenderLine:
     text: str
     style: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class TranscriptRenderBlock:
+    text: str
+    style: str | None = None
+    markdown: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,6 +128,10 @@ class ConversationPane(RichLog):
         self._state = state
         self._follow_latest = True
         self._content_text = ""
+        self._render_markdown = False
+        self._scroll_callback_token = 0
+        self._suppress_scroll_callback_invalidation = False
+        self._rebuilding_content = False
         super().__init__(
             id="conversation-pane",
             auto_scroll=True,
@@ -139,19 +151,48 @@ class ConversationPane(RichLog):
         super().on_resize(event)
         self.update_state(self._state)
 
-    def update_state(self, state: TerminalConversationState) -> None:
-        self._follow_latest = self._follow_latest and self._is_at_latest()
+    @property
+    def markdown_enabled(self) -> bool:
+        return self._render_markdown
+
+    def update_state(
+        self,
+        state: TerminalConversationState,
+        *,
+        render_markdown: bool | None = None,
+    ) -> None:
         self._state = state
+        if render_markdown is not None:
+            self._render_markdown = render_markdown
         self._replace_content(
-            render_transcript_lines(state, width=self._render_width())
+            render_transcript_lines(state, width=self._render_width()),
+            render_transcript_blocks(state) if self._render_markdown else None,
         )
 
     def jump_to_latest(self) -> None:
         self._follow_latest = True
+        self._schedule_jump_to_latest()
+
+    def _schedule_jump_to_latest(self) -> None:
+        token = self._next_scroll_callback_token()
         with suppress(Exception):
-            self.scroll_y = self.max_scroll_y
+            self.call_after_refresh(lambda: self._jump_to_latest_immediate(token))
+
+    def _jump_to_latest_immediate(self, token: int) -> None:
+        if token != self._scroll_callback_token:
+            return
+        with suppress(Exception):
+            self._set_scroll_y_without_invalidating_callbacks(self.max_scroll_y)
+            self.call_after_refresh(lambda: self._jump_to_latest_final(token))
+
+    def _jump_to_latest_final(self, token: int) -> None:
+        if token != self._scroll_callback_token:
+            return
+        with suppress(Exception):
+            self._set_scroll_y_without_invalidating_callbacks(self.max_scroll_y)
 
     def page_up(self) -> None:
+        self._invalidate_scroll_callbacks()
         with suppress(Exception):
             self.scroll_y = max(
                 self.scroll_y - max(self.size.height - 1, 1),
@@ -160,6 +201,7 @@ class ConversationPane(RichLog):
             self._follow_latest = False
 
     def page_down(self) -> None:
+        self._invalidate_scroll_callbacks()
         with suppress(Exception):
             self.scroll_y = min(
                 self.scroll_y + max(self.size.height - 1, 1),
@@ -169,24 +211,115 @@ class ConversationPane(RichLog):
 
     def watch_scroll_y(self, old_value: float, new_value: float) -> None:
         super().watch_scroll_y(old_value, new_value)
-        if self.is_mounted:
+        if (
+            self.is_mounted
+            and not self._rebuilding_content
+            and not self._suppress_scroll_callback_invalidation
+        ):
             self._follow_latest = new_value >= self.max_scroll_y
+            if not self._follow_latest:
+                self._invalidate_scroll_callbacks()
+
+    def on_mouse_scroll_up(self) -> None:
+        self._invalidate_scroll_callbacks()
+        self._follow_latest = False
+
+    def on_mouse_scroll_down(self) -> None:
+        self._invalidate_scroll_callbacks()
+        self._follow_latest = False
 
     def show_local_message(self, message: str) -> None:
         self._replace_content(_plain_transcript_lines(message))
 
-    def _replace_content(self, lines: list[TranscriptRenderLine]) -> None:
-        self.clear()
-        self._content_text = "\n".join(line.text for line in lines)
-        width = self._render_width()
-        for line in lines:
-            self.write(
-                Text(line.text, style=line.style or ""),
-                width=width,
-                scroll_end=False,
+    def _replace_content(
+        self,
+        lines: list[TranscriptRenderLine],
+        blocks: list[TranscriptRenderBlock] | None = None,
+    ) -> None:
+        previous_scroll_y = self.scroll_y if self.is_mounted else 0
+        should_follow_latest = self._follow_latest
+        self._rebuilding_content = True
+        try:
+            self.clear()
+            self._content_text = "\n".join(line.text for line in lines)
+            width = self._render_width()
+            if blocks is not None:
+                self._write_markdown_blocks(blocks, width)
+                self._restore_scroll_position(previous_scroll_y, should_follow_latest)
+                return
+            for line in lines:
+                self.write(
+                    Text(line.text, style=line.style or ""),
+                    width=width,
+                    scroll_end=False,
+                )
+        finally:
+            self._rebuilding_content = False
+        self._restore_scroll_position(previous_scroll_y, should_follow_latest)
+
+    def _restore_scroll_position(
+        self,
+        previous_scroll_y: float,
+        should_follow_latest: bool,
+    ) -> None:
+        if should_follow_latest:
+            self._follow_latest = True
+            self._schedule_jump_to_latest()
+            return
+        self._follow_latest = False
+        token = self._next_scroll_callback_token()
+        self.call_after_refresh(
+            lambda: self._restore_manual_scroll_position(token, previous_scroll_y)
+        )
+
+    def _restore_manual_scroll_position(
+        self,
+        token: int,
+        previous_scroll_y: float,
+    ) -> None:
+        if token != self._scroll_callback_token:
+            return
+        with suppress(Exception):
+            self._set_scroll_y_without_invalidating_callbacks(
+                min(previous_scroll_y, self.max_scroll_y)
             )
-        if self._follow_latest:
-            self.call_after_refresh(self.jump_to_latest)
+
+    def _next_scroll_callback_token(self) -> int:
+        self._scroll_callback_token += 1
+        return self._scroll_callback_token
+
+    def _invalidate_scroll_callbacks(self) -> None:
+        self._scroll_callback_token += 1
+
+    def _set_scroll_y_without_invalidating_callbacks(self, value: float) -> None:
+        self._suppress_scroll_callback_invalidation = True
+        try:
+            self.scroll_y = value
+        finally:
+            self._suppress_scroll_callback_invalidation = False
+
+    def _write_markdown_blocks(
+        self,
+        blocks: list[TranscriptRenderBlock],
+        width: int,
+    ) -> None:
+        for block in blocks:
+            if block.markdown:
+                self.write(
+                    Markdown(
+                        block.text,
+                        style=block.style or "none",
+                        hyperlinks=False,
+                    ),
+                    width=width,
+                    scroll_end=False,
+                )
+            else:
+                self.write(
+                    Text(block.text, style=block.style or ""),
+                    width=width,
+                    scroll_end=False,
+                )
 
     def _render_width(self) -> int:
         if not self.is_mounted:
@@ -801,6 +934,55 @@ def render_transcript_lines(
         )
 
     return lines
+
+
+def render_transcript_blocks(
+    state: TerminalConversationState,
+) -> list[TranscriptRenderBlock]:
+    blocks: list[TranscriptRenderBlock] = []
+    if not _has_visible_transcript_content(state):
+        return [
+            TranscriptRenderBlock(
+                _empty_transcript_text(state),
+                TRANSCRIPT_RUNTIME_STYLE,
+            )
+        ]
+
+    for message in state.messages:
+        if blocks:
+            blocks.append(TranscriptRenderBlock(""))
+        style = _message_style(message.kind)
+        blocks.append(
+            TranscriptRenderBlock(message.text or "...", style, markdown=True)
+        )
+        if marker := _message_status_marker(message.status):
+            blocks.append(
+                TranscriptRenderBlock(
+                    marker,
+                    _message_status_style(message.status),
+                )
+            )
+
+    for turn in state.turns:
+        if turn.failure_message:
+            if blocks:
+                blocks.append(TranscriptRenderBlock(""))
+            blocks.append(
+                TranscriptRenderBlock("Turn failed", TRANSCRIPT_FAILURE_STYLE)
+            )
+            blocks.append(
+                TranscriptRenderBlock(turn.failure_message, TRANSCRIPT_FAILURE_STYLE)
+            )
+
+    if state.failure is not None:
+        if blocks:
+            blocks.append(TranscriptRenderBlock(""))
+        blocks.append(TranscriptRenderBlock("Failure", TRANSCRIPT_FAILURE_STYLE))
+        blocks.append(
+            TranscriptRenderBlock(state.failure.message, TRANSCRIPT_FAILURE_STYLE)
+        )
+
+    return blocks
 
 
 def _has_visible_transcript_content(state: TerminalConversationState) -> bool:
