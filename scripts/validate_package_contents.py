@@ -25,6 +25,7 @@ SDIST_REQUIRED_SUFFIXES = (
     "docs/getting-started.md",
     "docs/providers.md",
     "docs/release-packaging.md",
+    "docs/v7-release-gate.md",
     "docs/workspace-profiles.md",
     "docs/manual-qa-evidence-v7.md",
     "src/glassbox/web/static_next/index.html",

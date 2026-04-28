@@ -20,6 +20,7 @@ Use this page to jump to the right level of detail.
 - [v7-adoption-scale-contract.md](./v7-adoption-scale-contract.md): review the v7 adoption-and-scale scope, non-goals, evidence classes, release-readiness checklist, residual-risk shape, and pass/fail policy
 - [v7-live-transport-contract.md](./v7-live-transport-contract.md): review the v7 daemon, SSE, reconnect, backpressure, and multi-observer reliability contract
 - [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md): inspect the v7 baseline inventory for eval coverage, provider canaries, scale risks, daemon transport, policy governance, accessibility, onboarding, and weak coverage
+- [v7-release-gate.md](./v7-release-gate.md): run the canonical v7 automated release-candidate gate with v6 coverage, v7 eval/dashboard/onboarding evidence, advisory provider canaries, installed smoke, and retained `summary.json`
 - [interactive-workflows.md](./interactive-workflows.md): use the full-screen `session chat` and `attach` TUI, plus `message`, `answer`, `approve`, `deny`, `resume`, and `status`
 - [dashboard.md](./dashboard.md): use the co-hosted dashboard as the paired operator console for terminal chat or run the standalone dashboard from `serve`
 - [dashboard-parity.md](./dashboard-parity.md): review the v3 SPA parity gate before replacing the legacy dashboard route
@@ -101,6 +102,7 @@ Use this page to jump to the right level of detail.
 - [v7-adoption-scale-contract.md](./v7-adoption-scale-contract.md): v7 scope, non-goals, supported workflow set, v6 follow-up mapping, evidence classes, release-readiness checklist, residual-risk register shape, and pass/fail policy
 - [v7-live-transport-contract.md](./v7-live-transport-contract.md): v7 live transport, daemon ownership, reconnect, backpressure, and multi-observer contract
 - [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md): v7 inventory of current eval coverage, provider evidence, larger-session read paths, daemon and transport evidence, policy governance, accessibility, onboarding, recommended gate membership, and weak coverage
+- [v7-release-gate.md](./v7-release-gate.md): v7 automated gate command, stage map, advisory provider-canary policy, installed smoke inheritance, evidence summary, and pass/fail policy
 - [team-workflows.md](./team-workflows.md): v2 ownership, identity, and handoff contract for portable team workflows
 - [v2-release-candidate.md](./v2-release-candidate.md): release-candidate readiness checklist and supported operating-model summary
 - [release-packaging.md](./release-packaging.md): Python distribution packaging path, SPA asset checks, and installed-dashboard smoke validation

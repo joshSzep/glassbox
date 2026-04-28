@@ -1126,7 +1126,7 @@ Completion notes:
 
 ### GBX-783: Add The v7 Release Gate Or Extend The v6 Gate
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-724`, `GBX-744`, `GBX-753`, `GBX-763`, `GBX-773`, `GBX-782`
 - Goal: provide one canonical automated gate for v7 release-candidate validation, either by extending the v6 gate or adding a v7-specific script
 - Deliverables:
@@ -1146,6 +1146,13 @@ Completion notes:
   - focused script validation
 - Done when:
   - v7 has one objective automated release-candidate gate with retained evidence
+
+Completion notes:
+
+- Added `scripts/validate_v7_release_gate.py`, which reuses the v6 deterministic/package/installed-smoke stages and adds v7 release-profile eval, v7 workflow advisory eval, performance budget, provider diagnostics onboarding, dashboard evidence cue, and evidence-doc validation stages.
+- The v7 gate writes `.glassbox/releases/...-v7-gate/summary.json` for dry runs and real runs, with v7 manual/accessibility evidence hints and explicit advisory provider-canary records.
+- Provider canaries remain visible but non-blocking by default; `--include-provider-canaries` writes retained matrix evidence under the selected v7 evidence directory.
+- Added [v7-release-gate.md](./v7-release-gate.md) and focused gate tests covering dry-run output, summary shape, stage/doc alignment, and advisory policy.
 
 ### GBX-784: Run Manual v7 Release Candidate Validation
 
