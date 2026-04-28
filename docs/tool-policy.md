@@ -420,3 +420,129 @@ Approval mode is applied after that resolution:
 That means repository policy can deliberately allow a bounded action even when
 the session approval mode is `never`, but it cannot bypass hard runtime
 invariants such as workspace-scope checks or destructive-command blocking.
+
+## V7 Repository Governance Contract
+
+`GBX-760` keeps the manifest format above as the v7 governance baseline. The
+purpose is not to create a larger permission system; it is to make repository
+policy reviewable, explainable, and safe for local teams that want policy
+changes to go through code review.
+
+### Manifest Ownership
+
+`glassbox-policy.json` is owned by the repository. Treat it like application
+configuration, not like a local secret file or an operator preference. A policy
+change should be reviewed with the same care as a script that changes what the
+agent can do.
+
+The manifest shape is intentionally small:
+
+- `manifest_version`: currently `1`
+- `defaults`: actions for `read_only`, `workspace_write`, and `command`
+- `rules`: ordered refinements with `rule_id`, exact `tool_name`, `action`, and
+  optional `command_prefixes`, `cwd_prefixes`, or `path_prefixes`
+
+Every action is one of `allow`, `approve`, or `deny`. Unknown fields,
+unsupported versions, duplicate rule IDs, absolute path prefixes, and prefixes
+that escape the workspace are invalid configuration.
+
+### Precedence And Invariants
+
+The effective decision order is:
+
+1. Validate hard runtime invariants.
+2. Match repository rules from top to bottom; the first matching rule wins.
+3. Fall back to the manifest defaults for the tool risk bucket.
+4. Translate `approve` through the session approval mode.
+
+Hard invariants always outrank repository policy. A repository rule cannot:
+
+- allow a path argument outside the workspace
+- allow a destructive command pattern such as `rm -rf`, `git clean -f`, or
+  `git reset --hard`
+- make an unregistered or unknown tool executable
+- make invalid manifest content silently fall back to a safer-looking default
+- turn an `approve` decision into execution when approval mode is `never`
+
+Rules and defaults can only refine behavior inside those guardrails. For
+example, a repo may allow `run_command` for `git status` immediately, require
+approval for build commands, and deny package-manager commands. It may not use a
+command prefix to bless destructive shell syntax.
+
+### Default Risk Posture
+
+When no manifest exists, or when no rule matches, the default posture remains:
+
+- `read_only`: `allow`
+- `workspace_write`: `approve`
+- `command`: `approve`
+
+Approval mode is session-scoped. `confirm`, `review`, and `on-request` currently
+pause on `approve`; `never` blocks `approve`. `allow` remains immediate unless a
+hard invariant already blocked the request, and `deny` blocks immediately in all
+approval modes.
+
+### Review Expectations
+
+Review policy changes by asking:
+
+- Which exact tool is affected?
+- Is the selector narrow enough for the intended workflow?
+- Does the rule use relative workspace prefixes where path scope matters?
+- Is the action appropriate for the risk bucket and approval mode used by the
+  team?
+- Is there a focused test or fixture that proves the intended decision and the
+  nearest blocked boundary?
+- Will replay or eval evidence need refreshing because the effective policy
+  decision surface changed?
+
+Prefer named `rule_id` values that explain intent, such as
+`allow-docs-patches`, `approve-package-install`, or `deny-generated-output`.
+Avoid catch-all command prefixes unless the repository has a clear reason and
+tests for the boundary.
+
+### Fixture Strategy
+
+Policy fixtures should be small JSON manifests that exercise one posture at a
+time. Keep examples free of secrets, host-specific absolute paths, personal
+workspace names, tokens, or private service URLs.
+
+Useful fixture families are:
+
+- baseline defaults with no rules
+- bounded read-only or status command allowance
+- docs-only or generated-file write allowance
+- command families that still require approval
+- deny rules for package managers, deploy commands, or generated output
+- invalid manifests for duplicate IDs, absolute prefixes, unsupported versions,
+  and unknown fields
+
+Tests should cover both the allowed path and the nearest invariant block. For
+example, a fixture that allows docs patches should also prove an out-of-workspace
+path is still blocked.
+
+### Non-Goals
+
+Repository policy is not:
+
+- remote enforcement authority for another machine or service
+- a secret store
+- a marketplace trust or plugin certification system
+- a replacement for OS permissions, sandboxing, code review, or provider
+  credential hygiene
+- a way to run arbitrary policy code inside the Glassbox runtime
+- a team identity, role-based access, or multi-tenant authorization system
+
+Glassbox policy is local-first runtime governance. It explains and gates tool
+requests made by this runtime against this workspace.
+
+### Migration Notes
+
+No manifest shape change is required for v7. Existing `manifest_version: 1`
+files remain valid.
+
+Teams adopting repository-owned policy should start by committing a manifest
+that preserves the defaults, then add narrow rules with focused tests. If a
+future task changes the manifest shape, it should provide an explicit version
+bump, fixture migration, and replay/eval impact guidance rather than silently
+changing how an existing `manifest_version: 1` file resolves.

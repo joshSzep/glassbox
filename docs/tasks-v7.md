@@ -814,7 +814,7 @@ Completion notes:
 
 ### GBX-760: Define Tool Policy Governance v2
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-711`
 - Goal: turn current local tool policy behavior into a clearer repository-owned governance contract for teams
 - Deliverables:
@@ -831,6 +831,12 @@ Completion notes:
   - no behavior changes required unless the contract exposes a mismatch
 - Done when:
   - policy behavior has a clear governance document that implementation tasks can enforce
+
+Completion notes:
+
+- Added the v7 repository governance contract to [tool-policy.md](./tool-policy.md), preserving current manifest version `1` and approval semantics.
+- Documented manifest ownership, rule precedence, non-overridable invariants, default risk posture, review expectations, fixture strategy, explicit non-goals, and migration notes.
+- Reviewed the contract against `src/glassbox/tools/policy.py`, `src/glassbox/tools/policy_config.py`, and current policy tests; no behavior changes were required.
 
 ### GBX-761: Add Policy Explanation And Trace Evidence
 
