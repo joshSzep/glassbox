@@ -63,17 +63,20 @@ Current profiles:
 | `push-confirmation` | deterministic | yes | smoke confirmation after push |
 | `release-candidate` | deterministic | yes | release-signoff deterministic suite |
 | `advisory-context` | deterministic | no | context-heavy exploratory drift review |
+| `v7-workflow-advisory` | deterministic | no | v7 dashboard, daemon-adjacent, and cancellation workflow review |
 | `live-provider-canary` | live-provider-canary | no | advisory scaffold kept out of deterministic signoff |
 
 Current release-critical coverage is strongest for smoke validation, replay
 portability, branching, and context inheritance. Current advisory or weak areas:
 
 - `approval_flow` now has advisory deterministic coverage for approved
-  `apply_patch` resumption through `approval.approved-patch`; denial-specific
-  and dashboard-specific resolution behavior remains integration evidence
+  `apply_patch` resumption through `approval.approved-patch`, promoted into the
+  blocking `release-candidate` profile; denial-specific and dashboard-specific
+  resolution behavior remains integration evidence
 - `ask_user_flow` now has advisory deterministic coverage for persisted
-  question, answer, and resumed assistant output through `ask-user.answer-resume`;
-  operator timing and UI-specific validation remain integration evidence
+  question, answer, and resumed assistant output through `ask-user.answer-resume`,
+  promoted into the blocking `release-candidate` profile; operator timing and
+  UI-specific validation remain integration evidence
 - `cancellation` now has advisory multi-case coverage for model-call,
   tool-execution, and repeated/reconnect-sensitive local cancellation evidence;
   provider remote-computation stop behavior and live socket timing remain outside
@@ -290,6 +293,12 @@ coverage for:
 
 Provider capability matrix runs should remain advisory by default, with retained
 redacted evidence or explicit skip reasons.
+
+For Phase 72, the blocking `release-candidate` profile now carries the stable
+approval and ask-user workflow cases. Dashboard action, daemon-adjacent attach,
+and cancellation variants remain in `v7-workflow-advisory` until replay can
+prove action-origin metadata, live daemon lifecycle behavior, or timing-sensitive
+cancellation semantics without integration evidence.
 
 ## Summary Of Weak Or Missing Coverage
 

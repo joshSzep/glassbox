@@ -72,7 +72,7 @@
       "title": "Approval workflow",
       "kind": "operator_workflow",
       "criticality": "important",
-      "verification_stages": ["advisory"],
+      "verification_stages": ["advisory", "release-candidate"],
       "expected_case_ids": ["approval.approved-patch"],
       "coverage_mode": "single_case",
       "notes": "Curated replay evidence covers an approved apply_patch request from ApprovalRequested through ApprovalResolved, resumed execution, and completed assistant output. Denial-specific UX and live dashboard resolution behavior remain covered by focused integration tests."
@@ -82,7 +82,7 @@
       "title": "Ask-user workflow",
       "kind": "operator_workflow",
       "criticality": "important",
-      "verification_stages": ["advisory"],
+      "verification_stages": ["advisory", "release-candidate"],
       "expected_case_ids": ["ask-user.answer-resume"],
       "coverage_mode": "single_case",
       "notes": "Curated replay evidence covers an ask_user request through UserQuestionAsked, UserAnswerProvided, and answer-aware assistant resumption. Operator timing, empty-answer validation, and UI-specific error states remain focused integration evidence."

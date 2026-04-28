@@ -9,7 +9,7 @@
     "owner": "runtime.ask-user",
     "capabilities": ["ask_user_flow"],
     "severity": "high",
-    "verification_stages": ["advisory"],
+    "verification_stages": ["advisory", "release-candidate"],
     "baseline_refresh_policy": "review_required"
   },
   "expectation": {

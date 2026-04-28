@@ -148,7 +148,8 @@
                 "commit-smoke",
                 "push-confirmation",
                 "release-candidate",
-                "advisory-context"
+                "advisory-context",
+                "v7-workflow-advisory"
             ]
         }
     ]

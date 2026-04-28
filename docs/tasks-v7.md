@@ -409,7 +409,7 @@ Completion notes:
 
 ### GBX-724: Add v7 Eval Profile And Release-Signoff Updates
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-720`, `GBX-721`, `GBX-722`, `GBX-723`
 - Goal: update repository-owned eval profiles, budgets, coverage audits, and release reports for the expanded v7 eval portfolio
 - Deliverables:
@@ -428,6 +428,13 @@ Completion notes:
   - eval recommendation tests if impact metadata changes
 - Done when:
   - the expanded eval portfolio has clear profile membership, budgets, and release-signoff behavior
+
+Completion notes:
+
+- Promoted the stable approval and ask-user cases into the blocking `release-candidate` profile and reviewed its selected-case, selected-invariant, model-call, and artifact-size budgets.
+- Added `v7-workflow-advisory` for the dashboard action, daemon-adjacent attach, and cancellation variants that remain deterministic but non-blocking while origin metadata, live daemon lifecycle, socket timing, and provider stop behavior stay outside replay.
+- Updated profile governance impact metadata and documented the v7 profile split in [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md).
+- Validation: `uv run glassbox eval audit --cwd .`, `uv run glassbox eval report commit-smoke push-confirmation release-candidate --output-dir .glassbox/evals/v7-release-signoff --cwd .`, `uv run glassbox eval run --profile v7-workflow-advisory --cwd .`, and eval recommendation/profile tests.
 
 ---
 
