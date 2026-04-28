@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from glassbox.core.models import TranscriptMessage
 from glassbox.runtime.context_models import RepositoryContextSnapshot
 from glassbox.runtime.context_models import RuntimeContextNoteSnapshot
+from glassbox.runtime.context_models import RuntimeContextSnapshot
 from glassbox.tools import ToolSchema
 
 
@@ -75,3 +76,44 @@ def format_runtime_notes_for_prompt(
         )
         formatted_notes.append(f"[{category_prefix}] {note.message}")
     return formatted_notes
+
+
+def format_runtime_context_budget_summary(
+    snapshot: RuntimeContextSnapshot,
+) -> str:
+    """Render visible and truncated runtime-context counts for operators."""
+
+    return "; ".join(
+        [
+            _budget_segment(
+                "repo dirs",
+                len(snapshot.repository_context.top_level_directories),
+                snapshot.repository_context.additional_directory_count,
+            ),
+            _budget_segment(
+                "repo files",
+                len(snapshot.repository_context.top_level_files),
+                snapshot.repository_context.additional_file_count,
+            ),
+            _budget_segment(
+                "notes",
+                len(snapshot.runtime_notes),
+                snapshot.additional_runtime_note_count,
+            ),
+            _budget_segment(
+                "working set",
+                len(snapshot.working_set.items),
+                snapshot.working_set.additional_item_count,
+            ),
+            _budget_segment(
+                "artifact summaries",
+                len(snapshot.artifact_context.summaries),
+                snapshot.artifact_context.additional_summary_count,
+            ),
+        ]
+    )
+
+
+def _budget_segment(label: str, visible_count: int, additional_count: int) -> str:
+    suffix = f" (+{additional_count} more)" if additional_count else ""
+    return f"{label} {visible_count} visible{suffix}"

@@ -797,7 +797,7 @@ Completion notes:
 
 ### GBX-674: Add Context Budget And Drift Confidence Checks
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-641`
 - Goal: improve confidence that runtime context, working-set summaries, artifact-backed evidence, and replay manifests stay within expected budgets and drift semantics
 - Deliverables:
@@ -814,6 +814,15 @@ Completion notes:
   - `uv run glassbox eval recommend src/glassbox/runtime/context_builder.py --cwd .`
 - Done when:
   - release validation has better coverage for context-sensitive behavior that can otherwise drift quietly
+
+Completion notes:
+
+- Fixed `evals/impact.json` so `glassbox eval recommend src/glassbox/runtime/context_builder.py --cwd .` can load the impact manifest and route context changes to context cases/profiles again.
+- Expanded the runtime-context impact rule to include context docs and characterization tests, with advisory notes for inherited notes, working-set budgets, artifact-backed summaries, and selected-invariant replay drift.
+- Added a CLI runtime-context budget summary that reports visible and truncated repository, note, working-set, and artifact-backed context counts.
+- Added tests for runtime-context budget reporting and context-path eval recommendations.
+- Documented how to interpret runtime-context budget truncation and drift in [runtime-context.md](./runtime-context.md).
+- Validation: `uv run pytest tests/unit/test_context_builder.py tests/integration/test_session_query_characterization.py tests/unit/test_replay_orchestrator.py`; `uv run pytest tests/unit/test_eval_recommendations.py`; `uv run glassbox eval recommend src/glassbox/runtime/context_builder.py --cwd .`; `uv run ruff check src/glassbox/runtime src/glassbox/cli tests`; `uv run ty check`.
 
 ---
 

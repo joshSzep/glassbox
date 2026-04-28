@@ -44,6 +44,7 @@ from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.context_builder import WorkingSetItemSnapshot
 from glassbox.runtime.context_builder import WorkingSetSnapshot
 from glassbox.runtime.context_formatting import format_repository_context_for_prompt
+from glassbox.runtime.context_formatting import format_runtime_context_budget_summary
 from glassbox.runtime.context_formatting import format_runtime_notes_for_prompt
 from glassbox.runtime.context_formatting import format_tool_schemas_for_prompt
 from glassbox.runtime.context_formatting import format_transcript_for_prompt
@@ -757,6 +758,38 @@ def test_runtime_context_snapshot_includes_artifact_backed_summary() -> None:
             )
         ],
         additional_summary_count=0,
+    )
+
+
+def test_runtime_context_budget_summary_reports_visible_and_truncated_counts() -> None:
+    runtime_context = RuntimeContextSnapshot(
+        repository_context=RepositoryContextSnapshot(
+            workspace_name="glassbox",
+            top_level_directories=["docs/", "src/"],
+            additional_directory_count=3,
+            top_level_files=["README.md"],
+        ),
+        runtime_notes=[
+            RuntimeContextNoteSnapshot(category="repo", message="Keep context small")
+        ],
+        additional_runtime_note_count=2,
+        working_set=WorkingSetSnapshot(
+            items=[
+                WorkingSetItemSnapshot(
+                    subject_kind="file",
+                    subject="src/glassbox/runtime/context_builder.py",
+                    summary="recently targeted workspace path",
+                )
+            ],
+            additional_item_count=4,
+        ),
+        artifact_context=ArtifactBackedContextSnapshot(additional_summary_count=1),
+    )
+
+    assert format_runtime_context_budget_summary(runtime_context) == (
+        "repo dirs 2 visible (+3 more); repo files 1 visible; "
+        "notes 1 visible (+2 more); working set 1 visible (+4 more); "
+        "artifact summaries 0 visible (+1 more)"
     )
 
 

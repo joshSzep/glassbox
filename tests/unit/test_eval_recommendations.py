@@ -58,7 +58,13 @@ def _write_profiles(tmp_path: Path) -> None:
                         "title": "Commit smoke",
                         "verification_stage": "commit-time",
                         "blocking": True,
-                    }
+                    },
+                    {
+                        "profile_id": "release-candidate",
+                        "title": "Release candidate",
+                        "verification_stage": "release-candidate",
+                        "blocking": True,
+                    },
                 ],
             },
             indent=2,
@@ -82,7 +88,14 @@ def _write_coverage(tmp_path: Path) -> None:
                         "criticality": "release-critical",
                         "verification_stages": ["commit-time"],
                         "expected_case_ids": ["smoke.readme"],
-                    }
+                    },
+                    {
+                        "capability_id": "context_drift_detection",
+                        "title": "Context drift detection",
+                        "criticality": "important",
+                        "verification_stages": ["release-candidate"],
+                        "expected_case_ids": ["context.artifact"],
+                    },
                 ],
             },
             indent=2,
@@ -106,7 +119,17 @@ def _write_impact(tmp_path: Path) -> None:
                         "path_globs": ["src/glassbox/runtime/replay*.py"],
                         "owners": ["runtime.replay"],
                         "capabilities": ["replay_portability"],
-                    }
+                    },
+                    {
+                        "rule_id": "runtime-context",
+                        "title": "Runtime context",
+                        "path_globs": [
+                            "src/glassbox/runtime/context*.py",
+                            "docs/runtime-context.md",
+                        ],
+                        "owners": ["runtime.context"],
+                        "capabilities": ["context_drift_detection"],
+                    },
                 ],
             },
             indent=2,
@@ -171,3 +194,29 @@ def test_recommend_eval_change_impact_ignores_non_contract_case_metadata(
     assert [reason.summary for reason in before.profiles[0].reasons] == [
         reason.summary for reason in after.profiles[0].reasons
     ]
+
+
+def test_recommend_eval_change_impact_routes_context_changes_to_context_cases(
+    tmp_path: Path,
+) -> None:
+    _write_case(
+        tmp_path,
+        case_id="context.artifact",
+        title="Artifact-backed context",
+        owner="runtime.context",
+        capabilities=["context_drift_detection"],
+        verification_stages=["release-candidate"],
+    )
+    _write_profiles(tmp_path)
+    _write_coverage(tmp_path)
+    _write_impact(tmp_path)
+
+    report = recommend_eval_change_impact(
+        tmp_path,
+        touched_paths=["src/glassbox/runtime/context_builder.py"],
+    )
+
+    assert report.matched_rule_ids == ["runtime-context"]
+    assert [case.case_id for case in report.cases] == ["context.artifact"]
+    assert [profile.profile_id for profile in report.profiles] == ["release-candidate"]
+    assert any("context.artifact" in command for command in report.suggested_commands)

@@ -12,6 +12,7 @@ from glassbox.core.events import UserQuestionAsked
 from glassbox.core.models import ApprovalRecord
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TurnMetricsRecord
+from glassbox.runtime.context_formatting import format_runtime_context_budget_summary
 from glassbox.runtime.session_queries import SessionStatusView
 
 
@@ -106,6 +107,7 @@ def _print_runtime_context_summary(runtime_context) -> None:
     repository_context = runtime_context.repository_context
 
     print("Runtime context:")
+    print(f"  Budget: {format_runtime_context_budget_summary(runtime_context)}")
     print(f"  Workspace summary: {repository_context.workspace_name}")
     if repository_context.high_signal_paths:
         print("  High-signal paths: " + ", ".join(repository_context.high_signal_paths))

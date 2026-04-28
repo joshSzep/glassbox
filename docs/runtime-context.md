@@ -65,6 +65,11 @@ Read those summaries with this mental model:
 - working-set items are prioritized summaries, not hidden truth
 - artifact-backed summaries are explicit derived state with freshness semantics
 
+`glassbox session status` also prints a runtime-context budget line. Treat
+`(+N more)` counts as a confidence signal: the context is still deterministic,
+but the visible prompt/operator slice is truncated and release review should
+prefer context-sensitive replay/eval coverage before accepting drift.
+
 ## Resume, Replay, Eval, And Branch Behavior
 
 - `resume` recomputes repository context, reloads runtime notes, rebuilds the working set, and reloads artifact-backed summaries when available
@@ -78,6 +83,7 @@ Read those summaries with this mental model:
 - If a historical session only shows minimal repository detail, the recorded `cwd` may no longer exist on disk.
 - If replay reports `manifest drift`, inspect the richer runtime context first.
 - If replay reports `recorded enriched context source drifted: ...`, treat that as a context contract change rather than generic transcript noise.
+- If the runtime-context budget line shows truncation, inspect whether the hidden count is expected for this workspace or whether context-sensitive tests should be promoted before release sign-off.
 - If an artifact-backed summary is missing from a later turn, check freshness and whether the underlying artifact is still present.
 
 ## Scope Limits
