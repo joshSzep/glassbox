@@ -231,7 +231,7 @@ Completion notes:
 
 ### GBX-641: Inventory Current Gates, Gaps, And Release Evidence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-640`
 - Goal: establish a code-aligned baseline of all existing validation commands, release gates, generated artifacts, known manual checks, and missing evidence
 - Deliverables:
@@ -247,6 +247,12 @@ Completion notes:
   - docs review against `pyproject.toml`, `frontend/package.json`, `scripts/validate_v5_terminal_release_gate.py`, and command help
 - Done when:
   - v6 implementers know exactly what validation already exists and what must be added
+
+Completion notes:
+
+- Added [v6-release-inventory.md](./v6-release-inventory.md) with current automated validation surfaces, manual validation surfaces, weak or missing coverage, recommended v6 gate membership, recommended manual signoff membership, and current evidence ownership.
+- Reviewed the inventory against [pyproject.toml](../pyproject.toml), [frontend/package.json](../frontend/package.json), `.pre-commit-config.yaml`, [evals/profiles.json](../evals/profiles.json), [v5-terminal-release-gate.md](./v5-terminal-release-gate.md), [v4-ux-release-gate.md](./v4-ux-release-gate.md), and [release-packaging.md](./release-packaging.md).
+- Validation: documentation review only; no runtime behavior changed.
 
 ### GBX-642: Add The v6 Release Gate Script
 
