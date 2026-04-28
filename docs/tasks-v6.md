@@ -1167,7 +1167,7 @@ Completion notes:
 
 ### GBX-702: Run Manual Release Candidate Validation
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-701`, `GBX-690`
 - Goal: complete the manual release validation matrix and record evidence for workflows automated tests cannot fully prove
 - Deliverables:
@@ -1187,6 +1187,13 @@ Completion notes:
   - focused automated reruns for any area fixed during manual validation
 - Done when:
   - manual release evidence exists and no blocking manual validation issue remains open
+
+Completion notes:
+
+- Created retained manual evidence at `.glassbox/releases/gbx-701-automated-gate/manual-validation.md`, tied to the passing automated summary in the same directory.
+- Manual evidence links the Phase 69 terminal, dashboard, and recovery review artifacts, installed terminal/dashboard/daemon/eval smoke from the automated gate, and the final blocking/residual-risk lists.
+- Ran advisory provider canary evidence with `uv run glassbox provider canary run --cwd . --output-dir .glassbox/releases/gbx-701-automated-gate/provider-canary --json`; the `openai:gpt-5.4` `streaming-text` scenario passed and wrote `provider-canary-summary.json`.
+- No blocking manual validation issue remains open.
 
 ### GBX-703: Publish The v6 Release Candidate Guide
 
