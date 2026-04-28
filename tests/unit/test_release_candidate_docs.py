@@ -130,3 +130,27 @@ def test_v7_contract_covers_adoption_and_scale_boundary() -> None:
         "tasks-v7.md",
     ):
         assert required_text in content
+
+
+def test_v7_inventory_covers_scale_verification_and_adoption_gaps() -> None:
+    content = (REPO_ROOT / "docs" / "v7-scale-verification-inventory.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "## Command Surface Baseline",
+        "## Deterministic Eval Portfolio",
+        "## Provider Diagnostics And Canary Evidence",
+        "## Larger-Session Read Paths",
+        "## Daemon, Transport, And Multi-Observer Evidence",
+        "## Tool Policy And Approval Governance",
+        "## Accessibility Evidence",
+        "## Onboarding And Packaging",
+        "## Recommended v7 Gate Membership",
+        "## Summary Of Weak Or Missing Coverage",
+        "approval_flow",
+        "ask_user_flow",
+        "live-provider-canary",
+        "uv run glassbox command tree",
+    ):
+        assert required_text in content

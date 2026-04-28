@@ -237,7 +237,7 @@ Completion notes:
 
 ### GBX-711: Inventory v7 Scale, Verification, Provider, And Adoption Gaps
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-710`
 - Goal: establish a code-aligned baseline of current eval coverage, provider canaries, long-session behavior, daemon transport evidence, policy fixtures, accessibility evidence, and onboarding paths
 - Deliverables:
@@ -256,6 +256,13 @@ Completion notes:
   - docs review against `evals/coverage.json`, `evals/impact.json`, `evals/profiles.json`, provider commands, release scripts, and command help
 - Done when:
   - v7 implementers know exactly what exists, what is weak, and what should be promoted into stronger coverage
+
+Completion notes:
+
+- Added [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md) with the current command surface, deterministic eval portfolio, provider diagnostics and canary evidence, larger-session read paths, daemon and transport evidence, policy governance posture, accessibility evidence, onboarding and packaging baseline, recommended gate membership, and weak-coverage summary.
+- Reviewed the inventory against `evals/coverage.json`, `evals/impact.json`, `evals/profiles.json`, current eval cases, [providers.md](./providers.md), [tool-policy.md](./tool-policy.md), [release-packaging.md](./release-packaging.md), [persistent-runtime.md](./persistent-runtime.md), and `uv run glassbox command tree`.
+- Added a documentation guardrail for the v7 inventory contents.
+- Validation: `uv run pytest tests/unit/test_release_candidate_docs.py`; `uv run glassbox command tree`.
 
 ### GBX-712: Update Documentation Discovery For v7
 
