@@ -79,7 +79,27 @@ def build_gate_stages() -> list[GateStage]:
         GateStage("frontend lint", ("pnpm", "--dir", "frontend", "lint")),
         GateStage("frontend typecheck", ("pnpm", "--dir", "frontend", "typecheck")),
         GateStage("frontend tests", ("pnpm", "--dir", "frontend", "test")),
+        GateStage(
+            "frontend API generation",
+            ("pnpm", "--dir", "frontend", "api:generate"),
+        ),
+        GateStage(
+            "frontend generated API freshness",
+            (
+                "git",
+                "--no-pager",
+                "diff",
+                "--exit-code",
+                "--",
+                "frontend/generated/openapi.json",
+                "frontend/generated/api-types.ts",
+            ),
+        ),
         GateStage("frontend production build", ("pnpm", "--dir", "frontend", "build")),
+        GateStage(
+            "frontend static asset validation",
+            ("uv", "run", "python", "scripts/validate_frontend_release_assets.py"),
+        ),
         GateStage("package build", ("uv", "build", "--wheel", "--sdist")),
     ]
 

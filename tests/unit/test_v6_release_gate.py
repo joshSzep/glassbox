@@ -20,7 +20,10 @@ def test_v6_release_gate_script_runs_expected_checks() -> None:
         "frontend lint",
         "frontend typecheck",
         "frontend tests",
+        "frontend API generation",
+        "frontend generated API freshness",
         "frontend production build",
+        "frontend static asset validation",
         "package build",
         "installed wheel smoke",
         "--evidence-dir",
@@ -39,6 +42,9 @@ def test_v6_release_gate_script_runs_expected_checks() -> None:
         "tests/integration/test_web_session_interaction.py",
         "tests/integration/test_web_spa_static.py",
         "tests/unit/test_packaging_metadata.py",
+        "scripts/validate_frontend_release_assets.py",
+        "frontend/generated/openapi.json",
+        "frontend/generated/api-types.ts",
     ]
 
     for fragment in expected_fragments:

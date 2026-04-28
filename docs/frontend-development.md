@@ -75,6 +75,7 @@ the Python package tree, and serve it from FastAPI:
 
 ```bash
 pnpm --dir frontend install --frozen-lockfile
+pnpm --dir frontend api:generate
 pnpm --dir frontend build
 uv run glassbox dashboard serve --cwd . --host 127.0.0.1 --port 8765
 ```
@@ -93,6 +94,10 @@ default dashboard at `/`; `/app` remains a compatibility alias and direct nested
 Use this production path before packaging or release validation so the installed
 Python distribution can serve the dashboard without requiring Node.js or `pnpm`
 at operator runtime.
+
+Before release packaging, `uv run python scripts/validate_frontend_release_assets.py`
+checks that generated API files exist and that `index.html` references only
+assets present under `src/glassbox/web/static_next/`.
 
 ## Generated API Types
 

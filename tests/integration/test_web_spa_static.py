@@ -8,6 +8,7 @@ from pathlib import Path
 
 import httpx
 import pytest
+from scripts.validate_frontend_release_assets import validate_frontend_release_assets
 
 import glassbox.web.app as web_app
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
@@ -38,6 +39,13 @@ def _write_spa_build(root: Path) -> None:
         encoding="utf-8",
     )
     (chunk_dir / "app.js").write_text("console.log('glassbox spa');", encoding="utf-8")
+
+
+def _write_generated_api(root: Path) -> None:
+    generated_dir = root / "frontend" / "generated"
+    generated_dir.mkdir(parents=True)
+    (generated_dir / "openapi.json").write_text('{"openapi":"3.1.0"}\n')
+    (generated_dir / "api-types.ts").write_text("export type paths = {};\n")
 
 
 def test_default_dashboard_reports_clear_error_when_spa_build_is_missing(
@@ -91,6 +99,34 @@ def test_default_dashboard_reports_clear_error_for_stale_spa_build(
             connection.close()
 
     asyncio.run(scenario())
+
+
+def test_frontend_release_asset_validator_reports_missing_next_assets(
+    tmp_path: Path,
+) -> None:
+    _write_generated_api(tmp_path)
+    static_next = tmp_path / "src" / "glassbox" / "web" / "static_next"
+    static_next.mkdir(parents=True)
+    (static_next / "index.html").write_text(
+        '<!doctype html><script src="/app/_next/static/chunks/app.js"></script>',
+        encoding="utf-8",
+    )
+
+    problems = validate_frontend_release_assets(tmp_path)
+
+    assert problems == [
+        "missing SPA asset referenced by index.html: /app/_next/static/chunks/app.js",
+        "missing SPA _next static assets: src/glassbox/web/static_next/_next",
+    ]
+
+
+def test_frontend_release_asset_validator_accepts_generated_api_and_static_export(
+    tmp_path: Path,
+) -> None:
+    _write_generated_api(tmp_path)
+    _write_spa_build(tmp_path / "src" / "glassbox" / "web" / "static_next")
+
+    assert validate_frontend_release_assets(tmp_path) == []
 
 
 def test_package_build_config_includes_spa_static_artifacts() -> None:

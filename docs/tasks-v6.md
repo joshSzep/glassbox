@@ -830,7 +830,7 @@ Completion notes:
 
 ### GBX-680: Enforce Frontend API And Static Asset Freshness
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-642`
 - Goal: prevent stale generated API types or missing static SPA assets from reaching a release package
 - Deliverables:
@@ -848,6 +848,14 @@ Completion notes:
   - `uv run pytest tests/integration/test_web_spa_static.py tests/unit/test_packaging_metadata.py`
 - Done when:
   - release validation catches stale API/generated/static dashboard assets before package build succeeds
+
+Completion notes:
+
+- Added `scripts/validate_frontend_release_assets.py` to validate generated API files and the copied Next static export before packaging.
+- Updated the v6 release gate to run `pnpm --dir frontend api:generate`, fail on generated API diffs, run `pnpm --dir frontend build`, and validate `src/glassbox/web/static_next/` before `uv build --wheel --sdist`.
+- Added tests for missing `_next` assets and release-gate stage coverage.
+- Updated frontend and release packaging docs with source-build and release-build expectations.
+- Validation: `pnpm --dir frontend api:generate`; `pnpm --dir frontend build`; `uv run pytest tests/integration/test_web_spa_static.py tests/unit/test_packaging_metadata.py`; `uv run pytest tests/unit/test_v6_release_gate.py`; `uv run ruff check scripts tests`; `uv run ty check`.
 
 ### GBX-681: Expand Wheel And Sdist Content Validation
 
