@@ -256,7 +256,7 @@ Completion notes:
 
 ### GBX-642: Add The v6 Release Gate Script
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-641`
 - Goal: provide one canonical command that runs the automated v6 release-hardening gate
 - Deliverables:
@@ -277,6 +277,12 @@ Completion notes:
   - `uv run ty check`
 - Done when:
   - `uv run python scripts/validate_v6_release_gate.py` is the documented automated release gate
+
+Completion notes:
+
+- Added `scripts/validate_v6_release_gate.py` with deterministic blocking stages for Python format/lint/typecheck, focused cancellation tests, focused transport and daemon tests, focused terminal and dashboard tests, full Python tests, deterministic eval smoke, frontend lint/typecheck/tests/build, package build, advisory provider-canary handling, dry-run output, and installed-wheel command smoke.
+- Added `tests/unit/test_v6_release_gate.py` to keep the gate command inventory and dry-run behavior aligned with the v6 contract.
+- Validation: `uv run pytest tests/unit/test_v6_release_gate.py`.
 
 ### GBX-643: Define Release Evidence Artifacts
 
