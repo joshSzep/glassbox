@@ -7,8 +7,10 @@ export function makeProjectionHealth(
     canonical_last_sequence: 4,
     degraded: false,
     detail: null,
+    estimated_rebuild_event_count: 0,
     lag: 0,
     projected_last_sequence: 4,
+    projected_progress_ratio: 1,
     state: "ok",
     ...overrides,
   };

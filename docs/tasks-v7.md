@@ -638,7 +638,7 @@ Completion notes:
 
 ### GBX-743: Improve Projection And Artifact Scale Observability
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-740`
 - Goal: make projection lag, rebuild cost, artifact retention, and storage pressure visible before they become confusing runtime failures
 - Deliverables:
@@ -657,6 +657,13 @@ Completion notes:
   - observability tests if output changes
 - Done when:
   - operators can understand and respond to local storage and projection pressure before it blocks work
+
+Completion notes:
+
+- Projection health now reports estimated rebuild event scope and projected progress ratio through the core model, CLI projection checks, observability status, HTTP session payloads, generated OpenAPI types, and dashboard projection details.
+- Artifact inspection/prune reports now include managed file counts, protected/candidate sizes, retention-class counts, artifact age, `.glassbox` total byte pressure, and a configurable `--warning-threshold-mb` storage warning while keeping deletion explicit and dry-run friendly.
+- Workspace observability status now includes artifact pressure alongside projection rebuild scope so operators can inspect stale projections and storage pressure from one read-only command.
+- Focused projection, artifact GC, observability, dashboard fixture, and large-session baseline tests cover the new metadata and output shape.
 
 ### GBX-744: Add Larger-Session Scale Gate Coverage
 

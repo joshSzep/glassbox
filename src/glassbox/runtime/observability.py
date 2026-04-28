@@ -15,6 +15,7 @@ from glassbox.runtime.provider_canary import ProviderCanaryEvidenceSummary
 from glassbox.runtime.provider_canary import load_provider_canary_evidence
 from glassbox.runtime.transport import RuntimeEventTransportStats
 from glassbox.services import SessionRepository
+from glassbox.store.artifact_retention import inspect_artifact_state
 
 
 class EventTransportObservability(BaseModel):
@@ -59,7 +60,26 @@ class ProjectionObservability(BaseModel):
     unavailable_count: int
     degraded_count: int
     max_lag: int
+    max_rebuild_event_count: int
+    total_rebuild_event_count: int
     degraded_sessions: list[str] = Field(default_factory=list)
+    next_actions: list[str] = Field(default_factory=list)
+
+
+class ArtifactObservability(BaseModel):
+    """Managed artifact retention and storage-pressure summary."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    protected_count: int
+    candidate_count: int
+    missing_reference_count: int
+    reclaimable_bytes: int
+    glassbox_size_bytes: int
+    storage_warning_threshold_bytes: int | None = None
+    storage_warning: str | None = None
+    oldest_age_days: int | None = None
+    category_counts: dict[str, int] = Field(default_factory=dict)
     next_actions: list[str] = Field(default_factory=list)
 
 
@@ -87,6 +107,7 @@ class WorkspaceObservabilityReport(BaseModel):
     workspace_root: str
     runtime: RuntimeObservability
     projections: ProjectionObservability
+    artifacts: ArtifactObservability
     verification: VerificationObservability
     provider_canary: ProviderCanaryEvidenceSummary
     next_actions: list[str] = Field(default_factory=list)
@@ -113,17 +134,19 @@ def build_workspace_observability_report(
         workspace_root=workspace_root,
     )
     projections = build_projection_observability(session_repository)
+    artifacts = build_artifact_observability(workspace_root, session_repository)
     verification = build_verification_observability(workspace_root)
     provider_canary = load_provider_canary_evidence(workspace_root)
     next_actions = [
         action
-        for section in (runtime, projections, verification, provider_canary)
+        for section in (runtime, projections, artifacts, verification, provider_canary)
         for action in section.next_actions
     ]
     return WorkspaceObservabilityReport(
         workspace_root=str(workspace_root),
         runtime=runtime,
         projections=projections,
+        artifacts=artifacts,
         verification=verification,
         provider_canary=provider_canary,
         next_actions=next_actions,
@@ -211,14 +234,21 @@ def build_projection_observability(
     counts = {"ok": 0, "stale": 0, "unavailable": 0}
     degraded_sessions: list[str] = []
     max_lag = 0
+    max_rebuild_event_count = 0
+    total_rebuild_event_count = 0
     for session in sessions:
         health = session_repository.inspect_session_projection_health(
             session.session_id
         )
         counts[health.state] = counts.get(health.state, 0) + 1
         max_lag = max(max_lag, health.lag)
+        max_rebuild_event_count = max(
+            max_rebuild_event_count,
+            health.estimated_rebuild_event_count,
+        )
         if health.degraded:
             degraded_sessions.append(str(session.session_id))
+            total_rebuild_event_count += health.estimated_rebuild_event_count
 
     next_actions: list[str] = []
     if degraded_sessions:
@@ -231,7 +261,32 @@ def build_projection_observability(
         unavailable_count=counts.get("unavailable", 0),
         degraded_count=len(degraded_sessions),
         max_lag=max_lag,
+        max_rebuild_event_count=max_rebuild_event_count,
+        total_rebuild_event_count=total_rebuild_event_count,
         degraded_sessions=degraded_sessions,
+        next_actions=next_actions,
+    )
+
+
+def build_artifact_observability(
+    workspace_root: Path,
+    session_repository: SessionRepository,
+) -> ArtifactObservability:
+    report = inspect_artifact_state(workspace_root, session_repository)
+    next_actions: list[str] = []
+    if report.storage_warning is not None or report.candidates:
+        next_actions.append("glassbox artifacts inspect")
+        next_actions.append("glassbox artifacts prune --dry-run")
+    return ArtifactObservability(
+        protected_count=len(report.protected),
+        candidate_count=len(report.candidates),
+        missing_reference_count=len(report.missing_references),
+        reclaimable_bytes=report.candidate_size_bytes,
+        glassbox_size_bytes=report.glassbox_size_bytes,
+        storage_warning_threshold_bytes=report.storage_warning_threshold_bytes,
+        storage_warning=report.storage_warning,
+        oldest_age_days=report.oldest_age_days,
+        category_counts=report.category_counts,
         next_actions=next_actions,
     )
 

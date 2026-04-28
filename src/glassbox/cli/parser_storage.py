@@ -38,6 +38,12 @@ def _add_artifact_parsers(
         help="age threshold for managed .glassbox/evals artifacts",
     )
     inspect_parser.add_argument(
+        "--warning-threshold-mb",
+        type=int,
+        default=512,
+        help="warn when local .glassbox storage meets or exceeds this size",
+    )
+    inspect_parser.add_argument(
         "--json",
         action="store_true",
         help="print the artifact inspection report as JSON",
@@ -62,6 +68,12 @@ def _add_artifact_parsers(
         type=int,
         default=30,
         help="age threshold for managed .glassbox/evals artifacts",
+    )
+    prune_parser.add_argument(
+        "--warning-threshold-mb",
+        type=int,
+        default=512,
+        help="warn when local .glassbox storage meets or exceeds this size",
     )
     prune_parser.add_argument(
         "--json",

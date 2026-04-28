@@ -75,9 +75,11 @@ The reviewed command surfaces return structured JSON where requested and keep
 mutating recovery operations explicit:
 
 - `projection check` is read-only; `projection rebuild` is the explicit repair
-  action.
+  action. Projection health output includes estimated rebuild event scope and
+  projected progress so large-session repair cost is visible before rebuilding.
 - `artifacts inspect` is read-only; `artifacts prune --dry-run` reports cleanup
-  without deleting files.
+  without deleting files. Both commands summarize retention classes, artifact
+  age, reclaimable bytes, and `.glassbox` storage pressure before any mutation.
 - `backup restore` was validated only in a temporary workspace.
 - `daemon status` is safe before attempting daemon lifecycle recovery.
 - Eval report failures remain release evidence rather than silent success.

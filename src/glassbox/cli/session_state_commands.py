@@ -279,6 +279,10 @@ def _format_projection_health_summary(health: ProjectionHealth) -> str:
         f"{health.state}; canonical sequence {health.canonical_last_sequence}; "
         f"projected sequence {projected_sequence}; lag {health.lag}"
     )
+    if health.estimated_rebuild_event_count > 0:
+        summary += f"; rebuild scope {health.estimated_rebuild_event_count} event(s)"
+    if health.projected_progress_ratio is not None:
+        summary += f"; progress {health.projected_progress_ratio:.0%}"
     if health.detail is not None:
         summary += f" ({health.detail})"
     return summary

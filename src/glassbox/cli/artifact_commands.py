@@ -21,14 +21,13 @@ def _artifacts_command(args: argparse.Namespace) -> int:
 
 def _artifact_inspect_command(args: argparse.Namespace) -> int:
     cwd, db_path = resolve_runtime_location(args)
-    if args.max_age_days < 0:
-        raise ValueError("--max-age-days must be zero or greater")
+    _validate_artifact_args(args)
 
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
         report = inspect_artifact_state(
             cwd,
             runtime_context.repositories.sessions,
-            policy=ArtifactRetentionPolicy(eval_max_age_days=args.max_age_days),
+            policy=_artifact_retention_policy(args),
         )
 
     if args.json:
@@ -44,14 +43,13 @@ def _artifact_prune_command(args: argparse.Namespace) -> int:
         args,
         require_daemon_unowned_for="prune artifacts locally",
     )
-    if args.max_age_days < 0:
-        raise ValueError("--max-age-days must be zero or greater")
+    _validate_artifact_args(args)
 
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
         report = run_artifact_gc(
             cwd,
             runtime_context.repositories.sessions,
-            policy=ArtifactRetentionPolicy(eval_max_age_days=args.max_age_days),
+            policy=_artifact_retention_policy(args),
             dry_run=args.dry_run,
         )
 
@@ -78,6 +76,7 @@ def _print_artifact_prune_report(
         f"{action_count} {'would be deleted' if dry_run else 'deleted'} "
         f"({action_size} bytes)"
     )
+    _print_artifact_pressure_summary(report)
     if report.missing_references:
         print(f"Missing referenced artifacts: {len(report.missing_references)}")
         for path in report.missing_references:
@@ -88,7 +87,7 @@ def _print_artifact_prune_report(
         print(
             f"{action_label}: {entry.relative_path.as_posix()} "
             f"[{entry.category}, {entry.size_bytes} bytes, "
-            f"sha256 {entry.content_sha256}]"
+            f"age {entry.age_days} day(s), sha256 {entry.content_sha256}]"
         )
         print(f"  Reason: {entry.reason}")
 
@@ -101,6 +100,7 @@ def _print_artifact_inspection_report(report: ArtifactGcReport) -> None:
         f"{len(report.missing_references)} missing reference(s), "
         f"{report.candidate_size_bytes} reclaimable bytes"
     )
+    _print_artifact_pressure_summary(report)
     if report.missing_references:
         print(f"Missing referenced artifacts: {len(report.missing_references)}")
         for path in report.missing_references:
@@ -110,7 +110,7 @@ def _print_artifact_inspection_report(report: ArtifactGcReport) -> None:
         print(
             f"Protected: {entry.relative_path.as_posix()} "
             f"[{entry.category}, {entry.size_bytes} bytes, "
-            f"sha256 {entry.content_sha256}]"
+            f"age {entry.age_days} day(s), sha256 {entry.content_sha256}]"
         )
         print(f"  Reason: {entry.reason}")
 
@@ -118,6 +118,43 @@ def _print_artifact_inspection_report(report: ArtifactGcReport) -> None:
         print(
             f"Stale: {entry.relative_path.as_posix()} "
             f"[{entry.category}, {entry.size_bytes} bytes, "
-            f"sha256 {entry.content_sha256}]"
+            f"age {entry.age_days} day(s), sha256 {entry.content_sha256}]"
         )
         print(f"  Reason: {entry.reason}")
+
+
+def _validate_artifact_args(args: argparse.Namespace) -> None:
+    if args.max_age_days < 0:
+        raise ValueError("--max-age-days must be zero or greater")
+    if args.warning_threshold_mb < 0:
+        raise ValueError("--warning-threshold-mb must be zero or greater")
+
+
+def _artifact_retention_policy(args: argparse.Namespace) -> ArtifactRetentionPolicy:
+    threshold_bytes = args.warning_threshold_mb * 1024 * 1024
+    return ArtifactRetentionPolicy(
+        eval_max_age_days=args.max_age_days,
+        storage_warning_threshold_bytes=threshold_bytes,
+    )
+
+
+def _print_artifact_pressure_summary(report: ArtifactGcReport) -> None:
+    print(
+        "Artifact storage: "
+        f"{report.reported_count} managed file(s), "
+        f"{report.reported_size_bytes} reported bytes, "
+        f"{report.glassbox_size_bytes} total .glassbox bytes"
+    )
+    print(f"Retention classes: {_format_category_counts(report.category_counts)}")
+    if report.oldest_age_days is not None:
+        print(f"Oldest managed artifact age: {report.oldest_age_days} day(s)")
+    if report.storage_warning is not None:
+        print(f"Storage warning: {report.storage_warning}")
+
+
+def _format_category_counts(category_counts: dict[str, int]) -> str:
+    if not category_counts:
+        return "none"
+    return ", ".join(
+        f"{category}={count}" for category, count in sorted(category_counts.items())
+    )

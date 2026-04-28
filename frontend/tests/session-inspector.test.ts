@@ -146,6 +146,7 @@ describe("session inspector", () => {
     expect(evidenceMarkup).toContain("Evidence overview");
     expect(evidenceMarkup).toContain("Stream state");
     expect(evidenceMarkup).toContain("Projection details");
+    expect(evidenceMarkup).toContain("progress 100%");
     expect(evidenceMarkup).toContain("Raw metric details");
     expect(evidenceMarkup).toContain("Event evidence");
     expect(evidenceMarkup).toContain("pytest passed");

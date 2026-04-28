@@ -140,6 +140,8 @@ def test_print_session_status_preserves_status_output_contract(
                     "canonical_last_sequence": 8,
                     "projected_last_sequence": 8,
                     "lag": 0,
+                    "estimated_rebuild_event_count": 0,
+                    "projected_progress_ratio": 1.0,
                     "degraded": False,
                     "detail": None,
                 },

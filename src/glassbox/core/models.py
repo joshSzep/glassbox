@@ -88,6 +88,8 @@ class ProjectionHealth(BaseModel):
     canonical_last_sequence: int = Field(ge=0)
     projected_last_sequence: int | None = Field(default=None, ge=0)
     lag: int = Field(default=0, ge=0)
+    estimated_rebuild_event_count: int = Field(default=0, ge=0)
+    projected_progress_ratio: float | None = Field(default=None, ge=0, le=1)
     degraded: bool = False
     detail: str | None = None
 

@@ -166,16 +166,15 @@ GBX-740 baseline fixture:
 
 Current weak areas:
 
-- full snapshots include the complete transcript, runtime context, policy
-  summaries, and metric tail, so selected-session snapshots are the first
-  candidate for lazy detail loading as transcripts grow
-- raw event replay is cursor-based for SSE recovery, but dashboard event-log
-  inspection still lacks a typed paginated HTTP read API
-- transcript reads are projection-backed, but the dashboard transcript pane still
-  renders the full selected-session transcript instead of a virtualized window
-- artifact pressure and projection rebuild cost are observable, but maintenance
-  output still needs summarized count/size/age pressure cues before v7 release
-  validation
+- selected-session snapshots remain backward compatible and can still be heavy
+  for legacy clients, even though the dashboard hydrates transcript, event-log,
+  and metric detail panes through typed paginated reads
+- typed artifact and tool-call detail pages exist, but dashboard panes still use
+  the snapshot/runtime-context summaries until a future task makes those panes
+  fully on-demand
+- artifact pressure and projection rebuild cost now have CLI, JSON, dashboard,
+  and observability cues; GBX-744 still needs to promote the scale expectations
+  into a repeatable gate
 - installed-package dashboard smoke is intentionally short and does not exercise
   deep large-session states
 

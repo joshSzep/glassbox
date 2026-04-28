@@ -732,10 +732,14 @@ export interface components {
       degraded: boolean;
       /** Detail */
       detail: string | null;
+      /** Estimated Rebuild Event Count */
+      estimated_rebuild_event_count: number;
       /** Lag */
       lag: number;
       /** Projected Last Sequence */
       projected_last_sequence: number | null;
+      /** Projected Progress Ratio */
+      projected_progress_ratio: number | null;
       /** State */
       state: string;
     };

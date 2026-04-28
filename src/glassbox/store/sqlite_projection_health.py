@@ -36,6 +36,7 @@ def inspect_session_projection_health(
             canonical_last_sequence=session.last_sequence,
             projected_last_sequence=None,
             lag=session.last_sequence,
+            estimated_rebuild_event_count=session.last_sequence,
             degraded=True,
             detail=f"projection read failed: {exc}",
         )
@@ -46,12 +47,15 @@ def inspect_session_projection_health(
                 state="ok",
                 canonical_last_sequence=canonical_last_sequence,
                 projected_last_sequence=None,
+                projected_progress_ratio=1.0,
             )
         return ProjectionHealth(
             state="stale",
             canonical_last_sequence=canonical_last_sequence,
             projected_last_sequence=None,
             lag=canonical_last_sequence,
+            estimated_rebuild_event_count=canonical_last_sequence,
+            projected_progress_ratio=0.0,
             degraded=True,
             detail="session_state projection row is missing",
         )
@@ -63,6 +67,11 @@ def inspect_session_projection_health(
             canonical_last_sequence=canonical_last_sequence,
             projected_last_sequence=projected_last_sequence,
             lag=lag,
+            estimated_rebuild_event_count=canonical_last_sequence,
+            projected_progress_ratio=_progress_ratio(
+                projected_last_sequence,
+                canonical_last_sequence,
+            ),
             degraded=True,
             detail=f"session_state projection is {lag} event(s) behind",
         )
@@ -72,6 +81,7 @@ def inspect_session_projection_health(
             state="stale",
             canonical_last_sequence=canonical_last_sequence,
             projected_last_sequence=projected_last_sequence,
+            estimated_rebuild_event_count=canonical_last_sequence,
             degraded=True,
             detail="session_state projection is ahead of canonical events",
         )
@@ -80,7 +90,17 @@ def inspect_session_projection_health(
         state="ok",
         canonical_last_sequence=canonical_last_sequence,
         projected_last_sequence=projected_last_sequence,
+        projected_progress_ratio=1.0,
     )
+
+
+def _progress_ratio(
+    projected_last_sequence: int,
+    canonical_last_sequence: int,
+) -> float:
+    if canonical_last_sequence <= 0:
+        return 1.0
+    return round(min(projected_last_sequence / canonical_last_sequence, 1.0), 3)
 
 
 def _ensure_projection_tables_readable(

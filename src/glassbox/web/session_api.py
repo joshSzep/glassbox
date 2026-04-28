@@ -88,6 +88,8 @@ class ProjectionHealthResponse(BaseModel):
     canonical_last_sequence: int
     projected_last_sequence: int | None
     lag: int
+    estimated_rebuild_event_count: int
+    projected_progress_ratio: float | None
     degraded: bool
     detail: str | None
 

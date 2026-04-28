@@ -1162,6 +1162,10 @@
             ],
             "title": "Detail"
           },
+          "estimated_rebuild_event_count": {
+            "title": "Estimated Rebuild Event Count",
+            "type": "integer"
+          },
           "lag": {
             "title": "Lag",
             "type": "integer"
@@ -1177,6 +1181,17 @@
             ],
             "title": "Projected Last Sequence"
           },
+          "projected_progress_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projected Progress Ratio"
+          },
           "state": {
             "title": "State",
             "type": "string"
@@ -1187,6 +1202,8 @@
           "canonical_last_sequence",
           "projected_last_sequence",
           "lag",
+          "estimated_rebuild_event_count",
+          "projected_progress_ratio",
           "degraded",
           "detail"
         ],

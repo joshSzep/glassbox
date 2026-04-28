@@ -229,9 +229,10 @@ These tables should always be treated as rebuildable derived state.
 
 Projection health is inspected by comparing canonical event progress with the
 derived `session_state.last_sequence` projection and by checking that projection
-tables are readable. CLI status, session snapshots, and `glassbox projection
-check` report whether projections are `ok`, `stale`, or `unavailable`, along
-with canonical sequence, projected sequence, lag, and repair guidance. This keeps
+tables are readable. CLI status, session snapshots, dashboard projection details,
+and `glassbox projection check` report whether projections are `ok`, `stale`, or
+`unavailable`, along with canonical sequence, projected sequence, lag, estimated
+rebuild event scope, projected progress ratio, and repair guidance. This keeps
 canonical event integrity distinct from derived-state corruption: degraded
 projections should be repaired with `glassbox projection rebuild`, not treated as
 event-log loss.
@@ -432,10 +433,13 @@ Recommended layout:
 
 Artifact garbage collection is intentionally narrower than schema migration or
 projection rebuild. `glassbox artifacts inspect` reports managed artifact state,
-SHA-256 digests, missing event-referenced files, and stale cleanup candidates
-without deleting anything. `glassbox artifacts prune --dry-run` shows the same
-candidate cleanup path in prune terms before deleting anything. Running prune
-without `--dry-run` may delete only managed stale files under
+SHA-256 digests, missing event-referenced files, stale cleanup candidates,
+retention-class counts, protected/candidate byte totals, artifact age, and total
+`.glassbox` storage pressure without deleting anything. Use
+`--warning-threshold-mb` to tune the local storage warning threshold for inspect
+and prune reports. `glassbox artifacts prune --dry-run` shows the same candidate
+cleanup path in prune terms before deleting anything. Running prune without
+`--dry-run` may delete only managed stale files under
 `.glassbox/sessions/*/artifacts/` that are not referenced by canonical artifact
 events, and aged derived eval outputs under `.glassbox/evals/`.
 

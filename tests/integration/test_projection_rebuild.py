@@ -171,6 +171,8 @@ def test_cli_rebuild_check_reports_projection_lag_without_mutation(
     assert exit_code == 0
     assert f"Session {session_id}: stale" in captured.out
     assert "projected sequence none" in captured.out
+    assert "rebuild scope" in captured.out
+    assert "progress 0%" in captured.out
     assert "Projection health: 0 ok, 1 degraded" in captured.out
     assert counts["session_state"] == 0
 

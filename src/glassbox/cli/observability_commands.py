@@ -53,8 +53,18 @@ def _print_observability_report(report: WorkspaceObservabilityReport) -> None:
         "Projections: "
         f"{report.projections.ok_count} ok, "
         f"{report.projections.degraded_count} degraded, "
-        f"max lag {report.projections.max_lag}"
+        f"max lag {report.projections.max_lag}, "
+        f"max rebuild scope {report.projections.max_rebuild_event_count} event(s)"
     )
+    print(
+        "Artifacts: "
+        f"{report.artifacts.protected_count} protected, "
+        f"{report.artifacts.candidate_count} prune candidate(s), "
+        f"{report.artifacts.reclaimable_bytes} reclaimable bytes, "
+        f"{report.artifacts.glassbox_size_bytes} total .glassbox bytes"
+    )
+    if report.artifacts.storage_warning is not None:
+        print(f"Artifact warning: {report.artifacts.storage_warning}")
     print(
         "Verification: "
         f"{report.verification.latest_suite_status or 'not run'} "

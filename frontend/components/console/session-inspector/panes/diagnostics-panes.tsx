@@ -361,6 +361,12 @@ function ProjectionDetails({ projection }: { projection: DashboardState["project
             <p className="mt-2 text-xs text-muted-foreground">
               canonical {projection.canonical_last_sequence} · projected{" "}
               {projection.projected_last_sequence} · lag {projection.lag}
+              {projection.estimated_rebuild_event_count > 0
+                ? ` · rebuild scope ${projection.estimated_rebuild_event_count} events`
+                : ""}
+              {projection.projected_progress_ratio !== null
+                ? ` · progress ${Math.round(projection.projected_progress_ratio * 100)}%`
+                : ""}
             </p>
           </DataListItem>
         </DataList>

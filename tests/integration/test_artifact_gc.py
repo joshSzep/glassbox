@@ -81,6 +81,11 @@ def test_artifact_inspect_reports_without_deleting_files(
 
     assert exit_code == 0
     assert "Artifact inspect: 1 protected, 2 stale" in captured.out
+    assert "Artifact storage: 3 managed file(s)" in captured.out
+    assert "Retention classes: event_referenced_artifact=1" in captured.out
+    assert "orphan_session_artifact=1" in captured.out
+    assert "stale_eval_artifact=1" in captured.out
+    assert "Oldest managed artifact age:" in captured.out
     assert (
         f"Protected: {protected_path.relative_to(tmp_path).as_posix()}" in captured.out
     )
@@ -121,11 +126,20 @@ def test_artifact_inspect_json_reports_hashes_and_missing_references(
     assert payload["protected_count"] == 0
     assert payload["missing_reference_count"] == 1
     assert payload["candidate_count"] == 2
+    assert payload["reported_count"] == 2
+    assert payload["glassbox_size_bytes"] > 0
+    assert payload["oldest_age_days"] >= 39
+    assert payload["category_counts"] == {
+        "orphan_session_artifact": 1,
+        "stale_eval_artifact": 1,
+    }
     assert {candidate["path"] for candidate in payload["candidates"]} == {
         orphan_path.relative_to(tmp_path).as_posix(),
         stale_eval_path.relative_to(tmp_path).as_posix(),
     }
     assert all(candidate["content_sha256"] for candidate in payload["candidates"])
+    assert all(candidate["modified_at"] for candidate in payload["candidates"])
+    assert all(candidate["age_days"] >= 0 for candidate in payload["candidates"])
 
 
 def test_artifact_prune_deletes_only_unreferenced_and_managed_stale_files(
