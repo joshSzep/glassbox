@@ -550,7 +550,7 @@ Completion notes:
 
 ### GBX-661: Strengthen Runtime Transport Observability
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-660`
 - Goal: make live event delivery health visible enough for operators and release gates to distinguish healthy, degraded, and unavailable stream states
 - Deliverables:
@@ -567,6 +567,13 @@ Completion notes:
   - frontend tests if dashboard health display changes
 - Done when:
   - stream degradation produces actionable observability rather than a vague unavailable state
+
+Completion notes:
+
+- Expanded runtime transport stats with queue capacity, peak queue depth, queue pressure, and latest published sequence where event envelopes expose one.
+- Updated `/healthz` and `glassbox observability status` to report healthy/degraded transport state, reconnect hints, and slow-subscriber/drop next actions.
+- Regenerated frontend OpenAPI artifacts and aligned dashboard/API fixtures with the backend health schema.
+- Validation: `uv run pytest tests/unit/test_runtime_bus.py tests/unit/test_runtime_transport.py tests/integration/test_web_sse_events.py tests/integration/test_observability_status.py tests/integration/test_web_bootstrap.py`; `uv run ruff check docs scripts src tests`; `uv run ty check`; `pnpm --dir frontend test`; `pnpm --dir frontend typecheck`.
 
 ### GBX-662: Harden SSE Reconnect And Historical Replay Boundaries
 

@@ -40,10 +40,15 @@ def _print_observability_report(report: WorkspaceObservabilityReport) -> None:
     print(f"Runtime: {report.runtime.state} ({report.runtime.health or 'n/a'})")
     print(
         "Event transport: "
+        f"{report.runtime.event_transport.state}, "
         f"{report.runtime.event_transport.subscriber_count} subscriber(s), "
-        f"{report.runtime.event_transport.dropped_events} dropped event(s)"
+        f"{report.runtime.event_transport.dropped_events} dropped event(s), "
+        "queue peak "
+        f"{report.runtime.event_transport.max_queue_depth}/"
+        f"{report.runtime.event_transport.queue_capacity}"
     )
     print(f"Reconnect: {report.runtime.event_transport.reconnect_mode}")
+    print(f"Reconnect hint: {report.runtime.event_transport.reconnect_hint}")
     print(
         "Projections: "
         f"{report.projections.ok_count} ok, "

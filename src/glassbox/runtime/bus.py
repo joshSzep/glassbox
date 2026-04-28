@@ -15,6 +15,9 @@ class EventBusStats:
 
     subscriber_count: int
     dropped_events: int
+    queue_capacity: int
+    max_queue_depth: int
+    last_published_sequence: int | None = None
 
 
 class EventBusSubscription[T]:
@@ -57,6 +60,7 @@ class EventBus[T]:
         self._subscriber_queue_size = subscriber_queue_size
         self._subscribers: set[asyncio.Queue[T]] = set()
         self._dropped_events = 0
+        self._max_queue_depth = 0
 
     def publish(self, event: T) -> None:
         """Fan out an event to all subscribers without blocking the caller."""
@@ -82,6 +86,9 @@ class EventBus[T]:
         return EventBusStats(
             subscriber_count=len(self._subscribers),
             dropped_events=self._dropped_events,
+            queue_capacity=self._subscriber_queue_size,
+            max_queue_depth=self._max_queue_depth,
+            last_published_sequence=None,
         )
 
     def _publish_to_queue(self, queue: asyncio.Queue[T], event: T) -> None:
@@ -93,6 +100,7 @@ class EventBus[T]:
             _ = queue.get_nowait()
             self._dropped_events += 1
             queue.put_nowait(event)
+        self._max_queue_depth = max(self._max_queue_depth, queue.qsize())
 
     def _unsubscribe(self, queue: asyncio.Queue[T]) -> None:
         self._subscribers.discard(queue)

@@ -1,8 +1,14 @@
 """Unit tests for the runtime event transport abstraction."""
 
 import asyncio
+from dataclasses import dataclass
 
 from glassbox.runtime.transport import InProcessEventTransport
+
+
+@dataclass(frozen=True, slots=True)
+class _SequencedEvent:
+    sequence: int
 
 
 def test_in_process_event_transport_delivers_events_to_subscribers() -> None:
@@ -15,8 +21,26 @@ def test_in_process_event_transport_delivers_events_to_subscribers() -> None:
             assert await subscription.get() == "hello"
             assert transport.stats().subscriber_count == 1
             assert transport.stats().dropped_events == 0
+            assert transport.stats().queue_capacity == 64
+            assert transport.stats().max_queue_depth == 1
+            assert transport.stats().last_published_sequence is None
 
         assert transport.stats().subscriber_count == 0
+
+    asyncio.run(scenario())
+
+
+def test_in_process_event_transport_tracks_last_published_sequence() -> None:
+    async def scenario() -> None:
+        transport: InProcessEventTransport[_SequencedEvent] = InProcessEventTransport()
+
+        async with transport.subscribe() as subscription:
+            transport.publish(_SequencedEvent(sequence=41))
+            transport.publish(_SequencedEvent(sequence=42))
+
+            assert (await subscription.get()).sequence == 41
+            assert transport.stats().last_published_sequence == 42
+            assert transport.stats().max_queue_depth == 2
 
     asyncio.run(scenario())
 

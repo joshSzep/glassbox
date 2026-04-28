@@ -380,6 +380,21 @@
             "title": "Dropped Events",
             "type": "integer"
           },
+          "last_published_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Published Sequence"
+          },
+          "max_queue_depth": {
+            "title": "Max Queue Depth",
+            "type": "integer"
+          },
           "next_actions": {
             "items": {
               "type": "string"
@@ -387,8 +402,24 @@
             "title": "Next Actions",
             "type": "array"
           },
+          "queue_capacity": {
+            "title": "Queue Capacity",
+            "type": "integer"
+          },
+          "queue_pressure": {
+            "title": "Queue Pressure",
+            "type": "number"
+          },
+          "reconnect_hint": {
+            "title": "Reconnect Hint",
+            "type": "string"
+          },
           "reconnect_mode": {
             "title": "Reconnect Mode",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
             "type": "string"
           },
           "subscriber_count": {
@@ -396,7 +427,17 @@
             "type": "integer"
           }
         },
-        "required": ["subscriber_count", "dropped_events", "reconnect_mode", "degraded"],
+        "required": [
+          "state",
+          "subscriber_count",
+          "dropped_events",
+          "queue_capacity",
+          "max_queue_depth",
+          "queue_pressure",
+          "reconnect_mode",
+          "reconnect_hint",
+          "degraded"
+        ],
         "title": "EventTransportObservability",
         "type": "object"
       },

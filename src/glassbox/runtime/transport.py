@@ -16,6 +16,9 @@ class RuntimeEventTransportStats(Protocol):
 
     subscriber_count: int
     dropped_events: int
+    queue_capacity: int
+    max_queue_depth: int
+    last_published_sequence: int | None
 
 
 class RuntimeEventSubscription[T](Protocol):
@@ -47,8 +50,12 @@ class InProcessEventTransport[T]:
         self._bus: EventBus[T] = EventBus(
             subscriber_queue_size=subscriber_queue_size,
         )
+        self._last_published_sequence: int | None = None
 
     def publish(self, event: T) -> None:
+        sequence = getattr(event, "sequence", None)
+        if isinstance(sequence, int):
+            self._last_published_sequence = sequence
         self._bus.publish(event)
 
     @asynccontextmanager
@@ -57,4 +64,28 @@ class InProcessEventTransport[T]:
             yield subscription
 
     def stats(self) -> RuntimeEventTransportStats:
-        return self._bus.stats()
+        stats = self._bus.stats()
+        return _InProcessEventTransportStats(
+            subscriber_count=stats.subscriber_count,
+            dropped_events=stats.dropped_events,
+            queue_capacity=stats.queue_capacity,
+            max_queue_depth=stats.max_queue_depth,
+            last_published_sequence=self._last_published_sequence,
+        )
+
+
+class _InProcessEventTransportStats:
+    def __init__(
+        self,
+        *,
+        subscriber_count: int,
+        dropped_events: int,
+        queue_capacity: int,
+        max_queue_depth: int,
+        last_published_sequence: int | None,
+    ) -> None:
+        self.subscriber_count = subscriber_count
+        self.dropped_events = dropped_events
+        self.queue_capacity = queue_capacity
+        self.max_queue_depth = max_queue_depth
+        self.last_published_sequence = last_published_sequence

@@ -377,10 +377,22 @@ export interface components {
       degraded: boolean;
       /** Dropped Events */
       dropped_events: number;
+      /** Last Published Sequence */
+      last_published_sequence?: number | null;
+      /** Max Queue Depth */
+      max_queue_depth: number;
       /** Next Actions */
       next_actions?: string[];
+      /** Queue Capacity */
+      queue_capacity: number;
+      /** Queue Pressure */
+      queue_pressure: number;
+      /** Reconnect Hint */
+      reconnect_hint: string;
       /** Reconnect Mode */
       reconnect_mode: string;
+      /** State */
+      state: string;
       /** Subscriber Count */
       subscriber_count: number;
     };

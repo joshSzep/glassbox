@@ -20,9 +20,15 @@ class EventTransportObservability(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    state: str
     subscriber_count: int
     dropped_events: int
+    queue_capacity: int
+    max_queue_depth: int
+    queue_pressure: float
+    last_published_sequence: int | None = None
     reconnect_mode: str
+    reconnect_hint: str
     degraded: bool
     next_actions: list[str] = Field(default_factory=list)
 
@@ -153,16 +159,43 @@ def build_event_transport_observability(
     stats: RuntimeEventTransportStats,
 ) -> EventTransportObservability:
     next_actions: list[str] = []
+    queue_pressure = _queue_pressure(stats.max_queue_depth, stats.queue_capacity)
     if stats.dropped_events > 0:
         next_actions.append(
-            "refresh dashboard streams or reconnect with the last observed sequence"
+            "refresh live clients or reconnect with the last observed sequence"
         )
+    if queue_pressure >= 1:
+        next_actions.append(
+            "inspect slow live subscribers and reconnect lagging clients"
+        )
+    degraded = stats.dropped_events > 0 or queue_pressure >= 1
     return EventTransportObservability(
+        state="degraded" if degraded else "healthy",
         subscriber_count=stats.subscriber_count,
         dropped_events=stats.dropped_events,
+        queue_capacity=stats.queue_capacity,
+        max_queue_depth=stats.max_queue_depth,
+        queue_pressure=queue_pressure,
+        last_published_sequence=stats.last_published_sequence,
         reconnect_mode="resume with /sessions/{session_id}/events?after=SEQUENCE",
-        degraded=stats.dropped_events > 0,
+        reconnect_hint=_reconnect_hint(stats.last_published_sequence),
+        degraded=degraded,
         next_actions=next_actions,
+    )
+
+
+def _queue_pressure(max_queue_depth: int, queue_capacity: int) -> float:
+    if queue_capacity <= 0:
+        return 0.0
+    return round(max_queue_depth / queue_capacity, 3)
+
+
+def _reconnect_hint(last_published_sequence: int | None) -> str:
+    if last_published_sequence is None:
+        return "use the client's last observed sequence as the after cursor"
+    return (
+        f"latest published sequence is {last_published_sequence}; reconnect after "
+        "the client's last observed sequence"
     )
 
 

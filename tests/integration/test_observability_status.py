@@ -43,9 +43,17 @@ def test_observability_status_json_reports_health_lag_and_verification(
 
     assert exit_code == 0
     assert payload["runtime"]["state"] == "not_running"
+    assert payload["runtime"]["event_transport"]["state"] == "healthy"
     assert payload["runtime"]["event_transport"]["dropped_events"] == 0
+    assert payload["runtime"]["event_transport"]["queue_capacity"] == 64
+    assert payload["runtime"]["event_transport"]["queue_pressure"] == 0.0
+    assert payload["runtime"]["event_transport"]["last_published_sequence"] is None
     assert payload["runtime"]["event_transport"]["reconnect_mode"].startswith(
         "resume with"
+    )
+    assert (
+        "last observed sequence"
+        in payload["runtime"]["event_transport"]["reconnect_hint"]
     )
     assert payload["projections"]["session_count"] == 1
     assert payload["projections"]["degraded_count"] == 1
@@ -79,7 +87,9 @@ def test_observability_status_text_reports_next_actions(
 
     assert exit_code == 0
     assert "Runtime: not_running" in captured.out
-    assert "Event transport:" in captured.out
+    assert "Event transport: healthy" in captured.out
+    assert "queue peak 0/64" in captured.out
+    assert "Reconnect hint:" in captured.out
     assert "Projections:" in captured.out
     assert "Verification: not run" in captured.out
     assert "glassbox eval run" in captured.out

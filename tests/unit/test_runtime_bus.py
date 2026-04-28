@@ -17,6 +17,8 @@ def test_event_bus_delivers_events_to_a_single_subscriber() -> None:
             assert await subscription.get() == "hello"
             assert bus.stats().subscriber_count == 1
             assert bus.stats().dropped_events == 0
+            assert bus.stats().queue_capacity == 64
+            assert bus.stats().max_queue_depth == 1
 
         assert bus.stats().subscriber_count == 0
 
@@ -47,6 +49,7 @@ def test_event_bus_drops_oldest_item_for_slow_subscribers() -> None:
 
             assert await subscription.get() == "fresh"
             assert bus.stats().dropped_events == 1
+            assert bus.stats().max_queue_depth == 1
 
     asyncio.run(scenario())
 

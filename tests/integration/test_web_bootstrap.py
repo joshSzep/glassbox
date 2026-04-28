@@ -54,6 +54,8 @@ def test_healthz_returns_ok(tmp_path: Path) -> None:
             assert payload["status"] == "ok"
             assert payload["event_transport"]["subscriber_count"] == 0
             assert payload["event_transport"]["dropped_events"] == 0
+            assert payload["event_transport"]["queue_capacity"] == 64
+            assert payload["event_transport"]["queue_pressure"] == 0.0
             assert payload["event_transport"]["reconnect_mode"].startswith(
                 "resume with"
             )
@@ -93,6 +95,9 @@ def test_healthz_reports_event_transport_backpressure(tmp_path: Path) -> None:
             assert response.status_code == 200
             assert payload["event_transport"]["subscriber_count"] == 1
             assert payload["event_transport"]["dropped_events"] > 0
+            assert payload["event_transport"]["max_queue_depth"] == 64
+            assert payload["event_transport"]["queue_pressure"] == 1.0
+            assert payload["event_transport"]["last_published_sequence"] == 0
             assert payload["event_transport"]["degraded"] is True
             assert payload["event_transport"]["next_actions"]
         finally:

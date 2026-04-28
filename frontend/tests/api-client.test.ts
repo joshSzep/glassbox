@@ -48,7 +48,22 @@ describe("createGlassboxApiClient", () => {
   it("fetches health and aggregate data with typed request shaping", async () => {
     const abortController = new AbortController();
     const { calls, fetch } = createMockFetch([
-      jsonResponse({ status: "ok", event_transport: { degraded: false } }),
+      jsonResponse({
+        status: "ok",
+        event_transport: {
+          degraded: false,
+          dropped_events: 0,
+          last_published_sequence: null,
+          max_queue_depth: 0,
+          next_actions: [],
+          queue_capacity: 64,
+          queue_pressure: 0,
+          reconnect_hint: "use the client's last observed sequence as the after cursor",
+          reconnect_mode: "resume with /sessions/{session_id}/events?after=SEQUENCE",
+          state: "healthy",
+          subscriber_count: 0,
+        },
+      }),
       jsonResponse({ sessions: [] }),
     ]);
     const client = createGlassboxApiClient({ baseUrl: "http://api.test/", fetch });
