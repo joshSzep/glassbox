@@ -1,0 +1,16 @@
+{
+  "manifest_version": 1,
+  "defaults": {
+    "read_only": "allow",
+    "workspace_write": "approve",
+    "command": "approve"
+  },
+  "rules": [
+    {
+      "rule_id": "allow-docs-patches",
+      "tool_name": "apply_patch",
+      "action": "allow",
+      "path_prefixes": ["docs"]
+    }
+  ]
+}

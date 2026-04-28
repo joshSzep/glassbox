@@ -1,0 +1,23 @@
+{
+  "manifest_version": 1,
+  "defaults": {
+    "read_only": "allow",
+    "workspace_write": "approve",
+    "command": "approve"
+  },
+  "rules": [
+    {
+      "rule_id": "allow-git-status",
+      "tool_name": "run_command",
+      "action": "allow",
+      "command_prefixes": ["git status"]
+    },
+    {
+      "rule_id": "allow-script-validation",
+      "tool_name": "run_command",
+      "action": "allow",
+      "command_prefixes": ["python validate_"],
+      "cwd_prefixes": ["scripts"]
+    }
+  ]
+}

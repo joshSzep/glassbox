@@ -539,6 +539,16 @@ Policy fixtures should be small JSON manifests that exercise one posture at a
 time. Keep examples free of secrets, host-specific absolute paths, personal
 workspace names, tokens, or private service URLs.
 
+Reviewable example manifests live in `docs/examples/tool-policy/`:
+
+- `default-review.json`: preserves the built-in default posture
+- `docs-write-allowlist.json`: allows bounded docs patches while keeping other
+  writes approval-gated
+- `local-command-governance.json`: allows narrow local status and validation
+  commands using command and cwd selectors
+- `deny-publish-commands.json`: denies common publish commands without changing
+  unrelated command defaults
+
 Useful fixture families are:
 
 - baseline defaults with no rules
@@ -552,6 +562,24 @@ Useful fixture families are:
 Tests should cover both the allowed path and the nearest invariant block. For
 example, a fixture that allows docs patches should also prove an out-of-workspace
 path is still blocked.
+
+### Recommended Validation For Policy Changes
+
+After editing `glassbox-policy.json`, the policy engine, policy config loading,
+or the example manifests, run focused validation before relying on the new
+posture:
+
+```text
+uv run pytest tests/unit/test_tools_policy.py
+uv run pytest tests/integration/test_approval_workflow.py
+uv run glassbox eval recommend glassbox-policy.json src/glassbox/tools/policy.py --cwd .
+```
+
+If the recommendation output names `approval.approved-patch`, include that case
+or the profile that contains it in the eval run for the change. For manifest-only
+edits, the policy unit tests are the primary boundary because they prove rule
+matching, defaults, denies, and invariant blocks without re-running policy logic
+in the frontend or CLI.
 
 ### Non-Goals
 

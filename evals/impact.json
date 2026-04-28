@@ -86,6 +86,23 @@
             "notes": "Approval-related runtime, CLI, web, or dashboard action changes should re-run the curated approval replay case plus focused integration tests for denial and UI-specific resolution behavior."
         },
         {
+            "rule_id": "tool-policy-governance",
+            "title": "Repository tool-policy governance",
+            "path_globs": [
+                "glassbox-policy.json",
+                "**/glassbox-policy.json",
+                "src/glassbox/tools/policy.py",
+                "src/glassbox/tools/policy_config.py",
+                "tests/unit/test_tools_policy.py",
+                "docs/tool-policy.md",
+                "docs/examples/tool-policy/*.json"
+            ],
+            "owners": ["runtime.approval"],
+            "capabilities": ["approval_flow"],
+            "case_ids": ["approval.approved-patch"],
+            "notes": "Tool-policy manifest or engine changes should re-run the curated approval replay case and focused policy unit tests that cover repository rules, defaults, denies, invariant blocks, and path/cwd/command selectors."
+        },
+        {
             "rule_id": "runtime-ask-user",
             "title": "Ask-user workflow surfaces",
             "path_globs": [

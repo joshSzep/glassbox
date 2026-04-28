@@ -868,7 +868,7 @@ Completion notes:
 
 ### GBX-762: Add Repository Policy Fixtures And Eval Recommendations
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-760`, `GBX-761`
 - Goal: make policy changes reviewable through fixtures, impact recommendations, and focused verification guidance
 - Deliverables:
@@ -886,6 +886,13 @@ Completion notes:
   - docs review
 - Done when:
   - repository policy changes have clear examples and recommended validation scope
+
+Completion notes:
+
+- Added four reviewable example manifests under [examples/tool-policy](./examples/tool-policy): default review posture, docs write allowlist, local command governance, and publish-command deny posture.
+- Extended policy unit tests to load those exact example manifests and cover default allow/approve behavior, rule allow, rule deny, approval fallback, workspace-scope blocks, destructive-command blocks, path prefixes, cwd prefixes, and command prefixes.
+- Added a `tool-policy-governance` eval impact rule for repository manifests, policy engine/config paths, policy docs, example manifests, and policy tests.
+- Added eval recommendation coverage proving policy changes recommend `approval.approved-patch`, and documented the recommended validation commands in [tool-policy.md](./tool-policy.md).
 
 ### GBX-763: Improve Policy UX For Approvals And Blocked Actions
 

@@ -130,6 +130,20 @@ def _write_impact(tmp_path: Path) -> None:
                         "owners": ["runtime.context"],
                         "capabilities": ["context_drift_detection"],
                     },
+                    {
+                        "rule_id": "tool-policy-governance",
+                        "title": "Repository tool policy",
+                        "path_globs": [
+                            "glassbox-policy.json",
+                            "**/glassbox-policy.json",
+                            "src/glassbox/tools/policy.py",
+                            "src/glassbox/tools/policy_config.py",
+                            "docs/examples/tool-policy/*.json",
+                        ],
+                        "owners": ["runtime.approval"],
+                        "capabilities": ["approval_flow"],
+                        "case_ids": ["approval.approved-patch"],
+                    },
                 ],
             },
             indent=2,
@@ -220,3 +234,36 @@ def test_recommend_eval_change_impact_routes_context_changes_to_context_cases(
     assert [case.case_id for case in report.cases] == ["context.artifact"]
     assert [profile.profile_id for profile in report.profiles] == ["release-candidate"]
     assert any("context.artifact" in command for command in report.suggested_commands)
+
+
+def test_recommend_eval_change_impact_routes_policy_changes_to_approval_case(
+    tmp_path: Path,
+) -> None:
+    _write_case(
+        tmp_path,
+        case_id="approval.approved-patch",
+        title="Approved patch",
+        owner="runtime.approval",
+        capabilities=["approval_flow"],
+        verification_stages=["advisory"],
+    )
+    _write_profiles(tmp_path)
+    _write_coverage(tmp_path)
+    _write_impact(tmp_path)
+
+    report = recommend_eval_change_impact(
+        tmp_path,
+        touched_paths=[
+            "src/glassbox/tools/policy_config.py",
+            "docs/examples/tool-policy/local-command-governance.json",
+        ],
+    )
+
+    assert report.matched_rule_ids == ["tool-policy-governance"]
+    assert [case.case_id for case in report.cases] == ["approval.approved-patch"]
+    assert any(
+        reason.rule_id == "tool-policy-governance" for reason in report.cases[0].reasons
+    )
+    assert any(
+        "approval.approved-patch" in command for command in report.suggested_commands
+    )

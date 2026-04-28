@@ -18,6 +18,10 @@ from glassbox.tools import ToolRiskLevel
 from glassbox.tools import ToolSpec
 from glassbox.tools import load_tool_policy_manifest
 
+EXAMPLE_POLICY_DIR = (
+    Path(__file__).resolve().parents[2] / "docs" / "examples" / "tool-policy"
+)
+
 
 class ReadFileArgs(BaseModel):
     path: str
@@ -63,6 +67,20 @@ class WriteFileTool:
     spec = ToolSpec(
         name="write_file",
         description="Write a file inside the workspace.",
+        input_model=WriteFileArgs,
+        output_model=WriteFileResult,
+        risk_level=ToolRiskLevel.WORKSPACE_WRITE,
+        path_argument_names=("path",),
+    )
+
+    async def execute(self, arguments: WriteFileArgs) -> WriteFileResult:
+        return WriteFileResult(bytes_written=len(arguments.content))
+
+
+class ApplyPatchTool:
+    spec = ToolSpec(
+        name="apply_patch",
+        description="Patch one file inside the workspace.",
         input_model=WriteFileArgs,
         output_model=WriteFileResult,
         risk_level=ToolRiskLevel.WORKSPACE_WRITE,
@@ -307,3 +325,199 @@ def test_policy_rule_can_allow_command_prefix_without_approval(tmp_path: Path) -
     assert decision.outcome == "allow"
     assert decision.source_kind == "rule"
     assert decision.source_label == "allow-git-status"
+
+
+def _load_example_manifest(name: str) -> ToolPolicyManifest:
+    return ToolPolicyManifest.model_validate_json(
+        (EXAMPLE_POLICY_DIR / name).read_text(encoding="utf-8")
+    )
+
+
+def test_example_policy_manifests_are_loadable_and_review_safe(
+    tmp_path: Path,
+) -> None:
+    fixture_names = [
+        "default-review.json",
+        "docs-write-allowlist.json",
+        "local-command-governance.json",
+        "deny-publish-commands.json",
+    ]
+
+    for fixture_name in fixture_names:
+        raw_manifest = (EXAMPLE_POLICY_DIR / fixture_name).read_text(encoding="utf-8")
+        assert "sk-" not in raw_manifest.lower()
+        assert "/users/" not in raw_manifest.lower()
+        assert "api_key" not in raw_manifest.lower()
+
+        workspace_root = tmp_path / fixture_name.removesuffix(".json")
+        workspace_root.mkdir()
+        (workspace_root / DEFAULT_TOOL_POLICY_PATH).write_text(
+            raw_manifest,
+            encoding="utf-8",
+        )
+
+        loaded = load_tool_policy_manifest(workspace_root)
+        assert loaded.manifest_version == 1
+
+
+def test_default_review_fixture_keeps_default_allow_and_approve_posture(
+    tmp_path: Path,
+) -> None:
+    engine = ToolPolicyEngine()
+    manifest = _load_example_manifest("default-review.json")
+
+    read_decision = engine.evaluate(
+        ReadFileTool.spec,
+        arguments=ReadFileArgs(path="README.md"),
+        context=ToolPolicyContext(
+            workspace_root=tmp_path,
+            approval_mode=ApprovalMode.CONFIRM,
+            policy_manifest=manifest,
+        ),
+    )
+    write_decision = engine.evaluate(
+        ApplyPatchTool.spec,
+        arguments=WriteFileArgs(path="src/glassbox/__init__.py", content=""),
+        context=ToolPolicyContext(
+            workspace_root=tmp_path,
+            approval_mode=ApprovalMode.CONFIRM,
+            policy_manifest=manifest,
+        ),
+    )
+    command_decision = engine.evaluate(
+        RunCommandTool.spec,
+        arguments=RunCommandArgs(
+            command="uv run pytest tests/unit/test_tools_policy.py"
+        ),
+        context=ToolPolicyContext(
+            workspace_root=tmp_path,
+            approval_mode=ApprovalMode.CONFIRM,
+            policy_manifest=manifest,
+        ),
+    )
+
+    assert read_decision.outcome == "allow"
+    assert write_decision.outcome == "approve"
+    assert command_decision.outcome == "approve"
+    assert [
+        read_decision.source_kind,
+        write_decision.source_kind,
+        command_decision.source_kind,
+    ] == ["default", "default", "default"]
+
+
+def test_docs_write_fixture_covers_path_prefix_and_workspace_scope_block(
+    tmp_path: Path,
+) -> None:
+    engine = ToolPolicyEngine()
+    manifest = _load_example_manifest("docs-write-allowlist.json")
+
+    docs_decision = engine.evaluate(
+        ApplyPatchTool.spec,
+        arguments=WriteFileArgs(path="docs/tool-policy.md", content="update"),
+        context=ToolPolicyContext(
+            workspace_root=tmp_path,
+            approval_mode=ApprovalMode.NEVER,
+            policy_manifest=manifest,
+        ),
+    )
+    source_decision = engine.evaluate(
+        ApplyPatchTool.spec,
+        arguments=WriteFileArgs(path="src/glassbox/tools/policy.py", content="update"),
+        context=ToolPolicyContext(
+            workspace_root=tmp_path,
+            approval_mode=ApprovalMode.CONFIRM,
+            policy_manifest=manifest,
+        ),
+    )
+    blocked_decision = engine.evaluate(
+        ApplyPatchTool.spec,
+        arguments=WriteFileArgs(path="../outside.md", content="update"),
+        context=ToolPolicyContext(
+            workspace_root=tmp_path,
+            approval_mode=ApprovalMode.CONFIRM,
+            policy_manifest=manifest,
+        ),
+    )
+
+    assert docs_decision.outcome == "allow"
+    assert docs_decision.source_kind == "rule"
+    assert docs_decision.source_label == "allow-docs-patches"
+    assert source_decision.outcome == "approve"
+    assert source_decision.source_kind == "default"
+    assert blocked_decision.outcome == "blocked"
+    assert blocked_decision.source_kind == "invariant"
+    assert blocked_decision.source_label == "workspace_scope"
+
+
+def test_command_fixture_covers_command_and_cwd_prefixes(tmp_path: Path) -> None:
+    engine = ToolPolicyEngine()
+    manifest = _load_example_manifest("local-command-governance.json")
+
+    git_status_decision = engine.evaluate(
+        RunCommandTool.spec,
+        arguments=RunCommandArgs(command="git status --short", cwd="."),
+        context=ToolPolicyContext(
+            workspace_root=tmp_path,
+            approval_mode=ApprovalMode.NEVER,
+            policy_manifest=manifest,
+        ),
+    )
+    script_decision = engine.evaluate(
+        RunCommandTool.spec,
+        arguments=RunCommandArgs(command="python validate_release.py", cwd="scripts"),
+        context=ToolPolicyContext(
+            workspace_root=tmp_path,
+            approval_mode=ApprovalMode.NEVER,
+            policy_manifest=manifest,
+        ),
+    )
+    wrong_cwd_decision = engine.evaluate(
+        RunCommandTool.spec,
+        arguments=RunCommandArgs(command="python validate_release.py", cwd="."),
+        context=ToolPolicyContext(
+            workspace_root=tmp_path,
+            approval_mode=ApprovalMode.CONFIRM,
+            policy_manifest=manifest,
+        ),
+    )
+
+    assert git_status_decision.outcome == "allow"
+    assert git_status_decision.source_label == "allow-git-status"
+    assert script_decision.outcome == "allow"
+    assert script_decision.source_label == "allow-script-validation"
+    assert wrong_cwd_decision.outcome == "approve"
+    assert wrong_cwd_decision.source_kind == "default"
+
+
+def test_deny_fixture_and_destructive_invariant_stay_distinct(tmp_path: Path) -> None:
+    engine = ToolPolicyEngine()
+    manifest = _load_example_manifest("deny-publish-commands.json")
+
+    deny_decision = engine.evaluate(
+        RunCommandTool.spec,
+        arguments=RunCommandArgs(command="pnpm publish --dry-run", cwd="."),
+        context=ToolPolicyContext(
+            workspace_root=tmp_path,
+            approval_mode=ApprovalMode.CONFIRM,
+            policy_manifest=manifest,
+        ),
+    )
+    destructive_decision = engine.evaluate(
+        RunCommandTool.spec,
+        arguments=RunCommandArgs(command="rm -rf build", cwd="."),
+        context=ToolPolicyContext(
+            workspace_root=tmp_path,
+            approval_mode=ApprovalMode.CONFIRM,
+            policy_manifest=manifest,
+        ),
+    )
+
+    assert deny_decision.allowed is False
+    assert deny_decision.outcome == "deny"
+    assert deny_decision.source_kind == "rule"
+    assert deny_decision.source_label == "deny-package-publish"
+    assert destructive_decision.allowed is False
+    assert destructive_decision.outcome == "blocked"
+    assert destructive_decision.source_kind == "invariant"
+    assert destructive_decision.source_label == "destructive_command"

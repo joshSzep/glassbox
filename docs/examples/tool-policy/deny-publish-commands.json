@@ -1,0 +1,16 @@
+{
+  "manifest_version": 1,
+  "defaults": {
+    "read_only": "allow",
+    "workspace_write": "approve",
+    "command": "approve"
+  },
+  "rules": [
+    {
+      "rule_id": "deny-package-publish",
+      "tool_name": "run_command",
+      "action": "deny",
+      "command_prefixes": ["npm publish", "pnpm publish", "twine upload", "uv publish"]
+    }
+  ]
+}
