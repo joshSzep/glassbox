@@ -28,6 +28,6 @@ operator surfaces that explain tool decisions.
 
 Deterministic approval workflow tests are the current release evidence for
 policy-gated behavior. The `approval_flow` capability remains declared in
-`evals/coverage.json` until a curated replay case is promoted, so release audits
-continue to show the replay/eval gap explicitly instead of implying that unit or
-integration tests are replay baselines.
+`evals/coverage.json` as advisory eval coverage until a curated replay case is
+promoted, so release audits continue to show the replay/eval gap explicitly
+instead of implying that unit or integration tests are replay baselines.

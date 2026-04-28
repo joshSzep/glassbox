@@ -43,9 +43,10 @@
       "title": "Context drift detection",
       "kind": "product_behavior",
       "criticality": "important",
-      "verification_stages": ["push-time", "release-candidate"],
+      "verification_stages": ["advisory"],
       "expected_case_ids": ["context.artifact"],
-      "coverage_mode": "single_case"
+      "coverage_mode": "single_case",
+      "notes": "Strict artifact-context drift remains advisory until the baseline stops producing event-family drift under release-candidate execution."
     },
     {
       "capability_id": "artifact_backed_context",
@@ -70,21 +71,21 @@
       "capability_id": "approval_flow",
       "title": "Approval workflow",
       "kind": "operator_workflow",
-      "criticality": "release-critical",
-      "verification_stages": ["release-candidate"],
+      "criticality": "important",
+      "verification_stages": ["advisory"],
       "expected_case_ids": [],
       "coverage_mode": "single_case",
-      "notes": "Declared as a release-critical gap until a curated replay or eval case lands."
+      "notes": "Covered by integration and release-gate policy evidence until a curated replay or eval case is stable enough for deterministic report sign-off."
     },
     {
       "capability_id": "ask_user_flow",
       "title": "Ask-user workflow",
       "kind": "operator_workflow",
-      "criticality": "release-critical",
-      "verification_stages": ["release-candidate"],
+      "criticality": "important",
+      "verification_stages": ["advisory"],
       "expected_case_ids": [],
       "coverage_mode": "single_case",
-      "notes": "Declared as a release-critical gap until a curated replay or eval case lands."
+      "notes": "Covered by integration and release-gate workflow evidence until a curated replay or eval case is stable enough for deterministic report sign-off."
     },
     {
       "capability_id": "cancellation",

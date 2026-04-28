@@ -76,4 +76,4 @@ Known terminal limitations for this release candidate:
 
 ## v6 Release Hardening
 
-The v6 release-hardening path expands package validation into the broader release-candidate gate. Use [v6-release-hardening.md](./v6-release-hardening.md) for the release contract, [v6-release-inventory.md](./v6-release-inventory.md) for the current validation inventory, and [v6-release-evidence.md](./v6-release-evidence.md) for the retained `summary.json` evidence format.
+The v6 release-hardening path expands package validation into the broader release-candidate gate. Use [v6-release-hardening.md](./v6-release-hardening.md) for the release contract, [v6-release-inventory.md](./v6-release-inventory.md) for the current validation inventory, [release-check-alignment-v6.md](./release-check-alignment-v6.md) for the local/push/release/advisory check ladder, and [v6-release-evidence.md](./v6-release-evidence.md) for the retained `summary.json` evidence format.

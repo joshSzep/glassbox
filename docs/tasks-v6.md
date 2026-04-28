@@ -915,7 +915,7 @@ Completion notes:
 
 ### GBX-683: Align Pre-Commit, Eval Profiles, And Release Gate Expectations
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-642`, `GBX-674`
 - Goal: make daily development checks, deterministic eval profiles, and release-candidate gates reinforce each other rather than drifting into separate rituals
 - Deliverables:
@@ -932,6 +932,15 @@ Completion notes:
   - `uv run glassbox eval report commit-smoke push-confirmation release-candidate --cwd .`
 - Done when:
   - contributors can see how local checks, eval profiles, and release gates fit together
+
+Completion notes:
+
+- Aligned frontend pre-commit hooks with release expectations by running generated API freshness for frontend/web API changes and using the full `pnpm --dir frontend build` static export path.
+- Reclassified strict artifact-context drift, approval replay, and ask-user replay coverage as advisory eval/report surfaces while release-candidate coverage stays with integration tests and the v6 gate until curated replay cases are stable.
+- Added [release-check-alignment-v6.md](./release-check-alignment-v6.md) documenting local blocking checks, push confirmation, release-candidate gates, deterministic eval reports, and advisory context/provider tracks.
+- Linked the alignment guide from replay/eval and release packaging docs.
+- Added regression coverage that repository eval profile stages and live-provider canary non-blocking metadata align with v6 gate stages.
+- Validation: `uv run pytest tests/unit/test_runtime_evals.py tests/unit/test_eval_inputs.py tests/unit/test_eval_recommendations.py`; `uv run glassbox eval report commit-smoke push-confirmation release-candidate --cwd .`; `uv run ruff check .`; `uv run ty check`.
 
 ### GBX-684: Add Dependency And Toolchain Freshness Review
 

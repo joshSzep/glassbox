@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import pytest
+from scripts.validate_v6_release_gate import build_gate_stages
 
 from glassbox.runtime.evals import DEFAULT_EVAL_BUNDLES_DIR
 from glassbox.runtime.evals import EvalCaseExpectation
@@ -16,6 +17,8 @@ from glassbox.runtime.evals import load_eval_profile
 from glassbox.runtime.evals import load_eval_profiles
 from glassbox.runtime.evals import load_eval_suite
 from glassbox.runtime.evals import resolve_eval_suite_selection
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_load_eval_case_defaults_to_exact_match_expectation(tmp_path: Path) -> None:
@@ -400,6 +403,32 @@ def test_load_eval_profile_rejects_blocking_live_provider_canary_profile(
 
     with pytest.raises(ValueError, match="must stay non-blocking"):
         load_eval_profile(tmp_path, profile_id="bad-canary")
+
+
+def test_repository_eval_profiles_align_with_v6_gate_stages() -> None:
+    profiles = {
+        profile.profile_id: profile for profile in load_eval_profiles(REPO_ROOT)
+    }
+    provider_profiles = {
+        profile.profile_id: profile
+        for profile in load_eval_profiles(REPO_ROOT, track="live-provider-canary")
+    }
+    stage_labels = {stage.label for stage in build_gate_stages()}
+
+    assert profiles["commit-smoke"].verification_stage == "commit-time"
+    assert profiles["commit-smoke"].blocking is True
+    assert profiles["push-confirmation"].verification_stage == "push-time"
+    assert profiles["push-confirmation"].blocking is True
+    assert profiles["release-candidate"].verification_stage == "release-candidate"
+    assert profiles["release-candidate"].blocking is True
+    assert provider_profiles["live-provider-canary"].blocking is False
+    assert provider_profiles["live-provider-canary"].track == "live-provider-canary"
+    assert {
+        "deterministic eval smoke",
+        "frontend generated API freshness",
+        "frontend static asset validation",
+        "package contents validation",
+    }.issubset(stage_labels)
 
 
 def test_resolve_eval_suite_selection_applies_profile_before_extra_tag_filter(

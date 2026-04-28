@@ -150,12 +150,16 @@ Use replay and eval verification in three layers:
 
 1. Commit time: local blocking smoke checks in pre-commit.
 2. Push time: broader confirmation and retained artifacts after push.
-3. Later scheduled coverage: optional non-blocking advisory suites.
+3. Release candidate: deterministic sign-off through `eval report` and the v6 release gate.
+4. Advisory: optional non-blocking context and live-provider suites.
 
 The expected split is:
 
 - `smoke` tags are the commit-time blocking set
 - broader tags remain advisory or push-time only until they are stable enough to move earlier
+- packaging, installed-wheel, and live-provider checks stay outside deterministic eval profiles
+
+See [release-check-alignment-v6.md](./release-check-alignment-v6.md) for the full local, push, release-candidate, and advisory check ladder.
 
 ## Change-Impact Recommendations
 

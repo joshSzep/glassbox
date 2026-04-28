@@ -74,9 +74,16 @@ repos:
         pass_filenames: false
         files: ^frontend/
 
+      - id: frontend-api-generate
+        name: frontend generated API freshness
+        entry: pnpm --dir frontend api:generate
+        language: unsupported
+        pass_filenames: false
+        files: ^(frontend/|src/glassbox/web/)
+
       - id: frontend-build
         name: frontend static export check
-        entry: pnpm --dir frontend exec next build
+        entry: pnpm --dir frontend build
         language: unsupported
         pass_filenames: false
         files: ^frontend/
