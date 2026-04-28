@@ -1156,7 +1156,7 @@ Completion notes:
 
 ### GBX-784: Run Manual v7 Release Candidate Validation
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-780`, `GBX-783`
 - Goal: complete manual validation for workflows automated tests cannot fully prove and record evidence in the v7 release directory
 - Deliverables:
@@ -1174,6 +1174,13 @@ Completion notes:
   - focused automated reruns for any area fixed during manual validation
 - Done when:
   - manual release evidence exists and no blocking manual validation issue remains open
+
+Completion notes:
+
+- Created local retained evidence under `.glassbox/releases/20260428T181210Z-v7-gate/`, including a v7 gate dry-run `summary.json`, `manual-validation.md`, provider-canary summary, observability status, and projection-check output.
+- Ran focused terminal, dashboard, provider-canary, recovery, package-content, and compact installed-wheel onboarding/package smoke checks.
+- Provider canary evidence ran with `openai:gpt-5.4`: `streaming-text` passed and the remaining workflow scenarios were retained as preflight-only advisory skips.
+- Added [manual-v7-release-validation.md](./manual-v7-release-validation.md) summarizing the retained evidence, command results, non-claims, and residual risks for the v7 release decision.
 
 ### GBX-785: Publish The v7 Release Candidate Guide And Decision
 
