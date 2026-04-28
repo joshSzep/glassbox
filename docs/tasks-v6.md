@@ -1027,7 +1027,7 @@ Completion notes:
 
 ### GBX-692: Run Dashboard Accessibility And Responsive Review Pass
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-690`
 - Goal: validate the operator console across keyboard workflows, viewport sizes, action states, live stream states, and accessibility constraints
 - Deliverables:
@@ -1047,6 +1047,13 @@ Completion notes:
   - relevant screenshot archive command
 - Done when:
   - the dashboard has release-candidate manual and automated evidence for critical operator workflows
+
+Completion notes:
+
+- Added [dashboard-accessibility-review-v6.md](./dashboard-accessibility-review-v6.md) with viewport coverage, reviewed operator states, keyboard/accessibility notes, validation results, and follow-up status.
+- Reused the v4 screenshot archive and generated local captures under `frontend/test-results/v4-audit-screenshots/`.
+- Removed two stale unused icon imports found during the lint pass.
+- Validation: `pnpm --dir frontend lint`; `pnpm --dir frontend typecheck`; `pnpm --dir frontend test`; `pnpm --dir frontend test:e2e`; `pnpm --dir frontend screenshots:v4-audit`.
 
 ### GBX-693: Validate Recovery And Maintenance Workflows Manually
 

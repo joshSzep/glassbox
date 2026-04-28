@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Activity, AlertCircle, GitBranch, MessageSquareText, RadioTower } from "lucide-react";
+import { Activity, AlertCircle, MessageSquareText, RadioTower } from "lucide-react";
 
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { DataList, DataListItem, DataListLabel, DataListMeta } from "@/components/ui/data-list";
