@@ -216,16 +216,20 @@ class _ReplayToolRuntime(ToolRuntime):
         self,
         prepared,
         on_output_chunk=None,
+        *,
+        cancellation_controller=None,
     ) -> ToolExecutionResult:
-        del on_output_chunk
+        del on_output_chunk, cancellation_controller
         return self._recorded_execution_result(prepared)
 
     async def execute_approved(
         self,
         prepared,
         on_output_chunk=None,
+        *,
+        cancellation_controller=None,
     ) -> ToolExecutionResult:
-        del on_output_chunk
+        del on_output_chunk, cancellation_controller
         return self._recorded_execution_result(prepared)
 
     def _recorded_execution_result(self, prepared) -> ToolExecutionResult:

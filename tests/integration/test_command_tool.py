@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from glassbox.core import new_turn_id
+from glassbox.runtime.cancellation import TurnCancellationController
 from glassbox.tools import DEFAULT_TOOL_POLICY_PATH
 from glassbox.tools import ApprovalMode
 from glassbox.tools import ToolPolicyContext
@@ -87,6 +89,37 @@ def test_run_command_times_out(tmp_path: Path) -> None:
         assert result.execution_envelope.timeout_seconds == 1
 
     asyncio.run(scenario())
+
+
+def test_run_command_cancellation_preserves_streamed_output(tmp_path: Path) -> None:
+    tool = RunCommandTool(tmp_path)
+    cancellation = TurnCancellationController(new_turn_id())
+    collected: list[tuple[str, str]] = []
+
+    def on_chunk(stream: str, chunk: str) -> None:
+        collected.append((stream, chunk))
+        if "ready" in chunk:
+            cancellation.request("operator requested cancellation")
+
+    async def scenario() -> None:
+        result = await tool.execute_streaming(
+            RunCommandArgs(
+                command=(
+                    'python -u -c "import threading; '
+                    "print('ready', flush=True); threading.Event().wait(60)\""
+                ),
+                timeout=30,
+            ),
+            on_chunk=on_chunk,
+            cancellation_controller=cancellation,
+        )
+        assert result.cancelled is True
+        assert result.timed_out is False
+        assert result.failure_category == "cancelled"
+        assert "ready" in result.stdout
+
+    asyncio.run(scenario())
+    assert collected == [("stdout", "ready\n")]
 
 
 def test_run_command_classifies_signal_interruption(tmp_path: Path) -> None:

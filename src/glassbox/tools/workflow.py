@@ -12,6 +12,7 @@ from pydantic import Field
 
 from glassbox.tools._subprocess import DEFAULT_MAX_OUTPUT_BYTES
 from glassbox.tools._subprocess import CommandExecutionResult
+from glassbox.tools._subprocess import SubprocessCancellationController
 from glassbox.tools._subprocess import build_command_execution_envelope
 from glassbox.tools._subprocess import capture_streaming_subprocess
 from glassbox.tools._subprocess import resolve_workspace_cwd
@@ -233,6 +234,8 @@ class RunTestsTool:
         self,
         arguments: RunTestsArgs,
         on_chunk: Callable[[str, str], None],
+        *,
+        cancellation_controller: SubprocessCancellationController | None = None,
     ) -> RunTestsResult:
         """Run tests and deliver each output line to on_chunk."""
 
@@ -260,12 +263,14 @@ class RunTestsTool:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             cwd=self._workspace_root,
+            start_new_session=True,
         )
         captured = await capture_streaming_subprocess(
             process,
             timeout_seconds=arguments.timeout,
             on_chunk=on_chunk,
             output_limit_bytes=DEFAULT_MAX_OUTPUT_BYTES,
+            cancellation_controller=cancellation_controller,
         )
 
         stdout_text = captured.stdout
@@ -282,6 +287,7 @@ class RunTestsTool:
             stderr=stderr_text,
             truncated=captured.truncated,
             timed_out=captured.timed_out,
+            cancelled=captured.cancelled,
             execution_envelope=envelope,
             failure_category=captured.failure_category,
             termination_signal=captured.termination_signal,

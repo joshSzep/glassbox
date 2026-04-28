@@ -1,11 +1,13 @@
 """Shared subprocess execution helpers for command-style tools."""
 
 import asyncio
+import os
 import signal
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
+from typing import Protocol
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -14,6 +16,7 @@ from pydantic import Field
 DEFAULT_MAX_OUTPUT_BYTES = 100 * 1024  # 100 KB cap before truncation
 
 type CommandFailureCategory = Literal[
+    "cancelled",
     "execution_error",
     "timed_out",
     "interrupted",
@@ -46,6 +49,7 @@ class CommandExecutionResult(BaseModel):
     stderr: str
     truncated: bool = False
     timed_out: bool = False
+    cancelled: bool = False
     execution_envelope: CommandExecutionEnvelope
     failure_category: CommandFailureCategory | None = None
     termination_signal: int | None = None
@@ -60,8 +64,16 @@ class CapturedSubprocessOutput:
     stderr: str
     truncated: bool
     timed_out: bool
+    cancelled: bool
     failure_category: CommandFailureCategory | None
     termination_signal: int | None
+
+
+class SubprocessCancellationController(Protocol):
+    @property
+    def requested(self) -> bool: ...
+
+    async def wait(self) -> object: ...
 
 
 async def capture_streaming_subprocess(
@@ -70,6 +82,7 @@ async def capture_streaming_subprocess(
     timeout_seconds: int,
     on_chunk: Callable[[str, str], None],
     output_limit_bytes: int = DEFAULT_MAX_OUTPUT_BYTES,
+    cancellation_controller: SubprocessCancellationController | None = None,
 ) -> CapturedSubprocessOutput:
     """Capture and classify subprocess output with bounded buffering."""
 
@@ -78,6 +91,7 @@ async def capture_streaming_subprocess(
     total_bytes = 0
     truncated = False
     timed_out = False
+    cancelled = False
 
     def record_line(stream: str, raw_line: bytes, parts: list[str]) -> None:
         nonlocal total_bytes, truncated
@@ -103,15 +117,32 @@ async def capture_streaming_subprocess(
             record_line("stderr", raw_line, stderr_parts)
 
     exit_code = -1
+    read_tasks = [
+        asyncio.create_task(read_stdout()),
+        asyncio.create_task(read_stderr()),
+    ]
+    wait_task: asyncio.Task[object] = asyncio.create_task(process.wait())
+    cancel_task = (
+        asyncio.create_task(cancellation_controller.wait())
+        if cancellation_controller is not None
+        else None
+    )
     try:
         async with asyncio.timeout(float(timeout_seconds)):
-            await asyncio.gather(read_stdout(), read_stderr())
-            exit_code = await process.wait()
+            wait_set: set[asyncio.Task[object]] = {wait_task}
+            if cancel_task is not None:
+                wait_set.add(cancel_task)
+            done, _pending = await asyncio.wait(
+                wait_set,
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            if cancel_task is not None and cancel_task in done and not wait_task.done():
+                cancelled = True
+                await _terminate_process_group(process, force=False)
+            exit_code = await wait_task
+            await asyncio.gather(*read_tasks)
     except TimeoutError:
-        try:
-            process.kill()
-        except ProcessLookupError:
-            pass
+        await _terminate_process_group(process, force=True)
         try:
             async with asyncio.timeout(5.0):
                 await process.wait()
@@ -120,10 +151,16 @@ async def capture_streaming_subprocess(
         if process.returncode is not None:
             exit_code = process.returncode
         timed_out = True
+    finally:
+        if cancel_task is not None:
+            cancel_task.cancel()
+        for task in read_tasks:
+            task.cancel()
 
     failure_category, termination_signal = classify_subprocess_failure(
         exit_code=exit_code,
         timed_out=timed_out,
+        cancelled=cancelled,
     )
     return CapturedSubprocessOutput(
         exit_code=exit_code,
@@ -131,6 +168,7 @@ async def capture_streaming_subprocess(
         stderr="".join(stderr_parts),
         truncated=truncated,
         timed_out=timed_out,
+        cancelled=cancelled,
         failure_category=failure_category,
         termination_signal=termination_signal,
     )
@@ -140,9 +178,12 @@ def classify_subprocess_failure(
     *,
     exit_code: int,
     timed_out: bool,
+    cancelled: bool = False,
 ) -> tuple[CommandFailureCategory | None, int | None]:
     """Classify subprocess termination for operator-facing summaries."""
 
+    if cancelled:
+        return "cancelled", _termination_signal_from_exit_code(exit_code)
     if timed_out:
         return "timed_out", _termination_signal_from_exit_code(exit_code)
     termination_signal = _termination_signal_from_exit_code(exit_code)
@@ -151,6 +192,34 @@ def classify_subprocess_failure(
     if exit_code != 0:
         return "execution_error", None
     return None, None
+
+
+async def _terminate_process_group(
+    process: asyncio.subprocess.Process,
+    *,
+    force: bool,
+) -> None:
+    if process.returncode is not None:
+        return
+    termination_signal = signal.SIGKILL if force else signal.SIGTERM
+    try:
+        os.killpg(process.pid, termination_signal)
+    except ProcessLookupError:
+        return
+    except OSError:
+        try:
+            if force:
+                process.kill()
+            else:
+                process.terminate()
+        except ProcessLookupError:
+            return
+    if not force:
+        try:
+            async with asyncio.timeout(5.0):
+                await process.wait()
+        except TimeoutError:
+            await _terminate_process_group(process, force=True)
 
 
 def build_command_execution_envelope(

@@ -402,7 +402,7 @@ Completion notes:
 
 ### GBX-652: Make Tool Execution Cancellable
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-651`
 - Goal: make long-running tool execution, especially subprocess-backed command tools, respond to runtime cancellation and record useful output
 - Deliverables:
@@ -421,6 +421,14 @@ Completion notes:
   - platform-sensitive tests should use deterministic subprocesses and avoid sleeps where practical
 - Done when:
   - cancellable tools stop reliably, preserve useful evidence, and report cancellation as an intentional runtime outcome
+
+Completion notes:
+
+- Threaded the active turn cancellation controller through `ToolRuntime` and subprocess-backed streaming tools.
+- Added subprocess group termination with explicit `cancelled` result classification distinct from timeout and signal interruption.
+- Recorded `ToolExecutionCancelled` before final tool completion and turn cancellation when a cancellation interrupts an active tool call.
+- Added deterministic command-tool coverage that preserves streamed output before cancellation, plus subprocess classification coverage.
+- Validation: `uv run pytest tests/integration/test_command_tool.py tests/unit/test_subprocess_classification.py` and `uv run ty check`.
 
 ### GBX-653: Expose Cancellation Through CLI, TUI, Dashboard, And API
 

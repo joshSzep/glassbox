@@ -10,6 +10,7 @@ from pydantic_ai.messages import ModelMessage
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import ModelToolCallRequested
+from glassbox.core.events import ToolExecutionCancelled
 from glassbox.core.events import ToolExecutionCompleted
 from glassbox.core.events import ToolExecutionStarted
 from glassbox.core.events import ToolOutputChunk
@@ -22,6 +23,8 @@ from glassbox.core.ids import new_approval_id
 from glassbox.core.ids import new_question_id
 from glassbox.core.types import TurnStatus
 from glassbox.llm import ModelToolCall
+from glassbox.runtime.cancellation import TurnCancellationController
+from glassbox.runtime.cancellation import TurnCancellationRequested
 from glassbox.runtime.logging import get_runtime_logger
 from glassbox.runtime.logging import runtime_log_extra
 from glassbox.runtime.model_loop import ModelLoopSuspension
@@ -104,6 +107,7 @@ class TurnToolExecutor:
         tool_runtime: ToolRuntime,
         tool_calls: tuple[ModelToolCall, ...],
         conversation: list[ModelMessage],
+        cancellation_controller: TurnCancellationController | None = None,
     ) -> ModelLoopSuspension | None:
         for tool_call in tool_calls:
             prepared_tool_call = tool_runtime.prepare_tool_call(tool_call)
@@ -152,6 +156,7 @@ class TurnToolExecutor:
                 tool_runtime=tool_runtime,
                 prepared_tool_call=prepared_tool_call,
                 approved=False,
+                cancellation_controller=cancellation_controller,
             )
             conversation.append(execution_result.to_model_request())
 
@@ -164,6 +169,7 @@ class TurnToolExecutor:
         turn_id,
         tool_runtime: ToolRuntime,
         tool_call: ModelToolCall,
+        cancellation_controller: TurnCancellationController | None = None,
     ) -> ToolExecutionResult:
         prepared_tool_call = tool_runtime.prepare_tool_call(tool_call)
         return await self._execute_prepared_tool_call(
@@ -172,6 +178,7 @@ class TurnToolExecutor:
             tool_runtime=tool_runtime,
             prepared_tool_call=prepared_tool_call,
             approved=True,
+            cancellation_controller=cancellation_controller,
         )
 
     def _maybe_suspend_before_execution(
@@ -322,6 +329,7 @@ class TurnToolExecutor:
         tool_runtime: ToolRuntime,
         prepared_tool_call: PreparedToolExecution,
         approved: bool,
+        cancellation_controller: TurnCancellationController | None = None,
     ) -> ToolExecutionResult:
         self._hooks._append_and_publish(
             session_id,
@@ -367,11 +375,13 @@ class TurnToolExecutor:
                 execution_result = await tool_runtime.execute_approved(
                     prepared_tool_call,
                     on_output_chunk=_on_output_chunk,
+                    cancellation_controller=cancellation_controller,
                 )
             else:
                 execution_result = await tool_runtime.execute(
                     prepared_tool_call,
                     on_output_chunk=_on_output_chunk,
+                    cancellation_controller=cancellation_controller,
                 )
         except Exception as exc:
             self._hooks._append_and_publish(
@@ -408,6 +418,20 @@ class TurnToolExecutor:
             )
             raise
 
+        cancellation_summary = _tool_cancellation_summary(execution_result)
+        if cancellation_summary is not None:
+            self._hooks._append_and_publish(
+                session_id,
+                [
+                    ToolExecutionCancelled(
+                        turn_id=turn_id,
+                        tool_call_id=execution_result.event_tool_call_id,
+                        summary=cancellation_summary,
+                        exit_code=execution_result.exit_code,
+                    )
+                ],
+            )
+
         self._hooks._append_and_publish(
             session_id,
             [
@@ -442,4 +466,16 @@ class TurnToolExecutor:
                 success=execution_result.success,
             ),
         )
+        if cancellation_summary is not None:
+            raise TurnCancellationRequested(
+                stage="tool_execution",
+                reason=cancellation_summary,
+            )
         return execution_result
+
+
+def _tool_cancellation_summary(execution_result: ToolExecutionResult) -> str | None:
+    failure_category = execution_result.output_payload.get("failure_category")
+    if failure_category == "cancelled":
+        return execution_result.summary
+    return None

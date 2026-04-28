@@ -16,6 +16,7 @@ from pydantic_ai.messages import ToolReturnPart
 from glassbox.core import PolicyDecision
 from glassbox.core import ToolCallId
 from glassbox.core import new_tool_call_id
+from glassbox.runtime.cancellation import TurnCancellationController
 from glassbox.tools.policy import ToolPolicyContext
 from glassbox.tools.policy import ToolPolicyEngine
 from glassbox.tools.registry import StreamingTool
@@ -116,6 +117,8 @@ class ToolRuntime:
         self,
         prepared: PreparedToolExecution,
         on_output_chunk: Callable[[str, str], None] | None = None,
+        *,
+        cancellation_controller: TurnCancellationController | None = None,
     ) -> ToolExecutionResult:
         """Execute one prepared tool call after policy approval."""
 
@@ -125,12 +128,18 @@ class ToolRuntime:
         ):
             raise ValueError(prepared.policy_decision.reason)
 
-        return await self._run_tool(prepared, on_output_chunk=on_output_chunk)
+        return await self._run_tool(
+            prepared,
+            on_output_chunk=on_output_chunk,
+            cancellation_controller=cancellation_controller,
+        )
 
     async def execute_approved(
         self,
         prepared: PreparedToolExecution,
         on_output_chunk: Callable[[str, str], None] | None = None,
+        *,
+        cancellation_controller: TurnCancellationController | None = None,
     ) -> ToolExecutionResult:
         """Execute a tool whose approval has been explicitly granted by the operator.
 
@@ -141,12 +150,18 @@ class ToolRuntime:
         if not prepared.policy_decision.allowed:
             raise ValueError(prepared.policy_decision.reason)
 
-        return await self._run_tool(prepared, on_output_chunk=on_output_chunk)
+        return await self._run_tool(
+            prepared,
+            on_output_chunk=on_output_chunk,
+            cancellation_controller=cancellation_controller,
+        )
 
     async def _run_tool(
         self,
         prepared: PreparedToolExecution,
         on_output_chunk: Callable[[str, str], None] | None = None,
+        *,
+        cancellation_controller: TurnCancellationController | None = None,
     ) -> ToolExecutionResult:
         """Execute the tool, handling both streaming and non-streaming tools."""
 
@@ -155,7 +170,9 @@ class ToolRuntime:
                 on_output_chunk if on_output_chunk is not None else _noop_chunk
             )
             raw_output = await prepared.tool.execute_streaming(
-                prepared.validated_arguments, chunk_callback
+                prepared.validated_arguments,
+                chunk_callback,
+                cancellation_controller=cancellation_controller,
             )
         else:
             raw_output = await prepared.tool.execute(prepared.validated_arguments)
@@ -215,6 +232,10 @@ def _classify_tool_result(
     if failure_category == "timed_out":
         timeout_suffix = f" after {timeout_seconds}s" if timeout_seconds else ""
         summary = f"timed out{timeout_suffix}{location_suffix}"
+        return False, summary, exit_code, summary
+
+    if failure_category == "cancelled":
+        summary = f"cancelled{location_suffix}"
         return False, summary, exit_code, summary
 
     if failure_category == "interrupted":

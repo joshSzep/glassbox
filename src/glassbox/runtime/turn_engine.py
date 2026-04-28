@@ -222,6 +222,7 @@ class TurnEngine:
                     turn_id=turn_id,
                     tool_runtime=prepared_run.tool_runtime,
                     tool_call=resume_state.to_model_tool_call(),
+                    cancellation_controller=None,
                 )
                 prepared_run.conversation.append(execution_result.to_model_request())
                 return
@@ -400,6 +401,7 @@ class TurnEngine:
                 tool_runtime=tool_runtime,
                 tool_calls=tool_calls,
                 state=loop_state,
+                cancellation_controller=cancellation_controller,
             )
 
         def on_assistant_completed(assistant_text: str) -> None:
@@ -431,6 +433,7 @@ class TurnEngine:
         tool_runtime: ToolRuntime | None,
         tool_calls: tuple[ModelToolCall, ...],
         state: ModelConversationState,
+        cancellation_controller: TurnCancellationController | None = None,
     ) -> ModelLoopSuspension | None:
         if tool_runtime is None:
             raise ValueError("tool calls are not supported by the turn engine yet")
@@ -440,4 +443,5 @@ class TurnEngine:
             tool_runtime=tool_runtime,
             tool_calls=tool_calls,
             conversation=state.conversation,
+            cancellation_controller=cancellation_controller,
         )

@@ -96,6 +96,8 @@ class StreamingTool(Protocol):
         self,
         arguments: BaseModel,
         on_chunk: Callable[[str, str], None],
+        *,
+        cancellation_controller: object | None = None,
     ) -> BaseModel:
         """Execute the tool and deliver output lines to on_chunk(stream, text)."""
 
