@@ -554,7 +554,7 @@ The intended v8 milestone order is:
 
 ### GBX-833: Add Repository-Owned Safe Autonomy Rules
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-832`
 - Goal: let repositories declare safe local autonomy rules for mature workflows without bypassing hard runtime invariants
 - Deliverables:
@@ -572,6 +572,9 @@ The intended v8 milestone order is:
   - policy config parsing tests
   - policy engine tests for rule precedence and trace output
   - replay/eval impact tests if policy fingerprints change
+- Evidence:
+  - `uv run pytest tests/unit/test_tools_policy.py tests/integration/test_command_tool.py`
+  - `uv run ty check`
 - Done when:
   - teams can loosen Glassbox carefully for local workflows they understand, while keeping decisions visible and replayable
 

@@ -13,6 +13,13 @@ TOOL_POLICY_MANIFEST_VERSION = 1
 DEFAULT_TOOL_POLICY_PATH = Path("glassbox-policy.json")
 
 type ToolPolicyAction = Literal["allow", "approve", "deny"]
+type ToolAutonomyPolicyAction = Literal[
+    "allow-with-budget",
+    "require-approval",
+    "deny",
+    "require-verification",
+]
+type ToolPolicyRiskBucket = Literal["read_only", "workspace_write", "command"]
 
 _RULE_IDENTIFIER_PATTERN = re.compile(r"^[a-z0-9]+(?:[._-][a-z0-9]+)*$")
 
@@ -65,11 +72,79 @@ class ToolPolicyRule(BaseModel):
     @field_validator("command_prefixes", "cwd_prefixes", "path_prefixes")
     @classmethod
     def validate_prefixes(cls, value: list[str]) -> list[str]:
+        return _normalize_nonblank_values(value, kind="policy prefixes")
+
+
+class ToolAutonomyRule(BaseModel):
+    """Repository-owned selector for budgeted local autonomy."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    rule_id: str
+    action: ToolAutonomyPolicyAction
+    tool_name: str | None = None
+    risk_buckets: list[ToolPolicyRiskBucket] = Field(default_factory=list)
+    command_prefixes: list[str] = Field(default_factory=list)
+    cwd_prefixes: list[str] = Field(default_factory=list)
+    path_prefixes: list[str] = Field(default_factory=list)
+    file_extensions: list[str] = Field(default_factory=list)
+    test_path_prefixes: list[str] = Field(default_factory=list)
+    generated_path_prefixes: list[str] = Field(default_factory=list)
+    read_only_operation: bool | None = None
+    max_timeout_seconds: int | None = Field(default=None, ge=1, le=300)
+
+    @field_validator("rule_id")
+    @classmethod
+    def validate_rule_id(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if not normalized:
+            raise ValueError("autonomy rule_id must not be blank")
+        if _RULE_IDENTIFIER_PATTERN.fullmatch(normalized) is None:
+            raise ValueError(
+                "autonomy rule_id must contain only lowercase letters, digits, "
+                "dots, underscores, or hyphens"
+            )
+        return normalized
+
+    @field_validator("tool_name")
+    @classmethod
+    def validate_tool_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("autonomy tool_name must not be blank")
+        return normalized
+
+    @field_validator(
+        "command_prefixes",
+        "cwd_prefixes",
+        "path_prefixes",
+        "test_path_prefixes",
+        "generated_path_prefixes",
+    )
+    @classmethod
+    def validate_prefixes(cls, value: list[str]) -> list[str]:
+        return _normalize_nonblank_values(value, kind="autonomy policy prefixes")
+
+    @field_validator("risk_buckets")
+    @classmethod
+    def validate_risk_buckets(
+        cls,
+        value: list[ToolPolicyRiskBucket],
+    ) -> list[ToolPolicyRiskBucket]:
+        return list(dict.fromkeys(value))
+
+    @field_validator("file_extensions")
+    @classmethod
+    def validate_file_extensions(cls, value: list[str]) -> list[str]:
         normalized: list[str] = []
-        for prefix in value:
-            candidate = prefix.strip()
+        for extension in value:
+            candidate = extension.strip().lower()
             if not candidate:
-                raise ValueError("policy prefixes must not be blank")
+                raise ValueError("file_extensions must not contain blank values")
+            if not candidate.startswith("."):
+                candidate = f".{candidate}"
             if candidate not in normalized:
                 normalized.append(candidate)
         return normalized
@@ -83,6 +158,7 @@ class ToolPolicyManifest(BaseModel):
     manifest_version: int = TOOL_POLICY_MANIFEST_VERSION
     defaults: ToolPolicyDefaults = Field(default_factory=ToolPolicyDefaults)
     rules: list[ToolPolicyRule] = Field(default_factory=list)
+    autonomy_rules: list[ToolAutonomyRule] = Field(default_factory=list)
 
     @field_validator("manifest_version")
     @classmethod
@@ -102,6 +178,30 @@ class ToolPolicyManifest(BaseModel):
                 raise ValueError(f"duplicate tool policy rule_id: {rule.rule_id}")
             seen_rule_ids.add(rule.rule_id)
         return value
+
+    @field_validator("autonomy_rules")
+    @classmethod
+    def validate_autonomy_rule_ids(
+        cls,
+        value: list[ToolAutonomyRule],
+    ) -> list[ToolAutonomyRule]:
+        seen_rule_ids: set[str] = set()
+        for rule in value:
+            if rule.rule_id in seen_rule_ids:
+                raise ValueError(f"duplicate autonomy rule_id: {rule.rule_id}")
+            seen_rule_ids.add(rule.rule_id)
+        return value
+
+
+def _normalize_nonblank_values(value: list[str], *, kind: str) -> list[str]:
+    normalized: list[str] = []
+    for raw_value in value:
+        candidate = raw_value.strip()
+        if not candidate:
+            raise ValueError(f"{kind} must not be blank")
+        if candidate not in normalized:
+            normalized.append(candidate)
+    return normalized
 
 
 def load_tool_policy_manifest(
@@ -169,8 +269,13 @@ def _ensure_rule_prefixes_within_root(
     workspace_root: Path,
     policy_path: Path,
 ) -> None:
-    for rule in manifest.rules:
-        for prefix in (*rule.cwd_prefixes, *rule.path_prefixes):
+    policy_rules = [*manifest.rules, *manifest.autonomy_rules]
+    for rule in policy_rules:
+        prefixes = [*rule.cwd_prefixes, *rule.path_prefixes]
+        if isinstance(rule, ToolAutonomyRule):
+            prefixes.extend(rule.test_path_prefixes)
+            prefixes.extend(rule.generated_path_prefixes)
+        for prefix in prefixes:
             candidate = Path(prefix)
             if candidate.is_absolute():
                 raise ValueError(

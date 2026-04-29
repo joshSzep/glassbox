@@ -11,6 +11,7 @@ from glassbox.core.models import AutonomyBudget
 from glassbox.core.models import PolicyActivitySummary
 from glassbox.tools import DEFAULT_TOOL_POLICY_PATH
 from glassbox.tools import ApprovalMode
+from glassbox.tools import ToolAutonomyRule
 from glassbox.tools import ToolPolicyContext
 from glassbox.tools import ToolPolicyEngine
 from glassbox.tools import ToolPolicyManifest
@@ -46,6 +47,7 @@ class WriteFileResult(BaseModel):
 class RunCommandArgs(BaseModel):
     command: str
     cwd: str | None = None
+    timeout: int = 30
 
 
 class RunCommandResult(BaseModel):
@@ -287,6 +289,135 @@ def test_on_request_mode_honors_explicit_approval_rules() -> None:
     assert decision.source_label == "request-tests"
 
 
+def test_autonomy_rule_allows_budgeted_targeted_test_command() -> None:
+    engine = ToolPolicyEngine()
+
+    decision = engine.evaluate(
+        RunCommandTool.spec,
+        arguments=RunCommandArgs(command="uv run pytest tests/unit", cwd="."),
+        context=ToolPolicyContext(
+            workspace_root=Path("/tmp/workspace"),
+            approval_mode=ApprovalMode.ON_REQUEST,
+            autonomy_mode=AutonomyMode.RELEASE_CANDIDATE,
+            autonomy_budget=_command_budget(),
+            policy_manifest=ToolPolicyManifest(
+                autonomy_rules=[
+                    ToolAutonomyRule(
+                        rule_id="targeted-tests",
+                        action="allow-with-budget",
+                        tool_name="run_command",
+                        command_prefixes=["uv run pytest tests/"],
+                        max_timeout_seconds=60,
+                    )
+                ]
+            ),
+        ),
+    )
+
+    assert decision.allowed is True
+    assert decision.requires_approval is False
+    assert decision.outcome == "allow"
+    assert decision.source_label == "targeted-tests"
+    assert "max_command_operations" in decision.reason
+
+
+def test_autonomy_rule_pauses_when_budget_field_is_missing() -> None:
+    engine = ToolPolicyEngine()
+
+    decision = engine.evaluate(
+        RunCommandTool.spec,
+        arguments=RunCommandArgs(command="uv run pytest tests/unit", cwd="."),
+        context=ToolPolicyContext(
+            workspace_root=Path("/tmp/workspace"),
+            approval_mode=ApprovalMode.ON_REQUEST,
+            autonomy_mode=AutonomyMode.RELEASE_CANDIDATE,
+            autonomy_budget=_workspace_write_budget(),
+            policy_manifest=ToolPolicyManifest(
+                autonomy_rules=[
+                    ToolAutonomyRule(
+                        rule_id="targeted-tests",
+                        action="allow-with-budget",
+                        tool_name="run_command",
+                        command_prefixes=["uv run pytest tests/"],
+                    )
+                ]
+            ),
+        ),
+    )
+
+    assert decision.allowed is True
+    assert decision.requires_approval is True
+    assert decision.outcome == "approve"
+    assert "needs budget field max_command_operations" in decision.reason
+
+
+def test_autonomy_rule_does_not_override_standard_deny_rule() -> None:
+    engine = ToolPolicyEngine()
+
+    decision = engine.evaluate(
+        RunCommandTool.spec,
+        arguments=RunCommandArgs(command="pnpm publish --dry-run", cwd="."),
+        context=ToolPolicyContext(
+            workspace_root=Path("/tmp/workspace"),
+            approval_mode=ApprovalMode.ON_REQUEST,
+            autonomy_mode=AutonomyMode.RELEASE_CANDIDATE,
+            autonomy_budget=_command_budget(),
+            policy_manifest=ToolPolicyManifest(
+                rules=[
+                    ToolPolicyRule(
+                        rule_id="deny-publish",
+                        tool_name="run_command",
+                        action="deny",
+                        command_prefixes=["pnpm publish"],
+                    )
+                ],
+                autonomy_rules=[
+                    ToolAutonomyRule(
+                        rule_id="local-commands",
+                        action="allow-with-budget",
+                        tool_name="run_command",
+                        command_prefixes=["pnpm"],
+                    )
+                ],
+            ),
+        ),
+    )
+
+    assert decision.allowed is False
+    assert decision.outcome == "deny"
+    assert decision.source_label == "deny-publish"
+
+
+def test_autonomy_rule_selectors_cover_paths_extensions_and_timeout() -> None:
+    engine = ToolPolicyEngine()
+
+    decision = engine.evaluate(
+        ApplyPatchTool.spec,
+        arguments=WriteFileArgs(path="generated/snapshots/state.json", content="{}"),
+        context=ToolPolicyContext(
+            workspace_root=Path("/tmp/workspace"),
+            approval_mode=ApprovalMode.REVIEW,
+            autonomy_mode=AutonomyMode.EDIT_SAFE,
+            autonomy_budget=_workspace_write_budget(),
+            policy_manifest=ToolPolicyManifest(
+                autonomy_rules=[
+                    ToolAutonomyRule(
+                        rule_id="generated-json",
+                        action="allow-with-budget",
+                        tool_name="apply_patch",
+                        generated_path_prefixes=["generated"],
+                        file_extensions=["json"],
+                    )
+                ]
+            ),
+        ),
+    )
+
+    assert decision.allowed is True
+    assert decision.requires_approval is False
+    assert decision.source_label == "generated-json"
+
+
 def test_policy_blocks_workspace_write_when_approval_mode_is_never() -> None:
     engine = ToolPolicyEngine()
 
@@ -419,6 +550,33 @@ def test_load_tool_policy_manifest_rejects_invalid_config(tmp_path: Path) -> Non
         load_tool_policy_manifest(tmp_path)
 
 
+def test_load_tool_policy_manifest_parses_autonomy_rules(tmp_path: Path) -> None:
+    (tmp_path / DEFAULT_TOOL_POLICY_PATH).write_text(
+        """
+                {
+                    "manifest_version": 1,
+                    "autonomy_rules": [
+                        {
+                            "rule_id": "generated-json",
+                            "action": "allow-with-budget",
+                            "tool_name": "apply_patch",
+                            "generated_path_prefixes": ["generated"],
+                            "file_extensions": ["json"],
+                            "max_timeout_seconds": 30
+                        }
+                    ]
+                }
+                """,
+        encoding="utf-8",
+    )
+
+    manifest = load_tool_policy_manifest(tmp_path)
+
+    assert len(manifest.autonomy_rules) == 1
+    assert manifest.autonomy_rules[0].rule_id == "generated-json"
+    assert manifest.autonomy_rules[0].file_extensions == [".json"]
+
+
 def test_policy_rule_can_allow_workspace_write_without_approval(tmp_path: Path) -> None:
     engine = ToolPolicyEngine()
 
@@ -493,6 +651,7 @@ def test_example_policy_manifests_are_loadable_and_review_safe(
         "docs-write-allowlist.json",
         "local-command-governance.json",
         "deny-publish-commands.json",
+        "autonomy-safe-local.json",
     ]
 
     for fixture_name in fixture_names:

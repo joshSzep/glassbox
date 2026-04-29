@@ -1,0 +1,35 @@
+{
+  "manifest_version": 1,
+  "defaults": {
+    "read_only": "allow",
+    "workspace_write": "approve",
+    "command": "approve"
+  },
+  "autonomy_rules": [
+    {
+      "rule_id": "inspect-repo",
+      "action": "allow-with-budget",
+      "read_only_operation": true
+    },
+    {
+      "rule_id": "targeted-unit-tests",
+      "action": "allow-with-budget",
+      "tool_name": "run_command",
+      "command_prefixes": ["uv run pytest tests/unit/"],
+      "max_timeout_seconds": 120
+    },
+    {
+      "rule_id": "generated-json-snapshots",
+      "action": "allow-with-budget",
+      "tool_name": "apply_patch",
+      "generated_path_prefixes": ["generated", "tests/snapshots"],
+      "file_extensions": [".json"]
+    },
+    {
+      "rule_id": "release-gate",
+      "action": "require-approval",
+      "tool_name": "run_command",
+      "command_prefixes": ["uv run pytest tests/integration/"]
+    }
+  ]
+}

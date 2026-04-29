@@ -110,6 +110,52 @@ This means a tool call can end in one of three practical outcomes:
 - paused for approval
 - blocked immediately
 
+## Repository-Owned Autonomy Rules
+
+`glassbox-policy.json` can include `autonomy_rules` for local workflows the
+repository understands well. These rules run after hard invariants and explicit
+`rules`, but before default risk-bucket policy. They cannot allow paths outside
+the workspace or destructive command patterns.
+
+Supported autonomy rule actions are:
+
+- `allow-with-budget`: allow the match only when the active autonomy budget has the matching risk bucket and budget field, such as `max_write_operations` or `max_command_operations`
+- `require-approval`: pause even when a broader budget would otherwise allow the action
+- `deny`: block the match without requesting approval
+- `require-verification`: pause with verification-required evidence until a later task wires automated verification gates
+
+Supported selectors are `tool_name`, `risk_buckets`, `command_prefixes`,
+`cwd_prefixes`, `path_prefixes`, `file_extensions`, `test_path_prefixes`,
+`generated_path_prefixes`, `read_only_operation`, and `max_timeout_seconds`.
+
+Example:
+
+```json
+{
+  "manifest_version": 1,
+  "autonomy_rules": [
+    {
+      "rule_id": "targeted-unit-tests",
+      "action": "allow-with-budget",
+      "tool_name": "run_command",
+      "command_prefixes": ["uv run pytest tests/unit/"],
+      "max_timeout_seconds": 120
+    },
+    {
+      "rule_id": "generated-json-snapshots",
+      "action": "allow-with-budget",
+      "tool_name": "apply_patch",
+      "generated_path_prefixes": ["generated", "tests/snapshots"],
+      "file_extensions": [".json"]
+    }
+  ]
+}
+```
+
+Each decision records the autonomy rule ID and the budget field that allowed or
+paused work so status views, exports, and replay comparisons can explain why a
+local action continued.
+
 ## Safe, Approval-Gated, And Blocked Examples
 
 ### Safe

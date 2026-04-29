@@ -14,6 +14,8 @@ from glassbox.core import AutonomyBudget
 from glassbox.core import AutonomyMode
 from glassbox.core import PolicyDecision
 from glassbox.core.models import PolicyDecisionSourceKind
+from glassbox.tools.policy_config import ToolAutonomyPolicyAction
+from glassbox.tools.policy_config import ToolAutonomyRule
 from glassbox.tools.policy_config import ToolPolicyAction
 from glassbox.tools.policy_config import ToolPolicyManifest
 from glassbox.tools.policy_config import ToolPolicyRule
@@ -39,6 +41,8 @@ class _ResolvedPolicyOutcome:
     action: ToolPolicyAction
     source_kind: PolicyDecisionSourceKind
     source_label: str
+    autonomy_action: ToolAutonomyPolicyAction | None = None
+    budget_field: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,6 +101,7 @@ class ToolPolicyEngine:
         outcome = _resolve_policy_outcome(
             tool_spec,
             arguments=normalized_arguments,
+            context=context,
             workspace_root=workspace_root,
             policy_manifest=context.policy_manifest,
             command_text=command_text,
@@ -318,6 +323,7 @@ def _resolve_policy_outcome(
     tool_spec: ToolSpec,
     *,
     arguments: Mapping[str, object],
+    context: ToolPolicyContext,
     workspace_root: Path,
     policy_manifest: ToolPolicyManifest,
     command_text: str | None,
@@ -335,6 +341,21 @@ def _resolve_policy_outcome(
                 source_kind="rule",
                 source_label=rule.rule_id or f"rule_{index}",
             )
+
+    for rule in policy_manifest.autonomy_rules:
+        if not _autonomy_rule_matches(
+            rule,
+            tool_spec=tool_spec,
+            arguments=arguments,
+            workspace_root=workspace_root,
+            command_text=command_text,
+        ):
+            continue
+        return _autonomy_rule_outcome(
+            rule,
+            context=context,
+            risk_level=tool_spec.risk_level,
+        )
 
     return _ResolvedPolicyOutcome(
         action=_default_policy_action(tool_spec.risk_level, policy_manifest),
@@ -388,6 +409,150 @@ def _rule_matches(
     return True
 
 
+def _autonomy_rule_matches(
+    rule: ToolAutonomyRule,
+    *,
+    tool_spec: ToolSpec,
+    arguments: Mapping[str, object],
+    workspace_root: Path,
+    command_text: str | None,
+) -> bool:
+    if rule.tool_name is not None and rule.tool_name != tool_spec.name:
+        return False
+    if rule.risk_buckets and tool_spec.risk_level.value not in rule.risk_buckets:
+        return False
+    if rule.read_only_operation is not None:
+        is_read_only = tool_spec.risk_level is ToolRiskLevel.READ_ONLY
+        if rule.read_only_operation != is_read_only:
+            return False
+    if rule.command_prefixes:
+        if command_text is None:
+            return False
+        if not any(command_text.startswith(prefix) for prefix in rule.command_prefixes):
+            return False
+    if rule.cwd_prefixes and not _path_prefixes_match(
+        arguments.get("cwd"),
+        prefixes=rule.cwd_prefixes,
+        workspace_root=workspace_root,
+    ):
+        return False
+    if rule.path_prefixes and not _path_argument_prefixes_match(
+        tool_spec,
+        arguments=arguments,
+        prefixes=rule.path_prefixes,
+        workspace_root=workspace_root,
+    ):
+        return False
+    if rule.file_extensions and not _path_extensions_match(
+        _path_argument_values(tool_spec, arguments),
+        extensions=rule.file_extensions,
+    ):
+        return False
+    if rule.test_path_prefixes and not _path_prefixes_match(
+        _path_argument_values(tool_spec, arguments),
+        prefixes=rule.test_path_prefixes,
+        workspace_root=workspace_root,
+    ):
+        return False
+    if rule.generated_path_prefixes and not _path_prefixes_match(
+        _path_argument_values(tool_spec, arguments),
+        prefixes=rule.generated_path_prefixes,
+        workspace_root=workspace_root,
+    ):
+        return False
+    if rule.max_timeout_seconds is not None:
+        timeout = _timeout_argument(arguments)
+        if timeout is None or timeout > rule.max_timeout_seconds:
+            return False
+    return True
+
+
+def _autonomy_rule_outcome(
+    rule: ToolAutonomyRule,
+    *,
+    context: ToolPolicyContext,
+    risk_level: ToolRiskLevel,
+) -> _ResolvedPolicyOutcome:
+    budget_field = _budget_field_for_risk(risk_level)
+    if rule.action == "deny":
+        action: ToolPolicyAction = "deny"
+    elif rule.action in {"require-approval", "require-verification"}:
+        action = "approve"
+    elif _budget_permits_risk(context.autonomy_budget, risk_level):
+        action = "allow"
+    else:
+        action = "approve"
+    return _ResolvedPolicyOutcome(
+        action=action,
+        source_kind="rule",
+        source_label=rule.rule_id,
+        autonomy_action=rule.action,
+        budget_field=budget_field,
+    )
+
+
+def _path_argument_prefixes_match(
+    tool_spec: ToolSpec,
+    *,
+    arguments: Mapping[str, object],
+    prefixes: list[str],
+    workspace_root: Path,
+) -> bool:
+    path_argument_names = tuple(
+        argument_name
+        for argument_name in tool_spec.path_argument_names
+        if argument_name != "cwd"
+    )
+    if not path_argument_names:
+        return False
+    return all(
+        _path_prefixes_match(
+            arguments.get(argument_name),
+            prefixes=prefixes,
+            workspace_root=workspace_root,
+        )
+        for argument_name in path_argument_names
+    )
+
+
+def _path_argument_values(
+    tool_spec: ToolSpec,
+    arguments: Mapping[str, object],
+) -> list[Path]:
+    paths: list[Path] = []
+    for argument_name in tool_spec.path_argument_names:
+        if argument_name == "cwd":
+            continue
+        paths.extend(_iter_path_values(arguments.get(argument_name)))
+    return paths
+
+
+def _path_extensions_match(
+    paths: list[Path],
+    *,
+    extensions: list[str],
+) -> bool:
+    if not paths:
+        return False
+    return all(path.suffix.lower() in extensions for path in paths)
+
+
+def _timeout_argument(arguments: Mapping[str, object]) -> int | None:
+    for name in ("timeout", "timeout_seconds"):
+        value = arguments.get(name)
+        if isinstance(value, int):
+            return value
+    return None
+
+
+def _budget_field_for_risk(risk_level: ToolRiskLevel) -> str:
+    if risk_level is ToolRiskLevel.WORKSPACE_WRITE:
+        return "max_write_operations"
+    if risk_level is ToolRiskLevel.COMMAND:
+        return "max_command_operations"
+    return "max_tool_calls"
+
+
 def _path_prefixes_match(
     value: object,
     *,
@@ -439,6 +604,16 @@ def _decision_from_outcome(
     tool_spec: ToolSpec,
     context: ToolPolicyContext,
 ) -> PolicyDecision:
+    if outcome.autonomy_action is not None:
+        return _decision_from_action(
+            outcome.action,
+            context=context,
+            risk_level=tool_spec.risk_level,
+            source_kind=outcome.source_kind,
+            source_label=outcome.source_label,
+            messages=_autonomy_policy_messages(outcome, tool_spec),
+        )
+
     if outcome.source_kind == "default":
         return _decision_from_action(
             outcome.action,
@@ -472,6 +647,40 @@ def _decision_from_outcome(
                 f"blocked: workspace policy rule '{outcome.source_label}' "
                 f"requires approval but approval mode is never"
             ),
+        ),
+    )
+
+
+def _autonomy_policy_messages(
+    outcome: _ResolvedPolicyOutcome,
+    tool_spec: ToolSpec,
+) -> _PolicyDecisionMessages:
+    rule = outcome.source_label
+    budget_field = outcome.budget_field or _budget_field_for_risk(tool_spec.risk_level)
+    if outcome.autonomy_action == "require-verification":
+        approval_reason = (
+            f"approval required: autonomy rule '{rule}' requires verification "
+            f"before tool '{tool_spec.name}'"
+        )
+    elif outcome.autonomy_action == "allow-with-budget":
+        approval_reason = (
+            f"approval required: autonomy rule '{rule}' needs budget field "
+            f"{budget_field} for tool '{tool_spec.name}'"
+        )
+    else:
+        approval_reason = (
+            f"approval required: autonomy rule '{rule}' matched tool '{tool_spec.name}'"
+        )
+    return _PolicyDecisionMessages(
+        allow_reason=(
+            f"allowed: autonomy rule '{rule}' matched tool '{tool_spec.name}' "
+            f"with budget field {budget_field}"
+        ),
+        deny_reason=(f"blocked: autonomy rule '{rule}' denied tool '{tool_spec.name}'"),
+        approval_reason=approval_reason,
+        blocked_reason=(
+            f"blocked: autonomy rule '{rule}' requires approval but approval mode "
+            "is never"
         ),
     )
 

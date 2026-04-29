@@ -17,6 +17,7 @@ from glassbox.tools.policy import ToolPolicyContext
 from glassbox.tools.policy import ToolPolicyEngine
 from glassbox.tools.policy import describe_effective_approval_behavior
 from glassbox.tools.policy_config import DEFAULT_TOOL_POLICY_PATH
+from glassbox.tools.policy_config import ToolAutonomyRule
 from glassbox.tools.policy_config import ToolPolicyDefaults
 from glassbox.tools.policy_config import ToolPolicyManifest
 from glassbox.tools.policy_config import ToolPolicyRule
@@ -76,6 +77,7 @@ __all__ = [
     "RunTestsTool",
     "StreamingTool",
     "Tool",
+    "ToolAutonomyRule",
     "ToolExecutionResult",
     "ToolPolicyDefaults",
     "ToolPolicyContext",
