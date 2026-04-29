@@ -8,6 +8,7 @@ from glassbox.cli.parser_replay_eval import _add_replay_parsers
 from glassbox.cli.parser_sessions import _add_session_workflow_parsers
 from glassbox.cli.parser_storage import _add_artifact_parsers
 from glassbox.cli.parser_storage import _add_backup_parsers
+from glassbox.cli.parser_tasks import _add_task_parsers
 from glassbox.cli.parser_tree import CommandTreeColorTheme
 from glassbox.cli.parser_tree import format_command_tree
 
@@ -25,6 +26,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     _add_command_parsers(subparsers)
     _add_session_workflow_parsers(subparsers)
+    _add_task_parsers(subparsers)
     _add_replay_parsers(subparsers)
     _add_eval_parsers(subparsers)
     _add_artifact_parsers(subparsers)

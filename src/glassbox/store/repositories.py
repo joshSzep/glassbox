@@ -258,24 +258,23 @@ class SQLiteSessionRepository:
 
     def list_tasks(
         self,
-        session_id: SessionId,
         *,
+        session_id: SessionId | None = None,
         limit: int | None = None,
         offset: int = 0,
     ) -> list[TaskRecord]:
         return query_store.list_tasks(
             self._connection,
-            session_id,
+            session_id=session_id,
             limit=limit,
             offset=offset,
         )
 
     def get_task(
         self,
-        session_id: SessionId,
         task_id: TaskId,
     ) -> TaskRecord | None:
-        return query_store.get_task(self._connection, session_id, task_id)
+        return query_store.get_task(self._connection, task_id)
 
     def list_task_steps(
         self,

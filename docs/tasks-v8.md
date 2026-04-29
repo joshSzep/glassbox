@@ -379,9 +379,10 @@ The intended v8 milestone order is:
 
 ### GBX-822: Add Task Query Service And CLI Inspection Commands
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-821`
 - Goal: give operators and scripts a read-only way to inspect durable task state before any autonomous execution is introduced
+- Evidence: [task-plans.md](./task-plans.md)
 - Deliverables:
   - runtime query models for task summary, task detail, step detail, verification detail, blocked reason, next action, and lineage back to session/turn events
   - CLI commands such as `glassbox task list`, `glassbox task show TASK_ID`, and `glassbox task events TASK_ID`

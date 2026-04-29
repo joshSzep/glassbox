@@ -58,10 +58,12 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
     from glassbox.cli.server_commands import _dashboard_command
     from glassbox.cli.session_state_commands import _projection_command
     from glassbox.cli.session_state_commands import _session_command
+    from glassbox.cli.task_commands import _task_command
 
     command_handlers: dict[str, CommandHandler] = {
         "command": _command_command,
         "session": _session_command,
+        "task": _task_command,
         "replay": _replay_command,
         "eval": _eval_command,
         "artifacts": _artifacts_command,

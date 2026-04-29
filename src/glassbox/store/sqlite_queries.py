@@ -278,16 +278,19 @@ def list_turn_metrics(
 
 def list_tasks(
     connection: sqlite3.Connection,
-    session_id: SessionId,
     *,
+    session_id: SessionId | None = None,
     status: TaskPlanStatus | None = None,
     limit: int | None = None,
     offset: int = 0,
 ) -> list[TaskRecord]:
-    """Read task summaries for a session."""
+    """Read task summaries, optionally scoped to one session."""
 
-    query = _task_record_select_sql() + " where tasks.session_id = ?"
-    parameters: list[object] = [str(session_id)]
+    query = _task_record_select_sql() + " where 1 = 1"
+    parameters: list[object] = []
+    if session_id is not None:
+        query += " and tasks.session_id = ?"
+        parameters.append(str(session_id))
     if status is not None:
         query += " and tasks.status = ?"
         parameters.append(status.value)
@@ -305,7 +308,6 @@ def list_tasks(
 
 def get_task(
     connection: sqlite3.Connection,
-    session_id: SessionId,
     task_id: TaskId,
 ) -> TaskRecord | None:
     """Read one task summary by ID."""
@@ -313,10 +315,10 @@ def get_task(
     row = connection.execute(
         _task_record_select_sql()
         + """
-        where tasks.session_id = ? and tasks.task_id = ?
+        where tasks.task_id = ?
         group by tasks.session_id, tasks.task_id
         """,
-        (str(session_id), str(task_id)),
+        (str(task_id),),
     ).fetchone()
     if row is None:
         return None

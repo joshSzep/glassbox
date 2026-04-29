@@ -24,6 +24,19 @@ The first task projection tables are:
 
 These tables are derived state. `projection rebuild` must be able to delete and reconstruct them from canonical task-plan events without changing session history.
 
+## CLI Inspection
+
+Phase 82 exposes task plans through read-only CLI commands:
+
+```bash
+uv run glassbox task list --cwd .
+uv run glassbox task list --session SESSION_ID --cwd .
+uv run glassbox task show TASK_ID --cwd .
+uv run glassbox task events TASK_ID --cwd .
+```
+
+Use `--json` on these commands for scriptable output. These commands inspect projected task state and canonical task events; they do not approve, resume, continue, or mutate task execution.
+
 ## Relationship To Existing Objects
 
 Task plans differ from existing runtime objects in these ways:
