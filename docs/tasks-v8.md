@@ -1606,7 +1606,7 @@ The intended v8 milestone order is:
 
 ### GBX-892: Add Package And Installed-Smoke Coverage For v8 Surfaces
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-884`, `GBX-891`
 - Goal: ensure v8 task, autonomy, memory, index, branch-search, and dashboard assets work from built packages, not only source checkouts
 - Deliverables:

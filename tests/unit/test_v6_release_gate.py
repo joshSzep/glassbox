@@ -33,8 +33,14 @@ def test_v6_release_gate_script_runs_expected_checks() -> None:
         "package contents validation",
         "installed wheel smoke",
         "installed terminal: root help",
+        "installed autonomy: profile list",
+        "installed task: list",
         "installed first-run: provider diagnostics",
         "installed first-run: profile example",
+        "installed memory: list",
+        "installed repository index: status",
+        "installed background jobs: list",
+        "installed branch-search: list",
         "installed daemon: start",
         "installed dashboard: static routes",
         "installed eval: profile list",
@@ -139,8 +145,14 @@ def test_v6_release_gate_builds_installed_smoke_matrix(tmp_path: Path) -> None:
         "installed terminal: chat help",
         "installed terminal: attach help",
         "installed terminal: plain fallback",
+        "installed autonomy: profile list",
+        "installed task: list",
         "installed first-run: provider diagnostics",
         "installed first-run: profile example",
+        "installed memory: list",
+        "installed repository index: status",
+        "installed background jobs: list",
+        "installed branch-search: list",
         "installed daemon: status before start",
         "installed daemon: start",
         "installed daemon: status after start",
@@ -159,14 +171,40 @@ def test_v6_release_gate_builds_installed_smoke_matrix(tmp_path: Path) -> None:
     )
     assert all(check.command[:7] == expected_prefix for check in checks)
     assert checks[4].input_text == "/exit\n"
-    assert checks[5].command[-4:] == (
+    assert checks[5].command[-3:] == (
+        "--json",
+        "--cwd",
+        str(tmp_path / "autonomy"),
+    )
+    assert checks[6].command[-3:] == (
+        "--json",
+        "--cwd",
+        str(tmp_path / "task"),
+    )
+    assert checks[7].command[-4:] == (
         "--cwd",
         str(tmp_path / "provider"),
         "--model-name",
         "openai:gpt-5.4",
     )
-    assert checks[6].command[-2:] == ("--cwd", str(tmp_path / "profile"))
-    assert "9876" in checks[8].command
+    assert checks[8].command[-2:] == ("--cwd", str(tmp_path / "profile"))
+    assert checks[9].command[-3:] == (
+        "--json",
+        "--cwd",
+        str(tmp_path / "memory"),
+    )
+    assert checks[10].command[-3:] == (
+        "--json",
+        "--cwd",
+        str(tmp_path / "index"),
+    )
+    assert checks[11].command[-3:] == ("--json", "--cwd", str(tmp_path / "job"))
+    assert checks[12].command[-3:] == (
+        "--json",
+        "--cwd",
+        str(tmp_path / "branch-search"),
+    )
+    assert "9876" in checks[14].command
 
 
 def test_v6_release_gate_builds_dashboard_smoke_command(tmp_path: Path) -> None:
@@ -209,8 +247,14 @@ def test_v6_release_gate_doc_maps_script_stages() -> None:
         "installed terminal: chat help",
         "installed terminal: attach help",
         "installed terminal: plain fallback",
+        "installed autonomy: profile list",
+        "installed task: list",
         "installed first-run: provider diagnostics",
         "installed first-run: profile example",
+        "installed memory: list",
+        "installed repository index: status",
+        "installed background jobs: list",
+        "installed branch-search: list",
         "installed daemon: start",
         "installed dashboard: static routes",
         "installed eval: profile list",

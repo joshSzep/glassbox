@@ -311,7 +311,7 @@ def _run_installed_wheel_smoke(summary: dict[str, Any], wheel_path: Path) -> int
         )
         if exit_code != 0:
             return exit_code
-    print("\nV6 release gate passed.")
+    print("\nInstalled wheel smoke passed.")
     return 0
 
 
@@ -324,8 +324,14 @@ def build_installed_wheel_smoke_checks(
     """Return installed-wheel smoke commands for isolated workspaces."""
 
     terminal_workspace = smoke_root / "terminal"
+    autonomy_workspace = smoke_root / "autonomy"
+    task_workspace = smoke_root / "task"
     provider_workspace = smoke_root / "provider"
     profile_workspace = smoke_root / "profile"
+    memory_workspace = smoke_root / "memory"
+    index_workspace = smoke_root / "index"
+    job_workspace = smoke_root / "job"
+    branch_search_workspace = smoke_root / "branch-search"
     daemon_workspace = smoke_root / "daemon"
     eval_workspace = smoke_root / "eval"
     daemon_host = "127.0.0.1"
@@ -361,6 +367,29 @@ def build_installed_wheel_smoke_checks(
             input_text="/exit\n",
         ),
         InstalledSmokeCheck(
+            "installed autonomy: profile list",
+            _installed_glassbox_command(
+                wheel_path,
+                "autonomy",
+                "profile",
+                "list",
+                "--json",
+                "--cwd",
+                str(autonomy_workspace),
+            ),
+        ),
+        InstalledSmokeCheck(
+            "installed task: list",
+            _installed_glassbox_command(
+                wheel_path,
+                "task",
+                "list",
+                "--json",
+                "--cwd",
+                str(task_workspace),
+            ),
+        ),
+        InstalledSmokeCheck(
             "installed first-run: provider diagnostics",
             _installed_glassbox_command(
                 wheel_path,
@@ -380,6 +409,51 @@ def build_installed_wheel_smoke_checks(
                 "diagnostics",
                 "--cwd",
                 str(profile_workspace),
+            ),
+        ),
+        InstalledSmokeCheck(
+            "installed memory: list",
+            _installed_glassbox_command(
+                wheel_path,
+                "memory",
+                "list",
+                "--json",
+                "--cwd",
+                str(memory_workspace),
+            ),
+        ),
+        InstalledSmokeCheck(
+            "installed repository index: status",
+            _installed_glassbox_command(
+                wheel_path,
+                "repo",
+                "index",
+                "status",
+                "--json",
+                "--cwd",
+                str(index_workspace),
+            ),
+        ),
+        InstalledSmokeCheck(
+            "installed background jobs: list",
+            _installed_glassbox_command(
+                wheel_path,
+                "job",
+                "list",
+                "--json",
+                "--cwd",
+                str(job_workspace),
+            ),
+        ),
+        InstalledSmokeCheck(
+            "installed branch-search: list",
+            _installed_glassbox_command(
+                wheel_path,
+                "branch-search",
+                "list",
+                "--json",
+                "--cwd",
+                str(branch_search_workspace),
             ),
         ),
         InstalledSmokeCheck(

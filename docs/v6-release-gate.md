@@ -63,8 +63,14 @@ After package validation, the gate runs installed-wheel smoke from the newest
 | `installed terminal: chat help` | interactive chat parser and TUI dependency stack import |
 | `installed terminal: attach help` | attach parser and TUI dependency stack import |
 | `installed terminal: plain fallback` | explicit plain mode starts and exits in a clean workspace |
+| `installed autonomy: profile list` | built-in autonomy profiles are available from the installed wheel |
+| `installed task: list` | task-plan inspection is scriptable in a clean workspace |
 | `installed first-run: provider diagnostics` | provider diagnostics and first-run checklist run without Node.js        |
 | `installed first-run: profile example`      | an example `glassbox.profile.json` is accepted by installed diagnostics |
+| `installed memory: list` | workspace-memory inspection is scriptable in a clean workspace |
+| `installed repository index: status` | repository-index status reports from an installed package |
+| `installed background jobs: list` | background-job status is scriptable in a clean workspace |
+| `installed branch-search: list` | branch-search inspection is scriptable in a clean workspace |
 | `installed daemon: status before start` | daemon status is scriptable before ownership exists |
 | `installed daemon: start` | daemon starts from the installed wheel |
 | `installed daemon: status after start` | daemon reports running state after start |
