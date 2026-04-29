@@ -17,6 +17,7 @@ from glassbox.core.events import EventEnvelope
 from glassbox.core.events import RuntimeNoteRecorded
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import BackgroundJobId
+from glassbox.core.ids import BranchSearchId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import TaskId
@@ -26,6 +27,8 @@ from glassbox.core.ids import WorkspaceMemoryId
 from glassbox.core.models import ApprovalRecord
 from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import BackgroundJobRecord
+from glassbox.core.models import BranchCandidateRecord
+from glassbox.core.models import BranchSearchRecord
 from glassbox.core.models import ProjectionHealth
 from glassbox.core.models import ResolvedForkPoint
 from glassbox.core.models import RuntimeNoteRecord
@@ -555,6 +558,35 @@ class SQLiteSessionRepository:
         session_id: SessionId,
     ) -> list[TaskRecord]:
         return query_store.list_open_blocked_tasks(self._connection, session_id)
+
+    def list_branch_searches(
+        self,
+        *,
+        session_id: SessionId | None = None,
+        limit: int | None = None,
+    ) -> list[BranchSearchRecord]:
+        return query_store.list_branch_searches(
+            self._connection,
+            session_id=session_id,
+            limit=limit,
+        )
+
+    def get_branch_search(
+        self,
+        search_id: BranchSearchId,
+    ) -> BranchSearchRecord | None:
+        return query_store.get_branch_search(self._connection, search_id)
+
+    def list_branch_candidates(
+        self,
+        session_id: SessionId,
+        search_id: BranchSearchId,
+    ) -> list[BranchCandidateRecord]:
+        return query_store.list_branch_candidates(
+            self._connection,
+            session_id,
+            search_id,
+        )
 
     def resolve_fork_point(
         self,

@@ -17,6 +17,8 @@ type TaskVerificationId = UUID
 type BudgetOverrideId = UUID
 type BackgroundJobId = UUID
 type WorkspaceMemoryId = UUID
+type BranchSearchId = UUID
+type BranchCandidateId = UUID
 
 
 def new_session_id() -> SessionId:
@@ -86,4 +88,14 @@ def new_background_job_id() -> BackgroundJobId:
 
 def new_workspace_memory_id() -> WorkspaceMemoryId:
     """Create a new workspace memory identifier."""
+    return uuid4()
+
+
+def new_branch_search_id() -> BranchSearchId:
+    """Create a new branch-search identifier."""
+    return uuid4()
+
+
+def new_branch_candidate_id() -> BranchCandidateId:
+    """Create a new branch-search candidate identifier."""
     return uuid4()

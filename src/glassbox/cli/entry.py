@@ -51,6 +51,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
     from glassbox.cli.artifact_commands import _artifacts_command
     from glassbox.cli.autonomy_commands import _autonomy_command
     from glassbox.cli.backup_commands import _backup_command
+    from glassbox.cli.branch_search_commands import _branch_search_command
     from glassbox.cli.daemon_commands import _daemon_command
     from glassbox.cli.job_commands import _job_command
     from glassbox.cli.memory_commands import _memory_command
@@ -69,6 +70,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
         "autonomy": _autonomy_command,
         "session": _session_command,
         "task": _task_command,
+        "branch-search": _branch_search_command,
         "replay": _replay_command,
         "eval": _eval_command,
         "artifacts": _artifacts_command,

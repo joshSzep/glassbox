@@ -26,6 +26,7 @@ Use this page to jump to the right level of detail.
 - [v7-scale-verification-inventory.md](./v7-scale-verification-inventory.md): inspect the v7 baseline inventory for eval coverage, provider canaries, scale risks, daemon transport, policy governance, accessibility, onboarding, and weak coverage
 - [v7-release-gate.md](./v7-release-gate.md): run the canonical v7 automated release-candidate gate with v6 coverage, v7 eval/dashboard/onboarding evidence, advisory provider canaries, installed smoke, and retained `summary.json`
 - [interactive-workflows.md](./interactive-workflows.md): use the full-screen `session chat` and `attach` TUI, plus `message`, `answer`, `approve`, `deny`, `resume`, and `status`
+- [branch-search.md](./branch-search.md): inspect bounded branch-search attempts, candidate verification outcomes, and selection metadata
 - [dashboard.md](./dashboard.md): use the co-hosted dashboard as the paired operator console for terminal chat or run the standalone dashboard from `serve`
 - [dashboard-parity.md](./dashboard-parity.md): review the v3 SPA parity gate before replacing the legacy dashboard route
 - [frontend-development.md](./frontend-development.md): run the Next.js SPA with FastAPI during local development and verify the static production path
@@ -62,6 +63,7 @@ Use this page to jump to the right level of detail.
 - [v2-release-candidate.md](./v2-release-candidate.md): package the v2 workflow set into one release-candidate guide for operators and contributors
 - [v6-release-candidate.md](./v6-release-candidate.md): package the v6 release-candidate operating model, validation path, residual risks, and decision state for operators and contributors
 - [branching.md](./branching.md): inspect historical sessions, create child branches, and understand lineage fields
+- [branch-search.md](./branch-search.md): compare strategy-search candidates without mutating parent session history
 - [replay-evals.md](./replay-evals.md): replay historical sessions, export bundles, run eval suites, and work through local-first regression gates
 - [runtime-context.md](./runtime-context.md): inspect repository context, runtime notes, working-set context, and artifact-backed summaries
 - [persistent-runtime.md](./persistent-runtime.md): operate the daemon-backed workspace runtime and troubleshoot attach or health states
@@ -75,6 +77,7 @@ Use this page to jump to the right level of detail.
 ## Deep Reference
 
 - [architecture.md](./architecture.md): current runtime, bootstrap, store, CLI, web, replay, and eval ownership boundaries on top of the event-sourced system design
+- [branch-search.md](./branch-search.md): v8 branch-search event vocabulary, candidate status model, and CLI inspection workflow
 - [database.md](./database.md): SQLite event store, projection tables, artifact storage, branching lineage fields, and the split store implementation map
 - [dashboard-frontend-boundaries.md](./dashboard-frontend-boundaries.md): legacy reducer, renderer, transport, and DOM-binding boundaries for the no-framework dashboard, plus the v3 SPA supersession notice
 - [dashboard-parity.md](./dashboard-parity.md): behavioral parity checklist, automated coverage map, manual validation path, and known migration gaps for the SPA route flip

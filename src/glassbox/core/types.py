@@ -165,6 +165,38 @@ class VerificationFailureCategory(StrEnum):
     UNKNOWN = "unknown"
 
 
+class BranchSearchStatus(StrEnum):
+    """Lifecycle states for a bounded branch-search workflow."""
+
+    STARTED = "started"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    ABANDONED = "abandoned"
+
+
+class BranchCandidateStatus(StrEnum):
+    """Lifecycle states for one branch-search candidate."""
+
+    PLANNED = "planned"
+    FORKED = "forked"
+    EXECUTED = "executed"
+    VERIFIED = "verified"
+    SELECTED = "selected"
+    REJECTED = "rejected"
+    NEEDS_REVIEW = "needs_review"
+
+
+class BranchCandidateVerificationStatus(StrEnum):
+    """Verification outcome for one branch-search candidate."""
+
+    NOT_RUN = "not_run"
+    PASSED = "passed"
+    FAILED = "failed"
+    BLOCKED = "blocked"
+    TIMED_OUT = "timed_out"
+    INCONCLUSIVE = "inconclusive"
+
+
 class TaskBlockedReason(StrEnum):
     """Operator-facing reasons a task cannot continue."""
 

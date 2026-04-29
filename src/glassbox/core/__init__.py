@@ -19,6 +19,15 @@ from glassbox.core.events import BackgroundJobRecoveryRecorded
 from glassbox.core.events import BackgroundJobRetryExhausted
 from glassbox.core.events import BackgroundJobRetryRequested
 from glassbox.core.events import BackgroundJobStarted
+from glassbox.core.events import BranchCandidateExecuted
+from glassbox.core.events import BranchCandidateForked
+from glassbox.core.events import BranchCandidatePlanned
+from glassbox.core.events import BranchCandidateRejected
+from glassbox.core.events import BranchCandidatesCompared
+from glassbox.core.events import BranchCandidateSelected
+from glassbox.core.events import BranchCandidateVerified
+from glassbox.core.events import BranchSearchAbandoned
+from glassbox.core.events import BranchSearchStarted
 from glassbox.core.events import BudgetDecisionRecorded
 from glassbox.core.events import BudgetExhausted
 from glassbox.core.events import BudgetOverrideRequested
@@ -84,6 +93,8 @@ from glassbox.core.events import WorkspaceMemoryUsedInContext
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import ArtifactId
 from glassbox.core.ids import BackgroundJobId
+from glassbox.core.ids import BranchCandidateId
+from glassbox.core.ids import BranchSearchId
 from glassbox.core.ids import BudgetOverrideId
 from glassbox.core.ids import EventId
 from glassbox.core.ids import MessageId
@@ -98,6 +109,8 @@ from glassbox.core.ids import WorkspaceMemoryId
 from glassbox.core.ids import new_approval_id
 from glassbox.core.ids import new_artifact_id
 from glassbox.core.ids import new_background_job_id
+from glassbox.core.ids import new_branch_candidate_id
+from glassbox.core.ids import new_branch_search_id
 from glassbox.core.ids import new_budget_override_id
 from glassbox.core.ids import new_event_id
 from glassbox.core.ids import new_message_id
@@ -115,6 +128,8 @@ from glassbox.core.models import AutonomyBudgetRemaining
 from glassbox.core.models import AutonomyBudgetUsage
 from glassbox.core.models import AutonomySelection
 from glassbox.core.models import BackgroundJobRecord
+from glassbox.core.models import BranchCandidateRecord
+from glassbox.core.models import BranchSearchRecord
 from glassbox.core.models import ForkedSession
 from glassbox.core.models import InheritedTranscriptMessage
 from glassbox.core.models import MessagePart
@@ -150,6 +165,9 @@ from glassbox.core.types import BackgroundJobFailureKind
 from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import BackgroundJobRecoveryReason
 from glassbox.core.types import BackgroundJobState
+from glassbox.core.types import BranchCandidateStatus
+from glassbox.core.types import BranchCandidateVerificationStatus
+from glassbox.core.types import BranchSearchStatus
 from glassbox.core.types import RepositoryIndexEntityKind
 from glassbox.core.types import RepositoryIndexFreshness
 from glassbox.core.types import RepositoryIndexSourceType
@@ -205,6 +223,22 @@ __all__ = [
     "BackgroundJobRetryRequested",
     "BackgroundJobStarted",
     "BackgroundJobState",
+    "BranchCandidateExecuted",
+    "BranchCandidateForked",
+    "BranchCandidateId",
+    "BranchCandidatePlanned",
+    "BranchCandidateRecord",
+    "BranchCandidateRejected",
+    "BranchCandidateSelected",
+    "BranchCandidateStatus",
+    "BranchCandidateVerificationStatus",
+    "BranchCandidateVerified",
+    "BranchCandidatesCompared",
+    "BranchSearchAbandoned",
+    "BranchSearchId",
+    "BranchSearchRecord",
+    "BranchSearchStarted",
+    "BranchSearchStatus",
     "BudgetDecisionRecorded",
     "BudgetExhausted",
     "BudgetOverrideId",
@@ -323,6 +357,8 @@ __all__ = [
     "new_approval_id",
     "new_artifact_id",
     "new_background_job_id",
+    "new_branch_candidate_id",
+    "new_branch_search_id",
     "new_budget_override_id",
     "new_event_id",
     "new_message_id",

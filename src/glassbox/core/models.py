@@ -13,6 +13,8 @@ from pydantic import model_validator
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import ArtifactId
 from glassbox.core.ids import BackgroundJobId
+from glassbox.core.ids import BranchCandidateId
+from glassbox.core.ids import BranchSearchId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import QuestionId
 from glassbox.core.ids import SessionId
@@ -30,6 +32,9 @@ from glassbox.core.types import BackgroundJobFailureKind
 from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import BackgroundJobRecoveryReason
 from glassbox.core.types import BackgroundJobState
+from glassbox.core.types import BranchCandidateStatus
+from glassbox.core.types import BranchCandidateVerificationStatus
+from glassbox.core.types import BranchSearchStatus
 from glassbox.core.types import RepositoryIndexEntityKind
 from glassbox.core.types import RepositoryIndexFreshness
 from glassbox.core.types import RepositoryIndexSourceType
@@ -687,6 +692,48 @@ class TaskVerificationRecord(BaseModel):
     status: TaskVerificationStatus
     check_name: str
     summary: str | None = None
+
+
+class BranchCandidateRecord(BaseModel):
+    """Projected state for one branch-search candidate."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    search_id: BranchSearchId
+    candidate_id: BranchCandidateId
+    parent_session_id: SessionId
+    candidate_session_id: SessionId | None = None
+    strategy_label: str = Field(min_length=1, max_length=200)
+    status: BranchCandidateStatus
+    verification_status: BranchCandidateVerificationStatus = (
+        BranchCandidateVerificationStatus.NOT_RUN
+    )
+    selection_state: BranchCandidateStatus | None = None
+    verification_summary: str | None = Field(default=None, max_length=4000)
+    verification_id: TaskVerificationId | None = None
+    artifact_id: ArtifactId | None = None
+    created_at: datetime
+    updated_at: datetime
+    last_sequence: int = Field(ge=0)
+
+
+class BranchSearchRecord(BaseModel):
+    """Projected state for a branch-search workflow."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    search_id: BranchSearchId
+    session_id: SessionId
+    parent_session_id: SessionId
+    status: BranchSearchStatus
+    objective: str = Field(min_length=1, max_length=4000)
+    task_id: TaskId | None = None
+    selected_candidate_id: BranchCandidateId | None = None
+    abandoned_reason: str | None = Field(default=None, max_length=2000)
+    candidate_count: int = Field(default=0, ge=0)
+    created_at: datetime
+    updated_at: datetime
+    last_sequence: int = Field(ge=0)
 
 
 class VerificationPlanEntry(BaseModel):

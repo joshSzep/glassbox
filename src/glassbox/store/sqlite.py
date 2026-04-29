@@ -9,8 +9,11 @@ from glassbox.store.sqlite_events import rebuild_session_projections
 from glassbox.store.sqlite_fork import build_imported_transcript_events
 from glassbox.store.sqlite_fork import resolve_fork_point
 from glassbox.store.sqlite_projection_health import inspect_session_projection_health
+from glassbox.store.sqlite_queries import get_branch_search
 from glassbox.store.sqlite_queries import get_budget_posture
 from glassbox.store.sqlite_queries import list_approvals
+from glassbox.store.sqlite_queries import list_branch_candidates
+from glassbox.store.sqlite_queries import list_branch_searches
 from glassbox.store.sqlite_queries import list_open_blocked_tasks
 from glassbox.store.sqlite_queries import list_runtime_notes
 from glassbox.store.sqlite_queries import list_task_steps
@@ -46,12 +49,15 @@ __all__ = [
     "confirm_workspace_memory",
     "get_session",
     "get_budget_posture",
+    "get_branch_search",
     "get_session_state",
     "get_workspace_memory",
     "initialize_database",
     "invalidate_workspace_memory",
     "inspect_session_projection_health",
     "list_approvals",
+    "list_branch_candidates",
+    "list_branch_searches",
     "list_open_blocked_tasks",
     "list_runtime_notes",
     "list_sessions",

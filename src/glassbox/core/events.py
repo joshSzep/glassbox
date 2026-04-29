@@ -15,6 +15,8 @@ from pydantic import model_validator
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import ArtifactId
 from glassbox.core.ids import BackgroundJobId
+from glassbox.core.ids import BranchCandidateId
+from glassbox.core.ids import BranchSearchId
 from glassbox.core.ids import BudgetOverrideId
 from glassbox.core.ids import EventId
 from glassbox.core.ids import MessageId
@@ -47,6 +49,7 @@ from glassbox.core.types import BackgroundJobFailureKind
 from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import BackgroundJobRecoveryReason
 from glassbox.core.types import BackgroundJobState
+from glassbox.core.types import BranchCandidateVerificationStatus
 from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskVerificationStatus
@@ -550,6 +553,81 @@ class TaskStatusChanged(EventPayload):
     reason: str | None = Field(default=None, max_length=2000)
 
 
+class BranchSearchStarted(EventPayload):
+    event_type: Literal["BranchSearchStarted"] = "BranchSearchStarted"
+    search_id: BranchSearchId
+    parent_session_id: SessionId
+    objective: str = Field(min_length=1, max_length=4000)
+    task_id: TaskId | None = None
+    max_candidates: int = Field(default=2, ge=1, le=20)
+
+
+class BranchCandidatePlanned(EventPayload):
+    event_type: Literal["BranchCandidatePlanned"] = "BranchCandidatePlanned"
+    search_id: BranchSearchId
+    candidate_id: BranchCandidateId
+    strategy_label: str = Field(min_length=1, max_length=200)
+    verification_plan: list[VerificationPlanEntry] = Field(
+        default_factory=list,
+        max_length=20,
+    )
+
+
+class BranchCandidateForked(EventPayload):
+    event_type: Literal["BranchCandidateForked"] = "BranchCandidateForked"
+    search_id: BranchSearchId
+    candidate_id: BranchCandidateId
+    candidate_session_id: SessionId
+    forked_from_turn_id: TurnId | None = None
+    forked_from_sequence: int | None = Field(default=None, ge=0)
+
+
+class BranchCandidateExecuted(EventPayload):
+    event_type: Literal["BranchCandidateExecuted"] = "BranchCandidateExecuted"
+    search_id: BranchSearchId
+    candidate_id: BranchCandidateId
+    summary: str = Field(min_length=1, max_length=4000)
+
+
+class BranchCandidateVerified(EventPayload):
+    event_type: Literal["BranchCandidateVerified"] = "BranchCandidateVerified"
+    search_id: BranchSearchId
+    candidate_id: BranchCandidateId
+    verification_status: BranchCandidateVerificationStatus
+    summary: str = Field(min_length=1, max_length=4000)
+    verification_id: TaskVerificationId | None = None
+    artifact_id: ArtifactId | None = None
+
+
+class BranchCandidatesCompared(EventPayload):
+    event_type: Literal["BranchCandidatesCompared"] = "BranchCandidatesCompared"
+    search_id: BranchSearchId
+    summary: str = Field(min_length=1, max_length=4000)
+    artifact_id: ArtifactId | None = None
+
+
+class BranchCandidateSelected(EventPayload):
+    event_type: Literal["BranchCandidateSelected"] = "BranchCandidateSelected"
+    search_id: BranchSearchId
+    candidate_id: BranchCandidateId
+    selected_by: str = Field(default="operator", min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class BranchCandidateRejected(EventPayload):
+    event_type: Literal["BranchCandidateRejected"] = "BranchCandidateRejected"
+    search_id: BranchSearchId
+    candidate_id: BranchCandidateId
+    rejected_by: str = Field(default="operator", min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class BranchSearchAbandoned(EventPayload):
+    event_type: Literal["BranchSearchAbandoned"] = "BranchSearchAbandoned"
+    search_id: BranchSearchId
+    reason: str = Field(min_length=1, max_length=2000)
+
+
 class BackgroundJobCreated(EventPayload):
     event_type: Literal["BackgroundJobCreated"] = "BackgroundJobCreated"
     job_id: BackgroundJobId
@@ -813,6 +891,15 @@ EventPayloadType = Annotated[
     | TaskCancelled
     | TaskAbandoned
     | TaskStatusChanged
+    | BranchSearchStarted
+    | BranchCandidatePlanned
+    | BranchCandidateForked
+    | BranchCandidateExecuted
+    | BranchCandidateVerified
+    | BranchCandidatesCompared
+    | BranchCandidateSelected
+    | BranchCandidateRejected
+    | BranchSearchAbandoned
     | BackgroundJobCreated
     | BackgroundJobClaimed
     | BackgroundJobStarted
@@ -911,3 +998,11 @@ class EventEnvelope(BaseModel):
     @property
     def memory_id(self) -> WorkspaceMemoryId | None:
         return getattr(self.payload, "memory_id", None)
+
+    @property
+    def search_id(self) -> BranchSearchId | None:
+        return getattr(self.payload, "search_id", None)
+
+    @property
+    def candidate_id(self) -> BranchCandidateId | None:
+        return getattr(self.payload, "candidate_id", None)
