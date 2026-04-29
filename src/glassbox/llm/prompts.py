@@ -7,6 +7,7 @@ from glassbox.runtime.context_builder import PolicyContext
 from glassbox.runtime.context_builder import ToolSchema
 from glassbox.runtime.context_builder import TurnContext
 from glassbox.runtime.context_builder import normalize_tool_schemas
+from glassbox.runtime.task_plan_capture import build_task_plan_prompt_fragment
 
 
 def build_system_prompt(turn_context: TurnContext) -> str:
@@ -15,6 +16,7 @@ def build_system_prompt(turn_context: TurnContext) -> str:
     sections = [
         build_runtime_prompt_fragment(),
         build_output_style_prompt_fragment(),
+        build_task_plan_prompt_fragment(),
         build_tool_usage_prompt_fragment(turn_context.available_tools),
         build_approval_policy_prompt_fragment(turn_context.policy),
     ]

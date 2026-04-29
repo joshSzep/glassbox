@@ -50,6 +50,18 @@ GET /tasks/TASK_ID/events?cursor=0&limit=100
 
 Scoped task list pages and task detail pages include projection health so stale or degraded projections remain visible to operators. These routes are read-only and intentionally do not expose continuation, approval, resume, or cancellation controls.
 
+## Proposal Capture
+
+During a turn, the model may propose durable task state by including one fenced JSON block in its assistant response:
+
+````text
+```glassbox-task-plan
+{"title":"...","goal":"...","steps":[{"title":"...","description":"..."}]}
+```
+````
+
+The runtime validates that block with a bounded Pydantic model, creates `TaskCreated` and `TaskPlanProposed` events when it is valid, and leaves normal assistant text untouched. Invalid, ambiguous, or multiple plan blocks are ignored. Captured plans are inspection-only; no step is started or executed by this capture path.
+
 ## Relationship To Existing Objects
 
 Task plans differ from existing runtime objects in these ways:

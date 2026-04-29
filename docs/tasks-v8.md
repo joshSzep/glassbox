@@ -426,9 +426,10 @@ The intended v8 milestone order is:
 
 ### GBX-824: Capture Plan Proposals From Model Output Without Executing Them Autonomously
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-823`
 - Goal: let the runtime persist structured plans proposed during a turn while keeping execution manual until autonomy budgets exist
+- Evidence: [task-plans.md](./task-plans.md)
 - Deliverables:
   - prompt and adapter contract for the model to propose a bounded plan when useful
   - parser or structured-output path for converting a model plan proposal into task-plan events

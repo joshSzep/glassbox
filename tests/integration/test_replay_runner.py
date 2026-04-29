@@ -20,6 +20,8 @@ from glassbox.core import EventEnvelope
 from glassbox.core import SessionConfig
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import ReplayArtifactRecorded
+from glassbox.core.events import TaskCreated
+from glassbox.core.events import TaskPlanProposed
 from glassbox.core.events import UserQuestionAsked
 from glassbox.core.types import ApprovalDecision
 from glassbox.llm import ModelProviderConfig
@@ -29,6 +31,9 @@ from glassbox.runtime.bus import EventBus
 from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.eval_runner import EvalRunner
 from glassbox.runtime.replay import ReplayRunner
+from glassbox.runtime.replay_manifests import REPLAY_TURN_OUTPUT_ARTIFACT
+from glassbox.runtime.replay_manifests import ReplayTurnOutputManifest
+from glassbox.runtime.replay_manifests import load_replay_manifest
 from glassbox.runtime.replay_models import ReplayCancellationSnapshot
 from glassbox.runtime.replay_models import ReplayFinalStateSnapshot
 from glassbox.runtime.replay_models import ReplayNormalizedSession
@@ -128,6 +133,36 @@ def _text_only_response(messages: list, _agent_info: Any) -> ModelResponse:
                 user_prompt = part.content
     assert user_prompt == "Inspect the repo"
     return ModelResponse(parts=[TextPart(content="Repo inspection complete.")])
+
+
+def _task_plan_response(messages: list, _agent_info: Any) -> ModelResponse:
+    user_prompt = None
+    for message in messages:
+        if not isinstance(message, ModelRequest):
+            continue
+        for part in message.parts:
+            if isinstance(part, UserPromptPart):
+                user_prompt = part.content
+    assert user_prompt == "Plan the dashboard task"
+    return ModelResponse(
+        parts=[
+            TextPart(
+                content=(
+                    "I recommend a proposed plan for operator review.\n\n"
+                    "```glassbox-task-plan\n"
+                    "{\n"
+                    '  "title": "Add task dashboard",\n'
+                    '  "goal": "Expose durable task state in the dashboard",\n'
+                    '  "steps": [\n'
+                    '    {"title": "Add typed API reads"},\n'
+                    '    {"title": "Render read-only task pane"}\n'
+                    "  ]\n"
+                    "}\n"
+                    "```"
+                )
+            )
+        ]
+    )
 
 
 def _read_file_then_text_response(messages: list, _agent_info: Any) -> ModelResponse:
@@ -276,6 +311,76 @@ def test_replay_runner_matches_text_only_session(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
+def test_turn_records_structured_task_plan_proposals(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = _build_turn_engine(
+                repository,
+                artifact_repository,
+                bus,
+                model_fn=_task_plan_response,
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+
+            state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+            await supervisor.submit_user_message(
+                state.session_id,
+                "Plan the dashboard task",
+            )
+            events = repository.read_session_events(state.session_id)
+            task_created = next(
+                event.payload
+                for event in events
+                if isinstance(event.payload, TaskCreated)
+            )
+            task_proposed = next(
+                event.payload
+                for event in events
+                if isinstance(event.payload, TaskPlanProposed)
+            )
+            task_rows = repository.list_tasks(session_id=state.session_id)
+            replay_manifest = _first_turn_output_manifest(
+                repository,
+                artifact_repository,
+                state.session_id,
+            )
+
+            result = await ReplayRunner(repository, artifact_repository).replay_session(
+                state.session_id
+            )
+        finally:
+            connection.close()
+
+        assert task_created.task_id == task_proposed.task_id
+        assert task_created.source_turn_id is not None
+        assert task_proposed.plan.title == "Add task dashboard"
+        assert [step.title for step in task_proposed.plan.steps] == [
+            "Add typed API reads",
+            "Render read-only task pane",
+        ]
+        assert len(task_rows) == 1
+        assert task_rows[0].status == "proposed"
+        assert replay_manifest.details["task_plan"] == {
+            "task_id": str(task_created.task_id),
+            "title": "Add task dashboard",
+            "step_count": 2,
+        }
+        assert result.outcome == "exact_match"
+        assert result.replay == result.baseline
+
+    asyncio.run(scenario())
+
+
 def test_replay_runner_treats_cancelled_bundle_as_recorded_evidence(
     tmp_path: Path,
 ) -> None:
@@ -360,6 +465,25 @@ def test_replay_runner_treats_cancelled_bundle_as_recorded_evidence(
         assert result.baseline.cancellations[0].event == "turn_cancelled"
 
     asyncio.run(scenario())
+
+
+def _first_turn_output_manifest(
+    repository: SQLiteSessionRepository,
+    artifact_repository: FilesystemArtifactRepository,
+    session_id,
+) -> ReplayTurnOutputManifest:
+    for event in repository.read_session_events(session_id):
+        if not isinstance(event.payload, ReplayArtifactRecorded):
+            continue
+        if event.payload.artifact_kind != REPLAY_TURN_OUTPUT_ARTIFACT:
+            continue
+        assert event.payload.path is not None
+        manifest = load_replay_manifest(
+            artifact_repository.read_text_artifact(Path(event.payload.path))
+        )
+        assert isinstance(manifest, ReplayTurnOutputManifest)
+        return manifest
+    raise AssertionError("expected replay turn output artifact")
 
 
 def test_replay_runner_matches_tool_assisted_session(tmp_path: Path) -> None:

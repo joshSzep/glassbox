@@ -85,6 +85,8 @@ def test_build_system_prompt_includes_policy_tools_repo_and_memory() -> None:
     prompt = build_system_prompt(turn_context)
 
     assert "You are Glassbox" in prompt
+    assert "Task plan proposals:" in prompt
+    assert "```glassbox-task-plan" in prompt
     assert "Approval policy:" in prompt
     assert "Current approval mode: on-request." in prompt
     assert "Pending approval id:" in prompt

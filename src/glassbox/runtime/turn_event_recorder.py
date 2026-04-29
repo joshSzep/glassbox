@@ -36,6 +36,7 @@ from glassbox.runtime.errors import SessionRuntimeFailure
 from glassbox.runtime.logging import get_runtime_logger
 from glassbox.runtime.logging import runtime_log_extra
 from glassbox.runtime.replay_capture import ReplayArtifactRecorder
+from glassbox.runtime.task_plan_capture import CapturedTaskPlanEvents
 from glassbox.runtime.transport import RuntimeEventTransport
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
@@ -175,24 +176,32 @@ class TurnEventRecorder:
         turn_id,
         assistant_message_id: MessageId,
         assistant_text: str,
+        task_plan_capture: CapturedTaskPlanEvents | None = None,
     ) -> None:
-        self._append_and_publish(
-            session_id,
+        completion_payloads: list[object] = [
+            TurnStatusChanged(
+                turn_id=turn_id,
+                status=TurnStatus.ASSEMBLING_RESPONSE,
+            ),
+            AssistantMessageCompleted(
+                message_id=assistant_message_id,
+                parts=[MessagePart(kind="text", text=assistant_text)],
+            ),
+        ]
+        if task_plan_capture is not None:
+            completion_payloads.extend(task_plan_capture.payloads)
+        completion_payloads.extend(
             [
-                TurnStatusChanged(
-                    turn_id=turn_id,
-                    status=TurnStatus.ASSEMBLING_RESPONSE,
-                ),
-                AssistantMessageCompleted(
-                    message_id=assistant_message_id,
-                    parts=[MessagePart(kind="text", text=assistant_text)],
-                ),
                 TurnStatusChanged(
                     turn_id=turn_id,
                     status=TurnStatus.COMPLETED,
                 ),
                 TurnCompleted(turn_id=turn_id, outcome="completed"),
-            ],
+            ]
+        )
+        self._append_and_publish(
+            session_id,
+            completion_payloads,
         )
         logger.info(
             "turn_completed",
@@ -208,6 +217,11 @@ class TurnEventRecorder:
             turn_id=turn_id,
             outcome="completed",
             assistant_text=assistant_text,
+            details=(
+                task_plan_capture.replay_details()
+                if task_plan_capture is not None
+                else None
+            ),
         )
 
     def record_failed_turn(

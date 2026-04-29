@@ -27,6 +27,7 @@ from glassbox.runtime.model_loop import ModelConversationState
 from glassbox.runtime.model_loop import ModelLoopRunner
 from glassbox.runtime.model_loop import ModelLoopSuspension
 from glassbox.runtime.replay_capture import ReplayArtifactRecorder
+from glassbox.runtime.task_plan_capture import capture_task_plan_proposal
 from glassbox.runtime.transport import RuntimeEventTransport
 from glassbox.runtime.turn_event_recorder import TurnEventRecorder
 from glassbox.runtime.turn_preparation import LiveTurnPreparation
@@ -411,11 +412,16 @@ class TurnEngine:
             )
 
         def on_assistant_completed(assistant_text: str) -> None:
+            task_plan_capture = capture_task_plan_proposal(
+                assistant_text,
+                source_turn_id=turn_id,
+            )
             self._event_recorder.record_assistant_completed(
                 session_id,
                 turn_id=turn_id,
                 assistant_message_id=assistant_message_id,
                 assistant_text=assistant_text,
+                task_plan_capture=task_plan_capture,
             )
 
         await self._model_loop_runner.run(
