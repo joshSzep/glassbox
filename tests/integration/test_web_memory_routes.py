@@ -218,6 +218,64 @@ def test_memory_routes_add_confirm_and_reject_candidates(tmp_path: Path) -> None
     asyncio.run(scenario())
 
 
+def test_memory_routes_confirm_invalidate_and_prune_entries(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app = _make_app(tmp_path, connection)
+            session_id = new_session_id()
+            memory_id = new_workspace_memory_id()
+            repo = SQLiteSessionRepository(connection)
+            _seed_memory(
+                repo, tmp_path, session_id, memory_id, summary="operator memory"
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                confirm_response = await client.post(
+                    f"/memory/{memory_id}/confirm",
+                    json={"actor": "qa", "reason": "still accurate"},
+                )
+                invalidate_response = await client.post(
+                    f"/memory/{memory_id}/invalidate",
+                    json={"actor": "qa", "reason": "path changed"},
+                )
+                missing_reason = await client.post(
+                    f"/memory/{memory_id}/prune",
+                    json={"actor": "qa"},
+                )
+                preview_response = await client.post(
+                    f"/memory/{memory_id}/prune-preview",
+                    json={"actor": "qa", "reason": "cleanup"},
+                )
+                prune_response = await client.post(
+                    f"/memory/{memory_id}/prune",
+                    json={"actor": "qa", "reason": "cleanup"},
+                )
+                pruned_list = await client.get(
+                    "/memory",
+                    params={"include_pruned": True, "state": "pruned"},
+                )
+
+            assert confirm_response.status_code == 200
+            assert confirm_response.json()["entry"]["confirmed_by"] == "qa"
+            assert invalidate_response.status_code == 200
+            assert invalidate_response.json()["entry"]["state"] == "invalidated"
+            assert missing_reason.status_code == 400
+            assert preview_response.status_code == 200
+            assert preview_response.json()["would_prune"] is True
+            assert prune_response.status_code == 200
+            assert prune_response.json()["entry"]["state"] == "pruned"
+            assert pruned_list.status_code == 200
+            assert pruned_list.json()["items"][0]["memory_id"] == str(memory_id)
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
 def _open_initialized_db(tmp_path: Path) -> sqlite3.Connection:
     connection = open_database(tmp_path / "glassbox.sqlite3")
     initialize_database(connection)

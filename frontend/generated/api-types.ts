@@ -148,6 +148,86 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/memory/{memory_id}/confirm": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Confirm Workspace Memory
+     * @description Confirm or refresh confirmation evidence for one memory entry.
+     */
+    post: operations["confirm_workspace_memory_memory__memory_id__confirm_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/memory/{memory_id}/invalidate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Invalidate Workspace Memory
+     * @description Invalidate one memory entry while keeping it inspectable.
+     */
+    post: operations["invalidate_workspace_memory_memory__memory_id__invalidate_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/memory/{memory_id}/prune": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Prune Workspace Memory
+     * @description Prune one memory entry from active retrieval while preserving history.
+     */
+    post: operations["prune_workspace_memory_memory__memory_id__prune_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/memory/{memory_id}/prune-preview": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Preview Workspace Memory Prune
+     * @description Preview a prune action without mutating canonical memory events.
+     */
+    post: operations["preview_workspace_memory_prune_memory__memory_id__prune_preview_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/repo/index/entries/{entry_id}": {
     parameters: {
       query?: never;
@@ -162,6 +242,26 @@ export interface paths {
     get: operations["get_repository_index_entry_detail_repo_index_entries__entry_id__get"];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/repo/index/rebuild": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Rebuild Repository Index
+     * @description Refresh repository intelligence directly or queue a daemon job.
+     */
+    post: operations["rebuild_repository_index_repo_index_rebuild_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -1449,6 +1549,32 @@ export interface components {
       /** Tool Name */
       tool_name?: string | null;
     };
+    /** RepositoryIndexRebuildRequest */
+    RepositoryIndexRebuildRequest: {
+      /**
+       * Background
+       * @default true
+       */
+      background: boolean;
+      /**
+       * Requested By
+       * @default operator
+       */
+      requested_by: string;
+      /** Session Id */
+      session_id?: string | null;
+    };
+    /** RepositoryIndexRebuildResponse */
+    RepositoryIndexRebuildResponse: {
+      /** Detail */
+      detail?: string | null;
+      index?: components["schemas"]["RepositoryIndexStatusResponse"] | null;
+      job?: components["schemas"]["BackgroundJobResponse"] | null;
+      /** Mode */
+      mode: string;
+      /** Status */
+      status: string;
+    };
     /** RepositoryIndexSearchPageResponse */
     RepositoryIndexSearchPageResponse: {
       /** Items */
@@ -2069,6 +2195,16 @@ export interface components {
       /** Items */
       items?: components["schemas"]["WorkingSetItemSnapshot"][];
     };
+    /** WorkspaceMemoryActionRequest */
+    WorkspaceMemoryActionRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /** Reason */
+      reason?: string | null;
+    };
     /** WorkspaceMemoryAddRequest */
     WorkspaceMemoryAddRequest: {
       /**
@@ -2282,6 +2418,14 @@ export interface components {
       task_id?: string | null;
       /** Tool Call Id */
       tool_call_id?: string | null;
+    };
+    /** WorkspaceMemoryPrunePreviewResponse */
+    WorkspaceMemoryPrunePreviewResponse: {
+      entry: components["schemas"]["WorkspaceMemoryEntryResponse"];
+      /** Reason */
+      reason?: string | null;
+      /** Would Prune */
+      would_prune: boolean;
     };
     /**
      * WorkspaceMemoryState
@@ -2617,6 +2761,200 @@ export interface operations {
       };
     };
   };
+  confirm_workspace_memory_memory__memory_id__confirm_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        memory_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["WorkspaceMemoryActionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkspaceMemoryDetailResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  invalidate_workspace_memory_memory__memory_id__invalidate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        memory_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["WorkspaceMemoryActionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkspaceMemoryDetailResponse"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  prune_workspace_memory_memory__memory_id__prune_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        memory_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["WorkspaceMemoryActionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkspaceMemoryDetailResponse"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  preview_workspace_memory_prune_memory__memory_id__prune_preview_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        memory_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["WorkspaceMemoryActionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkspaceMemoryPrunePreviewResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   get_repository_index_entry_detail_repo_index_entries__entry_id__get: {
     parameters: {
       query?: never;
@@ -2635,6 +2973,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["RepositoryIndexEntryDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  rebuild_repository_index_repo_index_rebuild_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RepositoryIndexRebuildRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RepositoryIndexRebuildResponse"];
         };
       };
       /** @description Validation Error */

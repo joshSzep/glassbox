@@ -26,7 +26,7 @@ export const inspectorTabs = [
 
 export type InspectorTab = (typeof inspectorTabs)[number];
 
-export const appSurfaces = ["sessions", "tasks"] as const;
+export const appSurfaces = ["sessions", "tasks", "memory", "repository"] as const;
 
 export type AppSurface = (typeof appSurfaces)[number];
 
@@ -98,6 +98,30 @@ export function parseAppRoute(input: string | URL, options: AppRouteOptions = {}
     };
   }
 
+  if (segments[0] === "memory") {
+    return {
+      compareSessionId: null,
+      queue: "all",
+      selectedSessionId: null,
+      selectedTaskId: null,
+      surface: "memory",
+      tab: "overview",
+      taskQueue,
+    };
+  }
+
+  if (segments[0] === "repository-index") {
+    return {
+      compareSessionId: null,
+      queue: "all",
+      selectedSessionId: null,
+      selectedTaskId: null,
+      surface: "repository",
+      tab: "overview",
+      taskQueue,
+    };
+  }
+
   if (segments[0] === "sessions" && segments[1]) {
     return {
       compareSessionId,
@@ -161,6 +185,10 @@ export function buildAppRoute(state: AppRouteBuildState, options: AppRouteOption
     if (taskQueue !== "active") {
       searchParams.set("taskQueue", taskQueue);
     }
+  } else if (surface === "memory") {
+    pathname = `${basePath}/memory`;
+  } else if (surface === "repository") {
+    pathname = `${basePath}/repository-index`;
   } else if (state.selectedSessionId !== null) {
     pathname = `${basePath}/sessions/${encodePathSegment(state.selectedSessionId)}`;
     if (state.queue !== "all") {
@@ -247,6 +275,20 @@ export function selectTaskRoute(route: AppRouteState, taskId: string): AppRouteS
     selectedSessionId: null,
     selectedTaskId: taskId,
     surface: "tasks",
+    tab: "overview",
+  };
+}
+
+export function selectKnowledgeRoute(
+  route: AppRouteState,
+  surface: Extract<AppSurface, "memory" | "repository">,
+): AppRouteState {
+  return {
+    ...route,
+    compareSessionId: null,
+    selectedSessionId: null,
+    selectedTaskId: null,
+    surface,
     tab: "overview",
   };
 }

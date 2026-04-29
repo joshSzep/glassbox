@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useStore } from "zustand";
 
 import { createGlassboxApiClient } from "@/api/client";
+import { KnowledgeAutonomyConsole } from "@/components/console/knowledge-autonomy-console";
 import { SessionInspector } from "@/components/console/session-inspector";
 import { TaskAutonomyConsole } from "@/components/console/task-autonomy-console";
 import { WorkspaceOverview } from "@/components/console/workspace-overview";
@@ -21,14 +22,21 @@ import {
   type AppQueue,
   type AppRouteState,
 } from "@/routing/app-route";
-import { createConsoleStore, createSessionStore, createTaskStore } from "@/stores/dashboard-stores";
+import {
+  createConsoleStore,
+  createKnowledgeStore,
+  createSessionStore,
+  createTaskStore,
+} from "@/stores/dashboard-stores";
 
 export function WorkspaceConsole() {
   const apiClient = useMemo(() => createGlassboxApiClient(), []);
   const consoleStore = useMemo(() => createConsoleStore(apiClient), [apiClient]);
+  const knowledgeStore = useMemo(() => createKnowledgeStore(apiClient), [apiClient]);
   const sessionStore = useMemo(() => createSessionStore({ apiClient }), [apiClient]);
   const taskStore = useMemo(() => createTaskStore(apiClient), [apiClient]);
   const consoleState = useStore(consoleStore);
+  const knowledgeState = useStore(knowledgeStore);
   const sessionState = useStore(sessionStore);
   const taskState = useStore(taskStore);
   const [route, setRoute] = useState<AppRouteState>(createDefaultAppRoute);
@@ -39,6 +47,7 @@ export function WorkspaceConsole() {
       setRoute(nextRoute);
       void consoleStore.getState().loadAggregate({ queue: nextRoute.queue });
       if (nextRoute.surface === "tasks") {
+        knowledgeStore.getState().reset();
         sessionStore.getState().resetForRoute(null);
         void (async () => {
           await taskStore.getState().loadTaskPage({ queue: nextRoute.taskQueue });
@@ -46,7 +55,19 @@ export function WorkspaceConsole() {
             await taskStore.getState().selectTask(nextRoute.selectedTaskId);
           }
         })();
+      } else if (nextRoute.surface === "memory") {
+        sessionStore.getState().resetForRoute(null);
+        taskStore.getState().reset();
+        void knowledgeStore.getState().loadMemoryPage();
+      } else if (nextRoute.surface === "repository") {
+        sessionStore.getState().resetForRoute(null);
+        taskStore.getState().reset();
+        void (async () => {
+          await knowledgeStore.getState().loadRepositoryStatus();
+          await knowledgeStore.getState().searchRepositoryIndex();
+        })();
       } else if (nextRoute.selectedSessionId !== null) {
+        knowledgeStore.getState().reset();
         taskStore.getState().reset();
         void (async () => {
           await sessionStore.getState().loadSession(nextRoute.selectedSessionId as string);
@@ -55,6 +76,7 @@ export function WorkspaceConsole() {
           }
         })();
       } else {
+        knowledgeStore.getState().reset();
         taskStore.getState().reset();
         sessionStore.getState().resetForRoute(null);
       }
@@ -63,7 +85,7 @@ export function WorkspaceConsole() {
     syncFromLocation();
     window.addEventListener("popstate", syncFromLocation);
     return () => window.removeEventListener("popstate", syncFromLocation);
-  }, [consoleStore, sessionStore, taskStore]);
+  }, [consoleStore, knowledgeStore, sessionStore, taskStore]);
 
   const navigate = (nextRoute: AppRouteState) => {
     setRoute(nextRoute);
@@ -136,6 +158,72 @@ export function WorkspaceConsole() {
           void taskStore.getState().selectTask(taskId);
         }}
         queue={taskState.queue}
+      />
+    );
+  }
+
+  if (route.surface === "memory" || route.surface === "repository") {
+    const anchorSessionId =
+      consoleState.data.sessionIndex.find((session) => session.has_active_turn)?.session_id ??
+      consoleState.data.sessionIndex[0]?.session_id ??
+      null;
+    return (
+      <KnowledgeAutonomyConsole
+        action={knowledgeState.action}
+        anchorSessionId={anchorSessionId}
+        memory={knowledgeState.memory}
+        onConfirmMemory={(memoryId) => {
+          void knowledgeStore.getState().confirmMemory({ memoryId, reason: "dashboard confirm" });
+        }}
+        onInvalidateMemory={(memoryId) => {
+          if (!confirmAction("Invalidate this memory entry?")) {
+            return;
+          }
+          void knowledgeStore
+            .getState()
+            .invalidateMemory({ memoryId, reason: "dashboard invalidation" });
+        }}
+        onMemoryFilter={(filter) => {
+          void knowledgeStore.getState().setMemoryFilter(filter);
+        }}
+        onMemoryQuery={(query) => {
+          void knowledgeStore.getState().setMemoryQuery(query);
+        }}
+        onPreviewPruneMemory={(memoryId) => {
+          void knowledgeStore
+            .getState()
+            .previewPruneMemory({ memoryId, reason: "dashboard prune preview" });
+        }}
+        onPruneMemory={(memoryId) => {
+          if (!confirmAction("Prune this memory entry from active retrieval?")) {
+            return;
+          }
+          void knowledgeStore.getState().pruneMemory({ memoryId, reason: "dashboard prune" });
+        }}
+        onRebuildRepositoryIndex={(input) => {
+          void knowledgeStore.getState().rebuildRepositoryIndex(input);
+        }}
+        onRefresh={() => {
+          if (route.surface === "memory") {
+            void knowledgeStore.getState().loadMemoryPage();
+            return;
+          }
+          void (async () => {
+            await knowledgeStore.getState().loadRepositoryStatus();
+            await knowledgeStore.getState().searchRepositoryIndex();
+          })();
+        }}
+        onRepositoryQuery={(query) => {
+          void knowledgeStore.getState().setRepositoryQuery(query);
+        }}
+        onSelectMemory={(memoryId) => {
+          void knowledgeStore.getState().selectMemory(memoryId);
+        }}
+        onSelectRepositoryEntry={(entryId) => {
+          void knowledgeStore.getState().selectRepositoryEntry(entryId);
+        }}
+        repository={knowledgeState.repository}
+        surface={route.surface}
       />
     );
   }
@@ -243,4 +331,11 @@ export function WorkspaceConsole() {
       stream={sessionState.stream}
     />
   );
+}
+
+function confirmAction(message: string): boolean {
+  if (typeof window === "undefined" || typeof window.confirm !== "function") {
+    return true;
+  }
+  return window.confirm(message);
 }

@@ -78,6 +78,34 @@ def test_repository_index_routes_report_missing_snapshot(tmp_path: Path) -> None
     asyncio.run(scenario())
 
 
+def test_repository_index_route_rebuilds_snapshot(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        _seed_repository(tmp_path)
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app = _make_app(tmp_path, connection)
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                rebuild_response = await client.post(
+                    "/repo/index/rebuild",
+                    json={"background": False, "requested_by": "qa"},
+                )
+                status_response = await client.get("/repo/index/status")
+
+            assert rebuild_response.status_code == 200
+            assert rebuild_response.json()["mode"] == "synchronous"
+            assert rebuild_response.json()["index"]["entry_count"] >= 1
+            assert status_response.status_code == 200
+            assert status_response.json()["status"] == "fresh"
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
 def _open_initialized_db(tmp_path: Path) -> sqlite3.Connection:
     connection = open_database(tmp_path / "glassbox.sqlite3")
     initialize_database(connection)

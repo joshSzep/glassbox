@@ -264,6 +264,55 @@ describe("createGlassboxApiClient", () => {
     expect(calls[6].init?.body).toBe(JSON.stringify({ actor: "operator", reason: "stop job" }));
   });
 
+  it("shapes memory and repository index requests", async () => {
+    const { calls, fetch } = createMockFetch([
+      jsonResponse({ items: [], page: {} }),
+      jsonResponse({ entry: { memory_id: "memory/1" } }),
+      jsonResponse({ entry: { memory_id: "memory/1" } }),
+      jsonResponse({ entry: { memory_id: "memory/1" } }),
+      jsonResponse({ entry: { memory_id: "memory/1" }, would_prune: true }),
+      jsonResponse({ entry: { memory_id: "memory/1" } }),
+      jsonResponse({ status: "fresh" }),
+      jsonResponse({ items: [], page: {}, query: "UsefulThing" }),
+      jsonResponse({ entry: { entry_id: "entry/1" } }),
+      jsonResponse({ mode: "background", status: "queued" }),
+    ]);
+    const client = createGlassboxApiClient({ fetch });
+
+    await client.listWorkspaceMemory({ include_pruned: true, query: "pytest", state: "active" });
+    await client.getWorkspaceMemoryDetail("memory/1");
+    await client.confirmWorkspaceMemory({ memoryId: "memory/1", reason: "fresh" });
+    await client.invalidateWorkspaceMemory({ memoryId: "memory/1", reason: "stale" });
+    await client.previewWorkspaceMemoryPrune({ memoryId: "memory/1", reason: "cleanup" });
+    await client.pruneWorkspaceMemory({ memoryId: "memory/1", reason: "cleanup" });
+    await client.getRepositoryIndexStatus();
+    await client.searchRepositoryIndex({ limit: 5, query: "UsefulThing" });
+    await client.getRepositoryIndexEntryDetail("entry/1");
+    await client.rebuildRepositoryIndex({ sessionId: "session/1" });
+
+    expect(calls.map((call) => call.input)).toEqual([
+      "/memory?include_pruned=true&query=pytest&state=active",
+      "/memory/memory%2F1",
+      "/memory/memory%2F1/confirm",
+      "/memory/memory%2F1/invalidate",
+      "/memory/memory%2F1/prune-preview",
+      "/memory/memory%2F1/prune",
+      "/repo/index/status",
+      "/repo/index/search?limit=5&query=UsefulThing",
+      "/repo/index/entries/entry%2F1",
+      "/repo/index/rebuild",
+    ]);
+    expect(calls[2].init?.body).toBe(JSON.stringify({ actor: "operator", reason: "fresh" }));
+    expect(calls[3].init?.body).toBe(JSON.stringify({ actor: "operator", reason: "stale" }));
+    expect(calls[9].init?.body).toBe(
+      JSON.stringify({
+        background: true,
+        requested_by: "operator",
+        session_id: "session/1",
+      }),
+    );
+  });
+
   it("normalizes FastAPI validation errors", async () => {
     const { fetch } = createMockFetch([
       jsonResponse(

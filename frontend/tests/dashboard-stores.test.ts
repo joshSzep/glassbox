@@ -5,6 +5,7 @@ import type { SessionEventStreamOptions, SessionStreamState, SseEventEnvelope } 
 import type { components } from "@/generated/api-types";
 import {
   createConsoleStore,
+  createKnowledgeStore,
   createSessionStore,
   createTaskStore,
 } from "../stores/dashboard-stores";
@@ -124,6 +125,27 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
       projection_health: projectionHealth,
       task_id: taskId,
     }),
+    getRepositoryIndexEntryDetail: async (entryId) => ({ entry: makeRepositoryEntry(entryId) }),
+    getRepositoryIndexStatus: async () => ({
+      built_at: "2026-04-23T00:00:00Z",
+      builder_version: "v1",
+      detail: null,
+      entry_count: 1,
+      path: "/tmp/.glassbox/repository-index.json",
+      schema_version: 1,
+      source_digest: "digest",
+      status: "fresh",
+    }),
+    getWorkspaceMemoryDetail: async (memoryId) => ({ entry: makeMemoryEntry(memoryId) }),
+    listWorkspaceMemory: async () => ({
+      items: [makeMemoryEntry("memory-1")],
+      page: { cursor: 0, has_more: false, limit: 100, next_cursor: null, returned_count: 1 },
+    }),
+    searchRepositoryIndex: async () => ({
+      items: [makeRepositoryEntry("entry-1")],
+      page: { cursor: 0, has_more: false, limit: 50, next_cursor: null, returned_count: 1 },
+      query: "glassbox",
+    }),
     adjustTaskBudget: async () => ({ status: "ok" }),
     approveTaskPlan: async () => ({ status: "ok" }),
     cancelBackgroundJob: async () => ({
@@ -140,6 +162,7 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
       },
     }),
     cancelTask: async () => ({ status: "ok" }),
+    confirmWorkspaceMemory: async (input) => ({ entry: makeMemoryEntry(input.memoryId) }),
     continueTask: async () => ({
       job: {
         job_id: "job-1",
@@ -154,7 +177,30 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
       },
     }),
     pauseTask: async () => ({ status: "ok" }),
+    previewWorkspaceMemoryPrune: async (input) => ({
+      entry: makeMemoryEntry(input.memoryId),
+      reason: input.reason ?? null,
+      would_prune: true,
+    }),
+    pruneWorkspaceMemory: async (input) => ({
+      entry: makeMemoryEntry(input.memoryId, { state: "pruned" }),
+    }),
+    rebuildRepositoryIndex: async () => ({
+      detail: null,
+      index: null,
+      job: null,
+      mode: "synchronous",
+      status: "fresh",
+    }),
     resumeTask: async () => ({ status: "ok" }),
+    invalidateWorkspaceMemory: async (input) => ({
+      entry: makeMemoryEntry(input.memoryId, {
+        invalidated_by: "operator",
+        invalidated_at: timestamp(2),
+        invalidation_reason: input.reason,
+        state: "invalidated",
+      }),
+    }),
     listSessions: async () => [],
     cancelTurn: async () => ({ status: "ok" }),
     resolveApproval: async () => ({ status: "ok" }),
@@ -505,6 +551,129 @@ describe("task store", () => {
   });
 });
 
+describe("knowledge store", () => {
+  it("loads memory filters, detail, and curation actions", async () => {
+    const calls: string[] = [];
+    const store = createKnowledgeStore(
+      createApiClient({
+        confirmWorkspaceMemory: async (input) => {
+          calls.push(`confirm:${input.memoryId}`);
+          return { entry: makeMemoryEntry(input.memoryId) };
+        },
+        getWorkspaceMemoryDetail: async (memoryId) => {
+          calls.push(`detail:${memoryId}`);
+          return { entry: makeMemoryEntry(memoryId) };
+        },
+        invalidateWorkspaceMemory: async (input) => {
+          calls.push(`invalidate:${input.reason}`);
+          return { entry: makeMemoryEntry(input.memoryId, { state: "invalidated" }) };
+        },
+        listWorkspaceMemory: async (query = {}) => {
+          calls.push(`list:${query.state ?? "all"}:${query.query ?? ""}`);
+          return {
+            items: [makeMemoryEntry("memory-1", { state: query.state ?? "active" })],
+            page: {
+              cursor: 0,
+              has_more: false,
+              limit: query.limit ?? 200,
+              next_cursor: null,
+              returned_count: 1,
+            },
+          };
+        },
+        previewWorkspaceMemoryPrune: async (input) => {
+          calls.push("preview");
+          return {
+            entry: makeMemoryEntry(input.memoryId),
+            reason: input.reason ?? null,
+            would_prune: true,
+          };
+        },
+        pruneWorkspaceMemory: async (input) => {
+          calls.push("prune");
+          return { entry: makeMemoryEntry(input.memoryId, { state: "pruned" }) };
+        },
+      }),
+    );
+
+    await store.getState().loadMemoryPage({ filter: "stale", query: "pytest" });
+    await store.getState().selectMemory("memory-1");
+    await store.getState().confirmMemory();
+    await store.getState().invalidateMemory({ reason: "outdated" });
+    await store.getState().previewPruneMemory({ reason: "cleanup" });
+    expect(store.getState().memory.preview?.would_prune).toBe(true);
+    await store.getState().pruneMemory({ reason: "cleanup" });
+
+    expect(calls).toContain("list:stale:pytest");
+    expect(calls).toContain("detail:memory-1");
+    expect(calls).toContain("confirm:memory-1");
+    expect(calls).toContain("invalidate:outdated");
+    expect(calls).toContain("preview");
+    expect(calls).toContain("prune");
+    expect(store.getState().action).toMatchObject({ kind: "prune-memory", state: "succeeded" });
+  });
+
+  it("loads repository status, search results, details, and rebuild actions", async () => {
+    const calls: string[] = [];
+    const store = createKnowledgeStore(
+      createApiClient({
+        getRepositoryIndexEntryDetail: async (entryId) => {
+          calls.push(`detail:${entryId}`);
+          return { entry: makeRepositoryEntry(entryId) };
+        },
+        getRepositoryIndexStatus: async () => {
+          calls.push("status");
+          return {
+            built_at: timestamp(0),
+            builder_version: "v1",
+            detail: null,
+            entry_count: 2,
+            path: "/tmp/.glassbox/repository-index.json",
+            schema_version: 1,
+            source_digest: "digest",
+            status: "fresh",
+          };
+        },
+        rebuildRepositoryIndex: async (input = {}) => {
+          calls.push(`rebuild:${input.sessionId ?? "sync"}`);
+          return {
+            detail: null,
+            index: null,
+            job: null,
+            mode: "background",
+            status: "queued",
+          };
+        },
+        searchRepositoryIndex: async (query) => {
+          calls.push(`search:${query.query}`);
+          return {
+            items: [makeRepositoryEntry("entry-1")],
+            page: { cursor: 0, has_more: false, limit: 50, next_cursor: null, returned_count: 1 },
+            query: query.query,
+          };
+        },
+      }),
+    );
+
+    await store.getState().loadRepositoryStatus();
+    await store.getState().searchRepositoryIndex("UsefulThing");
+    await store.getState().selectRepositoryEntry("entry-1");
+    await store.getState().rebuildRepositoryIndex({ sessionId: "session-1" });
+
+    expect(calls).toEqual([
+      "status",
+      "search:UsefulThing",
+      "detail:entry-1",
+      "rebuild:session-1",
+      "status",
+      "search:UsefulThing",
+    ]);
+    expect(store.getState().repository.status?.status).toBe("fresh");
+    expect(store.getState().repository.rebuild?.status).toBe("queued");
+    expect(store.getState().repository.selectedEntry?.name).toBe("UsefulThing");
+  });
+});
+
 describe("session store", () => {
   it("loads selected sessions while preserving local drafts", async () => {
     const store = createSessionStore({ apiClient: createApiClient() });
@@ -825,9 +994,11 @@ describe("session store", () => {
 
 type EventLogEntry = components["schemas"]["EventLogEntryResponse"];
 type PageInfo = components["schemas"]["PageInfoResponse"];
+type RepositoryEntry = components["schemas"]["RepositoryIndexEntryResponse"];
 type TaskSummary = components["schemas"]["TaskSummaryResponse"];
 type TranscriptMessage = components["schemas"]["TranscriptMessageResponse"];
 type TurnMetrics = components["schemas"]["TurnMetricsResponse"];
+type WorkspaceMemoryEntry = components["schemas"]["WorkspaceMemoryEntryResponse"];
 
 function makeTaskSummary(taskId: string, overrides: Partial<TaskSummary> = {}): TaskSummary {
   return {
@@ -841,6 +1012,78 @@ function makeTaskSummary(taskId: string, overrides: Partial<TaskSummary> = {}): 
     step_count: 1,
     task_id: taskId,
     title: "Task",
+    updated_at: timestamp(0),
+    ...overrides,
+  };
+}
+
+function makeMemoryEntry(
+  memoryId: string,
+  overrides: Partial<WorkspaceMemoryEntry> = {},
+): WorkspaceMemoryEntry {
+  return {
+    confirmed_at: timestamp(0),
+    confirmed_by: "operator",
+    content: "Use uv run pytest for backend tests.",
+    created_at: timestamp(0),
+    created_by: "operator",
+    import_source: null,
+    invalidated_at: null,
+    invalidated_by: null,
+    invalidation_reason: null,
+    kind: "command",
+    last_sequence: 2,
+    last_used_at: timestamp(1),
+    memory_id: memoryId,
+    provenance: {
+      artifact_id: null,
+      note: null,
+      session_id: "session-1",
+      source_label: null,
+      source_sequence: 1,
+      source_type: "session_event",
+      task_id: null,
+      tool_call_id: null,
+    },
+    prune_reason: null,
+    pruned_at: null,
+    pruned_by: null,
+    redacted: false,
+    session_id: "session-1",
+    state: "active",
+    summary: "Backend tests use uv",
+    tags: ["tests"],
+    updated_at: timestamp(1),
+    use_count: 1,
+    ...overrides,
+  };
+}
+
+function makeRepositoryEntry(
+  entryId: string,
+  overrides: Partial<RepositoryEntry> = {},
+): RepositoryEntry {
+  return {
+    entry_id: entryId,
+    kind: "symbol",
+    language: "python",
+    name: "UsefulThing",
+    path: "src/sample.py",
+    provenance: [
+      {
+        content_sha256: null,
+        line_end: 1,
+        line_start: 1,
+        note: null,
+        path: "src/sample.py",
+        source_label: null,
+        source_type: "static_analysis",
+        tool_name: null,
+      },
+    ],
+    summary: "Class UsefulThing",
+    symbol: "UsefulThing",
+    tags: ["source"],
     updated_at: timestamp(0),
     ...overrides,
   };

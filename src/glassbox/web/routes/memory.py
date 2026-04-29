@@ -13,12 +13,14 @@ from glassbox.core.types import WorkspaceMemoryState
 from glassbox.runtime.workspace_memory_capture import WorkspaceMemoryCaptureRepository
 from glassbox.runtime.workspace_memory_capture import WorkspaceMemoryCaptureService
 from glassbox.web.app import RuntimeContextDep
+from glassbox.web.memory_api import WorkspaceMemoryActionRequest
 from glassbox.web.memory_api import WorkspaceMemoryAddRequest
 from glassbox.web.memory_api import WorkspaceMemoryCandidateDecisionRequest
 from glassbox.web.memory_api import WorkspaceMemoryCandidateListPageResponse
 from glassbox.web.memory_api import WorkspaceMemoryCandidateRejectedResponse
 from glassbox.web.memory_api import WorkspaceMemoryDetailResponse
 from glassbox.web.memory_api import WorkspaceMemoryListPageResponse
+from glassbox.web.memory_api import WorkspaceMemoryPrunePreviewResponse
 from glassbox.web.memory_api import build_workspace_memory_candidate_response
 from glassbox.web.memory_api import build_workspace_memory_candidate_responses
 from glassbox.web.memory_api import build_workspace_memory_entry_response
@@ -202,3 +204,117 @@ async def get_workspace_memory_detail(
     return WorkspaceMemoryDetailResponse(
         entry=build_workspace_memory_entry_response(entry)
     )
+
+
+@router.post(
+    "/{memory_id}/confirm",
+    response_model=WorkspaceMemoryDetailResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def confirm_workspace_memory(
+    memory_id: UUID,
+    request: WorkspaceMemoryActionRequest,
+    context: RuntimeContextDep,
+) -> WorkspaceMemoryDetailResponse:
+    """Confirm or refresh confirmation evidence for one memory entry."""
+
+    try:
+        entry = context.repositories.sessions.confirm_workspace_memory(
+            memory_id,
+            confirmed_by=request.actor,
+            reason=request.reason,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return WorkspaceMemoryDetailResponse(
+        entry=build_workspace_memory_entry_response(entry)
+    )
+
+
+@router.post(
+    "/{memory_id}/invalidate",
+    response_model=WorkspaceMemoryDetailResponse,
+    responses={
+        400: {"model": ErrorDetailResponse},
+        404: {"model": ErrorDetailResponse},
+    },
+)
+async def invalidate_workspace_memory(
+    memory_id: UUID,
+    request: WorkspaceMemoryActionRequest,
+    context: RuntimeContextDep,
+) -> WorkspaceMemoryDetailResponse:
+    """Invalidate one memory entry while keeping it inspectable."""
+
+    reason = _required_reason(request.reason, "invalidation reason is required")
+    try:
+        entry = context.repositories.sessions.invalidate_workspace_memory(
+            memory_id,
+            invalidated_by=request.actor,
+            reason=reason,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return WorkspaceMemoryDetailResponse(
+        entry=build_workspace_memory_entry_response(entry)
+    )
+
+
+@router.post(
+    "/{memory_id}/prune-preview",
+    response_model=WorkspaceMemoryPrunePreviewResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def preview_workspace_memory_prune(
+    memory_id: UUID,
+    request: WorkspaceMemoryActionRequest,
+    context: RuntimeContextDep,
+) -> WorkspaceMemoryPrunePreviewResponse:
+    """Preview a prune action without mutating canonical memory events."""
+
+    entry = context.repositories.sessions.get_workspace_memory(memory_id)
+    if entry is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"workspace memory {memory_id} not found",
+        )
+    return WorkspaceMemoryPrunePreviewResponse(
+        entry=build_workspace_memory_entry_response(entry),
+        would_prune=entry.pruned_at is None,
+        reason=request.reason,
+    )
+
+
+@router.post(
+    "/{memory_id}/prune",
+    response_model=WorkspaceMemoryDetailResponse,
+    responses={
+        400: {"model": ErrorDetailResponse},
+        404: {"model": ErrorDetailResponse},
+    },
+)
+async def prune_workspace_memory(
+    memory_id: UUID,
+    request: WorkspaceMemoryActionRequest,
+    context: RuntimeContextDep,
+) -> WorkspaceMemoryDetailResponse:
+    """Prune one memory entry from active retrieval while preserving history."""
+
+    reason = _required_reason(request.reason, "prune reason is required")
+    try:
+        entry = context.repositories.sessions.prune_workspace_memory(
+            memory_id,
+            pruned_by=request.actor,
+            reason=reason,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return WorkspaceMemoryDetailResponse(
+        entry=build_workspace_memory_entry_response(entry)
+    )
+
+
+def _required_reason(value: str | None, message: str) -> str:
+    if value is None or not value.strip():
+        raise HTTPException(status_code=400, detail=message)
+    return value.strip()

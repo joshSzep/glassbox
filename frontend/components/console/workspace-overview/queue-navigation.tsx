@@ -62,6 +62,46 @@ export function QueueNavigation({
           Inspect durable plans, blockers, verification, and task events.
         </span>
       </a>
+      <a
+        className="mb-3 grid min-h-density-row rounded-md border border-border/70 bg-surface px-3 py-2 text-left transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        href={buildAppRoute({
+          compareSessionId: null,
+          queue: "all",
+          selectedSessionId: null,
+          selectedTaskId: null,
+          surface: "memory",
+          tab: "overview",
+          taskQueue: "active",
+        })}
+      >
+        <span className="flex items-center justify-between gap-3 text-sm font-medium">
+          Memory
+          <Badge variant="info">Context</Badge>
+        </span>
+        <span className="mt-1 text-xs text-muted-foreground">
+          Curate confirmed, stale, and invalidated workspace knowledge.
+        </span>
+      </a>
+      <a
+        className="mb-3 grid min-h-density-row rounded-md border border-border/70 bg-surface px-3 py-2 text-left transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        href={buildAppRoute({
+          compareSessionId: null,
+          queue: "all",
+          selectedSessionId: null,
+          selectedTaskId: null,
+          surface: "repository",
+          tab: "overview",
+          taskQueue: "active",
+        })}
+      >
+        <span className="flex items-center justify-between gap-3 text-sm font-medium">
+          Repository Index
+          <Badge variant="info">Local</Badge>
+        </span>
+        <span className="mt-1 text-xs text-muted-foreground">
+          Inspect index freshness, provenance, search results, and rebuilds.
+        </span>
+      </a>
       <div className="grid gap-1">
         {queueDescriptors.map((queue) => {
           const selected = selectedQueue === queue.queue;

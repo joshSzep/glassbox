@@ -1,22 +1,30 @@
 """FastAPI routes for local repository intelligence."""
 
+from uuid import UUID
+
 from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import Query
 
+from glassbox.core.types import BackgroundJobKind
+from glassbox.runtime.daemon import inspect_runtime_owner
 from glassbox.runtime.repository_index import RepositoryIndexNotFoundError
+from glassbox.runtime.repository_index import build_and_write_repository_index
 from glassbox.runtime.repository_index import get_repository_index_entry
 from glassbox.runtime.repository_index import load_repository_index
 from glassbox.runtime.repository_index import repository_index_path
 from glassbox.runtime.repository_index import search_repository_index
 from glassbox.web.app import RuntimeContextDep
 from glassbox.web.repository_index_api import RepositoryIndexEntryDetailResponse
+from glassbox.web.repository_index_api import RepositoryIndexRebuildRequest
+from glassbox.web.repository_index_api import RepositoryIndexRebuildResponse
 from glassbox.web.repository_index_api import RepositoryIndexSearchPageResponse
 from glassbox.web.repository_index_api import RepositoryIndexStatusResponse
 from glassbox.web.repository_index_api import build_repository_index_entry_response
 from glassbox.web.repository_index_api import build_repository_index_entry_responses
 from glassbox.web.repository_index_api import build_repository_index_status_response
 from glassbox.web.session_api import PageInfoResponse
+from glassbox.web.task_api import build_background_job_response
 
 router = APIRouter(prefix="/repo/index", tags=["repo"])
 
@@ -90,4 +98,49 @@ def get_repository_index_entry_detail(
         ) from error
     return RepositoryIndexEntryDetailResponse(
         entry=build_repository_index_entry_response(entry),
+    )
+
+
+@router.post("/rebuild", response_model=RepositoryIndexRebuildResponse)
+def rebuild_repository_index(
+    request: RepositoryIndexRebuildRequest,
+    context: RuntimeContextDep,
+) -> RepositoryIndexRebuildResponse:
+    """Refresh repository intelligence directly or queue a daemon job."""
+
+    workspace_root = context.infrastructure.artifacts_root
+    owner_status = inspect_runtime_owner(workspace_root)
+    if (
+        request.background
+        and owner_status.state == "running"
+        and request.session_id is not None
+    ):
+        job = context.repositories.sessions.enqueue_background_job(
+            UUID(request.session_id),
+            kind=BackgroundJobKind.DERIVED_INDEX,
+            job_type="repository-index-refresh",
+            title="Refresh repository intelligence index",
+            payload={"index_path": str(repository_index_path(workspace_root))},
+            requested_by=request.requested_by,
+        )
+        return RepositoryIndexRebuildResponse(
+            mode="background",
+            status="queued",
+            job=build_background_job_response(job),
+        )
+
+    snapshot = build_and_write_repository_index(workspace_root)
+    return RepositoryIndexRebuildResponse(
+        mode="synchronous",
+        status=snapshot.status.value,
+        index=build_repository_index_status_response(
+            snapshot,
+            path=str(repository_index_path(workspace_root)),
+        ),
+        detail=(
+            "daemon job not queued because no running daemon session anchor "
+            "was supplied"
+            if request.background and owner_status.state == "running"
+            else None
+        ),
     )

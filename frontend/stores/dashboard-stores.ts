@@ -4,7 +4,16 @@ import type {
   AutonomyBudget,
   AutonomyMode,
   GlassboxApiClient,
+  RepositoryIndexEntryDetailResponse,
+  RepositoryIndexRebuildResponse,
+  RepositoryIndexSearchPageResponse,
+  RepositoryIndexStatusResponse,
   SessionAggregateQuery,
+  WorkspaceMemoryDetailResponse,
+  WorkspaceMemoryKind,
+  WorkspaceMemoryListPageResponse,
+  WorkspaceMemoryPrunePreviewResponse,
+  WorkspaceMemoryState,
 } from "@/api/client";
 import type { TaskDetailResponse, TaskEventPageResponse, TaskListPageResponse } from "@/api/client";
 import {
@@ -34,7 +43,14 @@ export type TaskActionKind =
   | "continue-task"
   | "pause-task"
   | "resume-task";
+export type KnowledgeActionKind =
+  | "confirm-memory"
+  | "invalidate-memory"
+  | "preview-prune-memory"
+  | "prune-memory"
+  | "rebuild-index";
 export type DetailPageKind = "events" | "metrics" | "transcript";
+export type MemoryFilter = "active" | "all" | "invalidated" | "stale";
 
 export type DetailPageStatus = {
   error: string | null;
@@ -54,6 +70,12 @@ export type ActionStatus = {
 export type TaskActionStatus = {
   error: string | null;
   kind: TaskActionKind | null;
+  state: "failed" | "idle" | "pending" | "succeeded";
+};
+
+export type KnowledgeActionStatus = {
+  error: string | null;
+  kind: KnowledgeActionKind | null;
   state: "failed" | "idle" | "pending" | "succeeded";
 };
 
@@ -126,6 +148,57 @@ export type TaskStoreState = {
   resumeTask: (input?: { reason?: string | null; taskId?: string }) => Promise<void>;
   selectTask: (taskId: string) => Promise<void>;
   setQueueFilter: (queue: TaskQueueFilter) => Promise<void>;
+};
+
+export type MemoryInspectorState = {
+  error: string | null;
+  filter: MemoryFilter;
+  items: WorkspaceMemoryListPageResponse["items"];
+  loadState: LoadState;
+  page: WorkspaceMemoryListPageResponse["page"] | null;
+  preview: WorkspaceMemoryPrunePreviewResponse | null;
+  query: string;
+  selectedEntry: WorkspaceMemoryDetailResponse["entry"] | null;
+  selectedMemoryId: string | null;
+};
+
+export type RepositoryInspectorState = {
+  error: string | null;
+  items: RepositoryIndexSearchPageResponse["items"];
+  query: string;
+  rebuild: RepositoryIndexRebuildResponse | null;
+  searchState: LoadState;
+  selectedEntry: RepositoryIndexEntryDetailResponse["entry"] | null;
+  selectedEntryId: string | null;
+  status: RepositoryIndexStatusResponse | null;
+  statusState: LoadState;
+};
+
+export type KnowledgeStoreState = {
+  action: KnowledgeActionStatus;
+  confirmMemory: (input?: { memoryId?: string; reason?: string | null }) => Promise<void>;
+  invalidateMemory: (input: { memoryId?: string; reason: string }) => Promise<void>;
+  loadMemoryPage: (query?: {
+    filter?: MemoryFilter;
+    kind?: WorkspaceMemoryKind | null;
+    query?: string;
+  }) => Promise<void>;
+  loadRepositoryStatus: () => Promise<void>;
+  memory: MemoryInspectorState;
+  previewPruneMemory: (input?: { memoryId?: string; reason?: string | null }) => Promise<void>;
+  pruneMemory: (input: { memoryId?: string; reason: string }) => Promise<void>;
+  rebuildRepositoryIndex: (input?: {
+    background?: boolean;
+    sessionId?: string | null;
+  }) => Promise<void>;
+  repository: RepositoryInspectorState;
+  reset: () => void;
+  searchRepositoryIndex: (query?: string) => Promise<void>;
+  selectMemory: (memoryId: string) => Promise<void>;
+  selectRepositoryEntry: (entryId: string) => Promise<void>;
+  setMemoryFilter: (filter: MemoryFilter) => Promise<void>;
+  setMemoryQuery: (query: string) => Promise<void>;
+  setRepositoryQuery: (query: string) => Promise<void>;
 };
 
 export type SessionEventStreamHandle = ReturnType<typeof createSessionEventStream>;
@@ -436,6 +509,247 @@ export function createTaskStore(apiClient: GlassboxApiClient): StoreApi<TaskStor
   }));
 }
 
+export function createKnowledgeStore(apiClient: GlassboxApiClient): StoreApi<KnowledgeStoreState> {
+  let memoryRequestId = 0;
+  let memoryDetailRequestId = 0;
+  let repositoryRequestId = 0;
+
+  return createStore<KnowledgeStoreState>((set, get) => ({
+    action: createIdleKnowledgeActionStatus(),
+    confirmMemory: async (input = {}) => {
+      const memoryId = input.memoryId ?? requireSelectedMemoryId(get().memory);
+      await runKnowledgeAction({
+        action: () => apiClient.confirmWorkspaceMemory({ memoryId, reason: input.reason }),
+        get,
+        kind: "confirm-memory",
+        memoryId,
+        set,
+      });
+    },
+    invalidateMemory: async (input) => {
+      const memoryId = input.memoryId ?? requireSelectedMemoryId(get().memory);
+      await runKnowledgeAction({
+        action: () => apiClient.invalidateWorkspaceMemory({ memoryId, reason: input.reason }),
+        get,
+        kind: "invalidate-memory",
+        memoryId,
+        set,
+      });
+    },
+    loadMemoryPage: async (query = {}) => {
+      const currentRequestId = ++memoryRequestId;
+      const filter = query.filter ?? get().memory.filter;
+      const textQuery = query.query ?? get().memory.query;
+      set((state) => ({
+        memory: {
+          ...state.memory,
+          error: null,
+          filter,
+          loadState: "loading",
+          query: textQuery,
+        },
+      }));
+
+      try {
+        const page = await apiClient.listWorkspaceMemory({
+          include_pruned: true,
+          kind: query.kind ?? undefined,
+          limit: MEMORY_PAGE_SIZE,
+          query: textQuery.trim() || undefined,
+          state: memoryStateForFilter(filter),
+        });
+        if (currentRequestId !== memoryRequestId) {
+          return;
+        }
+        set((state) => ({
+          memory: {
+            ...state.memory,
+            error: null,
+            items: page.items,
+            loadState: "loaded",
+            page: page.page,
+          },
+        }));
+      } catch (error) {
+        if (currentRequestId !== memoryRequestId) {
+          return;
+        }
+        set((state) => ({
+          memory: { ...state.memory, error: errorMessage(error), loadState: "failed" },
+        }));
+      }
+    },
+    loadRepositoryStatus: async () => {
+      const currentRequestId = ++repositoryRequestId;
+      set((state) => ({
+        repository: { ...state.repository, error: null, statusState: "loading" },
+      }));
+      try {
+        const status = await apiClient.getRepositoryIndexStatus();
+        if (currentRequestId !== repositoryRequestId) {
+          return;
+        }
+        set((state) => ({
+          repository: { ...state.repository, error: null, status, statusState: "loaded" },
+        }));
+      } catch (error) {
+        if (currentRequestId !== repositoryRequestId) {
+          return;
+        }
+        set((state) => ({
+          repository: { ...state.repository, error: errorMessage(error), statusState: "failed" },
+        }));
+      }
+    },
+    memory: createIdleMemoryInspectorState(),
+    previewPruneMemory: async (input = {}) => {
+      const memoryId = input.memoryId ?? requireSelectedMemoryId(get().memory);
+      set({ action: { error: null, kind: "preview-prune-memory", state: "pending" } });
+      try {
+        const preview = await apiClient.previewWorkspaceMemoryPrune({
+          memoryId,
+          reason: input.reason,
+        });
+        set((state) => ({
+          action: { error: null, kind: "preview-prune-memory", state: "succeeded" },
+          memory: { ...state.memory, preview },
+        }));
+      } catch (error) {
+        set({
+          action: { error: errorMessage(error), kind: "preview-prune-memory", state: "failed" },
+        });
+      }
+    },
+    pruneMemory: async (input) => {
+      const memoryId = input.memoryId ?? requireSelectedMemoryId(get().memory);
+      await runKnowledgeAction({
+        action: () => apiClient.pruneWorkspaceMemory({ memoryId, reason: input.reason }),
+        get,
+        kind: "prune-memory",
+        memoryId,
+        set,
+      });
+    },
+    rebuildRepositoryIndex: async (input = {}) => {
+      set({ action: { error: null, kind: "rebuild-index", state: "pending" } });
+      try {
+        const rebuild = await apiClient.rebuildRepositoryIndex({
+          background: input.background,
+          sessionId: input.sessionId,
+        });
+        set((state) => ({
+          action: { error: null, kind: "rebuild-index", state: "succeeded" },
+          repository: { ...state.repository, rebuild },
+        }));
+        await get().loadRepositoryStatus();
+        if (get().repository.query.trim()) {
+          await get().searchRepositoryIndex();
+        }
+      } catch (error) {
+        set({ action: { error: errorMessage(error), kind: "rebuild-index", state: "failed" } });
+      }
+    },
+    repository: createIdleRepositoryInspectorState(),
+    reset: () => {
+      memoryRequestId += 1;
+      memoryDetailRequestId += 1;
+      repositoryRequestId += 1;
+      set({
+        action: createIdleKnowledgeActionStatus(),
+        memory: createIdleMemoryInspectorState(),
+        repository: createIdleRepositoryInspectorState(),
+      });
+    },
+    searchRepositoryIndex: async (query = get().repository.query) => {
+      set((state) => ({
+        repository: {
+          ...state.repository,
+          error: null,
+          query,
+          searchState: "loading",
+        },
+      }));
+      try {
+        const page = await apiClient.searchRepositoryIndex({
+          limit: REPOSITORY_INDEX_SEARCH_SIZE,
+          query: query.trim() || "glassbox",
+        });
+        set((state) => ({
+          repository: {
+            ...state.repository,
+            error: null,
+            items: page.items,
+            query,
+            searchState: "loaded",
+          },
+        }));
+      } catch (error) {
+        set((state) => ({
+          repository: { ...state.repository, error: errorMessage(error), searchState: "failed" },
+        }));
+      }
+    },
+    selectMemory: async (memoryId) => {
+      const currentRequestId = ++memoryDetailRequestId;
+      set((state) => ({
+        memory: {
+          ...state.memory,
+          error: null,
+          preview: null,
+          selectedEntry: null,
+          selectedMemoryId: memoryId,
+        },
+      }));
+      try {
+        const detail = await apiClient.getWorkspaceMemoryDetail(memoryId);
+        if (currentRequestId !== memoryDetailRequestId) {
+          return;
+        }
+        set((state) => ({
+          memory: { ...state.memory, selectedEntry: detail.entry },
+        }));
+      } catch (error) {
+        if (currentRequestId !== memoryDetailRequestId) {
+          return;
+        }
+        set((state) => ({
+          memory: { ...state.memory, error: errorMessage(error) },
+        }));
+      }
+    },
+    selectRepositoryEntry: async (entryId) => {
+      set((state) => ({
+        repository: {
+          ...state.repository,
+          error: null,
+          selectedEntry: null,
+          selectedEntryId: entryId,
+        },
+      }));
+      try {
+        const detail = await apiClient.getRepositoryIndexEntryDetail(entryId);
+        set((state) => ({
+          repository: { ...state.repository, selectedEntry: detail.entry },
+        }));
+      } catch (error) {
+        set((state) => ({
+          repository: { ...state.repository, error: errorMessage(error) },
+        }));
+      }
+    },
+    setMemoryFilter: async (filter) => {
+      await get().loadMemoryPage({ filter });
+    },
+    setMemoryQuery: async (query) => {
+      await get().loadMemoryPage({ query });
+    },
+    setRepositoryQuery: async (query) => {
+      set((state) => ({ repository: { ...state.repository, query } }));
+      await get().searchRepositoryIndex(query);
+    },
+  }));
+}
+
 export function createSessionStore({
   apiClient,
   createEventStream = createSessionEventStream,
@@ -731,6 +1045,8 @@ function createIdleActionStatus(): ActionStatus {
 }
 
 const DETAIL_PAGE_SIZE = 80;
+const MEMORY_PAGE_SIZE = 200;
+const REPOSITORY_INDEX_SEARCH_SIZE = 50;
 const TASK_EVENT_PAGE_SIZE = 80;
 const TASK_QUEUE_PAGE_SIZE = 200;
 
@@ -761,6 +1077,38 @@ function createIdleTaskActionStatus(): TaskActionStatus {
   return { error: null, kind: null, state: "idle" };
 }
 
+function createIdleKnowledgeActionStatus(): KnowledgeActionStatus {
+  return { error: null, kind: null, state: "idle" };
+}
+
+function createIdleMemoryInspectorState(): MemoryInspectorState {
+  return {
+    error: null,
+    filter: "active",
+    items: [],
+    loadState: "idle",
+    page: null,
+    preview: null,
+    query: "",
+    selectedEntry: null,
+    selectedMemoryId: null,
+  };
+}
+
+function createIdleRepositoryInspectorState(): RepositoryInspectorState {
+  return {
+    error: null,
+    items: [],
+    query: "",
+    rebuild: null,
+    searchState: "idle",
+    selectedEntry: null,
+    selectedEntryId: null,
+    status: null,
+    statusState: "idle",
+  };
+}
+
 async function runTaskAction({
   action,
   get,
@@ -784,11 +1132,48 @@ async function runTaskAction({
   }
 }
 
+async function runKnowledgeAction({
+  action,
+  get,
+  kind,
+  memoryId,
+  set,
+}: {
+  action: () => Promise<unknown>;
+  get: StoreApi<KnowledgeStoreState>["getState"];
+  kind: KnowledgeActionKind;
+  memoryId: string | null;
+  set: StoreApi<KnowledgeStoreState>["setState"];
+}) {
+  set({ action: { error: null, kind, state: "pending" } });
+  try {
+    await action();
+    set({ action: { error: null, kind, state: "succeeded" } });
+    await get().loadMemoryPage();
+    if (memoryId !== null) {
+      await get().selectMemory(memoryId);
+    }
+  } catch (error) {
+    set({ action: { error: errorMessage(error), kind, state: "failed" } });
+  }
+}
+
 function requireSelectedTaskId(detail: TaskDetailState): string {
   if (detail.selectedTaskId === null) {
     throw new Error("No task is selected.");
   }
   return detail.selectedTaskId;
+}
+
+function requireSelectedMemoryId(memory: MemoryInspectorState): string {
+  if (memory.selectedMemoryId === null) {
+    throw new Error("No workspace memory entry is selected.");
+  }
+  return memory.selectedMemoryId;
+}
+
+function memoryStateForFilter(filter: MemoryFilter): WorkspaceMemoryState | undefined {
+  return filter === "all" ? undefined : filter;
 }
 
 function createIdleDetailPageState(): DetailPageState {

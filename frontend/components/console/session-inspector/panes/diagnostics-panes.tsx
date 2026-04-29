@@ -18,6 +18,9 @@ export function RuntimePane({ data }: { data: DashboardState }) {
   const workingSet = context?.working_set?.items ?? [];
   const notes = context?.runtime_notes ?? [];
   const artifacts = context?.artifact_context?.summaries ?? [];
+  const memory = context?.workspace_memory ?? [];
+  const repositoryIndex = context?.repository_index ?? null;
+  const repositoryIndexItems = repositoryIndex?.items ?? [];
 
   if (context === null) {
     return (
@@ -55,6 +58,74 @@ export function RuntimePane({ data }: { data: DashboardState }) {
               ...(context.repository_context.top_level_files ?? []),
             ]}
           />
+        </section>
+        <section>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+            Workspace memory influence
+          </p>
+          {memory.length === 0 ? (
+            <EmptyLine value="No workspace memory items influenced this runtime context." />
+          ) : (
+            <DataList density="compact">
+              {memory.map((item) => (
+                <DataListItem key={item.memory_id}>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <DataListLabel>{item.summary}</DataListLabel>
+                      <DataListMeta>{item.content}</DataListMeta>
+                    </div>
+                    <Badge variant={item.redacted ? "warning" : "success"}>{item.kind}</Badge>
+                  </div>
+                  <p className="mt-2 break-all text-xs text-muted-foreground">
+                    {item.provenance.source_type}
+                    {item.provenance.session_id
+                      ? ` ${item.provenance.session_id}#${item.provenance.source_sequence ?? 0}`
+                      : ""}
+                    {" · "}
+                    {item.use_count} use{item.use_count === 1 ? "" : "s"}
+                  </p>
+                </DataListItem>
+              ))}
+            </DataList>
+          )}
+        </section>
+        <section>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+            Repository index influence
+          </p>
+          {repositoryIndex === null ? (
+            <EmptyLine value="Repository index context was not available for this snapshot." />
+          ) : repositoryIndexItems.length === 0 ? (
+            <EmptyLine
+              value={
+                repositoryIndex.detail ??
+                "No repository index items were selected for this runtime context."
+              }
+            />
+          ) : (
+            <DataList density="compact">
+              {repositoryIndexItems.map((item) => (
+                <DataListItem key={item.entry_id}>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <DataListLabel>{item.name}</DataListLabel>
+                      <DataListMeta>{item.summary ?? item.path ?? item.symbol}</DataListMeta>
+                    </div>
+                    <Badge variant="outline">{item.kind}</Badge>
+                  </div>
+                  <p className="mt-2 break-all text-xs text-muted-foreground">
+                    {item.source_type ?? "source"} · {item.path ?? item.symbol ?? item.entry_id}
+                  </p>
+                </DataListItem>
+              ))}
+            </DataList>
+          )}
+          {repositoryIndex !== null ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              {repositoryIndex.status} · {repositoryIndex.entry_count} indexed entries ·{" "}
+              {repositoryIndex.context_bytes} context bytes
+            </p>
+          ) : null}
         </section>
         <section>
           <p className="mb-2 text-xs font-semibold uppercase tracking-normal text-muted-foreground">

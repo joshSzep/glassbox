@@ -94,10 +94,21 @@ class WorkspaceMemoryCandidateDecisionRequest(BaseModel):
     reason: str | None = None
 
 
+class WorkspaceMemoryActionRequest(BaseModel):
+    actor: str = "operator"
+    reason: str | None = None
+
+
 class WorkspaceMemoryCandidateRejectedResponse(BaseModel):
     candidate: WorkspaceMemoryCandidateResponse
     rejected_by: str
     reason: str
+
+
+class WorkspaceMemoryPrunePreviewResponse(BaseModel):
+    entry: WorkspaceMemoryEntryResponse
+    would_prune: bool
+    reason: str | None = None
 
 
 def build_workspace_memory_entry_response(

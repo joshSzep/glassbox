@@ -2049,6 +2049,79 @@
         "title": "RepositoryIndexProvenanceResponse",
         "type": "object"
       },
+      "RepositoryIndexRebuildRequest": {
+        "properties": {
+          "background": {
+            "default": true,
+            "title": "Background",
+            "type": "boolean"
+          },
+          "requested_by": {
+            "default": "operator",
+            "title": "Requested By",
+            "type": "string"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          }
+        },
+        "title": "RepositoryIndexRebuildRequest",
+        "type": "object"
+      },
+      "RepositoryIndexRebuildResponse": {
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "index": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RepositoryIndexStatusResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "job": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackgroundJobResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mode": {
+            "title": "Mode",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": ["mode", "status"],
+        "title": "RepositoryIndexRebuildResponse",
+        "type": "object"
+      },
       "RepositoryIndexSearchPageResponse": {
         "properties": {
           "items": {
@@ -3869,6 +3942,28 @@
         "title": "WorkingSetSnapshot",
         "type": "object"
       },
+      "WorkspaceMemoryActionRequest": {
+        "properties": {
+          "actor": {
+            "default": "operator",
+            "title": "Actor",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "title": "WorkspaceMemoryActionRequest",
+        "type": "object"
+      },
       "WorkspaceMemoryAddRequest": {
         "properties": {
           "confirmed_by": {
@@ -4528,6 +4623,31 @@
         "title": "WorkspaceMemoryProvenanceResponse",
         "type": "object"
       },
+      "WorkspaceMemoryPrunePreviewResponse": {
+        "properties": {
+          "entry": {
+            "$ref": "#/components/schemas/WorkspaceMemoryEntryResponse"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "would_prune": {
+            "title": "Would Prune",
+            "type": "boolean"
+          }
+        },
+        "required": ["entry", "would_prune"],
+        "title": "WorkspaceMemoryPrunePreviewResponse",
+        "type": "object"
+      },
       "WorkspaceMemoryState": {
         "description": "Lifecycle states for workspace-scoped memory entries.",
         "enum": ["active", "stale", "invalidated", "imported", "pruned"],
@@ -5102,6 +5222,270 @@
         "summary": "Get Workspace Memory Detail"
       }
     },
+    "/memory/{memory_id}/confirm": {
+      "post": {
+        "description": "Confirm or refresh confirmation evidence for one memory entry.",
+        "operationId": "confirm_workspace_memory_memory__memory_id__confirm_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memory_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Memory Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceMemoryActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceMemoryDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Confirm Workspace Memory"
+      }
+    },
+    "/memory/{memory_id}/invalidate": {
+      "post": {
+        "description": "Invalidate one memory entry while keeping it inspectable.",
+        "operationId": "invalidate_workspace_memory_memory__memory_id__invalidate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memory_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Memory Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceMemoryActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceMemoryDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Invalidate Workspace Memory"
+      }
+    },
+    "/memory/{memory_id}/prune": {
+      "post": {
+        "description": "Prune one memory entry from active retrieval while preserving history.",
+        "operationId": "prune_workspace_memory_memory__memory_id__prune_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memory_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Memory Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceMemoryActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceMemoryDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Prune Workspace Memory"
+      }
+    },
+    "/memory/{memory_id}/prune-preview": {
+      "post": {
+        "description": "Preview a prune action without mutating canonical memory events.",
+        "operationId": "preview_workspace_memory_prune_memory__memory_id__prune_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memory_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Memory Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceMemoryActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceMemoryPrunePreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Workspace Memory Prune"
+      }
+    },
     "/repo/index/entries/{entry_id}": {
       "get": {
         "description": "Return one repository index entry by stable ID.",
@@ -5140,6 +5524,46 @@
           }
         },
         "summary": "Get Repository Index Entry Detail",
+        "tags": ["repo"]
+      }
+    },
+    "/repo/index/rebuild": {
+      "post": {
+        "description": "Refresh repository intelligence directly or queue a daemon job.",
+        "operationId": "rebuild_repository_index_repo_index_rebuild_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepositoryIndexRebuildRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryIndexRebuildResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rebuild Repository Index",
         "tags": ["repo"]
       }
     },

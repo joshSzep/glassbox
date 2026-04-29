@@ -1472,7 +1472,7 @@ The intended v8 milestone order is:
 
 ### GBX-883: Add Memory And Repository Index Inspectors
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-880`, `GBX-851`, `GBX-854`, `GBX-855`
 - Goal: make the context sources that shape autonomous work visible and maintainable from the dashboard
 - Deliverables:

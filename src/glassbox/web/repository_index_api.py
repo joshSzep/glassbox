@@ -9,6 +9,7 @@ from glassbox.core.models import RepositoryIndexEntry
 from glassbox.core.models import RepositoryIndexProvenance
 from glassbox.core.models import RepositoryIndexSnapshot
 from glassbox.web.session_api import PageInfoResponse
+from glassbox.web.task_api import BackgroundJobResponse
 
 
 class RepositoryIndexProvenanceResponse(BaseModel):
@@ -54,6 +55,20 @@ class RepositoryIndexSearchPageResponse(BaseModel):
 
 class RepositoryIndexEntryDetailResponse(BaseModel):
     entry: RepositoryIndexEntryResponse
+
+
+class RepositoryIndexRebuildRequest(BaseModel):
+    session_id: str | None = None
+    requested_by: str = "operator"
+    background: bool = True
+
+
+class RepositoryIndexRebuildResponse(BaseModel):
+    mode: str
+    status: str
+    index: RepositoryIndexStatusResponse | None = None
+    job: BackgroundJobResponse | None = None
+    detail: str | None = None
 
 
 def build_repository_index_status_response(
