@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useStore } from "zustand";
 
 import { createGlassboxApiClient } from "@/api/client";
+import { BranchSearchConsole } from "@/components/console/branch-search-console";
 import { KnowledgeAutonomyConsole } from "@/components/console/knowledge-autonomy-console";
 import { SessionInspector } from "@/components/console/session-inspector";
 import { TaskAutonomyConsole } from "@/components/console/task-autonomy-console";
@@ -23,6 +24,7 @@ import {
   type AppRouteState,
 } from "@/routing/app-route";
 import {
+  createBranchSearchStore,
   createConsoleStore,
   createKnowledgeStore,
   createSessionStore,
@@ -31,10 +33,12 @@ import {
 
 export function WorkspaceConsole() {
   const apiClient = useMemo(() => createGlassboxApiClient(), []);
+  const branchSearchStore = useMemo(() => createBranchSearchStore(apiClient), [apiClient]);
   const consoleStore = useMemo(() => createConsoleStore(apiClient), [apiClient]);
   const knowledgeStore = useMemo(() => createKnowledgeStore(apiClient), [apiClient]);
   const sessionStore = useMemo(() => createSessionStore({ apiClient }), [apiClient]);
   const taskStore = useMemo(() => createTaskStore(apiClient), [apiClient]);
+  const branchSearchState = useStore(branchSearchStore);
   const consoleState = useStore(consoleStore);
   const knowledgeState = useStore(knowledgeStore);
   const sessionState = useStore(sessionStore);
@@ -47,6 +51,7 @@ export function WorkspaceConsole() {
       setRoute(nextRoute);
       void consoleStore.getState().loadAggregate({ queue: nextRoute.queue });
       if (nextRoute.surface === "tasks") {
+        branchSearchStore.getState().reset();
         knowledgeStore.getState().reset();
         sessionStore.getState().resetForRoute(null);
         void (async () => {
@@ -56,17 +61,25 @@ export function WorkspaceConsole() {
           }
         })();
       } else if (nextRoute.surface === "memory") {
+        branchSearchStore.getState().reset();
         sessionStore.getState().resetForRoute(null);
         taskStore.getState().reset();
         void knowledgeStore.getState().loadMemoryPage();
       } else if (nextRoute.surface === "repository") {
+        branchSearchStore.getState().reset();
         sessionStore.getState().resetForRoute(null);
         taskStore.getState().reset();
         void (async () => {
           await knowledgeStore.getState().loadRepositoryStatus();
           await knowledgeStore.getState().searchRepositoryIndex();
         })();
+      } else if (nextRoute.surface === "branches") {
+        knowledgeStore.getState().reset();
+        sessionStore.getState().resetForRoute(null);
+        taskStore.getState().reset();
+        void branchSearchStore.getState().loadBranchSearchPage();
       } else if (nextRoute.selectedSessionId !== null) {
+        branchSearchStore.getState().reset();
         knowledgeStore.getState().reset();
         taskStore.getState().reset();
         void (async () => {
@@ -76,6 +89,7 @@ export function WorkspaceConsole() {
           }
         })();
       } else {
+        branchSearchStore.getState().reset();
         knowledgeStore.getState().reset();
         taskStore.getState().reset();
         sessionStore.getState().resetForRoute(null);
@@ -85,7 +99,7 @@ export function WorkspaceConsole() {
     syncFromLocation();
     window.addEventListener("popstate", syncFromLocation);
     return () => window.removeEventListener("popstate", syncFromLocation);
-  }, [consoleStore, knowledgeStore, sessionStore, taskStore]);
+  }, [branchSearchStore, consoleStore, knowledgeStore, sessionStore, taskStore]);
 
   const navigate = (nextRoute: AppRouteState) => {
     setRoute(nextRoute);
@@ -224,6 +238,37 @@ export function WorkspaceConsole() {
         }}
         repository={knowledgeState.repository}
         surface={route.surface}
+      />
+    );
+  }
+
+  if (route.surface === "branches") {
+    return (
+      <BranchSearchConsole
+        action={branchSearchState.action}
+        detail={branchSearchState.detail}
+        onMarkCandidate={(input) => {
+          if (!confirmAction(`Mark this candidate ${input.action}?`)) {
+            return;
+          }
+          void branchSearchStore.getState().markCandidate({
+            action: input.action,
+            candidateId: input.candidateId,
+            reason: `dashboard ${input.action}`,
+            searchId: input.searchId,
+          });
+        }}
+        onRefresh={() => {
+          void branchSearchStore.getState().loadBranchSearchPage();
+          const selected = branchSearchStore.getState().detail.selectedSearchId;
+          if (selected !== null) {
+            void branchSearchStore.getState().selectBranchSearch(selected);
+          }
+        }}
+        onSelectSearch={(searchId) => {
+          void branchSearchStore.getState().selectBranchSearch(searchId);
+        }}
+        page={branchSearchState.page}
       />
     );
   }

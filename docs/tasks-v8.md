@@ -1493,7 +1493,7 @@ The intended v8 milestone order is:
 
 ### GBX-884: Add Branch-Search Comparison And Candidate Selection UI
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-865`, `GBX-881`
 - Goal: make alternate autonomous strategies understandable and selectable from the dashboard
 - Deliverables:

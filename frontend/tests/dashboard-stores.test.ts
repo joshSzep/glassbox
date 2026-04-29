@@ -4,6 +4,7 @@ import { GlassboxApiError, type GlassboxApiClient } from "../api/client";
 import type { SessionEventStreamOptions, SessionStreamState, SseEventEnvelope } from "../api/sse";
 import type { components } from "@/generated/api-types";
 import {
+  createBranchSearchStore,
   createConsoleStore,
   createKnowledgeStore,
   createSessionStore,
@@ -125,6 +126,8 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
       projection_health: projectionHealth,
       task_id: taskId,
     }),
+    getBranchSearchDetail: async (searchId) => makeBranchSearchDetail(searchId),
+    getBranchSearchPage: async () => ({ items: [makeBranchSearchSummary("search-1")] }),
     getRepositoryIndexEntryDetail: async (entryId) => ({ entry: makeRepositoryEntry(entryId) }),
     getRepositoryIndexStatus: async () => ({
       built_at: "2026-04-23T00:00:00Z",
@@ -162,6 +165,10 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
       },
     }),
     cancelTask: async () => ({ status: "ok" }),
+    markBranchCandidate: async (input) => ({
+      candidate: makeBranchCandidate(input.candidateId, { selection_state: input.action }),
+      status: input.action,
+    }),
     confirmWorkspaceMemory: async (input) => ({ entry: makeMemoryEntry(input.memoryId) }),
     continueTask: async () => ({
       job: {
@@ -547,6 +554,60 @@ describe("task store", () => {
       error: "task missing",
       loadState: "failed",
       selectedTaskId: "missing",
+    });
+  });
+});
+
+describe("branch search store", () => {
+  it("loads branch searches, detail, and candidate selection actions", async () => {
+    const calls: string[] = [];
+    const store = createBranchSearchStore(
+      createApiClient({
+        getBranchSearchDetail: async (searchId) => {
+          calls.push(`detail:${searchId}`);
+          return makeBranchSearchDetail(searchId);
+        },
+        getBranchSearchPage: async () => {
+          calls.push("list");
+          return { items: [makeBranchSearchSummary("search-1")] };
+        },
+        markBranchCandidate: async (input) => {
+          calls.push(`${input.action}:${input.candidateId}`);
+          return {
+            candidate: makeBranchCandidate(input.candidateId, {
+              selection_state:
+                input.action === "select"
+                  ? "selected"
+                  : input.action === "reject"
+                    ? "rejected"
+                    : "needs_review",
+            }),
+            status: input.action,
+          };
+        },
+      }),
+    );
+
+    await store.getState().loadBranchSearchPage();
+    await store.getState().selectBranchSearch("search-1");
+    await store.getState().markCandidate({
+      action: "select",
+      candidateId: "candidate-1",
+      reason: "best verification",
+    });
+
+    expect(calls).toEqual([
+      "list",
+      "detail:search-1",
+      "select:candidate-1",
+      "detail:search-1",
+      "list",
+    ]);
+    expect(store.getState().page.items[0]?.objective).toBe("Compare repair options");
+    expect(store.getState().detail.detail?.candidates[0]?.strategy_label).toBe("Try minimal fix");
+    expect(store.getState().action).toMatchObject({
+      kind: "select-candidate",
+      state: "succeeded",
     });
   });
 });
@@ -994,6 +1055,9 @@ describe("session store", () => {
 
 type EventLogEntry = components["schemas"]["EventLogEntryResponse"];
 type PageInfo = components["schemas"]["PageInfoResponse"];
+type BranchCandidate = components["schemas"]["BranchCandidateResponse"];
+type BranchSearchDetail = components["schemas"]["BranchSearchDetailResponse"];
+type BranchSearchSummary = components["schemas"]["BranchSearchSummaryResponse"];
 type RepositoryEntry = components["schemas"]["RepositoryIndexEntryResponse"];
 type TaskSummary = components["schemas"]["TaskSummaryResponse"];
 type TranscriptMessage = components["schemas"]["TranscriptMessageResponse"];
@@ -1014,6 +1078,61 @@ function makeTaskSummary(taskId: string, overrides: Partial<TaskSummary> = {}): 
     title: "Task",
     updated_at: timestamp(0),
     ...overrides,
+  };
+}
+
+function makeBranchSearchSummary(
+  searchId: string,
+  overrides: Partial<BranchSearchSummary> = {},
+): BranchSearchSummary {
+  return {
+    abandoned_reason: null,
+    candidate_count: 1,
+    created_at: timestamp(0),
+    last_sequence: 3,
+    objective: "Compare repair options",
+    parent_session_id: "session-1",
+    search_id: searchId,
+    selected_candidate_id: null,
+    session_id: "session-1",
+    status: "completed",
+    task_id: "task-1",
+    updated_at: timestamp(2),
+    ...overrides,
+  };
+}
+
+function makeBranchCandidate(
+  candidateId: string,
+  overrides: Partial<BranchCandidate> = {},
+): BranchCandidate {
+  return {
+    artifact_id: "artifact-1",
+    candidate_id: candidateId,
+    candidate_session_id: "session-child",
+    changed_files: ["src/glassbox/runtime/example.py"],
+    created_at: timestamp(0),
+    last_sequence: 4,
+    parent_session_id: "session-1",
+    patch_summary: "Updated runtime branch search handling.",
+    policy_budget_summary: "Used one branch attempt from the task budget.",
+    residual_risks: ["Needs operator merge review."],
+    search_id: "search-1",
+    selection_state: null,
+    status: "verified",
+    strategy_label: "Try minimal fix",
+    updated_at: timestamp(2),
+    verification_id: "verification-1",
+    verification_status: "passed",
+    verification_summary: "Targeted tests passed.",
+    ...overrides,
+  };
+}
+
+function makeBranchSearchDetail(searchId: string): BranchSearchDetail {
+  return {
+    candidates: [makeBranchCandidate("candidate-1", { search_id: searchId })],
+    search: makeBranchSearchSummary(searchId),
   };
 }
 

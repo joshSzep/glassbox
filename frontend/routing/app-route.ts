@@ -26,7 +26,7 @@ export const inspectorTabs = [
 
 export type InspectorTab = (typeof inspectorTabs)[number];
 
-export const appSurfaces = ["sessions", "tasks", "memory", "repository"] as const;
+export const appSurfaces = ["sessions", "tasks", "memory", "repository", "branches"] as const;
 
 export type AppSurface = (typeof appSurfaces)[number];
 
@@ -122,6 +122,18 @@ export function parseAppRoute(input: string | URL, options: AppRouteOptions = {}
     };
   }
 
+  if (segments[0] === "branch-search") {
+    return {
+      compareSessionId: null,
+      queue: "all",
+      selectedSessionId: null,
+      selectedTaskId: null,
+      surface: "branches",
+      tab: "overview",
+      taskQueue,
+    };
+  }
+
   if (segments[0] === "sessions" && segments[1]) {
     return {
       compareSessionId,
@@ -189,6 +201,8 @@ export function buildAppRoute(state: AppRouteBuildState, options: AppRouteOption
     pathname = `${basePath}/memory`;
   } else if (surface === "repository") {
     pathname = `${basePath}/repository-index`;
+  } else if (surface === "branches") {
+    pathname = `${basePath}/branch-search`;
   } else if (state.selectedSessionId !== null) {
     pathname = `${basePath}/sessions/${encodePathSegment(state.selectedSessionId)}`;
     if (state.queue !== "all") {

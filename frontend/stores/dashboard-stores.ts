@@ -3,6 +3,8 @@ import { createStore, type StoreApi } from "zustand/vanilla";
 import type {
   AutonomyBudget,
   AutonomyMode,
+  BranchSearchDetailResponse,
+  BranchSearchListPageResponse,
   GlassboxApiClient,
   RepositoryIndexEntryDetailResponse,
   RepositoryIndexRebuildResponse,
@@ -49,6 +51,10 @@ export type KnowledgeActionKind =
   | "preview-prune-memory"
   | "prune-memory"
   | "rebuild-index";
+export type BranchSearchActionKind =
+  | "needs-review-candidate"
+  | "reject-candidate"
+  | "select-candidate";
 export type DetailPageKind = "events" | "metrics" | "transcript";
 export type MemoryFilter = "active" | "all" | "invalidated" | "stale";
 
@@ -76,6 +82,12 @@ export type TaskActionStatus = {
 export type KnowledgeActionStatus = {
   error: string | null;
   kind: KnowledgeActionKind | null;
+  state: "failed" | "idle" | "pending" | "succeeded";
+};
+
+export type BranchSearchActionStatus = {
+  error: string | null;
+  kind: BranchSearchActionKind | null;
   state: "failed" | "idle" | "pending" | "succeeded";
 };
 
@@ -199,6 +211,34 @@ export type KnowledgeStoreState = {
   setMemoryFilter: (filter: MemoryFilter) => Promise<void>;
   setMemoryQuery: (query: string) => Promise<void>;
   setRepositoryQuery: (query: string) => Promise<void>;
+};
+
+export type BranchSearchPageState = {
+  error: string | null;
+  items: BranchSearchListPageResponse["items"];
+  loadState: LoadState;
+};
+
+export type BranchSearchDetailState = {
+  detail: BranchSearchDetailResponse | null;
+  error: string | null;
+  loadState: LoadState;
+  selectedSearchId: string | null;
+};
+
+export type BranchSearchStoreState = {
+  action: BranchSearchActionStatus;
+  detail: BranchSearchDetailState;
+  loadBranchSearchPage: (query?: { sessionId?: string | null }) => Promise<void>;
+  markCandidate: (input: {
+    action: "needs-review" | "reject" | "select";
+    candidateId: string;
+    reason: string;
+    searchId?: string;
+  }) => Promise<void>;
+  page: BranchSearchPageState;
+  reset: () => void;
+  selectBranchSearch: (searchId: string) => Promise<void>;
 };
 
 export type SessionEventStreamHandle = ReturnType<typeof createSessionEventStream>;
@@ -505,6 +545,101 @@ export function createTaskStore(apiClient: GlassboxApiClient): StoreApi<TaskStor
     },
     setQueueFilter: async (queue) => {
       await get().loadTaskPage({ queue });
+    },
+  }));
+}
+
+export function createBranchSearchStore(
+  apiClient: GlassboxApiClient,
+): StoreApi<BranchSearchStoreState> {
+  let listRequestId = 0;
+  let detailRequestId = 0;
+
+  return createStore<BranchSearchStoreState>((set, get) => ({
+    action: createIdleBranchSearchActionStatus(),
+    detail: createIdleBranchSearchDetailState(),
+    loadBranchSearchPage: async (query = {}) => {
+      const currentRequestId = ++listRequestId;
+      set((state) => ({
+        page: { ...state.page, error: null, loadState: "loading" },
+      }));
+      try {
+        const page = await apiClient.getBranchSearchPage({
+          limit: BRANCH_SEARCH_PAGE_SIZE,
+          session_id: query.sessionId ?? undefined,
+        });
+        if (currentRequestId !== listRequestId) {
+          return;
+        }
+        set({ page: { error: null, items: page.items, loadState: "loaded" } });
+      } catch (error) {
+        if (currentRequestId !== listRequestId) {
+          return;
+        }
+        set((state) => ({
+          page: { ...state.page, error: errorMessage(error), loadState: "failed" },
+        }));
+      }
+    },
+    markCandidate: async (input) => {
+      const searchId = input.searchId ?? requireSelectedBranchSearchId(get().detail);
+      const kind = branchActionKind(input.action);
+      set({ action: { error: null, kind, state: "pending" } });
+      try {
+        await apiClient.markBranchCandidate({
+          action: input.action,
+          candidateId: input.candidateId,
+          reason: input.reason,
+          searchId,
+        });
+        set({ action: { error: null, kind, state: "succeeded" } });
+        await get().selectBranchSearch(searchId);
+        await get().loadBranchSearchPage();
+      } catch (error) {
+        set({ action: { error: errorMessage(error), kind, state: "failed" } });
+      }
+    },
+    page: createIdleBranchSearchPageState(),
+    reset: () => {
+      listRequestId += 1;
+      detailRequestId += 1;
+      set({
+        action: createIdleBranchSearchActionStatus(),
+        detail: createIdleBranchSearchDetailState(),
+        page: createIdleBranchSearchPageState(),
+      });
+    },
+    selectBranchSearch: async (searchId) => {
+      const currentRequestId = ++detailRequestId;
+      set({
+        detail: {
+          detail: null,
+          error: null,
+          loadState: "loading",
+          selectedSearchId: searchId,
+        },
+      });
+      try {
+        const detail = await apiClient.getBranchSearchDetail(searchId);
+        if (currentRequestId !== detailRequestId) {
+          return;
+        }
+        set({
+          detail: { detail, error: null, loadState: "loaded", selectedSearchId: searchId },
+        });
+      } catch (error) {
+        if (currentRequestId !== detailRequestId) {
+          return;
+        }
+        set({
+          detail: {
+            detail: null,
+            error: errorMessage(error),
+            loadState: "failed",
+            selectedSearchId: searchId,
+          },
+        });
+      }
     },
   }));
 }
@@ -1044,6 +1179,7 @@ function createIdleActionStatus(): ActionStatus {
   return { error: null, kind: null, state: "idle" };
 }
 
+const BRANCH_SEARCH_PAGE_SIZE = 100;
 const DETAIL_PAGE_SIZE = 80;
 const MEMORY_PAGE_SIZE = 200;
 const REPOSITORY_INDEX_SEARCH_SIZE = 50;
@@ -1075,6 +1211,18 @@ function createIdleTaskDetailState(): TaskDetailState {
 
 function createIdleTaskActionStatus(): TaskActionStatus {
   return { error: null, kind: null, state: "idle" };
+}
+
+function createIdleBranchSearchActionStatus(): BranchSearchActionStatus {
+  return { error: null, kind: null, state: "idle" };
+}
+
+function createIdleBranchSearchPageState(): BranchSearchPageState {
+  return { error: null, items: [], loadState: "idle" };
+}
+
+function createIdleBranchSearchDetailState(): BranchSearchDetailState {
+  return { detail: null, error: null, loadState: "idle", selectedSearchId: null };
 }
 
 function createIdleKnowledgeActionStatus(): KnowledgeActionStatus {
@@ -1163,6 +1311,23 @@ function requireSelectedTaskId(detail: TaskDetailState): string {
     throw new Error("No task is selected.");
   }
   return detail.selectedTaskId;
+}
+
+function requireSelectedBranchSearchId(detail: BranchSearchDetailState): string {
+  if (detail.selectedSearchId === null) {
+    throw new Error("No branch search is selected.");
+  }
+  return detail.selectedSearchId;
+}
+
+function branchActionKind(action: "needs-review" | "reject" | "select"): BranchSearchActionKind {
+  if (action === "select") {
+    return "select-candidate";
+  }
+  if (action === "reject") {
+    return "reject-candidate";
+  }
+  return "needs-review-candidate";
 }
 
 function requireSelectedMemoryId(memory: MemoryInspectorState): string {

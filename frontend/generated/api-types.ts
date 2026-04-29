@@ -4,6 +4,106 @@
  */
 
 export interface paths {
+  "/branch-searches": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Branch Searches
+     * @description Return branch-search summaries for the dashboard comparison queue.
+     */
+    get: operations["list_branch_searches_branch_searches_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/branch-searches/{search_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Branch Search Detail
+     * @description Return one branch search with candidate comparison rows.
+     */
+    get: operations["get_branch_search_detail_branch_searches__search_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/branch-searches/{search_id}/candidates/{candidate_id}/needs-review": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Mark Branch Candidate Needs Review
+     * @description Mark a branch-search candidate as needing more operator review.
+     */
+    post: operations["mark_branch_candidate_needs_review_branch_searches__search_id__candidates__candidate_id__needs_review_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/branch-searches/{search_id}/candidates/{candidate_id}/reject": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Reject Branch Candidate
+     * @description Mark a branch-search candidate as rejected evidence.
+     */
+    post: operations["reject_branch_candidate_branch_searches__search_id__candidates__candidate_id__reject_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/branch-searches/{search_id}/candidates/{candidate_id}/select": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Select Branch Candidate
+     * @description Mark a branch-search candidate as selected metadata.
+     */
+    post: operations["select_branch_candidate_branch_searches__search_id__candidates__candidate_id__select_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/healthz": {
     parameters: {
       query?: never;
@@ -1110,6 +1210,111 @@ export interface components {
       task_id?: string | null;
       /** Title */
       title: string;
+    };
+    /** BranchCandidateActionRequest */
+    BranchCandidateActionRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /** Reason */
+      reason: string;
+    };
+    /** BranchCandidateActionResponse */
+    BranchCandidateActionResponse: {
+      candidate: components["schemas"]["BranchCandidateResponse"];
+      /** Status */
+      status: string;
+    };
+    /** BranchCandidateResponse */
+    BranchCandidateResponse: {
+      /** Artifact Id */
+      artifact_id?: string | null;
+      /** Candidate Id */
+      candidate_id: string;
+      /** Candidate Session Id */
+      candidate_session_id?: string | null;
+      /** Changed Files */
+      changed_files?: string[];
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Last Sequence */
+      last_sequence: number;
+      /** Parent Session Id */
+      parent_session_id: string;
+      /** Patch Summary */
+      patch_summary?: string | null;
+      /** Policy Budget Summary */
+      policy_budget_summary?: string | null;
+      /** Residual Risks */
+      residual_risks?: string[];
+      /** Search Id */
+      search_id: string;
+      /** Selection State */
+      selection_state?: string | null;
+      /** Status */
+      status: string;
+      /** Strategy Label */
+      strategy_label: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Verification Id */
+      verification_id?: string | null;
+      /** Verification Status */
+      verification_status: string;
+      /** Verification Summary */
+      verification_summary?: string | null;
+    };
+    /** BranchSearchDetailResponse */
+    BranchSearchDetailResponse: {
+      /** Candidates */
+      candidates: components["schemas"]["BranchCandidateResponse"][];
+      search: components["schemas"]["BranchSearchSummaryResponse"];
+    };
+    /** BranchSearchListPageResponse */
+    BranchSearchListPageResponse: {
+      /** Items */
+      items: components["schemas"]["BranchSearchSummaryResponse"][];
+    };
+    /** BranchSearchSummaryResponse */
+    BranchSearchSummaryResponse: {
+      /** Abandoned Reason */
+      abandoned_reason?: string | null;
+      /** Candidate Count */
+      candidate_count: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Last Sequence */
+      last_sequence: number;
+      /** Objective */
+      objective: string;
+      /** Parent Session Id */
+      parent_session_id: string;
+      /** Search Id */
+      search_id: string;
+      /** Selected Candidate Id */
+      selected_candidate_id?: string | null;
+      /** Session Id */
+      session_id: string;
+      /** Status */
+      status: string;
+      /** Task Id */
+      task_id?: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
     };
     /** BranchableTurnResponse */
     BranchableTurnResponse: {
@@ -2476,6 +2681,213 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  list_branch_searches_branch_searches_get: {
+    parameters: {
+      query?: {
+        session_id?: string | null;
+        limit?: number | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BranchSearchListPageResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_branch_search_detail_branch_searches__search_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        search_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BranchSearchDetailResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  mark_branch_candidate_needs_review_branch_searches__search_id__candidates__candidate_id__needs_review_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        search_id: string;
+        candidate_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BranchCandidateActionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BranchCandidateActionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  reject_branch_candidate_branch_searches__search_id__candidates__candidate_id__reject_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        search_id: string;
+        candidate_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BranchCandidateActionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BranchCandidateActionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  select_branch_candidate_branch_searches__search_id__candidates__candidate_id__select_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        search_id: string;
+        candidate_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BranchCandidateActionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BranchCandidateActionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   healthz_healthz_get: {
     parameters: {
       query?: never;

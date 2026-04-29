@@ -313,6 +313,50 @@ describe("createGlassboxApiClient", () => {
     );
   });
 
+  it("shapes branch-search read and selection requests", async () => {
+    const { calls, fetch } = createMockFetch([
+      jsonResponse({ items: [] }),
+      jsonResponse({ candidates: [], search: { search_id: "search/1" } }),
+      jsonResponse({ candidate: { candidate_id: "candidate/1" }, status: "select" }),
+      jsonResponse({ candidate: { candidate_id: "candidate/1" }, status: "reject" }),
+      jsonResponse({ candidate: { candidate_id: "candidate/1" }, status: "needs-review" }),
+    ]);
+    const client = createGlassboxApiClient({ fetch });
+
+    await client.getBranchSearchPage({ limit: 10, session_id: "session/1" });
+    await client.getBranchSearchDetail("search/1");
+    await client.markBranchCandidate({
+      action: "select",
+      candidateId: "candidate/1",
+      reason: "best",
+      searchId: "search/1",
+    });
+    await client.markBranchCandidate({
+      action: "reject",
+      candidateId: "candidate/1",
+      reason: "too broad",
+      searchId: "search/1",
+    });
+    await client.markBranchCandidate({
+      action: "needs-review",
+      candidateId: "candidate/1",
+      reason: "inspect artifacts",
+      searchId: "search/1",
+    });
+
+    expect(calls.map((call) => call.input)).toEqual([
+      "/branch-searches?limit=10&session_id=session%2F1",
+      "/branch-searches/search%2F1",
+      "/branch-searches/search%2F1/candidates/candidate%2F1/select",
+      "/branch-searches/search%2F1/candidates/candidate%2F1/reject",
+      "/branch-searches/search%2F1/candidates/candidate%2F1/needs-review",
+    ]);
+    expect(calls[2].init?.body).toBe(JSON.stringify({ actor: "operator", reason: "best" }));
+    expect(calls[4].init?.body).toBe(
+      JSON.stringify({ actor: "operator", reason: "inspect artifacts" }),
+    );
+  });
+
   it("normalizes FastAPI validation errors", async () => {
     const { fetch } = createMockFetch([
       jsonResponse(

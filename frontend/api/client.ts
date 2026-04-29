@@ -16,6 +16,9 @@ export type TaskStepPageResponse = components["schemas"]["TaskStepPageResponse"]
 export type TaskEventPageResponse = components["schemas"]["TaskEventPageResponse"];
 export type BackgroundJobDetailResponse = components["schemas"]["BackgroundJobDetailResponse"];
 export type ActionAcceptedResponse = components["schemas"]["ActionAcceptedResponse"];
+export type BranchCandidateActionResponse = components["schemas"]["BranchCandidateActionResponse"];
+export type BranchSearchDetailResponse = components["schemas"]["BranchSearchDetailResponse"];
+export type BranchSearchListPageResponse = components["schemas"]["BranchSearchListPageResponse"];
 export type WorkspaceMemoryListPageResponse =
   components["schemas"]["WorkspaceMemoryListPageResponse"];
 export type WorkspaceMemoryDetailResponse = components["schemas"]["WorkspaceMemoryDetailResponse"];
@@ -57,6 +60,9 @@ export type SessionArtifactPageQuery = NonNullable<
   paths["/sessions/{session_id}/artifacts"]["get"]["parameters"]["query"]
 >;
 export type TaskListPageQuery = NonNullable<paths["/tasks"]["get"]["parameters"]["query"]>;
+export type BranchSearchListPageQuery = NonNullable<
+  paths["/branch-searches"]["get"]["parameters"]["query"]
+>;
 export type TaskStepPageQuery = NonNullable<
   paths["/tasks/{task_id}/steps"]["get"]["parameters"]["query"]
 >;
@@ -374,6 +380,40 @@ export function createGlassboxApiClient(options: GlassboxApiClientOptions = {}) 
         {
           ...requestOptions,
           body: { actor: input.actor ?? "operator", reason: input.reason ?? null },
+        },
+      ),
+
+    getBranchSearchPage: (query: BranchSearchListPageQuery = {}, requestOptions?: RequestOptions) =>
+      requestJson<BranchSearchListPageResponse>("GET", "/branch-searches", {
+        ...requestOptions,
+        query,
+      }),
+
+    getBranchSearchDetail: (searchId: string, requestOptions?: RequestOptions) =>
+      requestJson<BranchSearchDetailResponse>(
+        "GET",
+        `/branch-searches/${encodeURIComponent(searchId)}`,
+        requestOptions,
+      ),
+
+    markBranchCandidate: (
+      input: {
+        action: "needs-review" | "reject" | "select";
+        actor?: string;
+        candidateId: string;
+        reason: string;
+        searchId: string;
+      },
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<BranchCandidateActionResponse>(
+        "POST",
+        `/branch-searches/${encodeURIComponent(input.searchId)}/candidates/${encodeURIComponent(
+          input.candidateId,
+        )}/${input.action}`,
+        {
+          ...requestOptions,
+          body: { actor: input.actor ?? "operator", reason: input.reason },
         },
       ),
 
