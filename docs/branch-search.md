@@ -17,10 +17,17 @@ evidence unless an operator prunes artifacts separately.
 Inspect searches:
 
 ```bash
+uv run glassbox branch-search start SESSION_ID \
+  --objective "Try targeted and broader repair strategies" \
+  --strategy "targeted pytest repair" \
+  --strategy "broader refactor" \
+  --max-candidates 2 \
+  --cwd .
 uv run glassbox branch-search list --cwd .
 uv run glassbox branch-search show SEARCH_ID --json --cwd .
 ```
 
-The first model supports started, planned, forked, executed, verified,
-compared, selected, rejected, and abandoned events. Later runtime coordinators
-can use those events to run bounded candidates without mutating parent history.
+The bounded coordinator runs candidates sequentially under branch-attempt,
+tool-call, write, command, and verification budgets. It records planned, forked,
+executed, verified, and compared evidence, but it never merges candidate
+changes automatically.

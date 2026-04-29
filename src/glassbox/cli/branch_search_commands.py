@@ -5,6 +5,11 @@ from typing import cast
 
 from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
+from glassbox.core import BranchCandidatePlanned
+from glassbox.core import BranchSearchStarted
+from glassbox.core import EventEnvelope
+from glassbox.core import new_branch_candidate_id
+from glassbox.core import new_branch_search_id
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.branch_search import BranchSearchQueryService
 from glassbox.runtime.branch_search import BranchSearchRepository
@@ -12,11 +17,64 @@ from glassbox.runtime.branch_search import BranchSearchRepository
 
 def _branch_search_command(args: argparse.Namespace) -> int:
     command = getattr(args, "branch_search_command", None)
+    if command == "start":
+        return _branch_search_start_command(args)
     if command == "list":
         return _branch_search_list_command(args)
     if command == "show":
         return _branch_search_show_command(args)
     raise ValueError("specify a branch-search subcommand")
+
+
+def _branch_search_start_command(args: argparse.Namespace) -> int:
+    if args.max_candidates < 1:
+        raise ValueError("--max-candidates must be greater than zero")
+    strategies = list(args.strategies)[: args.max_candidates]
+    if not strategies:
+        raise ValueError("at least one --strategy is required")
+    cwd, db_path = resolve_runtime_location(args)
+    search_id = new_branch_search_id()
+    candidate_ids = [new_branch_candidate_id() for _strategy in strategies]
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        repository = runtime_context.repositories.sessions
+        if repository.get_session(args.parent_session_id) is None:
+            raise ValueError(f"unknown parent session: {args.parent_session_id}")
+        repository.append_event(
+            EventEnvelope(
+                session_id=args.parent_session_id,
+                sequence=0,
+                payload=BranchSearchStarted(
+                    search_id=search_id,
+                    parent_session_id=args.parent_session_id,
+                    objective=args.objective,
+                    max_candidates=args.max_candidates,
+                ),
+            )
+        )
+        for candidate_id, strategy in zip(candidate_ids, strategies, strict=True):
+            repository.append_event(
+                EventEnvelope(
+                    session_id=args.parent_session_id,
+                    sequence=0,
+                    payload=BranchCandidatePlanned(
+                        search_id=search_id,
+                        candidate_id=candidate_id,
+                        strategy_label=strategy,
+                    ),
+                )
+            )
+    payload = {
+        "search_id": str(search_id),
+        "parent_session_id": str(args.parent_session_id),
+        "candidate_ids": [str(candidate_id) for candidate_id in candidate_ids],
+        "objective": args.objective,
+    }
+    if args.json:
+        print_json_output(payload)
+    else:
+        print(f"Started branch search {search_id}")
+        print(f"Candidates: {len(candidate_ids)}")
+    return 0
 
 
 def _branch_search_list_command(args: argparse.Namespace) -> int:

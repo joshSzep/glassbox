@@ -60,6 +60,61 @@ def test_branch_search_list_and_show_commands(tmp_path: Path, capsys) -> None:
     assert payload["candidates"][0]["verification_status"] == "passed"
 
 
+def test_branch_search_start_records_bounded_plan(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    _seed_session(db_path, tmp_path, session_id)
+
+    exit_code = main(
+        [
+            "branch-search",
+            "start",
+            str(session_id),
+            "--objective",
+            "Try two repairs",
+            "--strategy",
+            "minimal",
+            "--strategy",
+            "broader",
+            "--max-candidates",
+            "1",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["parent_session_id"] == str(session_id)
+    assert len(payload["candidate_ids"]) == 1
+
+
+def _seed_session(db_path: Path, tmp_path: Path, session_id) -> None:
+    connection = open_database(db_path)
+    try:
+        initialize_database(connection)
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=SessionStarted(
+                    cwd=str(tmp_path),
+                    model_name="openai:gpt-5.4",
+                    approval_mode="confirm",
+                ),
+            )
+        )
+    finally:
+        connection.close()
+
+
 def _seed_branch_search(
     db_path: Path,
     tmp_path: Path,

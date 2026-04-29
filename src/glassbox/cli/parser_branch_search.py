@@ -19,6 +19,26 @@ def _add_branch_search_parsers(
         required=True,
     )
 
+    start_parser = branch_subparsers.add_parser(
+        "start",
+        help="record a bounded branch-search plan",
+        description=(
+            "Record a bounded branch-search objective and candidate strategy labels."
+        ),
+    )
+    start_parser.add_argument("parent_session_id", type=_parse_uuid)
+    start_parser.add_argument("--objective", required=True)
+    start_parser.add_argument(
+        "--strategy",
+        dest="strategies",
+        action="append",
+        required=True,
+        help="candidate strategy label; repeat for multiple candidates",
+    )
+    start_parser.add_argument("--max-candidates", type=int, default=2)
+    start_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(start_parser)
+
     list_parser = branch_subparsers.add_parser(
         "list",
         help="list branch searches",
