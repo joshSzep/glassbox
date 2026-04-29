@@ -1406,7 +1406,7 @@ The intended v8 milestone order is:
 
 ### GBX-880: Design Dashboard Autonomy Console Information Architecture
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-823`, `GBX-835`, `GBX-841`, `GBX-851`
 - Goal: define how the dashboard should present tasks, plans, budgets, background jobs, memory, repository intelligence, and branch-search evidence without overwhelming the operator
 - Deliverables:
