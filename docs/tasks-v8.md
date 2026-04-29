@@ -784,7 +784,7 @@ The intended v8 milestone order is:
 
 ### GBX-845: Add Background Autonomy Release Smoke
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-844`
 - Goal: convert daemon background execution into a repeatable release-smoke surface
 - Deliverables:
@@ -799,6 +799,16 @@ The intended v8 milestone order is:
 - Tests and validation included in task:
   - focused daemon/background integration suite
   - dry-run release gate update if scripts change
+- Completed vertical slice:
+  - added `scripts/background_autonomy_smoke.py` as a deterministic, credential-free smoke command
+  - covered read-only completion, cancellation acknowledgement, failure retry/abandon triage, stale claim cleanup, and task-continuation budget pause
+  - retained `summary.json` evidence under `.glassbox/releases/.../background-jobs/`
+  - documented release-bearing versus advisory/manual background behaviors in [background-autonomy-release-smoke-v8.md](./background-autonomy-release-smoke-v8.md)
+  - included a blocking v8 release-gate recommendation for the background job smoke stage
+- Validation:
+  - `uv run ruff format scripts/background_autonomy_smoke.py tests/integration/test_background_autonomy_smoke.py && uv run ruff check scripts/background_autonomy_smoke.py tests/integration/test_background_autonomy_smoke.py && uv run ty check`
+  - `uv run pytest tests/integration/test_background_autonomy_smoke.py tests/integration/test_background_job_runner.py tests/integration/test_background_jobs.py`
+  - `uv run python scripts/background_autonomy_smoke.py --evidence-dir .glassbox/releases/gbx-845-background-smoke/background-jobs --json`
 - Done when:
   - v8 background work is protected by objective smoke evidence instead of manual optimism
 

@@ -185,5 +185,6 @@ GBX-841 and later execution tasks should cover:
 ## Related Guides
 
 - [persistent-runtime.md](./persistent-runtime.md)
+- [background-autonomy-release-smoke-v8.md](./background-autonomy-release-smoke-v8.md)
 - [daemon-release-smoke-v6.md](./daemon-release-smoke-v6.md)
 - [tasks-v8.md](./tasks-v8.md)
