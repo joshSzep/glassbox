@@ -1,0 +1,56 @@
+"""Boundary checks for SQLite projection query modules."""
+
+from collections.abc import Mapping
+from importlib import import_module
+from types import ModuleType
+
+import glassbox.store.sqlite_queries as facade
+
+DOMAIN_EXPORTS: Mapping[str, set[str]] = {
+    "glassbox.store.sqlite_query_transcript": {"list_transcript_messages"},
+    "glassbox.store.sqlite_query_runtime_notes": {"list_runtime_notes"},
+    "glassbox.store.sqlite_query_tools": {"list_approvals", "list_tool_calls"},
+    "glassbox.store.sqlite_query_metrics": {"list_turn_metrics"},
+    "glassbox.store.sqlite_query_budgets": {"get_budget_posture"},
+    "glassbox.store.sqlite_query_tasks": {
+        "get_task",
+        "list_open_blocked_tasks",
+        "list_task_steps",
+        "list_task_verifications",
+        "list_tasks",
+    },
+    "glassbox.store.sqlite_query_branch_search": {
+        "get_branch_search",
+        "list_branch_candidates",
+        "list_branch_searches",
+    },
+}
+
+
+def test_sqlite_query_facade_forwards_to_domain_modules() -> None:
+    for module_name, exported_names in DOMAIN_EXPORTS.items():
+        module = import_module(module_name)
+
+        assert set(module.__all__) == exported_names
+        for name in exported_names:
+            assert getattr(facade, name) is getattr(module, name)
+
+
+def test_sqlite_query_facade_exports_every_domain_helper() -> None:
+    expected_exports = set().union(*DOMAIN_EXPORTS.values())
+
+    assert set(facade.__all__) == expected_exports
+
+
+def test_sqlite_query_domains_are_split_by_projection_family() -> None:
+    loaded_modules: dict[str, ModuleType] = {
+        module_name: import_module(module_name) for module_name in DOMAIN_EXPORTS
+    }
+
+    assert loaded_modules["glassbox.store.sqlite_query_transcript"].__doc__
+    assert loaded_modules["glassbox.store.sqlite_query_runtime_notes"].__doc__
+    assert loaded_modules["glassbox.store.sqlite_query_tools"].__doc__
+    assert loaded_modules["glassbox.store.sqlite_query_metrics"].__doc__
+    assert loaded_modules["glassbox.store.sqlite_query_budgets"].__doc__
+    assert loaded_modules["glassbox.store.sqlite_query_tasks"].__doc__
+    assert loaded_modules["glassbox.store.sqlite_query_branch_search"].__doc__

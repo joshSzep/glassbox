@@ -225,6 +225,9 @@ The `store` package should not own runtime orchestration, CLI formatting, or web
   transcript/runtime notes, approvals/tools/turn metrics, autonomy budgets,
   task projections, branch-search projections, and any workspace-memory
   adjacency queries should be owned by focused store read modules
+- the projection read split now keeps `sqlite_queries.py` as a compatibility
+  facade over focused `sqlite_query_*` modules for transcript, runtime notes,
+  tools/approvals, turn metrics, autonomy budgets, tasks, and branch search
 - query helpers should continue to derive from canonical events and
   deterministic projection tables. They should not call runtime services,
   background workers, provider diagnostics, HTTP serializers, or frontend

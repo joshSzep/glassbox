@@ -438,7 +438,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R220: Split SQLite Projection Queries By Domain
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R200`
 - Goal: reduce [sqlite_queries.py](../src/glassbox/store/sqlite_queries.py) by
   splitting read-only projection queries into domain-specific modules
