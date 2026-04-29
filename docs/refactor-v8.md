@@ -584,7 +584,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R240: Split Dashboard Stores By Domain
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R200`
 - Goal: reduce
   [dashboard-stores.ts](../frontend/stores/dashboard-stores.ts) by moving
@@ -602,12 +602,20 @@ Each phase below corresponds to one concrete refactor milestone.
   - preserve factory names and exported types where practical
   - keep generated API types as the source for response contracts
   - do not introduce a new frontend state library
+  - completed split keeps `frontend/stores/dashboard-stores.ts` as the
+    compatibility facade while domain factories and state types live in
+    `console-store.ts`, `session-store.ts`, `task-store.ts`,
+    `knowledge-store.ts`, and `branch-search-store.ts`; shared request tracking,
+    async action status helpers, and error normalization live in
+    `store-actions.ts`
 - Tests and validation included in task:
   - `pnpm --dir frontend test -- dashboard-stores.test.ts`
   - `pnpm --dir frontend typecheck`
   - `pnpm --dir frontend lint`
   - focused tests for stale request suppression, stream lifecycle, and domain
     actions
+  - verified with `pnpm --dir frontend test -- dashboard-stores.test.ts`,
+    `pnpm --dir frontend typecheck`, and `pnpm --dir frontend lint`
 - Done when:
   - dashboard state coordination is split by domain while exported compatibility
     and behavior remain stable

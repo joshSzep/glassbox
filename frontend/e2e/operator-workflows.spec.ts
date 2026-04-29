@@ -184,7 +184,7 @@ test("operator can use task controls and budget review from the keyboard", async
 
   await openClientRoute(page, "/app/tasks/task-1?taskQueue=blocked");
 
-  await expect(page.getByRole("heading", { name: "Task Queue" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Task Queue", exact: true })).toBeVisible();
   await expect(page.getByRole("complementary", { name: "Selected task inspector" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Task controls" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Why this action" })).toBeVisible();

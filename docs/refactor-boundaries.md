@@ -335,14 +335,15 @@ the Next.js SPA contract in [architecture.md](./architecture.md) and
 
 #### Current Next.js Dashboard Sub-Boundaries
 
-- `frontend/stores/dashboard-stores.ts` is currently a compatibility surface
-  that exports console, session, task, knowledge, and branch-search store
-  factories. Follow-on splits should preserve those exported factory names
-  until call sites intentionally move to domain modules
-- dashboard store domains should split into session summary/detail streaming,
+- `frontend/stores/dashboard-stores.ts` is now a compatibility facade that
+  re-exports console, session, task, knowledge, and branch-search store
+  factories and public state types from their domain modules. Existing call
+  sites can keep the stable import path until they intentionally move to domain
+  modules
+- dashboard store domains are split into session summary/detail streaming,
   task queue/detail/action state, workspace memory/repository inspector state,
-  branch-search list/detail/action state, and shared pagination/load-state
-  helpers
+  branch-search list/detail/action state, and shared request/action/load-state
+  helpers in `frontend/stores/store-actions.ts`
 - dashboard stores should depend on generated API client types, route-state
   helpers, stream transport helpers, and pure frontend store utilities. They
   should not import React components or server-only modules
@@ -424,8 +425,8 @@ The guardrails are intentionally narrow:
   provider-evidence modules are checked against transport/UI/raw-store imports,
   TUI modules are checked against raw store and runtime worker imports,
   frontend stores are checked against component/server/backend imports, and
-  `frontend/stores/dashboard-stores.ts` is kept reviewable as the source-owned
-  compatibility surface until domain stores split underneath it
+  `frontend/stores/dashboard-stores.ts` is kept reviewable as the
+  compatibility facade over the source-owned domain store modules
 
 If a guardrail fails, the default repair should be to move new behavior into the owning split module or add one focused neighbor module, not to widen a facade or cross a subsystem boundary.
 
