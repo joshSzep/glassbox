@@ -57,6 +57,14 @@ def _print_observability_report(report: WorkspaceObservabilityReport) -> None:
         f"max rebuild scope {report.projections.max_rebuild_event_count} event(s)"
     )
     print(
+        "Tasks: "
+        f"{report.tasks.active_count} active, "
+        f"{report.tasks.blocked_count} blocked, "
+        f"{report.tasks.failed_count} failed, "
+        f"{report.tasks.budget_exhausted_count} budget exhausted, "
+        f"{report.tasks.verification_failed_count} verification failure(s)"
+    )
+    print(
         "Background jobs: "
         f"{report.background_jobs.pending_count} pending, "
         f"{report.background_jobs.running_count} running, "
@@ -71,6 +79,30 @@ def _print_observability_report(report: WorkspaceObservabilityReport) -> None:
             f"{report.background_jobs.last_failure_job_id} "
             f"({report.background_jobs.last_failure_message or 'no message'})"
         )
+    print(
+        "Workspace memory: "
+        f"{report.memory.active_count} active, "
+        f"{report.memory.stale_count} stale, "
+        f"{report.memory.imported_count} imported, "
+        f"{report.memory.invalidated_count} invalidated, "
+        f"{report.memory.pruned_count} pruned, "
+        f"{report.memory.redacted_count} redacted"
+    )
+    print(
+        "Repository index: "
+        f"{report.repository_index.status}, "
+        f"{report.repository_index.entry_count} entries"
+    )
+    if report.repository_index.failure_reason is not None:
+        print(f"Repository index failure: {report.repository_index.failure_reason}")
+    print(
+        "Branch searches: "
+        f"{report.branch_searches.active_count} active, "
+        f"{report.branch_searches.completed_count} completed, "
+        f"{report.branch_searches.abandoned_count} abandoned, "
+        f"{report.branch_searches.needs_review_count} needing review, "
+        f"{report.branch_searches.failed_verification_count} failed verification"
+    )
     print(
         "Artifacts: "
         f"{report.artifacts.protected_count} protected, "

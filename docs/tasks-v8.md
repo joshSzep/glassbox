@@ -1584,7 +1584,7 @@ The intended v8 milestone order is:
 
 ### GBX-891: Add v8 Autonomy Observability And Recovery Review
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-845`, `GBX-856`, `GBX-866`
 - Goal: make observability and recovery commands explain autonomous runtime health, memory/index posture, and background work status
 - Deliverables:

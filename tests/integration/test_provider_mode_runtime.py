@@ -521,6 +521,92 @@ def test_provider_canary_evidence_cli_and_observability_surface_latest_run(
     assert observability_payload["provider_canary"]["summary_count"] == 1
 
 
+def test_provider_canary_evidence_reports_legacy_summary_warning(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    output_dir = tmp_path / ".glassbox" / "provider-canary"
+    output_dir.mkdir(parents=True)
+    (output_dir / "provider-canary-summary.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-04-29T00:00:00Z",
+                "advisory": True,
+                "provider": "openai",
+                "model_name": "gpt-5.4",
+                "diagnostics_state": "ready",
+                "output_path": str(output_dir / "provider-canary-summary.json"),
+                "scenario_definitions": [],
+                "scenarios": [],
+                "capability_matrix": {
+                    "generated_at": "2026-04-29T00:00:00Z",
+                    "advisory": True,
+                    "deterministic_release_blocking": False,
+                    "provider": "openai",
+                    "model_name": "gpt-5.4",
+                    "diagnostics_state": "ready",
+                    "entries": [
+                        {
+                            "provider": "openai",
+                            "model_name": "gpt-5.4",
+                            "scenario_id": "tool-call",
+                            "credential_state": "configured",
+                            "streaming_support": "unknown",
+                            "tool_call_support": "unknown",
+                            "approval_behavior": "unknown",
+                            "ask_user_behavior": "unknown",
+                            "cancellation_behavior": "unknown",
+                            "dashboard_compatibility": "unknown",
+                            "daemon_attach_compatibility": "unknown",
+                            "observed_limits": [],
+                            "result": "not_run",
+                            "redaction_status": "redacted",
+                            "evidence_summary": "legacy row missing v8 fields",
+                        }
+                    ],
+                    "interpretation": "legacy retained matrix",
+                },
+                "next_actions": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    evidence_exit_code = main(
+        [
+            "provider",
+            "canary",
+            "evidence",
+            "--cwd",
+            str(tmp_path),
+            "--json",
+        ]
+    )
+    evidence_output = capsys.readouterr()
+    evidence_payload = json.loads(evidence_output.out)
+
+    observability_exit_code = main(
+        [
+            "observability",
+            "status",
+            "--cwd",
+            str(tmp_path),
+            "--json",
+        ]
+    )
+    observability_output = capsys.readouterr()
+    observability_payload = json.loads(observability_output.out)
+
+    assert evidence_exit_code == 0
+    assert evidence_payload["latest_status"] == "warning"
+    assert evidence_payload["matrix_entry_count"] == 1
+    assert any(
+        "stale or incompatible" in action for action in evidence_payload["next_actions"]
+    )
+    assert observability_exit_code == 0
+    assert observability_payload["provider_canary"]["latest_status"] == "warning"
+
+
 def _provider_function_model_response(messages, _agent_info) -> ModelResponse:
     user_prompt_text = _latest_user_prompt(messages)
     assert user_prompt_text == "Inspect the repo"

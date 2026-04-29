@@ -49,6 +49,7 @@ Use this page to jump to the right level of detail.
 - [terminal-accessibility-review-v7.md](./terminal-accessibility-review-v7.md): review named v7 terminal accessibility pairings, supported keyboard claims, and screen-reader non-claims
 - [dashboard-accessibility-review-v7.md](./dashboard-accessibility-review-v7.md): review named v7 dashboard accessibility pairings, evidence-cue semantics, mobile/keyboard coverage, and screen-reader non-claims
 - [recovery-maintenance-review-v6.md](./recovery-maintenance-review-v6.md): review recovery and maintenance command evidence for v6
+- [recovery-maintenance-review-v8.md](./recovery-maintenance-review-v8.md): review v8 autonomy observability and recovery command evidence for tasks, jobs, memory, repository index, branch search, and projections
 - [frontend-testing.md](./frontend-testing.md): write v3 SPA unit, transport, store, and React component tests with Vitest and Testing Library
 - [operator-console.md](./operator-console.md): understand the v2 multi-session console model, v3 SPA UX contract, action queues, runtime-health semantics, and backend/frontend contracts
 - [persistent-runtime.md](./persistent-runtime.md): run a workspace daemon, inspect runtime health, attach from another terminal, and recover stale ownership
@@ -104,6 +105,7 @@ Use this page to jump to the right level of detail.
 - [terminal-accessibility-review-v7.md](./terminal-accessibility-review-v7.md): v7 terminal named-pairing review for VS Code integrated terminal on macOS, keyboard claims, and assistive-technology non-claims
 - [dashboard-accessibility-review-v7.md](./dashboard-accessibility-review-v7.md): v7 dashboard named-pairing review for Chromium/Playwright on macOS, keyboard/mobile/evidence-cue claims, and assistive-technology non-claims
 - [recovery-maintenance-review-v6.md](./recovery-maintenance-review-v6.md): v6 observability, projection, artifact, backup, eval, daemon, and installed-dashboard recovery review
+- [recovery-maintenance-review-v8.md](./recovery-maintenance-review-v8.md): v8 observability and recovery review for autonomous tasks, background jobs, memory, repository index, branch search, and projection rebuilds
 - [frontend-testing.md](./frontend-testing.md): v3 SPA frontend-native test harness, fixture strategy, and focused test-writing guidance
 - [operator-console.md](./operator-console.md): v2 operator-console information architecture, v3 SPA UX contract, and queue/health semantics for multi-session inspection
 - [v4-ux-release-gate.md](./v4-ux-release-gate.md): v4 UX gate command, checklist, automated coverage map, screenshot review path, manual validation, and known gaps

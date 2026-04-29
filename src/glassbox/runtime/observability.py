@@ -5,15 +5,27 @@ import shlex
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from typing import cast
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 
 from glassbox.core.types import BackgroundJobState
+from glassbox.core.types import BranchCandidateVerificationStatus
+from glassbox.core.types import BranchSearchStatus
+from glassbox.core.types import RepositoryIndexFreshness
+from glassbox.core.types import TaskPlanStatus
+from glassbox.core.types import TaskVerificationStatus
+from glassbox.core.types import WorkspaceMemoryState
+from glassbox.runtime.branch_search import BranchSearchRepository
 from glassbox.runtime.daemon import RuntimeOwnerStatus
 from glassbox.runtime.provider_canary import ProviderCanaryEvidenceSummary
 from glassbox.runtime.provider_canary import load_provider_canary_evidence
+from glassbox.runtime.repository_index import RepositoryIndexNotFoundError
+from glassbox.runtime.repository_index import load_repository_index
+from glassbox.runtime.repository_index import repository_index_path
+from glassbox.runtime.task_queries import TaskPlanRepository
 from glassbox.runtime.transport import RuntimeEventTransportStats
 from glassbox.services import SessionRepository
 from glassbox.store.artifact_retention import inspect_artifact_state
@@ -116,6 +128,68 @@ class BackgroundJobObservability(BaseModel):
     next_actions: list[str] = Field(default_factory=list)
 
 
+class TaskAutonomyObservability(BaseModel):
+    """Task-plan, verification, and autonomy-budget posture."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    task_count: int
+    active_count: int
+    blocked_count: int
+    failed_count: int
+    budget_exhausted_count: int
+    verification_failed_count: int
+    latest_blocked_task_id: str | None = None
+    latest_failed_task_id: str | None = None
+    latest_budget_exhausted_task_id: str | None = None
+    next_actions: list[str] = Field(default_factory=list)
+
+
+class WorkspaceMemoryObservability(BaseModel):
+    """Workspace-memory freshness and cleanup posture."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    active_count: int
+    stale_count: int
+    imported_count: int
+    invalidated_count: int
+    pruned_count: int
+    redacted_count: int
+    last_invalidated_memory_id: str | None = None
+    next_actions: list[str] = Field(default_factory=list)
+
+
+class RepositoryIndexObservability(BaseModel):
+    """Repository-index freshness and rebuild posture."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: str
+    path: str
+    entry_count: int
+    built_at: str | None = None
+    failure_reason: str | None = None
+    next_actions: list[str] = Field(default_factory=list)
+
+
+class BranchSearchObservability(BaseModel):
+    """Branch-search queue and candidate review posture."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    search_count: int
+    active_count: int
+    completed_count: int
+    abandoned_count: int
+    needs_review_count: int
+    failed_verification_count: int
+    selected_count: int
+    latest_search_id: str | None = None
+    latest_needs_review_search_id: str | None = None
+    next_actions: list[str] = Field(default_factory=list)
+
+
 class WorkspaceObservabilityReport(BaseModel):
     """Operator-facing summary of workspace health and inspection paths."""
 
@@ -124,7 +198,11 @@ class WorkspaceObservabilityReport(BaseModel):
     workspace_root: str
     runtime: RuntimeObservability
     projections: ProjectionObservability
+    tasks: TaskAutonomyObservability
     background_jobs: BackgroundJobObservability
+    memory: WorkspaceMemoryObservability
+    repository_index: RepositoryIndexObservability
+    branch_searches: BranchSearchObservability
     artifacts: ArtifactObservability
     verification: VerificationObservability
     provider_canary: ProviderCanaryEvidenceSummary
@@ -152,7 +230,11 @@ def build_workspace_observability_report(
         workspace_root=workspace_root,
     )
     projections = build_projection_observability(session_repository)
+    tasks = build_task_autonomy_observability(session_repository)
     background_jobs = build_background_job_observability(session_repository)
+    memory = build_workspace_memory_observability(session_repository)
+    repository_index = build_repository_index_observability(workspace_root)
+    branch_searches = build_branch_search_observability(session_repository)
     artifacts = build_artifact_observability(workspace_root, session_repository)
     verification = build_verification_observability(workspace_root)
     provider_canary = load_provider_canary_evidence(workspace_root)
@@ -161,7 +243,11 @@ def build_workspace_observability_report(
         for section in (
             runtime,
             projections,
+            tasks,
             background_jobs,
+            memory,
+            repository_index,
+            branch_searches,
             artifacts,
             verification,
             provider_canary,
@@ -172,7 +258,11 @@ def build_workspace_observability_report(
         workspace_root=str(workspace_root),
         runtime=runtime,
         projections=projections,
+        tasks=tasks,
         background_jobs=background_jobs,
+        memory=memory,
+        repository_index=repository_index,
+        branch_searches=branch_searches,
         artifacts=artifacts,
         verification=verification,
         provider_canary=provider_canary,
@@ -364,6 +454,225 @@ def build_background_job_observability(
     )
 
 
+def build_task_autonomy_observability(
+    session_repository: SessionRepository,
+) -> TaskAutonomyObservability:
+    task_repository = cast(TaskPlanRepository, session_repository)
+    tasks = task_repository.list_tasks()
+    active_tasks = [task for task in tasks if task.status == TaskPlanStatus.ACTIVE]
+    blocked_tasks = [
+        task
+        for task in tasks
+        if task.status == TaskPlanStatus.PAUSED or task.blocked_reason is not None
+    ]
+    failed_tasks = [task for task in tasks if task.status == TaskPlanStatus.FAILED]
+    budget_exhausted_tasks = []
+    for task in tasks:
+        posture = session_repository.get_budget_posture(
+            task.session_id,
+            task_id=task.task_id,
+        )
+        if posture is not None and posture.last_reason == "budget_exhausted":
+            budget_exhausted_tasks.append(task)
+    verification_failed_count = 0
+    for task in tasks:
+        verification_failed_count += sum(
+            1
+            for verification in task_repository.list_task_verifications(
+                task.session_id,
+                task.task_id,
+            )
+            if verification.status == TaskVerificationStatus.FAILED
+        )
+
+    latest_blocked = _latest_task(blocked_tasks)
+    latest_failed = _latest_task(failed_tasks)
+    latest_budget_exhausted = _latest_task(budget_exhausted_tasks)
+    next_actions: list[str] = []
+    if active_tasks:
+        next_actions.append("glassbox task list")
+    if latest_blocked is not None:
+        next_actions.append(f"glassbox task show {latest_blocked.task_id}")
+    if latest_budget_exhausted is not None:
+        next_actions.append(
+            f"glassbox task continue {latest_budget_exhausted.task_id} --verify-repair"
+        )
+    if latest_failed is not None:
+        next_actions.append(f"glassbox task show {latest_failed.task_id}")
+
+    return TaskAutonomyObservability(
+        task_count=len(tasks),
+        active_count=len(active_tasks),
+        blocked_count=len(blocked_tasks),
+        failed_count=len(failed_tasks),
+        budget_exhausted_count=len(budget_exhausted_tasks),
+        verification_failed_count=verification_failed_count,
+        latest_blocked_task_id=(
+            str(latest_blocked.task_id) if latest_blocked is not None else None
+        ),
+        latest_failed_task_id=(
+            str(latest_failed.task_id) if latest_failed is not None else None
+        ),
+        latest_budget_exhausted_task_id=(
+            str(latest_budget_exhausted.task_id)
+            if latest_budget_exhausted is not None
+            else None
+        ),
+        next_actions=_dedupe(next_actions),
+    )
+
+
+def build_workspace_memory_observability(
+    session_repository: SessionRepository,
+) -> WorkspaceMemoryObservability:
+    entries = session_repository.list_workspace_memory(include_pruned=True)
+    counts = {state.value: 0 for state in WorkspaceMemoryState}
+    redacted_count = 0
+    invalidated_entries = []
+    for entry in entries:
+        counts[entry.state.value] = counts.get(entry.state.value, 0) + 1
+        if entry.redacted:
+            redacted_count += 1
+        if entry.state == WorkspaceMemoryState.INVALIDATED:
+            invalidated_entries.append(entry)
+
+    latest_invalidated = max(
+        invalidated_entries,
+        key=lambda entry: entry.updated_at,
+        default=None,
+    )
+    next_actions: list[str] = []
+    if counts.get("stale", 0):
+        next_actions.append("glassbox memory list --state stale")
+        next_actions.append(
+            "glassbox memory invalidate MEMORY_ID --reason 'stale memory reviewed'"
+        )
+    if counts.get("imported", 0):
+        next_actions.append("glassbox memory list --state imported")
+        next_actions.append("glassbox memory confirm MEMORY_ID")
+    if counts.get("invalidated", 0):
+        next_actions.append("glassbox memory list --state invalidated")
+        next_actions.append(
+            "glassbox memory prune MEMORY_ID --dry-run --reason 'validated cleanup'"
+        )
+
+    return WorkspaceMemoryObservability(
+        active_count=counts.get("active", 0),
+        stale_count=counts.get("stale", 0),
+        imported_count=counts.get("imported", 0),
+        invalidated_count=counts.get("invalidated", 0),
+        pruned_count=counts.get("pruned", 0),
+        redacted_count=redacted_count,
+        last_invalidated_memory_id=(
+            str(latest_invalidated.memory_id)
+            if latest_invalidated is not None
+            else None
+        ),
+        next_actions=next_actions,
+    )
+
+
+def build_repository_index_observability(
+    workspace_root: Path,
+) -> RepositoryIndexObservability:
+    path = repository_index_path(workspace_root)
+    quoted_workspace_root = shlex.quote(str(workspace_root))
+    try:
+        snapshot = load_repository_index(workspace_root)
+    except RepositoryIndexNotFoundError:
+        return RepositoryIndexObservability(
+            status="missing",
+            path=str(path),
+            entry_count=0,
+            next_actions=[f"glassbox repo index build --cwd {quoted_workspace_root}"],
+        )
+
+    next_actions: list[str] = []
+    if snapshot.status in {
+        RepositoryIndexFreshness.STALE,
+        RepositoryIndexFreshness.FAILED,
+    }:
+        next_actions.append(f"glassbox repo index status --cwd {quoted_workspace_root}")
+        next_actions.append(f"glassbox repo index build --cwd {quoted_workspace_root}")
+    elif snapshot.status == RepositoryIndexFreshness.BUILDING:
+        next_actions.append(f"glassbox repo index status --cwd {quoted_workspace_root}")
+
+    return RepositoryIndexObservability(
+        status=snapshot.status.value,
+        path=str(path),
+        entry_count=len(snapshot.entries),
+        built_at=snapshot.built_at.isoformat() if snapshot.built_at else None,
+        failure_reason=snapshot.failure_reason,
+        next_actions=next_actions,
+    )
+
+
+def build_branch_search_observability(
+    session_repository: SessionRepository,
+) -> BranchSearchObservability:
+    branch_repository = cast(BranchSearchRepository, session_repository)
+    searches = branch_repository.list_branch_searches()
+    active_searches = [
+        search
+        for search in searches
+        if search.status in {BranchSearchStatus.STARTED, BranchSearchStatus.RUNNING}
+    ]
+    completed_count = sum(
+        1 for search in searches if search.status == BranchSearchStatus.COMPLETED
+    )
+    abandoned_count = sum(
+        1 for search in searches if search.status == BranchSearchStatus.ABANDONED
+    )
+    needs_review_count = 0
+    failed_verification_count = 0
+    selected_count = 0
+    latest_needs_review_search_id: str | None = None
+    for search in searches:
+        candidates = branch_repository.list_branch_candidates(
+            search.session_id,
+            search.search_id,
+        )
+        for candidate in candidates:
+            if candidate.status.value == "needs_review":
+                needs_review_count += 1
+                latest_needs_review_search_id = str(search.search_id)
+            if candidate.verification_status in {
+                BranchCandidateVerificationStatus.FAILED,
+                BranchCandidateVerificationStatus.BLOCKED,
+                BranchCandidateVerificationStatus.TIMED_OUT,
+            }:
+                failed_verification_count += 1
+            if candidate.selection_state is not None:
+                selected_count += int(candidate.selection_state.value == "selected")
+
+    latest_search = max(searches, key=lambda search: search.updated_at, default=None)
+    next_actions: list[str] = []
+    if active_searches:
+        next_actions.append("glassbox branch-search list")
+    if latest_needs_review_search_id is not None:
+        next_actions.append(
+            f"glassbox branch-search show {latest_needs_review_search_id}"
+        )
+        next_actions.append(
+            "glassbox branch-search reject SEARCH_ID CANDIDATE_ID --reason 'cleanup'"
+        )
+    if failed_verification_count:
+        next_actions.append("glassbox branch-search list")
+
+    return BranchSearchObservability(
+        search_count=len(searches),
+        active_count=len(active_searches),
+        completed_count=completed_count,
+        abandoned_count=abandoned_count,
+        needs_review_count=needs_review_count,
+        failed_verification_count=failed_verification_count,
+        selected_count=selected_count,
+        latest_search_id=str(latest_search.search_id) if latest_search else None,
+        latest_needs_review_search_id=latest_needs_review_search_id,
+        next_actions=_dedupe(next_actions),
+    )
+
+
 def build_verification_observability(workspace_root: Path) -> VerificationObservability:
     summaries = _retained_eval_summaries(workspace_root)
     if not summaries:
@@ -427,3 +736,15 @@ def _optional_int(value: object) -> int | None:
 
 def _optional_str(value: object) -> str | None:
     return value if isinstance(value, str) else None
+
+
+def _latest_task(tasks):
+    return max(tasks, key=lambda task: task.updated_at, default=None)
+
+
+def _dedupe(values: list[str]) -> list[str]:
+    deduped: list[str] = []
+    for value in values:
+        if value not in deduped:
+            deduped.append(value)
+    return deduped

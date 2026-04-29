@@ -368,7 +368,16 @@ def load_provider_canary_evidence(
 
     latest_path = summaries[0]
     payload = _load_summary_payload(latest_path)
-    summary = ProviderCanarySummary.model_validate(payload)
+    try:
+        summary = ProviderCanarySummary.model_validate(payload)
+    except ValueError as exc:
+        return _legacy_or_invalid_provider_canary_evidence(
+            latest_path,
+            payload,
+            summary_count=len(summaries),
+            workspace_root=workspace_root,
+            error=exc,
+        )
     outcome_counts = _outcome_counts(summary.scenarios)
     latest_status = _evidence_status(outcome_counts)
     stale = _is_stale(latest_path)
@@ -394,6 +403,42 @@ def load_provider_canary_evidence(
         failed_count=outcome_counts["failed"],
         stale=stale,
         next_actions=next_actions,
+    )
+
+
+def _legacy_or_invalid_provider_canary_evidence(
+    latest_path: Path,
+    payload: dict[str, Any],
+    *,
+    summary_count: int,
+    workspace_root: Path,
+    error: ValueError,
+) -> ProviderCanaryEvidenceSummary:
+    scenarios = payload.get("scenarios")
+    scenario_count = len(scenarios) if isinstance(scenarios, list) else 0
+    matrix_payload = payload.get("capability_matrix")
+    matrix_entries = (
+        matrix_payload.get("entries") if isinstance(matrix_payload, dict) else None
+    )
+    matrix_entry_count = len(matrix_entries) if isinstance(matrix_entries, list) else 0
+    return ProviderCanaryEvidenceSummary(
+        summary_count=summary_count,
+        latest_summary_path=str(latest_path),
+        latest_generated_at=_payload_str(payload.get("generated_at")),
+        latest_status="warning",
+        provider=_payload_str(payload.get("provider")),
+        model_name=_payload_str(payload.get("model_name")),
+        diagnostics_state=_payload_str(payload.get("diagnostics_state")),
+        scenario_count=scenario_count,
+        matrix_entry_count=matrix_entry_count,
+        warning_count=1,
+        stale=True,
+        next_actions=[
+            f"inspect provider canary evidence {latest_path}",
+            f"glassbox provider canary run --cwd {workspace_root}",
+            "retained provider canary evidence is stale or incompatible: "
+            f"{type(error).__name__}",
+        ],
     )
 
 
@@ -595,3 +640,7 @@ def _evidence_status(
 def _is_stale(path: Path) -> bool:
     age_seconds = datetime.now(UTC).timestamp() - path.stat().st_mtime
     return age_seconds > _EVIDENCE_STALE_AFTER_SECONDS
+
+
+def _payload_str(value: object) -> str | None:
+    return value if isinstance(value, str) else None
