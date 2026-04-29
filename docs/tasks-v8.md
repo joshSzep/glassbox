@@ -721,7 +721,7 @@ The intended v8 milestone order is:
 
 ### GBX-843: Add Task Continuation Jobs For Awaiting-Work Sessions
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-824`, `GBX-842`, `GBX-835`
 - Goal: let the daemon continue an approved task plan while budgets allow, stopping cleanly on approval, question, policy block, budget exhaustion, failure, or cancellation
 - Deliverables:
@@ -740,6 +740,11 @@ The intended v8 milestone order is:
   - cancellation tests for running continuation jobs
   - approval/question pause tests
   - budget exhaustion tests
+- Evidence:
+  - `uv run pytest tests/integration/test_background_job_runner.py tests/integration/test_cli_task_commands.py tests/integration/test_background_jobs.py tests/integration/test_daemon_runtime.py`
+  - `uv run ruff check --fix src/glassbox/runtime/background_jobs.py src/glassbox/cli/parser_tasks.py src/glassbox/cli/task_commands.py tests/integration/test_background_job_runner.py tests/integration/test_cli_task_commands.py`
+  - `uv run ruff format src/glassbox/runtime/background_jobs.py src/glassbox/cli/parser_tasks.py src/glassbox/cli/task_commands.py tests/integration/test_background_job_runner.py tests/integration/test_cli_task_commands.py`
+  - `uv run ty check`
 - Done when:
   - Glassbox can do more local work without constant operator prompting, while still stopping at explicit durable boundaries
 

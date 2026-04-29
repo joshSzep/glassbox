@@ -83,5 +83,23 @@ def _add_task_parsers(
     )
     _add_runtime_location_arguments(events_parser)
 
+    continue_parser = task_subparsers.add_parser(
+        "continue",
+        help="enqueue a background task continuation job",
+        description="Opt in to one bounded daemon task continuation step.",
+    )
+    continue_parser.add_argument("task_id", type=_parse_uuid)
+    continue_parser.add_argument(
+        "--requested-by",
+        default="operator",
+        help="actor requesting the continuation job",
+    )
+    continue_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the queued background job as JSON",
+    )
+    _add_runtime_location_arguments(continue_parser)
+
 
 __all__ = ["_add_task_parsers"]

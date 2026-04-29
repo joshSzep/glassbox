@@ -13,6 +13,7 @@ from glassbox.core import TaskStepProposal
 from glassbox.core import new_session_id
 from glassbox.core import new_task_id
 from glassbox.core import new_task_step_id
+from glassbox.core.types import BackgroundJobKind
 from glassbox.store import SQLiteSessionRepository
 from glassbox.store import initialize_database
 from glassbox.store import open_database
@@ -99,6 +100,33 @@ def test_task_show_reports_unknown_task(tmp_path: Path, capsys) -> None:
 
     assert exit_code == 1
     assert f"unknown task_id: {task_id}" in captured.err
+
+
+def test_task_continue_queues_background_job_json(tmp_path: Path, capsys) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    task_id = new_task_id()
+    step_id = new_task_step_id()
+    _seed_task(db_path, tmp_path, session_id, task_id, step_id)
+
+    exit_code = main(
+        [
+            "task",
+            "continue",
+            str(task_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["kind"] == BackgroundJobKind.MUTATING_CONTINUATION.value
+    assert payload["job_type"] == "task-continuation-step"
+    assert payload["task_id"] == str(task_id)
 
 
 def _seed_task(

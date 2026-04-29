@@ -5,17 +5,31 @@ from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
 from pathlib import Path
+from typing import cast
 
 import pytest
 
+from glassbox.core import ApprovalRequested
+from glassbox.core import AutonomyMode
 from glassbox.core import BackgroundJobKind
 from glassbox.core import BackgroundJobState
 from glassbox.core import EventEnvelope
 from glassbox.core import SessionStarted
+from glassbox.core import TaskCreated
+from glassbox.core import TaskPlanProposed
+from glassbox.core import TaskPlanSnapshot
+from glassbox.core import TaskStepProposal
+from glassbox.core import new_approval_id
 from glassbox.core import new_session_id
+from glassbox.core import new_task_id
+from glassbox.core import new_task_step_id
+from glassbox.core import new_turn_id
+from glassbox.runtime.autonomy import default_budget_for_autonomy_mode
 from glassbox.runtime.background_jobs import run_background_job_worker_loop
 from glassbox.runtime.background_jobs import run_background_job_worker_once
+from glassbox.runtime.background_jobs import run_background_job_worker_once_async
 from glassbox.runtime.bootstrap import open_runtime_context
+from glassbox.runtime.task_queries import TaskPlanRepository
 from glassbox.store import SQLiteSessionRepository
 from glassbox.store import initialize_database
 from glassbox.store import open_database
@@ -186,6 +200,152 @@ def test_worker_loop_stops_cleanly(tmp_path: Path) -> None:
     asyncio.run(run_loop())
 
 
+def test_async_worker_runs_one_task_continuation_step(tmp_path: Path) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    task_id = new_task_id()
+    step_id = new_task_step_id()
+    _seed_task(
+        db_path,
+        tmp_path,
+        session_id,
+        task_id,
+        step_id,
+        autonomy_mode=AutonomyMode.TEST_DRIVEN,
+    )
+
+    async def run_once() -> None:
+        with open_runtime_context(tmp_path, db_path=db_path) as runtime_context:
+            repository = runtime_context.repositories.sessions
+            job = repository.enqueue_background_job(
+                session_id,
+                kind=BackgroundJobKind.MUTATING_CONTINUATION,
+                job_type="task-continuation-step",
+                title="Continue task",
+                payload={"task_id": str(task_id)},
+                task_id=task_id,
+            )
+            tick = await run_background_job_worker_once_async(
+                runtime_context,
+                worker_id="test-worker",
+            )
+            updated_job = repository.get_background_job(job.job_id)
+            task_repository = cast(TaskPlanRepository, repository)
+            steps = task_repository.list_task_steps(session_id, task_id)
+            task = task_repository.get_task(task_id)
+            messages = repository.list_transcript_messages(session_id)
+
+        assert tick.claimed_count == 1
+        assert tick.completed_count == 1
+        assert updated_job is not None
+        assert updated_job.state == BackgroundJobState.COMPLETED
+        assert task is not None
+        assert task.status.value == "completed"
+        assert steps[0].status.value == "completed"
+        assert any(
+            "Continue task" in part.text
+            for message in messages
+            for part in message.parts
+        )
+
+    asyncio.run(run_once())
+
+
+def test_async_worker_pauses_continuation_without_explicit_budget(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    task_id = new_task_id()
+    step_id = new_task_step_id()
+    _seed_task(db_path, tmp_path, session_id, task_id, step_id)
+
+    async def run_once() -> None:
+        with open_runtime_context(tmp_path, db_path=db_path) as runtime_context:
+            repository = runtime_context.repositories.sessions
+            job = repository.enqueue_background_job(
+                session_id,
+                kind=BackgroundJobKind.MUTATING_CONTINUATION,
+                job_type="task-continuation-step",
+                title="Continue task",
+                task_id=task_id,
+            )
+            await run_background_job_worker_once_async(
+                runtime_context,
+                worker_id="test-worker",
+            )
+            updated_job = repository.get_background_job(job.job_id)
+            task = cast(TaskPlanRepository, repository).get_task(task_id)
+
+        assert updated_job is not None
+        assert updated_job.state == BackgroundJobState.COMPLETED
+        assert task is not None
+        assert task.status.value == "paused"
+        assert task.blocked_reason is not None
+        assert task.blocked_reason.value == "budget_exhausted"
+
+    asyncio.run(run_once())
+
+
+def test_async_worker_pauses_continuation_for_pending_approval(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    task_id = new_task_id()
+    step_id = new_task_step_id()
+    _seed_task(
+        db_path,
+        tmp_path,
+        session_id,
+        task_id,
+        step_id,
+        autonomy_mode=AutonomyMode.TEST_DRIVEN,
+    )
+    connection = open_database(db_path)
+    try:
+        SQLiteSessionRepository(connection).append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=ApprovalRequested(
+                    approval_id=new_approval_id(),
+                    turn_id=new_turn_id(),
+                    reason="needs approval",
+                    subject="tool call",
+                ),
+            )
+        )
+    finally:
+        connection.close()
+
+    async def run_once() -> None:
+        with open_runtime_context(tmp_path, db_path=db_path) as runtime_context:
+            repository = runtime_context.repositories.sessions
+            job = repository.enqueue_background_job(
+                session_id,
+                kind=BackgroundJobKind.MUTATING_CONTINUATION,
+                job_type="task-continuation-step",
+                title="Continue task",
+                task_id=task_id,
+            )
+            await run_background_job_worker_once_async(
+                runtime_context,
+                worker_id="test-worker",
+            )
+            updated_job = repository.get_background_job(job.job_id)
+            task = cast(TaskPlanRepository, repository).get_task(task_id)
+
+        assert updated_job is not None
+        assert updated_job.state == BackgroundJobState.COMPLETED
+        assert task is not None
+        assert task.status.value == "paused"
+        assert task.blocked_reason is not None
+        assert task.blocked_reason.value == "awaiting_approval"
+
+    asyncio.run(run_once())
+
+
 def _seed_session(db_path: Path, workspace_root: Path, session_id) -> None:
     connection = open_database(db_path)
     try:
@@ -201,6 +361,72 @@ def _seed_session(db_path: Path, workspace_root: Path, session_id) -> None:
                     approval_mode="confirm",
                 ),
             )
+        )
+    finally:
+        connection.close()
+
+
+def _seed_task(
+    db_path: Path,
+    workspace_root: Path,
+    session_id,
+    task_id,
+    step_id,
+    *,
+    autonomy_mode: AutonomyMode = AutonomyMode.MANUAL,
+) -> None:
+    connection = open_database(db_path)
+    try:
+        initialize_database(connection)
+        repository = SQLiteSessionRepository(connection)
+        budget = None
+        budget_preset = None
+        if autonomy_mode != AutonomyMode.MANUAL:
+            budget = default_budget_for_autonomy_mode(autonomy_mode)
+            budget_preset = autonomy_mode.value
+        repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=SessionStarted(
+                        cwd=str(workspace_root),
+                        model_name="openai:gpt-5.4",
+                        approval_mode="confirm",
+                        autonomy_mode=autonomy_mode,
+                        autonomy_budget=budget,
+                        autonomy_budget_preset=budget_preset,
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskCreated(
+                        task_id=task_id,
+                        title="Continue task",
+                        goal="Exercise one background continuation step",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskPlanProposed(
+                        task_id=task_id,
+                        plan=TaskPlanSnapshot(
+                            task_id=task_id,
+                            title="Continue task",
+                            goal="Exercise one background continuation step",
+                            steps=[
+                                TaskStepProposal(
+                                    step_id=step_id,
+                                    title="Run one bounded step",
+                                    order=0,
+                                )
+                            ],
+                        ),
+                    ),
+                ),
+            ]
         )
     finally:
         connection.close()

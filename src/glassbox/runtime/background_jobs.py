@@ -7,6 +7,8 @@ from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
 from pathlib import Path
+from typing import cast
+from uuid import UUID
 from uuid import uuid4
 
 from glassbox.core.events import BackgroundJobCancelled
@@ -14,13 +16,27 @@ from glassbox.core.events import BackgroundJobFailed
 from glassbox.core.events import BackgroundJobProgressRecorded
 from glassbox.core.events import BackgroundJobRecoveryRecorded
 from glassbox.core.events import EventEnvelope
+from glassbox.core.events import SessionStarted
+from glassbox.core.events import TaskPaused
+from glassbox.core.events import TaskStatusChanged
+from glassbox.core.events import TaskStepCompleted
+from glassbox.core.events import TaskStepStarted
+from glassbox.core.ids import TaskId
 from glassbox.core.models import BackgroundJobRecord
+from glassbox.core.models import TaskRecord
+from glassbox.core.models import TaskStepRecord
+from glassbox.core.types import AutonomyMode
 from glassbox.core.types import BackgroundJobFailureKind
 from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import BackgroundJobRecoveryReason
 from glassbox.core.types import BackgroundJobState
+from glassbox.core.types import SessionStatus
+from glassbox.core.types import TaskBlockedReason
+from glassbox.core.types import TaskPlanStatus
+from glassbox.core.types import TaskStepStatus
 from glassbox.runtime.context import RuntimeContext
 from glassbox.runtime.provider_canary import load_provider_canary_evidence
+from glassbox.runtime.task_queries import TaskPlanRepository
 from glassbox.store.artifact_retention import inspect_artifact_state
 
 _READ_ONLY_KINDS = {
@@ -55,7 +71,7 @@ async def run_background_job_worker_loop(
     """Run the daemon background job worker until the owner is stopped."""
 
     while not stop_event.is_set():
-        run_background_job_worker_once(
+        await run_background_job_worker_once_async(
             runtime_context,
             worker_id=worker_id,
             lease_seconds=lease_seconds,
@@ -124,6 +140,69 @@ def run_background_job_worker_once(
         failed_count=failed_count,
         cancelled_count=cancelled_count,
         recovered_stale_count=recovered_stale_count,
+    )
+
+
+async def run_background_job_worker_once_async(
+    runtime_context: RuntimeContext,
+    *,
+    worker_id: str,
+    lease_seconds: int = 60,
+    now: datetime | None = None,
+) -> BackgroundJobWorkerTick:
+    """Run one daemon worker pass, including mutating continuation jobs."""
+
+    tick = run_background_job_worker_once(
+        runtime_context,
+        worker_id=worker_id,
+        lease_seconds=lease_seconds,
+        now=now,
+    )
+    current_time = now or datetime.now(UTC)
+    repository = runtime_context.repositories.sessions
+    lease_expires_at = current_time + timedelta(seconds=lease_seconds)
+    claimed_count = 0
+    completed_count = 0
+    failed_count = 0
+    for job in repository.list_background_jobs(state=BackgroundJobState.QUEUED):
+        if job.kind != BackgroundJobKind.MUTATING_CONTINUATION:
+            continue
+        claim_token = uuid4().hex
+        try:
+            claimed = repository.claim_background_job(
+                job.job_id,
+                worker_id=worker_id,
+                claim_token=claim_token,
+                lease_expires_at=lease_expires_at,
+                now=current_time,
+            )
+        except ValueError:
+            continue
+        claimed_count += 1
+        try:
+            repository.heartbeat_background_job(
+                claimed.job_id,
+                worker_id=worker_id,
+                claim_token=claim_token,
+                lease_expires_at=lease_expires_at,
+                message="task continuation job runner started",
+            )
+            await _run_task_continuation_job(
+                runtime_context,
+                claimed,
+                worker_id=worker_id,
+            )
+            completed_count += 1
+        except Exception as exc:
+            _fail_job(runtime_context, claimed, exc)
+            failed_count += 1
+
+    return BackgroundJobWorkerTick(
+        claimed_count=tick.claimed_count + claimed_count,
+        completed_count=tick.completed_count + completed_count,
+        failed_count=tick.failed_count + failed_count,
+        cancelled_count=tick.cancelled_count,
+        recovered_stale_count=tick.recovered_stale_count,
     )
 
 
@@ -213,6 +292,242 @@ def _run_read_only_job(
         )
         return
     raise ValueError(f"unsupported read-only background job type: {job.job_type}")
+
+
+async def _run_task_continuation_job(
+    runtime_context: RuntimeContext,
+    job: BackgroundJobRecord,
+    *,
+    worker_id: str,
+) -> None:
+    if job.job_type != "task-continuation-step":
+        raise ValueError(f"unsupported task continuation job type: {job.job_type}")
+
+    repository = runtime_context.repositories.sessions
+    task_repository = cast(TaskPlanRepository, repository)
+    task_id = _task_id_for_job(job)
+    task = task_repository.get_task(task_id)
+    if task is None:
+        raise ValueError(f"unknown task_id for continuation job: {task_id}")
+    if task.session_id != job.session_id:
+        raise ValueError("task continuation job session_id does not match task")
+
+    pause_reason = _blocked_reason_for_session(runtime_context, task)
+    if pause_reason is not None:
+        _pause_task(runtime_context, task, pause_reason)
+        repository.complete_background_job(
+            job.job_id,
+            summary=f"Task continuation paused: {pause_reason.value}.",
+        )
+        return
+
+    if not _session_has_explicit_autonomy_budget(repository, task.session_id):
+        _pause_task(
+            runtime_context,
+            task,
+            TaskBlockedReason.BUDGET_EXHAUSTED,
+            detail=(
+                "Background task continuation requires an explicit autonomy mode "
+                "and budget."
+            ),
+        )
+        repository.complete_background_job(
+            job.job_id,
+            summary="Task continuation paused until autonomy budget is explicit.",
+        )
+        return
+
+    if task.status in {
+        TaskPlanStatus.COMPLETED,
+        TaskPlanStatus.CANCELLED,
+        TaskPlanStatus.ABANDONED,
+        TaskPlanStatus.FAILED,
+    }:
+        repository.complete_background_job(
+            job.job_id,
+            summary=f"Task continuation skipped because task is {task.status.value}.",
+        )
+        return
+
+    next_step = _next_pending_step(runtime_context, task)
+    if next_step is None:
+        _change_task_status(
+            runtime_context,
+            task,
+            TaskPlanStatus.COMPLETED,
+            reason="all task steps are complete",
+        )
+        repository.complete_background_job(
+            job.job_id,
+            summary="Task continuation completed all pending steps.",
+        )
+        return
+
+    _record_progress(
+        runtime_context,
+        job,
+        f"continuing task step {next_step.order}: {next_step.title}",
+    )
+    repository.append_event(
+        EventEnvelope(
+            session_id=task.session_id,
+            sequence=0,
+            payload=TaskStepStarted(task_id=task.task_id, step_id=next_step.step_id),
+        )
+    )
+    await runtime_context.services.session_service.submit_user_message(
+        task.session_id,
+        _continuation_prompt(task, next_step),
+    )
+
+    pause_reason = _blocked_reason_for_session(runtime_context, task)
+    if pause_reason is not None:
+        _pause_task(runtime_context, task, pause_reason)
+        repository.complete_background_job(
+            job.job_id,
+            summary=f"Task continuation stopped at {pause_reason.value}.",
+        )
+        return
+
+    repository.append_event(
+        EventEnvelope(
+            session_id=task.session_id,
+            sequence=0,
+            payload=TaskStepCompleted(
+                task_id=task.task_id,
+                step_id=next_step.step_id,
+                summary="Completed one bounded background continuation turn.",
+            ),
+        )
+    )
+
+    remaining_steps = [
+        step
+        for step in task_repository.list_task_steps(task.session_id, task.task_id)
+        if step.step_id != next_step.step_id and step.status == TaskStepStatus.PENDING
+    ]
+    if not remaining_steps:
+        _change_task_status(
+            runtime_context,
+            task,
+            TaskPlanStatus.COMPLETED,
+            reason="all task steps are complete",
+        )
+    repository.complete_background_job(
+        job.job_id,
+        summary=(
+            f"Task continuation completed step {next_step.order}: {next_step.title}."
+        ),
+    )
+
+
+def _task_id_for_job(job: BackgroundJobRecord) -> TaskId:
+    if job.task_id is not None:
+        return job.task_id
+    value = job.payload.get("task_id")
+    if isinstance(value, str):
+        return UUID(value)
+    raise ValueError("task continuation job payload must include task_id")
+
+
+def _blocked_reason_for_session(
+    runtime_context: RuntimeContext,
+    task: TaskRecord,
+) -> TaskBlockedReason | None:
+    state = runtime_context.repositories.sessions.get_session_state(task.session_id)
+    if state is None:
+        return TaskBlockedReason.UNKNOWN
+    if state.status == SessionStatus.AWAITING_APPROVAL:
+        return TaskBlockedReason.AWAITING_APPROVAL
+    if state.status == SessionStatus.AWAITING_USER_INPUT:
+        return TaskBlockedReason.AWAITING_USER_INPUT
+    if state.status == SessionStatus.FAILED:
+        return TaskBlockedReason.PROVIDER_UNAVAILABLE
+    if state.status == SessionStatus.CANCELLED:
+        return TaskBlockedReason.CANCELLED
+    return None
+
+
+def _session_has_explicit_autonomy_budget(repository, session_id) -> bool:
+    for event in repository.read_session_events(session_id):
+        payload = event.payload
+        if not isinstance(payload, SessionStarted):
+            continue
+        if payload.autonomy_mode in (None, AutonomyMode.MANUAL):
+            return False
+        return payload.autonomy_budget is not None or payload.autonomy_budget_preset
+    return False
+
+
+def _next_pending_step(
+    runtime_context: RuntimeContext,
+    task: TaskRecord,
+) -> TaskStepRecord | None:
+    pending_steps = [
+        step
+        for step in cast(
+            TaskPlanRepository,
+            runtime_context.repositories.sessions,
+        ).list_task_steps(
+            task.session_id,
+            task.task_id,
+        )
+        if step.status == TaskStepStatus.PENDING
+    ]
+    if not pending_steps:
+        return None
+    return sorted(pending_steps, key=lambda step: step.order)[0]
+
+
+def _pause_task(
+    runtime_context: RuntimeContext,
+    task: TaskRecord,
+    reason: TaskBlockedReason,
+    *,
+    detail: str | None = None,
+) -> None:
+    runtime_context.repositories.sessions.append_event(
+        EventEnvelope(
+            session_id=task.session_id,
+            sequence=0,
+            payload=TaskPaused(
+                task_id=task.task_id,
+                reason=reason,
+                detail=detail or f"Task continuation stopped at {reason.value}.",
+            ),
+        )
+    )
+
+
+def _change_task_status(
+    runtime_context: RuntimeContext,
+    task: TaskRecord,
+    status: TaskPlanStatus,
+    *,
+    reason: str,
+) -> None:
+    runtime_context.repositories.sessions.append_event(
+        EventEnvelope(
+            session_id=task.session_id,
+            sequence=0,
+            payload=TaskStatusChanged(
+                task_id=task.task_id,
+                status=status,
+                reason=reason,
+            ),
+        )
+    )
+
+
+def _continuation_prompt(task: TaskRecord, step: TaskStepRecord) -> str:
+    detail = f"\nStep detail: {step.description}" if step.description else ""
+    return (
+        f"Continue task '{task.title}' with one bounded background step.\n"
+        f"Goal: {task.goal}\n"
+        f"Step {step.order}: {step.title}{detail}\n"
+        "Stop after this step if approval, user input, policy, budget, or "
+        "verification blocks further progress."
+    )
 
 
 def _run_projection_health_refresh(
@@ -321,4 +636,5 @@ __all__ = [
     "BackgroundJobWorkerTick",
     "run_background_job_worker_loop",
     "run_background_job_worker_once",
+    "run_background_job_worker_once_async",
 ]

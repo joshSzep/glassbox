@@ -127,6 +127,24 @@ Troubleshooting commands:
 	details.
 - `glassbox daemon stop` cleanly stops the worker together with the runtime owner.
 
+## Task Continuation Jobs
+
+Task continuation jobs are explicit opt-in mutating jobs scheduled with
+`glassbox task continue TASK_ID`. The scheduler enqueues a
+`mutating_continuation` job of type `task-continuation-step` and records the
+task id both in the typed job field and payload for portability.
+
+The daemon executes at most one pending task step per job. It records
+`TaskStepStarted`, submits one bounded continuation prompt through the normal
+session service and turn engine, then records `TaskStepCompleted` and completes
+the task when no pending steps remain. Continuation stops cleanly and records a
+`TaskPaused` boundary when the session is awaiting approval, awaiting user input,
+cancelled, failed, or lacks an explicit non-manual autonomy budget.
+
+Continuation jobs do not bypass policy, approval, user-question, or budget
+contracts. They use the same foreground session service path as operator-submitted
+messages, so pending approvals and questions remain durable stop conditions.
+
 ## Test Matrix
 
 GBX-841 and later execution tasks should cover:

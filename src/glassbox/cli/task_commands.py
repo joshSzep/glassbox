@@ -5,6 +5,7 @@ from typing import cast
 
 from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
+from glassbox.core.types import BackgroundJobKind
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.task_queries import TaskDetailView
 from glassbox.runtime.task_queries import TaskEventView
@@ -21,6 +22,8 @@ def _task_command(args: argparse.Namespace) -> int:
         return _task_show_command(args)
     if task_command == "events":
         return _task_events_command(args)
+    if task_command == "continue":
+        return _task_continue_command(args)
     raise ValueError("specify a task subcommand")
 
 
@@ -80,6 +83,30 @@ def _task_events_command(args: argparse.Namespace) -> int:
         print_json_output([event.model_dump(mode="json") for event in events])
     else:
         _print_task_events(events)
+    return 0
+
+
+def _task_continue_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        repository = cast(TaskPlanRepository, runtime_context.repositories.sessions)
+        task = repository.get_task(args.task_id)
+        if task is None:
+            raise ValueError(f"unknown task_id: {args.task_id}")
+        job = runtime_context.repositories.sessions.enqueue_background_job(
+            task.session_id,
+            kind=BackgroundJobKind.MUTATING_CONTINUATION,
+            job_type="task-continuation-step",
+            title=f"Continue task: {task.title}",
+            requested_by=args.requested_by,
+            payload={"task_id": str(task.task_id)},
+            task_id=task.task_id,
+        )
+
+    if args.json:
+        print_json_output(job.model_dump(mode="json"))
+    else:
+        print(f"Queued continuation job {job.job_id} for task {task.task_id}")
     return 0
 
 
