@@ -225,6 +225,20 @@ PYTHON_FACADE_RULES: tuple[
             "to split replay modules"
         ),
     ),
+    (
+        SRC_ROOT / "cli" / "tui" / "conversation.py",
+        (
+            "glassbox.cli.tui.conversation_hydration",
+            "glassbox.cli.tui.conversation_models",
+            "glassbox.cli.tui.conversation_reducer",
+            "glassbox.cli.tui.conversation_selectors",
+        ),
+        80,
+        (
+            "TUI conversation facade should delegate state, hydration, "
+            "reducers, and selectors"
+        ),
+    ),
 )
 
 FRONTEND_FACADE_RULES: tuple[tuple[Path, int, str], ...] = (

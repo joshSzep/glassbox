@@ -282,9 +282,11 @@ The `cli` package should not build its own parallel session-query logic when the
 
 #### Post-v8 TUI Sub-Boundaries
 
-- `cli/tui/conversation.py` should split into terminal state models, event
-  reducers, selectors, and small text/path formatting helpers while preserving
-  the current event-driven state contract consumed by the TUI app and widgets
+- the TUI conversation split now keeps `cli/tui/conversation.py` as a
+  compatibility facade, with state models in `conversation_models.py`, snapshot
+  hydration in `conversation_hydration.py`, canonical event reduction in
+  `conversation_reducer.py`, and display/action derivation in
+  `conversation_selectors.py`
 - TUI reducers may depend on core event/model types and CLI-local snapshot
   models, but should not import raw store helpers, runtime workers, HTTP
   routes, or frontend modules

@@ -493,7 +493,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R230: Split TUI Conversation Models From Event Reducers
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R200`
 - Goal: reduce
   [conversation.py](../src/glassbox/cli/tui/conversation.py) by separating
@@ -510,6 +510,9 @@ Each phase below corresponds to one concrete refactor milestone.
   - keep reducer functions pure
   - preserve current terminal state shapes unless a task explicitly changes them
   - avoid importing Textual widget code into reducer or selector modules
+  - completed split keeps `conversation.py` as a compatibility facade over
+    `conversation_models.py`, `conversation_hydration.py`,
+    `conversation_reducer.py`, and `conversation_selectors.py`
 - Tests and validation included in task:
   - `uv run pytest tests/unit/test_cli_tui_conversation.py`
   - `uv run pytest tests/unit/test_cli_tui_workflows.py`
