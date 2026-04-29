@@ -168,6 +168,12 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   aggregation facade while domain collectors own runtime transport,
   projection, artifact, verification, background job, task autonomy, workspace
   memory, repository index, branch search, and provider-canary posture reads
+- the observability split now keeps
+  `src/glassbox/runtime/observability.py` as the aggregation and compatibility
+  facade, with shared report models in `observability_models.py` and read-only
+  domain collectors in focused `observability_*` modules for runtime/event
+  transport, projections, artifacts, verification, background jobs, task
+  autonomy, workspace memory, repository index, and branch search
 - observability collectors must stay read-only and should not depend on CLI
   formatting, HTTP response models, frontend state, or background job repair
   actions

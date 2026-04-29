@@ -359,7 +359,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R212: Split Observability Collectors From Report Aggregation
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R200`
 - Goal: reduce [observability.py](../src/glassbox/runtime/observability.py) by
   extracting domain collectors while preserving the public workspace report
@@ -381,6 +381,16 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - observability report assembly is still one coherent public API, but each
     health domain has a small owned collector
+- Completed:
+  - `observability.py` now aggregates and re-exports the stable public report
+    API
+  - shared report models live in `runtime/observability_models.py`
+  - runtime/event transport, projection, artifact, background-job, task
+    autonomy, workspace-memory, repository-index, branch-search, and
+    verification collectors live in focused `runtime/observability_*`
+    modules
+  - provider canary evidence remains loaded through the existing provider
+    canary read model and is included by the aggregation facade
 
 ### GBX-R213: Split Repository Index Builder Into Discovery, Extraction, And Search Modules
 
