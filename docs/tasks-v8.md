@@ -818,7 +818,7 @@ The intended v8 milestone order is:
 
 ### GBX-850: Define Workspace Memory Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-811`, `GBX-830`
 - Goal: add durable local workspace memory without introducing hidden long-term autonomous memory or opaque retrieval
 - Deliverables:
@@ -835,6 +835,13 @@ The intended v8 milestone order is:
 - Tests and validation included in task:
   - model validation tests
   - docs review against [runtime-context.md](./runtime-context.md), [team-workflows.md](./team-workflows.md), and session export behavior
+- Completed vertical slice:
+  - added workspace memory identifiers, entry categories, states, and provenance source types
+  - added core `WorkspaceMemoryEntry` and `WorkspaceMemoryProvenance` models with source-link validation
+  - added canonical memory events for create, confirm, update, invalidate, import, context use, and prune
+  - documented the local workspace memory contract, non-goals, privacy/redaction, replay, export/import, and pruning posture in [workspace-memory.md](./workspace-memory.md)
+- Validation:
+  - `uv run ruff format src/glassbox/core tests/unit/test_core_models.py tests/unit/test_core_events.py && uv run ruff check src/glassbox/core tests/unit/test_core_models.py tests/unit/test_core_events.py && uv run ty check && uv run pytest tests/unit/test_core_models.py tests/unit/test_core_events.py`
 - Done when:
   - Glassbox has a safe vocabulary for remembering local facts without creating invisible prompt magic
 

@@ -27,7 +27,13 @@ from glassbox.core import TaskVerificationStatus
 from glassbox.core import ToolCallRecord
 from glassbox.core import ToolExecutionStatus
 from glassbox.core import TranscriptMessage
+from glassbox.core import WorkspaceMemoryEntry
+from glassbox.core import WorkspaceMemoryKind
+from glassbox.core import WorkspaceMemoryProvenance
+from glassbox.core import WorkspaceMemorySourceType
+from glassbox.core import WorkspaceMemoryState
 from glassbox.core import new_approval_id
+from glassbox.core import new_artifact_id
 from glassbox.core import new_message_id
 from glassbox.core import new_session_id
 from glassbox.core import new_task_id
@@ -35,6 +41,7 @@ from glassbox.core import new_task_step_id
 from glassbox.core import new_task_verification_id
 from glassbox.core import new_tool_call_id
 from glassbox.core import new_turn_id
+from glassbox.core import new_workspace_memory_id
 
 
 def test_session_config_round_trip() -> None:
@@ -127,6 +134,65 @@ def test_transcript_message_round_trip() -> None:
     restored = TranscriptMessage.model_validate(message.model_dump(mode="python"))
 
     assert restored == message
+
+
+def test_workspace_memory_entry_validates_provenance_and_state() -> None:
+    session_id = new_session_id()
+    memory = WorkspaceMemoryEntry(
+        memory_id=new_workspace_memory_id(),
+        kind=WorkspaceMemoryKind.CONVENTION,
+        state=WorkspaceMemoryState.ACTIVE,
+        content="Use uv run pytest for backend validation.",
+        summary="backend tests use uv",
+        provenance=WorkspaceMemoryProvenance(
+            source_type=WorkspaceMemorySourceType.SESSION_EVENT,
+            session_id=session_id,
+            source_sequence=4,
+            source_label="operator confirmed note",
+        ),
+        created_at=datetime(2026, 4, 29, tzinfo=UTC),
+        updated_at=datetime(2026, 4, 29, tzinfo=UTC),
+        tags=["testing", "commands"],
+    )
+
+    restored = WorkspaceMemoryEntry.model_validate(memory.model_dump(mode="python"))
+
+    assert restored == memory
+    assert restored.provenance.session_id == session_id
+
+
+def test_workspace_memory_provenance_requires_source_links() -> None:
+    with pytest.raises(ValidationError):
+        WorkspaceMemoryProvenance(
+            source_type=WorkspaceMemorySourceType.SESSION_EVENT,
+            session_id=new_session_id(),
+        )
+
+    with pytest.raises(ValidationError):
+        WorkspaceMemoryProvenance(source_type=WorkspaceMemorySourceType.ARTIFACT)
+
+    provenance = WorkspaceMemoryProvenance(
+        source_type=WorkspaceMemorySourceType.ARTIFACT,
+        artifact_id=new_artifact_id(),
+    )
+
+    assert provenance.source_type == WorkspaceMemorySourceType.ARTIFACT
+
+
+def test_invalidated_workspace_memory_requires_reason() -> None:
+    with pytest.raises(ValidationError):
+        WorkspaceMemoryEntry(
+            memory_id=new_workspace_memory_id(),
+            kind=WorkspaceMemoryKind.FACT,
+            state=WorkspaceMemoryState.INVALIDATED,
+            content="Old command no longer works.",
+            provenance=WorkspaceMemoryProvenance(
+                source_type=WorkspaceMemorySourceType.OPERATOR,
+                source_label="manual note",
+            ),
+            created_at=datetime(2026, 4, 29, tzinfo=UTC),
+            updated_at=datetime(2026, 4, 29, tzinfo=UTC),
+        )
 
 
 def test_resolved_fork_point_round_trip() -> None:

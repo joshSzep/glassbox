@@ -53,6 +53,17 @@ from glassbox.core import TurnCancelled
 from glassbox.core import TurnStatus
 from glassbox.core import TurnStatusChanged
 from glassbox.core import UserMessageReceived
+from glassbox.core import WorkspaceMemoryConfirmed
+from glassbox.core import WorkspaceMemoryCreated
+from glassbox.core import WorkspaceMemoryImported
+from glassbox.core import WorkspaceMemoryInvalidated
+from glassbox.core import WorkspaceMemoryKind
+from glassbox.core import WorkspaceMemoryProvenance
+from glassbox.core import WorkspaceMemoryPruned
+from glassbox.core import WorkspaceMemorySourceType
+from glassbox.core import WorkspaceMemoryState
+from glassbox.core import WorkspaceMemoryUpdated
+from glassbox.core import WorkspaceMemoryUsedInContext
 from glassbox.core import new_approval_id
 from glassbox.core import new_background_job_id
 from glassbox.core import new_message_id
@@ -62,6 +73,7 @@ from glassbox.core import new_task_step_id
 from glassbox.core import new_task_verification_id
 from glassbox.core import new_tool_call_id
 from glassbox.core import new_turn_id
+from glassbox.core import new_workspace_memory_id
 
 
 def test_event_envelope_round_trip() -> None:
@@ -405,6 +417,111 @@ def test_background_job_envelope_exposes_job_id() -> None:
 
     assert envelope.event_type == "BackgroundJobCreated"
     assert envelope.job_id == job_id
+
+
+def test_workspace_memory_payloads_round_trip_through_event_union() -> None:
+    adapter = TypeAdapter(EventPayloadType)
+    memory_id = new_workspace_memory_id()
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    provenance = {
+        "source_type": "session_event",
+        "session_id": str(session_id),
+        "source_sequence": 9,
+        "source_label": "operator note",
+    }
+
+    created = adapter.validate_python(
+        {
+            "event_type": "WorkspaceMemoryCreated",
+            "memory_id": memory_id,
+            "kind": "command",
+            "content": "Use uv run pytest for backend validation.",
+            "summary": "backend validation command",
+            "provenance": provenance,
+            "tags": ["testing"],
+        }
+    )
+    confirmed = adapter.validate_python(
+        {
+            "event_type": "WorkspaceMemoryConfirmed",
+            "memory_id": memory_id,
+            "confirmed_by": "operator",
+        }
+    )
+    updated = adapter.validate_python(
+        {
+            "event_type": "WorkspaceMemoryUpdated",
+            "memory_id": memory_id,
+            "content": "Use uv run pytest tests/unit/test_core_events.py.",
+            "reason": "narrower command",
+        }
+    )
+    invalidated = adapter.validate_python(
+        {
+            "event_type": "WorkspaceMemoryInvalidated",
+            "memory_id": memory_id,
+            "reason": "command changed",
+        }
+    )
+    imported = adapter.validate_python(
+        {
+            "event_type": "WorkspaceMemoryImported",
+            "memory_id": new_workspace_memory_id(),
+            "kind": "fact",
+            "content": "Imported memory is redacted by default.",
+            "provenance": {"source_type": "import", "source_label": "bundle"},
+            "import_source": "portable-session-export",
+        }
+    )
+    used = adapter.validate_python(
+        {
+            "event_type": "WorkspaceMemoryUsedInContext",
+            "memory_id": memory_id,
+            "turn_id": turn_id,
+            "prompt_section": "workspace_memory",
+            "reason": "matches backend test request",
+        }
+    )
+    pruned = adapter.validate_python(
+        {
+            "event_type": "WorkspaceMemoryPruned",
+            "memory_id": memory_id,
+            "reason": "superseded",
+        }
+    )
+
+    assert isinstance(created, WorkspaceMemoryCreated)
+    assert created.kind == WorkspaceMemoryKind.COMMAND
+    assert isinstance(created.provenance, WorkspaceMemoryProvenance)
+    assert created.provenance.source_type == WorkspaceMemorySourceType.SESSION_EVENT
+    assert isinstance(confirmed, WorkspaceMemoryConfirmed)
+    assert isinstance(updated, WorkspaceMemoryUpdated)
+    assert isinstance(invalidated, WorkspaceMemoryInvalidated)
+    assert isinstance(imported, WorkspaceMemoryImported)
+    assert isinstance(used, WorkspaceMemoryUsedInContext)
+    assert used.state_at_use == WorkspaceMemoryState.ACTIVE
+    assert isinstance(pruned, WorkspaceMemoryPruned)
+
+
+def test_workspace_memory_envelope_exposes_memory_id() -> None:
+    memory_id = new_workspace_memory_id()
+    envelope = EventEnvelope(
+        session_id=new_session_id(),
+        sequence=4,
+        payload=WorkspaceMemoryCreated(
+            memory_id=memory_id,
+            kind=WorkspaceMemoryKind.FACT,
+            content="Glassbox memory is workspace scoped.",
+            provenance=WorkspaceMemoryProvenance(
+                source_type=WorkspaceMemorySourceType.OPERATOR,
+                source_label="manual note",
+            ),
+        ),
+    )
+
+    assert envelope.event_type == "WorkspaceMemoryCreated"
+    assert envelope.memory_id == memory_id
 
 
 def test_background_job_created_rejects_unknown_kind() -> None:

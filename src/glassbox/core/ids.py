@@ -16,6 +16,7 @@ type TaskStepId = UUID
 type TaskVerificationId = UUID
 type BudgetOverrideId = UUID
 type BackgroundJobId = UUID
+type WorkspaceMemoryId = UUID
 
 
 def new_session_id() -> SessionId:
@@ -80,4 +81,9 @@ def new_budget_override_id() -> BudgetOverrideId:
 
 def new_background_job_id() -> BackgroundJobId:
     """Create a new background job identifier."""
+    return uuid4()
+
+
+def new_workspace_memory_id() -> WorkspaceMemoryId:
+    """Create a new workspace memory identifier."""
     return uuid4()

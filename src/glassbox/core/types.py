@@ -185,3 +185,37 @@ class BackgroundJobFailureKind(StrEnum):
     STORAGE_ERROR = "storage_error"
     TOOL_ERROR = "tool_error"
     UNKNOWN = "unknown"
+
+
+class WorkspaceMemoryKind(StrEnum):
+    """Operator-facing categories for durable workspace memory."""
+
+    FACT = "fact"
+    CONVENTION = "convention"
+    COMMAND = "command"
+    FAILURE_PATTERN = "failure_pattern"
+    ARCHITECTURE_NOTE = "architecture_note"
+    USER_PREFERENCE = "user_preference"
+    TASK_OUTCOME = "task_outcome"
+
+
+class WorkspaceMemoryState(StrEnum):
+    """Lifecycle states for workspace-scoped memory entries."""
+
+    ACTIVE = "active"
+    STALE = "stale"
+    INVALIDATED = "invalidated"
+    IMPORTED = "imported"
+    PRUNED = "pruned"
+
+
+class WorkspaceMemorySourceType(StrEnum):
+    """Inspectable source classes for workspace memory provenance."""
+
+    OPERATOR = "operator"
+    SESSION_EVENT = "session_event"
+    TASK = "task"
+    ARTIFACT = "artifact"
+    TOOL_RESULT = "tool_result"
+    RUNTIME_NOTE = "runtime_note"
+    IMPORT = "import"

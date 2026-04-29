@@ -21,6 +21,7 @@ from glassbox.core.ids import TaskStepId
 from glassbox.core.ids import TaskVerificationId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
+from glassbox.core.ids import WorkspaceMemoryId
 from glassbox.core.types import ApprovalMode
 from glassbox.core.types import ApprovalStatus
 from glassbox.core.types import AutonomyEscalationReason
@@ -35,6 +36,9 @@ from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskStepStatus
 from glassbox.core.types import TaskVerificationStatus
 from glassbox.core.types import ToolExecutionStatus
+from glassbox.core.types import WorkspaceMemoryKind
+from glassbox.core.types import WorkspaceMemorySourceType
+from glassbox.core.types import WorkspaceMemoryState
 
 MessagePartKind = Literal["text", "tool_result", "reasoning_summary"]
 MessageRole = Literal["user", "assistant", "system"]
@@ -276,6 +280,79 @@ class ProjectionHealth(BaseModel):
     projected_progress_ratio: float | None = Field(default=None, ge=0, le=1)
     degraded: bool = False
     detail: str | None = None
+
+
+class WorkspaceMemoryProvenance(BaseModel):
+    """Inspectable source evidence for one workspace memory entry."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_type: WorkspaceMemorySourceType
+    source_label: str | None = Field(default=None, max_length=500)
+    session_id: SessionId | None = None
+    source_sequence: int | None = Field(default=None, ge=0)
+    task_id: TaskId | None = None
+    artifact_id: ArtifactId | None = None
+    tool_call_id: ToolCallId | None = None
+    note: str | None = Field(default=None, max_length=2000)
+
+    @model_validator(mode="after")
+    def validate_source_links(self) -> WorkspaceMemoryProvenance:
+        if self.source_type == WorkspaceMemorySourceType.SESSION_EVENT:
+            if self.session_id is None or self.source_sequence is None:
+                raise ValueError(
+                    "session_event memory provenance requires session_id "
+                    "and source_sequence"
+                )
+        if self.source_type == WorkspaceMemorySourceType.TASK and self.task_id is None:
+            raise ValueError("task memory provenance requires task_id")
+        if (
+            self.source_type == WorkspaceMemorySourceType.ARTIFACT
+            and self.artifact_id is None
+        ):
+            raise ValueError("artifact memory provenance requires artifact_id")
+        if (
+            self.source_type == WorkspaceMemorySourceType.TOOL_RESULT
+            and self.tool_call_id is None
+        ):
+            raise ValueError("tool_result memory provenance requires tool_call_id")
+        return self
+
+
+class WorkspaceMemoryEntry(BaseModel):
+    """Projected durable memory entry scoped to one local workspace."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    memory_id: WorkspaceMemoryId
+    kind: WorkspaceMemoryKind
+    state: WorkspaceMemoryState
+    content: str = Field(min_length=1, max_length=8000)
+    summary: str | None = Field(default=None, max_length=500)
+    provenance: WorkspaceMemoryProvenance
+    created_by: str = Field(default="operator", min_length=1, max_length=200)
+    created_at: datetime
+    updated_at: datetime
+    confirmed_by: str | None = Field(default=None, max_length=200)
+    confirmed_at: datetime | None = None
+    invalidated_by: str | None = Field(default=None, max_length=200)
+    invalidated_at: datetime | None = None
+    invalidation_reason: str | None = Field(default=None, max_length=2000)
+    last_used_at: datetime | None = None
+    use_count: int = Field(default=0, ge=0)
+    tags: list[str] = Field(default_factory=list)
+    redacted: bool = False
+
+    @model_validator(mode="after")
+    def validate_memory_state(self) -> WorkspaceMemoryEntry:
+        if self.state == WorkspaceMemoryState.INVALIDATED:
+            if self.invalidated_by is None or self.invalidation_reason is None:
+                raise ValueError(
+                    "invalidated memory requires invalidated_by and invalidation_reason"
+                )
+        if self.confirmed_at is not None and self.confirmed_by is None:
+            raise ValueError("confirmed_at requires confirmed_by")
+        return self
 
 
 class MessagePart(BaseModel):

@@ -25,6 +25,7 @@ from glassbox.core.ids import TaskStepId
 from glassbox.core.ids import TaskVerificationId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
+from glassbox.core.ids import WorkspaceMemoryId
 from glassbox.core.ids import new_event_id
 from glassbox.core.models import AutonomyBudget
 from glassbox.core.models import AutonomyBudgetRemaining
@@ -36,6 +37,7 @@ from glassbox.core.models import PolicyDecisionTrace
 from glassbox.core.models import PolicyRiskLevel
 from glassbox.core.models import TaskPlanSnapshot
 from glassbox.core.models import TaskStepProposal
+from glassbox.core.models import WorkspaceMemoryProvenance
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import AutonomyEscalationReason
 from glassbox.core.types import AutonomyMode
@@ -47,6 +49,8 @@ from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskVerificationStatus
 from glassbox.core.types import TurnStatus
+from glassbox.core.types import WorkspaceMemoryKind
+from glassbox.core.types import WorkspaceMemoryState
 
 ToolOutputStream = Literal["stdout", "stderr", "structured"]
 TurnOutcome = Literal[
@@ -613,6 +617,69 @@ class BackgroundJobAbandoned(EventPayload):
     reason: str = Field(min_length=1, max_length=2000)
 
 
+class WorkspaceMemoryCreated(EventPayload):
+    event_type: Literal["WorkspaceMemoryCreated"] = "WorkspaceMemoryCreated"
+    memory_id: WorkspaceMemoryId
+    kind: WorkspaceMemoryKind
+    content: str = Field(min_length=1, max_length=8000)
+    summary: str | None = Field(default=None, max_length=500)
+    provenance: WorkspaceMemoryProvenance
+    created_by: str = Field(default="operator", min_length=1, max_length=200)
+    tags: list[str] = Field(default_factory=list)
+    redacted: bool = False
+
+
+class WorkspaceMemoryConfirmed(EventPayload):
+    event_type: Literal["WorkspaceMemoryConfirmed"] = "WorkspaceMemoryConfirmed"
+    memory_id: WorkspaceMemoryId
+    confirmed_by: str = Field(default="operator", min_length=1, max_length=200)
+    reason: str | None = Field(default=None, max_length=2000)
+
+
+class WorkspaceMemoryUpdated(EventPayload):
+    event_type: Literal["WorkspaceMemoryUpdated"] = "WorkspaceMemoryUpdated"
+    memory_id: WorkspaceMemoryId
+    updated_by: str = Field(default="operator", min_length=1, max_length=200)
+    content: str | None = Field(default=None, min_length=1, max_length=8000)
+    summary: str | None = Field(default=None, max_length=500)
+    tags: list[str] | None = None
+    reason: str | None = Field(default=None, max_length=2000)
+
+
+class WorkspaceMemoryInvalidated(EventPayload):
+    event_type: Literal["WorkspaceMemoryInvalidated"] = "WorkspaceMemoryInvalidated"
+    memory_id: WorkspaceMemoryId
+    invalidated_by: str = Field(default="operator", min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class WorkspaceMemoryImported(EventPayload):
+    event_type: Literal["WorkspaceMemoryImported"] = "WorkspaceMemoryImported"
+    memory_id: WorkspaceMemoryId
+    kind: WorkspaceMemoryKind
+    content: str = Field(min_length=1, max_length=8000)
+    provenance: WorkspaceMemoryProvenance
+    import_source: str = Field(min_length=1, max_length=1000)
+    imported_by: str = Field(default="operator", min_length=1, max_length=200)
+    redacted: bool = True
+
+
+class WorkspaceMemoryUsedInContext(EventPayload):
+    event_type: Literal["WorkspaceMemoryUsedInContext"] = "WorkspaceMemoryUsedInContext"
+    memory_id: WorkspaceMemoryId
+    turn_id: TurnId
+    prompt_section: str = Field(min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+    state_at_use: WorkspaceMemoryState = WorkspaceMemoryState.ACTIVE
+
+
+class WorkspaceMemoryPruned(EventPayload):
+    event_type: Literal["WorkspaceMemoryPruned"] = "WorkspaceMemoryPruned"
+    memory_id: WorkspaceMemoryId
+    pruned_by: str = Field(default="operator", min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+
+
 class ErrorRecorded(EventPayload):
     event_type: Literal["ErrorRecorded"] = "ErrorRecorded"
     scope: ErrorScope
@@ -684,6 +751,13 @@ EventPayloadType = Annotated[
     | BackgroundJobRetryRequested
     | BackgroundJobRetryExhausted
     | BackgroundJobAbandoned
+    | WorkspaceMemoryCreated
+    | WorkspaceMemoryConfirmed
+    | WorkspaceMemoryUpdated
+    | WorkspaceMemoryInvalidated
+    | WorkspaceMemoryImported
+    | WorkspaceMemoryUsedInContext
+    | WorkspaceMemoryPruned
     | ErrorRecorded,
     Field(discriminator="event_type"),
 ]
@@ -756,3 +830,7 @@ class EventEnvelope(BaseModel):
     @property
     def job_id(self) -> BackgroundJobId | None:
         return getattr(self.payload, "job_id", None)
+
+    @property
+    def memory_id(self) -> WorkspaceMemoryId | None:
+        return getattr(self.payload, "memory_id", None)

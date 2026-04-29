@@ -67,6 +67,13 @@ from glassbox.core.events import TurnStatusChanged
 from glassbox.core.events import UserAnswerProvided
 from glassbox.core.events import UserMessageReceived
 from glassbox.core.events import UserQuestionAsked
+from glassbox.core.events import WorkspaceMemoryConfirmed
+from glassbox.core.events import WorkspaceMemoryCreated
+from glassbox.core.events import WorkspaceMemoryImported
+from glassbox.core.events import WorkspaceMemoryInvalidated
+from glassbox.core.events import WorkspaceMemoryPruned
+from glassbox.core.events import WorkspaceMemoryUpdated
+from glassbox.core.events import WorkspaceMemoryUsedInContext
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import ArtifactId
 from glassbox.core.ids import BackgroundJobId
@@ -80,6 +87,7 @@ from glassbox.core.ids import TaskStepId
 from glassbox.core.ids import TaskVerificationId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
+from glassbox.core.ids import WorkspaceMemoryId
 from glassbox.core.ids import new_approval_id
 from glassbox.core.ids import new_artifact_id
 from glassbox.core.ids import new_background_job_id
@@ -93,6 +101,7 @@ from glassbox.core.ids import new_task_step_id
 from glassbox.core.ids import new_task_verification_id
 from glassbox.core.ids import new_tool_call_id
 from glassbox.core.ids import new_turn_id
+from glassbox.core.ids import new_workspace_memory_id
 from glassbox.core.models import AutonomyBudget
 from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import AutonomyBudgetRemaining
@@ -117,6 +126,8 @@ from glassbox.core.models import TaskStepRecord
 from glassbox.core.models import TaskVerificationRecord
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TranscriptMessage
+from glassbox.core.models import WorkspaceMemoryEntry
+from glassbox.core.models import WorkspaceMemoryProvenance
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import ApprovalMode
 from glassbox.core.types import ApprovalStatus
@@ -133,6 +144,9 @@ from glassbox.core.types import TaskStepStatus
 from glassbox.core.types import TaskVerificationStatus
 from glassbox.core.types import ToolExecutionStatus
 from glassbox.core.types import TurnStatus
+from glassbox.core.types import WorkspaceMemoryKind
+from glassbox.core.types import WorkspaceMemorySourceType
+from glassbox.core.types import WorkspaceMemoryState
 
 __all__ = [
     "ApprovalMode",
@@ -255,6 +269,19 @@ __all__ = [
     "UserAnswerProvided",
     "UserMessageReceived",
     "UserQuestionAsked",
+    "WorkspaceMemoryConfirmed",
+    "WorkspaceMemoryCreated",
+    "WorkspaceMemoryEntry",
+    "WorkspaceMemoryId",
+    "WorkspaceMemoryImported",
+    "WorkspaceMemoryInvalidated",
+    "WorkspaceMemoryKind",
+    "WorkspaceMemoryProvenance",
+    "WorkspaceMemoryPruned",
+    "WorkspaceMemorySourceType",
+    "WorkspaceMemoryState",
+    "WorkspaceMemoryUpdated",
+    "WorkspaceMemoryUsedInContext",
     "new_approval_id",
     "new_artifact_id",
     "new_background_job_id",
@@ -268,4 +295,5 @@ __all__ = [
     "new_task_verification_id",
     "new_tool_call_id",
     "new_turn_id",
+    "new_workspace_memory_id",
 ]
