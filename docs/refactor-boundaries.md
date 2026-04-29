@@ -142,6 +142,12 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   tick summary, then delegate lease/recovery behavior, read-only maintenance
   handlers, mutating task-continuation handlers, and progress/failure event
   recording to focused runtime modules
+- the background-job worker split now keeps
+  `src/glassbox/runtime/background_jobs.py` as the stable public runner facade,
+  with lease/cancellation/recovery helpers in `background_job_lifecycle.py`,
+  read-only maintenance handlers in `background_job_handlers.py`, mutating task
+  continuation in `background_task_continuation.py`, and progress/failure event
+  recording in `background_job_records.py`
 - background-job maintenance handlers should remain read-only except for
   explicit job progress/completion/failure events; task continuation handlers
   are the only post-v8 background path expected to mutate task/session state

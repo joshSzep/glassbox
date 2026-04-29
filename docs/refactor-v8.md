@@ -277,7 +277,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R210: Split Background Job Worker By Ownership Concern
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R200`
 - Goal: reduce
   [background_jobs.py](../src/glassbox/runtime/background_jobs.py) to worker
@@ -304,6 +304,17 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - background job coordination remains behavior-compatible while job-specific
     execution logic lives in explicit owned modules
+- Completed:
+  - `background_jobs.py` now stays focused on worker-loop coordination and the
+    stable public runner surface
+  - lease recovery/cancellation handling lives in
+    `runtime/background_job_lifecycle.py`
+  - read-only maintenance and derived-index handlers live in
+    `runtime/background_job_handlers.py`
+  - mutating task continuation handling lives in
+    `runtime/background_task_continuation.py`
+  - progress and failure event recording lives in
+    `runtime/background_job_records.py`
 
 ### GBX-R211: Split Workspace Memory Capture Into Extraction, Redaction, And Commit Layers
 
