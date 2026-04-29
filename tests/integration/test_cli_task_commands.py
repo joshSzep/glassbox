@@ -127,6 +127,7 @@ def test_task_continue_queues_background_job_json(tmp_path: Path, capsys) -> Non
     assert payload["kind"] == BackgroundJobKind.MUTATING_CONTINUATION.value
     assert payload["job_type"] == "task-continuation-step"
     assert payload["task_id"] == str(task_id)
+    assert payload["payload"]["verify_repair"] is False
 
 
 def _seed_task(

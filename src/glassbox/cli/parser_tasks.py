@@ -95,6 +95,11 @@ def _add_task_parsers(
         help="actor requesting the continuation job",
     )
     continue_parser.add_argument(
+        "--verify-repair",
+        action="store_true",
+        help="allow the queued continuation job to use verify-repair behavior",
+    )
+    continue_parser.add_argument(
         "--json",
         action="store_true",
         help="print the queued background job as JSON",

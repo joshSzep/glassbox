@@ -99,7 +99,10 @@ def _task_continue_command(args: argparse.Namespace) -> int:
             job_type="task-continuation-step",
             title=f"Continue task: {task.title}",
             requested_by=args.requested_by,
-            payload={"task_id": str(task.task_id)},
+            payload={
+                "task_id": str(task.task_id),
+                "verify_repair": bool(args.verify_repair),
+            },
             task_id=task.task_id,
         )
 
