@@ -10,6 +10,12 @@ from glassbox.tools import ApprovalMode
 from glassbox.tools import ToolPolicyContext
 from glassbox.tools import ToolPolicyEngine
 from glassbox.tools import build_workflow_tool_registry
+from glassbox.tools.test_discovery import TestDiscoveryArgs as DiscoveryArgs
+from glassbox.tools.test_discovery import TestDiscoveryTool as DiscoveryTool
+from glassbox.tools.test_discovery import TestFramework as DiscoveryFramework
+from glassbox.tools.test_discovery import TestTargetConfidence as TargetConfidence
+from glassbox.tools.test_discovery import TestTargetSelectionArgs as TargetSelectionArgs
+from glassbox.tools.test_discovery import TestTargetSelectionTool as TargetSelectionTool
 from glassbox.tools.workflow import DIFF_SUMMARY_ARTIFACT_KIND
 from glassbox.tools.workflow import DiffSummaryArgs
 from glassbox.tools.workflow import DiffSummaryScope
@@ -272,6 +278,137 @@ def test_diff_summary_prepares_artifact_payload_for_large_summary(
 
 
 # ---------------------------------------------------------------------------
+# Test discovery and target selection tests
+# ---------------------------------------------------------------------------
+
+
+def test_test_discovery_lists_pytest_functions_classes_and_markers(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_math.py").write_text(
+        "import pytest\n\n"
+        "@pytest.mark.slow\n"
+        "def test_add():\n"
+        "    assert 1 + 1 == 2\n\n"
+        "class TestMath:\n"
+        "    @pytest.mark.parametrize('value', [1])\n"
+        "    def test_value(self, value):\n"
+        "        assert value\n",
+        encoding="utf-8",
+    )
+    tool = DiscoveryTool(tmp_path)
+
+    async def scenario() -> None:
+        result = await tool.execute(DiscoveryArgs())
+        assert result.framework == DiscoveryFramework.PYTEST
+        assert result.repository_index_status == "missing"
+        assert len(result.test_files) == 1
+        test_file = result.test_files[0]
+        assert test_file.path == "tests/test_math.py"
+        assert test_file.test_functions == ["test_add", "test_value"]
+        assert test_file.test_classes == ["TestMath"]
+        assert test_file.markers == ["parametrize", "slow"]
+
+    asyncio.run(scenario())
+
+
+def test_test_discovery_gracefully_handles_unknown_layout(tmp_path: Path) -> None:
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "app.py").write_text("value = 1\n", encoding="utf-8")
+    tool = DiscoveryTool(tmp_path)
+
+    async def scenario() -> None:
+        result = await tool.execute(DiscoveryArgs())
+        assert result.framework == DiscoveryFramework.UNKNOWN
+        assert result.test_files == []
+        assert result.warnings == ["no pytest-style test files discovered"]
+
+    asyncio.run(scenario())
+
+
+def test_test_discovery_rejects_out_of_scope_path(tmp_path: Path) -> None:
+    tool = DiscoveryTool(tmp_path)
+
+    async def scenario() -> None:
+        with pytest.raises(ValueError, match="outside workspace"):
+            await tool.execute(DiscoveryArgs(paths=["../outside"]))
+
+    asyncio.run(scenario())
+
+
+def test_test_target_selection_maps_source_change_to_matching_pytest_file(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "src").mkdir()
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "src" / "calculator.py").write_text(
+        "def add(): pass\n", encoding="utf-8"
+    )
+    (tmp_path / "tests" / "test_calculator.py").write_text(
+        "def test_add():\n    assert True\n",
+        encoding="utf-8",
+    )
+    tool = TargetSelectionTool(tmp_path)
+
+    async def scenario() -> None:
+        result = await tool.execute(
+            TargetSelectionArgs(changed_paths=["src/calculator.py"])
+        )
+        assert len(result.candidates) == 1
+        candidate = result.candidates[0]
+        assert candidate.path == "tests/test_calculator.py"
+        assert candidate.confidence == TargetConfidence.HIGH
+        assert candidate.command == ["pytest", "tests/test_calculator.py"]
+        assert candidate.matched_changed_paths == ["src/calculator.py"]
+
+    asyncio.run(scenario())
+
+
+def test_test_target_selection_keeps_changed_tests_high_confidence(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_api.py").write_text(
+        "def test_api():\n    assert True\n",
+        encoding="utf-8",
+    )
+    tool = TargetSelectionTool(tmp_path)
+
+    async def scenario() -> None:
+        result = await tool.execute(
+            TargetSelectionArgs(changed_paths=["tests/test_api.py"])
+        )
+        assert result.candidates[0].path == "tests/test_api.py"
+        assert result.candidates[0].confidence == TargetConfidence.HIGH
+        assert result.candidates[0].reasons == [
+            "changed path is itself a pytest-style test file"
+        ]
+
+    asyncio.run(scenario())
+
+
+def test_test_target_selection_falls_back_to_task_context(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_smoke.py").write_text(
+        "def test_smoke():\n    assert True\n",
+        encoding="utf-8",
+    )
+    tool = TargetSelectionTool(tmp_path)
+
+    async def scenario() -> None:
+        result = await tool.execute(
+            TargetSelectionArgs(task_context="smoke validation")
+        )
+        assert result.candidates[0].path == "tests/test_smoke.py"
+        assert result.candidates[0].confidence == TargetConfidence.LOW
+
+    asyncio.run(scenario())
+
+
+# ---------------------------------------------------------------------------
 # RunTestsTool tests
 # ---------------------------------------------------------------------------
 
@@ -391,6 +528,8 @@ def test_build_workflow_tool_registry_includes_all_tools(tmp_path: Path) -> None
         "run_command",
         "git_status",
         "workspace_diff_summary",
+        "test_discovery",
+        "test_target_selection",
         "run_tests",
     }
 

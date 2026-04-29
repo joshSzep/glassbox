@@ -24,6 +24,8 @@ from glassbox.tools.registry import ToolRegistry
 from glassbox.tools.registry import ToolRiskLevel
 from glassbox.tools.registry import ToolSpec
 from glassbox.tools.registry import ToolStreamingMode
+from glassbox.tools.test_discovery import TestDiscoveryTool
+from glassbox.tools.test_discovery import TestTargetSelectionTool
 
 # ---------------------------------------------------------------------------
 # Git status tool
@@ -742,5 +744,7 @@ def build_workflow_tool_registry(workspace_root: Path) -> ToolRegistry:
     registry = build_command_tool_registry(workspace_root)
     registry.register(GitStatusTool(workspace_root))
     registry.register(DiffSummaryTool(workspace_root))
+    registry.register(TestDiscoveryTool(workspace_root))
+    registry.register(TestTargetSelectionTool(workspace_root))
     registry.register(RunTestsTool(workspace_root))
     return registry

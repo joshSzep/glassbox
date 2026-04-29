@@ -35,7 +35,7 @@ New tools must be easier to audit than an equivalent unconstrained shell command
 | Candidate | Purpose | First-slice risk | Required controls |
 | --- | --- | --- | --- |
 | Structured file edit | Apply constrained edits such as replace range, append section, or rewrite generated block. | `workspace_write` | Workspace path scope, write budget, approval-mode calibration, generated-path markers where applicable, diff artifact, replay capture. |
-| Test discovery | List test files, classes, functions, markers, and collection limits without running tests. | `read_only` | Workspace path scope, crawl/collection limits, timeout budget if pytest collection is used, no test execution by default. |
+| Test discovery | List test files, classes, functions, markers, and collection limits without running tests. | `read_only` | Workspace path scope, crawl/collection limits, timeout budget if pytest collection is used, no test execution by default. Implemented first as `test_discovery` and `test_target_selection`. |
 | Dependency inspection | Summarize `pyproject.toml`, lockfiles, package scripts, and dependency groups. | `read_only` | Workspace path scope, lockfile size limits, redaction of private index URLs or tokens, freshness metadata. |
 | Package script discovery | List known scripts and validation commands from package metadata and repository index. | `read_only` | Workspace path scope, no execution, confidence labels, provenance from exact files or index entries. |
 | Code search | Structured regex/plain search with path filters and result summaries. | `read_only` | Workspace path scope, result limits, binary-file skip, artifact recording for large result sets. |
@@ -66,6 +66,21 @@ Large summaries are recorded through the existing turn artifact path as
 `workspace_diff_summary` artifacts when the tool is used during a session with an
 artifact repository. The artifact stores summary metadata only; it deliberately
 does not store raw patch hunks.
+
+`test_discovery` and `test_target_selection` are the first GBX-872
+implementation of the test-discovery portion of this contract. They are
+read-only workflow tools:
+
+- `test_discovery` scans bounded workspace paths for pytest-style files and uses
+  Python AST parsing to list test functions, test classes, and `pytest.mark`
+  markers without running tests.
+- `test_target_selection` maps changed paths or short task context to advisory
+  pytest targets with `high`, `medium`, or `low` confidence and explicit
+  selection reasons.
+- both tools include repository-index freshness status and use index test-entry
+  summaries as owner hints when a local index exists.
+- unknown layouts degrade to empty results plus warnings rather than shelling out
+  to broad discovery commands.
 
 ## Risk Classification
 

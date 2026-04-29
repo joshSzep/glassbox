@@ -44,6 +44,16 @@ from glassbox.tools.registry import ToolStreamingMode
 from glassbox.tools.runtime import PreparedToolExecution
 from glassbox.tools.runtime import ToolExecutionResult
 from glassbox.tools.runtime import ToolRuntime
+from glassbox.tools.test_discovery import TestDiscoveryArgs
+from glassbox.tools.test_discovery import TestDiscoveryResult
+from glassbox.tools.test_discovery import TestDiscoveryTool
+from glassbox.tools.test_discovery import TestFileDiscovery
+from glassbox.tools.test_discovery import TestFramework
+from glassbox.tools.test_discovery import TestTargetCandidate
+from glassbox.tools.test_discovery import TestTargetConfidence
+from glassbox.tools.test_discovery import TestTargetSelectionArgs
+from glassbox.tools.test_discovery import TestTargetSelectionResult
+from glassbox.tools.test_discovery import TestTargetSelectionTool
 from glassbox.tools.workflow import DIFF_SUMMARY_ARTIFACT_KIND
 from glassbox.tools.workflow import DiffFileSummary
 from glassbox.tools.workflow import DiffSummaryArgs
@@ -92,6 +102,16 @@ __all__ = [
     "RunTestsResult",
     "RunTestsTool",
     "StreamingTool",
+    "TestDiscoveryArgs",
+    "TestDiscoveryResult",
+    "TestDiscoveryTool",
+    "TestFileDiscovery",
+    "TestFramework",
+    "TestTargetCandidate",
+    "TestTargetConfidence",
+    "TestTargetSelectionArgs",
+    "TestTargetSelectionResult",
+    "TestTargetSelectionTool",
     "Tool",
     "ToolAutonomyRule",
     "ToolExecutionResult",

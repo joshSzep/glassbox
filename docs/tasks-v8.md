@@ -1271,9 +1271,10 @@ The intended v8 milestone order is:
 
 ### GBX-872: Add Structured Test Discovery And Target Selection Tools
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-870`, `GBX-854`
 - Goal: help agents select relevant tests without repeatedly guessing command lines
+- Evidence: [tool-expansion-v8.md](./tool-expansion-v8.md), [tool-policy.md](./tool-policy.md)
 - Deliverables:
   - read-only test discovery tool that lists test files, test functions/classes where practical, markers, and likely ownership from repository index data
   - target-selection helper that maps changed paths or task context to candidate tests with confidence reasons
@@ -1288,6 +1289,17 @@ The intended v8 milestone order is:
   - test discovery unit tests
   - verification loop integration tests
   - eval recommendation tests if metadata is shared
+- Completed vertical slice:
+  - added read-only `test_discovery` and `test_target_selection` workflow tools with bounded path filters and no test execution
+  - discovers pytest-style files plus Python test functions, classes, and `pytest.mark` markers through AST parsing
+  - reports repository-index freshness and uses local index test-entry summaries as owner hints when available while gracefully degrading when the index is missing
+  - maps changed source or test paths to advisory pytest targets with confidence levels, reasons, matched changed paths, and command vectors
+  - documented confidence posture and the no-execution contract in the v8 tool expansion and policy docs
+- Validation:
+  - `uv run ruff format src/glassbox/tools/test_discovery.py src/glassbox/tools/workflow.py src/glassbox/tools/__init__.py tests/integration/test_workflow_tools.py tests/integration/test_patch_tool.py tests/integration/test_ask_user_tool.py`
+  - `uv run ruff check src/glassbox/tools/test_discovery.py src/glassbox/tools/workflow.py src/glassbox/tools/__init__.py tests/integration/test_workflow_tools.py tests/integration/test_patch_tool.py tests/integration/test_ask_user_tool.py`
+  - `uv run ty check`
+  - `uv run pytest tests/integration/test_workflow_tools.py tests/integration/test_patch_tool.py::test_build_patch_tool_registry_includes_all_tools tests/integration/test_ask_user_tool.py::test_build_ask_user_registry_includes_all_tools`
 - Done when:
   - Glassbox can choose focused verification targets with evidence rather than only broad defaults
 
