@@ -2,7 +2,6 @@
 
 import asyncio
 from contextlib import suppress
-from pathlib import Path
 from typing import ClassVar
 
 from textual.app import App
@@ -11,15 +10,21 @@ from textual.binding import Binding
 from textual.widgets import TextArea
 
 from glassbox.cli.interactive_client import InteractiveClientError
-from glassbox.cli.interactive_client import InteractiveClientErrorKind
 from glassbox.cli.interactive_client import InteractiveSessionClient
 from glassbox.cli.interactive_client import InteractiveSessionSnapshot
 from glassbox.cli.interactive_launch import InteractiveLaunchOptions
+from glassbox.cli.tui.app_commands import execute_terminal_command as dispatch_command
+from glassbox.cli.tui.app_feedback import action_feedback_for_client_error
+from glassbox.cli.tui.app_feedback import feedback_for_blocked_submit
+from glassbox.cli.tui.app_feedback import feedback_for_client_error
+from glassbox.cli.tui.app_paths import local_artifact_path
+from glassbox.cli.tui.app_refresh import refresh_conversation_widgets
+from glassbox.cli.tui.app_refresh import set_action_feedback
+from glassbox.cli.tui.app_refresh import set_composer_feedback
+from glassbox.cli.tui.app_stream import consume_live_events
 from glassbox.cli.tui.client import TerminalClientAdapter
 from glassbox.cli.tui.commands import TerminalCommandId
 from glassbox.cli.tui.commands import command_from_slash
-from glassbox.cli.tui.commands import command_item_by_id
-from glassbox.cli.tui.commands import command_items_for_state
 from glassbox.cli.tui.conversation import TerminalConversationState
 from glassbox.cli.tui.conversation import TerminalMode
 from glassbox.cli.tui.conversation import TerminalStreamStatus
@@ -27,7 +32,6 @@ from glassbox.cli.tui.conversation import apply_event
 from glassbox.cli.tui.conversation import conversation_state_from_snapshot
 from glassbox.cli.tui.conversation import latest_artifact_path_from_state
 from glassbox.cli.tui.conversation import with_composer_draft
-from glassbox.cli.tui.conversation import with_stream_status
 from glassbox.cli.tui.keybindings import TUI_KEY_BINDINGS
 from glassbox.cli.tui.state import session_dashboard_url
 from glassbox.cli.tui.theme import GLASSBOX_TUI_CSS
@@ -35,7 +39,6 @@ from glassbox.cli.tui.widgets import ActionFeedback
 from glassbox.cli.tui.widgets import ActionFeedbackStatus
 from glassbox.cli.tui.widgets import ActionStripPlaceholder
 from glassbox.cli.tui.widgets import CommandPaletteWidget
-from glassbox.cli.tui.widgets import ComposerAvailability
 from glassbox.cli.tui.widgets import ComposerFeedbackLine
 from glassbox.cli.tui.widgets import ComposerSubmissionFeedback
 from glassbox.cli.tui.widgets import ComposerSubmissionStatus
@@ -46,9 +49,6 @@ from glassbox.cli.tui.widgets import FooterHelp
 from glassbox.cli.tui.widgets import SessionHeader
 from glassbox.cli.tui.widgets import composer_availability
 from glassbox.core.types import ApprovalDecision
-
-STREAM_RECONNECT_RETRY_COUNT = 3
-STREAM_RECONNECT_RETRY_DELAYS_SECONDS = (0.0, 0.0, 0.0)
 
 
 class GlassboxTerminalApp(App[None]):
@@ -99,56 +99,7 @@ class GlassboxTerminalApp(App[None]):
         self._stream_task = asyncio.create_task(self._consume_live_events())
 
     async def _consume_live_events(self) -> None:
-        reconnect_attempts = 0
-        while True:
-            try:
-                async for event in self.client_adapter.stream_events(
-                    after_sequence=self.state.header.last_sequence,
-                ):
-                    self.apply_runtime_event(event)
-                if reconnect_attempts > 0:
-                    self.update_conversation_state(
-                        with_stream_status(
-                            self.state,
-                            TerminalStreamStatus.LIVE,
-                            detail="reconnected",
-                        )
-                    )
-                return
-            except asyncio.CancelledError:
-                raise
-            except Exception as exc:
-                reconnect_attempts += 1
-                if reconnect_attempts > STREAM_RECONNECT_RETRY_COUNT:
-                    self.update_conversation_state(
-                        with_stream_status(
-                            self.state,
-                            TerminalStreamStatus.UNAVAILABLE,
-                            detail=(
-                                "stream unavailable after "
-                                f"{STREAM_RECONNECT_RETRY_COUNT} retries: {exc}"
-                            ),
-                        )
-                    )
-                    return
-                self.update_conversation_state(
-                    with_stream_status(
-                        self.state,
-                        TerminalStreamStatus.RECONNECTING,
-                        detail=(
-                            f"retry {reconnect_attempts}/"
-                            f"{STREAM_RECONNECT_RETRY_COUNT}: {exc}"
-                        ),
-                    )
-                )
-                delay = STREAM_RECONNECT_RETRY_DELAYS_SECONDS[
-                    min(
-                        reconnect_attempts - 1,
-                        len(STREAM_RECONNECT_RETRY_DELAYS_SECONDS) - 1,
-                    )
-                ]
-                if delay > 0:
-                    await asyncio.sleep(delay)
+        await consume_live_events(self)
 
     def apply_runtime_event(self, event) -> None:
         self.update_conversation_state(apply_event(self.state, event))
@@ -157,22 +108,7 @@ class GlassboxTerminalApp(App[None]):
         self.state = state
         if not self.is_mounted:
             return
-        self.query_one(SessionHeader).update_state(state)
-        self.query_one(ConversationPane).update_state(
-            state,
-            render_markdown=self._transcript_markdown_enabled,
-        )
-        self.query_one(ActionStripPlaceholder).update_state(
-            state,
-            self._action_feedback,
-        )
-        self.query_one(ComposerWidget).update_state(
-            state,
-            self.launch_options,
-        )
-        self.query_one(ComposerFeedbackLine).update_feedback(self._composer_feedback)
-        self.query_one(DetailsPane).update_state(state)
-        self.query_one(CommandPaletteWidget).update_state(state)
+        refresh_conversation_widgets(self, state)
 
     def action_latest(self) -> None:
         self.query_one(ConversationPane).jump_to_latest()
@@ -248,7 +184,7 @@ class GlassboxTerminalApp(App[None]):
             composer.show_submit_blocked()
             return
         if not composer.can_submit:
-            self._set_composer_feedback(_feedback_for_blocked_submit(availability))
+            self._set_composer_feedback(feedback_for_blocked_submit(availability))
             composer.show_submit_blocked()
             return
         self._set_composer_feedback(
@@ -262,7 +198,7 @@ class GlassboxTerminalApp(App[None]):
             await self.client_adapter.submit_message(text)
         except InteractiveClientError as exc:
             self.update_conversation_state(with_composer_draft(self.state, text))
-            self._set_composer_feedback(_feedback_for_client_error(exc))
+            self._set_composer_feedback(feedback_for_client_error(exc))
             return
         except Exception as exc:
             self.update_conversation_state(with_composer_draft(self.state, text))
@@ -296,77 +232,7 @@ class GlassboxTerminalApp(App[None]):
         self._focused_before_palette = None
 
     async def execute_terminal_command(self, command_id: TerminalCommandId) -> None:
-        if command_id == TerminalCommandId.INTERRUPT:
-            self.close_command_palette(restore_focus=True)
-            await self._handle_interrupt_request()
-            return
-        if command_id == TerminalCommandId.SUBMIT_ANSWER:
-            self.close_command_palette(restore_focus=True)
-            await self._submit_pending_answer()
-            return
-        if command_id == TerminalCommandId.APPROVE:
-            self.close_command_palette(restore_focus=True)
-            await self._resolve_pending_approval(ApprovalDecision.APPROVED)
-            return
-        if command_id == TerminalCommandId.DENY:
-            self.close_command_palette(restore_focus=True)
-            await self._resolve_pending_approval(ApprovalDecision.DENIED)
-            return
-        item = command_item_by_id(command_items_for_state(self.state), command_id)
-        if item is not None and not item.enabled:
-            return
-        self.close_command_palette(restore_focus=True)
-        if command_id == TerminalCommandId.STATUS:
-            return
-        if command_id == TerminalCommandId.OPEN_DASHBOARD:
-            self._open_dashboard()
-            return
-        if command_id == TerminalCommandId.COPY_SESSION_ID:
-            self._copy_handoff_value(
-                str(self.state.header.session_id),
-                success_message="Session ID copied.",
-            )
-            return
-        if command_id == TerminalCommandId.COPY_DASHBOARD_URL:
-            self._copy_dashboard_url()
-            return
-        if command_id == TerminalCommandId.COPY_ARTIFACT_PATH:
-            self._copy_latest_artifact_path()
-            return
-        if command_id == TerminalCommandId.OPEN_ARTIFACT_PATH:
-            self._open_latest_artifact_path()
-            return
-        if command_id == TerminalCommandId.TOGGLE_DETAILS:
-            self._details_visible = not self._details_visible
-            details = self.query_one(DetailsPane)
-            details.toggle()
-            if details.display:
-                self.set_focus(details)
-            return
-        if command_id == TerminalCommandId.TOGGLE_MARKDOWN:
-            self._transcript_markdown_enabled = not self._transcript_markdown_enabled
-            self.query_one(ConversationPane).update_state(
-                self.state,
-                render_markdown=self._transcript_markdown_enabled,
-            )
-            state_label = "enabled" if self._transcript_markdown_enabled else "disabled"
-            self._set_action_feedback(
-                ActionFeedback(
-                    ActionFeedbackStatus.ACCEPTED,
-                    f"Markdown rendering {state_label}.",
-                )
-            )
-            return
-        if command_id == TerminalCommandId.JUMP_LATEST:
-            self.action_latest()
-            return
-        if command_id == TerminalCommandId.CLEAR_TRANSCRIPT:
-            self.query_one(ConversationPane).show_local_message(
-                "Transcript hidden locally."
-            )
-            return
-        if command_id == TerminalCommandId.QUIT:
-            self._handle_quit_request()
+        await dispatch_command(self, command_id)
 
     async def action_toggle_details(self) -> None:
         await self.execute_terminal_command(TerminalCommandId.TOGGLE_DETAILS)
@@ -448,17 +314,10 @@ class GlassboxTerminalApp(App[None]):
         self,
         feedback: ComposerSubmissionFeedback | None,
     ) -> None:
-        self._composer_feedback = feedback
-        if self.is_mounted:
-            self.query_one(ComposerFeedbackLine).update_feedback(feedback)
+        set_composer_feedback(self, feedback)
 
     def _set_action_feedback(self, feedback: ActionFeedback | None) -> None:
-        self._action_feedback = feedback
-        if self.is_mounted:
-            self.query_one(ActionStripPlaceholder).update_state(
-                self.state,
-                feedback,
-            )
+        set_action_feedback(self, feedback)
 
     async def _handle_interrupt_request(self) -> None:
         if self.query_one(CommandPaletteWidget).display:
@@ -509,7 +368,7 @@ class GlassboxTerminalApp(App[None]):
                     reason="operator requested cancellation from terminal",
                 )
             except InteractiveClientError as exc:
-                self._set_action_feedback(_action_feedback_for_client_error(exc))
+                self._set_action_feedback(action_feedback_for_client_error(exc))
                 return
             except Exception as exc:
                 self._set_action_feedback(
@@ -608,7 +467,7 @@ class GlassboxTerminalApp(App[None]):
         try:
             await self.client_adapter.submit_answer(question.question_id, answer)
         except InteractiveClientError as exc:
-            self._set_action_feedback(_action_feedback_for_client_error(exc))
+            self._set_action_feedback(action_feedback_for_client_error(exc))
             return
         except Exception as exc:
             self._set_action_feedback(
@@ -671,7 +530,7 @@ class GlassboxTerminalApp(App[None]):
         try:
             await self.client_adapter.resolve_approval(approval.approval_id, decision)
         except InteractiveClientError as exc:
-            self._set_action_feedback(_action_feedback_for_client_error(exc))
+            self._set_action_feedback(action_feedback_for_client_error(exc))
             return
         except Exception as exc:
             self._set_action_feedback(
@@ -748,7 +607,7 @@ class GlassboxTerminalApp(App[None]):
                 )
             )
             return
-        path = _local_artifact_path(raw_path, self.state.header.cwd)
+        path = local_artifact_path(raw_path, self.state.header.cwd)
         if not path.exists():
             self._set_action_feedback(
                 ActionFeedback(
@@ -819,89 +678,3 @@ async def run_tui_app(app: GlassboxTerminalApp) -> None:
         await app.run_async()
     finally:
         await app.close_client()
-
-
-def _feedback_for_blocked_submit(
-    availability: ComposerAvailability,
-) -> ComposerSubmissionFeedback:
-    if availability.disabled_reason in {
-        "runtime reconnecting",
-        "runtime stream unavailable",
-    }:
-        return ComposerSubmissionFeedback(
-            ComposerSubmissionStatus.UNAVAILABLE_RUNTIME,
-            availability.placeholder,
-            retryable=True,
-        )
-    return ComposerSubmissionFeedback(
-        ComposerSubmissionStatus.CONFLICT,
-        availability.placeholder,
-    )
-
-
-def _feedback_for_client_error(
-    error: InteractiveClientError,
-) -> ComposerSubmissionFeedback:
-    if error.kind == InteractiveClientErrorKind.CONFLICT:
-        return ComposerSubmissionFeedback(ComposerSubmissionStatus.CONFLICT, str(error))
-    if error.kind == InteractiveClientErrorKind.VALIDATION_ERROR:
-        return ComposerSubmissionFeedback(
-            ComposerSubmissionStatus.VALIDATION_ERROR,
-            str(error),
-        )
-    if error.kind in {
-        InteractiveClientErrorKind.RUNTIME_UNAVAILABLE,
-        InteractiveClientErrorKind.STREAM_UNAVAILABLE,
-    }:
-        return ComposerSubmissionFeedback(
-            ComposerSubmissionStatus.NETWORK_ERROR,
-            str(error),
-            retryable=True,
-        )
-    if error.kind in {
-        InteractiveClientErrorKind.UNKNOWN_SESSION,
-        InteractiveClientErrorKind.HISTORICAL_ONLY,
-    }:
-        return ComposerSubmissionFeedback(ComposerSubmissionStatus.CONFLICT, str(error))
-    return ComposerSubmissionFeedback(
-        ComposerSubmissionStatus.RETRYABLE_FAILURE,
-        str(error),
-        retryable=True,
-    )
-
-
-def _action_feedback_for_client_error(
-    error: InteractiveClientError,
-) -> ActionFeedback:
-    if error.kind == InteractiveClientErrorKind.CONFLICT:
-        return ActionFeedback(ActionFeedbackStatus.CONFLICT, str(error))
-    if error.kind == InteractiveClientErrorKind.VALIDATION_ERROR:
-        return ActionFeedback(ActionFeedbackStatus.VALIDATION_ERROR, str(error))
-    if error.kind in {
-        InteractiveClientErrorKind.RUNTIME_UNAVAILABLE,
-        InteractiveClientErrorKind.STREAM_UNAVAILABLE,
-    }:
-        return ActionFeedback(
-            ActionFeedbackStatus.NETWORK_ERROR,
-            str(error),
-            retryable=True,
-        )
-    if error.kind in {
-        InteractiveClientErrorKind.UNKNOWN_SESSION,
-        InteractiveClientErrorKind.HISTORICAL_ONLY,
-    }:
-        return ActionFeedback(ActionFeedbackStatus.CONFLICT, str(error))
-    return ActionFeedback(
-        ActionFeedbackStatus.RETRYABLE_FAILURE,
-        str(error),
-        retryable=True,
-    )
-
-
-def _local_artifact_path(raw_path: str, cwd: str | None) -> Path:
-    path = Path(raw_path).expanduser()
-    if path.is_absolute():
-        return path
-    if cwd is not None:
-        return Path(cwd).expanduser() / path
-    return path.absolute()

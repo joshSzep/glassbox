@@ -296,6 +296,9 @@ The `cli` package should not build its own parallel session-query logic when the
 - widget classes may depend on terminal state/selectors and Textual/Rich, but
   pure render helpers should remain easy to unit test without starting the TUI
   application
+- the TUI app split keeps `cli/tui/app.py` as the Textual lifecycle owner while
+  command dispatch, stream lifecycle, widget refresh, feedback mapping, and
+  local artifact path resolution live in focused `app_*` helpers
 
 ### Web
 

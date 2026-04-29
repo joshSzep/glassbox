@@ -552,7 +552,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R232: Thin TUI App Coordination Around State And Widget Boundaries
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R230`, `GBX-R231`
 - Goal: reduce coordination pressure in
   [app.py](../src/glassbox/cli/tui/app.py) by routing state updates and widget
@@ -566,6 +566,9 @@ Each phase below corresponds to one concrete refactor milestone.
   - do not change launch/fallback semantics
   - keep interactive client behavior unchanged
   - preserve test-driver ergonomics for unit tests
+  - completed split keeps `app.py` as the Textual lifecycle owner while routing
+    stream handling, widget refresh, command dispatch, feedback mapping, and
+    artifact path resolution through focused `app_*` helpers
 - Tests and validation included in task:
   - `uv run pytest tests/unit/test_cli_tui_app.py`
   - `uv run pytest tests/unit/test_cli_interactive_launch.py`
