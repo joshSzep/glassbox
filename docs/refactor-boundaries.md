@@ -290,10 +290,9 @@ The `cli` package should not build its own parallel session-query logic when the
 - TUI reducers may depend on core event/model types and CLI-local snapshot
   models, but should not import raw store helpers, runtime workers, HTTP
   routes, or frontend modules
-- `cli/tui/widgets.py` should split pure render helpers from Textual widget
-  classes. Conversation transcript rendering, header/footer rendering,
-  composer behavior, command palette behavior, action strips, and details-pane
-  rendering should have clear ownership
+- the TUI widget split now keeps `cli/tui/widgets.py` as a compatibility
+  facade over pane-family modules for header/footer, transcript, action strip,
+  composer, command palette, and details rendering
 - widget classes may depend on terminal state/selectors and Textual/Rich, but
   pure render helpers should remain easy to unit test without starting the TUI
   application

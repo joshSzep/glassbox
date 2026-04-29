@@ -523,7 +523,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R231: Split TUI Widgets By Pane Family
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R230`
 - Goal: reduce [widgets.py](../src/glassbox/cli/tui/widgets.py) by separating
   header, transcript, details, composer, action strip, and command palette
@@ -537,6 +537,10 @@ Each phase below corresponds to one concrete refactor milestone.
     behavior
   - keep layout-sensitive helpers covered before moving them
   - do not change the TUI visual contract as part of this refactor
+  - completed split keeps `widgets.py` as a compatibility facade over
+    `widget_header.py`, `widget_transcript.py`, `widget_details.py`,
+    `widget_composer.py`, `widget_action.py`, `widget_palette.py`, and shared
+    `widget_formatting.py` helpers
 - Tests and validation included in task:
   - `uv run pytest tests/unit/test_cli_tui_widgets.py`
   - `uv run pytest tests/unit/test_cli_tui_app.py`

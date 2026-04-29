@@ -239,6 +239,19 @@ PYTHON_FACADE_RULES: tuple[
             "reducers, and selectors"
         ),
     ),
+    (
+        SRC_ROOT / "cli" / "tui" / "widgets.py",
+        (
+            "glassbox.cli.tui.widget_action",
+            "glassbox.cli.tui.widget_composer",
+            "glassbox.cli.tui.widget_details",
+            "glassbox.cli.tui.widget_header",
+            "glassbox.cli.tui.widget_palette",
+            "glassbox.cli.tui.widget_transcript",
+        ),
+        80,
+        "TUI widgets facade should delegate to pane-family widget modules",
+    ),
 )
 
 FRONTEND_FACADE_RULES: tuple[tuple[Path, int, str], ...] = (
