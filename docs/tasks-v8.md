@@ -260,9 +260,10 @@ The intended v8 milestone order is:
 
 ### GBX-810: Define The v8 Auditable-Autonomy Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-785`
 - Goal: convert the v7 release-candidate decision and post-v7 autonomy direction into one concrete v8 product contract
+- Evidence: [v8-auditable-autonomy-contract.md](./v8-auditable-autonomy-contract.md)
 - Deliverables:
   - documentation update defining v8 scope, non-goals, supported workflow set, autonomy posture, evidence expectations, and release posture
   - explicit mapping from v7 residual risks and post-v7 follow-up backlog into v8 tasks or accepted non-goals

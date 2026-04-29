@@ -180,3 +180,25 @@ def test_v7_phase_71_docs_are_cross_linked() -> None:
     assert "v7-scale-verification-inventory.md" in task_graph
     assert "v7-scale-verification-inventory.md" in contract
     assert "v7-adoption-scale-contract.md" in inventory
+
+
+def test_v8_contract_covers_auditable_autonomy_boundary() -> None:
+    content = (REPO_ROOT / "docs" / "v8-auditable-autonomy-contract.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "## Scope",
+        "## Non-Goals",
+        "## Supported Workflow Set",
+        "## Auditable Autonomy Definition",
+        "## v7 Follow-Up Mapping",
+        "## Evidence Classes",
+        "## Release-Readiness Checklist",
+        "## Residual Risk Register Shape",
+        "## Pass And Fail Policy",
+        "Autonomy-boundedness evidence failure blocks",
+        "Provider evidence should never be mistaken for deterministic release signoff.",
+        "tasks-v8.md",
+    ):
+        assert required_text in content
