@@ -39,6 +39,9 @@ from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskStepStatus
 from glassbox.core.types import TaskVerificationStatus
 from glassbox.core.types import ToolExecutionStatus
+from glassbox.core.types import VerificationCheckKind
+from glassbox.core.types import VerificationFailureCategory
+from glassbox.core.types import VerificationPlanSource
 from glassbox.core.types import WorkspaceMemoryKind
 from glassbox.core.types import WorkspaceMemorySourceType
 from glassbox.core.types import WorkspaceMemoryState
@@ -684,6 +687,81 @@ class TaskVerificationRecord(BaseModel):
     status: TaskVerificationStatus
     check_name: str
     summary: str | None = None
+
+
+class VerificationPlanEntry(BaseModel):
+    """One explicit local verification check selected for a task."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    verification_id: TaskVerificationId
+    check_name: str = Field(min_length=1, max_length=200)
+    kind: VerificationCheckKind
+    command: list[str] = Field(min_length=1, max_length=64)
+    source: VerificationPlanSource
+    rationale: str = Field(min_length=1, max_length=2000)
+    blocking: bool = True
+    timeout_seconds: int = Field(default=300, ge=1, le=7200)
+    expected_exit_codes: list[int] = Field(default_factory=lambda: [0], min_length=1)
+    changed_paths: list[Path] = Field(default_factory=list, max_length=100)
+    eval_case_id: str | None = Field(default=None, min_length=1, max_length=200)
+    eval_profile_id: str | None = Field(default=None, min_length=1, max_length=200)
+
+    @field_validator("expected_exit_codes")
+    @classmethod
+    def normalize_expected_exit_codes(cls, value: list[int]) -> list[int]:
+        normalized = list(dict.fromkeys(value))
+        if not normalized:
+            raise ValueError("expected_exit_codes must not be empty")
+        for exit_code in normalized:
+            if exit_code < 0 or exit_code > 255:
+                raise ValueError("expected_exit_codes must be between 0 and 255")
+        return normalized
+
+    @model_validator(mode="after")
+    def validate_eval_links(self) -> VerificationPlanEntry:
+        if self.kind == VerificationCheckKind.EVAL and (
+            self.eval_case_id is None and self.eval_profile_id is None
+        ):
+            raise ValueError(
+                "eval verification requires eval_case_id or eval_profile_id"
+            )
+        return self
+
+
+class VerificationPlan(BaseModel):
+    """A bounded collection of verification checks for one task."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    task_id: TaskId
+    entries: list[VerificationPlanEntry] = Field(min_length=1, max_length=20)
+    max_repair_attempts: int = Field(default=0, ge=0, le=10)
+    selection_sources: list[VerificationPlanSource] = Field(
+        default_factory=list,
+        max_length=20,
+    )
+    residual_risk_policy: str | None = Field(default=None, max_length=2000)
+
+    @model_validator(mode="after")
+    def validate_unique_verification_ids(self) -> VerificationPlan:
+        verification_ids = [entry.verification_id for entry in self.entries]
+        if len(verification_ids) != len(set(verification_ids)):
+            raise ValueError("verification plan entries require unique verification_id")
+        return self
+
+
+class VerificationFailureDigest(BaseModel):
+    """Compact failure evidence suitable for event payloads and artifacts."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    category: VerificationFailureCategory
+    summary: str = Field(min_length=1, max_length=4000)
+    exit_code: int | None = Field(default=None, ge=0)
+    timed_out: bool = False
+    artifact_id: ArtifactId | None = None
+    first_relevant_line: str | None = Field(default=None, max_length=1000)
 
 
 class PolicyActivitySummary(BaseModel):

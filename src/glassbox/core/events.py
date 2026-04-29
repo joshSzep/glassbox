@@ -37,6 +37,8 @@ from glassbox.core.models import PolicyDecisionTrace
 from glassbox.core.models import PolicyRiskLevel
 from glassbox.core.models import TaskPlanSnapshot
 from glassbox.core.models import TaskStepProposal
+from glassbox.core.models import VerificationFailureDigest
+from glassbox.core.models import VerificationPlanEntry
 from glassbox.core.models import WorkspaceMemoryProvenance
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import AutonomyEscalationReason
@@ -443,12 +445,56 @@ class TaskStepSkipped(EventPayload):
     reason: str = Field(min_length=1, max_length=2000)
 
 
+class TaskVerificationPlanned(EventPayload):
+    event_type: Literal["TaskVerificationPlanned"] = "TaskVerificationPlanned"
+    task_id: TaskId
+    verification: VerificationPlanEntry
+    step_id: TaskStepId | None = None
+    attempt: int = Field(default=1, ge=1)
+
+
 class TaskVerificationStarted(EventPayload):
     event_type: Literal["TaskVerificationStarted"] = "TaskVerificationStarted"
     task_id: TaskId
     verification_id: TaskVerificationId
     step_id: TaskStepId | None = None
     check_name: str = Field(min_length=1, max_length=200)
+    attempt: int = Field(default=1, ge=1)
+
+
+class TaskVerificationStreamed(EventPayload):
+    event_type: Literal["TaskVerificationStreamed"] = "TaskVerificationStreamed"
+    task_id: TaskId
+    verification_id: TaskVerificationId
+    stream: ToolOutputStream
+    chunk_summary: str = Field(min_length=1, max_length=2000)
+    artifact_id: ArtifactId | None = None
+
+
+class TaskVerificationFailed(EventPayload):
+    event_type: Literal["TaskVerificationFailed"] = "TaskVerificationFailed"
+    task_id: TaskId
+    verification_id: TaskVerificationId
+    failure: VerificationFailureDigest
+    step_id: TaskStepId | None = None
+
+
+class TaskVerificationSkipped(EventPayload):
+    event_type: Literal["TaskVerificationSkipped"] = "TaskVerificationSkipped"
+    task_id: TaskId
+    verification_id: TaskVerificationId
+    reason: str = Field(min_length=1, max_length=2000)
+    step_id: TaskStepId | None = None
+
+
+class TaskVerificationRetried(EventPayload):
+    event_type: Literal["TaskVerificationRetried"] = "TaskVerificationRetried"
+    task_id: TaskId
+    verification_id: TaskVerificationId
+    next_verification_id: TaskVerificationId
+    attempt: int = Field(ge=1)
+    reason: str = Field(min_length=1, max_length=2000)
+    step_id: TaskStepId | None = None
 
 
 class TaskVerificationCompleted(EventPayload):
@@ -458,6 +504,17 @@ class TaskVerificationCompleted(EventPayload):
     status: TaskVerificationStatus
     summary: str | None = Field(default=None, max_length=4000)
     artifact_id: ArtifactId | None = None
+
+
+class TaskVerificationResidualRiskAccepted(EventPayload):
+    event_type: Literal["TaskVerificationResidualRiskAccepted"] = (
+        "TaskVerificationResidualRiskAccepted"
+    )
+    task_id: TaskId
+    verification_id: TaskVerificationId
+    accepted_by: str = Field(default="operator", min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+    residual_risks: list[str] = Field(default_factory=list, max_length=20)
 
 
 class TaskPaused(EventPayload):
@@ -743,8 +800,14 @@ EventPayloadType = Annotated[
     | TaskStepCompleted
     | TaskStepFailed
     | TaskStepSkipped
+    | TaskVerificationPlanned
     | TaskVerificationStarted
+    | TaskVerificationStreamed
+    | TaskVerificationFailed
+    | TaskVerificationSkipped
+    | TaskVerificationRetried
     | TaskVerificationCompleted
+    | TaskVerificationResidualRiskAccepted
     | TaskPaused
     | TaskResumed
     | TaskCancelled

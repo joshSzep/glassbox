@@ -52,7 +52,13 @@ from glassbox.core.events import TaskStepFailed
 from glassbox.core.events import TaskStepSkipped
 from glassbox.core.events import TaskStepStarted
 from glassbox.core.events import TaskVerificationCompleted
+from glassbox.core.events import TaskVerificationFailed
+from glassbox.core.events import TaskVerificationPlanned
+from glassbox.core.events import TaskVerificationResidualRiskAccepted
+from glassbox.core.events import TaskVerificationRetried
+from glassbox.core.events import TaskVerificationSkipped
 from glassbox.core.events import TaskVerificationStarted
+from glassbox.core.events import TaskVerificationStreamed
 from glassbox.core.events import ToolArtifactRecorded
 from glassbox.core.events import ToolExecutionCancelled
 from glassbox.core.events import ToolExecutionCompleted
@@ -130,6 +136,9 @@ from glassbox.core.models import TaskStepRecord
 from glassbox.core.models import TaskVerificationRecord
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TranscriptMessage
+from glassbox.core.models import VerificationFailureDigest
+from glassbox.core.models import VerificationPlan
+from glassbox.core.models import VerificationPlanEntry
 from glassbox.core.models import WorkspaceMemoryEntry
 from glassbox.core.models import WorkspaceMemoryProvenance
 from glassbox.core.types import ApprovalDecision
@@ -151,6 +160,9 @@ from glassbox.core.types import TaskStepStatus
 from glassbox.core.types import TaskVerificationStatus
 from glassbox.core.types import ToolExecutionStatus
 from glassbox.core.types import TurnStatus
+from glassbox.core.types import VerificationCheckKind
+from glassbox.core.types import VerificationFailureCategory
+from glassbox.core.types import VerificationPlanSource
 from glassbox.core.types import WorkspaceMemoryKind
 from glassbox.core.types import WorkspaceMemorySourceType
 from glassbox.core.types import WorkspaceMemoryState
@@ -258,9 +270,15 @@ __all__ = [
     "TaskStepStarted",
     "TaskStepStatus",
     "TaskVerificationCompleted",
+    "TaskVerificationFailed",
     "TaskVerificationId",
+    "TaskVerificationPlanned",
     "TaskVerificationRecord",
+    "TaskVerificationResidualRiskAccepted",
+    "TaskVerificationRetried",
+    "TaskVerificationSkipped",
     "TaskVerificationStarted",
+    "TaskVerificationStreamed",
     "TaskVerificationStatus",
     "ToolCallId",
     "ToolArtifactRecorded",
@@ -282,6 +300,12 @@ __all__ = [
     "UserAnswerProvided",
     "UserMessageReceived",
     "UserQuestionAsked",
+    "VerificationCheckKind",
+    "VerificationFailureCategory",
+    "VerificationFailureDigest",
+    "VerificationPlan",
+    "VerificationPlanEntry",
+    "VerificationPlanSource",
     "WorkspaceMemoryConfirmed",
     "WorkspaceMemoryCandidateRejected",
     "WorkspaceMemoryCreated",

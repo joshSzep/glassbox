@@ -123,6 +123,46 @@ class TaskVerificationStatus(StrEnum):
     FAILED = "failed"
     SKIPPED = "skipped"
     CANCELLED = "cancelled"
+    RETRIED = "retried"
+    ACCEPTED_WITH_RISK = "accepted_with_risk"
+
+
+class VerificationCheckKind(StrEnum):
+    """Supported verification check families."""
+
+    COMMAND = "command"
+    TEST = "test"
+    EVAL = "eval"
+    LINT = "lint"
+    TYPECHECK = "typecheck"
+    PACKAGE = "package"
+    CUSTOM = "custom"
+
+
+class VerificationPlanSource(StrEnum):
+    """Signals used to select a verification plan entry."""
+
+    EVAL_RECOMMENDATION = "eval_recommendation"
+    WORKSPACE_PROFILE = "workspace_profile"
+    CHANGED_PATHS = "changed_paths"
+    TASK_TYPE = "task_type"
+    POLICY_BUDGET = "policy_budget"
+    OPERATOR = "operator"
+
+
+class VerificationFailureCategory(StrEnum):
+    """Evidence-based categories for verification failure output."""
+
+    ASSERTION = "assertion"
+    LINT = "lint"
+    TYPECHECK = "typecheck"
+    PACKAGE = "package"
+    POLICY = "policy"
+    BUDGET = "budget"
+    TIMEOUT = "timeout"
+    INFRASTRUCTURE = "infrastructure"
+    FLAKY = "flaky"
+    UNKNOWN = "unknown"
 
 
 class TaskBlockedReason(StrEnum):
