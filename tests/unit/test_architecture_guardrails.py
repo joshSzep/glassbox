@@ -210,6 +210,79 @@ PYTHON_FACADE_RULES: tuple[
         "evals should stay a thin facade over split eval modules",
     ),
     (
+        SRC_ROOT / "runtime" / "background_jobs.py",
+        (
+            "asyncio",
+            "contextlib",
+            "dataclasses",
+            "datetime",
+            "uuid",
+            "glassbox.core.types",
+            "glassbox.runtime.background_job_handlers",
+            "glassbox.runtime.background_job_lifecycle",
+            "glassbox.runtime.background_job_records",
+            "glassbox.runtime.background_task_continuation",
+            "glassbox.runtime.context",
+        ),
+        220,
+        (
+            "background_jobs should stay a bounded worker facade over "
+            "lifecycle, handler, continuation, and record modules"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "workspace_memory_capture.py",
+        (
+            "collections.abc",
+            "datetime",
+            "typing",
+            "glassbox.core.events",
+            "glassbox.core.ids",
+            "glassbox.core.models",
+            "glassbox.core.types",
+            "glassbox.runtime.workspace_memory_candidates",
+            "glassbox.runtime.workspace_memory_commits",
+            "glassbox.runtime.workspace_memory_extraction",
+            "glassbox.runtime.workspace_memory_redaction",
+        ),
+        300,
+        (
+            "workspace_memory_capture should keep capture-service orchestration "
+            "separate from candidates, extraction, redaction, and commits"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "observability.py",
+        (
+            "pathlib",
+            "glassbox.runtime.daemon",
+            "glassbox.runtime.observability_",
+            "glassbox.runtime.provider_canary",
+            "glassbox.runtime.transport",
+            "glassbox.services",
+        ),
+        140,
+        (
+            "observability should stay a read-only aggregation facade over "
+            "domain collectors"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "repository_index.py",
+        (
+            "datetime",
+            "pathlib",
+            "glassbox.core.models",
+            "glassbox.core.types",
+            "glassbox.runtime.repository_index_",
+        ),
+        90,
+        (
+            "repository_index should stay a deterministic local index facade "
+            "over discovery, extraction, persistence, and search modules"
+        ),
+    ),
+    (
         SRC_ROOT / "runtime" / "replay.py",
         (
             "glassbox.core.ids",
@@ -261,6 +334,43 @@ FRONTEND_FACADE_RULES: tuple[tuple[Path, int, str], ...] = (
         (
             "dashboard-stores.ts should remain a reviewable compatibility "
             "surface while domain stores split underneath it"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "task-autonomy-console.tsx",
+        180,
+        (
+            "task-autonomy-console.tsx should stay a reviewable component "
+            "entrypoint while task sections own detailed presentation"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "knowledge-autonomy-console.tsx",
+        180,
+        (
+            "knowledge-autonomy-console.tsx should stay a reviewable component "
+            "entrypoint while knowledge sections own detailed presentation"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "branch-search-console.tsx",
+        140,
+        (
+            "branch-search-console.tsx should stay a reviewable component "
+            "entrypoint while branch-search sections own detailed presentation"
+        ),
+    ),
+    (
+        FRONTEND_ROOT
+        / "components"
+        / "console"
+        / "session-inspector"
+        / "panes"
+        / "diagnostics-panes.tsx",
+        80,
+        (
+            "diagnostics-panes.tsx should stay a stable pane export facade "
+            "while evidence-type panes own diagnostic rendering"
         ),
     ),
 )

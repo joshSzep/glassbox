@@ -441,10 +441,15 @@ The guardrails are intentionally narrow:
 - post-v8 guardrails extend the same idea to autonomy-era areas: the current
   background-job, workspace-memory, observability, repository-index, and
   provider-evidence modules are checked against transport/UI/raw-store imports,
-  TUI modules are checked against raw store and runtime worker imports,
+  public runtime autonomy facades are kept reviewable with explicit delegate
+  import and size checks, TUI modules are checked against raw store and runtime
+  worker imports,
   frontend stores are checked against component/server/backend imports, and
   `frontend/stores/dashboard-stores.ts` is kept reviewable as the
   compatibility facade over the source-owned domain store modules
+- the largest frontend console entrypoints are kept reviewable as facades over
+  domain section modules, including task autonomy, knowledge autonomy, branch
+  search, and session-inspector diagnostics
 
 If a guardrail fails, the default repair should be to move new behavior into the owning split module or add one focused neighbor module, not to widen a facade or cross a subsystem boundary.
 

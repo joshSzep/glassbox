@@ -725,7 +725,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R251: Close Out Post-v8 Refactor Guardrails And Validation
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R250`
 - Goal: add final characterization and validation coverage proving the post-v8
   refactor preserved behavior across runtime, store, TUI, and dashboard seams
@@ -744,6 +744,22 @@ Each phase below corresponds to one concrete refactor milestone.
   - `uv run pytest tests/unit/test_architecture_guardrails.py`
   - focused backend and frontend tests for all refactored seams
   - final baseline validation as practical for the touched repository state
+  - verified with `uv run pytest tests/unit/test_architecture_guardrails.py`
+  - verified focused seam coverage with `uv run pytest
+    tests/unit/test_workspace_memory_capture.py tests/unit/test_repository_index.py
+    tests/unit/test_sqlite_query_boundaries.py
+    tests/unit/test_repository_adapter_boundaries.py
+    tests/unit/test_cli_tui_conversation.py tests/unit/test_cli_tui_widgets.py
+    tests/integration/test_background_jobs.py
+    tests/integration/test_observability_status.py`
+  - verified frontend seam coverage with `pnpm --dir frontend test --
+    dashboard-stores.test.ts task-autonomy-console.test.tsx
+    knowledge-autonomy-console.test.tsx branch-search-console.test.tsx
+    session-inspector.test.ts session-state.test.ts`
+  - verified touched guardrail quality with `uv run ruff format --check
+    tests/unit/test_architecture_guardrails.py`, `uv run ruff check
+    tests/unit/test_architecture_guardrails.py`, and `uv run ty check
+    tests/unit/test_architecture_guardrails.py`
 - Done when:
   - the post-v8 refactor roadmap can be marked complete with guardrails that
     protect the new module shape from immediate regression
