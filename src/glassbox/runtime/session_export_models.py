@@ -8,6 +8,9 @@ from pydantic import ConfigDict
 from pydantic import Field
 
 from glassbox.core.ids import SessionId
+from glassbox.core.ids import TaskId
+from glassbox.core.ids import TaskStepId
+from glassbox.core.ids import TaskVerificationId
 from glassbox.core.models import ApprovalRecord
 from glassbox.core.models import MessagePart
 from glassbox.core.models import MessageRole
@@ -117,6 +120,59 @@ class SessionExportEventSummary(BaseModel):
     approval_id: str | None = None
 
 
+class SessionExportTaskSummary(BaseModel):
+    """Portable task-plan summary for handoff inspection."""
+
+    model_config = ConfigDict(extra="forbid")
+    task_id: TaskId
+    title: str
+    goal: str
+    status: str
+    updated_at: datetime
+    blocked_reason: str | None = None
+    blocked_detail: str | None = None
+    current_step_id: TaskStepId | None = None
+    step_count: int = Field(ge=0)
+    next_action_summary: str
+
+
+class SessionExportTaskStepSummary(BaseModel):
+    """Portable task-step summary for handoff inspection."""
+
+    model_config = ConfigDict(extra="forbid")
+    task_id: TaskId
+    step_id: TaskStepId
+    title: str
+    order: int = Field(ge=0)
+    status: str
+    description: str | None = None
+    blocked_reason: str | None = None
+
+
+class SessionExportTaskVerificationSummary(BaseModel):
+    """Portable task verification summary for handoff inspection."""
+
+    model_config = ConfigDict(extra="forbid")
+    task_id: TaskId
+    verification_id: TaskVerificationId
+    check_name: str
+    status: str
+    step_id: TaskStepId | None = None
+    summary: str | None = None
+
+
+class SessionExportTaskEventReference(BaseModel):
+    """Canonical task event reference retained for task-aware import/replay."""
+
+    model_config = ConfigDict(extra="forbid")
+    sequence: int = Field(ge=0)
+    event_type: str
+    created_at: datetime
+    task_id: TaskId
+    turn_id: str | None = None
+    payload: dict[str, object]
+
+
 class SessionExportPolicyDecision(BaseModel):
     """Portable policy evidence captured from canonical events."""
 
@@ -149,6 +205,16 @@ class SessionExportPayload(BaseModel):
         default_factory=list
     )
     policy_decisions: list[SessionExportPolicyDecision] = Field(default_factory=list)
+    task_summaries: list[SessionExportTaskSummary] = Field(default_factory=list)
+    task_step_summaries: list[SessionExportTaskStepSummary] = Field(
+        default_factory=list
+    )
+    task_verification_summaries: list[SessionExportTaskVerificationSummary] = Field(
+        default_factory=list
+    )
+    task_event_references: list[SessionExportTaskEventReference] = Field(
+        default_factory=list
+    )
     event_count: int = Field(ge=0)
     events: list[SessionExportEventSummary] = Field(default_factory=list)
     redaction_notes: list[str] = Field(default_factory=list)

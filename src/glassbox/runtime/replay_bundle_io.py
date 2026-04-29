@@ -15,6 +15,8 @@ from glassbox.core.events import ModelToolCallRequested
 from glassbox.core.events import ReplayArtifactRecorded
 from glassbox.core.events import RuntimeNoteImported
 from glassbox.core.events import RuntimeNoteRecorded
+from glassbox.core.events import TaskCreated
+from glassbox.core.events import TaskPlanProposed
 from glassbox.core.events import TranscriptMessageImported
 from glassbox.core.events import TurnCompleted
 from glassbox.core.events import TurnFailed
@@ -39,6 +41,7 @@ from glassbox.runtime.replay_models import ReplayAction
 from glassbox.runtime.replay_models import ReplayBundle
 from glassbox.runtime.replay_models import ReplayRecordedModelCall
 from glassbox.runtime.replay_models import ReplayRecordedToolCall
+from glassbox.runtime.replay_models import ReplayTaskPlanEventReference
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
 from glassbox.store.repositories import SQLiteSessionRepository
@@ -118,6 +121,7 @@ class ReplayBundleStore:
             tool_requests=tool_requests,
             tool_results=tool_results,
             turn_outputs=turn_outputs,
+            task_plan_events=build_task_plan_event_references(source_events),
             baseline=normalize_session(
                 session_id,
                 session_repository,
@@ -228,6 +232,33 @@ def build_replay_actions(events: Sequence[EventEnvelope]) -> list[ReplayAction]:
                 )
             )
     return actions
+
+
+def build_task_plan_event_references(
+    events: Sequence[EventEnvelope],
+) -> list[ReplayTaskPlanEventReference]:
+    references: list[ReplayTaskPlanEventReference] = []
+    for event in events:
+        if event.task_id is None:
+            continue
+        task_title: str | None = None
+        proposal_step_count: int | None = None
+        if isinstance(event.payload, TaskCreated):
+            task_title = event.payload.title
+        elif isinstance(event.payload, TaskPlanProposed):
+            task_title = event.payload.plan.title
+            proposal_step_count = len(event.payload.plan.steps)
+        references.append(
+            ReplayTaskPlanEventReference(
+                sequence=event.sequence,
+                event_type=event.event_type,
+                task_id=str(event.task_id),
+                turn_id=None if event.turn_id is None else str(event.turn_id),
+                task_title=task_title,
+                proposal_step_count=proposal_step_count,
+            )
+        )
+    return references
 
 
 def build_replay_bundle_session_config(source_session: SessionRecord) -> SessionConfig:

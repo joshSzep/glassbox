@@ -450,9 +450,10 @@ The intended v8 milestone order is:
 
 ### GBX-825: Add Task Export, Import, And Replay Bundle Awareness
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-824`
 - Goal: preserve task-plan context across handoff, import, replay, and eval workflows
+- Evidence: [task-plans.md](./task-plans.md)
 - Deliverables:
   - session export fields for task summaries, step summaries, blocked reasons, verification summaries, and task-event references
   - import behavior for task-related historical events that keeps imported sessions inspection-only unless a later task explicitly resumes them

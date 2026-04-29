@@ -62,6 +62,12 @@ During a turn, the model may propose durable task state by including one fenced 
 
 The runtime validates that block with a bounded Pydantic model, creates `TaskCreated` and `TaskPlanProposed` events when it is valid, and leaves normal assistant text untouched. Invalid, ambiguous, or multiple plan blocks are ignored. Captured plans are inspection-only; no step is started or executed by this capture path.
 
+## Handoff And Replay
+
+Session exports include redacted task summaries, step summaries, verification summaries, and canonical task-event references. The references retain enough validated payload data to import task-plan history into a new local session while preserving the import session as completed, inspection-only handoff state.
+
+Replay bundles retain task-plan event metadata and normalize task projections by stable plan content rather than volatile task identifiers. Replay comparison reports `task_plans drift` separately from transcript, tool, approval, question, cancellation, event-family, and final-state drift so eval triage can point operators at plan proposal or task projection evidence directly.
+
 ## Relationship To Existing Objects
 
 Task plans differ from existing runtime objects in these ways:

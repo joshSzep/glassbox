@@ -17,6 +17,10 @@ from glassbox.runtime.replay_models import ReplayQuestionSnapshot
 from glassbox.runtime.replay_models import ReplayRecordedModelCall
 from glassbox.runtime.replay_models import ReplayRecordedToolCall
 from glassbox.runtime.replay_models import ReplayResult
+from glassbox.runtime.replay_models import ReplayTaskPlanEventReference
+from glassbox.runtime.replay_models import ReplayTaskPlanSnapshot
+from glassbox.runtime.replay_models import ReplayTaskStepSnapshot
+from glassbox.runtime.replay_models import ReplayTaskVerificationSnapshot
 from glassbox.runtime.replay_models import ReplayToolCallSnapshot
 from glassbox.runtime.replay_models import ReplayTranscriptMessage
 from glassbox.runtime.replay_models import ReplayTranscriptPart
@@ -97,6 +101,10 @@ __all__ = [
     "ReplayRecordedToolCall",
     "ReplayResult",
     "ReplayRunner",
+    "ReplayTaskPlanEventReference",
+    "ReplayTaskPlanSnapshot",
+    "ReplayTaskStepSnapshot",
+    "ReplayTaskVerificationSnapshot",
     "ReplayToolCallSnapshot",
     "ReplayTranscriptMessage",
     "ReplayTranscriptPart",

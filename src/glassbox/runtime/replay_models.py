@@ -141,6 +141,57 @@ class ReplayCancellationSnapshot(BaseModel):
     summary: str | None = None
 
 
+class ReplayTaskStepSnapshot(BaseModel):
+    """Normalized task step used for replay comparison."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: str
+    order: int = Field(ge=0)
+    status: str
+    description: str | None = None
+    blocked_reason: str | None = None
+
+
+class ReplayTaskVerificationSnapshot(BaseModel):
+    """Normalized task verification used for replay comparison."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    check_name: str
+    status: str
+    step_order: int | None = Field(default=None, ge=0)
+    summary: str | None = None
+
+
+class ReplayTaskPlanSnapshot(BaseModel):
+    """Normalized task-plan projection used for replay comparison."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: str
+    goal: str
+    status: str
+    blocked_reason: str | None = None
+    blocked_detail: str | None = None
+    current_step_order: int | None = Field(default=None, ge=0)
+    steps: list[ReplayTaskStepSnapshot] = Field(default_factory=list)
+    verifications: list[ReplayTaskVerificationSnapshot] = Field(default_factory=list)
+
+
+class ReplayTaskPlanEventReference(BaseModel):
+    """Task-plan event metadata retained in replay bundles."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    sequence: int = Field(ge=0)
+    event_type: str
+    task_id: str
+    turn_id: str | None = None
+    task_title: str | None = None
+    proposal_step_count: int | None = Field(default=None, ge=0)
+
+
 class ReplayLineageSnapshot(BaseModel):
     """Normalized session lineage metadata used for replay comparison."""
 
@@ -176,6 +227,7 @@ class ReplayNormalizedSession(BaseModel):
     approvals: list[ReplayApprovalSnapshot]
     questions: list[ReplayQuestionSnapshot]
     cancellations: list[ReplayCancellationSnapshot] = Field(default_factory=list)
+    task_plans: list[ReplayTaskPlanSnapshot] = Field(default_factory=list)
     event_families: list[str]
     final_state: ReplayFinalStateSnapshot
 
@@ -196,6 +248,7 @@ class ReplayBundle(BaseModel):
     tool_requests: list[ReplayToolRequestManifest]
     tool_results: list[ReplayToolResultManifest]
     turn_outputs: list[ReplayTurnOutputManifest]
+    task_plan_events: list[ReplayTaskPlanEventReference] = Field(default_factory=list)
     baseline: ReplayNormalizedSession
 
 

@@ -2,6 +2,7 @@
 
 from collections.abc import Sequence
 from typing import Any
+from typing import cast
 
 from glassbox.core.events import CancellationAcknowledged
 from glassbox.core.events import CancellationFailed
@@ -23,9 +24,13 @@ from glassbox.runtime.replay_models import ReplayFinalStateSnapshot
 from glassbox.runtime.replay_models import ReplayLineageSnapshot
 from glassbox.runtime.replay_models import ReplayNormalizedSession
 from glassbox.runtime.replay_models import ReplayQuestionSnapshot
+from glassbox.runtime.replay_models import ReplayTaskPlanSnapshot
+from glassbox.runtime.replay_models import ReplayTaskStepSnapshot
+from glassbox.runtime.replay_models import ReplayTaskVerificationSnapshot
 from glassbox.runtime.replay_models import ReplayToolCallSnapshot
 from glassbox.runtime.replay_models import ReplayTranscriptMessage
 from glassbox.runtime.replay_models import ReplayTranscriptPart
+from glassbox.runtime.task_queries import TaskPlanRepository
 from glassbox.services import SessionRepository
 
 
@@ -85,6 +90,7 @@ def normalize_session(
         ],
         questions=normalize_questions(events),
         cancellations=normalize_cancellations(events),
+        task_plans=normalize_task_plans(session_id, repository),
         event_families=[
             event.event_type
             for event in events
@@ -176,6 +182,58 @@ def normalize_cancellations(
     return cancellations
 
 
+def normalize_task_plans(
+    session_id: SessionId,
+    repository: SessionRepository,
+) -> list[ReplayTaskPlanSnapshot]:
+    task_repository = cast(TaskPlanRepository, repository)
+    task_plans: list[ReplayTaskPlanSnapshot] = []
+    for task in task_repository.list_tasks(session_id=session_id):
+        steps = task_repository.list_task_steps(session_id, task.task_id)
+        step_order_by_id = {step.step_id: step.order for step in steps}
+        task_plans.append(
+            ReplayTaskPlanSnapshot(
+                title=task.title,
+                goal=task.goal,
+                status=enum_value(task.status),
+                blocked_reason=enum_optional_value(task.blocked_reason),
+                blocked_detail=task.blocked_detail,
+                current_step_order=(
+                    None
+                    if task.current_step_id is None
+                    else step_order_by_id.get(task.current_step_id)
+                ),
+                steps=[
+                    ReplayTaskStepSnapshot(
+                        title=step.title,
+                        order=step.order,
+                        status=enum_value(step.status),
+                        description=step.description,
+                        blocked_reason=enum_optional_value(step.blocked_reason),
+                    )
+                    for step in steps
+                ],
+                verifications=[
+                    ReplayTaskVerificationSnapshot(
+                        check_name=verification.check_name,
+                        status=enum_value(verification.status),
+                        step_order=(
+                            None
+                            if verification.step_id is None
+                            else step_order_by_id.get(verification.step_id)
+                        ),
+                        summary=verification.summary,
+                    )
+                    for verification in task_repository.list_task_verifications(
+                        session_id,
+                        task.task_id,
+                    )
+                ],
+            )
+        )
+    return task_plans
+
+
 def collect_mismatches(
     baseline: ReplayNormalizedSession,
     replay: ReplayNormalizedSession,
@@ -192,6 +250,7 @@ def collect_mismatches(
         "approvals",
         "questions",
         "cancellations",
+        "task_plans",
         "event_families",
         "final_state",
     ):
@@ -276,3 +335,9 @@ def normalize_transcript_message(
 
 def enum_value(value: Any) -> str:
     return value.value if hasattr(value, "value") else str(value)
+
+
+def enum_optional_value(value: Any | None) -> str | None:
+    if value is None:
+        return None
+    return enum_value(value)

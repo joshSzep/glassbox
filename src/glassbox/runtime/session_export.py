@@ -6,6 +6,8 @@ from collections.abc import Sequence
 from datetime import UTC
 from datetime import datetime
 from pathlib import Path
+from typing import Any
+from typing import cast
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -30,12 +32,19 @@ from glassbox.runtime.session_export_models import SessionExportLineage
 from glassbox.runtime.session_export_models import SessionExportMetadata
 from glassbox.runtime.session_export_models import SessionExportPayload
 from glassbox.runtime.session_export_models import SessionExportPolicyDecision
+from glassbox.runtime.session_export_models import SessionExportTaskEventReference
+from glassbox.runtime.session_export_models import SessionExportTaskStepSummary
+from glassbox.runtime.session_export_models import SessionExportTaskSummary
+from glassbox.runtime.session_export_models import SessionExportTaskVerificationSummary
 from glassbox.runtime.session_export_models import SessionExportTranscriptMessage
 from glassbox.runtime.session_export_models import SessionExportWorkspace
 from glassbox.runtime.session_queries import BranchableTurnView
 from glassbox.runtime.session_queries import ChildSessionSummaryView
 from glassbox.runtime.session_queries import SessionQueryService
 from glassbox.runtime.session_queries import SessionSnapshotView
+from glassbox.runtime.task_queries import TaskDetailView
+from glassbox.runtime.task_queries import TaskPlanRepository
+from glassbox.runtime.task_queries import TaskQueryService
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
 
@@ -113,8 +122,13 @@ def build_session_export_payload(
     """Build a portable handoff payload from persisted session state."""
 
     query_service = SessionQueryService(session_repository, artifact_repository)
+    task_query_service = TaskQueryService(cast(TaskPlanRepository, session_repository))
     snapshot = query_service.get_session_snapshot(session_id, turn_metrics_limit=25)
     events = session_repository.read_session_events(session_id)
+    task_details = [
+        task_query_service.get_task_detail(task.task_id)
+        for task in task_query_service.list_task_summaries(session_id=session_id)
+    ]
     redaction_context = _RedactionContext(workspace_root=workspace_root.resolve())
 
     return SessionExportPayload(
@@ -142,6 +156,13 @@ def build_session_export_payload(
         turn_metrics=snapshot.turn_metrics,
         artifact_references=_artifact_references(events, redaction_context),
         policy_decisions=_policy_decisions(events, redaction_context),
+        task_summaries=_task_summaries(task_details, redaction_context),
+        task_step_summaries=_task_step_summaries(task_details, redaction_context),
+        task_verification_summaries=_task_verification_summaries(
+            task_details,
+            redaction_context,
+        ),
+        task_event_references=_task_event_references(events, redaction_context),
         event_count=len(events),
         events=[_event_summary(event) for event in events],
         redaction_notes=list(_REDACTION_NOTES),
@@ -409,6 +430,113 @@ def _policy_trace(
     )
 
 
+def _task_summaries(
+    task_details: Sequence[TaskDetailView],
+    redaction_context: _RedactionContext,
+) -> list[SessionExportTaskSummary]:
+    return [
+        SessionExportTaskSummary(
+            task_id=detail.task.task_id,
+            title=_redact_text(detail.task.title, redaction_context),
+            goal=_redact_text(detail.task.goal, redaction_context),
+            status=detail.task.status.value,
+            updated_at=detail.task.updated_at,
+            blocked_reason=(
+                None
+                if detail.task.blocked_reason is None
+                else detail.task.blocked_reason.value
+            ),
+            blocked_detail=_redact_optional_text(
+                detail.task.blocked_detail,
+                redaction_context,
+            ),
+            current_step_id=detail.task.current_step_id,
+            step_count=detail.task.step_count,
+            next_action_summary=_redact_text(
+                detail.task.next_action_summary,
+                redaction_context,
+            ),
+        )
+        for detail in task_details
+    ]
+
+
+def _task_step_summaries(
+    task_details: Sequence[TaskDetailView],
+    redaction_context: _RedactionContext,
+) -> list[SessionExportTaskStepSummary]:
+    summaries: list[SessionExportTaskStepSummary] = []
+    for detail in task_details:
+        summaries.extend(
+            SessionExportTaskStepSummary(
+                task_id=detail.task.task_id,
+                step_id=step.step_id,
+                title=_redact_text(step.title, redaction_context),
+                order=step.order,
+                status=step.status.value,
+                description=_redact_optional_text(
+                    step.description,
+                    redaction_context,
+                ),
+                blocked_reason=(
+                    None if step.blocked_reason is None else step.blocked_reason.value
+                ),
+            )
+            for step in detail.steps
+        )
+    return summaries
+
+
+def _task_verification_summaries(
+    task_details: Sequence[TaskDetailView],
+    redaction_context: _RedactionContext,
+) -> list[SessionExportTaskVerificationSummary]:
+    summaries: list[SessionExportTaskVerificationSummary] = []
+    for detail in task_details:
+        summaries.extend(
+            SessionExportTaskVerificationSummary(
+                task_id=detail.task.task_id,
+                verification_id=verification.verification_id,
+                check_name=_redact_text(verification.check_name, redaction_context),
+                status=verification.status.value,
+                step_id=verification.step_id,
+                summary=_redact_optional_text(
+                    verification.summary,
+                    redaction_context,
+                ),
+            )
+            for verification in detail.verifications
+        )
+    return summaries
+
+
+def _task_event_references(
+    events: Sequence[EventEnvelope],
+    redaction_context: _RedactionContext,
+) -> list[SessionExportTaskEventReference]:
+    references: list[SessionExportTaskEventReference] = []
+    for event in events:
+        if event.task_id is None:
+            continue
+        references.append(
+            SessionExportTaskEventReference(
+                sequence=event.sequence,
+                event_type=event.event_type,
+                created_at=event.created_at,
+                task_id=event.task_id,
+                turn_id=_stringify_optional(event.turn_id),
+                payload=cast(
+                    dict[str, object],
+                    _redact_json_value(
+                        event.payload.model_dump(mode="json"),
+                        redaction_context,
+                    ),
+                ),
+            )
+        )
+    return references
+
+
 def _event_summary(event: EventEnvelope) -> SessionExportEventSummary:
     return SessionExportEventSummary(
         sequence=event.sequence,
@@ -479,6 +607,19 @@ def _redact_text(value: str, redaction_context: _RedactionContext) -> str:
     for pattern in _SECRET_PATTERNS:
         redacted = pattern.sub(_secret_replacement, redacted)
     return redacted
+
+
+def _redact_json_value(value: Any, redaction_context: _RedactionContext) -> Any:
+    if isinstance(value, str):
+        return _redact_text(value, redaction_context)
+    if isinstance(value, list):
+        return [_redact_json_value(item, redaction_context) for item in value]
+    if isinstance(value, dict):
+        return {
+            key: _redact_json_value(item, redaction_context)
+            for key, item in value.items()
+        }
+    return value
 
 
 def _secret_replacement(match: re.Match[str]) -> str:

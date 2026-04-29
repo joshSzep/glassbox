@@ -254,6 +254,11 @@ def behavioral_inspection_path(dimension: str | None) -> str:
             "Inspect cancellation requested, acknowledged, tool-cancelled, and "
             "turn-cancelled events plus retained partial output artifacts."
         )
+    if dimension == "task_plans":
+        return (
+            "Inspect task-plan events, captured plan proposal details, and the "
+            "normalized task projection in the replay bundle."
+        )
     if dimension == "event_families":
         return (
             "Inspect the replay session event stream for added or missing event "

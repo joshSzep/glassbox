@@ -354,10 +354,10 @@ def test_turn_records_structured_task_plan_proposals(tmp_path: Path) -> None:
                 artifact_repository,
                 state.session_id,
             )
+            replay_runner = ReplayRunner(repository, artifact_repository)
+            bundle = replay_runner.load_session_bundle(state.session_id)
 
-            result = await ReplayRunner(repository, artifact_repository).replay_session(
-                state.session_id
-            )
+            result = await replay_runner.replay_session(state.session_id)
         finally:
             connection.close()
 
@@ -375,8 +375,68 @@ def test_turn_records_structured_task_plan_proposals(tmp_path: Path) -> None:
             "title": "Add task dashboard",
             "step_count": 2,
         }
+        assert [event.event_type for event in bundle.task_plan_events] == [
+            "TaskCreated",
+            "TaskPlanProposed",
+        ]
+        assert bundle.task_plan_events[1].proposal_step_count == 2
+        assert bundle.baseline.task_plans[0].title == "Add task dashboard"
+        assert [step.title for step in bundle.baseline.task_plans[0].steps] == [
+            "Add typed API reads",
+            "Render read-only task pane",
+        ]
         assert result.outcome == "exact_match"
         assert result.replay == result.baseline
+
+    asyncio.run(scenario())
+
+
+def test_replay_runner_reports_task_plan_drift_distinctly(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = _build_turn_engine(
+                repository,
+                artifact_repository,
+                bus,
+                model_fn=_task_plan_response,
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+
+            state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+            await supervisor.submit_user_message(
+                state.session_id,
+                "Plan the dashboard task",
+            )
+            replay_runner = ReplayRunner(repository, artifact_repository)
+            bundle = replay_runner.load_session_bundle(state.session_id)
+            drift_bundle = bundle.model_copy(
+                update={
+                    "baseline": bundle.baseline.model_copy(update={"task_plans": []})
+                }
+            )
+
+            result = await replay_runner.replay_bundle(drift_bundle)
+        finally:
+            connection.close()
+
+        assert result.outcome == "behavioral_drift"
+        assert result.mismatches == ["task_plans drift"]
+        assert result.triage is not None
+        assert result.triage.classification == "behavioral_drift"
+        assert result.triage.first_relevant_change == "task_plans drift"
+        assert result.triage.impacted_dimensions == ["task_plans"]
+        assert result.triage.recommended_inspection_path is not None
+        assert "task-plan events" in result.triage.recommended_inspection_path
 
     asyncio.run(scenario())
 
