@@ -622,6 +622,14 @@ class BranchCandidateRejected(EventPayload):
     reason: str = Field(min_length=1, max_length=2000)
 
 
+class BranchCandidateNeedsReview(EventPayload):
+    event_type: Literal["BranchCandidateNeedsReview"] = "BranchCandidateNeedsReview"
+    search_id: BranchSearchId
+    candidate_id: BranchCandidateId
+    marked_by: str = Field(default="operator", min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+
+
 class BranchSearchAbandoned(EventPayload):
     event_type: Literal["BranchSearchAbandoned"] = "BranchSearchAbandoned"
     search_id: BranchSearchId
@@ -899,6 +907,7 @@ EventPayloadType = Annotated[
     | BranchCandidatesCompared
     | BranchCandidateSelected
     | BranchCandidateRejected
+    | BranchCandidateNeedsReview
     | BranchSearchAbandoned
     | BackgroundJobCreated
     | BackgroundJobClaimed

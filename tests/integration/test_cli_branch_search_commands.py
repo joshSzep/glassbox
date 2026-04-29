@@ -95,6 +95,68 @@ def test_branch_search_start_records_bounded_plan(
     assert len(payload["candidate_ids"]) == 1
 
 
+def test_branch_search_select_reject_and_needs_review_are_projected(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    search_id = new_branch_search_id()
+    selected_id = new_branch_candidate_id()
+    rejected_id = new_branch_candidate_id()
+    review_id = new_branch_candidate_id()
+    _seed_branch_search(db_path, tmp_path, session_id, search_id, selected_id)
+    _append_candidate(db_path, session_id, search_id, rejected_id, "Reject me")
+    _append_candidate(db_path, session_id, search_id, review_id, "Review me")
+
+    for command, candidate_id in (
+        ("select", selected_id),
+        ("reject", rejected_id),
+        ("needs-review", review_id),
+    ):
+        exit_code = main(
+            [
+                "branch-search",
+                command,
+                str(search_id),
+                str(candidate_id),
+                "--reason",
+                f"{command} reason",
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+                "--json",
+            ]
+        )
+        assert exit_code == 0
+        _ = capsys.readouterr()
+
+    show_exit = main(
+        [
+            "branch-search",
+            "show",
+            str(search_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    states = {
+        candidate["candidate_id"]: candidate["selection_state"]
+        for candidate in payload["candidates"]
+    }
+
+    assert show_exit == 0
+    assert payload["search"]["selected_candidate_id"] == str(selected_id)
+    assert states[str(selected_id)] == "selected"
+    assert states[str(rejected_id)] == "rejected"
+    assert states[str(review_id)] == "needs_review"
+
+
 def _seed_session(db_path: Path, tmp_path: Path, session_id) -> None:
     connection = open_database(db_path)
     try:
@@ -108,6 +170,31 @@ def _seed_session(db_path: Path, tmp_path: Path, session_id) -> None:
                     cwd=str(tmp_path),
                     model_name="openai:gpt-5.4",
                     approval_mode="confirm",
+                ),
+            )
+        )
+    finally:
+        connection.close()
+
+
+def _append_candidate(
+    db_path: Path,
+    session_id,
+    search_id,
+    candidate_id,
+    label: str,
+) -> None:
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=BranchCandidatePlanned(
+                    search_id=search_id,
+                    candidate_id=candidate_id,
+                    strategy_label=label,
                 ),
             )
         )

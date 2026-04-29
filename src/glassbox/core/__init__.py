@@ -21,6 +21,7 @@ from glassbox.core.events import BackgroundJobRetryRequested
 from glassbox.core.events import BackgroundJobStarted
 from glassbox.core.events import BranchCandidateExecuted
 from glassbox.core.events import BranchCandidateForked
+from glassbox.core.events import BranchCandidateNeedsReview
 from glassbox.core.events import BranchCandidatePlanned
 from glassbox.core.events import BranchCandidateRejected
 from glassbox.core.events import BranchCandidatesCompared
@@ -226,6 +227,7 @@ __all__ = [
     "BranchCandidateExecuted",
     "BranchCandidateForked",
     "BranchCandidateId",
+    "BranchCandidateNeedsReview",
     "BranchCandidatePlanned",
     "BranchCandidateRecord",
     "BranchCandidateRejected",

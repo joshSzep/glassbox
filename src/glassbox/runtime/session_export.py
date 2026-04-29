@@ -25,7 +25,10 @@ from glassbox.core.models import MessagePart
 from glassbox.core.models import PolicyDecisionTrace
 from glassbox.core.models import TranscriptMessage
 from glassbox.runtime import session_export_models
+from glassbox.runtime.branch_search import BranchSearchQueryService
+from glassbox.runtime.branch_search import BranchSearchRepository
 from glassbox.runtime.session_export_models import SessionExportArtifactReference
+from glassbox.runtime.session_export_models import SessionExportBranchSearchSummary
 from glassbox.runtime.session_export_models import SessionExportEventSummary
 from glassbox.runtime.session_export_models import SessionExportHandoff
 from glassbox.runtime.session_export_models import SessionExportLineage
@@ -123,6 +126,9 @@ def build_session_export_payload(
 
     query_service = SessionQueryService(session_repository, artifact_repository)
     task_query_service = TaskQueryService(cast(TaskPlanRepository, session_repository))
+    branch_search_service = BranchSearchQueryService(
+        cast(BranchSearchRepository, session_repository)
+    )
     snapshot = query_service.get_session_snapshot(session_id, turn_metrics_limit=25)
     events = session_repository.read_session_events(session_id)
     task_details = [
@@ -164,6 +170,10 @@ def build_session_export_payload(
             redaction_context,
         ),
         task_event_references=_task_event_references(events, redaction_context),
+        branch_search_summaries=_branch_search_summaries(
+            branch_search_service,
+            session_id,
+        ),
         event_count=len(events),
         events=[_event_summary(event) for event in events],
         redaction_notes=list(_REDACTION_NOTES),
@@ -536,6 +546,22 @@ def _task_event_references(
             )
         )
     return references
+
+
+def _branch_search_summaries(
+    branch_search_service: BranchSearchQueryService,
+    session_id: SessionId,
+) -> list[SessionExportBranchSearchSummary]:
+    summaries: list[SessionExportBranchSearchSummary] = []
+    for search in branch_search_service.list_searches(session_id=session_id):
+        detail = branch_search_service.get_detail(search.search_id)
+        summaries.append(
+            SessionExportBranchSearchSummary(
+                search=detail.search,
+                candidates=detail.candidates,
+            )
+        )
+    return summaries
 
 
 def _event_summary(event: EventEnvelope) -> SessionExportEventSummary:

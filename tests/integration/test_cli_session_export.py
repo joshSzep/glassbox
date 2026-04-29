@@ -9,7 +9,12 @@ import pytest
 from glassbox.cli import main
 from glassbox.core import AutonomyBudgetRemaining
 from glassbox.core import AutonomyBudgetUsage
+from glassbox.core import BranchCandidatePlanned
+from glassbox.core import BranchCandidateSelected
+from glassbox.core import BranchSearchStarted
 from glassbox.core import BudgetDecisionRecorded
+from glassbox.core import new_branch_candidate_id
+from glassbox.core import new_branch_search_id
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import new_turn_id
 from glassbox.core.types import AutonomyEscalationReason
@@ -197,6 +202,78 @@ def test_cli_session_export_includes_autonomy_budget_posture(
     assert payload.autonomy_budget_posture.last_limit_name == "write_operations"
     assert payload.handoff.next_action_summary == (
         "Review budget exhaustion and choose a smaller next step or override"
+    )
+
+
+def test_cli_session_export_includes_branch_search_summary(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    search_id = new_branch_search_id()
+    candidate_id = new_branch_candidate_id()
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=BranchSearchStarted(
+                        search_id=search_id,
+                        parent_session_id=session_id,
+                        objective="Compare handoff branches",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=BranchCandidatePlanned(
+                        search_id=search_id,
+                        candidate_id=candidate_id,
+                        strategy_label="selected strategy",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=BranchCandidateSelected(
+                        search_id=search_id,
+                        candidate_id=candidate_id,
+                        reason="best verification evidence",
+                    ),
+                ),
+            ]
+        )
+    finally:
+        connection.close()
+
+    output_path = tmp_path / "branch-search-session.json"
+    _ = capsys.readouterr()
+    exit_code = main(
+        [
+            "session",
+            "export",
+            str(session_id),
+            str(output_path),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    payload = SessionExportPayload.model_validate_json(
+        output_path.read_text(encoding="utf-8")
+    )
+
+    assert exit_code == 0
+    assert payload.branch_search_summaries[0].search.search_id == search_id
+    assert (
+        payload.branch_search_summaries[0].search.selected_candidate_id == candidate_id
+    )
+    assert (
+        payload.branch_search_summaries[0].candidates[0].selection_state == "selected"
     )
 
 

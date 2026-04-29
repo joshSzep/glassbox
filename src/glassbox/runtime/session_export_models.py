@@ -13,6 +13,8 @@ from glassbox.core.ids import TaskStepId
 from glassbox.core.ids import TaskVerificationId
 from glassbox.core.models import ApprovalRecord
 from glassbox.core.models import AutonomyBudgetPostureRecord
+from glassbox.core.models import BranchCandidateRecord
+from glassbox.core.models import BranchSearchRecord
 from glassbox.core.models import MessagePart
 from glassbox.core.models import MessageRole
 from glassbox.core.models import PolicyDecisionTrace
@@ -174,6 +176,14 @@ class SessionExportTaskEventReference(BaseModel):
     payload: dict[str, object]
 
 
+class SessionExportBranchSearchSummary(BaseModel):
+    """Portable branch-search summary for operator handoff."""
+
+    model_config = ConfigDict(extra="forbid")
+    search: BranchSearchRecord
+    candidates: list[BranchCandidateRecord] = Field(default_factory=list)
+
+
 class SessionExportPolicyDecision(BaseModel):
     """Portable policy evidence captured from canonical events."""
 
@@ -215,6 +225,9 @@ class SessionExportPayload(BaseModel):
         default_factory=list
     )
     task_event_references: list[SessionExportTaskEventReference] = Field(
+        default_factory=list
+    )
+    branch_search_summaries: list[SessionExportBranchSearchSummary] = Field(
         default_factory=list
     )
     event_count: int = Field(ge=0)

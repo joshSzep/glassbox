@@ -5,7 +5,10 @@ from typing import cast
 
 from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
+from glassbox.core import BranchCandidateNeedsReview
 from glassbox.core import BranchCandidatePlanned
+from glassbox.core import BranchCandidateRejected
+from glassbox.core import BranchCandidateSelected
 from glassbox.core import BranchSearchStarted
 from glassbox.core import EventEnvelope
 from glassbox.core import new_branch_candidate_id
@@ -23,6 +26,8 @@ def _branch_search_command(args: argparse.Namespace) -> int:
         return _branch_search_list_command(args)
     if command == "show":
         return _branch_search_show_command(args)
+    if command in {"select", "reject", "needs-review"}:
+        return _branch_search_mark_candidate_command(args, command)
     raise ValueError("specify a branch-search subcommand")
 
 
@@ -129,6 +134,67 @@ def _branch_search_show_command(args: argparse.Namespace) -> int:
             if candidate.verification_summary:
                 print(f"    Verification: {candidate.verification_summary}")
     return 0
+
+
+def _branch_search_mark_candidate_command(
+    args: argparse.Namespace,
+    command: str,
+) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        service = BranchSearchQueryService(
+            cast(BranchSearchRepository, runtime_context.repositories.sessions)
+        )
+        detail = service.get_detail(args.search_id)
+        if not any(
+            candidate.candidate_id == args.candidate_id
+            for candidate in detail.candidates
+        ):
+            raise ValueError(f"unknown branch-search candidate: {args.candidate_id}")
+        payload = _candidate_mark_event(args, command)
+        runtime_context.repositories.sessions.append_event(
+            EventEnvelope(
+                session_id=detail.search.session_id,
+                sequence=0,
+                payload=payload,
+            )
+        )
+    result = {
+        "search_id": str(args.search_id),
+        "candidate_id": str(args.candidate_id),
+        "state": command,
+    }
+    if args.json:
+        print_json_output(result)
+    else:
+        print(
+            f"Marked candidate {args.candidate_id} as {command} "
+            f"for branch search {args.search_id}"
+        )
+    return 0
+
+
+def _candidate_mark_event(args: argparse.Namespace, command: str):
+    if command == "select":
+        return BranchCandidateSelected(
+            search_id=args.search_id,
+            candidate_id=args.candidate_id,
+            selected_by=args.actor,
+            reason=args.reason,
+        )
+    if command == "reject":
+        return BranchCandidateRejected(
+            search_id=args.search_id,
+            candidate_id=args.candidate_id,
+            rejected_by=args.actor,
+            reason=args.reason,
+        )
+    return BranchCandidateNeedsReview(
+        search_id=args.search_id,
+        candidate_id=args.candidate_id,
+        marked_by=args.actor,
+        reason=args.reason,
+    )
 
 
 __all__ = ["_branch_search_command"]

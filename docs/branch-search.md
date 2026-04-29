@@ -25,9 +25,17 @@ uv run glassbox branch-search start SESSION_ID \
   --cwd .
 uv run glassbox branch-search list --cwd .
 uv run glassbox branch-search show SEARCH_ID --json --cwd .
+uv run glassbox branch-search select SEARCH_ID CANDIDATE_ID \
+  --reason "best passing verification evidence" \
+  --cwd .
 ```
 
 The bounded coordinator runs candidates sequentially under branch-attempt,
 tool-call, write, command, and verification budgets. It records planned, forked,
 executed, verified, and compared evidence, but it never merges candidate
 changes automatically.
+
+Selection is handoff metadata. `select`, `reject`, and `needs-review` update the
+candidate projection while preserving every candidate as historical evidence.
+Session export includes branch-search summaries and selected candidate evidence
+so an operator can continue from the winning branch intentionally.

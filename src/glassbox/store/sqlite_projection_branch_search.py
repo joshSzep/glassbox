@@ -4,6 +4,7 @@ import sqlite3
 
 from glassbox.core.events import BranchCandidateExecuted
 from glassbox.core.events import BranchCandidateForked
+from glassbox.core.events import BranchCandidateNeedsReview
 from glassbox.core.events import BranchCandidatePlanned
 from glassbox.core.events import BranchCandidateRejected
 from glassbox.core.events import BranchCandidatesCompared
@@ -154,6 +155,16 @@ def _apply_branch_search_projection(
             payload.candidate_id,
             status=BranchCandidateStatus.REJECTED,
             selection_state=BranchCandidateStatus.REJECTED,
+        )
+        return
+    if isinstance(payload, BranchCandidateNeedsReview):
+        _update_candidate(
+            connection,
+            event,
+            payload.search_id,
+            payload.candidate_id,
+            status=BranchCandidateStatus.NEEDS_REVIEW,
+            selection_state=BranchCandidateStatus.NEEDS_REVIEW,
         )
         return
     if isinstance(payload, BranchSearchAbandoned):

@@ -58,5 +58,22 @@ def _add_branch_search_parsers(
     show_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(show_parser)
 
+    for command_name, help_text in (
+        ("select", "mark a candidate as selected"),
+        ("reject", "mark a candidate as rejected"),
+        ("needs-review", "mark a candidate as needing review"),
+    ):
+        action_parser = branch_subparsers.add_parser(
+            command_name,
+            help=help_text,
+            description=help_text,
+        )
+        action_parser.add_argument("search_id", type=_parse_uuid)
+        action_parser.add_argument("candidate_id", type=_parse_uuid)
+        action_parser.add_argument("--reason", required=True)
+        action_parser.add_argument("--actor", default="operator")
+        action_parser.add_argument("--json", action="store_true")
+        _add_runtime_location_arguments(action_parser)
+
 
 __all__ = ["_add_branch_search_parsers"]
