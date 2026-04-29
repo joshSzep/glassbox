@@ -71,6 +71,7 @@ def build_replay_enriched_context_sources(
         str(note).strip()
         for note in list(turn_context_payload.get("memory_notes") or [])
         if str(note).strip() != ""
+        and not str(note).strip().casefold().startswith("[workspace-memory ")
     ]
     if memory_notes:
         manifests.append(
@@ -95,6 +96,51 @@ def build_replay_enriched_context_sources(
                     f"{len(memory_notes)} runtime note(s)"
                     if len(memory_notes) != 1
                     else "1 runtime note"
+                ),
+            )
+        )
+
+    workspace_memory_payload = turn_context_payload.get("workspace_memory")
+    workspace_memory_items = []
+    if isinstance(workspace_memory_payload, list):
+        workspace_memory_items = [
+            item for item in workspace_memory_payload if isinstance(item, dict)
+        ]
+    if workspace_memory_items:
+        normalized_memory = sorted(
+            [
+                _normalize_workspace_memory_payload(item)
+                for item in workspace_memory_items
+            ],
+            key=lambda item: (item["kind"], item["summary"], item["memory_id"]),
+        )
+        manifests.append(
+            ReplayEnrichedContextSourceManifest(
+                source_name="workspace_memory",
+                provenance_class="persisted_session_state",
+                fingerprint=fingerprint_replay_payload({"items": normalized_memory}),
+                item_count=len(normalized_memory),
+                summary=(
+                    f"{len(normalized_memory)} workspace memory item(s)"
+                    if len(normalized_memory) != 1
+                    else "1 workspace memory item"
+                ),
+            )
+        )
+
+    repository_index_payload = turn_context_payload.get("repository_index")
+    if isinstance(repository_index_payload, dict):
+        normalized_index = _normalize_repository_index_payload(repository_index_payload)
+        manifests.append(
+            ReplayEnrichedContextSourceManifest(
+                source_name="repository_index",
+                provenance_class="recomputed_summary",
+                fingerprint=fingerprint_replay_payload(normalized_index),
+                item_count=len(normalized_index["items"]),
+                additional_item_count=normalized_index["additional_item_count"],
+                summary=(
+                    f"repository index {normalized_index['status']} with "
+                    f"{len(normalized_index['items'])} item(s)"
                 ),
             )
         )
@@ -202,6 +248,8 @@ def fingerprint_replay_enriched_context_payload(
             "memory_notes": list(turn_context_payload.get("memory_notes") or []),
             "working_set": turn_context_payload.get("working_set"),
             "artifact_context": turn_context_payload.get("artifact_context"),
+            "workspace_memory": turn_context_payload.get("workspace_memory"),
+            "repository_index": turn_context_payload.get("repository_index"),
         }
     )
 
@@ -301,6 +349,73 @@ def _normalize_working_set_item_payload(item: dict[str, Any]) -> dict[str, Any]:
         "reasons": normalized_reasons,
         "signal_types": normalized_signal_types,
         "inherited": bool(item.get("inherited")),
+    }
+
+
+def _normalize_workspace_memory_payload(item: dict[str, Any]) -> dict[str, Any]:
+    raw_provenance = item.get("provenance")
+    provenance: dict[str, Any] = (
+        raw_provenance if isinstance(raw_provenance, dict) else {}
+    )
+    return {
+        "memory_id": str(item.get("memory_id") or ""),
+        "kind": str(item.get("kind") or ""),
+        "summary": str(item.get("summary") or "").strip(),
+        "content": str(item.get("content") or "").strip(),
+        "redacted": bool(item.get("redacted")),
+        "provenance": {
+            "source_type": str(provenance.get("source_type") or ""),
+            "session_id": str(provenance.get("session_id") or "") or None,
+            "source_sequence": provenance.get("source_sequence"),
+            "task_id": str(provenance.get("task_id") or "") or None,
+            "artifact_id": str(provenance.get("artifact_id") or "") or None,
+            "tool_call_id": str(provenance.get("tool_call_id") or "") or None,
+        },
+    }
+
+
+def _normalize_repository_index_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    items = [
+        item for item in list(payload.get("items") or []) if isinstance(item, dict)
+    ]
+    return {
+        "status": str(payload.get("status") or ""),
+        "schema_version": payload.get("schema_version"),
+        "builder_version": payload.get("builder_version"),
+        "source_digest": payload.get("source_digest"),
+        "entry_count": int(payload.get("entry_count") or 0),
+        "additional_item_count": int(payload.get("additional_item_count") or 0),
+        "items": sorted(
+            [_normalize_repository_index_item_payload(item) for item in items],
+            key=lambda item: (
+                item["kind"],
+                item["path"] or "",
+                item["name"],
+                item["entry_id"],
+            ),
+        ),
+    }
+
+
+def _normalize_repository_index_item_payload(item: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "entry_id": str(item.get("entry_id") or ""),
+        "kind": str(item.get("kind") or ""),
+        "name": str(item.get("name") or ""),
+        "summary": str(item.get("summary") or "").strip(),
+        "path": str(item.get("path") or "") or None,
+        "symbol": str(item.get("symbol") or "") or None,
+        "source_type": str(item.get("source_type") or "") or None,
+        "line_start": item.get("line_start"),
+        "line_end": item.get("line_end"),
+        "tags": sorted(
+            {
+                tag.strip()
+                for tag in list(item.get("tags") or [])
+                if isinstance(tag, str) and tag.strip() != ""
+            },
+            key=str.casefold,
+        ),
     }
 
 

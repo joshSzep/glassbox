@@ -4,9 +4,11 @@ from collections.abc import Sequence
 
 from glassbox.core.ids import SessionId
 from glassbox.runtime.context_formatting import format_repository_context_for_prompt
+from glassbox.runtime.context_formatting import format_repository_index_for_prompt
 from glassbox.runtime.context_formatting import format_runtime_notes_for_prompt
 from glassbox.runtime.context_formatting import format_tool_schemas_for_prompt
 from glassbox.runtime.context_formatting import format_transcript_for_prompt
+from glassbox.runtime.context_formatting import format_workspace_memory_for_prompt
 from glassbox.runtime.context_formatting import normalize_tool_schemas
 from glassbox.runtime.context_models import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
 from glassbox.runtime.context_models import ArtifactBackedContextSnapshot
@@ -14,15 +16,21 @@ from glassbox.runtime.context_models import ArtifactBackedContextSummarySnapshot
 from glassbox.runtime.context_models import PolicyContext
 from glassbox.runtime.context_models import PytestFailureDigestArtifact
 from glassbox.runtime.context_models import RepositoryContextSnapshot
+from glassbox.runtime.context_models import RepositoryIndexContextItemSnapshot
+from glassbox.runtime.context_models import RepositoryIndexContextSnapshot
 from glassbox.runtime.context_models import RuntimeContextNoteSnapshot
 from glassbox.runtime.context_models import RuntimeContextSnapshot
 from glassbox.runtime.context_models import TurnContext
 from glassbox.runtime.context_models import WorkingSetItemSnapshot
 from glassbox.runtime.context_models import WorkingSetSnapshot
+from glassbox.runtime.context_models import WorkspaceMemoryContextItemSnapshot
+from glassbox.runtime.context_models import WorkspaceMemoryContextProvenanceSnapshot
 from glassbox.runtime.context_snapshots import build_artifact_backed_context_snapshot
 from glassbox.runtime.context_snapshots import build_pytest_failure_digest_artifact
 from glassbox.runtime.context_snapshots import build_repository_context_snapshot
+from glassbox.runtime.context_snapshots import build_repository_index_context_snapshot
 from glassbox.runtime.context_snapshots import build_runtime_context_snapshot
+from glassbox.runtime.context_snapshots import build_workspace_memory_context_snapshot
 from glassbox.runtime.context_working_set import build_working_set_snapshot
 from glassbox.services import SessionRepository
 from glassbox.tools import ToolRegistry
@@ -45,6 +53,8 @@ class TurnContextBuilder:
         memory_notes: Sequence[str] = (),
         working_set: WorkingSetSnapshot | None = None,
         artifact_context: ArtifactBackedContextSnapshot | None = None,
+        workspace_memory: Sequence[WorkspaceMemoryContextItemSnapshot] = (),
+        repository_index: RepositoryIndexContextSnapshot | None = None,
     ) -> TurnContext:
         session = self._session_repository.get_session(session_id)
         session_state = self._session_repository.get_session_state(session_id)
@@ -77,6 +87,8 @@ class TurnContextBuilder:
             memory_notes=list(memory_notes),
             working_set=working_set,
             artifact_context=artifact_context,
+            workspace_memory=list(workspace_memory),
+            repository_index=repository_index,
         )
 
     def build_from_runtime_context(
@@ -89,16 +101,34 @@ class TurnContextBuilder:
     ) -> TurnContext:
         """Build a turn context from a shared structured runtime-context snapshot."""
 
+        repository_context = format_repository_context_for_prompt(
+            runtime_context.repository_context
+        )
+        turn_repository_index = (
+            runtime_context.repository_index
+            if runtime_context.repository_index is not None
+            and runtime_context.repository_index.status == "fresh"
+            else None
+        )
+        repository_index_context = format_repository_index_for_prompt(
+            turn_repository_index
+        )
+        if repository_index_context:
+            repository_context = f"{repository_context}\n\n{repository_index_context}"
+
         return self.build(
             session_id,
             tool_schemas=tool_schemas,
             tool_registry=tool_registry,
-            repo_context=format_repository_context_for_prompt(
-                runtime_context.repository_context
-            ),
-            memory_notes=format_runtime_notes_for_prompt(runtime_context.runtime_notes),
+            repo_context=repository_context,
+            memory_notes=[
+                *format_runtime_notes_for_prompt(runtime_context.runtime_notes),
+                *format_workspace_memory_for_prompt(runtime_context.workspace_memory),
+            ],
             working_set=runtime_context.working_set,
             artifact_context=runtime_context.artifact_context,
+            workspace_memory=runtime_context.workspace_memory,
+            repository_index=turn_repository_index,
         )
 
 
@@ -108,22 +138,30 @@ __all__ = [
     "build_artifact_backed_context_snapshot",
     "build_pytest_failure_digest_artifact",
     "build_repository_context_snapshot",
+    "build_repository_index_context_snapshot",
     "build_runtime_context_snapshot",
+    "build_workspace_memory_context_snapshot",
     "build_working_set_snapshot",
+    "format_repository_index_for_prompt",
     "format_repository_context_for_prompt",
     "format_runtime_notes_for_prompt",
     "format_tool_schemas_for_prompt",
     "format_transcript_for_prompt",
+    "format_workspace_memory_for_prompt",
     "normalize_tool_schemas",
     "PolicyContext",
     "PYTEST_FAILURE_DIGEST_ARTIFACT_KIND",
     "PytestFailureDigestArtifact",
+    "RepositoryIndexContextItemSnapshot",
+    "RepositoryIndexContextSnapshot",
     "RepositoryContextSnapshot",
     "RuntimeContextNoteSnapshot",
     "RuntimeContextSnapshot",
     "ToolSchema",
     "TurnContext",
     "TurnContextBuilder",
+    "WorkspaceMemoryContextItemSnapshot",
+    "WorkspaceMemoryContextProvenanceSnapshot",
     "WorkingSetItemSnapshot",
     "WorkingSetSnapshot",
 ]

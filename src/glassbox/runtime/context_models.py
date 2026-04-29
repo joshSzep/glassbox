@@ -7,9 +7,12 @@ from pydantic import ConfigDict
 from pydantic import Field
 
 from glassbox.core.ids import ApprovalId
+from glassbox.core.ids import ArtifactId
 from glassbox.core.ids import SessionId
+from glassbox.core.ids import TaskId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
+from glassbox.core.ids import WorkspaceMemoryId
 from glassbox.core.models import TranscriptMessage
 from glassbox.core.types import SessionStatus
 from glassbox.tools import ToolSchema
@@ -110,6 +113,70 @@ class ArtifactBackedContextSnapshot(BaseModel):
     additional_summary_count: int = Field(default=0, ge=0)
 
 
+class WorkspaceMemoryContextProvenanceSnapshot(BaseModel):
+    """Bounded provenance for a workspace-memory prompt item."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_type: str
+    source_label: str | None = None
+    session_id: SessionId | None = None
+    source_sequence: int | None = Field(default=None, ge=0)
+    task_id: TaskId | None = None
+    artifact_id: ArtifactId | None = None
+    tool_call_id: ToolCallId | None = None
+
+
+class WorkspaceMemoryContextItemSnapshot(BaseModel):
+    """One confirmed workspace-memory item selected for turn context."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    memory_id: WorkspaceMemoryId
+    kind: str
+    summary: str
+    content: str
+    provenance: WorkspaceMemoryContextProvenanceSnapshot
+    confirmed_by: str | None = None
+    redacted: bool = False
+    use_count: int = Field(default=0, ge=0)
+    tags: list[str] = Field(default_factory=list)
+
+
+class RepositoryIndexContextItemSnapshot(BaseModel):
+    """One repository-index item selected for turn context."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    entry_id: str
+    kind: str
+    name: str
+    summary: str | None = None
+    path: str | None = None
+    symbol: str | None = None
+    source_type: str | None = None
+    line_start: int | None = Field(default=None, ge=1)
+    line_end: int | None = Field(default=None, ge=1)
+    tags: list[str] = Field(default_factory=list)
+
+
+class RepositoryIndexContextSnapshot(BaseModel):
+    """Bounded repository-index context with freshness posture."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: str
+    path: str
+    schema_version: int | None = None
+    builder_version: str | None = None
+    source_digest: str | None = None
+    entry_count: int = Field(default=0, ge=0)
+    items: list[RepositoryIndexContextItemSnapshot] = Field(default_factory=list)
+    additional_item_count: int = Field(default=0, ge=0)
+    context_bytes: int = Field(default=0, ge=0)
+    detail: str | None = None
+
+
 class RuntimeContextSnapshot(BaseModel):
     """Shared operator-facing runtime context summary."""
 
@@ -124,6 +191,12 @@ class RuntimeContextSnapshot(BaseModel):
     artifact_context: ArtifactBackedContextSnapshot = Field(
         default_factory=lambda: ArtifactBackedContextSnapshot()
     )
+    workspace_memory: list[WorkspaceMemoryContextItemSnapshot] = Field(
+        default_factory=list
+    )
+    additional_workspace_memory_count: int = Field(default=0, ge=0)
+    workspace_memory_context_bytes: int = Field(default=0, ge=0)
+    repository_index: RepositoryIndexContextSnapshot | None = None
 
 
 class PolicyContext(BaseModel):
@@ -151,3 +224,7 @@ class TurnContext(BaseModel):
     memory_notes: list[str] = Field(default_factory=list)
     working_set: WorkingSetSnapshot | None = None
     artifact_context: ArtifactBackedContextSnapshot | None = None
+    workspace_memory: list[WorkspaceMemoryContextItemSnapshot] = Field(
+        default_factory=list
+    )
+    repository_index: RepositoryIndexContextSnapshot | None = None

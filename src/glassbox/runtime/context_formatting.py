@@ -5,8 +5,10 @@ from collections.abc import Sequence
 
 from glassbox.core.models import TranscriptMessage
 from glassbox.runtime.context_models import RepositoryContextSnapshot
+from glassbox.runtime.context_models import RepositoryIndexContextSnapshot
 from glassbox.runtime.context_models import RuntimeContextNoteSnapshot
 from glassbox.runtime.context_models import RuntimeContextSnapshot
+from glassbox.runtime.context_models import WorkspaceMemoryContextItemSnapshot
 from glassbox.tools import ToolSchema
 
 
@@ -64,6 +66,27 @@ def format_repository_context_for_prompt(
     return "\n".join(lines)
 
 
+def format_repository_index_for_prompt(
+    snapshot: RepositoryIndexContextSnapshot | None,
+) -> str:
+    """Render repository-index selections into a separate prompt fragment."""
+
+    if snapshot is None:
+        return ""
+    lines = [f"Repository index: {snapshot.status}; entries {snapshot.entry_count}"]
+    if snapshot.detail is not None:
+        lines.append(f"Repository index detail: {snapshot.detail}")
+    for item in snapshot.items:
+        location = item.path or "workspace"
+        symbol_suffix = f"::{item.symbol}" if item.symbol else ""
+        summary = item.summary or item.name
+        source = item.source_type or "unknown"
+        lines.append(
+            f"- [{item.kind}] {location}{symbol_suffix}: {summary} (source: {source})"
+        )
+    return "\n".join(lines)
+
+
 def format_runtime_notes_for_prompt(
     notes: Sequence[RuntimeContextNoteSnapshot],
 ) -> list[str]:
@@ -76,6 +99,26 @@ def format_runtime_notes_for_prompt(
         )
         formatted_notes.append(f"[{category_prefix}] {note.message}")
     return formatted_notes
+
+
+def format_workspace_memory_for_prompt(
+    entries: Sequence[WorkspaceMemoryContextItemSnapshot],
+) -> list[str]:
+    """Render confirmed workspace-memory entries into stable prompt notes."""
+
+    formatted: list[str] = []
+    for entry in entries:
+        provenance = entry.provenance
+        source = provenance.source_type
+        if provenance.source_sequence is not None:
+            source += f":{provenance.source_sequence}"
+        if provenance.session_id is not None:
+            source += f"@{str(provenance.session_id)[:8]}"
+        text = entry.content if entry.content else entry.summary
+        formatted.append(
+            f"[workspace-memory {entry.kind} {source}] {entry.summary}: {text}"
+        )
+    return formatted
 
 
 def format_runtime_context_budget_summary(
@@ -109,6 +152,20 @@ def format_runtime_context_budget_summary(
                 "artifact summaries",
                 len(snapshot.artifact_context.summaries),
                 snapshot.artifact_context.additional_summary_count,
+            ),
+            _budget_segment(
+                "workspace memory",
+                len(snapshot.workspace_memory),
+                snapshot.additional_workspace_memory_count,
+            ),
+            _budget_segment(
+                "repo index",
+                len(snapshot.repository_index.items)
+                if snapshot.repository_index is not None
+                else 0,
+                snapshot.repository_index.additional_item_count
+                if snapshot.repository_index is not None
+                else 0,
             ),
         ]
     )

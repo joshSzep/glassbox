@@ -255,6 +255,61 @@ def test_enriched_context_source_fingerprint_catches_meaningful_source_change() 
     assert baseline_sources[-1].fingerprint != changed_sources[-1].fingerprint
 
 
+def test_enriched_context_sources_include_workspace_memory_and_repository_index() -> (
+    None
+):
+    payload = {
+        "memory_notes": [
+            "[operator] Keep notes brief",
+            "[workspace-memory command session_event:3@abc12345] "
+            "Run tests: uv run pytest",
+        ],
+        "workspace_memory": [
+            {
+                "memory_id": "00000000-0000-4000-8000-000000000001",
+                "kind": "command",
+                "summary": "Run tests",
+                "content": "uv run pytest",
+                "provenance": {
+                    "source_type": "session_event",
+                    "session_id": "00000000-0000-4000-8000-000000000002",
+                    "source_sequence": 3,
+                },
+            }
+        ],
+        "repository_index": {
+            "status": "fresh",
+            "schema_version": 1,
+            "builder_version": "v1",
+            "source_digest": "abc",
+            "entry_count": 2,
+            "additional_item_count": 1,
+            "items": [
+                {
+                    "entry_id": "command:abc",
+                    "kind": "command",
+                    "name": "test",
+                    "summary": "uv run pytest",
+                    "path": "pyproject.toml",
+                    "source_type": "manifest",
+                    "tags": ["command"],
+                }
+            ],
+        },
+    }
+
+    sources = build_replay_enriched_context_sources(payload)
+
+    assert [source.source_name for source in sources] == [
+        "runtime_notes",
+        "workspace_memory",
+        "repository_index",
+    ]
+    assert sources[0].summary == "1 runtime note"
+    assert sources[1].item_count == 1
+    assert sources[2].additional_item_count == 1
+
+
 def test_load_replay_manifest_round_trips_turn_output_manifest() -> None:
     manifest = build_replay_turn_output_manifest(
         outcome="failed",

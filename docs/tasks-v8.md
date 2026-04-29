@@ -975,7 +975,7 @@ The intended v8 milestone order is:
 
 ### GBX-855: Feed Memory And Repository Index Into Turn Context With Provenance
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-851`, `GBX-854`, `GBX-831`
 - Goal: use workspace memory and repository intelligence in model turns while preserving inspectability, budget control, and replay drift reporting
 - Deliverables:
@@ -994,6 +994,18 @@ The intended v8 milestone order is:
   - replay fingerprint tests
   - status/web snapshot tests
   - eval tests for context drift reporting
+- Completed vertical slice:
+  - added bounded runtime-context snapshots for confirmed workspace memory and repository-index context, with provenance, byte budgets, counts, freshness posture, and explicit stale/missing index behavior
+  - fed workspace memory into prompt memory notes and fresh repository-index items into a separate repository prompt fragment while preserving structured turn-context fields; missing or stale indexes remain visible in status/web snapshots but are gated out of prepared turns
+  - exposed included memory and repository-index sources in CLI session status and web session snapshots
+  - included workspace memory and repository index in enriched-context replay fingerprints and per-source manifests for drift triage
+  - regenerated frontend API types and updated frontend runtime-context fixtures
+- Validation:
+  - `uv run ruff format src/glassbox/runtime/context_models.py src/glassbox/runtime/context_snapshots.py src/glassbox/runtime/runtime_context_derivation.py src/glassbox/runtime/context_formatting.py src/glassbox/runtime/context_builder.py src/glassbox/runtime/replay_fingerprints.py src/glassbox/cli/status_formatters.py tests/unit/test_context_builder.py tests/unit/test_replay_capture.py tests/integration/test_web_session_snapshot.py tests/integration/test_openapi_schema.py && uv run ruff check src/glassbox/runtime/context_models.py src/glassbox/runtime/context_snapshots.py src/glassbox/runtime/runtime_context_derivation.py src/glassbox/runtime/context_formatting.py src/glassbox/runtime/context_builder.py src/glassbox/runtime/replay_fingerprints.py src/glassbox/cli/status_formatters.py tests/unit/test_context_builder.py tests/unit/test_replay_capture.py tests/integration/test_web_session_snapshot.py tests/integration/test_openapi_schema.py`
+  - `uv run ty check`
+  - `uv run pytest tests/unit/test_context_builder.py tests/unit/test_replay_capture.py tests/integration/test_web_session_snapshot.py tests/integration/test_cli_session_commands.py tests/integration/test_openapi_schema.py`
+  - `uv run glassbox eval run`
+  - `cd frontend && pnpm run api:generate && pnpm run typecheck`
 - Done when:
   - richer local context improves autonomy while remaining visible and replay-aware
 

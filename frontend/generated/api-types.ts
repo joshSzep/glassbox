@@ -691,6 +691,8 @@ export interface components {
       /** Turn Id */
       turn_id: string;
     };
+    /** Format: uuid */
+    ArtifactId: string;
     /**
      * AutonomyBudget
      * @description Explicit local limits for one autonomy mode selection.
@@ -1163,6 +1165,67 @@ export interface components {
       /** Workspace Name */
       workspace_name: string;
     };
+    /**
+     * RepositoryIndexContextItemSnapshot
+     * @description One repository-index item selected for turn context.
+     */
+    RepositoryIndexContextItemSnapshot: {
+      /** Entry Id */
+      entry_id: string;
+      /** Kind */
+      kind: string;
+      /** Line End */
+      line_end?: number | null;
+      /** Line Start */
+      line_start?: number | null;
+      /** Name */
+      name: string;
+      /** Path */
+      path?: string | null;
+      /** Source Type */
+      source_type?: string | null;
+      /** Summary */
+      summary?: string | null;
+      /** Symbol */
+      symbol?: string | null;
+      /** Tags */
+      tags?: string[];
+    };
+    /**
+     * RepositoryIndexContextSnapshot
+     * @description Bounded repository-index context with freshness posture.
+     */
+    RepositoryIndexContextSnapshot: {
+      /**
+       * Additional Item Count
+       * @default 0
+       */
+      additional_item_count: number;
+      /** Builder Version */
+      builder_version?: string | null;
+      /**
+       * Context Bytes
+       * @default 0
+       */
+      context_bytes: number;
+      /** Detail */
+      detail?: string | null;
+      /**
+       * Entry Count
+       * @default 0
+       */
+      entry_count: number;
+      /** Items */
+      items?: components["schemas"]["RepositoryIndexContextItemSnapshot"][];
+      /** Path */
+      path: string;
+      /** Schema Version */
+      schema_version?: number | null;
+      /** Source Digest */
+      source_digest?: string | null;
+      /** Status */
+      status: string;
+    };
     /** RepositoryIndexEntryDetailResponse */
     RepositoryIndexEntryDetailResponse: {
       entry: components["schemas"]["RepositoryIndexEntryResponse"];
@@ -1272,11 +1335,24 @@ export interface components {
        * @default 0
        */
       additional_runtime_note_count: number;
+      /**
+       * Additional Workspace Memory Count
+       * @default 0
+       */
+      additional_workspace_memory_count: number;
       artifact_context?: components["schemas"]["ArtifactBackedContextSnapshot"];
       repository_context: components["schemas"]["RepositoryContextSnapshot"];
+      repository_index?: components["schemas"]["RepositoryIndexContextSnapshot"] | null;
       /** Runtime Notes */
       runtime_notes?: components["schemas"]["RuntimeContextNoteSnapshot"][];
       working_set?: components["schemas"]["WorkingSetSnapshot"];
+      /** Workspace Memory */
+      workspace_memory?: components["schemas"]["WorkspaceMemoryContextItemSnapshot"][];
+      /**
+       * Workspace Memory Context Bytes
+       * @default 0
+       */
+      workspace_memory_context_bytes: number;
     };
     /** SessionAggregateResponse */
     SessionAggregateResponse: {
@@ -1816,6 +1892,50 @@ export interface components {
       /** Tags */
       tags: string[];
     };
+    /**
+     * WorkspaceMemoryContextItemSnapshot
+     * @description One confirmed workspace-memory item selected for turn context.
+     */
+    WorkspaceMemoryContextItemSnapshot: {
+      /** Confirmed By */
+      confirmed_by?: string | null;
+      /** Content */
+      content: string;
+      /** Kind */
+      kind: string;
+      memory_id: components["schemas"]["WorkspaceMemoryId"];
+      provenance: components["schemas"]["WorkspaceMemoryContextProvenanceSnapshot"];
+      /**
+       * Redacted
+       * @default false
+       */
+      redacted: boolean;
+      /** Summary */
+      summary: string;
+      /** Tags */
+      tags?: string[];
+      /**
+       * Use Count
+       * @default 0
+       */
+      use_count: number;
+    };
+    /**
+     * WorkspaceMemoryContextProvenanceSnapshot
+     * @description Bounded provenance for a workspace-memory prompt item.
+     */
+    WorkspaceMemoryContextProvenanceSnapshot: {
+      artifact_id?: components["schemas"]["ArtifactId"] | null;
+      session_id?: components["schemas"]["SessionId"] | null;
+      /** Source Label */
+      source_label?: string | null;
+      /** Source Sequence */
+      source_sequence?: number | null;
+      /** Source Type */
+      source_type: string;
+      task_id?: components["schemas"]["TaskId"] | null;
+      tool_call_id?: components["schemas"]["ToolCallId"] | null;
+    };
     /** WorkspaceMemoryDetailResponse */
     WorkspaceMemoryDetailResponse: {
       entry: components["schemas"]["WorkspaceMemoryEntryResponse"];
@@ -1876,6 +1996,8 @@ export interface components {
       /** Use Count */
       use_count: number;
     };
+    /** Format: uuid */
+    WorkspaceMemoryId: string;
     /**
      * WorkspaceMemoryKind
      * @description Operator-facing categories for durable workspace memory.

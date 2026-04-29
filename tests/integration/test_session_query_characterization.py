@@ -198,6 +198,7 @@ def test_session_query_and_turn_context_share_runtime_context_derivation(
             assert turn_context.repo_context == format_repository_context_for_prompt(
                 runtime_context.repository_context
             )
+            assert turn_context.repository_index is None
             assert turn_context.memory_notes == format_runtime_notes_for_prompt(
                 runtime_context.runtime_notes
             )

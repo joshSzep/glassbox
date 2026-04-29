@@ -327,6 +327,10 @@
         "title": "ArtifactDetailResponse",
         "type": "object"
       },
+      "ArtifactId": {
+        "format": "uuid",
+        "type": "string"
+      },
       "AutonomyBudget": {
         "additionalProperties": false,
         "description": "Explicit local limits for one autonomy mode selection.",
@@ -1589,6 +1593,188 @@
         "title": "RepositoryContextSnapshot",
         "type": "object"
       },
+      "RepositoryIndexContextItemSnapshot": {
+        "additionalProperties": false,
+        "description": "One repository-index item selected for turn context.",
+        "properties": {
+          "entry_id": {
+            "title": "Entry Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "line_end": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line End"
+          },
+          "line_start": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Start"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "source_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Type"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "symbol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Symbol"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": ["entry_id", "kind", "name"],
+        "title": "RepositoryIndexContextItemSnapshot",
+        "type": "object"
+      },
+      "RepositoryIndexContextSnapshot": {
+        "additionalProperties": false,
+        "description": "Bounded repository-index context with freshness posture.",
+        "properties": {
+          "additional_item_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Additional Item Count",
+            "type": "integer"
+          },
+          "builder_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Builder Version"
+          },
+          "context_bytes": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Context Bytes",
+            "type": "integer"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "entry_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Entry Count",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIndexContextItemSnapshot"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "schema_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schema Version"
+          },
+          "source_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Digest"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": ["status", "path"],
+        "title": "RepositoryIndexContextSnapshot",
+        "type": "object"
+      },
       "RepositoryIndexEntryDetailResponse": {
         "properties": {
           "entry": {
@@ -1918,11 +2104,27 @@
             "title": "Additional Runtime Note Count",
             "type": "integer"
           },
+          "additional_workspace_memory_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Additional Workspace Memory Count",
+            "type": "integer"
+          },
           "artifact_context": {
             "$ref": "#/components/schemas/ArtifactBackedContextSnapshot"
           },
           "repository_context": {
             "$ref": "#/components/schemas/RepositoryContextSnapshot"
+          },
+          "repository_index": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RepositoryIndexContextSnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "runtime_notes": {
             "items": {
@@ -1933,6 +2135,19 @@
           },
           "working_set": {
             "$ref": "#/components/schemas/WorkingSetSnapshot"
+          },
+          "workspace_memory": {
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceMemoryContextItemSnapshot"
+            },
+            "title": "Workspace Memory",
+            "type": "array"
+          },
+          "workspace_memory_context_bytes": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Workspace Memory Context Bytes",
+            "type": "integer"
           }
         },
         "required": ["repository_context"],
@@ -3614,6 +3829,138 @@
         "title": "WorkspaceMemoryCandidateResponse",
         "type": "object"
       },
+      "WorkspaceMemoryContextItemSnapshot": {
+        "additionalProperties": false,
+        "description": "One confirmed workspace-memory item selected for turn context.",
+        "properties": {
+          "confirmed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed By"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "memory_id": {
+            "$ref": "#/components/schemas/WorkspaceMemoryId"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/WorkspaceMemoryContextProvenanceSnapshot"
+          },
+          "redacted": {
+            "default": false,
+            "title": "Redacted",
+            "type": "boolean"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "use_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Use Count",
+            "type": "integer"
+          }
+        },
+        "required": ["memory_id", "kind", "summary", "content", "provenance"],
+        "title": "WorkspaceMemoryContextItemSnapshot",
+        "type": "object"
+      },
+      "WorkspaceMemoryContextProvenanceSnapshot": {
+        "additionalProperties": false,
+        "description": "Bounded provenance for a workspace-memory prompt item.",
+        "properties": {
+          "artifact_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ArtifactId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SessionId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Label"
+          },
+          "source_sequence": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Sequence"
+          },
+          "source_type": {
+            "title": "Source Type",
+            "type": "string"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tool_call_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ToolCallId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["source_type"],
+        "title": "WorkspaceMemoryContextProvenanceSnapshot",
+        "type": "object"
+      },
       "WorkspaceMemoryDetailResponse": {
         "properties": {
           "entry": {
@@ -3825,6 +4172,10 @@
         ],
         "title": "WorkspaceMemoryEntryResponse",
         "type": "object"
+      },
+      "WorkspaceMemoryId": {
+        "format": "uuid",
+        "type": "string"
       },
       "WorkspaceMemoryKind": {
         "description": "Operator-facing categories for durable workspace memory.",

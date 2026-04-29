@@ -13,6 +13,12 @@ from glassbox.core import BudgetDecisionRecorded
 from glassbox.core import EventEnvelope
 from glassbox.core import MessagePart
 from glassbox.core import SessionConfig
+from glassbox.core import WorkspaceMemoryConfirmed
+from glassbox.core import WorkspaceMemoryCreated
+from glassbox.core import WorkspaceMemoryKind
+from glassbox.core import WorkspaceMemoryProvenance
+from glassbox.core import WorkspaceMemorySourceType
+from glassbox.core import new_workspace_memory_id
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import AssistantMessageCompleted
 from glassbox.core.events import ModelCallCompleted
@@ -33,6 +39,7 @@ from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.runtime.bus import EventBus
 from glassbox.runtime.context_builder import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
 from glassbox.runtime.context_builder import PytestFailureDigestArtifact
+from glassbox.runtime.repository_index import build_and_write_repository_index
 from glassbox.runtime.supervisor import SessionSupervisor
 from glassbox.store.repositories import SQLiteSessionRepository
 from glassbox.store.sqlite import initialize_database
@@ -540,6 +547,88 @@ def test_get_session_includes_runtime_context_runtime_notes(tmp_path: Path) -> N
                 ],
                 "additional_item_count": 0,
             }
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_get_session_includes_memory_and_repository_index_context(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        (tmp_path / "src").mkdir(exist_ok=True)
+        (tmp_path / "src" / "sample.py").write_text(
+            "class UsefulThing:\n    pass\n",
+            encoding="utf-8",
+        )
+        (tmp_path / "pyproject.toml").write_text(
+            '[project]\nname = "fixture"\n',
+            encoding="utf-8",
+        )
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app, runtime_context = _make_app(tmp_path, connection)
+            repo = runtime_context.repositories.sessions
+            bus: EventBus[EventEnvelope] = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(repo, bus)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+            state = await supervisor.start_session(config)
+            memory_id = new_workspace_memory_id()
+            repo.append_events(
+                [
+                    EventEnvelope(
+                        session_id=state.session_id,
+                        sequence=0,
+                        payload=WorkspaceMemoryCreated(
+                            memory_id=memory_id,
+                            kind=WorkspaceMemoryKind.COMMAND,
+                            content="Use uv run pytest for backend tests.",
+                            summary="Backend tests use uv",
+                            provenance=WorkspaceMemoryProvenance(
+                                source_type=WorkspaceMemorySourceType.SESSION_EVENT,
+                                session_id=state.session_id,
+                                source_sequence=1,
+                            ),
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=state.session_id,
+                        sequence=0,
+                        payload=WorkspaceMemoryConfirmed(memory_id=memory_id),
+                    ),
+                ]
+            )
+            build_and_write_repository_index(tmp_path)
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get(f"/sessions/{state.session_id}")
+
+            assert response.status_code == 200
+            runtime_context_body = response.json()["runtime_context"]
+            assert runtime_context_body["workspace_memory"][0]["memory_id"] == str(
+                memory_id
+            )
+            assert runtime_context_body["workspace_memory"][0]["provenance"] == {
+                "source_type": "session_event",
+                "source_label": None,
+                "session_id": str(state.session_id),
+                "source_sequence": 1,
+                "task_id": None,
+                "artifact_id": None,
+                "tool_call_id": None,
+            }
+            assert runtime_context_body["additional_workspace_memory_count"] == 0
+            assert runtime_context_body["repository_index"]["status"] == "fresh"
+            assert runtime_context_body["repository_index"]["entry_count"] >= 2
+            assert runtime_context_body["repository_index"]["items"]
         finally:
             connection.close()
 

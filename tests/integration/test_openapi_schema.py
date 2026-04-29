@@ -60,6 +60,8 @@ def test_openapi_schema_includes_browser_transport_contracts() -> None:
     assert "RepositoryIndexStatusResponse" in components
     assert "RepositoryIndexSearchPageResponse" in components
     assert "RepositoryIndexEntryDetailResponse" in components
+    assert "RepositoryIndexContextSnapshot" in components
+    assert "WorkspaceMemoryContextItemSnapshot" in components
     assert "ErrorDetailResponse" in components
     assert "HTTPValidationError" in components
 

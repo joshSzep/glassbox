@@ -21,6 +21,7 @@ export function makeRuntimeContext(
 ): components["schemas"]["RuntimeContextSnapshot"] {
   return {
     additional_runtime_note_count: 0,
+    additional_workspace_memory_count: 0,
     artifact_context: { additional_summary_count: 0, summaries: [] },
     repository_context: {
       additional_directory_count: 0,
@@ -32,6 +33,9 @@ export function makeRuntimeContext(
       workspace_name: "glassbox",
     },
     runtime_notes: [],
+    workspace_memory: [],
+    workspace_memory_context_bytes: 0,
+    repository_index: null,
     working_set: { additional_item_count: 0, items: [] },
     ...overrides,
   };

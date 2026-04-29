@@ -194,6 +194,43 @@ def _print_runtime_context_summary(runtime_context) -> None:
     else:
         print("  Artifact-backed context: none")
 
+    if runtime_context.workspace_memory:
+        print(f"  Workspace memory: {len(runtime_context.workspace_memory)} visible")
+        for memory in runtime_context.workspace_memory:
+            source = memory.provenance.source_type
+            if memory.provenance.source_sequence is not None:
+                source += f":{memory.provenance.source_sequence}"
+            print(f"    - [{memory.kind}] {memory.summary} (source: {source})")
+        if runtime_context.additional_workspace_memory_count:
+            print(
+                "    - "
+                f"+{runtime_context.additional_workspace_memory_count} "
+                "more workspace memory item(s)"
+            )
+    else:
+        print("  Workspace memory: none")
+
+    if runtime_context.repository_index is not None:
+        repository_index = runtime_context.repository_index
+        print(
+            "  Repository index: "
+            f"{repository_index.status}; {len(repository_index.items)} visible "
+            f"of {repository_index.entry_count} entries"
+        )
+        if repository_index.detail is not None:
+            print(f"    - {repository_index.detail}")
+        for item in repository_index.items:
+            location = item.path or "workspace"
+            print(f"    - [{item.kind}] {item.name} ({location})")
+        if repository_index.additional_item_count:
+            print(
+                "    - "
+                f"+{repository_index.additional_item_count} more repository "
+                "index item(s)"
+            )
+    else:
+        print("  Repository index: none")
+
 
 def _format_projection_health_line(projection_health) -> str:
     line = (

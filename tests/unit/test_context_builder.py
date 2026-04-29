@@ -25,34 +25,48 @@ from glassbox.core import ToolArtifactRecorded
 from glassbox.core import ToolCallRecord
 from glassbox.core import ToolExecutionStatus
 from glassbox.core import TranscriptMessage
+from glassbox.core import WorkspaceMemoryEntry
+from glassbox.core import WorkspaceMemoryKind
+from glassbox.core import WorkspaceMemoryProvenance
+from glassbox.core import WorkspaceMemorySourceType
+from glassbox.core import WorkspaceMemoryState
 from glassbox.core import new_approval_id
 from glassbox.core import new_artifact_id
 from glassbox.core import new_message_id
 from glassbox.core import new_session_id
 from glassbox.core import new_tool_call_id
 from glassbox.core import new_turn_id
+from glassbox.core import new_workspace_memory_id
 from glassbox.core.models import ApprovalRecord
 from glassbox.runtime.context_builder import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
 from glassbox.runtime.context_builder import ArtifactBackedContextSnapshot
 from glassbox.runtime.context_builder import ArtifactBackedContextSummarySnapshot
 from glassbox.runtime.context_builder import PytestFailureDigestArtifact
 from glassbox.runtime.context_builder import RepositoryContextSnapshot
+from glassbox.runtime.context_builder import RepositoryIndexContextSnapshot
 from glassbox.runtime.context_builder import RuntimeContextNoteSnapshot
 from glassbox.runtime.context_builder import RuntimeContextSnapshot
 from glassbox.runtime.context_builder import ToolSchema
 from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.context_builder import WorkingSetItemSnapshot
 from glassbox.runtime.context_builder import WorkingSetSnapshot
+from glassbox.runtime.context_builder import WorkspaceMemoryContextItemSnapshot
+from glassbox.runtime.context_builder import WorkspaceMemoryContextProvenanceSnapshot
 from glassbox.runtime.context_formatting import format_repository_context_for_prompt
+from glassbox.runtime.context_formatting import format_repository_index_for_prompt
 from glassbox.runtime.context_formatting import format_runtime_context_budget_summary
 from glassbox.runtime.context_formatting import format_runtime_notes_for_prompt
 from glassbox.runtime.context_formatting import format_tool_schemas_for_prompt
 from glassbox.runtime.context_formatting import format_transcript_for_prompt
+from glassbox.runtime.context_formatting import format_workspace_memory_for_prompt
 from glassbox.runtime.context_snapshots import build_artifact_backed_context_snapshot
 from glassbox.runtime.context_snapshots import build_pytest_failure_digest_artifact
 from glassbox.runtime.context_snapshots import build_repository_context_snapshot
+from glassbox.runtime.context_snapshots import build_repository_index_context_snapshot
 from glassbox.runtime.context_snapshots import build_runtime_context_snapshot
+from glassbox.runtime.context_snapshots import build_workspace_memory_context_snapshot
 from glassbox.runtime.context_working_set import build_working_set_snapshot
+from glassbox.runtime.repository_index import build_and_write_repository_index
 from glassbox.runtime.runtime_context_derivation import derive_runtime_context_snapshot
 from glassbox.tools import ToolRegistry
 from glassbox.tools import ToolRiskLevel
@@ -70,6 +84,7 @@ class FakeSessionRepository:
         events=None,
         tool_calls=None,
         approvals=None,
+        workspace_memory=None,
     ):
         self._session = session
         self._session_state = session_state
@@ -78,6 +93,7 @@ class FakeSessionRepository:
         self._events = list(events or [])
         self._tool_calls = list(tool_calls or [])
         self._approvals = list(approvals or [])
+        self._workspace_memory = list(workspace_memory or [])
 
     def create_session(
         self,
@@ -239,7 +255,7 @@ class FakeSessionRepository:
         return None
 
     def list_workspace_memory(self, **kwargs):
-        return []
+        return list(self._workspace_memory)
 
     def get_workspace_memory(self, memory_id):
         return None
@@ -472,6 +488,64 @@ def test_turn_context_builder_builds_prompt_fields_from_runtime_context() -> Non
     )
     assert context.working_set == runtime_context.working_set
     assert context.artifact_context == runtime_context.artifact_context
+
+
+def test_turn_context_builder_includes_memory_and_repository_index_context() -> None:
+    session_id = new_session_id()
+    memory_id = new_workspace_memory_id()
+    repository = FakeSessionRepository(
+        SessionRecord(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            created_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+            cwd=Path("/tmp/glassbox"),
+            model_name="openai:gpt-5.4",
+            approval_mode="confirm",
+            last_sequence=1,
+        ),
+        SessionState(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            last_sequence=1,
+        ),
+        [],
+    )
+    builder = TurnContextBuilder(repository)
+    memory = WorkspaceMemoryContextItemSnapshot(
+        memory_id=memory_id,
+        kind="command",
+        summary="Use uv run pytest for backend tests",
+        content="Use uv run pytest for backend tests.",
+        provenance=WorkspaceMemoryContextProvenanceSnapshot(
+            source_type="session_event",
+            session_id=session_id,
+            source_sequence=3,
+        ),
+        confirmed_by="operator",
+    )
+    repository_index = RepositoryIndexContextSnapshot(
+        status="fresh",
+        path=".glassbox/repository-index.json",
+        entry_count=1,
+        items=[],
+    )
+    runtime_context = RuntimeContextSnapshot(
+        repository_context=RepositoryContextSnapshot(workspace_name="glassbox"),
+        workspace_memory=[memory],
+        repository_index=repository_index,
+    )
+
+    context = builder.build_from_runtime_context(session_id, runtime_context)
+
+    assert context.workspace_memory == [memory]
+    assert context.repository_index == repository_index
+    assert context.memory_notes == format_workspace_memory_for_prompt([memory])
+    assert context.repo_context == (
+        format_repository_context_for_prompt(runtime_context.repository_context)
+        + "\n\n"
+        + format_repository_index_for_prompt(repository_index)
+    )
 
 
 def test_turn_context_builder_can_derive_tools_from_registry() -> None:
@@ -775,6 +849,67 @@ def test_runtime_context_snapshot_includes_working_set_summary(tmp_path: Path) -
     )
 
 
+def test_memory_and_repository_index_context_snapshots_are_bounded(
+    tmp_path: Path,
+) -> None:
+    session_id = new_session_id()
+    confirmed = _workspace_memory_entry(
+        session_id,
+        summary="Run backend tests with uv",
+        content="Use uv run pytest tests/unit for backend unit tests.",
+        source_sequence=2,
+    )
+    unconfirmed = _workspace_memory_entry(
+        session_id,
+        summary="Draft memory",
+        content="Do not include unconfirmed memory.",
+        source_sequence=3,
+        confirmed=False,
+    )
+    repository = FakeSessionRepository(
+        SessionRecord(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            created_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+            cwd=tmp_path,
+            model_name="openai:gpt-5.4",
+            approval_mode="confirm",
+            last_sequence=4,
+        ),
+        SessionState(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            last_sequence=4,
+        ),
+        [],
+        workspace_memory=[confirmed, unconfirmed],
+    )
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "sample.py").write_text(
+        "class UsefulThing:\n    pass\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "fixture"\n',
+        encoding="utf-8",
+    )
+    build_and_write_repository_index(tmp_path)
+
+    memory_items, additional_memory, memory_bytes = (
+        build_workspace_memory_context_snapshot(repository)
+    )
+    repository_index = build_repository_index_context_snapshot(tmp_path, item_limit=2)
+
+    assert [item.memory_id for item in memory_items] == [confirmed.memory_id]
+    assert additional_memory == 0
+    assert memory_bytes > 0
+    assert repository_index.status == "fresh"
+    assert repository_index.entry_count >= 2
+    assert len(repository_index.items) == 2
+    assert repository_index.additional_item_count == repository_index.entry_count - 2
+
+
 def test_runtime_context_snapshot_includes_artifact_backed_summary() -> None:
     runtime_context = build_runtime_context_snapshot(
         Path("/tmp/glassbox"),
@@ -848,7 +983,8 @@ def test_runtime_context_budget_summary_reports_visible_and_truncated_counts() -
     assert format_runtime_context_budget_summary(runtime_context) == (
         "repo dirs 2 visible (+3 more); repo files 1 visible; "
         "notes 1 visible (+2 more); working set 1 visible (+4 more); "
-        "artifact summaries 0 visible (+1 more)"
+        "artifact summaries 0 visible (+1 more); "
+        "workspace memory 0 visible; repo index 0 visible"
     )
 
 
@@ -1311,6 +1447,35 @@ def test_derive_runtime_context_snapshot_preserves_shared_structured_inputs() ->
     assert runtime_context.artifact_context.summaries[0].failing_tests == [
         "tests/unit/test_context_builder.py::test_example"
     ]
+
+
+def _workspace_memory_entry(
+    session_id,
+    *,
+    summary: str,
+    content: str,
+    source_sequence: int,
+    confirmed: bool = True,
+) -> WorkspaceMemoryEntry:
+    now = datetime(2026, 4, 24, 12, source_sequence, tzinfo=UTC)
+    return WorkspaceMemoryEntry(
+        memory_id=new_workspace_memory_id(),
+        session_id=session_id,
+        kind=WorkspaceMemoryKind.COMMAND,
+        state=WorkspaceMemoryState.ACTIVE,
+        content=content,
+        summary=summary,
+        provenance=WorkspaceMemoryProvenance(
+            source_type=WorkspaceMemorySourceType.SESSION_EVENT,
+            session_id=session_id,
+            source_sequence=source_sequence,
+        ),
+        created_at=now,
+        updated_at=now,
+        confirmed_by="operator" if confirmed else None,
+        confirmed_at=now if confirmed else None,
+        last_sequence=source_sequence,
+    )
 
 
 class ReadFileArgs(BaseModel):
