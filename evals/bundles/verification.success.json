@@ -1,0 +1,100 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Verify the repaired task"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves successful verification state",
+        "turn_id": "00000000-0000-0000-0000-000000089004"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves successful verification state",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000089004"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "VerificationRunStarted",
+      "VerificationRunCompleted",
+      "TaskStepCompleted",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "questions": [],
+    "task_plans": [
+      {
+        "current_step_order": 0,
+        "goal": "Repair the focused test failure",
+        "status": "completed",
+        "steps": [
+          {
+            "description": "Apply the local repair and run the selected check.",
+            "order": 0,
+            "status": "completed",
+            "title": "Repair and verify"
+          }
+        ],
+        "title": "Repair failing test",
+        "verifications": [
+          {
+            "check_name": "pytest tests/unit/test_verify_repair_loop.py",
+            "status": "passed",
+            "step_order": 0,
+            "summary": "Focused pytest check passed after one repair attempt."
+          }
+        ]
+      }
+    ],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Verify the repaired task"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000008904",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "verification.success"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

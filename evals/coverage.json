@@ -124,6 +124,86 @@
       ],
       "coverage_mode": "multi_case",
       "notes": "Advisory fixtures prove model-call, tool-execution, and repeated/reconnect-sensitive local cancellation evidence replays explicitly rather than as generic failures. Provider remote-computation stop behavior and live socket timing remain advisory or integration evidence."
+    },
+    {
+      "capability_id": "task_plan_proposal_capture",
+      "title": "Task-plan proposal capture",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["advisory"],
+      "expected_case_ids": ["task-plan.proposal-capture"],
+      "coverage_mode": "single_case",
+      "notes": "Advisory v8 replay evidence protects the normalized task-plan projection. Release blocking still depends on existing task-plan unit, integration, export/import, and dashboard coverage until live plan capture is stable enough for release-candidate replay."
+    },
+    {
+      "capability_id": "task_continuation_until_blocked",
+      "title": "Task continuation until blocked",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["advisory"],
+      "expected_case_ids": ["task.continuation-blocked"],
+      "coverage_mode": "single_case",
+      "notes": "Advisory v8 replay evidence records the bounded stop reason. Daemon-owned continuation timing, pause/resume, cancellation, and stale-owner recovery remain integration and manual release evidence."
+    },
+    {
+      "capability_id": "autonomy_budget_exhaustion",
+      "title": "Autonomy budget exhaustion",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["advisory"],
+      "expected_case_ids": ["autonomy.budget-exhaustion"],
+      "coverage_mode": "single_case",
+      "notes": "Advisory v8 replay evidence protects budget posture and exhaustion reason while focused policy and web tests remain the release authority for live budget decisions."
+    },
+    {
+      "capability_id": "verification_loop_success",
+      "title": "Verify-repair success evidence",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["advisory"],
+      "expected_case_ids": ["verification.success"],
+      "coverage_mode": "single_case",
+      "notes": "Advisory v8 replay evidence retains successful verification-loop projection. Actual command execution and repair limits remain covered by focused verification-loop tests."
+    },
+    {
+      "capability_id": "verification_loop_failure",
+      "title": "Verify-repair failure evidence",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["advisory"],
+      "expected_case_ids": ["verification.failure"],
+      "coverage_mode": "single_case",
+      "notes": "Advisory v8 replay evidence retains failed verification-loop projection and residual stop state. Actual command failure handling remains covered by focused verification-loop tests."
+    },
+    {
+      "capability_id": "memory_context_drift",
+      "title": "Workspace-memory context drift",
+      "kind": "product_behavior",
+      "criticality": "advisory",
+      "verification_stages": ["advisory"],
+      "expected_case_ids": ["memory.context-drift"],
+      "coverage_mode": "single_case",
+      "notes": "Workspace-memory prompt-source drift remains advisory because freshness and invalidation depend on local workspace state. Focused context and memory tests remain the stronger blocking evidence."
+    },
+    {
+      "capability_id": "repository_index_context_drift",
+      "title": "Repository-index context drift",
+      "kind": "product_behavior",
+      "criticality": "advisory",
+      "verification_stages": ["advisory"],
+      "expected_case_ids": ["repository-index.context-drift"],
+      "coverage_mode": "single_case",
+      "notes": "Repository-index prompt-source drift remains advisory because index freshness depends on local file state. Focused repository-index tests and rebuild smoke remain the stronger blocking evidence."
+    },
+    {
+      "capability_id": "branch_search_candidate_comparison",
+      "title": "Branch-search candidate comparison",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["advisory"],
+      "expected_case_ids": ["branch-search.candidate-comparison"],
+      "coverage_mode": "single_case",
+      "notes": "Advisory v8 replay evidence retains candidate comparison summaries. Live branch creation, cleanup, and selection remain integration and manual release evidence."
     }
   ]
 }

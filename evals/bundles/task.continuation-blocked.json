@@ -1,0 +1,101 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Continue the release task until blocked"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves blocked continuation state",
+        "turn_id": "00000000-0000-0000-0000-000000089002"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves blocked continuation state",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000089002"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TaskStepStarted",
+      "TaskBlocked",
+      "BackgroundJobBlocked",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "questions": [],
+    "task_plans": [
+      {
+        "blocked_detail": "Manual release credentials are not available in deterministic eval.",
+        "blocked_reason": "operator_input_required",
+        "current_step_order": 1,
+        "goal": "Prepare the release candidate",
+        "status": "paused",
+        "steps": [
+          {
+            "description": "Collect deterministic eval and package evidence.",
+            "order": 0,
+            "status": "completed",
+            "title": "Gather automated evidence"
+          },
+          {
+            "blocked_reason": "operator_input_required",
+            "description": "Confirm manual provider evidence before continuing.",
+            "order": 1,
+            "status": "blocked",
+            "title": "Confirm manual evidence"
+          }
+        ],
+        "title": "Prepare v8 release evidence"
+      }
+    ],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Continue the release task until blocked"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000008902",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "task.continuation-blocked"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

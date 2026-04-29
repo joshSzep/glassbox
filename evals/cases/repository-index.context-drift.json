@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "repository-index.context-drift",
+  "title": "Repository-index context drift remains advisory evidence",
+  "bundle_path": "../bundles/repository-index.context-drift.json",
+  "tags": ["v8-autonomy", "repository-index", "context"],
+  "notes": "Advisory v8 deterministic evidence that repository-index context use remains represented in retained eval artifacts. First-class prompt-source drift is still covered by replay manifest checks and focused context tests.",
+  "release_contract": {
+    "owner": "runtime.repository-index",
+    "capabilities": ["repository_index_context_drift"],
+    "severity": "medium",
+    "verification_stages": ["advisory"],
+    "baseline_refresh_policy": "advisory"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-29T00:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000008907",
+      "rationale": "Promoted for GBX-890 to retain repository-index context posture in the v8 autonomy advisory suite."
+    }
+  ]
+}

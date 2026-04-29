@@ -1562,7 +1562,7 @@ The intended v8 milestone order is:
 
 ### GBX-890: Expand Deterministic Eval Coverage For v8 Autonomy
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-825`, `GBX-831`, `GBX-861`, `GBX-865`, `GBX-855`
 - Goal: promote stable v8 autonomy behaviors into repository-owned deterministic eval evidence
 - Deliverables:

@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "autonomy.budget-exhaustion",
+  "title": "Autonomy budget exhaustion remains replay-visible",
+  "bundle_path": "../bundles/autonomy.budget-exhaustion.json",
+  "tags": ["v8-autonomy", "autonomy-budget"],
+  "notes": "Advisory v8 deterministic evidence for budget posture, usage, remaining limits, and exhaustion reason.",
+  "release_contract": {
+    "owner": "runtime.autonomy",
+    "capabilities": ["autonomy_budget_exhaustion"],
+    "severity": "high",
+    "verification_stages": ["advisory"],
+    "baseline_refresh_policy": "advisory"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-29T00:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000008903",
+      "rationale": "Promoted for GBX-890 to retain budget exhaustion as explicit repository-owned autonomy evidence."
+    }
+  ]
+}

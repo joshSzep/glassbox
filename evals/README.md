@@ -235,6 +235,31 @@ Current context-focused cases:
   intentionally relaxed transcript baseline so transcript-only drift can be
   ignored without hiding context-source drift.
 
+Current v8 autonomy cases:
+
+- `task-plan.proposal-capture`: advisory replay evidence for normalized
+  task-plan proposal projection.
+- `task.continuation-blocked`: advisory replay evidence that bounded task
+  continuation records a stop reason instead of silently proceeding.
+- `autonomy.budget-exhaustion`: advisory replay evidence for budget usage,
+  remaining limits, and exhaustion posture.
+- `verification.success` and `verification.failure`: advisory replay evidence
+  for successful and failed verify-repair projections.
+- `memory.context-drift` and `repository-index.context-drift`: advisory replay
+  evidence that memory and index context posture remains retained with eval
+  artifacts; focused context tests remain the stronger blocking evidence for
+  prompt-source drift.
+- `branch-search.candidate-comparison`: advisory replay evidence for retained
+  branch-search candidate comparison summaries.
+
+`v8-autonomy-advisory` collects these cases without making daemon lifecycle,
+provider-dependent behavior, long-running branch search, dashboard-only
+interactions, or local freshness timing part of the blocking deterministic
+release profile. The commit-time and push-time profiles intentionally remain
+small and smoke-focused. The `release-candidate` profile remains the blocking
+deterministic sign-off surface until individual autonomy cases can replay live
+runtime behavior without fixture shortcuts or noisy local context drift.
+
 Each run writes one JSON artifact per case plus `summary.json` into the selected
 output directory. If `--output-dir` is omitted, Glassbox creates a timestamped
 directory under `.glassbox/evals/`.

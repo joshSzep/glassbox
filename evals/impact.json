@@ -158,6 +158,92 @@
             "notes": "Daemon attach changes should pair persisted-event replay evidence with focused daemon lifecycle tests for process health, port conflicts, and stale-owner recovery."
         },
         {
+            "rule_id": "v8-task-and-autonomy-runtime",
+            "title": "v8 task and autonomy runtime surfaces",
+            "path_globs": [
+                "src/glassbox/runtime/task*.py",
+                "src/glassbox/runtime/autonomy.py",
+                "src/glassbox/runtime/background_jobs.py",
+                "src/glassbox/cli/task_commands.py",
+                "src/glassbox/cli/*autonomy*.py",
+                "src/glassbox/web/routes/tasks.py",
+                "tests/integration/test_cli_task_commands.py",
+                "tests/integration/test_background_job_runner.py",
+                "tests/integration/test_web_task_routes.py",
+                "docs/task-plans.md",
+                "docs/background-jobs.md"
+            ],
+            "owners": ["runtime.tasks", "runtime.autonomy"],
+            "capabilities": [
+                "task_plan_proposal_capture",
+                "task_continuation_until_blocked",
+                "autonomy_budget_exhaustion"
+            ],
+            "case_ids": [
+                "task-plan.proposal-capture",
+                "task.continuation-blocked",
+                "autonomy.budget-exhaustion"
+            ],
+            "profile_ids": ["v8-autonomy-advisory"],
+            "notes": "Task-plan, autonomy-budget, or background-continuation changes should run the v8 autonomy advisory profile plus focused task, daemon-job, and budget tests before release evidence is accepted."
+        },
+        {
+            "rule_id": "v8-memory-and-index-context",
+            "title": "v8 memory and repository-index context surfaces",
+            "path_globs": [
+                "src/glassbox/runtime/workspace_memory*.py",
+                "src/glassbox/runtime/repository_index.py",
+                "src/glassbox/runtime/context*.py",
+                "src/glassbox/cli/memory_commands.py",
+                "src/glassbox/cli/repository_commands.py",
+                "src/glassbox/web/routes/memory.py",
+                "src/glassbox/web/routes/repository_index.py",
+                "tests/unit/test_workspace_memory*.py",
+                "tests/unit/test_repository_index.py",
+                "tests/integration/test_cli_memory_commands.py",
+                "tests/integration/test_cli_repository_commands.py",
+                "docs/workspace-memory.md",
+                "docs/repository-intelligence-index.md"
+            ],
+            "owners": ["runtime.memory", "runtime.repository-index"],
+            "capabilities": [
+                "memory_context_drift",
+                "repository_index_context_drift"
+            ],
+            "case_ids": [
+                "memory.context-drift",
+                "repository-index.context-drift"
+            ],
+            "profile_ids": ["v8-autonomy-advisory"],
+            "notes": "Workspace-memory and repository-index changes should pair the advisory replay context cases with focused freshness, provenance, invalidation, and rebuild tests."
+        },
+        {
+            "rule_id": "v8-verification-and-branch-search",
+            "title": "v8 verification loop and branch-search surfaces",
+            "path_globs": [
+                "src/glassbox/runtime/verification*.py",
+                "src/glassbox/runtime/branch_search.py",
+                "src/glassbox/cli/branch_search_commands.py",
+                "tests/unit/test_verify_repair_loop.py",
+                "tests/unit/test_branch_search.py",
+                "docs/verification-loops.md",
+                "docs/branch-search.md"
+            ],
+            "owners": ["runtime.verification", "runtime.branch-search"],
+            "capabilities": [
+                "verification_loop_success",
+                "verification_loop_failure",
+                "branch_search_candidate_comparison"
+            ],
+            "case_ids": [
+                "verification.success",
+                "verification.failure",
+                "branch-search.candidate-comparison"
+            ],
+            "profile_ids": ["v8-autonomy-advisory"],
+            "notes": "Verification-loop or branch-search changes should run the v8 autonomy advisory replay profile plus focused tests for command outcomes, repair budgets, candidate limits, and cleanup behavior."
+        },
+        {
             "rule_id": "eval-profile-governance",
             "title": "Eval profile governance metadata",
             "path_globs": ["evals/profiles.json"],
@@ -166,7 +252,8 @@
                 "push-confirmation",
                 "release-candidate",
                 "advisory-context",
-                "v7-workflow-advisory"
+                "v7-workflow-advisory",
+                "v8-autonomy-advisory"
             ]
         }
     ]

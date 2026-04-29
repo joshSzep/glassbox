@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "verification.failure",
+  "title": "Verify-repair loop records a failed check",
+  "bundle_path": "../bundles/verification.failure.json",
+  "tags": ["v8-autonomy", "verification"],
+  "notes": "Advisory v8 deterministic evidence for failed verify-repair projection and residual task failure state.",
+  "release_contract": {
+    "owner": "runtime.verification",
+    "capabilities": ["verification_loop_failure"],
+    "severity": "medium",
+    "verification_stages": ["advisory"],
+    "baseline_refresh_policy": "advisory"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-29T00:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000008905",
+      "rationale": "Promoted for GBX-890 to retain failed local verification-loop evidence."
+    }
+  ]
+}

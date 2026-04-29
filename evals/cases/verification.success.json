@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "verification.success",
+  "title": "Verify-repair loop records a successful check",
+  "bundle_path": "../bundles/verification.success.json",
+  "tags": ["v8-autonomy", "verification"],
+  "notes": "Advisory v8 deterministic evidence for successful verify-repair projection on a task plan.",
+  "release_contract": {
+    "owner": "runtime.verification",
+    "capabilities": ["verification_loop_success"],
+    "severity": "medium",
+    "verification_stages": ["advisory"],
+    "baseline_refresh_policy": "advisory"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-29T00:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000008904",
+      "rationale": "Promoted for GBX-890 to retain successful local verification-loop evidence."
+    }
+  ]
+}

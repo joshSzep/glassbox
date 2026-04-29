@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "task.continuation-blocked",
+  "title": "Task continuation stops with a blocked reason",
+  "bundle_path": "../bundles/task.continuation-blocked.json",
+  "tags": ["v8-autonomy", "task"],
+  "notes": "Advisory v8 deterministic evidence for bounded continuation state and blocked-task projection.",
+  "release_contract": {
+    "owner": "runtime.background-jobs",
+    "capabilities": ["task_continuation_until_blocked"],
+    "severity": "high",
+    "verification_stages": ["advisory"],
+    "baseline_refresh_policy": "advisory"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-29T00:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000008902",
+      "rationale": "Promoted for GBX-890 to retain deterministic evidence that autonomous task continuation records why it stopped."
+    }
+  ]
+}

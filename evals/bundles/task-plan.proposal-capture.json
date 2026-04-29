@@ -1,0 +1,114 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Propose a plan for the dashboard task"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves normalized task-plan state",
+        "turn_id": "00000000-0000-0000-0000-000000089001"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves normalized task-plan state",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000089001"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TaskCreated",
+      "TaskPlanProposed",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "questions": [],
+    "task_plans": [
+      {
+        "goal": "Expose durable task state in the dashboard",
+        "status": "proposed",
+        "steps": [
+          {
+            "description": "Read task projections from the backend API.",
+            "order": 0,
+            "status": "proposed",
+            "title": "Add typed API reads"
+          },
+          {
+            "description": "Render proposed task steps for operator inspection.",
+            "order": 1,
+            "status": "proposed",
+            "title": "Render read-only task pane"
+          }
+        ],
+        "title": "Add task dashboard"
+      }
+    ],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Propose a plan for the dashboard task"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000008901",
+  "task_plan_events": [
+    {
+      "event_type": "TaskCreated",
+      "proposal_step_count": null,
+      "sequence": 4,
+      "task_id": "00000000-0000-0000-0000-000000089101",
+      "task_title": "Add task dashboard",
+      "turn_id": "00000000-0000-0000-0000-000000089001"
+    },
+    {
+      "event_type": "TaskPlanProposed",
+      "proposal_step_count": 2,
+      "sequence": 5,
+      "task_id": "00000000-0000-0000-0000-000000089101",
+      "task_title": "Add task dashboard",
+      "turn_id": "00000000-0000-0000-0000-000000089001"
+    }
+  ],
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "task-plan.proposal-capture"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

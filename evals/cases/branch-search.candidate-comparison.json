@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "branch-search.candidate-comparison",
+  "title": "Branch-search candidate comparison remains replay-visible",
+  "bundle_path": "../bundles/branch-search.candidate-comparison.json",
+  "tags": ["v8-autonomy", "branch-search"],
+  "notes": "Advisory v8 deterministic evidence for retained candidate comparison summaries. Live branch creation and cleanup remain integration and manual release evidence.",
+  "release_contract": {
+    "owner": "runtime.branch-search",
+    "capabilities": ["branch_search_candidate_comparison"],
+    "severity": "medium",
+    "verification_stages": ["advisory"],
+    "baseline_refresh_policy": "advisory"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-29T00:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000008908",
+      "rationale": "Promoted for GBX-890 to retain branch-search candidate comparison evidence in the advisory v8 autonomy eval suite."
+    }
+  ]
+}

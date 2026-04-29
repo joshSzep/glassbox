@@ -40,7 +40,7 @@
     {
       "profile_id": "release-candidate",
       "title": "Release-candidate deterministic suite",
-      "description": "Repository-owned replay coverage intended for release candidate sign-off, including stable v7 approval and ask-user workflow cases.",
+      "description": "Repository-owned replay coverage intended for release candidate sign-off. Commit/push smoke remains small; v8 autonomy coverage is promoted through the advisory suite until each behavior is stable enough to block releases.",
       "verification_stage": "release-candidate",
       "blocking": true,
       "budget": {
@@ -98,6 +98,33 @@
         "allow_advisory_cases": true,
         "promotion_policy": "Promote only the stable subset into release-candidate; keep dashboard-origin, daemon lifecycle, and cancellation timing boundaries advisory until replay can prove more.",
         "demotion_policy": "Demote cases out of this advisory suite if they become duplicate noise without protecting a named v7 workflow boundary."
+      }
+    },
+    {
+      "profile_id": "v8-autonomy-advisory",
+      "title": "v8 autonomy advisory suite",
+      "description": "Non-blocking deterministic v8 autonomy coverage for task plans, blocked continuation, budget exhaustion, verification loops, memory/index context posture, and branch-search comparison.",
+      "verification_stage": "advisory",
+      "case_ids": [
+        "task-plan.proposal-capture",
+        "task.continuation-blocked",
+        "autonomy.budget-exhaustion",
+        "verification.success",
+        "verification.failure",
+        "memory.context-drift",
+        "repository-index.context-drift",
+        "branch-search.candidate-comparison"
+      ],
+      "blocking": false,
+      "budget": {
+        "max_selected_case_count": 8,
+        "max_selected_invariant_case_count": 0,
+        "max_recorded_model_call_count": 0,
+        "max_case_artifact_bytes": 500000,
+        "allow_unsupported_cases": false,
+        "allow_advisory_cases": true,
+        "promotion_policy": "Promote individual v8 autonomy cases into release-candidate only after their replay contract exercises stable runtime evidence without cancelled-fixture shortcuts or noisy context drift.",
+        "demotion_policy": "Keep daemon lifecycle, provider-dependent behavior, long-running branch search, and UI-only interactions advisory or integration-only until they are deterministic enough to block releases."
       }
     },
     {

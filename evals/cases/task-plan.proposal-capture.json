@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "task-plan.proposal-capture",
+  "title": "Task-plan proposal capture remains replay-visible",
+  "bundle_path": "../bundles/task-plan.proposal-capture.json",
+  "tags": ["v8-autonomy", "task-plan"],
+  "notes": "Advisory v8 deterministic evidence for durable task-plan proposal projection. The compact cancelled-turn bundle preserves the normalized task-plan dimension without making live autonomous execution a release blocker.",
+  "release_contract": {
+    "owner": "runtime.tasks",
+    "capabilities": ["task_plan_proposal_capture"],
+    "severity": "high",
+    "verification_stages": ["advisory"],
+    "baseline_refresh_policy": "advisory"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-29T00:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000008901",
+      "rationale": "Promoted for GBX-890 to make task-plan proposal capture visible in repository-owned v8 autonomy eval evidence."
+    }
+  ]
+}
