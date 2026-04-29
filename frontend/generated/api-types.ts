@@ -37,7 +37,71 @@ export interface paths {
      */
     get: operations["list_workspace_memory_page_memory_get"];
     put?: never;
+    /**
+     * Add Workspace Memory
+     * @description Create and immediately confirm an operator-provided memory entry.
+     */
+    post: operations["add_workspace_memory_memory_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/memory/candidates": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Workspace Memory Candidates
+     * @description Return operator-reviewable memory candidates for one session.
+     */
+    get: operations["list_workspace_memory_candidates_memory_candidates_get"];
+    put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/memory/candidates/{candidate_id}/confirm": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Confirm Workspace Memory Candidate
+     * @description Create confirmed memory from one generated candidate.
+     */
+    post: operations["confirm_workspace_memory_candidate_memory_candidates__candidate_id__confirm_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/memory/candidates/{candidate_id}/reject": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Reject Workspace Memory Candidate
+     * @description Record explicit operator rejection for one generated candidate.
+     */
+    post: operations["reject_workspace_memory_candidate_memory_candidates__candidate_id__reject_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -1546,6 +1610,76 @@ export interface components {
       /** Items */
       items?: components["schemas"]["WorkingSetItemSnapshot"][];
     };
+    /** WorkspaceMemoryAddRequest */
+    WorkspaceMemoryAddRequest: {
+      /**
+       * Confirmed By
+       * @default operator
+       */
+      confirmed_by: string;
+      /** Content */
+      content: string;
+      /** Kind */
+      kind: string;
+      /** Session Id */
+      session_id: string;
+      /** Source Label */
+      source_label?: string | null;
+      /** Summary */
+      summary?: string | null;
+      /** Tags */
+      tags?: string[];
+    };
+    /** WorkspaceMemoryCandidateDecisionRequest */
+    WorkspaceMemoryCandidateDecisionRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /** Reason */
+      reason?: string | null;
+      /** Session Id */
+      session_id: string;
+    };
+    /** WorkspaceMemoryCandidateListPageResponse */
+    WorkspaceMemoryCandidateListPageResponse: {
+      /** Items */
+      items: components["schemas"]["WorkspaceMemoryCandidateResponse"][];
+      page: components["schemas"]["PageInfoResponse"];
+      /** Session Id */
+      session_id: string;
+    };
+    /** WorkspaceMemoryCandidateRejectedResponse */
+    WorkspaceMemoryCandidateRejectedResponse: {
+      candidate: components["schemas"]["WorkspaceMemoryCandidateResponse"];
+      /** Reason */
+      reason: string;
+      /** Rejected By */
+      rejected_by: string;
+    };
+    /** WorkspaceMemoryCandidateResponse */
+    WorkspaceMemoryCandidateResponse: {
+      /** Candidate Id */
+      candidate_id: string;
+      /** Content */
+      content: string;
+      /** Created At */
+      created_at?: string | null;
+      /** Kind */
+      kind: string;
+      provenance: components["schemas"]["WorkspaceMemoryProvenanceResponse"];
+      /** Redacted */
+      redacted: boolean;
+      /** Session Id */
+      session_id: string;
+      /** Source Label */
+      source_label: string;
+      /** Summary */
+      summary?: string | null;
+      /** Tags */
+      tags: string[];
+    };
     /** WorkspaceMemoryDetailResponse */
     WorkspaceMemoryDetailResponse: {
       entry: components["schemas"]["WorkspaceMemoryEntryResponse"];
@@ -1736,6 +1870,142 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["WorkspaceMemoryListPageResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  add_workspace_memory_memory_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["WorkspaceMemoryAddRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkspaceMemoryDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_workspace_memory_candidates_memory_candidates_get: {
+    parameters: {
+      query: {
+        session_id: string;
+        cursor?: number;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkspaceMemoryCandidateListPageResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  confirm_workspace_memory_candidate_memory_candidates__candidate_id__confirm_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        candidate_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["WorkspaceMemoryCandidateDecisionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkspaceMemoryDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  reject_workspace_memory_candidate_memory_candidates__candidate_id__reject_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        candidate_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["WorkspaceMemoryCandidateDecisionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkspaceMemoryCandidateRejectedResponse"];
         };
       };
       /** @description Validation Error */

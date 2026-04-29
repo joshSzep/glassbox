@@ -53,6 +53,7 @@ from glassbox.core import TurnCancelled
 from glassbox.core import TurnStatus
 from glassbox.core import TurnStatusChanged
 from glassbox.core import UserMessageReceived
+from glassbox.core import WorkspaceMemoryCandidateRejected
 from glassbox.core import WorkspaceMemoryConfirmed
 from glassbox.core import WorkspaceMemoryCreated
 from glassbox.core import WorkspaceMemoryImported
@@ -490,6 +491,16 @@ def test_workspace_memory_payloads_round_trip_through_event_union() -> None:
             "reason": "superseded",
         }
     )
+    rejected = adapter.validate_python(
+        {
+            "event_type": "WorkspaceMemoryCandidateRejected",
+            "candidate_id": "candidate-1",
+            "kind": "command",
+            "content_summary": "backend validation command",
+            "provenance": provenance,
+            "reason": "too noisy",
+        }
+    )
 
     assert isinstance(created, WorkspaceMemoryCreated)
     assert created.kind == WorkspaceMemoryKind.COMMAND
@@ -502,6 +513,7 @@ def test_workspace_memory_payloads_round_trip_through_event_union() -> None:
     assert isinstance(used, WorkspaceMemoryUsedInContext)
     assert used.state_at_use == WorkspaceMemoryState.ACTIVE
     assert isinstance(pruned, WorkspaceMemoryPruned)
+    assert isinstance(rejected, WorkspaceMemoryCandidateRejected)
 
 
 def test_workspace_memory_envelope_exposes_memory_id() -> None:

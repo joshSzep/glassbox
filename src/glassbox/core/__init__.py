@@ -67,6 +67,7 @@ from glassbox.core.events import TurnStatusChanged
 from glassbox.core.events import UserAnswerProvided
 from glassbox.core.events import UserMessageReceived
 from glassbox.core.events import UserQuestionAsked
+from glassbox.core.events import WorkspaceMemoryCandidateRejected
 from glassbox.core.events import WorkspaceMemoryConfirmed
 from glassbox.core.events import WorkspaceMemoryCreated
 from glassbox.core.events import WorkspaceMemoryImported
@@ -270,6 +271,7 @@ __all__ = [
     "UserMessageReceived",
     "UserQuestionAsked",
     "WorkspaceMemoryConfirmed",
+    "WorkspaceMemoryCandidateRejected",
     "WorkspaceMemoryCreated",
     "WorkspaceMemoryEntry",
     "WorkspaceMemoryId",

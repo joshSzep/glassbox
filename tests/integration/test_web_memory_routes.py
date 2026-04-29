@@ -7,6 +7,7 @@ from pathlib import Path
 import httpx
 
 from glassbox.core import EventEnvelope
+from glassbox.core import RuntimeNoteRecorded
 from glassbox.core import SessionStarted
 from glassbox.core import WorkspaceMemoryConfirmed
 from glassbox.core import WorkspaceMemoryCreated
@@ -123,6 +124,94 @@ def test_memory_routes_handle_empty_unknown_and_invalid_pages(
             assert unknown_detail.status_code == 404
             assert invalid_limit.status_code == 422
             assert invalid_state.status_code == 422
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_memory_routes_add_confirm_and_reject_candidates(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app = _make_app(tmp_path, connection)
+            session_id = new_session_id()
+            repo = SQLiteSessionRepository(connection)
+            repo.append_events(
+                [
+                    EventEnvelope(
+                        session_id=session_id,
+                        sequence=0,
+                        payload=SessionStarted(
+                            cwd=str(tmp_path),
+                            model_name="openai:gpt-5.4",
+                            approval_mode="confirm",
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=session_id,
+                        sequence=0,
+                        payload=RuntimeNoteRecorded(
+                            category="operator",
+                            message="Prefer concise web evidence secret=abc123",
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=session_id,
+                        sequence=0,
+                        payload=RuntimeNoteRecorded(
+                            category="runtime",
+                            message="Warm repository index before release.",
+                        ),
+                    ),
+                ]
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                add_response = await client.post(
+                    "/memory",
+                    json={
+                        "session_id": str(session_id),
+                        "kind": "convention",
+                        "content": "Use password=hunter2 only in fixtures",
+                    },
+                )
+                candidates_response = await client.get(
+                    "/memory/candidates",
+                    params={"session_id": str(session_id)},
+                )
+                candidates = candidates_response.json()["items"]
+                confirm_response = await client.post(
+                    f"/memory/candidates/{candidates[0]['candidate_id']}/confirm",
+                    json={"session_id": str(session_id), "actor": "operator"},
+                )
+                reject_response = await client.post(
+                    f"/memory/candidates/{candidates[1]['candidate_id']}/reject",
+                    json={
+                        "session_id": str(session_id),
+                        "actor": "operator",
+                        "reason": "too transient",
+                    },
+                )
+                empty_candidates_response = await client.get(
+                    "/memory/candidates",
+                    params={"session_id": str(session_id)},
+                )
+
+            assert add_response.status_code == 200
+            assert add_response.json()["entry"]["redacted"] is True
+            assert "<redacted>" in add_response.json()["entry"]["content"]
+            assert candidates_response.status_code == 200
+            assert candidates[0]["redacted"] is True
+            assert confirm_response.status_code == 200
+            assert confirm_response.json()["entry"]["confirmed_by"] == "operator"
+            assert reject_response.status_code == 200
+            assert reject_response.json()["reason"] == "too transient"
+            assert empty_candidates_response.status_code == 200
+            assert empty_candidates_response.json()["items"] == []
         finally:
             connection.close()
 

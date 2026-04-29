@@ -60,6 +60,64 @@ def _add_memory_parsers(
     show_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(show_parser)
 
+    add_parser = memory_subparsers.add_parser(
+        "add",
+        help="add operator-confirmed workspace memory",
+        description="Create and immediately confirm a workspace memory entry.",
+    )
+    add_parser.add_argument(
+        "--session", dest="session_id", type=_parse_uuid, required=True
+    )
+    add_parser.add_argument("--kind", choices=_MEMORY_KINDS, required=True)
+    add_parser.add_argument("--content", required=True)
+    add_parser.add_argument("--summary", default=None)
+    add_parser.add_argument("--source-label", default=None)
+    add_parser.add_argument("--tag", dest="tags", action="append", default=[])
+    add_parser.add_argument("--confirmed-by", default="operator")
+    add_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(add_parser)
+
+    candidates_parser = memory_subparsers.add_parser(
+        "candidates",
+        help="list operator-reviewable memory candidates",
+        description=(
+            "List deterministic memory candidates from explicit session signals."
+        ),
+    )
+    candidates_parser.add_argument(
+        "--session", dest="session_id", type=_parse_uuid, required=True
+    )
+    candidates_parser.add_argument("--limit", type=int, default=None)
+    candidates_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(candidates_parser)
+
+    capture_parser = memory_subparsers.add_parser(
+        "capture",
+        help="confirm one memory candidate",
+        description="Create and confirm memory from one generated candidate.",
+    )
+    capture_parser.add_argument("candidate_id")
+    capture_parser.add_argument(
+        "--session", dest="session_id", type=_parse_uuid, required=True
+    )
+    capture_parser.add_argument("--confirmed-by", default="operator")
+    capture_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(capture_parser)
+
+    reject_parser = memory_subparsers.add_parser(
+        "reject-candidate",
+        help="reject one memory candidate",
+        description="Record explicit rejection evidence for one generated candidate.",
+    )
+    reject_parser.add_argument("candidate_id")
+    reject_parser.add_argument(
+        "--session", dest="session_id", type=_parse_uuid, required=True
+    )
+    reject_parser.add_argument("--rejected-by", default="operator")
+    reject_parser.add_argument("--reason", required=True)
+    reject_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(reject_parser)
+
     confirm_parser = memory_subparsers.add_parser(
         "confirm",
         help="confirm one workspace memory entry",

@@ -880,7 +880,7 @@ The intended v8 milestone order is:
 
 ### GBX-852: Add Operator-Confirmed Memory Capture From Sessions And Tasks
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-851`, `GBX-824`
 - Goal: let operators promote useful session/task facts into workspace memory with review before automatic extraction exists
 - Deliverables:
@@ -897,6 +897,16 @@ The intended v8 milestone order is:
   - memory candidate unit tests
   - session/task integration tests
   - dashboard action tests if UI is added
+- Completed vertical slice:
+  - added a deterministic `WorkspaceMemoryCaptureService` for runtime-note and task-outcome candidates
+  - added redaction for obvious secrets in direct memory capture and generated candidates
+  - added explicit candidate rejection evidence via `WorkspaceMemoryCandidateRejected`
+  - added `glassbox memory add`, `memory candidates`, `memory capture`, and `memory reject-candidate`
+  - added web actions for direct memory add plus candidate list, confirm, and reject, with regenerated frontend API types
+  - documented operator-reviewed candidate capture behavior in [workspace-memory.md](./workspace-memory.md)
+- Validation:
+  - `uv run ruff format src tests/integration/test_cli_memory_commands.py tests/integration/test_web_memory_routes.py tests/integration/test_openapi_schema.py tests/unit/test_core_events.py && uv run ruff check src tests/integration/test_cli_memory_commands.py tests/integration/test_web_memory_routes.py tests/integration/test_openapi_schema.py tests/unit/test_core_events.py && uv run ty check && uv run pytest tests/unit/test_core_events.py tests/integration/test_cli_memory_commands.py tests/integration/test_web_memory_routes.py tests/integration/test_openapi_schema.py`
+  - `cd frontend && pnpm run api:generate && pnpm run typecheck`
 - Done when:
   - operators can teach Glassbox durable local facts without editing JSON or trusting hidden extraction
 

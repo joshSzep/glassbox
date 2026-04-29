@@ -5,6 +5,7 @@ from pathlib import Path
 
 from glassbox.cli import main
 from glassbox.core import EventEnvelope
+from glassbox.core import RuntimeNoteRecorded
 from glassbox.core import SessionStarted
 from glassbox.core import WorkspaceMemoryCreated
 from glassbox.core import WorkspaceMemoryKind
@@ -171,6 +172,115 @@ def test_memory_show_reports_unknown_entry(tmp_path: Path, capsys) -> None:
     assert f"unknown workspace memory: {memory_id}" in captured.err
 
 
+def test_memory_add_candidates_capture_and_reject_commands(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    _seed_candidate_signals(db_path, tmp_path, session_id)
+
+    add_exit = main(
+        [
+            "memory",
+            "add",
+            "--session",
+            str(session_id),
+            "--kind",
+            "convention",
+            "--content",
+            "Run release checks with token=abcdefghijklmnopqrstuvwxyz123456",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    add_payload = json.loads(capsys.readouterr().out)
+
+    candidates_exit = main(
+        [
+            "memory",
+            "candidates",
+            "--session",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    candidates_payload = json.loads(capsys.readouterr().out)
+    captured_candidate_id = candidates_payload[0]["candidate_id"]
+    rejected_candidate_id = candidates_payload[1]["candidate_id"]
+
+    capture_exit = main(
+        [
+            "memory",
+            "capture",
+            captured_candidate_id,
+            "--session",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    capture_payload = json.loads(capsys.readouterr().out)
+
+    reject_exit = main(
+        [
+            "memory",
+            "reject-candidate",
+            rejected_candidate_id,
+            "--session",
+            str(session_id),
+            "--reason",
+            "not durable enough",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    reject_payload = json.loads(capsys.readouterr().out)
+
+    after_reject_exit = main(
+        [
+            "memory",
+            "candidates",
+            "--session",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    after_reject_payload = json.loads(capsys.readouterr().out)
+
+    assert add_exit == 0
+    assert add_payload["confirmed_by"] == "operator"
+    assert add_payload["redacted"] is True
+    assert "<redacted>" in add_payload["content"]
+    assert candidates_exit == 0
+    assert candidates_payload[0]["redacted"] is True
+    assert "<redacted>" in candidates_payload[0]["content"]
+    assert capture_exit == 0
+    assert capture_payload["state"] == "active"
+    assert capture_payload["confirmed_by"] == "operator"
+    assert reject_exit == 0
+    assert reject_payload["candidate_id"] == rejected_candidate_id
+    assert after_reject_exit == 0
+    assert after_reject_payload == []
+
+
 def _seed_memory(
     db_path: Path,
     tmp_path: Path,
@@ -205,6 +315,51 @@ def _seed_memory(
                             session_id=session_id,
                             source_sequence=1,
                         ),
+                    ),
+                ),
+            ]
+        )
+    finally:
+        connection.close()
+
+
+def _seed_candidate_signals(
+    db_path: Path,
+    tmp_path: Path,
+    session_id,
+) -> None:
+    connection = open_database(db_path)
+    try:
+        initialize_database(connection)
+        repository = SQLiteSessionRepository(connection)
+        repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=SessionStarted(
+                        cwd=str(tmp_path),
+                        model_name="openai:gpt-5.4",
+                        approval_mode="confirm",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=RuntimeNoteRecorded(
+                        category="operator",
+                        message=(
+                            "Prefer concise release notes with "
+                            "token=abcdefghijklmnopqrstuvwxyz123456"
+                        ),
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=RuntimeNoteRecorded(
+                        category="runtime",
+                        message="Repository index should be warmed before release.",
                     ),
                 ),
             ]

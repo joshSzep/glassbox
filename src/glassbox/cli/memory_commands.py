@@ -1,6 +1,7 @@
 """CLI command handlers for workspace memory inspection."""
 
 import argparse
+from typing import cast
 
 from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
@@ -8,6 +9,9 @@ from glassbox.core.models import WorkspaceMemoryEntry
 from glassbox.core.types import WorkspaceMemoryKind
 from glassbox.core.types import WorkspaceMemoryState
 from glassbox.runtime.bootstrap import open_runtime_context
+from glassbox.runtime.workspace_memory_capture import WorkspaceMemoryCandidate
+from glassbox.runtime.workspace_memory_capture import WorkspaceMemoryCaptureRepository
+from glassbox.runtime.workspace_memory_capture import WorkspaceMemoryCaptureService
 
 
 def _memory_command(args: argparse.Namespace) -> int:
@@ -16,6 +20,14 @@ def _memory_command(args: argparse.Namespace) -> int:
         return _memory_list_command(args)
     if memory_command == "show":
         return _memory_show_command(args)
+    if memory_command == "add":
+        return _memory_add_command(args)
+    if memory_command == "candidates":
+        return _memory_candidates_command(args)
+    if memory_command == "capture":
+        return _memory_capture_command(args)
+    if memory_command == "reject-candidate":
+        return _memory_reject_candidate_command(args)
     if memory_command == "confirm":
         return _memory_confirm_command(args)
     if memory_command == "invalidate":
@@ -56,6 +68,87 @@ def _memory_show_command(args: argparse.Namespace) -> int:
         print_json_output(entry.model_dump(mode="json"))
     else:
         _print_memory_detail(entry)
+    return 0
+
+
+def _memory_add_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        entry = WorkspaceMemoryCaptureService(
+            cast(
+                WorkspaceMemoryCaptureRepository, runtime_context.repositories.sessions
+            )
+        ).add_operator_memory(
+            args.session_id,
+            kind=WorkspaceMemoryKind(args.kind),
+            content=args.content,
+            summary=args.summary,
+            source_label=args.source_label,
+            tags=args.tags,
+            confirmed_by=args.confirmed_by,
+        )
+    if args.json:
+        print_json_output(entry.model_dump(mode="json"))
+    else:
+        print(f"Added workspace memory {entry.memory_id}: {entry.kind.value}")
+    return 0
+
+
+def _memory_candidates_command(args: argparse.Namespace) -> int:
+    if args.limit is not None and args.limit < 1:
+        raise ValueError("--limit must be greater than zero")
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        candidates = WorkspaceMemoryCaptureService(
+            cast(
+                WorkspaceMemoryCaptureRepository, runtime_context.repositories.sessions
+            )
+        ).list_candidates(args.session_id, limit=args.limit)
+    if args.json:
+        print_json_output(
+            [candidate.model_dump(mode="json") for candidate in candidates]
+        )
+    else:
+        _print_memory_candidates(candidates)
+    return 0
+
+
+def _memory_capture_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        entry = WorkspaceMemoryCaptureService(
+            cast(
+                WorkspaceMemoryCaptureRepository, runtime_context.repositories.sessions
+            )
+        ).confirm_candidate(
+            args.session_id,
+            args.candidate_id,
+            confirmed_by=args.confirmed_by,
+        )
+    if args.json:
+        print_json_output(entry.model_dump(mode="json"))
+    else:
+        print(f"Captured workspace memory {entry.memory_id}: {entry.kind.value}")
+    return 0
+
+
+def _memory_reject_candidate_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        candidate = WorkspaceMemoryCaptureService(
+            cast(
+                WorkspaceMemoryCaptureRepository, runtime_context.repositories.sessions
+            )
+        ).reject_candidate(
+            args.session_id,
+            args.candidate_id,
+            rejected_by=args.rejected_by,
+            reason=args.reason,
+        )
+    if args.json:
+        print_json_output(candidate.model_dump(mode="json"))
+    else:
+        print(f"Rejected workspace memory candidate {candidate.candidate_id}")
     return 0
 
 
@@ -160,6 +253,21 @@ def _print_memory_detail(entry: WorkspaceMemoryEntry) -> None:
         print(f"Prune reason: {entry.prune_reason}")
     print(f"Redacted: {'yes' if entry.redacted else 'no'}")
     print(f"Updated: {entry.updated_at.isoformat()}")
+
+
+def _print_memory_candidates(candidates: list[WorkspaceMemoryCandidate]) -> None:
+    if not candidates:
+        print("No workspace memory candidates found.")
+        return
+    print(f"Workspace memory candidates: {len(candidates)}")
+    for candidate in candidates:
+        summary = candidate.summary or candidate.content
+        redacted = " redacted" if candidate.redacted else ""
+        print(
+            f"{candidate.candidate_id}  {candidate.kind.value:<18}  "
+            f"{candidate.source_label}{redacted}"
+        )
+        print(f"  {summary}")
 
 
 __all__ = ["_memory_command"]

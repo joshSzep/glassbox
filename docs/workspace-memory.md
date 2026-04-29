@@ -59,6 +59,8 @@ A memory entry should link to the strongest available source. Session-event prov
 
 Confirmation is explicit evidence that an operator or trusted workflow reviewed the memory. Confirmation does not erase provenance; it adds confidence and a reviewer.
 
+Operator-confirmed capture can happen from direct notes or generated candidates. Candidates are deterministic suggestions from explicit local signals such as runtime notes and task outcomes. They are not persisted as memory until an operator confirms them; explicit rejection is recorded as review evidence so the same candidate does not keep reappearing.
+
 Invalidation is also explicit. Invalidated memory must record who invalidated it and why. Invalidated entries remain explainable for replay and audit, but later context builders must not include them silently.
 
 Updates should preserve lineage. If an update changes meaning substantially, implementations should prefer invalidating the old entry and creating a new one with linked provenance rather than mutating away history.

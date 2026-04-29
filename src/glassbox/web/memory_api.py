@@ -4,9 +4,11 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from pydantic import BaseModel
+from pydantic import Field
 
 from glassbox.core.models import WorkspaceMemoryEntry
 from glassbox.core.models import WorkspaceMemoryProvenance
+from glassbox.runtime.workspace_memory_capture import WorkspaceMemoryCandidate
 from glassbox.web.session_api import PageInfoResponse
 
 
@@ -57,6 +59,47 @@ class WorkspaceMemoryDetailResponse(BaseModel):
     entry: WorkspaceMemoryEntryResponse
 
 
+class WorkspaceMemoryCandidateResponse(BaseModel):
+    candidate_id: str
+    session_id: str
+    kind: str
+    content: str
+    summary: str | None = None
+    provenance: WorkspaceMemoryProvenanceResponse
+    tags: list[str]
+    redacted: bool
+    source_label: str
+    created_at: datetime | None = None
+
+
+class WorkspaceMemoryCandidateListPageResponse(BaseModel):
+    session_id: str
+    page: PageInfoResponse
+    items: list[WorkspaceMemoryCandidateResponse]
+
+
+class WorkspaceMemoryAddRequest(BaseModel):
+    session_id: str
+    kind: str
+    content: str
+    summary: str | None = None
+    source_label: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    confirmed_by: str = "operator"
+
+
+class WorkspaceMemoryCandidateDecisionRequest(BaseModel):
+    session_id: str
+    actor: str = "operator"
+    reason: str | None = None
+
+
+class WorkspaceMemoryCandidateRejectedResponse(BaseModel):
+    candidate: WorkspaceMemoryCandidateResponse
+    rejected_by: str
+    reason: str
+
+
 def build_workspace_memory_entry_response(
     entry: WorkspaceMemoryEntry,
 ) -> WorkspaceMemoryEntryResponse:
@@ -75,6 +118,24 @@ def build_workspace_memory_entry_responses(
     """Serialize multiple projected workspace memory entries."""
 
     return [build_workspace_memory_entry_response(entry) for entry in entries]
+
+
+def build_workspace_memory_candidate_response(
+    candidate: WorkspaceMemoryCandidate,
+) -> WorkspaceMemoryCandidateResponse:
+    payload = candidate.model_dump(mode="json")
+    payload["provenance"] = _provenance_response(candidate.provenance).model_dump(
+        mode="json"
+    )
+    return WorkspaceMemoryCandidateResponse.model_validate(payload)
+
+
+def build_workspace_memory_candidate_responses(
+    candidates: Sequence[WorkspaceMemoryCandidate],
+) -> list[WorkspaceMemoryCandidateResponse]:
+    return [
+        build_workspace_memory_candidate_response(candidate) for candidate in candidates
+    ]
 
 
 def _provenance_response(

@@ -680,6 +680,19 @@ class WorkspaceMemoryPruned(EventPayload):
     reason: str = Field(min_length=1, max_length=2000)
 
 
+class WorkspaceMemoryCandidateRejected(EventPayload):
+    event_type: Literal["WorkspaceMemoryCandidateRejected"] = (
+        "WorkspaceMemoryCandidateRejected"
+    )
+    candidate_id: str = Field(min_length=1, max_length=128)
+    kind: WorkspaceMemoryKind
+    content_summary: str = Field(min_length=1, max_length=500)
+    provenance: WorkspaceMemoryProvenance
+    rejected_by: str = Field(default="operator", min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+    redacted: bool = False
+
+
 class ErrorRecorded(EventPayload):
     event_type: Literal["ErrorRecorded"] = "ErrorRecorded"
     scope: ErrorScope
@@ -758,6 +771,7 @@ EventPayloadType = Annotated[
     | WorkspaceMemoryImported
     | WorkspaceMemoryUsedInContext
     | WorkspaceMemoryPruned
+    | WorkspaceMemoryCandidateRejected
     | ErrorRecorded,
     Field(discriminator="event_type"),
 ]

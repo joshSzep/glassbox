@@ -31,6 +31,9 @@ def test_openapi_schema_includes_browser_transport_contracts() -> None:
     assert "/tasks/{task_id}/steps" in paths
     assert "/tasks/{task_id}/events" in paths
     assert "/memory" in paths
+    assert "/memory/candidates" in paths
+    assert "/memory/candidates/{candidate_id}/confirm" in paths
+    assert "/memory/candidates/{candidate_id}/reject" in paths
     assert "/memory/{memory_id}" in paths
 
     assert "HealthResponse" in components
@@ -48,6 +51,9 @@ def test_openapi_schema_includes_browser_transport_contracts() -> None:
     assert "TaskEventPageResponse" in components
     assert "WorkspaceMemoryListPageResponse" in components
     assert "WorkspaceMemoryDetailResponse" in components
+    assert "WorkspaceMemoryCandidateListPageResponse" in components
+    assert "WorkspaceMemoryCandidateRejectedResponse" in components
+    assert "WorkspaceMemoryAddRequest" in components
     assert "ErrorDetailResponse" in components
     assert "HTTPValidationError" in components
 
