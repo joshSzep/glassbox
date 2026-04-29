@@ -31,7 +31,7 @@ def build_gate_stages(evidence_dir: Path | None = None) -> list[GateStage]:
     """Return the deterministic blocking stages for the v8 gate."""
 
     resolved_evidence_dir = evidence_dir or Path(".glassbox/releases/v8-gate")
-    eval_output_dir = resolved_evidence_dir / "evals"
+    eval_output_dir = _eval_evidence_dir(resolved_evidence_dir)
     background_output_dir = resolved_evidence_dir / "background-jobs"
     return [
         *build_v7_gate_stages(),
@@ -385,6 +385,10 @@ def _resolve_evidence_dir(requested: Path | None) -> Path:
     return DEFAULT_EVIDENCE_ROOT / f"{timestamp}-v8-gate"
 
 
+def _eval_evidence_dir(evidence_dir: Path) -> Path:
+    return Path(".glassbox/evals") / evidence_dir.name
+
+
 def _new_evidence_summary(
     evidence_dir: Path,
     *,
@@ -412,7 +416,7 @@ def _new_evidence_summary(
         "advisory": [],
         "artifacts": {
             "dist_dir": str(DIST_DIR.relative_to(REPO_ROOT)),
-            "eval_evidence_root": str(evidence_dir / "evals"),
+            "eval_evidence_root": str(_eval_evidence_dir(evidence_dir)),
             "background_job_evidence": str(evidence_dir / "background-jobs"),
             "provider_canary_evidence": str(evidence_dir / "provider-canary"),
             "packaging_docs": "docs/release-packaging.md",

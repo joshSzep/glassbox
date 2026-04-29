@@ -95,6 +95,7 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
         in problems
     )
     assert "sdist missing required file: docs/v8-release-gate.md" in problems
+    assert "sdist missing required file: docs/v8-release-candidate.md" in problems
     assert "sdist missing required file: evals/profiles.json" in problems
     assert "sdist missing required file: frontend/generated/openapi.json" in problems
     assert (
@@ -223,6 +224,7 @@ def _write_sdist(
                 "docs/tasks-v8.md",
                 "docs/v8-auditable-autonomy-contract.md",
                 "docs/v8-autonomy-baseline-inventory.md",
+                "docs/v8-release-candidate.md",
                 "docs/v8-release-gate.md",
                 "docs/verification-loops.md",
                 "docs/workspace-memory.md",

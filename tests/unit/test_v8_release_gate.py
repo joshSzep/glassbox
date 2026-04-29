@@ -32,7 +32,11 @@ def test_v8_release_gate_stage_composition_inherits_v7_and_adds_autonomy(
     background_stage = next(
         stage for stage in stages if stage.label == "v8 background job smoke"
     )
+    autonomy_eval_stage = next(
+        stage for stage in stages if stage.label == "v8 autonomy advisory eval profile"
+    )
     assert str(tmp_path / "evidence" / "background-jobs") in background_stage.command
+    assert ".glassbox/evals/evidence/autonomy-advisory" in autonomy_eval_stage.command
 
 
 def test_v8_release_gate_dry_run_lists_stages_and_writes_summary(
@@ -67,6 +71,7 @@ def test_v8_release_gate_dry_run_lists_stages_and_writes_summary(
     assert summary["artifacts"]["background_job_evidence"] == str(
         evidence_dir / "background-jobs"
     )
+    assert summary["artifacts"]["eval_evidence_root"] == ".glassbox/evals/evidence"
     assert summary["advisory"] == [
         {
             "label": "advisory provider canaries",

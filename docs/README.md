@@ -21,6 +21,7 @@ Use this page to jump to the right level of detail.
 - [v8-auditable-autonomy-contract.md](./v8-auditable-autonomy-contract.md): review the v8 scope, non-goals, supported workflows, auditable-autonomy definition, evidence classes, release-readiness checklist, residual-risk shape, and pass/fail policy
 - [v8-autonomy-baseline-inventory.md](./v8-autonomy-baseline-inventory.md): inspect the v8 baseline inventory for current agentic surfaces, conservative gates, runtime context, daemon seams, dashboard gaps, provider depth, and safe loosening opportunities
 - [v8-release-gate.md](./v8-release-gate.md): run the canonical v8 automated release-candidate gate with v7 coverage, v8 autonomy evidence, installed smoke, advisory provider canaries, and retained `summary.json`
+- [v8-release-candidate.md](./v8-release-candidate.md): review the v8 operating model, final gate evidence, manual evidence, residual risks, non-goals, and current go/no-go decision
 - [v7-adoption-scale-contract.md](./v7-adoption-scale-contract.md): review the v7 adoption-and-scale scope, non-goals, evidence classes, release-readiness checklist, residual-risk shape, and pass/fail policy
 - [v7-release-candidate.md](./v7-release-candidate.md): review the v7 operating model, release gate, evidence summary, residual risks, and current hold decision before publishing a candidate
 - [v7-live-transport-contract.md](./v7-live-transport-contract.md): review the v7 daemon, SSE, reconnect, backpressure, and multi-observer reliability contract
@@ -66,6 +67,7 @@ Use this page to jump to the right level of detail.
 
 - [v2-release-candidate.md](./v2-release-candidate.md): package the v2 workflow set into one release-candidate guide for operators and contributors
 - [v6-release-candidate.md](./v6-release-candidate.md): package the v6 release-candidate operating model, validation path, residual risks, and decision state for operators and contributors
+- [v8-release-candidate.md](./v8-release-candidate.md): package the v8 auditable-autonomy operating model, validation path, residual risks, and decision state for operators and contributors
 - [branching.md](./branching.md): inspect historical sessions, create child branches, and understand lineage fields
 - [branch-search.md](./branch-search.md): compare strategy-search candidates without mutating parent session history
 - [replay-evals.md](./replay-evals.md): replay historical sessions, export bundles, run eval suites, and work through local-first regression gates
@@ -123,6 +125,7 @@ Use this page to jump to the right level of detail.
 - [v8-auditable-autonomy-contract.md](./v8-auditable-autonomy-contract.md): v8 scope, non-goals, supported workflow set, auditable-autonomy definition, v7 follow-up mapping, evidence classes, release-readiness checklist, residual-risk register shape, and pass/fail policy
 - [v8-autonomy-baseline-inventory.md](./v8-autonomy-baseline-inventory.md): v8 inventory of command surfaces, turn execution, policy gates, cancellation, daemon seams, runtime context, repository context, replay/eval flows, dashboard gaps, provider depth, and safe loosening opportunities
 - [v8-release-gate.md](./v8-release-gate.md): v8 automated gate command, stage map, advisory provider-canary policy, autonomy boundedness summary, installed smoke inheritance, evidence summary, and pass/fail policy
+- [v8-release-candidate.md](./v8-release-candidate.md): v8 release-candidate operating model, final evidence summary, non-goals, residual risks, and GO decision
 - [tool-expansion-v8.md](./tool-expansion-v8.md): v8 candidate-tool matrix, risk classification, sandboxing controls, validation matrix, migration notes, and non-goals
 - [network-browser-diagnostics-v8.md](./network-browser-diagnostics-v8.md): v8 accepted use cases, host allowlist policy, timeout/redaction controls, prototype schemas, test matrix, and non-goals for local network/browser diagnostics
 - [verification-loops.md](./verification-loops.md): v8 verification loop contract, event vocabulary, failure categories, artifact posture, and release-check relationship

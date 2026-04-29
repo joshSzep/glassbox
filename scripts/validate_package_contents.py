@@ -57,6 +57,7 @@ SDIST_REQUIRED_SUFFIXES = (
     "docs/tasks-v8.md",
     "docs/v8-auditable-autonomy-contract.md",
     "docs/v8-autonomy-baseline-inventory.md",
+    "docs/v8-release-candidate.md",
     "docs/v8-release-gate.md",
     "docs/verification-loops.md",
     "docs/workspace-memory.md",

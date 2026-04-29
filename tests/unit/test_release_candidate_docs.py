@@ -254,3 +254,38 @@ def test_v8_phase_81_docs_are_cross_linked() -> None:
     assert "v8-autonomy-baseline-inventory.md" in task_graph
     assert "v8-autonomy-baseline-inventory.md" in contract
     assert "v8-auditable-autonomy-contract.md" in inventory
+
+
+def test_v8_release_candidate_doc_covers_supported_operating_model() -> None:
+    content = (REPO_ROOT / "docs" / "v8-release-candidate.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "## Supported Operating Model",
+        "uv run python scripts/validate_v8_release_gate.py",
+        ".glassbox/releases/20260429T180807Z-v8-gate/summary.json",
+        ".glassbox/evals/20260429T180807Z-v8-gate/autonomy-advisory/",
+        "task plans",
+        "autonomy budgets",
+        "background jobs",
+        "workspace memory",
+        "repository index",
+        "verify-repair loops",
+        "branch-search workflows",
+        "provider recommendations remain advisory",
+        "## Release-Readiness Checklist",
+        "## Known Residual Risks",
+        "## Deliberate Non-Goals",
+        "## Release Decision",
+        "Decision: GO for v8 release candidate publication.",
+    ):
+        assert required_text in content
+
+
+def test_readmes_link_to_v8_release_candidate_guide() -> None:
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    assert "docs/v8-release-candidate.md" in root_readme
+    assert "v8-release-candidate.md" in docs_readme

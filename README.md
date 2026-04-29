@@ -101,6 +101,17 @@ Start with [docs/v7-release-candidate.md](docs/v7-release-candidate.md) when you
 need the supported v7 operating model, release gate, retained manual evidence,
 known residual risks, and current go/no-go decision in one place.
 
+## V8 Release Candidate
+
+The v8 release-candidate track expands the v7 operating model with durable task
+plans, autonomy budgets, background jobs, workspace memory, repository
+intelligence, verify-repair loops, branch-search comparison, provider
+recommendations, and dashboard autonomy controls.
+
+Start with [docs/v8-release-candidate.md](docs/v8-release-candidate.md) when you
+need the supported v8 operating model, release gate, retained manual evidence,
+known residual risks, and current go/no-go decision in one place.
+
 ## V2 Release Candidate
 
 The v2 release candidate packages the current local-first operating model as one
@@ -120,6 +131,7 @@ The root README is the shortest path into the project. The detailed operator and
 Start here based on what you need:
 
 - [docs/getting-started.md](docs/getting-started.md)
+- [docs/v8-release-candidate.md](docs/v8-release-candidate.md)
 - [docs/v7-release-candidate.md](docs/v7-release-candidate.md)
 - [docs/v6-release-candidate.md](docs/v6-release-candidate.md)
 - [docs/v2-release-candidate.md](docs/v2-release-candidate.md)

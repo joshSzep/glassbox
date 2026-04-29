@@ -1672,7 +1672,7 @@ The intended v8 milestone order is:
 
 ### GBX-895: Publish v8 Release-Candidate Guide
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-893`, `GBX-894`
 - Goal: publish a concise public guide for the supported v8 operating model, validation path, evidence expectations, non-goals, residual risks, and release decision
 - Deliverables:
