@@ -1,6 +1,11 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
 
-import type { GlassboxApiClient, SessionAggregateQuery } from "@/api/client";
+import type {
+  AutonomyBudget,
+  AutonomyMode,
+  GlassboxApiClient,
+  SessionAggregateQuery,
+} from "@/api/client";
 import type { TaskDetailResponse, TaskEventPageResponse, TaskListPageResponse } from "@/api/client";
 import {
   createSessionEventStream,
@@ -21,6 +26,14 @@ import type { TaskQueueFilter } from "@/routing/app-route";
 
 export type LoadState = "failed" | "idle" | "loaded" | "loading";
 export type ActionKind = "answer" | "approval" | "cancel" | "fork" | "prompt";
+export type TaskActionKind =
+  | "approve-plan"
+  | "budget"
+  | "cancel-background-job"
+  | "cancel-task"
+  | "continue-task"
+  | "pause-task"
+  | "resume-task";
 export type DetailPageKind = "events" | "metrics" | "transcript";
 
 export type DetailPageStatus = {
@@ -35,6 +48,12 @@ export type DetailPageState = Record<DetailPageKind, DetailPageStatus>;
 export type ActionStatus = {
   error: string | null;
   kind: ActionKind | null;
+  state: "failed" | "idle" | "pending" | "succeeded";
+};
+
+export type TaskActionStatus = {
+  error: string | null;
+  kind: TaskActionKind | null;
   state: "failed" | "idle" | "pending" | "succeeded";
 };
 
@@ -81,12 +100,30 @@ export type TaskDetailState = {
 };
 
 export type TaskStoreState = {
+  action: TaskActionStatus;
+  adjustTaskBudget: (input: {
+    budget: AutonomyBudget;
+    detail?: string | null;
+    mode: AutonomyMode;
+    reason?: string | null;
+    taskId?: string;
+  }) => Promise<void>;
   applyTaskUpdate: (taskId?: string | null) => Promise<void>;
+  approvePlan: (input?: { reason?: string | null; taskId?: string }) => Promise<void>;
+  cancelBackgroundJob: (input: { jobId: string; reason?: string | null }) => Promise<void>;
+  cancelTask: (input?: { reason?: string | null; taskId?: string }) => Promise<void>;
+  continueTask: (input?: {
+    reason?: string | null;
+    taskId?: string;
+    verifyRepair?: boolean;
+  }) => Promise<void>;
   detail: TaskDetailState;
   loadMoreTaskEvents: () => Promise<void>;
   loadTaskPage: (query?: { queue?: TaskQueueFilter; sessionId?: string | null }) => Promise<void>;
+  pauseTask: (input?: { detail?: string | null; taskId?: string }) => Promise<void>;
   queue: TaskQueuePageState;
   reset: () => void;
+  resumeTask: (input?: { reason?: string | null; taskId?: string }) => Promise<void>;
   selectTask: (taskId: string) => Promise<void>;
   setQueueFilter: (queue: TaskQueueFilter) => Promise<void>;
 };
@@ -181,11 +218,73 @@ export function createTaskStore(apiClient: GlassboxApiClient): StoreApi<TaskStor
   let detailRequestId = 0;
 
   return createStore<TaskStoreState>((set, get) => ({
+    action: createIdleTaskActionStatus(),
+    adjustTaskBudget: async (input) => {
+      const taskId = input.taskId ?? requireSelectedTaskId(get().detail);
+      await runTaskAction({
+        action: () =>
+          apiClient.adjustTaskBudget({
+            budget: input.budget,
+            detail: input.detail,
+            mode: input.mode,
+            reason: input.reason,
+            taskId,
+          }),
+        get,
+        kind: "budget",
+        set,
+        taskId,
+      });
+    },
     applyTaskUpdate: async (taskId = get().detail.selectedTaskId) => {
       await get().loadTaskPage({ queue: get().queue.queue });
       if (taskId !== null && taskId !== undefined) {
         await get().selectTask(taskId);
       }
+    },
+    approvePlan: async (input = {}) => {
+      const taskId = input.taskId ?? requireSelectedTaskId(get().detail);
+      await runTaskAction({
+        action: () => apiClient.approveTaskPlan({ reason: input.reason, taskId }),
+        get,
+        kind: "approve-plan",
+        set,
+        taskId,
+      });
+    },
+    cancelBackgroundJob: async (input) => {
+      await runTaskAction({
+        action: () => apiClient.cancelBackgroundJob({ jobId: input.jobId, reason: input.reason }),
+        get,
+        kind: "cancel-background-job",
+        set,
+        taskId: get().detail.selectedTaskId,
+      });
+    },
+    cancelTask: async (input = {}) => {
+      const taskId = input.taskId ?? requireSelectedTaskId(get().detail);
+      await runTaskAction({
+        action: () => apiClient.cancelTask({ reason: input.reason, taskId }),
+        get,
+        kind: "cancel-task",
+        set,
+        taskId,
+      });
+    },
+    continueTask: async (input = {}) => {
+      const taskId = input.taskId ?? requireSelectedTaskId(get().detail);
+      await runTaskAction({
+        action: () =>
+          apiClient.continueTask({
+            reason: input.reason,
+            taskId,
+            verifyRepair: input.verifyRepair,
+          }),
+        get,
+        kind: "continue-task",
+        set,
+        taskId,
+      });
     },
     detail: createIdleTaskDetailState(),
     loadMoreTaskEvents: async () => {
@@ -259,12 +358,33 @@ export function createTaskStore(apiClient: GlassboxApiClient): StoreApi<TaskStor
       }
     },
     queue: createIdleTaskQueueState(),
+    pauseTask: async (input = {}) => {
+      const taskId = input.taskId ?? requireSelectedTaskId(get().detail);
+      await runTaskAction({
+        action: () => apiClient.pauseTask({ detail: input.detail, taskId }),
+        get,
+        kind: "pause-task",
+        set,
+        taskId,
+      });
+    },
     reset: () => {
       listRequestId += 1;
       detailRequestId += 1;
       set({
+        action: createIdleTaskActionStatus(),
         detail: createIdleTaskDetailState(),
         queue: createIdleTaskQueueState(),
+      });
+    },
+    resumeTask: async (input = {}) => {
+      const taskId = input.taskId ?? requireSelectedTaskId(get().detail);
+      await runTaskAction({
+        action: () => apiClient.resumeTask({ reason: input.reason, taskId }),
+        get,
+        kind: "resume-task",
+        set,
+        taskId,
       });
     },
     selectTask: async (taskId) => {
@@ -635,6 +755,40 @@ function createIdleTaskDetailState(): TaskDetailState {
     loadState: "idle",
     selectedTaskId: null,
   };
+}
+
+function createIdleTaskActionStatus(): TaskActionStatus {
+  return { error: null, kind: null, state: "idle" };
+}
+
+async function runTaskAction({
+  action,
+  get,
+  kind,
+  set,
+  taskId,
+}: {
+  action: () => Promise<unknown>;
+  get: StoreApi<TaskStoreState>["getState"];
+  kind: TaskActionKind;
+  set: StoreApi<TaskStoreState>["setState"];
+  taskId: string | null;
+}) {
+  set({ action: { error: null, kind, state: "pending" } });
+  try {
+    await action();
+    set({ action: { error: null, kind, state: "succeeded" } });
+    await get().applyTaskUpdate(taskId);
+  } catch (error) {
+    set({ action: { error: errorMessage(error), kind, state: "failed" } });
+  }
+}
+
+function requireSelectedTaskId(detail: TaskDetailState): string {
+  if (detail.selectedTaskId === null) {
+    throw new Error("No task is selected.");
+  }
+  return detail.selectedTaskId;
 }
 
 function createIdleDetailPageState(): DetailPageState {

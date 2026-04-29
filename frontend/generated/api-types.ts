@@ -24,6 +24,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/jobs/{job_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Cancel Background Job
+     * @description Request cancellation for one daemon-owned background job.
+     */
+    post: operations["cancel_background_job_jobs__job_id__cancel_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/memory": {
     parameters: {
       query?: never;
@@ -520,6 +540,86 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/tasks/{task_id}/approve-plan": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Approve Task Plan
+     * @description Approve a proposed task plan and mark it active.
+     */
+    post: operations["approve_task_plan_tasks__task_id__approve_plan_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/tasks/{task_id}/budget": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Adjust Task Budget
+     * @description Record an operator-approved task budget adjustment.
+     */
+    post: operations["adjust_task_budget_tasks__task_id__budget_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/tasks/{task_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Cancel Task
+     * @description Cancel one mutable task.
+     */
+    post: operations["cancel_task_tasks__task_id__cancel_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/tasks/{task_id}/continue": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Continue Task
+     * @description Start a bounded background continuation job for one task.
+     */
+    post: operations["continue_task_tasks__task_id__continue_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/tasks/{task_id}/events": {
     parameters: {
       query?: never;
@@ -534,6 +634,46 @@ export interface paths {
     get: operations["get_task_event_page_tasks__task_id__events_get"];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/tasks/{task_id}/pause": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Pause Task
+     * @description Pause one mutable task.
+     */
+    post: operations["pause_task_tasks__task_id__pause_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/tasks/{task_id}/resume": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Resume Task
+     * @description Resume one paused task.
+     */
+    post: operations["resume_task_tasks__task_id__resume_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -837,6 +977,40 @@ export interface components {
       | "test-driven"
       | "autonomous-local"
       | "release-candidate";
+    /** BackgroundJobDetailResponse */
+    BackgroundJobDetailResponse: {
+      job: components["schemas"]["BackgroundJobResponse"];
+    };
+    /** BackgroundJobResponse */
+    BackgroundJobResponse: {
+      /** Failure Kind */
+      failure_kind?: string | null;
+      /** Failure Message */
+      failure_message?: string | null;
+      /** Job Id */
+      job_id: string;
+      /** Job Type */
+      job_type: string;
+      /** Kind */
+      kind: string;
+      /** Progress Message */
+      progress_message?: string | null;
+      /** Requested By */
+      requested_by: string;
+      /**
+       * Retryable
+       * @default false
+       */
+      retryable: boolean;
+      /** Session Id */
+      session_id: string;
+      /** State */
+      state: string;
+      /** Task Id */
+      task_id?: string | null;
+      /** Title */
+      title: string;
+    };
     /** BranchableTurnResponse */
     BranchableTurnResponse: {
       /**
@@ -1584,6 +1758,67 @@ export interface components {
       /** Text */
       text: string;
     };
+    /** TaskActionRequest */
+    TaskActionRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /** Reason */
+      reason?: string | null;
+    };
+    /**
+     * TaskBlockedReason
+     * @description Operator-facing reasons a task cannot continue.
+     * @enum {string}
+     */
+    TaskBlockedReason:
+      | "awaiting_approval"
+      | "awaiting_user_input"
+      | "policy_blocked"
+      | "budget_exhausted"
+      | "verification_failed"
+      | "provider_unavailable"
+      | "daemon_unavailable"
+      | "ambiguous_plan"
+      | "cancelled"
+      | "manual_pause"
+      | "unknown";
+    /** TaskBudgetAdjustmentRequest */
+    TaskBudgetAdjustmentRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      budget: components["schemas"]["AutonomyBudget"];
+      /** Detail */
+      detail?: string | null;
+      mode: components["schemas"]["AutonomyMode"];
+      /** Reason */
+      reason?: string | null;
+    };
+    /** TaskContinueRequest */
+    TaskContinueRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /** Reason */
+      reason?: string | null;
+      /**
+       * Requested By
+       * @default operator
+       */
+      requested_by: string;
+      /**
+       * Verify Repair
+       * @default true
+       */
+      verify_repair: boolean;
+    };
     /** TaskDetailResponse */
     TaskDetailResponse: {
       projection_health: components["schemas"]["ProjectionHealthResponse"];
@@ -1636,6 +1871,18 @@ export interface components {
       projection_health?: components["schemas"]["ProjectionHealthResponse"] | null;
       /** Session Id */
       session_id: string | null;
+    };
+    /** TaskPauseRequest */
+    TaskPauseRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /** Detail */
+      detail?: string | null;
+      /** @default manual_pause */
+      reason: components["schemas"]["TaskBlockedReason"];
     };
     /** TaskStepPageResponse */
     TaskStepPageResponse: {
@@ -2101,6 +2348,59 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HealthResponse"];
+        };
+      };
+    };
+  };
+  cancel_background_job_jobs__job_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        job_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskActionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BackgroundJobDetailResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };
@@ -3093,6 +3393,218 @@ export interface operations {
       };
     };
   };
+  approve_task_plan_tasks__task_id__approve_plan_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskActionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ActionAcceptedResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  adjust_task_budget_tasks__task_id__budget_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskBudgetAdjustmentRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ActionAcceptedResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  cancel_task_tasks__task_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskActionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ActionAcceptedResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  continue_task_tasks__task_id__continue_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskContinueRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BackgroundJobDetailResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   get_task_event_page_tasks__task_id__events_get: {
     parameters: {
       query?: {
@@ -3118,6 +3630,112 @@ export interface operations {
       };
       /** @description Not Found */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  pause_task_tasks__task_id__pause_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskPauseRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ActionAcceptedResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  resume_task_tasks__task_id__resume_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskActionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ActionAcceptedResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Conflict */
+      409: {
         headers: {
           [name: string]: unknown;
         };

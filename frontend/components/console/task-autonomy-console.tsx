@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -24,12 +25,29 @@ import {
 } from "@/components/ui/table";
 import { operatorIconSizeClass } from "@/design-system/operator-status";
 import { buildAppRoute, type TaskQueueFilter } from "@/routing/app-route";
-import type { TaskDetailState, TaskQueuePageState } from "@/stores/dashboard-stores";
+import type { AutonomyBudget, AutonomyMode } from "@/api/client";
+import type {
+  TaskActionStatus,
+  TaskDetailState,
+  TaskQueuePageState,
+} from "@/stores/dashboard-stores";
 
 export type TaskAutonomyConsoleProps = {
+  action?: TaskActionStatus;
   detail: TaskDetailState;
+  onAdjustBudget?: (input: {
+    budget: AutonomyBudget;
+    detail?: string | null;
+    mode: AutonomyMode;
+  }) => void;
+  onApprovePlan?: () => void;
+  onCancelBackgroundJob?: (jobId: string) => void;
+  onCancelTask?: () => void;
+  onContinueTask?: () => void;
   onLoadMoreEvents?: () => void;
+  onPauseTask?: () => void;
   onRefresh?: () => void;
+  onResumeTask?: () => void;
   onSelectQueue?: (queue: TaskQueueFilter) => void;
   onSelectSession?: (sessionId: string) => void;
   onSelectTask?: (taskId: string) => void;
@@ -47,9 +65,17 @@ const taskFilters: Array<{ label: string; queue: TaskQueueFilter }> = [
 ];
 
 export function TaskAutonomyConsole({
+  action = { error: null, kind: null, state: "idle" },
   detail,
+  onAdjustBudget,
+  onApprovePlan,
+  onCancelBackgroundJob,
+  onCancelTask,
+  onContinueTask,
   onLoadMoreEvents,
+  onPauseTask,
   onRefresh,
+  onResumeTask,
   onSelectQueue,
   onSelectSession,
   onSelectTask,
@@ -105,8 +131,16 @@ export function TaskAutonomyConsole({
               tasks={visibleTasks}
             />
             <TaskPlanInspector
+              action={action}
               detail={detail}
+              onAdjustBudget={onAdjustBudget}
+              onApprovePlan={onApprovePlan}
+              onCancelBackgroundJob={onCancelBackgroundJob}
+              onCancelTask={onCancelTask}
+              onContinueTask={onContinueTask}
               onLoadMoreEvents={onLoadMoreEvents}
+              onPauseTask={onPauseTask}
+              onResumeTask={onResumeTask}
               onSelectSession={onSelectSession}
               selectedDetail={selectedDetail}
             />
@@ -278,13 +312,33 @@ function TaskQueueTable({
 }
 
 function TaskPlanInspector({
+  action,
   detail,
+  onAdjustBudget,
+  onApprovePlan,
+  onCancelBackgroundJob,
+  onCancelTask,
+  onContinueTask,
   onLoadMoreEvents,
+  onPauseTask,
+  onResumeTask,
   onSelectSession,
   selectedDetail,
 }: {
+  action: TaskActionStatus;
   detail: TaskDetailState;
+  onAdjustBudget?: (input: {
+    budget: AutonomyBudget;
+    detail?: string | null;
+    mode: AutonomyMode;
+  }) => void;
+  onApprovePlan?: () => void;
+  onCancelBackgroundJob?: (jobId: string) => void;
+  onCancelTask?: () => void;
+  onContinueTask?: () => void;
   onLoadMoreEvents?: () => void;
+  onPauseTask?: () => void;
+  onResumeTask?: () => void;
   onSelectSession?: (sessionId: string) => void;
   selectedDetail: TaskDetailState["detail"];
 }) {
@@ -314,6 +368,7 @@ function TaskPlanInspector({
     (step) => step.step_id === selectedDetail.task.current_step_id,
   );
   const budgetEvidence = latestBudgetEvidence(detail.events);
+  const jobIds = backgroundJobIds(detail.events);
 
   return (
     <aside
@@ -339,6 +394,19 @@ function TaskPlanInspector({
       </div>
 
       <div className="mt-4 grid gap-3">
+        <TaskActionControls
+          action={action}
+          jobIds={jobIds}
+          onAdjustBudget={onAdjustBudget}
+          onApprovePlan={onApprovePlan}
+          onCancelBackgroundJob={onCancelBackgroundJob}
+          onCancelTask={onCancelTask}
+          onContinueTask={onContinueTask}
+          onPauseTask={onPauseTask}
+          onResumeTask={onResumeTask}
+          status={selectedDetail.task.status}
+        />
+
         <DataList density="compact" aria-label="Task summary">
           <DataListItem>
             <DataListLabel>Current step</DataListLabel>
@@ -438,6 +506,183 @@ function TaskPlanInspector({
         </section>
       </div>
     </aside>
+  );
+}
+
+function TaskActionControls({
+  action,
+  jobIds,
+  onAdjustBudget,
+  onApprovePlan,
+  onCancelBackgroundJob,
+  onCancelTask,
+  onContinueTask,
+  onPauseTask,
+  onResumeTask,
+  status,
+}: {
+  action: TaskActionStatus;
+  jobIds: string[];
+  onAdjustBudget?: (input: {
+    budget: AutonomyBudget;
+    detail?: string | null;
+    mode: AutonomyMode;
+  }) => void;
+  onApprovePlan?: () => void;
+  onCancelBackgroundJob?: (jobId: string) => void;
+  onCancelTask?: () => void;
+  onContinueTask?: () => void;
+  onPauseTask?: () => void;
+  onResumeTask?: () => void;
+  status: string;
+}) {
+  const [mode, setMode] = useState<AutonomyMode>("inspect");
+  const [maxSteps, setMaxSteps] = useState(2);
+  const actionPending = action.state === "pending";
+  const terminal = ["abandoned", "cancelled", "completed", "failed"].includes(status);
+  const canApprove = status === "proposed" && onApprovePlan !== undefined;
+  const canResume = status === "paused" && onResumeTask !== undefined;
+
+  return (
+    <section
+      aria-label="Task controls"
+      className="rounded-md border border-border/80 bg-surface p-3"
+    >
+      <div className="flex flex-wrap gap-2">
+        {canApprove ? (
+          <Button disabled={actionPending} onClick={onApprovePlan} size="sm" type="button">
+            <CheckCircle2 className={operatorIconSizeClass} aria-hidden="true" />
+            Approve Plan
+          </Button>
+        ) : null}
+        <Button
+          disabled={actionPending || terminal}
+          onClick={() => {
+            if (confirmAction("Start bounded background continuation for this task?")) {
+              onContinueTask?.();
+            }
+          }}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <ListChecks className={operatorIconSizeClass} aria-hidden="true" />
+          Continue
+        </Button>
+        <Button
+          disabled={actionPending || terminal}
+          onClick={() => onPauseTask?.()}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <Clock3 className={operatorIconSizeClass} aria-hidden="true" />
+          Pause
+        </Button>
+        <Button
+          disabled={actionPending || !canResume}
+          onClick={() => onResumeTask?.()}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <RefreshCcw className={operatorIconSizeClass} aria-hidden="true" />
+          Resume
+        </Button>
+        <Button
+          disabled={actionPending || terminal}
+          onClick={() => {
+            if (confirmAction("Cancel this task? This records an operator cancellation.")) {
+              onCancelTask?.();
+            }
+          }}
+          size="sm"
+          type="button"
+          variant="destructive"
+        >
+          <AlertCircle className={operatorIconSizeClass} aria-hidden="true" />
+          Cancel
+        </Button>
+      </div>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_7rem_auto]">
+        <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+          Budget mode
+          <select
+            className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground"
+            onChange={(event) => setMode(event.target.value as AutonomyMode)}
+            value={mode}
+          >
+            <option value="inspect">inspect</option>
+            <option value="guided">guided</option>
+            <option value="edit-safe">edit-safe</option>
+            <option value="test-driven">test-driven</option>
+          </select>
+        </label>
+        <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+          Steps
+          <input
+            className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground"
+            min={0}
+            onChange={(event) => setMaxSteps(Number(event.target.value))}
+            type="number"
+            value={maxSteps}
+          />
+        </label>
+        <Button
+          className="self-end"
+          disabled={actionPending || terminal || onAdjustBudget === undefined}
+          onClick={() => {
+            if (
+              confirmAction(
+                "Adjust this task budget? Budget changes are recorded as backend evidence.",
+              )
+            ) {
+              onAdjustBudget?.({
+                budget: budgetFromMode(mode, maxSteps),
+                detail: `dashboard set ${mode} budget with ${maxSteps} steps`,
+                mode,
+              });
+            }
+          }}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          Adjust Budget
+        </Button>
+      </div>
+
+      {jobIds.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {jobIds.map((jobId) => (
+            <Button
+              disabled={actionPending}
+              key={jobId}
+              onClick={() => {
+                if (confirmAction(`Cancel background job ${jobId}?`)) {
+                  onCancelBackgroundJob?.(jobId);
+                }
+              }}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              Cancel Job {shortId(jobId)}
+            </Button>
+          ))}
+        </div>
+      ) : null}
+
+      {action.state === "failed" && action.error !== null ? (
+        <p className="mt-3 text-sm text-destructive">{action.error}</p>
+      ) : null}
+      {action.state === "succeeded" ? (
+        <p className="mt-3 text-sm text-muted-foreground">
+          Action accepted; refreshed task evidence.
+        </p>
+      ) : null}
+    </section>
   );
 }
 
@@ -591,6 +836,44 @@ function latestBudgetEvidence(events: TaskDetailState["events"]): string {
   const detail = budgetEvent.payload.detail;
   const decision = budgetEvent.payload.decision ?? budgetEvent.event_type;
   return `${String(decision)}${typeof detail === "string" ? `: ${detail}` : ""}`;
+}
+
+function backgroundJobIds(events: TaskDetailState["events"]): string[] {
+  const ids = new Set<string>();
+  for (const event of events) {
+    const jobId = event.payload.job_id;
+    if (typeof jobId === "string" && jobId.length > 0) {
+      ids.add(jobId);
+    }
+  }
+  return [...ids];
+}
+
+function budgetFromMode(mode: AutonomyMode, maxSteps: number): AutonomyBudget {
+  const normalizedSteps = Number.isFinite(maxSteps) ? Math.max(0, Math.floor(maxSteps)) : 0;
+  const canWrite = mode === "edit-safe" || mode === "test-driven";
+  return {
+    allowed_risk_buckets: canWrite ? ["read_only", "workspace_write"] : ["read_only"],
+    max_artifact_bytes: 1_000_000,
+    max_branch_attempts: 0,
+    max_command_operations: 0,
+    max_steps: normalizedSteps,
+    max_tool_calls: Math.max(1, normalizedSteps * 3),
+    max_verification_attempts: mode === "test-driven" ? 2 : 1,
+    max_wall_clock_seconds: Math.max(60, normalizedSteps * 120),
+    max_write_operations: canWrite ? Math.max(1, normalizedSteps) : 0,
+  };
+}
+
+function confirmAction(message: string): boolean {
+  if (typeof window === "undefined") {
+    return true;
+  }
+  return window.confirm(message);
+}
+
+function shortId(value: string): string {
+  return value.length <= 8 ? value : value.slice(0, 8);
 }
 
 function eventSummary(payload: Record<string, unknown>): string {

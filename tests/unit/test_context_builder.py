@@ -218,6 +218,9 @@ class FakeSessionRepository:
         del offset
         return []
 
+    def get_budget_posture(self, session_id, *, task_id=None):
+        return None
+
     def enqueue_background_job(self, session_id, **kwargs):
         raise NotImplementedError
 

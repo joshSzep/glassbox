@@ -5,7 +5,11 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+from glassbox.core.models import AutonomyBudget
+from glassbox.core.models import BackgroundJobRecord
 from glassbox.core.models import ProjectionHealth
+from glassbox.core.types import AutonomyMode
+from glassbox.core.types import TaskBlockedReason
 from glassbox.runtime.task_queries import TaskDetailView
 from glassbox.runtime.task_queries import TaskEventView
 from glassbox.runtime.task_queries import TaskStepView
@@ -85,6 +89,46 @@ class TaskEventPageResponse(BaseModel):
     items: list[TaskEventResponse]
 
 
+class TaskActionRequest(BaseModel):
+    actor: str = "operator"
+    reason: str | None = None
+
+
+class TaskPauseRequest(TaskActionRequest):
+    detail: str | None = None
+    reason: TaskBlockedReason = TaskBlockedReason.MANUAL_PAUSE
+
+
+class TaskContinueRequest(TaskActionRequest):
+    requested_by: str = "operator"
+    verify_repair: bool = True
+
+
+class TaskBudgetAdjustmentRequest(TaskActionRequest):
+    mode: AutonomyMode
+    budget: AutonomyBudget
+    detail: str | None = None
+
+
+class BackgroundJobResponse(BaseModel):
+    job_id: str
+    session_id: str
+    state: str
+    kind: str
+    job_type: str
+    title: str
+    requested_by: str
+    task_id: str | None = None
+    progress_message: str | None = None
+    failure_kind: str | None = None
+    failure_message: str | None = None
+    retryable: bool = False
+
+
+class BackgroundJobDetailResponse(BaseModel):
+    job: BackgroundJobResponse
+
+
 def build_task_summary_response(summary: TaskSummaryView) -> TaskSummaryResponse:
     """Serialize a task summary view into the HTTP response model."""
 
@@ -162,3 +206,10 @@ def build_projection_health_response(
     return ProjectionHealthResponse.model_validate(
         projection_health.model_dump(mode="json")
     )
+
+
+def build_background_job_response(job: BackgroundJobRecord) -> BackgroundJobResponse:
+    """Serialize a background job record into dashboard action output."""
+
+    payload = job.model_dump(mode="json")
+    return BackgroundJobResponse.model_validate(payload)

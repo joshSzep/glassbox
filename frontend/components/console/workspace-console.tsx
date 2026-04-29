@@ -90,12 +90,34 @@ export function WorkspaceConsole() {
   if (route.surface === "tasks") {
     return (
       <TaskAutonomyConsole
+        action={taskState.action}
         detail={taskState.detail}
+        onAdjustBudget={(input) => {
+          void taskStore.getState().adjustTaskBudget(input);
+        }}
+        onApprovePlan={() => {
+          void taskStore.getState().approvePlan();
+        }}
+        onCancelBackgroundJob={(jobId) => {
+          void taskStore.getState().cancelBackgroundJob({ jobId, reason: "dashboard request" });
+        }}
+        onCancelTask={() => {
+          void taskStore.getState().cancelTask({ reason: "dashboard request" });
+        }}
+        onContinueTask={() => {
+          void taskStore.getState().continueTask({ reason: "dashboard bounded continuation" });
+        }}
         onLoadMoreEvents={() => {
           void taskStore.getState().loadMoreTaskEvents();
         }}
+        onPauseTask={() => {
+          void taskStore.getState().pauseTask({ detail: "dashboard pause" });
+        }}
         onRefresh={() => {
           void taskStore.getState().applyTaskUpdate();
+        }}
+        onResumeTask={() => {
+          void taskStore.getState().resumeTask({ reason: "dashboard resume" });
         }}
         onSelectQueue={(queue) => {
           const nextRoute = selectTaskQueueRoute(parseAppRoute(window.location.href), queue);

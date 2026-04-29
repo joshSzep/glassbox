@@ -209,6 +209,61 @@ describe("createGlassboxApiClient", () => {
     ]);
   });
 
+  it("shapes task and background job action requests", async () => {
+    const { calls, fetch } = createMockFetch([
+      jsonResponse({ status: "ok" }),
+      jsonResponse({ job: { job_id: "job/1" } }),
+      jsonResponse({ status: "ok" }),
+      jsonResponse({ status: "ok" }),
+      jsonResponse({ status: "ok" }),
+      jsonResponse({ status: "ok" }),
+      jsonResponse({ job: { job_id: "job/1" } }),
+    ]);
+    const client = createGlassboxApiClient({ fetch });
+    const budget: Parameters<typeof client.adjustTaskBudget>[0]["budget"] = {
+      allowed_risk_buckets: ["read_only"],
+      max_artifact_bytes: 1000,
+      max_branch_attempts: 0,
+      max_command_operations: 0,
+      max_steps: 1,
+      max_tool_calls: 1,
+      max_verification_attempts: 1,
+      max_wall_clock_seconds: 60,
+      max_write_operations: 0,
+    };
+
+    await client.approveTaskPlan({ reason: "ok", taskId: "task/1" });
+    await client.continueTask({ reason: "go", taskId: "task/1", verifyRepair: false });
+    await client.pauseTask({ detail: "hold", taskId: "task/1" });
+    await client.resumeTask({ reason: "ready", taskId: "task/1" });
+    await client.cancelTask({ reason: "stop", taskId: "task/1" });
+    await client.adjustTaskBudget({ budget, mode: "inspect", taskId: "task/1" });
+    await client.cancelBackgroundJob({ jobId: "job/1", reason: "stop job" });
+
+    expect(calls.map((call) => call.input)).toEqual([
+      "/tasks/task%2F1/approve-plan",
+      "/tasks/task%2F1/continue",
+      "/tasks/task%2F1/pause",
+      "/tasks/task%2F1/resume",
+      "/tasks/task%2F1/cancel",
+      "/tasks/task%2F1/budget",
+      "/jobs/job%2F1/cancel",
+    ]);
+    expect(calls[1].init?.body).toBe(
+      JSON.stringify({ reason: "go", requested_by: "operator", verify_repair: false }),
+    );
+    expect(calls[5].init?.body).toBe(
+      JSON.stringify({
+        actor: "operator",
+        budget,
+        detail: null,
+        mode: "inspect",
+        reason: null,
+      }),
+    );
+    expect(calls[6].init?.body).toBe(JSON.stringify({ actor: "operator", reason: "stop job" }));
+  });
+
   it("normalizes FastAPI validation errors", async () => {
     const { fetch } = createMockFetch([
       jsonResponse(

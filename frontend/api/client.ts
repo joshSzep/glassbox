@@ -14,9 +14,12 @@ export type TaskListPageResponse = components["schemas"]["TaskListPageResponse"]
 export type TaskDetailResponse = components["schemas"]["TaskDetailResponse"];
 export type TaskStepPageResponse = components["schemas"]["TaskStepPageResponse"];
 export type TaskEventPageResponse = components["schemas"]["TaskEventPageResponse"];
+export type BackgroundJobDetailResponse = components["schemas"]["BackgroundJobDetailResponse"];
 export type ActionAcceptedResponse = components["schemas"]["ActionAcceptedResponse"];
 export type ForkSessionResponse = components["schemas"]["ForkSessionResponse"];
 export type ApprovalDecision = components["schemas"]["ApprovalDecision"];
+export type AutonomyBudget = components["schemas"]["AutonomyBudget"];
+export type AutonomyMode = components["schemas"]["AutonomyMode"];
 export type FastApiValidationIssue = NonNullable<
   components["schemas"]["HTTPValidationError"]["detail"]
 >[number];
@@ -231,6 +234,128 @@ export function createGlassboxApiClient(options: GlassboxApiClientOptions = {}) 
         ...requestOptions,
         query,
       }),
+
+    approveTaskPlan: (
+      input: { actor?: string; reason?: string | null; taskId: string },
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<ActionAcceptedResponse>(
+        "POST",
+        `/tasks/${encodeURIComponent(input.taskId)}/approve-plan`,
+        {
+          ...requestOptions,
+          body: { actor: input.actor ?? "operator", reason: input.reason ?? null },
+        },
+      ),
+
+    continueTask: (
+      input: {
+        reason?: string | null;
+        requestedBy?: string;
+        taskId: string;
+        verifyRepair?: boolean;
+      },
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<BackgroundJobDetailResponse>(
+        "POST",
+        `/tasks/${encodeURIComponent(input.taskId)}/continue`,
+        {
+          ...requestOptions,
+          body: {
+            reason: input.reason ?? null,
+            requested_by: input.requestedBy ?? "operator",
+            verify_repair: input.verifyRepair ?? true,
+          },
+        },
+      ),
+
+    pauseTask: (
+      input: {
+        actor?: string;
+        detail?: string | null;
+        reason?: components["schemas"]["TaskBlockedReason"];
+        taskId: string;
+      },
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<ActionAcceptedResponse>(
+        "POST",
+        `/tasks/${encodeURIComponent(input.taskId)}/pause`,
+        {
+          ...requestOptions,
+          body: {
+            actor: input.actor ?? "operator",
+            detail: input.detail ?? null,
+            reason: input.reason ?? "manual_pause",
+          },
+        },
+      ),
+
+    resumeTask: (
+      input: { actor?: string; reason?: string | null; taskId: string },
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<ActionAcceptedResponse>(
+        "POST",
+        `/tasks/${encodeURIComponent(input.taskId)}/resume`,
+        {
+          ...requestOptions,
+          body: { actor: input.actor ?? "operator", reason: input.reason ?? null },
+        },
+      ),
+
+    cancelTask: (
+      input: { actor?: string; reason?: string | null; taskId: string },
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<ActionAcceptedResponse>(
+        "POST",
+        `/tasks/${encodeURIComponent(input.taskId)}/cancel`,
+        {
+          ...requestOptions,
+          body: { actor: input.actor ?? "operator", reason: input.reason ?? null },
+        },
+      ),
+
+    adjustTaskBudget: (
+      input: {
+        actor?: string;
+        budget: AutonomyBudget;
+        detail?: string | null;
+        mode: AutonomyMode;
+        reason?: string | null;
+        taskId: string;
+      },
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<ActionAcceptedResponse>(
+        "POST",
+        `/tasks/${encodeURIComponent(input.taskId)}/budget`,
+        {
+          ...requestOptions,
+          body: {
+            actor: input.actor ?? "operator",
+            budget: input.budget,
+            detail: input.detail ?? null,
+            mode: input.mode,
+            reason: input.reason ?? null,
+          },
+        },
+      ),
+
+    cancelBackgroundJob: (
+      input: { actor?: string; jobId: string; reason?: string | null },
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<BackgroundJobDetailResponse>(
+        "POST",
+        `/jobs/${encodeURIComponent(input.jobId)}/cancel`,
+        {
+          ...requestOptions,
+          body: { actor: input.actor ?? "operator", reason: input.reason ?? null },
+        },
+      ),
 
     resolveApproval: (
       input: { sessionId: string; approvalId: string; decision: ApprovalDecision },

@@ -124,6 +124,37 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
       projection_health: projectionHealth,
       task_id: taskId,
     }),
+    adjustTaskBudget: async () => ({ status: "ok" }),
+    approveTaskPlan: async () => ({ status: "ok" }),
+    cancelBackgroundJob: async () => ({
+      job: {
+        job_id: "job-1",
+        job_type: "task-continuation-step",
+        kind: "mutating_continuation",
+        requested_by: "operator",
+        retryable: false,
+        session_id: "session-1",
+        state: "cancellation_requested",
+        task_id: "task-1",
+        title: "Continue task",
+      },
+    }),
+    cancelTask: async () => ({ status: "ok" }),
+    continueTask: async () => ({
+      job: {
+        job_id: "job-1",
+        job_type: "task-continuation-step",
+        kind: "mutating_continuation",
+        requested_by: "operator",
+        retryable: false,
+        session_id: "session-1",
+        state: "queued",
+        task_id: "task-1",
+        title: "Continue task",
+      },
+    }),
+    pauseTask: async () => ({ status: "ok" }),
+    resumeTask: async () => ({ status: "ok" }),
     listSessions: async () => [],
     cancelTurn: async () => ({ status: "ok" }),
     resolveApproval: async () => ({ status: "ok" }),
@@ -329,6 +360,121 @@ describe("task store", () => {
     await store.getState().applyTaskUpdate("task-1");
     expect(store.getState().queue.loadState).toBe("loaded");
     expect(store.getState().detail.selectedTaskId).toBe("task-1");
+  });
+
+  it("calls task action APIs and refreshes selected task evidence", async () => {
+    const calls: string[] = [];
+    const store = createTaskStore(
+      createApiClient({
+        adjustTaskBudget: async () => {
+          calls.push("budget");
+          return { status: "ok" };
+        },
+        approveTaskPlan: async () => {
+          calls.push("approve");
+          return { status: "ok" };
+        },
+        cancelBackgroundJob: async () => {
+          calls.push("cancel-job");
+          return {
+            job: {
+              job_id: "job-1",
+              job_type: "task-continuation-step",
+              kind: "mutating_continuation",
+              requested_by: "operator",
+              retryable: false,
+              session_id: "session-1",
+              state: "cancellation_requested",
+              task_id: "task-1",
+              title: "Continue task",
+            },
+          };
+        },
+        cancelTask: async () => {
+          calls.push("cancel-task");
+          return { status: "ok" };
+        },
+        continueTask: async () => {
+          calls.push("continue");
+          return {
+            job: {
+              job_id: "job-1",
+              job_type: "task-continuation-step",
+              kind: "mutating_continuation",
+              requested_by: "operator",
+              retryable: false,
+              session_id: "session-1",
+              state: "queued",
+              task_id: "task-1",
+              title: "Continue task",
+            },
+          };
+        },
+        getTaskDetail: async (taskId) => ({
+          projection_health: projectionHealth,
+          steps: [],
+          task: makeTaskSummary(taskId),
+          verifications: [],
+        }),
+        getTaskEventPage: async (taskId) => ({
+          items: [],
+          page: { cursor: 0, has_more: false, limit: 80, next_cursor: null, returned_count: 0 },
+          projection_health: projectionHealth,
+          task_id: taskId,
+        }),
+        getTaskPage: async () => ({
+          items: [makeTaskSummary("task-1")],
+          page: { cursor: 0, has_more: false, limit: 200, next_cursor: null, returned_count: 1 },
+          projection_health: null,
+          session_id: null,
+        }),
+        pauseTask: async () => {
+          calls.push("pause");
+          return { status: "ok" };
+        },
+        resumeTask: async () => {
+          calls.push("resume");
+          return { status: "ok" };
+        },
+      }),
+    );
+    await store.getState().selectTask("task-1");
+
+    await store.getState().approvePlan();
+    await store.getState().continueTask();
+    await store.getState().pauseTask();
+    await store.getState().resumeTask();
+    await store.getState().adjustTaskBudget({
+      budget: {
+        allowed_risk_buckets: ["read_only"],
+        max_artifact_bytes: 1000,
+        max_branch_attempts: 0,
+        max_command_operations: 0,
+        max_steps: 1,
+        max_tool_calls: 1,
+        max_verification_attempts: 1,
+        max_wall_clock_seconds: 60,
+        max_write_operations: 0,
+      },
+      mode: "inspect",
+    });
+    await store.getState().cancelBackgroundJob({ jobId: "job-1" });
+    await store.getState().cancelTask();
+
+    expect(calls).toEqual([
+      "approve",
+      "continue",
+      "pause",
+      "resume",
+      "budget",
+      "cancel-job",
+      "cancel-task",
+    ]);
+    expect(store.getState().action).toMatchObject({
+      kind: "cancel-task",
+      state: "succeeded",
+    });
+    expect(store.getState().queue.loadState).toBe("loaded");
   });
 
   it("surfaces task page and detail failures", async () => {

@@ -18,6 +18,7 @@ from glassbox.core import new_session_id
 from glassbox.core import new_task_id
 from glassbox.core import new_task_step_id
 from glassbox.core import new_task_verification_id
+from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskVerificationStatus
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.store import SQLiteSessionRepository
@@ -199,6 +200,102 @@ def test_task_detail_surfaces_stale_projection_health(tmp_path: Path) -> None:
             body = response.json()
             assert body["projection_health"]["state"] == "stale"
             assert body["projection_health"]["degraded"] is True
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_task_action_routes_mutate_authoritative_events_and_jobs(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app = _make_app(tmp_path, connection)
+            session_id = new_session_id()
+            task_id = new_task_id()
+            repo = SQLiteSessionRepository(connection)
+            _seed_task(
+                repo,
+                tmp_path,
+                session_id,
+                task_id,
+                [new_task_step_id()],
+                new_task_verification_id(),
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                approve = await client.post(
+                    f"/tasks/{task_id}/approve-plan",
+                    json={"actor": "qa", "reason": "plan reviewed"},
+                )
+                detail_after_approve = await client.get(f"/tasks/{task_id}")
+                continuation = await client.post(
+                    f"/tasks/{task_id}/continue",
+                    json={"requested_by": "qa", "reason": "bounded step"},
+                )
+                pause = await client.post(
+                    f"/tasks/{task_id}/pause",
+                    json={"actor": "qa", "detail": "waiting on release window"},
+                )
+                detail_after_pause = await client.get(f"/tasks/{task_id}")
+                resume = await client.post(
+                    f"/tasks/{task_id}/resume",
+                    json={"actor": "qa", "reason": "release window open"},
+                )
+                budget = await client.post(
+                    f"/tasks/{task_id}/budget",
+                    json={
+                        "actor": "qa",
+                        "budget": {
+                            "allowed_risk_buckets": ["read_only"],
+                            "max_artifact_bytes": 1000,
+                            "max_branch_attempts": 0,
+                            "max_command_operations": 0,
+                            "max_steps": 2,
+                            "max_tool_calls": 4,
+                            "max_verification_attempts": 1,
+                            "max_wall_clock_seconds": 60,
+                            "max_write_operations": 0,
+                        },
+                        "detail": "narrow read-only budget",
+                        "mode": "inspect",
+                    },
+                )
+                cancel_job = await client.post(
+                    f"/jobs/{continuation.json()['job']['job_id']}/cancel",
+                    json={"actor": "qa", "reason": "operator cancelled"},
+                )
+                cancel_task = await client.post(
+                    f"/tasks/{task_id}/cancel",
+                    json={"actor": "qa", "reason": "no longer needed"},
+                )
+                blocked_continue = await client.post(
+                    f"/tasks/{task_id}/continue",
+                    json={"requested_by": "qa"},
+                )
+
+            assert approve.status_code == 200
+            assert detail_after_approve.json()["task"]["status"] == "active"
+            assert continuation.status_code == 200
+            assert continuation.json()["job"]["state"] == "queued"
+            assert pause.status_code == 200
+            assert detail_after_pause.json()["task"]["status"] == "paused"
+            assert detail_after_pause.json()["task"]["blocked_reason"] == "manual_pause"
+            assert resume.status_code == 200
+            assert budget.status_code == 200
+            assert repo.get_budget_posture(session_id, task_id=task_id) is not None
+            assert cancel_job.status_code == 200
+            assert cancel_job.json()["job"]["state"] == "cancellation_requested"
+            assert cancel_task.status_code == 200
+            cancelled_task = repo.get_task(task_id)
+            assert cancelled_task is not None
+            assert cancelled_task.status == TaskPlanStatus.CANCELLED
+            assert blocked_continue.status_code == 409
         finally:
             connection.close()
 

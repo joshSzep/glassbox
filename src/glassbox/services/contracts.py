@@ -19,6 +19,7 @@ from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.ids import WorkspaceMemoryId
 from glassbox.core.models import ApprovalRecord
+from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import BackgroundJobRecord
 from glassbox.core.models import ForkedSession
 from glassbox.core.models import ProjectionHealth
@@ -176,6 +177,13 @@ class SessionRepository(Protocol):
         limit: int | None = None,
         offset: int = 0,
     ) -> list[TurnMetricsRecord]: ...
+
+    def get_budget_posture(
+        self,
+        session_id: SessionId,
+        *,
+        task_id: TaskId | None = None,
+    ) -> AutonomyBudgetPostureRecord | None: ...
 
     def enqueue_background_job(
         self,

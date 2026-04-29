@@ -61,6 +61,12 @@ describe("task autonomy console", () => {
             { decision: "allowed", detail: "one step remains" },
             3,
           ),
+          makeEvent(
+            "event-3",
+            "BackgroundJobCreated",
+            { job_id: "job-1234567890", summary: "Continuation queued" },
+            4,
+          ),
         ],
         eventState: "loaded",
         loadState: "loaded",
@@ -83,6 +89,10 @@ describe("task autonomy console", () => {
     expect(markup).toContain("allowed: one step remains");
     expect(markup).toContain("#3 BudgetDecisionRecorded");
     expect(markup).toContain("Load More Events");
+    expect(markup).toContain("Task controls");
+    expect(markup).toContain("Continue");
+    expect(markup).toContain("Adjust Budget");
+    expect(markup).toContain("Cancel Job job-1234");
   });
 
   it("renders loading and empty states", () => {

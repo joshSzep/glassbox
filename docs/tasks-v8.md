@@ -1450,7 +1450,7 @@ The intended v8 milestone order is:
 
 ### GBX-882: Add Dashboard Controls For Plans, Budgets, Pause, Resume, And Cancellation
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-881`, `GBX-843`, `GBX-835`
 - Goal: give operators explicit control over autonomous work from the dashboard
 - Deliverables:
