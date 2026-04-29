@@ -24,6 +24,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/memory": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Workspace Memory Page
+     * @description Return a bounded page of projected workspace memory entries.
+     */
+    get: operations["list_workspace_memory_page_memory_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/memory/{memory_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Workspace Memory Detail
+     * @description Return one projected workspace memory entry.
+     */
+    get: operations["get_workspace_memory_detail_memory__memory_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/sessions": {
     parameters: {
       query?: never;
@@ -1506,6 +1546,110 @@ export interface components {
       /** Items */
       items?: components["schemas"]["WorkingSetItemSnapshot"][];
     };
+    /** WorkspaceMemoryDetailResponse */
+    WorkspaceMemoryDetailResponse: {
+      entry: components["schemas"]["WorkspaceMemoryEntryResponse"];
+    };
+    /** WorkspaceMemoryEntryResponse */
+    WorkspaceMemoryEntryResponse: {
+      /** Confirmed At */
+      confirmed_at?: string | null;
+      /** Confirmed By */
+      confirmed_by?: string | null;
+      /** Content */
+      content: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Created By */
+      created_by: string;
+      /** Import Source */
+      import_source?: string | null;
+      /** Invalidated At */
+      invalidated_at?: string | null;
+      /** Invalidated By */
+      invalidated_by?: string | null;
+      /** Invalidation Reason */
+      invalidation_reason?: string | null;
+      /** Kind */
+      kind: string;
+      /** Last Sequence */
+      last_sequence: number;
+      /** Last Used At */
+      last_used_at?: string | null;
+      /** Memory Id */
+      memory_id: string;
+      provenance: components["schemas"]["WorkspaceMemoryProvenanceResponse"];
+      /** Prune Reason */
+      prune_reason?: string | null;
+      /** Pruned At */
+      pruned_at?: string | null;
+      /** Pruned By */
+      pruned_by?: string | null;
+      /** Redacted */
+      redacted: boolean;
+      /** Session Id */
+      session_id: string;
+      /** State */
+      state: string;
+      /** Summary */
+      summary?: string | null;
+      /** Tags */
+      tags: string[];
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Use Count */
+      use_count: number;
+    };
+    /**
+     * WorkspaceMemoryKind
+     * @description Operator-facing categories for durable workspace memory.
+     * @enum {string}
+     */
+    WorkspaceMemoryKind:
+      | "fact"
+      | "convention"
+      | "command"
+      | "failure_pattern"
+      | "architecture_note"
+      | "user_preference"
+      | "task_outcome";
+    /** WorkspaceMemoryListPageResponse */
+    WorkspaceMemoryListPageResponse: {
+      /** Items */
+      items: components["schemas"]["WorkspaceMemoryEntryResponse"][];
+      page: components["schemas"]["PageInfoResponse"];
+    };
+    /** WorkspaceMemoryProvenanceResponse */
+    WorkspaceMemoryProvenanceResponse: {
+      /** Artifact Id */
+      artifact_id?: string | null;
+      /** Note */
+      note?: string | null;
+      /** Session Id */
+      session_id?: string | null;
+      /** Source Label */
+      source_label?: string | null;
+      /** Source Sequence */
+      source_sequence?: number | null;
+      /** Source Type */
+      source_type: string;
+      /** Task Id */
+      task_id?: string | null;
+      /** Tool Call Id */
+      tool_call_id?: string | null;
+    };
+    /**
+     * WorkspaceMemoryState
+     * @description Lifecycle states for workspace-scoped memory entries.
+     * @enum {string}
+     */
+    WorkspaceMemoryState: "active" | "stale" | "invalidated" | "imported" | "pruned";
     /** WorkspaceRuntimeSummaryResponse */
     WorkspaceRuntimeSummaryResponse: {
       /**
@@ -1565,6 +1709,82 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HealthResponse"];
+        };
+      };
+    };
+  };
+  list_workspace_memory_page_memory_get: {
+    parameters: {
+      query?: {
+        state?: components["schemas"]["WorkspaceMemoryState"] | null;
+        kind?: components["schemas"]["WorkspaceMemoryKind"] | null;
+        query?: string | null;
+        include_pruned?: boolean;
+        cursor?: number;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkspaceMemoryListPageResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_workspace_memory_detail_memory__memory_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        memory_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkspaceMemoryDetailResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

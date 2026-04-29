@@ -17,6 +17,7 @@ from glassbox.core.ids import SessionId
 from glassbox.core.ids import TaskId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
+from glassbox.core.ids import WorkspaceMemoryId
 from glassbox.core.models import ApprovalRecord
 from glassbox.core.models import BackgroundJobRecord
 from glassbox.core.models import ForkedSession
@@ -29,6 +30,7 @@ from glassbox.core.models import SessionState
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TranscriptMessage
 from glassbox.core.models import TurnMetricsRecord
+from glassbox.core.models import WorkspaceMemoryEntry
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import ApprovalStatus
 from glassbox.core.types import BackgroundJobFailureKind
@@ -36,6 +38,8 @@ from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import BackgroundJobState
 from glassbox.core.types import SessionStatus
 from glassbox.core.types import ToolExecutionStatus
+from glassbox.core.types import WorkspaceMemoryKind
+from glassbox.core.types import WorkspaceMemoryState
 
 
 @dataclass(frozen=True, slots=True)
@@ -266,6 +270,46 @@ class SessionRepository(Protocol):
     def count_background_jobs_by_state(self) -> dict[str, int]: ...
 
     def latest_failed_background_job(self) -> BackgroundJobRecord | None: ...
+
+    def list_workspace_memory(
+        self,
+        *,
+        state: WorkspaceMemoryState | None = None,
+        kind: WorkspaceMemoryKind | None = None,
+        query_text: str | None = None,
+        include_pruned: bool = False,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[WorkspaceMemoryEntry]: ...
+
+    def get_workspace_memory(
+        self,
+        memory_id: WorkspaceMemoryId,
+    ) -> WorkspaceMemoryEntry | None: ...
+
+    def confirm_workspace_memory(
+        self,
+        memory_id: WorkspaceMemoryId,
+        *,
+        confirmed_by: str = "operator",
+        reason: str | None = None,
+    ) -> WorkspaceMemoryEntry: ...
+
+    def invalidate_workspace_memory(
+        self,
+        memory_id: WorkspaceMemoryId,
+        *,
+        invalidated_by: str = "operator",
+        reason: str,
+    ) -> WorkspaceMemoryEntry: ...
+
+    def prune_workspace_memory(
+        self,
+        memory_id: WorkspaceMemoryId,
+        *,
+        pruned_by: str = "operator",
+        reason: str,
+    ) -> WorkspaceMemoryEntry: ...
 
     def resolve_fork_point(
         self,

@@ -325,6 +325,7 @@ class WorkspaceMemoryEntry(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     memory_id: WorkspaceMemoryId
+    session_id: SessionId
     kind: WorkspaceMemoryKind
     state: WorkspaceMemoryState
     content: str = Field(min_length=1, max_length=8000)
@@ -342,6 +343,11 @@ class WorkspaceMemoryEntry(BaseModel):
     use_count: int = Field(default=0, ge=0)
     tags: list[str] = Field(default_factory=list)
     redacted: bool = False
+    import_source: str | None = Field(default=None, max_length=1000)
+    pruned_by: str | None = Field(default=None, max_length=200)
+    pruned_at: datetime | None = None
+    prune_reason: str | None = Field(default=None, max_length=2000)
+    last_sequence: int = Field(ge=0)
 
     @model_validator(mode="after")
     def validate_memory_state(self) -> WorkspaceMemoryEntry:

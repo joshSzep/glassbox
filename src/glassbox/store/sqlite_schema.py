@@ -8,7 +8,7 @@ from pathlib import Path
 from glassbox.store.sqlite_schema_statements import BOOTSTRAP_STATEMENTS
 from glassbox.store.sqlite_schema_statements import V3_BASELINE_SCHEMA_STATEMENTS
 
-SCHEMA_VERSION = 10
+SCHEMA_VERSION = 11
 BASELINE_SCHEMA_VERSION = 3
 BASELINE_MIGRATION_NAME = "baseline event store and projections"
 
@@ -406,6 +406,58 @@ def _ensure_background_job_retry_schema(connection: sqlite3.Connection) -> None:
             )
 
 
+def _ensure_workspace_memory_projection_schema(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        create table if not exists workspace_memory (
+            memory_id text primary key,
+            session_id text not null,
+            kind text not null,
+            state text not null,
+            content text not null,
+            summary text,
+            provenance_json text not null,
+            created_by text not null,
+            created_at text not null,
+            updated_at text not null,
+            confirmed_by text,
+            confirmed_at text,
+            invalidated_by text,
+            invalidated_at text,
+            invalidation_reason text,
+            last_used_at text,
+            use_count integer not null default 0,
+            tags_json text not null,
+            redacted integer not null default 0,
+            import_source text,
+            pruned_by text,
+            pruned_at text,
+            prune_reason text,
+            last_sequence integer not null,
+            foreign key (session_id) references sessions(session_id)
+        )
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_workspace_memory_state_updated
+            on workspace_memory (state, updated_at desc)
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_workspace_memory_kind_updated
+            on workspace_memory (kind, updated_at desc)
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_workspace_memory_session_sequence
+            on workspace_memory (session_id, last_sequence)
+        """
+    )
+
+
 MIGRATIONS = (
     SchemaMigration(
         version=4,
@@ -441,6 +493,11 @@ MIGRATIONS = (
         version=10,
         name="add background job retry triage columns",
         apply=_ensure_background_job_retry_schema,
+    ),
+    SchemaMigration(
+        version=11,
+        name="add workspace memory projection table",
+        apply=_ensure_workspace_memory_projection_schema,
     ),
 )
 

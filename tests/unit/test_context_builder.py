@@ -238,6 +238,21 @@ class FakeSessionRepository:
     def latest_failed_background_job(self):
         return None
 
+    def list_workspace_memory(self, **kwargs):
+        return []
+
+    def get_workspace_memory(self, memory_id):
+        return None
+
+    def confirm_workspace_memory(self, memory_id, **kwargs):
+        raise NotImplementedError
+
+    def invalidate_workspace_memory(self, memory_id, **kwargs):
+        raise NotImplementedError
+
+    def prune_workspace_memory(self, memory_id, **kwargs):
+        raise NotImplementedError
+
     def resolve_fork_point(self, session_id, *, turn_id=None):
         return ResolvedForkPoint(
             parent_session_id=session_id,

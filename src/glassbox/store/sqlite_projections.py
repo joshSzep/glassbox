@@ -19,6 +19,9 @@ from glassbox.store.sqlite_projection_tasks import _apply_task_projection
 from glassbox.store.sqlite_projection_tools import _apply_tool_call_projection
 from glassbox.store.sqlite_projection_transcript import _apply_transcript_projection
 from glassbox.store.sqlite_projection_turn_metrics import _apply_turn_metrics_projection
+from glassbox.store.sqlite_projection_workspace_memory import (
+    _apply_workspace_memory_projection,
+)
 
 _PROJECTION_TABLES = (
     "session_state",
@@ -32,6 +35,7 @@ _PROJECTION_TABLES = (
     "task_verifications",
     "autonomy_budget_posture",
     "background_jobs",
+    "workspace_memory",
 )
 
 
@@ -48,6 +52,7 @@ def _apply_projection_event(
     _apply_task_projection(connection, event)
     _apply_budget_projection(connection, event)
     _apply_background_job_projection(connection, event)
+    _apply_workspace_memory_projection(connection, event)
 
 
 def _clear_session_projections(

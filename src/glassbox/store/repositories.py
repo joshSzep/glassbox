@@ -12,6 +12,7 @@ import glassbox.store.sqlite_fork as fork_store
 import glassbox.store.sqlite_projection_health as projection_health_store
 import glassbox.store.sqlite_queries as query_store
 import glassbox.store.sqlite_sessions as session_store
+import glassbox.store.sqlite_workspace_memory as workspace_memory_store
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import RuntimeNoteRecorded
 from glassbox.core.ids import ApprovalId
@@ -21,6 +22,7 @@ from glassbox.core.ids import SessionId
 from glassbox.core.ids import TaskId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
+from glassbox.core.ids import WorkspaceMemoryId
 from glassbox.core.models import ApprovalRecord
 from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import BackgroundJobRecord
@@ -36,12 +38,15 @@ from glassbox.core.models import TaskVerificationRecord
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TranscriptMessage
 from glassbox.core.models import TurnMetricsRecord
+from glassbox.core.models import WorkspaceMemoryEntry
 from glassbox.core.types import ApprovalStatus
 from glassbox.core.types import BackgroundJobFailureKind
 from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import BackgroundJobState
 from glassbox.core.types import SessionStatus
 from glassbox.core.types import ToolExecutionStatus
+from glassbox.core.types import WorkspaceMemoryKind
+from glassbox.core.types import WorkspaceMemoryState
 from glassbox.services.contracts import StoredArtifact
 
 
@@ -438,6 +443,74 @@ class SQLiteSessionRepository:
 
     def latest_failed_background_job(self) -> BackgroundJobRecord | None:
         return background_job_store.latest_failed_background_job(self._connection)
+
+    def list_workspace_memory(
+        self,
+        *,
+        state: WorkspaceMemoryState | None = None,
+        kind: WorkspaceMemoryKind | None = None,
+        query_text: str | None = None,
+        include_pruned: bool = False,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[WorkspaceMemoryEntry]:
+        return workspace_memory_store.list_workspace_memory(
+            self._connection,
+            state=state,
+            kind=kind,
+            query_text=query_text,
+            include_pruned=include_pruned,
+            limit=limit,
+            offset=offset,
+        )
+
+    def get_workspace_memory(
+        self,
+        memory_id: WorkspaceMemoryId,
+    ) -> WorkspaceMemoryEntry | None:
+        return workspace_memory_store.get_workspace_memory(self._connection, memory_id)
+
+    def confirm_workspace_memory(
+        self,
+        memory_id: WorkspaceMemoryId,
+        *,
+        confirmed_by: str = "operator",
+        reason: str | None = None,
+    ) -> WorkspaceMemoryEntry:
+        return workspace_memory_store.confirm_workspace_memory(
+            self._connection,
+            memory_id,
+            confirmed_by=confirmed_by,
+            reason=reason,
+        )
+
+    def invalidate_workspace_memory(
+        self,
+        memory_id: WorkspaceMemoryId,
+        *,
+        invalidated_by: str = "operator",
+        reason: str,
+    ) -> WorkspaceMemoryEntry:
+        return workspace_memory_store.invalidate_workspace_memory(
+            self._connection,
+            memory_id,
+            invalidated_by=invalidated_by,
+            reason=reason,
+        )
+
+    def prune_workspace_memory(
+        self,
+        memory_id: WorkspaceMemoryId,
+        *,
+        pruned_by: str = "operator",
+        reason: str,
+    ) -> WorkspaceMemoryEntry:
+        return workspace_memory_store.prune_workspace_memory(
+            self._connection,
+            memory_id,
+            pruned_by=pruned_by,
+            reason=reason,
+        )
 
     def list_tasks(
         self,

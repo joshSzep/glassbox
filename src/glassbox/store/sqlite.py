@@ -29,6 +29,11 @@ from glassbox.store.sqlite_sessions import get_session
 from glassbox.store.sqlite_sessions import get_session_state
 from glassbox.store.sqlite_sessions import list_sessions
 from glassbox.store.sqlite_sessions import update_session
+from glassbox.store.sqlite_workspace_memory import confirm_workspace_memory
+from glassbox.store.sqlite_workspace_memory import get_workspace_memory
+from glassbox.store.sqlite_workspace_memory import invalidate_workspace_memory
+from glassbox.store.sqlite_workspace_memory import list_workspace_memory
+from glassbox.store.sqlite_workspace_memory import prune_workspace_memory
 
 __all__ = [
     "BOOTSTRAP_STATEMENTS",
@@ -38,10 +43,13 @@ __all__ = [
     "append_events",
     "build_imported_transcript_events",
     "create_session",
+    "confirm_workspace_memory",
     "get_session",
     "get_budget_posture",
     "get_session_state",
+    "get_workspace_memory",
     "initialize_database",
+    "invalidate_workspace_memory",
     "inspect_session_projection_health",
     "list_approvals",
     "list_open_blocked_tasks",
@@ -53,7 +61,9 @@ __all__ = [
     "list_tool_calls",
     "list_transcript_messages",
     "list_turn_metrics",
+    "list_workspace_memory",
     "open_database",
+    "prune_workspace_memory",
     "read_events_by_correlation_id",
     "read_session_events",
     "read_session_events_after",

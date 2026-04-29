@@ -847,7 +847,7 @@ The intended v8 milestone order is:
 
 ### GBX-851: Add Memory Store, Projection, CLI, And Web Read APIs
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-850`
 - Goal: persist and inspect workspace memory entries before using them to influence model turns
 - Deliverables:
@@ -865,6 +865,16 @@ The intended v8 milestone order is:
   - CLI memory tests
   - web memory tests
   - OpenAPI generation and frontend typecheck
+- Completed vertical slice:
+  - added a v11 `workspace_memory` projection table, rebuild wiring, query helpers, and repository methods
+  - added memory lifecycle projection support for created, imported, confirmed, used-in-context, invalidated, and pruned events
+  - added `glassbox memory list/show/confirm/invalidate/prune`, including text filtering and prune dry-run preview
+  - added `/memory` and `/memory/{memory_id}` read APIs plus regenerated OpenAPI and frontend API types
+  - covered rebuild determinism, imported redaction posture, invalidation, CLI output, API pagination/filtering, OpenAPI schema, and protocol fakes
+- Validation:
+  - `uv run ruff format src tests/integration/test_cli_memory_commands.py tests/integration/test_web_memory_routes.py tests/integration/test_sqlite_projections.py tests/integration/test_sqlite_bootstrap.py tests/integration/test_projection_rebuild.py tests/integration/test_openapi_schema.py tests/unit/test_core_models.py tests/unit/test_context_builder.py tests/unit/test_service_contracts.py && uv run ruff check src tests/integration/test_cli_memory_commands.py tests/integration/test_web_memory_routes.py tests/integration/test_sqlite_projections.py tests/integration/test_sqlite_bootstrap.py tests/integration/test_projection_rebuild.py tests/integration/test_openapi_schema.py tests/unit/test_core_models.py tests/unit/test_context_builder.py tests/unit/test_service_contracts.py && uv run ty check && uv run pytest tests/unit/test_core_models.py tests/unit/test_context_builder.py tests/unit/test_service_contracts.py tests/integration/test_sqlite_bootstrap.py tests/integration/test_sqlite_projections.py tests/integration/test_projection_rebuild.py tests/integration/test_cli_memory_commands.py tests/integration/test_web_memory_routes.py tests/integration/test_openapi_schema.py`
+  - `cd frontend && pnpm run api:generate`
+  - `cd frontend && pnpm run typecheck`
 - Done when:
   - workspace memory is a durable, inspectable local data product, not a hidden prompt feature
 

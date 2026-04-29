@@ -140,6 +140,7 @@ def test_workspace_memory_entry_validates_provenance_and_state() -> None:
     session_id = new_session_id()
     memory = WorkspaceMemoryEntry(
         memory_id=new_workspace_memory_id(),
+        session_id=session_id,
         kind=WorkspaceMemoryKind.CONVENTION,
         state=WorkspaceMemoryState.ACTIVE,
         content="Use uv run pytest for backend validation.",
@@ -153,6 +154,7 @@ def test_workspace_memory_entry_validates_provenance_and_state() -> None:
         created_at=datetime(2026, 4, 29, tzinfo=UTC),
         updated_at=datetime(2026, 4, 29, tzinfo=UTC),
         tags=["testing", "commands"],
+        last_sequence=5,
     )
 
     restored = WorkspaceMemoryEntry.model_validate(memory.model_dump(mode="python"))
@@ -183,6 +185,7 @@ def test_invalidated_workspace_memory_requires_reason() -> None:
     with pytest.raises(ValidationError):
         WorkspaceMemoryEntry(
             memory_id=new_workspace_memory_id(),
+            session_id=new_session_id(),
             kind=WorkspaceMemoryKind.FACT,
             state=WorkspaceMemoryState.INVALIDATED,
             content="Old command no longer works.",
@@ -192,6 +195,7 @@ def test_invalidated_workspace_memory_requires_reason() -> None:
             ),
             created_at=datetime(2026, 4, 29, tzinfo=UTC),
             updated_at=datetime(2026, 4, 29, tzinfo=UTC),
+            last_sequence=7,
         )
 
 

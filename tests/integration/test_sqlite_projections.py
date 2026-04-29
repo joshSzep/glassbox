@@ -21,13 +21,24 @@ from glassbox.core import TaskStepStarted
 from glassbox.core import TaskVerificationCompleted
 from glassbox.core import TaskVerificationStarted
 from glassbox.core import TaskVerificationStatus
+from glassbox.core import WorkspaceMemoryConfirmed
+from glassbox.core import WorkspaceMemoryCreated
+from glassbox.core import WorkspaceMemoryImported
+from glassbox.core import WorkspaceMemoryInvalidated
+from glassbox.core import WorkspaceMemoryKind
+from glassbox.core import WorkspaceMemoryProvenance
+from glassbox.core import WorkspaceMemorySourceType
+from glassbox.core import WorkspaceMemoryUsedInContext
 from glassbox.core import new_session_id
 from glassbox.core import new_task_id
 from glassbox.core import new_task_step_id
 from glassbox.core import new_task_verification_id
+from glassbox.core import new_turn_id
+from glassbox.core import new_workspace_memory_id
 from glassbox.store.sqlite import append_events
 from glassbox.store.sqlite import get_budget_posture
 from glassbox.store.sqlite import list_runtime_notes
+from glassbox.store.sqlite import list_workspace_memory
 from glassbox.store.sqlite import rebuild_session_projections
 from tests.integration.fault_test_support import append_representative_completed_session
 from tests.integration.fault_test_support import open_initialized_database
@@ -354,6 +365,105 @@ def test_task_projection_rebuilds_task_steps_and_verifications(tmp_path: Path) -
     assert tuple(task) == ("paused", "manual_pause", "waiting for review")
     assert tuple(step) == ("completed", "tables created")
     assert tuple(verification) == ("passed", "projection tests passed")
+
+
+def test_workspace_memory_projection_rebuilds_lifecycle(tmp_path: Path) -> None:
+    session_id = new_session_id()
+    memory_id = new_workspace_memory_id()
+    imported_memory_id = new_workspace_memory_id()
+    turn_id = new_turn_id()
+    connection = open_initialized_database(tmp_path)
+    try:
+        append_events(
+            connection,
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=SessionStarted(
+                        cwd=str(tmp_path),
+                        model_name="openai:gpt-5.4",
+                        approval_mode="confirm",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=WorkspaceMemoryCreated(
+                        memory_id=memory_id,
+                        kind=WorkspaceMemoryKind.COMMAND,
+                        content="Use uv run pytest for backend tests.",
+                        summary="backend pytest command",
+                        provenance=WorkspaceMemoryProvenance(
+                            source_type=WorkspaceMemorySourceType.SESSION_EVENT,
+                            session_id=session_id,
+                            source_sequence=1,
+                        ),
+                        tags=["testing"],
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=WorkspaceMemoryConfirmed(memory_id=memory_id),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=WorkspaceMemoryUsedInContext(
+                        memory_id=memory_id,
+                        turn_id=turn_id,
+                        prompt_section="workspace_memory",
+                        reason="backend validation request",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=WorkspaceMemoryInvalidated(
+                        memory_id=memory_id,
+                        reason="superseded by focused command",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=WorkspaceMemoryImported(
+                        memory_id=imported_memory_id,
+                        kind=WorkspaceMemoryKind.FACT,
+                        content="Imported memory is redacted unless reviewed.",
+                        provenance=WorkspaceMemoryProvenance(
+                            source_type=WorkspaceMemorySourceType.IMPORT,
+                            source_label="session export",
+                        ),
+                        import_source="session-export.json",
+                    ),
+                ),
+            ],
+        )
+
+        before_rebuild = list_workspace_memory(connection)
+        connection.execute("delete from workspace_memory")
+        rebuild_session_projections(connection, session_id)
+        after_rebuild = list_workspace_memory(connection)
+    finally:
+        connection.close()
+
+    assert len(before_rebuild) == 2
+    assert after_rebuild == before_rebuild
+    memory = next(entry for entry in after_rebuild if entry.memory_id == memory_id)
+    imported_memory = next(
+        entry for entry in after_rebuild if entry.memory_id == imported_memory_id
+    )
+    assert memory.memory_id == memory_id
+    assert memory.session_id == session_id
+    assert memory.state == "invalidated"
+    assert memory.confirmed_by == "operator"
+    assert memory.use_count == 1
+    assert memory.invalidation_reason == "superseded by focused command"
+    assert imported_memory.state == "imported"
+    assert imported_memory.redacted is True
+    assert imported_memory.import_source == "session-export.json"
 
 
 def test_budget_projection_records_latest_session_posture(tmp_path: Path) -> None:

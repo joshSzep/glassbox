@@ -74,6 +74,7 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         "task_steps",
         "task_verifications",
         "background_jobs",
+        "workspace_memory",
     }.issubset(tables)
     assert {
         "idx_sessions_status_updated",
@@ -97,6 +98,9 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         "idx_background_jobs_state_updated",
         "idx_background_jobs_session_updated",
         "idx_background_jobs_lease",
+        "idx_workspace_memory_state_updated",
+        "idx_workspace_memory_kind_updated",
+        "idx_workspace_memory_session_sequence",
     }.issubset(indexes)
     assert [row[0] for row in migration_rows] == [
         3,
@@ -106,6 +110,7 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         7,
         8,
         9,
+        10,
         SCHEMA_VERSION,
     ]
     assert [row[1] for row in migration_rows] == [
@@ -117,6 +122,7 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         "add autonomy budget projection table",
         "add background job projection table",
         "add background job retry triage columns",
+        "add workspace memory projection table",
     ]
 
 
@@ -137,6 +143,7 @@ def test_initialize_database_is_idempotent(tmp_path: Path) -> None:
         7,
         8,
         9,
+        10,
         SCHEMA_VERSION,
     ]
 
@@ -222,6 +229,7 @@ def test_initialize_database_migrates_existing_sessions_table_for_lineage(
         7,
         8,
         9,
+        10,
         SCHEMA_VERSION,
     ]
 
@@ -350,6 +358,7 @@ def test_initialize_database_migrates_runtime_note_source_columns(
         7,
         8,
         9,
+        10,
         SCHEMA_VERSION,
     ]
 
@@ -388,6 +397,7 @@ def test_initialize_database_normalizes_legacy_current_version_stamp(
         7,
         8,
         9,
+        10,
         SCHEMA_VERSION,
     ]
     assert [row[1] for row in migration_rows] == [
@@ -399,6 +409,7 @@ def test_initialize_database_normalizes_legacy_current_version_stamp(
         "add autonomy budget projection table",
         "add background job projection table",
         "add background job retry triage columns",
+        "add workspace memory projection table",
     ]
     assert "parent_session_id" in session_columns
     assert "source_session_id" in note_columns
@@ -442,5 +453,6 @@ def test_migrations_are_ordered_to_current_schema_version() -> None:
         7,
         8,
         9,
+        10,
         SCHEMA_VERSION,
     ]
