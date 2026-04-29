@@ -214,7 +214,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R200: Define Post-v8 Refactor Boundary Map
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R191`
 - Goal: update the refactor boundary map for autonomy-era runtime, store, TUI,
   and dashboard surfaces before moving code

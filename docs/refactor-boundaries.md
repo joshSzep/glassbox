@@ -1,6 +1,6 @@
 # Glassbox Refactor Boundaries
 
-For the docs hub and operator guides, start at [README.md](./README.md). This note defines the target architectural boundaries for the v1 refactor roadmap in [refactor-v1.md](./refactor-v1.md).
+For the docs hub and operator guides, start at [README.md](./README.md). This note defines the target architectural boundaries for the v1 refactor roadmap in [refactor-v1.md](./refactor-v1.md) and the post-v8 follow-on roadmap in [refactor-v8.md](./refactor-v8.md).
 
 ## Purpose
 
@@ -10,7 +10,7 @@ It exists to answer one question before code moves begin:
 
 What are the intended module boundaries for the current Glassbox implementation, and what kinds of changes are explicitly out of scope for the first refactor pass?
 
-This note is intentionally code-aligned. It describes the current implementation shape and the target decomposition boundaries for refactor work already captured in [refactor-v1.md](./refactor-v1.md). It does not define a new product architecture.
+This note is intentionally code-aligned. It describes the current implementation shape and the target decomposition boundaries for refactor work already captured in [refactor-v1.md](./refactor-v1.md) and [refactor-v8.md](./refactor-v8.md). It does not define a new product architecture.
 
 ## Scope
 
@@ -30,6 +30,9 @@ The non-goals are:
 - introduce a new UI framework for the dashboard
 - rewrite the store, runtime, or CLI from scratch
 - change replay result taxonomy, snapshot payloads, or command semantics as part of refactor-only work
+- add new autonomy behaviors, background job kinds, provider checks, repository
+  indexing semantics, workspace-memory capture rules, TUI workflows, or
+  dashboard workflows while performing post-v8 refactor-only tasks
 
 ## Behavior-Preservation Contract
 
@@ -59,6 +62,47 @@ The main pressure points are:
 - `src/glassbox/web/static/state.js`, `render.js`, and `dashboard.js`: reducer logic, rendering, transport, and DOM orchestration pressed into a few large files
 
 Some files are large because they hold many data models or helper variants. That alone is not enough reason to split them. The refactor should focus first on files that mix distinct responsibilities or duplicate logic already living elsewhere.
+
+The post-v8 pressure points are concentrated in newer autonomy-era surfaces:
+
+- `src/glassbox/runtime/background_jobs.py` mixes worker-loop coordination,
+  stale-claim recovery, read-only maintenance jobs, mutating task
+  continuations, and progress/failure event recording
+- `src/glassbox/runtime/workspace_memory_capture.py` mixes capture service
+  commits, candidate extraction, model-assisted suggestion parsing, filtering,
+  dedupe, staleness checks, and redaction
+- `src/glassbox/runtime/observability.py` mixes workspace report aggregation
+  with domain-specific collectors for runtime transport, projections,
+  artifacts, verification, background jobs, task autonomy, memory, repository
+  index, branch search, and provider posture
+- `src/glassbox/runtime/repository_index.py` mixes public index read/write
+  helpers, filesystem scanning, entity extraction, dependency/script parsing,
+  and search helpers
+- `src/glassbox/store/sqlite_queries.py` is a broad read-model adapter over
+  projections for transcript, runtime notes, approvals, metrics, budgets,
+  tasks, branch search, and workspace memory adjacency
+- `src/glassbox/store/repositories.py` is a large adapter surface; most of its
+  size is legitimate contract coverage, but it should not keep accumulating
+  domain-specific query shaping inline
+- `src/glassbox/cli/tui/conversation.py` mixes model types, event reduction,
+  selectors, and text transformation helpers for terminal state
+- `src/glassbox/cli/tui/widgets.py` mixes Textual widget classes, pure render
+  functions, transcript block formatting, composer behavior, command palette
+  behavior, and details rendering
+- `frontend/stores/dashboard-stores.ts` mixes dashboard, session, task,
+  knowledge, branch-search, stream, pagination, and action-state stores behind
+  one compatibility module
+- `frontend/components/console/task-autonomy-console.tsx`,
+  `knowledge-autonomy-console.tsx`, and `branch-search-console.tsx` are mixed
+  responsibility components that combine data presentation, local view state,
+  filtering, evidence summaries, action controls, and formatting helpers
+
+Large files that are primarily model-heavy and should not be split just for
+line count include core event/model/type modules, generated frontend API types,
+and facade modules whose public contract is intentionally broad but already
+delegates behavior to owned implementation modules. Large files that are mixed
+coordinators should be split along ownership boundaries when their roadmap task
+arrives, not by mechanical line slicing.
 
 ## Target Boundary Map
 
@@ -92,6 +136,41 @@ The `runtime` package should not become a catch-all for transport formatting, ra
 - the bootstrap split now keeps `src/glassbox/runtime/bootstrap.py` as the public entry facade while moving storage-path and SQLite initialization to `bootstrap_storage.py`, provider wiring to `bootstrap_provider.py`, and `RuntimeContext` assembly to `bootstrap_assembly.py`
 - `runtime/__init__.py` should stay a small public surface for bootstrap, event-bus, and runtime-context types; replay, supervisor, turn-engine, and context-builder imports should come from explicit submodules
 
+#### Post-v8 Runtime Autonomy Sub-Boundaries
+
+- `background_jobs` should own the public worker-loop entry points and worker
+  tick summary, then delegate lease/recovery behavior, read-only maintenance
+  handlers, mutating task-continuation handlers, and progress/failure event
+  recording to focused runtime modules
+- background-job maintenance handlers should remain read-only except for
+  explicit job progress/completion/failure events; task continuation handlers
+  are the only post-v8 background path expected to mutate task/session state
+- `workspace_memory_capture` should keep the public capture service and
+  repository protocol stable while candidate extraction, model-assisted
+  suggestions, redaction, filtering/dedupe/staleness, and commit construction
+  move into pure helper modules
+- workspace-memory extraction remains review-gated: helpers propose candidates
+  and the service records explicit confirmation, merge, rejection, or operator
+  memory events
+- `observability` should keep `build_workspace_observability_report` as the
+  aggregation facade while domain collectors own runtime transport,
+  projection, artifact, verification, background job, task autonomy, workspace
+  memory, repository index, branch search, and provider-canary posture reads
+- observability collectors must stay read-only and should not depend on CLI
+  formatting, HTTP response models, frontend state, or background job repair
+  actions
+- `repository_index` should keep stable public helpers for building, writing,
+  loading, searching, and fetching index entries while filesystem scanning,
+  entity extraction, dependency/script extraction, index serialization, and
+  search ranking move behind owned helpers
+- repository intelligence remains local-file derived. It should not introduce
+  network fetches, generated caches that are not rebuildable, or runtime
+  orchestration dependencies as part of refactor-only work
+- provider diagnostics and provider canary evidence are runtime read models and
+  runtime checks. Diagnostics should stay configuration/readiness oriented;
+  canary execution may use runtime bootstrap, but stored evidence loading and
+  report aggregation should remain separable from observability formatting
+
 ### Store
 
 The `store` package should own canonical persistence and projection application.
@@ -115,6 +194,23 @@ The `store` package should not own runtime orchestration, CLI formatting, or web
 - repository adapters should stay stable while internal storage helpers split underneath them
 - the SQLite store now uses internal `sqlite_schema.py`, `sqlite_sessions.py`, `sqlite_events.py`, `sqlite_projections.py`, `sqlite_queries.py`, and `sqlite_fork.py` modules behind the stable `store/sqlite.py` facade
 - `store/__init__.py` should stay limited to repository adapters, bootstrap helpers, and shared artifact models; raw SQLite and artifact helper imports should come from `store.sqlite` or `store.artifacts`
+
+#### Post-v8 Store Query Sub-Boundaries
+
+- `sqlite_queries.py` should split by projection domain when it changes:
+  transcript/runtime notes, approvals/tools/turn metrics, autonomy budgets,
+  task projections, branch-search projections, and any workspace-memory
+  adjacency queries should be owned by focused store read modules
+- query helpers should continue to derive from canonical events and
+  deterministic projection tables. They should not call runtime services,
+  background workers, provider diagnostics, HTTP serializers, or frontend
+  state helpers
+- `repositories.py` should remain the stable adapter surface for service
+  protocols, but method bodies should be thin pass-throughs to store-owned
+  modules once query domains split
+- repository adapters may import store implementation modules and core/service
+  contracts. They should not import runtime orchestration modules, web routes,
+  CLI modules, or frontend code
 
 ### Services
 
@@ -153,6 +249,22 @@ The `cli` package should not build its own parallel session-query logic when the
 - long-lived terminal prompt routing, blocked-state messaging, prompt redraw context, and attach-session gating now live in `cli/interactive_session.py`, which owns the interactive input seams directly
 - status/runtime-context rendering now lives in `cli/status_formatters.py`, replay/eval report rendering and replay JSON/exit-code helpers live in `cli/replay_eval_formatters.py`, and CLI internals no longer route through `cli/__init__.py` for those helpers
 
+#### Post-v8 TUI Sub-Boundaries
+
+- `cli/tui/conversation.py` should split into terminal state models, event
+  reducers, selectors, and small text/path formatting helpers while preserving
+  the current event-driven state contract consumed by the TUI app and widgets
+- TUI reducers may depend on core event/model types and CLI-local snapshot
+  models, but should not import raw store helpers, runtime workers, HTTP
+  routes, or frontend modules
+- `cli/tui/widgets.py` should split pure render helpers from Textual widget
+  classes. Conversation transcript rendering, header/footer rendering,
+  composer behavior, command palette behavior, action strips, and details-pane
+  rendering should have clear ownership
+- widget classes may depend on terminal state/selectors and Textual/Rich, but
+  pure render helpers should remain easy to unit test without starting the TUI
+  application
+
 ### Web
 
 The `web` package should own HTTP transport and browser assets.
@@ -185,6 +297,27 @@ the Next.js SPA contract in [architecture.md](./architecture.md) and
 - fetch/SSE transport and DOM-binding logic should live outside pure reducers and renderers
 - the detailed historical browser-module map lives in [dashboard-frontend-boundaries.md](./dashboard-frontend-boundaries.md)
 - the former reducer, renderer, transport, and DOM orchestration files were removed in GBX-472 after SPA parity and route flip tasks completed
+
+#### Current Next.js Dashboard Sub-Boundaries
+
+- `frontend/stores/dashboard-stores.ts` is currently a compatibility surface
+  that exports console, session, task, knowledge, and branch-search store
+  factories. Follow-on splits should preserve those exported factory names
+  until call sites intentionally move to domain modules
+- dashboard store domains should split into session summary/detail streaming,
+  task queue/detail/action state, workspace memory/repository inspector state,
+  branch-search list/detail/action state, and shared pagination/load-state
+  helpers
+- dashboard stores should depend on generated API client types, route-state
+  helpers, stream transport helpers, and pure frontend store utilities. They
+  should not import React components or server-only modules
+- autonomy console components should split large task, knowledge, and branch
+  search views into focused list, detail, evidence, action-control, and
+  formatting modules while preserving current routes, API calls, and workflow
+  behavior
+- frontend components should consume store state and generated API types, not
+  duplicate backend event derivation rules that already exist in runtime/store
+  read models
 
 ### Replay And Eval
 
@@ -228,6 +361,17 @@ The practical rules are:
 - `services` must remain concrete-implementation free
 - `runtime` may depend on `store` implementations in bootstrap code, but orchestration logic should prefer service or repository contracts where practical
 - package-root imports should not be used as a convenience layer when they hide ownership of replay, turn execution, context building, or raw persistence helpers
+- post-v8 runtime collector, repository-index, and memory-extraction helpers
+  must not import web routes, CLI/TUI widgets, frontend code, or raw SQLite
+  helpers directly
+- post-v8 store read modules must stay below runtime and transport layers:
+  they may shape projection records, but runtime query services and web routes
+  own operator-facing summaries and response models
+- TUI state and render modules must not import raw store modules or runtime
+  background-job orchestration. They should consume events, snapshots, and
+  CLI-local state only
+- frontend stores must not import React components, Next.js server modules, or
+  backend source files. Components should not become store-factory modules
 
 ## Boundary Guardrails
 
@@ -240,6 +384,11 @@ The guardrails are intentionally narrow:
 - CLI command modules and web route modules are guarded against reaching into raw SQLite helpers instead of using repository, service, or query seams
 - thin public facades are kept reviewable with soft size caps and explicit delegate-module checks for `runtime/__init__.py`, `store/sqlite.py`, `runtime/eval_summary.py`, `runtime/replay.py`, and the browser entry facades in `web/static/`
 - those guardrails intentionally protect the public runtime entry surfaces around bootstrap, replay, and eval without turning internal coordinator modules such as `turn_engine.py` or `replay_orchestrator.py` into brittle size-capped policy targets
+- post-v8 guardrails extend the same idea to autonomy-era areas: runtime
+  modules are checked against transport/UI/raw-store imports, TUI modules are
+  checked against raw store and runtime worker imports, frontend stores are
+  checked against component/server/backend imports, and source-owned frontend
+  compatibility surfaces are kept reviewable
 
 If a guardrail fails, the default repair should be to move new behavior into the owning split module or add one focused neighbor module, not to widen a facade or cross a subsystem boundary.
 
@@ -251,6 +400,13 @@ The following temporary compatibility patterns are acceptable during this refact
 - thin forwarding wrappers that preserve repository adapter behavior while internal store modules split
 - thin adapter layers that keep existing route or CLI call sites working while shared query services are introduced
 - module-local helper imports retained temporarily while large files are being extracted incrementally
+- `frontend/stores/dashboard-stores.ts` re-exporting domain store factories
+  while call sites move gradually
+- TUI modules re-exporting terminal state, selectors, or render helpers while
+  widget imports are updated in narrow follow-on tasks
+- runtime autonomy facade modules preserving public worker, memory-capture,
+  observability, repository-index, and provider evidence entry points while
+  implementation details move into owned neighbors
 
 These shims are acceptable only if they are clearly transitional and do not reintroduce the same architectural ambiguity the refactor is trying to remove.
 
@@ -263,10 +419,19 @@ The following patterns are not acceptable as stable endpoints:
 - route modules that keep business logic inline after a shared query service exists
 - CLI command handlers that continue to duplicate session-summary or next-action shaping once shared query paths land
 - replay code that keeps a second copy of live model-loop behavior after the shared execution boundary exists
+- background-job maintenance modules that mutate task/session state outside the
+  explicit continuation path
+- workspace-memory extraction helpers that create durable memory without the
+  existing review/confirmation event path
+- observability collectors that start repairing state, enqueueing jobs, or
+  owning CLI/HTTP/frontend presentation
+- repository-index helpers that depend on runtime session orchestration or
+  non-local external data sources for refactor-only work
+- frontend store modules that import React components or backend Python source
 
 ## Task Mapping
 
-This boundary note is the source of truth for the early refactor tasks in [refactor-v1.md](./refactor-v1.md).
+This boundary note is the source of truth for the early refactor tasks in [refactor-v1.md](./refactor-v1.md) and the post-v8 boundary-refresh tasks in [refactor-v8.md](./refactor-v8.md).
 
 The intended mapping is:
 
@@ -274,6 +439,10 @@ The intended mapping is:
 - `GBX-R102`: shared session snapshot and query service in `src/glassbox/runtime/session_queries.py`
 - `GBX-R103`: store-internal split under stable repository adapters via the `sqlite_*.py` internal modules behind `store/sqlite.py`
 - `GBX-R104`: export-surface tightening and dependency-direction cleanup
+- `GBX-R200`: post-v8 boundary map for autonomy-era runtime, store, TUI, and
+  dashboard surfaces
+- `GBX-R201`: guardrails for post-v8 dependency direction, facade thinness,
+  and frontend store/component boundaries
 
 Later tasks should follow this boundary map rather than redefining subsystem ownership case by case.
 
