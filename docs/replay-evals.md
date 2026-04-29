@@ -86,6 +86,19 @@ uv run glassbox eval recommend src/glassbox/runtime/replay_execution.py --cwd .
 uv run glassbox eval recommend src/glassbox/runtime/context_builder.py evals/coverage.json --json --cwd .
 ```
 
+Plan and optionally execute the deterministic recommendations:
+
+```bash
+uv run glassbox eval recommend src/glassbox/runtime/replay_execution.py --json --cwd .
+uv run glassbox eval recommend src/glassbox/runtime/replay_execution.py --execute --cwd .
+```
+
+Dry-run JSON includes `verification_plan_entries`,
+`skipped_verification_checks`, and `executed_verification_checks`. Fallback
+confidence rows stay optional unless `--include-low-confidence` is passed, and
+live-provider canary profiles stay skipped unless
+`--include-live-provider-canary` is explicit.
+
 Generate release-signoff evidence:
 
 ```bash
@@ -216,6 +229,11 @@ The first version should not try to do any of the following:
 - mix `live-provider-canary` profiles into deterministic release recommendations
 - auto-run or auto-refresh cases without an operator seeing the reasoning first
 - treat low-confidence guesses as if they were release-bearing evidence
+
+`eval recommend --execute` is the operator-approved path for turning the visible
+recommendation rows into local verification. It runs planned deterministic eval
+cases or profiles, writes the usual eval artifacts, and reports skipped checks
+instead of silently expanding low-confidence or live-provider surfaces.
 
 ## Local Failure Triage
 

@@ -176,6 +176,26 @@ def _add_eval_parsers(
         action="store_true",
         help="print the structured recommendation report as JSON",
     )
+    eval_recommend_parser.add_argument(
+        "--execute",
+        action="store_true",
+        help="run deterministic recommended eval checks after planning them",
+    )
+    eval_recommend_parser.add_argument(
+        "--include-low-confidence",
+        action="store_true",
+        help="include fallback-confidence recommendations in the verification plan",
+    )
+    eval_recommend_parser.add_argument(
+        "--include-live-provider-canary",
+        action="store_true",
+        help="allow live-provider canary profiles to be planned and executed",
+    )
+    eval_recommend_parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="directory for executed recommendation eval artifacts",
+    )
     _add_runtime_location_arguments(eval_recommend_parser)
 
     eval_report_parser = eval_subparsers.add_parser(

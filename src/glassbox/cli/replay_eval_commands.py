@@ -27,6 +27,8 @@ from glassbox.runtime.eval_summary import EvalReleaseSignoffProfileInput
 from glassbox.runtime.eval_summary import EvalReleaseSignoffSkippedProfileInput
 from glassbox.runtime.eval_summary import build_eval_release_signoff_report
 from glassbox.runtime.eval_summary import build_eval_release_signoff_summary
+from glassbox.runtime.eval_verification import build_eval_verification_plan
+from glassbox.runtime.eval_verification import executed_check_from_suite_result
 from glassbox.runtime.evals import EvalCase
 from glassbox.runtime.evals import load_eval_profiles
 from glassbox.runtime.evals import load_eval_suite
@@ -118,11 +120,53 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
             cwd,
             touched_paths=list(args.paths),
         )
+        verification_plan = build_eval_verification_plan(
+            recommendation,
+            include_low_confidence=args.include_low_confidence,
+            include_live_provider_canary=args.include_live_provider_canary,
+        )
+
+        if args.execute:
+            runner = EvalRunner()
+            output_dir = resolve_optional_explicit_path(cwd, args.output_dir)
+            for entry in verification_plan.plan_entries:
+                target_output_dir = (
+                    output_dir / entry.check_name.replace(" ", "-")
+                    if output_dir is not None
+                    else None
+                )
+                result = await runner.run_suite(
+                    cwd,
+                    profile_id=entry.eval_profile_id,
+                    case_ids=[entry.eval_case_id] if entry.eval_case_id else None,
+                    output_dir=target_output_dir,
+                )
+                verification_plan.executed_checks.append(
+                    executed_check_from_suite_result(entry, result)
+                )
 
         if args.json:
-            print_json_output(recommendation.model_dump(mode="json"))
+            payload = recommendation.model_dump(mode="json")
+            payload["verification_plan_entries"] = [
+                entry.model_dump(mode="json")
+                for entry in verification_plan.plan_entries
+            ]
+            payload["skipped_verification_checks"] = [
+                skipped.model_dump(mode="json")
+                for skipped in verification_plan.skipped_checks
+            ]
+            payload["executed_verification_checks"] = [
+                executed.model_dump(mode="json")
+                for executed in verification_plan.executed_checks
+            ]
+            print_json_output(payload)
         else:
             _print_eval_recommendations(recommendation)
+            _print_eval_verification_plan(verification_plan, executed=args.execute)
+        if args.execute and any(
+            not executed.passed for executed in verification_plan.executed_checks
+        ):
+            return 1
         return 0
 
     if args.eval_command == "report":
@@ -291,6 +335,29 @@ def _print_eval_case(eval_case: EvalCase) -> None:
         print(f"Capabilities: {', '.join(release_contract.capabilities)}")
     print(f"Case manifest: {eval_case.case_path}")
     print(f"Replay bundle: {eval_case.bundle_path}")
+
+
+def _print_eval_verification_plan(verification_plan, *, executed: bool) -> None:
+    print("")
+    print(f"Verification plan entries: {len(verification_plan.plan_entries)}")
+    for entry in verification_plan.plan_entries:
+        target = entry.eval_profile_id or entry.eval_case_id or entry.check_name
+        print(f"  {entry.check_name}: {target}")
+        print(f"    command: {' '.join(entry.command)}")
+        print(f"    rationale: {entry.rationale}")
+    if verification_plan.skipped_checks:
+        print(f"Skipped checks: {len(verification_plan.skipped_checks)}")
+        for skipped in verification_plan.skipped_checks:
+            print(f"  {skipped.target_type} {skipped.target_id}: {skipped.reason}")
+    if executed:
+        print(f"Executed checks: {len(verification_plan.executed_checks)}")
+        for check in verification_plan.executed_checks:
+            status = "passed" if check.passed else "failed"
+            print(
+                f"  {check.target_type} {check.target_id}: {status} "
+                f"(exit {check.exit_code})"
+            )
+            print(f"    artifact: {check.artifact_path}")
 
 
 def _eval_case_promote_command(args: argparse.Namespace) -> int:

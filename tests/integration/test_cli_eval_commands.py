@@ -792,6 +792,11 @@ def test_cli_eval_recommend_reports_cases_profiles_and_reasons(
         "uv run glassbox eval run --profile commit-smoke --cwd ."
         in payload["suggested_commands"]
     )
+    assert [
+        entry["eval_profile_id"] for entry in payload["verification_plan_entries"]
+    ] == ["commit-smoke", "push-confirmation", None]
+    assert payload["verification_plan_entries"][2]["eval_case_id"] == "smoke.readme"
+    assert payload["skipped_verification_checks"] == []
 
 
 def test_cli_eval_recommend_reports_coverage_manifest_warning(
