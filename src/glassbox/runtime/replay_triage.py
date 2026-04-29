@@ -197,6 +197,36 @@ def context_source_headline(
 
 
 def context_source_inspection_path(source_name: str | None) -> str:
+    if source_name == "workspace_memory":
+        return (
+            "Inspect workspace memory entries, provenance, confirmation state, and "
+            "the context section that consumed them."
+        )
+    if source_name == "repository_index":
+        return (
+            "Inspect the repository intelligence index snapshot, freshness state, "
+            "and source paths used for turn context."
+        )
+    if source_name == "policy":
+        return (
+            "Inspect policy decision traces, repository-owned safe autonomy rules, "
+            "and approval-mode calibration for the drifting action."
+        )
+    if source_name == "budget":
+        return (
+            "Inspect autonomy budget decisions and the budget posture projection for "
+            "the first exhausted or changed counter."
+        )
+    if source_name == "verification":
+        return (
+            "Inspect verification plan events, retained failure artifacts, and the "
+            "verify-repair attempt that first diverged."
+        )
+    if source_name == "provider_advisory":
+        return (
+            "Inspect provider advisory evidence, canary profile selection, and "
+            "whether live-provider checks were intentionally included."
+        )
     if source_name == "runtime_notes":
         return (
             "Inspect runtime note inputs and replay enriched-context capture for "
@@ -231,6 +261,18 @@ def context_source_inspection_path(source_name: str | None) -> str:
 def behavioral_drift_headline(dimension: str | None) -> str:
     if dimension is None:
         return "behavioral drift detected during normalized replay comparison"
+    if dimension == "budget_posture":
+        return "autonomy budget posture drifted during replay"
+    if dimension == "verification":
+        return "verification evidence drifted during replay"
+    if dimension == "workspace_memory":
+        return "workspace memory evidence drifted during replay"
+    if dimension == "repository_index":
+        return "repository intelligence evidence drifted during replay"
+    if dimension == "policy":
+        return "policy decision evidence drifted during replay"
+    if dimension == "provider_advisory":
+        return "provider advisory evidence drifted during replay"
     return f"behavioral drift detected in {dimension}"
 
 
@@ -258,6 +300,36 @@ def behavioral_inspection_path(dimension: str | None) -> str:
         return (
             "Inspect task-plan events, captured plan proposal details, and the "
             "normalized task projection in the replay bundle."
+        )
+    if dimension == "budget_posture":
+        return (
+            "Inspect autonomy budget decision events, exhausted counters, and the "
+            "budget posture projection for the first divergent task or session."
+        )
+    if dimension == "verification":
+        return (
+            "Inspect verification planned/started/failed/completed events, retained "
+            "failure artifacts, and the verify-repair attempt sequence."
+        )
+    if dimension == "workspace_memory":
+        return (
+            "Inspect workspace memory create/update/use events, source provenance, "
+            "and context inclusion evidence."
+        )
+    if dimension == "repository_index":
+        return (
+            "Inspect repository-index snapshots, freshness status, changed source "
+            "paths, and repository context injected into the turn."
+        )
+    if dimension == "policy":
+        return (
+            "Inspect policy decision traces, approval-mode calibration, and any "
+            "repository-owned safe autonomy rules that matched the action."
+        )
+    if dimension == "provider_advisory":
+        return (
+            "Inspect eval recommendation output, provider canary profile selection, "
+            "and advisory live-provider evidence."
         )
     if dimension == "event_families":
         return (

@@ -244,6 +244,13 @@ When commit-time eval fails:
 3. Open the failing `.glassbox/evals/pre-commit/CASE_ID.json` artifact.
 4. Fix the accidental drift or intentionally refresh the baseline.
 
+Replay and eval triage now names the likely evidence surface before pointing at
+raw JSON. Transcript, event-family, task-plan, budget, verification, memory,
+repository-index, policy, provider-advisory, and final-state drift each carry a
+targeted next-inspect hint. These are evidence-based summaries: they identify
+the first divergent surface and recommended artifact/projection to inspect, but
+they do not infer model intent.
+
 For cancelled-turn cases, inspect the cancellation event family and the retained
 turn-output artifact before refreshing. A matching cancellation outcome means the
 operator interruption was preserved; missing cancellation evidence is drift.

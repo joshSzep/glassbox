@@ -121,3 +121,50 @@ def test_replay_behavioral_drift_characterization_preserves_ordered_guidance() -
     assert triage.impacted_dimensions == ["event_families", "final_state"]
     assert triage.recommended_inspection_path is not None
     assert "event stream" in triage.recommended_inspection_path
+
+
+def test_build_replay_triage_explains_budget_drift() -> None:
+    triage = build_replay_triage(
+        ReplayResult(
+            outcome="behavioral_drift",
+            mismatches=["budget_posture drift"],
+        )
+    )
+
+    assert triage.headline == "autonomy budget posture drifted during replay"
+    assert triage.impacted_dimensions == ["budget_posture"]
+    assert triage.recommended_inspection_path is not None
+    assert "budget decision events" in triage.recommended_inspection_path
+
+
+def test_build_replay_triage_explains_verification_drift() -> None:
+    triage = build_replay_triage(
+        ReplayResult(
+            outcome="behavioral_drift",
+            mismatches=["verification drift"],
+        )
+    )
+
+    assert triage.headline == "verification evidence drifted during replay"
+    assert triage.recommended_inspection_path is not None
+    assert "verify-repair attempt sequence" in triage.recommended_inspection_path
+
+
+def test_build_replay_triage_explains_v8_context_sources() -> None:
+    for source_name, expected_text in (
+        ("workspace_memory", "workspace memory entries"),
+        ("repository_index", "repository intelligence index"),
+        ("policy", "policy decision traces"),
+        ("provider_advisory", "provider advisory evidence"),
+    ):
+        triage = build_replay_triage(
+            ReplayResult(
+                outcome="manifest_drift",
+                message=f"recorded enriched context source drifted: {source_name}",
+            )
+        )
+
+        assert triage.classification == "context_source_drift"
+        assert triage.drift_sources == [source_name]
+        assert triage.recommended_inspection_path is not None
+        assert expected_text in triage.recommended_inspection_path
