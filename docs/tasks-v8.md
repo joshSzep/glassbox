@@ -1536,7 +1536,7 @@ The intended v8 milestone order is:
 
 ### GBX-886: Add Autonomy Console Accessibility And Long-Session UX Review
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-881`, `GBX-882`, `GBX-883`, `GBX-884`, `GBX-885`
 - Goal: keep the richer dashboard usable under long sessions, many tasks, and keyboard/screen-reader workflows
 - Deliverables:

@@ -30,6 +30,7 @@ describe("knowledge autonomy console", () => {
 
     expect(markup).toContain("Memory Inspector");
     expect(markup).toContain("Memory Filters");
+    expect(markup).toContain('aria-label="Search workspace memory"');
     expect(markup).toContain("Backend tests use uv");
     expect(markup).toContain("session_event session-");
     expect(markup).toContain("1 prompt use");
@@ -69,6 +70,7 @@ describe("knowledge autonomy console", () => {
     );
 
     expect(markup).toContain("Repository Index");
+    expect(markup).toContain('aria-label="Search repository index"');
     expect(markup).toContain("repository index has not been built");
     expect(markup).toContain("Rebuild Index");
     expect(markup).toContain("UsefulThing");

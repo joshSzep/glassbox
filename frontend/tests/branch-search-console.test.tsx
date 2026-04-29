@@ -40,6 +40,7 @@ describe("branch search console", () => {
 
     expect(markup).toContain("Branch Search");
     expect(markup).toContain("Metadata only");
+    expect(markup).toContain('aria-label="Branch search list"');
     expect(markup).toContain("Try minimal fix");
     expect(markup).toContain("Targeted tests passed.");
     expect(markup).toContain("src/glassbox/runtime/example.py");
@@ -49,6 +50,8 @@ describe("branch search console", () => {
     expect(markup).toContain("Select");
     expect(markup).toContain("Review");
     expect(markup).toContain("Reject");
+    expect(markup).toContain('aria-label="Select Try minimal fix"');
+    expect(markup).toContain('aria-label="Reject Try broader rewrite"');
   });
 
   it("renders loading and empty states", () => {

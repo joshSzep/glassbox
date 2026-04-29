@@ -178,6 +178,115 @@ test("mobile operator can drill into a session, act, and return to queues", asyn
   ]);
 });
 
+test("operator can use task controls and budget review from the keyboard", async ({ page }) => {
+  const fixture = await installGlassboxApiFixture(page);
+  page.on("dialog", (dialog) => dialog.accept());
+
+  await openClientRoute(page, "/app/tasks/task-1?taskQueue=blocked");
+
+  await expect(page.getByRole("heading", { name: "Task Queue" })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "Selected task inspector" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Task controls" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Why this action" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Continue" }).press("Enter");
+  await expect.poll(() => fixture.actions.length).toBe(1);
+
+  await page.getByRole("button", { name: "Pause" }).press("Enter");
+  await expect.poll(() => fixture.actions.length).toBe(2);
+
+  await expect(page.getByRole("button", { name: "Resume" })).toBeEnabled();
+  await page.getByRole("button", { name: "Resume" }).press("Enter");
+  await expect.poll(() => fixture.actions.length).toBe(3);
+
+  const budgetMode = page.getByLabel("Budget mode");
+  await expect(page.getByRole("button", { name: "Adjust Budget" })).toBeEnabled();
+  await expect(budgetMode).toHaveValue("inspect");
+  await budgetMode.selectOption("test-driven");
+  await expect(budgetMode).toHaveValue("test-driven");
+  await page.getByRole("spinbutton", { name: "Steps" }).fill("3");
+  await page.getByRole("button", { name: "Adjust Budget" }).press("Enter");
+  await expect.poll(() => fixture.actions.length).toBe(4);
+
+  await page.getByRole("button", { name: "Cancel", exact: true }).press("Enter");
+  await expect.poll(() => fixture.actions.length).toBe(5);
+
+  expect(fixture.actions.map((action) => action.url)).toEqual([
+    "/tasks/task-1/continue",
+    "/tasks/task-1/pause",
+    "/tasks/task-1/resume",
+    "/tasks/task-1/budget",
+    "/tasks/task-1/cancel",
+  ]);
+  expect(fixture.actions[3]?.body).toMatchObject({
+    budget: { max_steps: 3 },
+    mode: "test-driven",
+  });
+});
+
+test("operator can review memory and repository inspectors from the keyboard", async ({ page }) => {
+  const fixture = await installGlassboxApiFixture(page);
+  page.on("dialog", (dialog) => dialog.accept());
+
+  await openClientRoute(page, "/app/memory");
+  await expect(page.getByRole("heading", { name: "Memory Inspector" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Active" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.getByLabel("Search workspace memory").fill("frontend");
+  await page.keyboard.press("Tab");
+  await page.getByRole("link", { name: /Frontend checks use pnpm/ }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("region", { name: "Workspace memory detail" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Confirm", exact: true }).press("Enter");
+  await expect.poll(() => fixture.actions.length).toBe(1);
+  await page.getByRole("button", { name: "Invalidate", exact: true }).press("Enter");
+  await expect.poll(() => fixture.actions.length).toBe(2);
+  await page.getByRole("button", { name: "Preview Prune", exact: true }).press("Enter");
+  await expect(page.getByText("Prune preview")).toBeVisible();
+  await expect.poll(() => fixture.actions.length).toBe(3);
+  await page.getByRole("button", { name: "Prune", exact: true }).press("Enter");
+  await expect.poll(() => fixture.actions.length).toBe(4);
+
+  await openClientRoute(page, "/app/repository-index");
+  await expect(page.getByRole("heading", { name: "Repository Index" })).toBeVisible();
+  await page.getByLabel("Search repository index").fill("TaskAutonomyConsole");
+  await page.keyboard.press("Tab");
+  await page.getByRole("button", { name: "TaskAutonomyConsole" }).press("Enter");
+  await expect(page.getByRole("region", { name: "Repository index detail" })).toBeVisible();
+  await page.getByRole("button", { name: "Rebuild Index" }).press("Enter");
+  await expect.poll(() => fixture.actions.length).toBe(5);
+
+  expect(fixture.actions.map((action) => action.url)).toEqual([
+    "/memory/memory-1/confirm",
+    "/memory/memory-1/invalidate",
+    "/memory/memory-1/prune-preview",
+    "/memory/memory-1/prune",
+    "/repo/index/rebuild",
+  ]);
+});
+
+test("mobile operator can select a branch-search candidate from the keyboard", async ({ page }) => {
+  const fixture = await installGlassboxApiFixture(page);
+  page.on("dialog", (dialog) => dialog.accept());
+  await page.setViewportSize({ height: 844, width: 390 });
+
+  await openClientRoute(page, "/app/branch-search");
+
+  await expect(page.getByRole("heading", { name: "Branch Search" })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "Branch search list" })).toBeVisible();
+  await page.getByRole("button", { name: /Compare repair options/ }).press("Enter");
+  await expect(page.getByRole("region", { name: "Branch-search candidates" })).toBeVisible();
+  await expect(page.getByText("Candidate selection records review metadata only.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Select Try minimal fix" }).press("Enter");
+  await expect.poll(() => fixture.actions.length).toBe(1);
+  expect(fixture.actions[0]?.url).toBe("/branch-searches/search-1/candidates/candidate-1/select");
+  await expectNoHorizontalOverflow(page);
+});
+
 test("operator can switch queue filters and return to a selected session", async ({ page }) => {
   await installGlassboxApiFixture(page);
 
@@ -357,4 +466,14 @@ async function expectNoHorizontalOverflow(page: Page) {
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(overflow).toBeLessThanOrEqual(1);
+}
+
+async function openClientRoute(page: Page, route: string) {
+  await page.goto("/app");
+  await expect(page.getByRole("heading", { name: "Operator Console" })).toBeVisible();
+  await page.evaluate((nextRoute) => {
+    window.history.pushState(null, "", nextRoute);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }, route);
+  expect(page.url()).toContain(route);
 }

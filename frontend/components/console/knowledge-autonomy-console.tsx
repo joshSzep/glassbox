@@ -218,6 +218,7 @@ function MemoryInspector({
           Search
         </label>
         <Input
+          aria-label="Search workspace memory"
           className="mt-2"
           defaultValue={memory.query}
           onBlur={(event) => onMemoryQuery?.(event.currentTarget.value)}
@@ -514,6 +515,7 @@ function RepositoryIndexInspector({
         <section aria-label="Repository index search" className="min-w-0">
           <div className="mb-3 flex gap-2">
             <Input
+              aria-label="Search repository index"
               defaultValue={repository.query}
               onBlur={(event) => onRepositoryQuery?.(event.currentTarget.value)}
               placeholder="symbol, path, command, test"
@@ -579,12 +581,16 @@ function RepositoryRows({
         {repository.items.map((entry) => (
           <TableRow
             aria-selected={repository.selectedEntryId === entry.entry_id}
-            className="cursor-pointer"
             key={entry.entry_id}
-            onClick={() => onSelectRepositoryEntry?.(entry.entry_id)}
           >
             <TableCell>
-              <span className="font-medium">{entry.name}</span>
+              <button
+                className="rounded-sm text-left font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => onSelectRepositoryEntry?.(entry.entry_id)}
+                type="button"
+              >
+                {entry.name}
+              </button>
               <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{entry.summary}</p>
             </TableCell>
             <TableCell>

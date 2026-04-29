@@ -121,7 +121,10 @@ function BranchSearchList({
   }
 
   return (
-    <aside className="rounded-md border border-border/80 bg-card p-3 shadow-sm">
+    <aside
+      aria-label="Branch search list"
+      className="rounded-md border border-border/80 bg-card p-3 shadow-sm"
+    >
       <div className="mb-3 flex items-center justify-between gap-3 px-1">
         <h2 className="text-sm font-semibold uppercase tracking-normal text-muted-foreground">
           Searches
@@ -339,11 +342,12 @@ function CandidateActionButton({
 }) {
   return (
     <Button
+      aria-label={`${label} ${candidate.strategy_label}`}
       disabled={disabled}
       onClick={() => onMarkCandidate?.({ action, candidateId: candidate.candidate_id, searchId })}
       size="sm"
       type="button"
-      variant={action === "reject" ? "outline" : "secondary"}
+      variant={action === "reject" ? "destructive" : action === "select" ? "secondary" : "outline"}
     >
       {icon}
       {label}
