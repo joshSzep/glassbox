@@ -318,7 +318,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R211: Split Workspace Memory Capture Into Extraction, Redaction, And Commit Layers
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R200`
 - Goal: reduce
   [workspace_memory_capture.py](../src/glassbox/runtime/workspace_memory_capture.py)
@@ -345,6 +345,17 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - workspace memory capture has explicit extraction, redaction, filtering, and
     commit boundaries without changing operator-visible memory workflows
+- Completed:
+  - `workspace_memory_capture.py` remains the public service and repository
+    protocol facade
+  - candidate models, IDs, usefulness, dedupe, and staleness filtering live in
+    `runtime/workspace_memory_candidates.py`
+  - runtime-note, task-outcome, stable-command, repeated-failure,
+    confirmed-fix, and model-assisted extraction live in
+    `runtime/workspace_memory_extraction.py`
+  - sensitive text handling lives in `runtime/workspace_memory_redaction.py`
+  - confirmation, merge, rejection, and operator-memory event construction
+    lives in `runtime/workspace_memory_commits.py`
 
 ### GBX-R212: Split Observability Collectors From Report Aggregation
 

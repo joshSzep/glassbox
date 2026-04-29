@@ -155,6 +155,12 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   repository protocol stable while candidate extraction, model-assisted
   suggestions, redaction, filtering/dedupe/staleness, and commit construction
   move into pure helper modules
+- the workspace-memory split now keeps
+  `src/glassbox/runtime/workspace_memory_capture.py` as the public service
+  facade, with candidate models/filtering in `workspace_memory_candidates.py`,
+  extraction in `workspace_memory_extraction.py`, sensitive text redaction in
+  `workspace_memory_redaction.py`, and review-gated commit event construction
+  in `workspace_memory_commits.py`
 - workspace-memory extraction remains review-gated: helpers propose candidates
   and the service records explicit confirmation, merge, rejection, or operator
   memory events
