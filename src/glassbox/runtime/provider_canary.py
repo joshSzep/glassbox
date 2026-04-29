@@ -40,6 +40,14 @@ _DEFAULT_SCENARIOS = (
     "cancellation",
     "dashboard",
     "daemon-attach",
+    "malformed-tool-call",
+    "long-context-continuity",
+    "retry-behavior",
+    "rate-limit-handling",
+    "tool-call-streaming",
+    "cancellation-during-retry",
+    "multi-step-plan-following",
+    "verification-loop-interaction",
 )
 _EVIDENCE_STALE_AFTER_SECONDS = 7 * 24 * 60 * 60
 
@@ -110,6 +118,62 @@ _SCENARIO_DEFINITIONS = {
         timeout_seconds=30.0,
         description=(
             "Preflight daemon attach compatibility for provider-backed sessions."
+        ),
+    ),
+    "malformed-tool-call": ProviderCanaryScenarioDefinition(
+        scenario_id="malformed-tool-call",
+        automation_status="preflight_only",
+        timeout_seconds=30.0,
+        description=(
+            "Preflight provider/tool adapter behavior for malformed or "
+            "schema-invalid tool calls."
+        ),
+    ),
+    "long-context-continuity": ProviderCanaryScenarioDefinition(
+        scenario_id="long-context-continuity",
+        automation_status="preflight_only",
+        timeout_seconds=60.0,
+        description=(
+            "Preflight provider suitability for long-context continuity across "
+            "multi-step local work."
+        ),
+    ),
+    "retry-behavior": ProviderCanaryScenarioDefinition(
+        scenario_id="retry-behavior",
+        automation_status="preflight_only",
+        timeout_seconds=60.0,
+        description="Preflight provider retry posture for transient failures.",
+    ),
+    "rate-limit-handling": ProviderCanaryScenarioDefinition(
+        scenario_id="rate-limit-handling",
+        automation_status="preflight_only",
+        timeout_seconds=60.0,
+        description="Preflight provider behavior expectations around rate limits.",
+    ),
+    "tool-call-streaming": ProviderCanaryScenarioDefinition(
+        scenario_id="tool-call-streaming",
+        automation_status="preflight_only",
+        timeout_seconds=60.0,
+        description="Preflight streaming behavior while tool calls are emitted.",
+    ),
+    "cancellation-during-retry": ProviderCanaryScenarioDefinition(
+        scenario_id="cancellation-during-retry",
+        automation_status="preflight_only",
+        timeout_seconds=60.0,
+        description="Preflight cancellation behavior while retry handling is active.",
+    ),
+    "multi-step-plan-following": ProviderCanaryScenarioDefinition(
+        scenario_id="multi-step-plan-following",
+        automation_status="preflight_only",
+        timeout_seconds=60.0,
+        description="Preflight provider suitability for following bounded task plans.",
+    ),
+    "verification-loop-interaction": ProviderCanaryScenarioDefinition(
+        scenario_id="verification-loop-interaction",
+        automation_status="preflight_only",
+        timeout_seconds=60.0,
+        description=(
+            "Preflight provider suitability for verify-repair loop interaction."
         ),
     ),
 }

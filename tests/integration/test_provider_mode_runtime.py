@@ -23,6 +23,24 @@ from glassbox.runtime.provider_canary import run_provider_canary_sync
 from glassbox.store import initialize_database
 from glassbox.store import open_database
 
+AGENTIC_CANARY_SCENARIOS = [
+    "streaming-text",
+    "tool-call",
+    "approval",
+    "ask-user",
+    "cancellation",
+    "dashboard",
+    "daemon-attach",
+    "malformed-tool-call",
+    "long-context-continuity",
+    "retry-behavior",
+    "rate-limit-handling",
+    "tool-call-streaming",
+    "cancellation-during-retry",
+    "multi-step-plan-following",
+    "verification-loop-interaction",
+]
+
 
 def _open_initialized_database(tmp_path: Path) -> sqlite3.Connection:
     connection = open_database(tmp_path / "glassbox.sqlite3")
@@ -385,21 +403,22 @@ def test_provider_canary_runs_default_multi_scenario_with_fake_provider(
     )
 
     assert [definition.scenario_id for definition in summary.scenario_definitions] == [
-        "streaming-text",
-        "tool-call",
-        "approval",
-        "ask-user",
-        "cancellation",
-        "dashboard",
-        "daemon-attach",
+        *AGENTIC_CANARY_SCENARIOS
     ]
     outcomes = {
         scenario.scenario_id: scenario.outcome for scenario in summary.scenarios
     }
     assert outcomes["streaming-text"] == "passed"
     assert outcomes["tool-call"] == "skipped"
+    assert outcomes["verification-loop-interaction"] == "skipped"
     assert summary.scenarios[0].automation_status == "automated"
     assert summary.scenarios[1].automation_status == "preflight_only"
+    matrix_rows = {
+        entry.scenario_id: entry for entry in summary.capability_matrix.entries
+    }
+    assert matrix_rows["streaming-text"].scenario_confidence == "observed"
+    assert matrix_rows["tool-call-streaming"].tool_call_reliability == "assumed"
+    assert matrix_rows["rate-limit-handling"].retry_posture == "rate_limit_unknown"
     assert retained == summary.model_dump(mode="json")
     assert "dotenv-openai" not in json.dumps(retained)
 
@@ -446,8 +465,8 @@ def test_provider_canary_evidence_cli_and_observability_surface_latest_run(
     assert evidence_exit_code == 0
     assert evidence_payload["latest_status"] == "skipped"
     assert evidence_payload["summary_count"] == 1
-    assert evidence_payload["skipped_count"] == 7
-    assert evidence_payload["matrix_entry_count"] == 7
+    assert evidence_payload["skipped_count"] == len(AGENTIC_CANARY_SCENARIOS)
+    assert evidence_payload["matrix_entry_count"] == len(AGENTIC_CANARY_SCENARIOS)
 
     observability_exit_code = main(
         [

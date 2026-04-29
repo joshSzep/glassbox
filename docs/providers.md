@@ -208,12 +208,34 @@ By default, summaries are written to
 place a run under release evidence, for example
 `.glassbox/releases/provider-canary`.
 
-The default scenario set is `streaming-text`, `tool-call`, `approval`,
-`ask-user`, `cancellation`, `dashboard`, and `daemon-attach`. `streaming-text`
-runs a short live provider turn when diagnostics are ready. The remaining
-scenarios are retained as preflight-only rows until their workflow-specific live
-automation is available, so skipped rows should be read as explicit capability
-limits rather than silent success.
+The default scenario set is:
+
+- `streaming-text`
+- `tool-call`
+- `approval`
+- `ask-user`
+- `cancellation`
+- `dashboard`
+- `daemon-attach`
+- `malformed-tool-call`
+- `long-context-continuity`
+- `retry-behavior`
+- `rate-limit-handling`
+- `tool-call-streaming`
+- `cancellation-during-retry`
+- `multi-step-plan-following`
+- `verification-loop-interaction`
+
+`streaming-text` runs a short live provider turn when diagnostics are ready. The
+remaining scenarios are retained as preflight-only rows until their
+workflow-specific live automation is available, so skipped rows should be read as
+explicit capability limits rather than silent success.
+
+Provider capability matrix rows include scenario confidence, observed limits,
+retry posture, and tool-call reliability. These fields help operators compare
+provider fit for agentic workflows such as bounded plan following and
+verify-repair loops, but they remain advisory and do not silently change the
+model selected for a session.
 
 Run one scenario:
 

@@ -55,6 +55,14 @@ _ADVISORY_CANARY_SCENARIOS = (
     "cancellation",
     "dashboard",
     "daemon-attach",
+    "malformed-tool-call",
+    "long-context-continuity",
+    "retry-behavior",
+    "rate-limit-handling",
+    "tool-call-streaming",
+    "cancellation-during-retry",
+    "multi-step-plan-following",
+    "verification-loop-interaction",
 )
 _AUTOMATED_CANARY_SCENARIOS = {"streaming-text"}
 

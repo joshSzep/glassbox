@@ -1305,9 +1305,10 @@ The intended v8 milestone order is:
 
 ### GBX-873: Add Provider Canary Depth For Agentic Workflows
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-733`, `GBX-860`
 - Goal: expand advisory provider canaries to cover the behaviors that matter for autonomous local work
+- Evidence: [providers.md](./providers.md)
 - Deliverables:
   - new advisory scenarios for malformed tool calls, long-context continuity, retry behavior, rate-limit handling, tool-call streaming, cancellation during retry, multi-step plan following, and verification-loop interaction
   - provider capability matrix fields for scenario confidence, observed limits, retry posture, and tool-call reliability
@@ -1321,6 +1322,17 @@ The intended v8 milestone order is:
   - provider canary unit tests
   - provider diagnostics tests
   - optional manual live-provider retained evidence
+- Completed vertical slice:
+  - expanded the default advisory canary scenario set with malformed tool calls, long-context continuity, retry behavior, rate-limit handling, tool-call streaming, cancellation during retry, multi-step plan following, and verification-loop interaction
+  - kept the new agentic scenarios preflight-only so missing automation is explicit and advisory rather than a silent pass
+  - added provider capability matrix fields for scenario confidence, observed limits, retry posture, and tool-call reliability
+  - updated diagnostics preflight so missing credentials, unsupported local models, and fake-provider default runs report the deeper scenario set consistently
+  - documented how the deeper scenario rows inform provider choice without becoming deterministic signoff
+- Validation:
+  - `uv run ruff format src/glassbox/runtime/provider_canary.py src/glassbox/runtime/provider_capability_matrix.py src/glassbox/runtime/provider_diagnostics.py tests/unit/test_runtime_provider_config.py tests/integration/test_provider_mode_runtime.py`
+  - `uv run ruff check src/glassbox/runtime/provider_canary.py src/glassbox/runtime/provider_capability_matrix.py src/glassbox/runtime/provider_diagnostics.py tests/unit/test_runtime_provider_config.py tests/integration/test_provider_mode_runtime.py`
+  - `uv run ty check`
+  - `uv run pytest tests/unit/test_runtime_provider_config.py tests/integration/test_provider_mode_runtime.py`
 - Done when:
   - operators can see which providers are credible for more autonomous workflows and which remain risky
 

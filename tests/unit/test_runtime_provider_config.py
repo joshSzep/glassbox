@@ -9,6 +9,24 @@ from glassbox.runtime.provider_capability_matrix import build_provider_capabilit
 from glassbox.runtime.provider_config import load_runtime_provider_config
 from glassbox.runtime.provider_diagnostics import build_provider_diagnostics_report
 
+AGENTIC_CANARY_SCENARIOS = [
+    "streaming-text",
+    "tool-call",
+    "approval",
+    "ask-user",
+    "cancellation",
+    "dashboard",
+    "daemon-attach",
+    "malformed-tool-call",
+    "long-context-continuity",
+    "retry-behavior",
+    "rate-limit-handling",
+    "tool-call-streaming",
+    "cancellation-during-retry",
+    "multi-step-plan-following",
+    "verification-loop-interaction",
+]
+
 
 def test_env_vars_override_dotenv_values(tmp_path: Path) -> None:
     (tmp_path / ".env").write_text(
@@ -85,15 +103,9 @@ def test_provider_diagnostics_reports_local_mode(tmp_path: Path) -> None:
     assert report.selected_model_source == "cli"
     assert report.capability_preflight.credential_source == "not_applicable"
     assert report.capability_preflight.streaming_assumption == "unsupported"
-    assert report.capability_preflight.known_unsupported_scenarios == [
-        "streaming-text",
-        "tool-call",
-        "approval",
-        "ask-user",
-        "cancellation",
-        "dashboard",
-        "daemon-attach",
-    ]
+    assert report.capability_preflight.known_unsupported_scenarios == (
+        AGENTIC_CANARY_SCENARIOS
+    )
     assert any("dashboard URL" in step for step in report.onboarding_steps)
     assert any("glassbox.profile.json" in step for step in report.onboarding_steps)
     assert any("commit-smoke" in step for step in report.onboarding_steps)
@@ -222,9 +234,52 @@ def test_provider_capability_matrix_serializes_redacted_evidence(
     assert payload["provider"] == "openai"
     assert payload["entries"][0]["credential_state"] == "configured"
     assert payload["entries"][0]["streaming_support"] == "supported"
+    assert payload["entries"][0]["scenario_confidence"] == "observed"
+    assert payload["entries"][0]["observed_limits"] == ["text streaming only"]
     assert payload["entries"][0]["redaction_status"] == "redacted"
     assert payload["entries"][1]["approval_behavior"] == "supported"
+    assert payload["entries"][1]["scenario_confidence"] == "skipped"
+    assert payload["entries"][1]["tool_call_reliability"] == "assumed"
+    assert payload["entries"][1]["retry_posture"] == "not_applicable"
     assert payload["entries"][1]["skipped_reason"] == (
         "approval scenario not automated yet"
     )
     assert "secret-openai" not in str(payload)
+
+
+def test_provider_capability_matrix_includes_agentic_workflow_fields(
+    tmp_path: Path,
+) -> None:
+    report = build_provider_diagnostics_report(
+        tmp_path,
+        explicit_model_name="openai:gpt-5.4",
+        environ={"OPENAI_API_KEY": "secret-openai"},
+    )
+
+    results: dict[str, ProviderCapabilityResult] = {
+        "malformed-tool-call": "skipped",
+        "retry-behavior": "skipped",
+        "rate-limit-handling": "skipped",
+        "tool-call-streaming": "skipped",
+        "verification-loop-interaction": "skipped",
+    }
+    matrix = build_provider_capability_matrix(
+        report,
+        scenario_ids=[
+            "malformed-tool-call",
+            "retry-behavior",
+            "rate-limit-handling",
+            "tool-call-streaming",
+            "verification-loop-interaction",
+        ],
+        results=results,
+    )
+    rows = {entry.scenario_id: entry for entry in matrix.entries}
+
+    assert rows["malformed-tool-call"].tool_call_reliability == "unknown"
+    assert rows["retry-behavior"].retry_posture == "not_evaluated"
+    assert rows["rate-limit-handling"].retry_posture == "rate_limit_unknown"
+    assert rows["tool-call-streaming"].streaming_support == "supported"
+    assert rows["tool-call-streaming"].tool_call_support == "supported"
+    assert rows["verification-loop-interaction"].tool_call_reliability == "assumed"
+    assert all(row.scenario_confidence == "preflight" for row in rows.values())
