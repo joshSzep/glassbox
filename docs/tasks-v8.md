@@ -1372,9 +1372,10 @@ The intended v8 milestone order is:
 
 ### GBX-875: Add Optional Network And Browser Diagnostic Tool Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-870`, `GBX-833`
 - Goal: decide whether v8 should include tightly bounded network or browser diagnostic tools for local app workflows
+- Evidence: [network-browser-diagnostics-v8.md](./network-browser-diagnostics-v8.md)
 - Deliverables:
   - docs defining allowed use cases, such as local dev server health, HTTP endpoint checks, screenshot capture, accessibility smoke, and static asset verification
   - policy contract for network host allowlists, local-only defaults, timeout budgets, output redaction, and approval requirements
@@ -1388,6 +1389,14 @@ The intended v8 milestone order is:
 - Tests and validation included in task:
   - docs review against tool policy and frontend testing docs
   - policy schema tests if added
+- Completed vertical slice:
+  - documented accepted local diagnostics for loopback dev server health, HTTP endpoint checks, local screenshots, accessibility smoke, static asset verification, and FastAPI-served dashboard checks
+  - defined host allowlists, local-only defaults, approval requirements for non-loopback hosts, timeout budgets, redirect limits, output redaction, artifact posture, cancellation, and replay evidence expectations
+  - recorded non-goals for general browsing, credentialed scraping, remote exploitation, arbitrary browser scripting, browser-native code editing, form submission, uploads, and raw private content retention
+  - sketched prototype schemas for `local_http_check`, `local_route_screenshot`, and `local_accessibility_smoke` without adding broad browser automation yet
+  - added an implementation test matrix for policy validation, local/remote host handling, timeouts, redaction, artifacts, replay capture, and static dashboard smoke
+- Validation:
+  - docs review against [tool-expansion-v8.md](./tool-expansion-v8.md), [tool-policy.md](./tool-policy.md), and [frontend-testing.md](./frontend-testing.md)
 - Done when:
   - the project has a clear answer on browser/network diagnostics before accidentally growing broad web automation
 

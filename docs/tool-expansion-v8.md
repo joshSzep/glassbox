@@ -42,7 +42,7 @@ New tools must be easier to audit than an equivalent unconstrained shell command
 | Symbol lookup | Resolve indexed symbols, definitions, and simple references from repository intelligence. | `read_only` | Freshness posture, source path and line provenance, graceful stale-index fallback. |
 | Diff review | Summarize working-tree or staged diffs by file, size, risk markers, tests, docs, generated outputs, and binary changes. | `read_only` | No git mutation, path filters, large-diff artifact summary, sensitive-diff redaction posture. Implemented first as `workspace_diff_summary`. |
 | Artifact summarization | Summarize retained local artifacts such as command logs, eval outputs, and verification failures. | `read_only` | Artifact path/ID scope, byte limits, retention policy, provenance and redaction labels. |
-| Browser/network diagnostics | Check local app health, screenshots, accessibility smoke, or static assets. | Contract-only until GBX-875 | Local-only defaults, host allowlist, timeout budget, output redaction, explicit approval for remote hosts. |
+| Browser/network diagnostics | Check local app health, screenshots, accessibility smoke, or static assets. | Contract-only in GBX-875 | Local-only defaults, host allowlist, timeout budget, output redaction, explicit approval for remote hosts. See [network-browser-diagnostics-v8.md](./network-browser-diagnostics-v8.md). |
 
 The first implementation candidates should be read-only diff review and test
 discovery because they improve verification and branch-search explanations
