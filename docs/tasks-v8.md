@@ -1048,7 +1048,7 @@ The intended v8 milestone order is:
 
 ### GBX-860: Define Verification Loop Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-831`, `GBX-824`
 - Goal: define how an autonomous task can verify its own work through tests, evals, linting, type checks, or operator-defined commands
 - Deliverables:
@@ -1070,7 +1070,7 @@ The intended v8 milestone order is:
 
 ### GBX-861: Implement Budgeted Verify-Repair Loop For One Session Task
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-860`, `GBX-843`
 - Goal: let an autonomous task run a relevant verification check, inspect failure output, attempt a bounded repair, and rerun until success or budget exhaustion
 - Deliverables:
@@ -1092,7 +1092,7 @@ The intended v8 milestone order is:
 
 ### GBX-862: Execute Eval Recommendations As Optional Verification Plans
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-861`
 - Goal: turn `eval recommend` from advisory output into an optional executable verification plan under autonomy budgets
 - Deliverables:
@@ -1114,7 +1114,7 @@ The intended v8 milestone order is:
 
 ### GBX-863: Add Branch-Search Attempt Model
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-824`, `GBX-860`
 - Goal: turn existing session forks into a controlled strategy-search primitive for autonomous local work
 - Deliverables:
@@ -1136,7 +1136,7 @@ The intended v8 milestone order is:
 
 ### GBX-864: Implement Bounded Branch Search For Competing Repair Strategies
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-863`, `GBX-861`
 - Goal: let Glassbox try a small number of local candidate branches for a failed task and compare verification outcomes
 - Deliverables:
@@ -1159,7 +1159,7 @@ The intended v8 milestone order is:
 
 ### GBX-865: Add Branch Outcome Selection And Handoff
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-864`
 - Goal: let an operator choose a winning candidate, export its evidence, and continue from that branch safely
 - Deliverables:
@@ -1181,7 +1181,7 @@ The intended v8 milestone order is:
 
 ### GBX-866: Improve Replay Drift And Verification Failure Explanation
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-862`, `GBX-855`
 - Goal: make failed replay, eval, and verification loops explain likely causes rather than only naming drift categories
 - Deliverables:
