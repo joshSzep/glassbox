@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import ValidationError
 
+from glassbox.runtime.background_jobs import run_background_job_worker_loop
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.bootstrap_storage import resolve_runtime_storage_paths
 from glassbox.web import WebServerConfig
@@ -251,10 +252,21 @@ async def _run_runtime_owner_async(
             db_path=paths.database_path,
         ) as runtime_context:
             server = build_web_server(runtime_context, host=host, port=port)
+            worker_task: asyncio.Task[None] | None = None
             try:
                 await server.start()
+                worker_task = asyncio.create_task(
+                    run_background_job_worker_loop(
+                        runtime_context,
+                        stop_event=stop_event,
+                        worker_id=f"daemon:{record.pid}",
+                    )
+                )
                 await stop_event.wait()
             finally:
+                stop_event.set()
+                if worker_task is not None:
+                    await worker_task
                 await server.stop()
     finally:
         _release_runtime_owner(paths, pid=record.pid)

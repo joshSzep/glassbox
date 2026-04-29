@@ -97,6 +97,36 @@ Operator surfaces should eventually expose:
 - cancellation requests awaiting acknowledgement
 - recovery events and stale-owner reasons
 
+## Read-Only Daemon Jobs
+
+The v8 daemon worker may execute only read-only maintenance and derived-index jobs.
+It must skip mutating continuation jobs until explicit task continuation support is
+enabled. The first supported job types are intentionally bounded:
+
+- `projection-health-refresh`: inspects retained session projection health and
+	records a completion summary.
+- `artifact-pressure-scan`: inspects managed artifact retention pressure without
+	pruning files.
+- `provider-evidence-freshness-scan`: loads retained provider canary evidence and
+	records the latest status.
+- `repository-index-refresh`: placeholder derived-index job that records progress
+	without writing an index.
+
+The daemon claims queued eligible jobs with a short lease, records a heartbeat,
+records progress, and then records completion or failure. Cancellation requests are
+acknowledged with `BackgroundJobCancelled`; expired active claims are recovered as
+`stale` with `BackgroundJobRecoveryRecorded` so operators can inspect them before
+retry support lands.
+
+Troubleshooting commands:
+
+- `glassbox observability status --json` shows pending, running, stale, and latest
+	failed background job state.
+- `glassbox job list --state stale` shows jobs recovered from expired claims.
+- `glassbox job show JOB_ID` shows worker claim, heartbeat, failure, and recovery
+	details.
+- `glassbox daemon stop` cleanly stops the worker together with the runtime owner.
+
 ## Test Matrix
 
 GBX-841 and later execution tasks should cover:

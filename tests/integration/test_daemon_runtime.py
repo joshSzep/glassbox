@@ -3,6 +3,7 @@
 import json
 import os
 import socket
+import time
 from datetime import UTC
 from datetime import datetime
 from pathlib import Path
@@ -15,6 +16,8 @@ from glassbox.cli.interactive_launch import InteractiveLaunchMode
 from glassbox.cli.interactive_launch import InteractiveLaunchOptions
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import SessionCompleted
+from glassbox.core.types import BackgroundJobKind
+from glassbox.core.types import BackgroundJobState
 from glassbox.runtime.daemon import stop_runtime_owner
 from glassbox.store.repositories import SQLiteSessionRepository
 from glassbox.store.sqlite import open_database
@@ -222,6 +225,58 @@ def test_daemon_status_json_reports_discovery_and_health(
             "glassbox session cancel SESSION_ID --cwd "
         )
         assert payload["commands"]["status_json"].endswith(" --json")
+    finally:
+        _stop_daemon_if_running(tmp_path)
+
+
+def test_daemon_executes_read_only_background_job(tmp_path: Path) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    port = _reserve_port()
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        job = repository.enqueue_background_job(
+            session_id,
+            kind=BackgroundJobKind.READ_ONLY_MAINTENANCE,
+            job_type="projection-health-refresh",
+            title="Refresh projection health",
+        )
+    finally:
+        connection.close()
+
+    try:
+        assert (
+            main(
+                [
+                    "daemon",
+                    "start",
+                    "--cwd",
+                    str(tmp_path),
+                    "--db-path",
+                    str(db_path),
+                    "--port",
+                    str(port),
+                ]
+            )
+            == 0
+        )
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            connection = open_database(db_path)
+            try:
+                updated = SQLiteSessionRepository(connection).get_background_job(
+                    job.job_id
+                )
+            finally:
+                connection.close()
+            if updated is not None and updated.state == BackgroundJobState.COMPLETED:
+                break
+            time.sleep(0.05)
+        else:
+            raise AssertionError("daemon did not complete read-only background job")
+
+        assert updated.progress_message is not None
+        assert "Projection health refresh inspected" in updated.progress_message
     finally:
         _stop_daemon_if_running(tmp_path)
 

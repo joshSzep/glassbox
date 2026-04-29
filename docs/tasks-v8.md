@@ -693,7 +693,7 @@ The intended v8 milestone order is:
 
 ### GBX-842: Add Daemon Job Runner For Read-Only Maintenance Jobs
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-841`
 - Goal: teach the daemon to execute safe read-only background jobs before introducing autonomous mutation
 - Deliverables:
@@ -711,6 +711,11 @@ The intended v8 milestone order is:
   - daemon runtime integration tests
   - background job unit tests with fake clocks where possible
   - observability status tests
+- Evidence:
+  - `uv run pytest tests/integration/test_background_job_runner.py tests/integration/test_background_jobs.py tests/integration/test_daemon_runtime.py tests/integration/test_observability_status.py`
+  - `uv run ruff check --fix src/glassbox/runtime/background_jobs.py src/glassbox/runtime/daemon.py tests/integration/test_background_job_runner.py tests/integration/test_daemon_runtime.py`
+  - `uv run ruff format src/glassbox/runtime/background_jobs.py src/glassbox/runtime/daemon.py tests/integration/test_background_job_runner.py tests/integration/test_daemon_runtime.py`
+  - `uv run ty check`
 - Done when:
   - the daemon can safely perform useful local maintenance in the background without mutating sessions or files
 
