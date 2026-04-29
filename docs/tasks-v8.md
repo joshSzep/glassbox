@@ -284,9 +284,10 @@ The intended v8 milestone order is:
 
 ### GBX-811: Inventory Agentic Surfaces, Conservative Gates, And Autonomy Gaps
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-810`
 - Goal: establish a code-aligned baseline of current plan-like behavior, daemon capabilities, policy gates, memory/context sources, branch workflows, eval recommendation, dashboard actions, and provider capability depth
+- Evidence: [v8-autonomy-baseline-inventory.md](./v8-autonomy-baseline-inventory.md)
 - Deliverables:
   - inventory of current turn execution flow, suspension points, approval gates, command gates, cancellation behavior, and policy evidence
   - inventory of daemon ownership, attach behavior, observer support, and potential background-worker seams

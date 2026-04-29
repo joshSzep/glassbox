@@ -202,3 +202,29 @@ def test_v8_contract_covers_auditable_autonomy_boundary() -> None:
         "tasks-v8.md",
     ):
         assert required_text in content
+
+
+def test_v8_inventory_covers_autonomy_baseline_and_gaps() -> None:
+    content = (REPO_ROOT / "docs" / "v8-autonomy-baseline-inventory.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "## Command Surface Baseline",
+        "## Turn Execution, Suspension, And Resumption",
+        "## Approval, Command, Policy, And Budget Gates",
+        "## Cancellation And Stop Conditions",
+        "## Daemon, Ownership, Attach, And Background-Worker Seams",
+        "## Runtime Context, Notes, Working Set, And Memory Limits",
+        "## Repository Context And Code-Inspection Limits",
+        "## Branching, Replay, Eval, And Verification Flows",
+        "## Dashboard And Web Control Surfaces",
+        "## Provider Diagnostics, Canaries, And Model Readiness",
+        "## Conservative Bottlenecks And Safe Loosening Opportunities",
+        "## Implementation Surface Classification",
+        "## Summary Of Weak Or Missing Coverage",
+        "uv run glassbox command tree",
+        "src/glassbox/runtime/turn_engine.py",
+        "tasks-v8.md",
+    ):
+        assert required_text in content
