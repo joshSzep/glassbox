@@ -11,6 +11,7 @@ from pydantic import field_validator
 from pydantic import model_validator
 
 from glassbox.core.ids import ApprovalId
+from glassbox.core.ids import ArtifactId
 from glassbox.core.ids import BackgroundJobId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import QuestionId
@@ -240,6 +241,8 @@ class BackgroundJobRecord(BaseModel):
     total_units: int | None = Field(default=None, ge=0)
     failure_kind: BackgroundJobFailureKind | None = None
     failure_message: str | None = None
+    failure_artifact_id: ArtifactId | None = None
+    failure_artifact_path: str | None = None
     retryable: bool = False
     next_retry_at: datetime | None = None
     cancellation_requested_by: str | None = None
@@ -247,6 +250,12 @@ class BackgroundJobRecord(BaseModel):
     cancelled_by: str | None = None
     recovery_reason: BackgroundJobRecoveryReason | None = None
     recovery_detail: str | None = None
+    retry_requested_by: str | None = None
+    retry_reason: str | None = None
+    retry_exhausted_reason: str | None = None
+    retry_budget: int | None = Field(default=None, ge=0)
+    abandoned_by: str | None = None
+    abandoned_reason: str | None = None
     created_at: datetime
     updated_at: datetime
     started_at: datetime | None = None

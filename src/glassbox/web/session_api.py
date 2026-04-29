@@ -274,6 +274,9 @@ class WorkspaceRuntimeSummaryResponse(BaseModel):
     health_url: str | None
     session_index_url: str | None
     started_at: datetime | None
+    background_job_failed_count: int = 0
+    background_job_retryable_count: int = 0
+    background_job_abandoned_count: int = 0
 
 
 class SessionAggregateResponse(BaseModel):

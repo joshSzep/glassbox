@@ -14,6 +14,7 @@ from glassbox.core import BackgroundJobFailureKind
 from glassbox.core import BackgroundJobKind
 from glassbox.core import BackgroundJobRecoveryReason
 from glassbox.core import BackgroundJobRecoveryRecorded
+from glassbox.core import BackgroundJobRetryExhausted
 from glassbox.core import BackgroundJobState
 from glassbox.core import EventEnvelope
 from glassbox.core import SessionStarted
@@ -108,6 +109,7 @@ def test_background_job_projection_rebuilds_all_terminal_and_stale_states(
     assert records[completed_id].state == BackgroundJobState.COMPLETED
     assert records[failed_id].state == BackgroundJobState.FAILED
     assert records[failed_id].failure_message == "index failed"
+    assert records[failed_id].failure_artifact_path is None
     assert records[cancelled_id].state == BackgroundJobState.CANCELLED
     assert records[stale_id].state == BackgroundJobState.STALE
     assert records[stale_id].recovery_reason == BackgroundJobRecoveryReason.STALE_CLAIM
@@ -182,6 +184,96 @@ def test_background_job_cancellation_is_idempotent(tmp_path: Path) -> None:
     assert len(cancellation_events) == 1
 
 
+def test_background_job_retry_and_abandon_are_event_sourced(tmp_path: Path) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+
+    connection = open_database(db_path)
+    try:
+        initialize_database(connection)
+        repository = SQLiteSessionRepository(connection)
+        _start_session(repository, session_id, tmp_path)
+        failed = repository.enqueue_background_job(
+            session_id,
+            kind=BackgroundJobKind.READ_ONLY_MAINTENANCE,
+            job_type="scan-workspace",
+            title="Scan workspace",
+        )
+        repository.fail_background_job(
+            failed.job_id,
+            failure_kind=BackgroundJobFailureKind.TOOL_ERROR,
+            message="tool exited",
+            retryable=True,
+            attempt=1,
+        )
+        retried = repository.retry_background_job(
+            failed.job_id,
+            requested_by="tester",
+            reason="transient tool exit",
+            retry_budget=3,
+        )
+        abandoned = repository.abandon_background_job(
+            failed.job_id,
+            abandoned_by="tester",
+            reason="no longer needed",
+        )
+
+        with connection:
+            connection.execute("delete from background_jobs")
+        repository.rebuild_session_projections(session_id)
+        rebuilt = repository.get_background_job(failed.job_id)
+    finally:
+        connection.close()
+
+    assert retried.state == BackgroundJobState.QUEUED
+    assert retried.retry_requested_by == "tester"
+    assert retried.retry_reason == "transient tool exit"
+    assert abandoned.state == BackgroundJobState.ABANDONED
+    assert rebuilt is not None
+    assert rebuilt.state == BackgroundJobState.ABANDONED
+    assert rebuilt.abandoned_by == "tester"
+    assert rebuilt.abandoned_reason == "no longer needed"
+
+
+def test_background_job_retry_records_exhaustion(tmp_path: Path) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+
+    connection = open_database(db_path)
+    try:
+        initialize_database(connection)
+        repository = SQLiteSessionRepository(connection)
+        _start_session(repository, session_id, tmp_path)
+        failed = repository.enqueue_background_job(
+            session_id,
+            kind=BackgroundJobKind.READ_ONLY_MAINTENANCE,
+            job_type="scan-workspace",
+            title="Scan workspace",
+        )
+        repository.fail_background_job(
+            failed.job_id,
+            failure_kind=BackgroundJobFailureKind.TOOL_ERROR,
+            message="tool exited",
+            retryable=True,
+            attempt=3,
+        )
+        exhausted = repository.retry_background_job(
+            failed.job_id,
+            requested_by="tester",
+            retry_budget=3,
+        )
+        events = repository.read_session_events(session_id)
+    finally:
+        connection.close()
+
+    assert exhausted.state == BackgroundJobState.FAILED
+    assert exhausted.retry_budget == 3
+    assert exhausted.retry_exhausted_reason is not None
+    assert any(
+        isinstance(event.payload, BackgroundJobRetryExhausted) for event in events
+    )
+
+
 def test_job_cli_lists_shows_and_cancels_json(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -242,6 +334,59 @@ def test_job_cli_lists_shows_and_cancels_json(
     assert cancel_payload["cancellation_reason"] == "operator stop"
 
 
+def test_job_cli_retries_and_abandons_json(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    job_id = _seed_failed_background_job(db_path, tmp_path, session_id)
+
+    retry_exit = main(
+        [
+            "job",
+            "retry",
+            str(job_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--requested-by",
+            "tester",
+            "--reason",
+            "transient",
+            "--json",
+        ]
+    )
+    retry_payload = json.loads(capsys.readouterr().out)
+
+    abandon_exit = main(
+        [
+            "job",
+            "abandon",
+            str(job_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--abandoned-by",
+            "tester",
+            "--reason",
+            "superseded",
+            "--json",
+        ]
+    )
+    abandon_payload = json.loads(capsys.readouterr().out)
+
+    assert retry_exit == 0
+    assert retry_payload["state"] == "queued"
+    assert retry_payload["retry_requested_by"] == "tester"
+    assert retry_payload["retry_reason"] == "transient"
+    assert abandon_exit == 0
+    assert abandon_payload["state"] == "abandoned"
+    assert abandon_payload["abandoned_reason"] == "superseded"
+
+
 def _seed_background_job(db_path: Path, workspace_root: Path, session_id) -> object:
     connection = open_database(db_path)
     try:
@@ -254,6 +399,34 @@ def _seed_background_job(db_path: Path, workspace_root: Path, session_id) -> obj
             job_type="scan-workspace",
             title="Scan workspace",
             payload={"paths": ["src"]},
+        )
+        return job.job_id
+    finally:
+        connection.close()
+
+
+def _seed_failed_background_job(
+    db_path: Path,
+    workspace_root: Path,
+    session_id,
+) -> object:
+    connection = open_database(db_path)
+    try:
+        initialize_database(connection)
+        repository = SQLiteSessionRepository(connection)
+        _start_session(repository, session_id, workspace_root)
+        job = repository.enqueue_background_job(
+            session_id,
+            kind=BackgroundJobKind.READ_ONLY_MAINTENANCE,
+            job_type="scan-workspace",
+            title="Scan workspace",
+        )
+        repository.fail_background_job(
+            job.job_id,
+            failure_kind=BackgroundJobFailureKind.TOOL_ERROR,
+            message="tool exited",
+            retryable=True,
+            attempt=1,
         )
         return job.job_id
     finally:

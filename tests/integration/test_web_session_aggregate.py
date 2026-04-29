@@ -307,6 +307,9 @@ def test_get_sessions_aggregate_returns_priority_counts_and_runtime_summary(
                 "health_url": "http://127.0.0.1:8765/healthz",
                 "session_index_url": "http://127.0.0.1:8765/",
                 "started_at": "2026-04-24T00:00:00Z",
+                "background_job_failed_count": 0,
+                "background_job_retryable_count": 0,
+                "background_job_abandoned_count": 0,
             }
             assert [item["session_id"] for item in body["sessions"]] == [
                 str(approval_state.session_id),

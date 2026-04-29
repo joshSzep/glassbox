@@ -220,6 +220,12 @@ class FakeSessionRepository:
     def cancel_background_job(self, job_id, **kwargs):
         raise NotImplementedError
 
+    def retry_background_job(self, job_id, **kwargs):
+        raise NotImplementedError
+
+    def abandon_background_job(self, job_id, **kwargs):
+        raise NotImplementedError
+
     def list_background_jobs(self, **kwargs):
         return []
 

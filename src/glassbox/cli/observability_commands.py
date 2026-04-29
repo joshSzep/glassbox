@@ -60,7 +60,10 @@ def _print_observability_report(report: WorkspaceObservabilityReport) -> None:
         "Background jobs: "
         f"{report.background_jobs.pending_count} pending, "
         f"{report.background_jobs.running_count} running, "
-        f"{report.background_jobs.stale_count} stale"
+        f"{report.background_jobs.stale_count} stale, "
+        f"{report.background_jobs.failed_count} failed, "
+        f"{report.background_jobs.retryable_count} retryable, "
+        f"{report.background_jobs.abandoned_count} abandoned"
     )
     if report.background_jobs.last_failure_job_id is not None:
         print(

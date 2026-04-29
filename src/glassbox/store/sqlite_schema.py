@@ -8,7 +8,7 @@ from pathlib import Path
 from glassbox.store.sqlite_schema_statements import BOOTSTRAP_STATEMENTS
 from glassbox.store.sqlite_schema_statements import V3_BASELINE_SCHEMA_STATEMENTS
 
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 BASELINE_SCHEMA_VERSION = 3
 BASELINE_MIGRATION_NAME = "baseline event store and projections"
 
@@ -387,6 +387,25 @@ def _ensure_background_job_projection_schema(connection: sqlite3.Connection) -> 
     )
 
 
+def _ensure_background_job_retry_schema(connection: sqlite3.Connection) -> None:
+    existing_columns = _column_names(connection, "background_jobs")
+    columns = {
+        "failure_artifact_id": "text",
+        "failure_artifact_path": "text",
+        "retry_requested_by": "text",
+        "retry_reason": "text",
+        "retry_exhausted_reason": "text",
+        "retry_budget": "integer",
+        "abandoned_by": "text",
+        "abandoned_reason": "text",
+    }
+    for column_name, column_type in columns.items():
+        if column_name not in existing_columns:
+            connection.execute(
+                f"alter table background_jobs add column {column_name} {column_type}"
+            )
+
+
 MIGRATIONS = (
     SchemaMigration(
         version=4,
@@ -417,6 +436,11 @@ MIGRATIONS = (
         version=9,
         name="add background job projection table",
         apply=_ensure_background_job_projection_schema,
+    ),
+    SchemaMigration(
+        version=10,
+        name="add background job retry triage columns",
+        apply=_ensure_background_job_retry_schema,
     ),
 )
 

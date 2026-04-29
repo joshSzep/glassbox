@@ -13,9 +13,11 @@ from glassbox.core.events import ReplayArtifactRecorded
 from glassbox.core.events import ToolArtifactRecorded
 from glassbox.runtime.daemon import RuntimeOwnerStatus
 from glassbox.runtime.daemon import inspect_runtime_owner
+from glassbox.runtime.observability import build_background_job_observability
 from glassbox.runtime.session_queries import OPERATOR_SORT_PRIORITY
 from glassbox.runtime.session_queries import SessionQueryService
 from glassbox.runtime.session_queries import WorkspaceRuntimeSummaryView
+from glassbox.services import SessionRepository
 from glassbox.web.app import RuntimeContextDep
 from glassbox.web.session_api import ActionAcceptedResponse
 from glassbox.web.session_api import ArtifactDetailResponse
@@ -117,7 +119,11 @@ async def get_session_aggregate(
     workspace_root = context.infrastructure.artifacts_root
     owner_status = inspect_runtime_owner(workspace_root)
     aggregate = query_service.get_session_aggregate(
-        runtime=_build_workspace_runtime_summary(workspace_root, owner_status),
+        runtime=_build_workspace_runtime_summary(
+            workspace_root,
+            owner_status,
+            context.repositories.sessions,
+        ),
         queue=queue,
         status=status,
         sort=sort,
@@ -478,9 +484,11 @@ def _artifact_detail_from_event(event) -> ArtifactDetailResponse:
 def _build_workspace_runtime_summary(
     workspace_root: Path,
     owner_status: RuntimeOwnerStatus,
+    session_repository: SessionRepository,
 ) -> WorkspaceRuntimeSummaryView:
     record = owner_status.record
     dashboard_url = record.dashboard_url if record is not None else None
+    background_jobs = build_background_job_observability(session_repository)
     return WorkspaceRuntimeSummaryView(
         workspace_root=str(workspace_root),
         state=owner_status.state,
@@ -490,4 +498,7 @@ def _build_workspace_runtime_summary(
         health_url=(dashboard_url.rstrip("/") + "/healthz") if dashboard_url else None,
         session_index_url=dashboard_url,
         started_at=record.started_at if record is not None else None,
+        background_job_failed_count=background_jobs.failed_count,
+        background_job_retryable_count=background_jobs.retryable_count,
+        background_job_abandoned_count=background_jobs.abandoned_count,
     )

@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 
+from glassbox.core.types import BackgroundJobState
 from glassbox.runtime.daemon import RuntimeOwnerStatus
 from glassbox.runtime.provider_canary import ProviderCanaryEvidenceSummary
 from glassbox.runtime.provider_canary import load_provider_canary_evidence
@@ -107,6 +108,9 @@ class BackgroundJobObservability(BaseModel):
     pending_count: int
     running_count: int
     stale_count: int
+    failed_count: int
+    retryable_count: int
+    abandoned_count: int
     last_failure_job_id: str | None = None
     last_failure_message: str | None = None
     next_actions: list[str] = Field(default_factory=list)
@@ -324,7 +328,18 @@ def build_background_job_observability(
     )
     running_count = counts.get("claimed", 0) + counts.get("running", 0)
     stale_count = counts.get("stale", 0)
+    failed_count = counts.get("failed", 0)
+    abandoned_count = counts.get("abandoned", 0)
     last_failure = session_repository.latest_failed_background_job()
+    retryable_count = len(
+        [
+            job
+            for job in session_repository.list_background_jobs(
+                state=BackgroundJobState.FAILED
+            )
+            if job.retryable
+        ]
+    )
     next_actions: list[str] = []
     if pending_count:
         next_actions.append("glassbox job list --state queued")
@@ -332,12 +347,17 @@ def build_background_job_observability(
         next_actions.append("glassbox job list --state running")
     if stale_count:
         next_actions.append("glassbox job list --state stale")
+    if retryable_count:
+        next_actions.append("glassbox job list --state failed")
     if last_failure is not None:
         next_actions.append(f"glassbox job show {last_failure.job_id}")
     return BackgroundJobObservability(
         pending_count=pending_count,
         running_count=running_count,
         stale_count=stale_count,
+        failed_count=failed_count,
+        retryable_count=retryable_count,
+        abandoned_count=abandoned_count,
         last_failure_job_id=(str(last_failure.job_id) if last_failure else None),
         last_failure_message=(last_failure.failure_message if last_failure else None),
         next_actions=next_actions,

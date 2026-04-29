@@ -5,6 +5,7 @@ import sqlite3
 from datetime import UTC
 from datetime import datetime
 
+from glassbox.core.events import BackgroundJobAbandoned
 from glassbox.core.events import BackgroundJobCancellationRequested
 from glassbox.core.events import BackgroundJobCancelled
 from glassbox.core.events import BackgroundJobClaimed
@@ -15,6 +16,8 @@ from glassbox.core.events import BackgroundJobHeartbeat
 from glassbox.core.events import BackgroundJobPaused
 from glassbox.core.events import BackgroundJobProgressRecorded
 from glassbox.core.events import BackgroundJobRecoveryRecorded
+from glassbox.core.events import BackgroundJobRetryExhausted
+from glassbox.core.events import BackgroundJobRetryRequested
 from glassbox.core.events import BackgroundJobStarted
 from glassbox.core.events import EventEnvelope
 from glassbox.core.types import BackgroundJobState
@@ -40,10 +43,11 @@ def _apply_background_job_projection(
                 priority,
                 task_id,
                 parent_job_id,
+                retryable,
                 created_at,
                 updated_at,
                 last_sequence
-            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 str(payload.job_id),
@@ -57,6 +61,7 @@ def _apply_background_job_projection(
                 payload.priority,
                 _optional_text(payload.task_id),
                 _optional_text(payload.parent_job_id),
+                0,
                 _datetime_text(event.created_at),
                 _datetime_text(event.created_at),
                 event.sequence,
@@ -144,6 +149,8 @@ def _apply_background_job_projection(
             state=BackgroundJobState.FAILED.value,
             failure_kind=payload.failure_kind.value,
             failure_message=payload.message,
+            failure_artifact_id=_optional_text(payload.artifact_id),
+            failure_artifact_path=payload.artifact_path,
             retryable=1 if payload.retryable else 0,
             attempt=payload.attempt,
             next_retry_at=(
@@ -186,6 +193,56 @@ def _apply_background_job_projection(
             state=BackgroundJobState.STALE.value,
             recovery_reason=payload.reason.value,
             recovery_detail=payload.detail,
+        )
+        return
+
+    if isinstance(payload, BackgroundJobRetryRequested):
+        _update_job(
+            connection,
+            payload.job_id,
+            event,
+            state=BackgroundJobState.QUEUED.value,
+            worker_id=None,
+            claim_token=None,
+            lease_expires_at=None,
+            last_heartbeat_at=None,
+            started_at=None,
+            completed_at=None,
+            progress_message=None,
+            failure_kind=None,
+            failure_message=None,
+            failure_artifact_id=None,
+            failure_artifact_path=None,
+            retryable=0,
+            next_retry_at=None,
+            retry_requested_by=payload.requested_by,
+            retry_reason=payload.reason,
+            retry_exhausted_reason=None,
+            retry_budget=None,
+            abandoned_by=None,
+            abandoned_reason=None,
+        )
+        return
+
+    if isinstance(payload, BackgroundJobRetryExhausted):
+        _update_job(
+            connection,
+            payload.job_id,
+            event,
+            retry_budget=payload.retry_budget,
+            retry_exhausted_reason=payload.reason,
+        )
+        return
+
+    if isinstance(payload, BackgroundJobAbandoned):
+        _update_job(
+            connection,
+            payload.job_id,
+            event,
+            state=BackgroundJobState.ABANDONED.value,
+            abandoned_by=payload.abandoned_by,
+            abandoned_reason=payload.reason,
+            completed_at=_datetime_text(event.created_at),
         )
 
 

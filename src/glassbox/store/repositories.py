@@ -359,6 +359,7 @@ class SQLiteSessionRepository:
         message: str,
         retryable: bool = False,
         next_retry_at: datetime | None = None,
+        attempt: int | None = None,
     ) -> BackgroundJobRecord:
         return background_job_store.fail_background_job(
             self._connection,
@@ -367,6 +368,7 @@ class SQLiteSessionRepository:
             message=message,
             retryable=retryable,
             next_retry_at=next_retry_at,
+            attempt=attempt,
         )
 
     def cancel_background_job(
@@ -380,6 +382,36 @@ class SQLiteSessionRepository:
             self._connection,
             job_id,
             requested_by=requested_by,
+            reason=reason,
+        )
+
+    def retry_background_job(
+        self,
+        job_id: BackgroundJobId,
+        *,
+        requested_by: str = "operator",
+        reason: str | None = None,
+        retry_budget: int = 3,
+    ) -> BackgroundJobRecord:
+        return background_job_store.retry_background_job(
+            self._connection,
+            job_id,
+            requested_by=requested_by,
+            reason=reason,
+            retry_budget=retry_budget,
+        )
+
+    def abandon_background_job(
+        self,
+        job_id: BackgroundJobId,
+        *,
+        abandoned_by: str = "operator",
+        reason: str,
+    ) -> BackgroundJobRecord:
+        return background_job_store.abandon_background_job(
+            self._connection,
+            job_id,
+            abandoned_by=abandoned_by,
             reason=reason,
         )
 

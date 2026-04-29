@@ -57,6 +57,9 @@ export function makeV4ScenarioAggregate(
       total: sessions.length,
     },
     runtime: {
+      background_job_abandoned_count: 0,
+      background_job_failed_count: 0,
+      background_job_retryable_count: 0,
       dashboard_url: "http://127.0.0.1:3210/app",
       health: sessions.length === 0 ? null : "ok",
       health_url: "/healthz",

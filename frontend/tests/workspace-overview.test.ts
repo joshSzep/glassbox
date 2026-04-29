@@ -41,6 +41,9 @@ describe("workspace overview console", () => {
             started_at: "2026-04-23T00:00:00Z",
             state: "running",
             workspace_root: "/tmp/glassbox",
+            background_job_failed_count: 2,
+            background_job_retryable_count: 1,
+            background_job_abandoned_count: 0,
           },
         },
       ),
@@ -50,6 +53,7 @@ describe("workspace overview console", () => {
 
     expect(markup).toContain("runtime online");
     expect(markup).toContain("projection fresh");
+    expect(markup).toContain("1 retryable job");
     expect(markup).toContain("Queue approvals");
     expect(markup).toContain("Metric Patterns");
     expect(markup).toContain("Workspace metric patterns");
@@ -109,6 +113,9 @@ describe("workspace overview console", () => {
       makeSessionAggregate([makeSessionSummary("session-1")], {
         queue: "active",
         runtime: {
+          background_job_abandoned_count: 0,
+          background_job_failed_count: 0,
+          background_job_retryable_count: 0,
           dashboard_url: null,
           health: "ok",
           health_url: null,
@@ -134,6 +141,9 @@ describe("workspace overview console", () => {
       createDashboardState(),
       makeSessionAggregate([], {
         runtime: {
+          background_job_abandoned_count: 0,
+          background_job_failed_count: 0,
+          background_job_retryable_count: 0,
           dashboard_url: null,
           health: "degraded",
           health_url: null,

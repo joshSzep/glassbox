@@ -37,6 +37,7 @@ def _add_operations_parsers(
             "cancellation_requested",
             "cancelled",
             "stale",
+            "abandoned",
         ),
         default=None,
         help="filter jobs by projected state",
@@ -89,6 +90,58 @@ def _add_operations_parsers(
         help="print the updated job as JSON",
     )
     _add_runtime_location_arguments(job_cancel_parser)
+
+    job_retry_parser = job_subparsers.add_parser(
+        "retry",
+        help="retry a failed or stale background job",
+        description="Append a retry request event for a failed or stale job.",
+    )
+    job_retry_parser.add_argument("job_id", type=_parse_uuid)
+    job_retry_parser.add_argument(
+        "--requested-by",
+        default="operator",
+        help="actor requesting retry",
+    )
+    job_retry_parser.add_argument(
+        "--reason",
+        default=None,
+        help="optional retry reason",
+    )
+    job_retry_parser.add_argument(
+        "--retry-budget",
+        type=int,
+        default=3,
+        help="maximum attempts allowed before recording retry exhaustion",
+    )
+    job_retry_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the updated job as JSON",
+    )
+    _add_runtime_location_arguments(job_retry_parser)
+
+    job_abandon_parser = job_subparsers.add_parser(
+        "abandon",
+        help="abandon a background job with a reason",
+        description="Append a terminal abandon event for a background job.",
+    )
+    job_abandon_parser.add_argument("job_id", type=_parse_uuid)
+    job_abandon_parser.add_argument(
+        "--abandoned-by",
+        default="operator",
+        help="actor abandoning the job",
+    )
+    job_abandon_parser.add_argument(
+        "--reason",
+        required=True,
+        help="reason for abandoning the job",
+    )
+    job_abandon_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the updated job as JSON",
+    )
+    _add_runtime_location_arguments(job_abandon_parser)
 
     observability_parser = subparsers.add_parser(
         "observability",

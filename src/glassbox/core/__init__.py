@@ -5,6 +5,7 @@ from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import AssistantMessageCompleted
 from glassbox.core.events import AssistantMessageDelta
 from glassbox.core.events import AssistantMessageStarted
+from glassbox.core.events import BackgroundJobAbandoned
 from glassbox.core.events import BackgroundJobCancellationRequested
 from glassbox.core.events import BackgroundJobCancelled
 from glassbox.core.events import BackgroundJobClaimed
@@ -15,6 +16,8 @@ from glassbox.core.events import BackgroundJobHeartbeat
 from glassbox.core.events import BackgroundJobPaused
 from glassbox.core.events import BackgroundJobProgressRecorded
 from glassbox.core.events import BackgroundJobRecoveryRecorded
+from glassbox.core.events import BackgroundJobRetryExhausted
+from glassbox.core.events import BackgroundJobRetryRequested
 from glassbox.core.events import BackgroundJobStarted
 from glassbox.core.events import BudgetDecisionRecorded
 from glassbox.core.events import BudgetExhausted
@@ -149,6 +152,7 @@ __all__ = [
     "AssistantMessageDelta",
     "AssistantMessageStarted",
     "ArtifactId",
+    "BackgroundJobAbandoned",
     "BackgroundJobCancellationRequested",
     "BackgroundJobCancelled",
     "BackgroundJobClaimed",
@@ -164,6 +168,8 @@ __all__ = [
     "BackgroundJobRecord",
     "BackgroundJobRecoveryReason",
     "BackgroundJobRecoveryRecorded",
+    "BackgroundJobRetryExhausted",
+    "BackgroundJobRetryRequested",
     "BackgroundJobStarted",
     "BackgroundJobState",
     "BudgetDecisionRecorded",

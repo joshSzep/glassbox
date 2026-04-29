@@ -223,6 +223,7 @@ class SessionRepository(Protocol):
         message: str,
         retryable: bool = False,
         next_retry_at: datetime | None = None,
+        attempt: int | None = None,
     ) -> BackgroundJobRecord: ...
 
     def cancel_background_job(
@@ -231,6 +232,23 @@ class SessionRepository(Protocol):
         *,
         requested_by: str = "operator",
         reason: str | None = None,
+    ) -> BackgroundJobRecord: ...
+
+    def retry_background_job(
+        self,
+        job_id: BackgroundJobId,
+        *,
+        requested_by: str = "operator",
+        reason: str | None = None,
+        retry_budget: int = 3,
+    ) -> BackgroundJobRecord: ...
+
+    def abandon_background_job(
+        self,
+        job_id: BackgroundJobId,
+        *,
+        abandoned_by: str = "operator",
+        reason: str,
     ) -> BackgroundJobRecord: ...
 
     def list_background_jobs(

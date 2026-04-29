@@ -750,7 +750,7 @@ The intended v8 milestone order is:
 
 ### GBX-844: Add Background Job Recovery, Retry, And Failure Triage
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-843`
 - Goal: make failed or interrupted daemon jobs recoverable and explainable rather than mysterious background failures
 - Deliverables:
@@ -767,6 +767,18 @@ The intended v8 milestone order is:
   - failed-job and retry integration tests
   - artifact retention tests for job failure artifacts
   - dashboard tests if failure cues are added
+- Completed vertical slice:
+  - added retry-requested, retry-exhausted, and abandoned canonical background job events
+  - added retry/abandon projection fields, schema migration v10, and rebuild behavior
+  - added `glassbox job retry` and `glassbox job abandon` operator commands
+  - marked read-only/derived job failures retryable while keeping mutating continuation retries explicit
+  - retained daemon failure artifacts and protected background-job failure artifact paths from pruning
+  - surfaced failed, retryable, and abandoned counts in observability and the operator-console runtime summary
+- Validation:
+  - `uv run ruff format src tests && uv run ruff check src tests && uv run ty check`
+  - `uv run pytest tests/unit/test_core_events.py tests/integration/test_sqlite_bootstrap.py tests/integration/test_background_jobs.py tests/integration/test_artifact_gc.py tests/integration/test_observability_status.py tests/integration/test_background_job_runner.py tests/integration/test_web_session_aggregate.py`
+  - `pnpm run typecheck`
+  - `pnpm exec vitest run tests/workspace-overview.test.ts`
 - Done when:
   - background autonomy failures leave behind clear evidence and safe next actions
 

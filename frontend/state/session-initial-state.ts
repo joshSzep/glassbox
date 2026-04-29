@@ -47,6 +47,9 @@ export function createEmptyProjectionHealthCounts(): ProjectionHealthCounts {
 
 export function createEmptyRuntimeSummary(): RuntimeSummary {
   return {
+    background_job_abandoned_count: 0,
+    background_job_failed_count: 0,
+    background_job_retryable_count: 0,
     dashboard_url: null,
     health: null,
     health_url: null,

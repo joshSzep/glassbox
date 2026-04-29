@@ -40,6 +40,7 @@ export function WorkspaceStatusRail({
   const RuntimeIcon = runtime.icon;
   const projection = projectionSummaryDescriptor(data);
   const ProjectionIcon = projection.icon;
+  const backgroundJobs = backgroundJobDescriptor(data);
   const streamStatus = streamDescriptor(stream, selectedSessionId);
   const StreamIcon = streamStatus.icon;
   const refresh = refreshDescriptor(loadState, error);
@@ -106,6 +107,7 @@ export function WorkspaceStatusRail({
           ) : (
             <Badge variant="success">No blocking actions</Badge>
           )}
+          <Badge variant={backgroundJobs.variant}>{backgroundJobs.label}</Badge>
         </div>
         <Button
           aria-label="Refresh workspace"
@@ -173,6 +175,31 @@ function projectionSummaryDescriptor(data: DashboardState) {
     };
   }
   return { icon: Database, label: "projection fresh", variant: "success" as const };
+}
+
+function backgroundJobDescriptor(data: DashboardState) {
+  const failed = data.runtimeSummary.background_job_failed_count ?? 0;
+  const retryable = data.runtimeSummary.background_job_retryable_count ?? 0;
+  const abandoned = data.runtimeSummary.background_job_abandoned_count ?? 0;
+  if (retryable > 0) {
+    return {
+      label: `${retryable} retryable job${retryable === 1 ? "" : "s"}`,
+      variant: "warning" as const,
+    };
+  }
+  if (failed > 0) {
+    return {
+      label: `${failed} failed job${failed === 1 ? "" : "s"}`,
+      variant: "destructive" as const,
+    };
+  }
+  if (abandoned > 0) {
+    return {
+      label: `${abandoned} abandoned job${abandoned === 1 ? "" : "s"}`,
+      variant: "muted" as const,
+    };
+  }
+  return { label: "Jobs healthy", variant: "success" as const };
 }
 
 function streamDescriptor(

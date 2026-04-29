@@ -561,6 +561,8 @@ class BackgroundJobFailed(EventPayload):
     retryable: bool = False
     attempt: int = Field(ge=1)
     next_retry_at: datetime | None = None
+    artifact_id: ArtifactId | None = None
+    artifact_path: str | None = Field(default=None, max_length=4000)
 
 
 class BackgroundJobCancellationRequested(EventPayload):
@@ -588,6 +590,27 @@ class BackgroundJobRecoveryRecorded(EventPayload):
     previous_state: BackgroundJobState
     recovered_by: str = Field(default="runtime", min_length=1, max_length=200)
     detail: str | None = Field(default=None, max_length=2000)
+
+
+class BackgroundJobRetryRequested(EventPayload):
+    event_type: Literal["BackgroundJobRetryRequested"] = "BackgroundJobRetryRequested"
+    job_id: BackgroundJobId
+    requested_by: str = Field(default="operator", min_length=1, max_length=200)
+    reason: str | None = Field(default=None, max_length=2000)
+
+
+class BackgroundJobRetryExhausted(EventPayload):
+    event_type: Literal["BackgroundJobRetryExhausted"] = "BackgroundJobRetryExhausted"
+    job_id: BackgroundJobId
+    retry_budget: int = Field(ge=0)
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class BackgroundJobAbandoned(EventPayload):
+    event_type: Literal["BackgroundJobAbandoned"] = "BackgroundJobAbandoned"
+    job_id: BackgroundJobId
+    abandoned_by: str = Field(default="operator", min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
 
 
 class ErrorRecorded(EventPayload):
@@ -658,6 +681,9 @@ EventPayloadType = Annotated[
     | BackgroundJobCancellationRequested
     | BackgroundJobCancelled
     | BackgroundJobRecoveryRecorded
+    | BackgroundJobRetryRequested
+    | BackgroundJobRetryExhausted
+    | BackgroundJobAbandoned
     | ErrorRecorded,
     Field(discriminator="event_type"),
 ]

@@ -49,6 +49,7 @@ Read-only and derived-index jobs are the first eligible daemon execution targets
 - `cancellation_requested`: an operator or runtime requested cancellation; the owner must acknowledge at a safe boundary.
 - `cancelled`: stopped because cancellation was acknowledged.
 - `stale`: the recorded owner lease or metadata is no longer trustworthy and recovery is required.
+- `abandoned`: terminal operator triage state for a job that should not be retried.
 
 ## Canonical Events
 
@@ -62,9 +63,14 @@ GBX-840 introduces the canonical event vocabulary. Later storage and daemon task
 - `BackgroundJobPaused`: records an autonomy escalation reason and optional detail.
 - `BackgroundJobCompleted`: records completion summary and optional artifact id.
 - `BackgroundJobFailed`: records failure kind, message, retryability, attempt, and optional next retry time.
+- Failed daemon jobs may also reference a retained session artifact containing
+	the failure traceback or tool output that made triage useful.
 - `BackgroundJobCancellationRequested`: records cancellation intent and reason.
 - `BackgroundJobCancelled`: records cancellation acknowledgement and final reason.
 - `BackgroundJobRecoveryRecorded`: records stale-owner, daemon-restart, duplicate-claim, projection-rebuild, or operator-requested recovery evidence.
+- `BackgroundJobRetryRequested`: records the operator or runtime decision to return a failed or stale job to the queued state.
+- `BackgroundJobRetryExhausted`: records the retry budget and reason when a retry request would exceed the explicit budget.
+- `BackgroundJobAbandoned`: records who abandoned the job and why.
 
 ## Queueing And Claiming
 
@@ -78,7 +84,18 @@ Cancellation is request/acknowledge. `BackgroundJobCancellationRequested` makes 
 
 Pause is for durable stops that may be resumed without losing evidence. Mutating jobs pause on approval required, pending user question, policy block, budget exhaustion, verification failure, provider unavailable, daemon unavailable, ambiguous plan, or manual pause.
 
-Resume should append a new claim/start sequence rather than relying on old process state. Retry policies are defined in GBX-844. Until then, retryable failures are evidence only.
+Resume appends a new claim/start sequence rather than relying on old process state.
+Retry is explicit: `glassbox job retry JOB_ID` may return failed or stale jobs to
+`queued` until the retry budget is exhausted, at which point
+`BackgroundJobRetryExhausted` preserves the triage evidence. Read-only and
+derived-index failures may be marked retryable by the daemon. Mutating
+continuation failures are not automatically retryable; operators must provide an
+explicit retry command and budget so continuation restarts happen only from the
+event-safe queued boundary.
+
+Abandonment is terminal operator triage. `glassbox job abandon JOB_ID --reason
+...` records `BackgroundJobAbandoned` when a job is obsolete, unsafe to retry, or
+superseded by newer work.
 
 ## Stale-Owner Recovery
 
@@ -94,6 +111,7 @@ Operator surfaces should eventually expose:
 - current job id, job type, authority class, attempt, worker id, and lease expiry
 - last heartbeat and progress message
 - last failure kind and retryability
+- failed, retryable, and abandoned counts
 - cancellation requests awaiting acknowledgement
 - recovery events and stale-owner reasons
 
@@ -120,8 +138,11 @@ retry support lands.
 
 Troubleshooting commands:
 
-- `glassbox observability status --json` shows pending, running, stale, and latest
-	failed background job state.
+- `glassbox observability status --json` shows pending, running, stale, failed,
+	retryable, abandoned, and latest failed background job state.
+- `glassbox job retry JOB_ID --reason ...` requeues a failed or stale job until
+	the retry budget is exhausted.
+- `glassbox job abandon JOB_ID --reason ...` records terminal operator triage.
 - `glassbox job list --state stale` shows jobs recovered from expired claims.
 - `glassbox job show JOB_ID` shows worker claim, heartbeat, failure, and recovery
 	details.

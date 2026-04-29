@@ -8,6 +8,7 @@ from datetime import datetime
 from datetime import timedelta
 from pathlib import Path
 
+from glassbox.core.events import BackgroundJobFailed
 from glassbox.core.events import ReplayArtifactRecorded
 from glassbox.core.events import ToolArtifactRecorded
 from glassbox.services import SessionRepository
@@ -219,11 +220,15 @@ def _referenced_artifact_paths(
     for session in repository.list_sessions():
         for event in repository.read_session_events(session.session_id):
             payload = event.payload
-            if not isinstance(payload, ToolArtifactRecorded | ReplayArtifactRecorded):
+            if isinstance(payload, ToolArtifactRecorded | ReplayArtifactRecorded):
+                artifact_path = payload.path
+            elif isinstance(payload, BackgroundJobFailed):
+                artifact_path = payload.artifact_path
+            else:
                 continue
-            if payload.path is None:
+            if artifact_path is None:
                 continue
-            relative_path = _normalize_artifact_path(root_dir, payload.path)
+            relative_path = _normalize_artifact_path(root_dir, artifact_path)
             if relative_path is not None:
                 referenced_paths.add(relative_path)
     return referenced_paths

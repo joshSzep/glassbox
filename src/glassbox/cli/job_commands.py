@@ -17,6 +17,10 @@ def _job_command(args: argparse.Namespace) -> int:
         return _job_show_command(args)
     if job_command == "cancel":
         return _job_cancel_command(args)
+    if job_command == "retry":
+        return _job_retry_command(args)
+    if job_command == "abandon":
+        return _job_abandon_command(args)
     raise ValueError(f"unsupported job subcommand: {job_command}")
 
 
@@ -63,6 +67,37 @@ def _job_cancel_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def _job_retry_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        job = runtime_context.repositories.sessions.retry_background_job(
+            args.job_id,
+            requested_by=args.requested_by,
+            reason=args.reason,
+            retry_budget=args.retry_budget,
+        )
+    if args.json:
+        print_json_output(job.model_dump(mode="json"))
+    else:
+        print(f"Retry requested for {job.job_id}: {job.state.value}")
+    return 0
+
+
+def _job_abandon_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        job = runtime_context.repositories.sessions.abandon_background_job(
+            args.job_id,
+            abandoned_by=args.abandoned_by,
+            reason=args.reason,
+        )
+    if args.json:
+        print_json_output(job.model_dump(mode="json"))
+    else:
+        print(f"Abandoned {job.job_id}: {job.state.value}")
+    return 0
+
+
 def _optional_state(value: str | None) -> BackgroundJobState | None:
     if value is None:
         return None
@@ -97,6 +132,19 @@ def _print_job_detail(job: BackgroundJobRecord) -> None:
             job.failure_kind.value if job.failure_kind is not None else "unknown"
         )
         print(f"Failure: {failure_kind}: {job.failure_message}")
+        print(f"Retryable: {'yes' if job.retryable else 'no'}")
+    if job.failure_artifact_path is not None:
+        print(f"Failure artifact: {job.failure_artifact_path}")
+    if job.retry_requested_by is not None:
+        print(f"Retry requested by: {job.retry_requested_by}")
+    if job.retry_reason is not None:
+        print(f"Retry reason: {job.retry_reason}")
+    if job.retry_exhausted_reason is not None:
+        print(f"Retry exhausted: {job.retry_exhausted_reason}")
+    if job.abandoned_by is not None:
+        print(f"Abandoned by: {job.abandoned_by}")
+    if job.abandoned_reason is not None:
+        print(f"Abandon reason: {job.abandoned_reason}")
     print(f"Updated: {job.updated_at.isoformat()}")
 
 

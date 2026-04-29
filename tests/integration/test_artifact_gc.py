@@ -8,12 +8,17 @@ from pathlib import Path
 import pytest
 
 from glassbox.cli import main
+from glassbox.core import BackgroundJobFailed
+from glassbox.core import BackgroundJobFailureKind
 from glassbox.core import EventEnvelope
 from glassbox.core import SessionStarted
+from glassbox.core import new_background_job_id
 from glassbox.core import new_session_id
 from glassbox.core import new_tool_call_id
 from glassbox.core import new_turn_id
+from glassbox.store.artifact_retention import inspect_artifact_state
 from glassbox.store.repositories import FilesystemArtifactRepository
+from glassbox.store.repositories import SQLiteSessionRepository
 from glassbox.store.sqlite import append_event
 from glassbox.store.sqlite import initialize_database
 from glassbox.store.sqlite import open_database
@@ -207,6 +212,56 @@ def test_artifact_prune_json_reports_hashes_and_missing_references(
         stale_eval_path.relative_to(tmp_path).as_posix(),
     }
     assert all(candidate["content_sha256"] for candidate in payload["candidates"])
+
+
+def test_background_job_failure_artifacts_are_protected(tmp_path: Path) -> None:
+    session_id = new_session_id()
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    connection = open_database(db_path)
+    try:
+        initialize_database(connection)
+        append_event(
+            connection,
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=SessionStarted(
+                    cwd=str(tmp_path),
+                    model_name="openai:gpt-5.4",
+                    approval_mode="confirm",
+                ),
+            ),
+        )
+        artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+        failure_artifact = artifact_repository.write_text_artifact(
+            session_id,
+            "traceback\n",
+            suffix="background-job-failure.txt",
+        )
+        append_event(
+            connection,
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=BackgroundJobFailed(
+                    job_id=new_background_job_id(),
+                    failure_kind=BackgroundJobFailureKind.TOOL_ERROR,
+                    message="tool exited",
+                    retryable=True,
+                    attempt=1,
+                    artifact_id=failure_artifact.artifact_id,
+                    artifact_path=failure_artifact.relative_path.as_posix(),
+                ),
+            ),
+        )
+        report = inspect_artifact_state(tmp_path, SQLiteSessionRepository(connection))
+    finally:
+        connection.close()
+
+    assert [entry.relative_path for entry in report.protected] == [
+        failure_artifact.relative_path
+    ]
+    assert report.candidates == []
 
 
 def _seed_artifact_gc_workspace(tmp_path: Path) -> tuple[Path, Path, Path, Path, Path]:

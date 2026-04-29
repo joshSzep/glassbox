@@ -11,6 +11,7 @@ from glassbox.core import ApprovalDecision
 from glassbox.core import ApprovalRequested
 from glassbox.core import ApprovalResolved
 from glassbox.core import AssistantMessageCompleted
+from glassbox.core import BackgroundJobAbandoned
 from glassbox.core import BackgroundJobCancellationRequested
 from glassbox.core import BackgroundJobCancelled
 from glassbox.core import BackgroundJobClaimed
@@ -24,6 +25,8 @@ from glassbox.core import BackgroundJobPaused
 from glassbox.core import BackgroundJobProgressRecorded
 from glassbox.core import BackgroundJobRecoveryReason
 from glassbox.core import BackgroundJobRecoveryRecorded
+from glassbox.core import BackgroundJobRetryExhausted
+from glassbox.core import BackgroundJobRetryRequested
 from glassbox.core import BackgroundJobStarted
 from glassbox.core import BackgroundJobState
 from glassbox.core import CancellationAcknowledged
@@ -314,6 +317,7 @@ def test_background_job_payloads_round_trip_through_event_union() -> None:
             "message": "database locked",
             "retryable": True,
             "attempt": 1,
+            "artifact_path": ".glassbox/sessions/session/artifacts/failure.log",
         }
     )
     cancellation_requested = adapter.validate_python(
@@ -340,6 +344,30 @@ def test_background_job_payloads_round_trip_through_event_union() -> None:
             "detail": "worker process exited",
         }
     )
+    retry_requested = adapter.validate_python(
+        {
+            "event_type": "BackgroundJobRetryRequested",
+            "job_id": job_id,
+            "requested_by": "operator",
+            "reason": "transient provider outage",
+        }
+    )
+    retry_exhausted = adapter.validate_python(
+        {
+            "event_type": "BackgroundJobRetryExhausted",
+            "job_id": job_id,
+            "retry_budget": 3,
+            "reason": "retry budget exhausted",
+        }
+    )
+    abandoned = adapter.validate_python(
+        {
+            "event_type": "BackgroundJobAbandoned",
+            "job_id": job_id,
+            "abandoned_by": "operator",
+            "reason": "superseded",
+        }
+    )
 
     assert isinstance(created, BackgroundJobCreated)
     assert created.kind == BackgroundJobKind.READ_ONLY_MAINTENANCE
@@ -352,10 +380,14 @@ def test_background_job_payloads_round_trip_through_event_union() -> None:
     assert isinstance(completed, BackgroundJobCompleted)
     assert isinstance(failed, BackgroundJobFailed)
     assert failed.failure_kind == BackgroundJobFailureKind.STORAGE_ERROR
+    assert failed.artifact_path == ".glassbox/sessions/session/artifacts/failure.log"
     assert isinstance(cancellation_requested, BackgroundJobCancellationRequested)
     assert isinstance(cancelled, BackgroundJobCancelled)
     assert isinstance(recovery, BackgroundJobRecoveryRecorded)
     assert recovery.reason == BackgroundJobRecoveryReason.STALE_CLAIM
+    assert isinstance(retry_requested, BackgroundJobRetryRequested)
+    assert isinstance(retry_exhausted, BackgroundJobRetryExhausted)
+    assert isinstance(abandoned, BackgroundJobAbandoned)
 
 
 def test_background_job_envelope_exposes_job_id() -> None:

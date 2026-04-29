@@ -1508,6 +1508,21 @@ export interface components {
     };
     /** WorkspaceRuntimeSummaryResponse */
     WorkspaceRuntimeSummaryResponse: {
+      /**
+       * Background Job Abandoned Count
+       * @default 0
+       */
+      background_job_abandoned_count: number;
+      /**
+       * Background Job Failed Count
+       * @default 0
+       */
+      background_job_failed_count: number;
+      /**
+       * Background Job Retryable Count
+       * @default 0
+       */
+      background_job_retryable_count: number;
       /** Dashboard Url */
       dashboard_url: string | null;
       /** Health */

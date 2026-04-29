@@ -3148,6 +3148,21 @@
       },
       "WorkspaceRuntimeSummaryResponse": {
         "properties": {
+          "background_job_abandoned_count": {
+            "default": 0,
+            "title": "Background Job Abandoned Count",
+            "type": "integer"
+          },
+          "background_job_failed_count": {
+            "default": 0,
+            "title": "Background Job Failed Count",
+            "type": "integer"
+          },
+          "background_job_retryable_count": {
+            "default": 0,
+            "title": "Background Job Retryable Count",
+            "type": "integer"
+          },
           "dashboard_url": {
             "anyOf": [
               {

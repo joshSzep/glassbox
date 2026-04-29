@@ -64,6 +64,9 @@ def test_observability_status_json_reports_health_lag_and_verification(
     assert payload["background_jobs"]["pending_count"] == 0
     assert payload["background_jobs"]["running_count"] == 0
     assert payload["background_jobs"]["stale_count"] == 0
+    assert payload["background_jobs"]["failed_count"] == 0
+    assert payload["background_jobs"]["retryable_count"] == 0
+    assert payload["background_jobs"]["abandoned_count"] == 0
     assert payload["artifacts"]["glassbox_size_bytes"] > 0
     assert payload["artifacts"]["protected_count"] >= 0
     assert payload["artifacts"]["candidate_count"] >= 0
@@ -100,6 +103,7 @@ def test_observability_status_text_reports_next_actions(
     assert "Reconnect hint:" in captured.out
     assert "Projections:" in captured.out
     assert "Background jobs:" in captured.out
+    assert "0 failed, 0 retryable, 0 abandoned" in captured.out
     assert "Artifacts:" in captured.out
     assert "Verification: not run" in captured.out
     assert "glassbox eval run" in captured.out

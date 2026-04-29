@@ -5,6 +5,7 @@ import sqlite3
 from datetime import UTC
 from datetime import datetime
 
+from glassbox.core.events import BackgroundJobAbandoned
 from glassbox.core.events import BackgroundJobCancellationRequested
 from glassbox.core.events import BackgroundJobCancelled
 from glassbox.core.events import BackgroundJobClaimed
@@ -13,6 +14,8 @@ from glassbox.core.events import BackgroundJobCreated
 from glassbox.core.events import BackgroundJobFailed
 from glassbox.core.events import BackgroundJobHeartbeat
 from glassbox.core.events import BackgroundJobProgressRecorded
+from glassbox.core.events import BackgroundJobRetryExhausted
+from glassbox.core.events import BackgroundJobRetryRequested
 from glassbox.core.events import BackgroundJobStarted
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import BackgroundJobId
@@ -26,6 +29,7 @@ from glassbox.core.types import BackgroundJobState
 from glassbox.store.sqlite_events import append_event
 
 _TERMINAL_STATES = {
+    BackgroundJobState.ABANDONED,
     BackgroundJobState.COMPLETED,
     BackgroundJobState.CANCELLED,
 }
@@ -204,6 +208,7 @@ def fail_background_job(
     message: str,
     retryable: bool = False,
     next_retry_at: datetime | None = None,
+    attempt: int | None = None,
 ) -> BackgroundJobRecord:
     record = _require_background_job(connection, job_id)
     append_event(
@@ -216,7 +221,7 @@ def fail_background_job(
                 failure_kind=failure_kind,
                 message=message,
                 retryable=retryable,
-                attempt=max(record.attempt, 1),
+                attempt=attempt if attempt is not None else max(record.attempt, 1),
                 next_retry_at=next_retry_at,
             ),
         ),
@@ -272,6 +277,73 @@ def cancel_background_job(
             payload=BackgroundJobCancelled(
                 job_id=job_id,
                 cancelled_by=cancelled_by,
+                reason=reason,
+            ),
+        ),
+    )
+    return _require_background_job(connection, job_id)
+
+
+def retry_background_job(
+    connection: sqlite3.Connection,
+    job_id: BackgroundJobId,
+    *,
+    requested_by: str = "operator",
+    reason: str | None = None,
+    retry_budget: int = 3,
+) -> BackgroundJobRecord:
+    record = _require_background_job(connection, job_id)
+    if record.state not in {BackgroundJobState.FAILED, BackgroundJobState.STALE}:
+        raise ValueError(f"cannot retry {record.state.value} background job {job_id}")
+    if record.attempt >= retry_budget:
+        append_event(
+            connection,
+            EventEnvelope(
+                session_id=record.session_id,
+                sequence=0,
+                payload=BackgroundJobRetryExhausted(
+                    job_id=job_id,
+                    retry_budget=retry_budget,
+                    reason=(
+                        f"retry budget exhausted after {record.attempt} attempt(s)"
+                    ),
+                ),
+            ),
+        )
+        return _require_background_job(connection, job_id)
+    append_event(
+        connection,
+        EventEnvelope(
+            session_id=record.session_id,
+            sequence=0,
+            payload=BackgroundJobRetryRequested(
+                job_id=job_id,
+                requested_by=requested_by,
+                reason=reason,
+            ),
+        ),
+    )
+    return _require_background_job(connection, job_id)
+
+
+def abandon_background_job(
+    connection: sqlite3.Connection,
+    job_id: BackgroundJobId,
+    *,
+    abandoned_by: str = "operator",
+    reason: str,
+) -> BackgroundJobRecord:
+    record = _require_background_job(connection, job_id)
+    if record.state in _TERMINAL_STATES:
+        return record
+    append_event(
+        connection,
+        EventEnvelope(
+            session_id=record.session_id,
+            sequence=0,
+            payload=BackgroundJobAbandoned(
+                job_id=job_id,
+                abandoned_by=abandoned_by,
                 reason=reason,
             ),
         ),
@@ -393,6 +465,8 @@ def _record_from_row(row: sqlite3.Row) -> BackgroundJobRecord:
             else BackgroundJobFailureKind(row["failure_kind"])
         ),
         failure_message=row["failure_message"],
+        failure_artifact_id=_optional_uuid(row["failure_artifact_id"]),
+        failure_artifact_path=row["failure_artifact_path"],
         retryable=bool(row["retryable"]),
         next_retry_at=_optional_datetime(row["next_retry_at"]),
         cancellation_requested_by=row["cancellation_requested_by"],
@@ -400,6 +474,12 @@ def _record_from_row(row: sqlite3.Row) -> BackgroundJobRecord:
         cancelled_by=row["cancelled_by"],
         recovery_reason=row["recovery_reason"],
         recovery_detail=row["recovery_detail"],
+        retry_requested_by=row["retry_requested_by"],
+        retry_reason=row["retry_reason"],
+        retry_exhausted_reason=row["retry_exhausted_reason"],
+        retry_budget=row["retry_budget"],
+        abandoned_by=row["abandoned_by"],
+        abandoned_reason=row["abandoned_reason"],
         created_at=datetime.fromisoformat(row["created_at"]),
         updated_at=datetime.fromisoformat(row["updated_at"]),
         started_at=_optional_datetime(row["started_at"]),
@@ -428,6 +508,7 @@ def _uuid(value: str):
 
 __all__ = [
     "cancel_background_job",
+    "abandon_background_job",
     "claim_background_job",
     "complete_background_job",
     "count_background_jobs_by_state",
@@ -439,5 +520,6 @@ __all__ = [
     "list_background_jobs",
     "record_background_job_progress",
     "request_background_job_cancellation",
+    "retry_background_job",
     "start_background_job",
 ]

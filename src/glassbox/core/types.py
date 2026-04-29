@@ -161,6 +161,7 @@ class BackgroundJobState(StrEnum):
     CANCELLATION_REQUESTED = "cancellation_requested"
     CANCELLED = "cancelled"
     STALE = "stale"
+    ABANDONED = "abandoned"
 
 
 class BackgroundJobRecoveryReason(StrEnum):
