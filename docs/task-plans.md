@@ -37,6 +37,19 @@ uv run glassbox task events TASK_ID --cwd .
 
 Use `--json` on these commands for scriptable output. These commands inspect projected task state and canonical task events; they do not approve, resume, continue, or mutate task execution.
 
+## HTTP Inspection
+
+The dashboard reads the same task-query layer through typed HTTP routes:
+
+```bash
+GET /tasks?session_id=SESSION_ID&cursor=0&limit=100
+GET /tasks/TASK_ID
+GET /tasks/TASK_ID/steps?cursor=0&limit=100
+GET /tasks/TASK_ID/events?cursor=0&limit=100
+```
+
+Scoped task list pages and task detail pages include projection health so stale or degraded projections remain visible to operators. These routes are read-only and intentionally do not expose continuation, approval, resume, or cancellation controls.
+
 ## Relationship To Existing Objects
 
 Task plans differ from existing runtime objects in these ways:

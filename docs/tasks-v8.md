@@ -401,9 +401,10 @@ The intended v8 milestone order is:
 
 ### GBX-823: Add Task HTTP APIs And Generated Frontend Types
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-822`
 - Goal: expose durable task state through typed web APIs without making the dashboard derive task meaning from raw event streams
+- Evidence: [task-plans.md](./task-plans.md)
 - Deliverables:
   - backend routes for task list, task detail, task step list, and task event-log reads
   - response models that wrap runtime query models without duplicating business logic in route handlers

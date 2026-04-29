@@ -10,6 +10,10 @@ export type SessionToolCallPageResponse = components["schemas"]["SessionToolCall
 export type SessionTurnMetricsPageResponse =
   components["schemas"]["SessionTurnMetricsPageResponse"];
 export type SessionArtifactPageResponse = components["schemas"]["SessionArtifactPageResponse"];
+export type TaskListPageResponse = components["schemas"]["TaskListPageResponse"];
+export type TaskDetailResponse = components["schemas"]["TaskDetailResponse"];
+export type TaskStepPageResponse = components["schemas"]["TaskStepPageResponse"];
+export type TaskEventPageResponse = components["schemas"]["TaskEventPageResponse"];
 export type ActionAcceptedResponse = components["schemas"]["ActionAcceptedResponse"];
 export type ForkSessionResponse = components["schemas"]["ForkSessionResponse"];
 export type ApprovalDecision = components["schemas"]["ApprovalDecision"];
@@ -34,6 +38,13 @@ export type SessionTurnMetricsPageQuery = NonNullable<
 >;
 export type SessionArtifactPageQuery = NonNullable<
   paths["/sessions/{session_id}/artifacts"]["get"]["parameters"]["query"]
+>;
+export type TaskListPageQuery = NonNullable<paths["/tasks"]["get"]["parameters"]["query"]>;
+export type TaskStepPageQuery = NonNullable<
+  paths["/tasks/{task_id}/steps"]["get"]["parameters"]["query"]
+>;
+export type TaskEventPageQuery = NonNullable<
+  paths["/tasks/{task_id}/events"]["get"]["parameters"]["query"]
 >;
 
 export type ApiErrorKind =
@@ -190,6 +201,36 @@ export function createGlassboxApiClient(options: GlassboxApiClientOptions = {}) 
         `/sessions/${encodeURIComponent(sessionId)}/artifacts`,
         { ...requestOptions, query },
       ),
+
+    getTaskPage: (query: TaskListPageQuery = {}, requestOptions?: RequestOptions) =>
+      requestJson<TaskListPageResponse>("GET", "/tasks", { ...requestOptions, query }),
+
+    getTaskDetail: (taskId: string, requestOptions?: RequestOptions) =>
+      requestJson<TaskDetailResponse>(
+        "GET",
+        `/tasks/${encodeURIComponent(taskId)}`,
+        requestOptions,
+      ),
+
+    getTaskStepPage: (
+      taskId: string,
+      query: TaskStepPageQuery = {},
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<TaskStepPageResponse>("GET", `/tasks/${encodeURIComponent(taskId)}/steps`, {
+        ...requestOptions,
+        query,
+      }),
+
+    getTaskEventPage: (
+      taskId: string,
+      query: TaskEventPageQuery = {},
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<TaskEventPageResponse>("GET", `/tasks/${encodeURIComponent(taskId)}/events`, {
+        ...requestOptions,
+        query,
+      }),
 
     resolveApproval: (
       input: { sessionId: string; approvalId: string; decision: ApprovalDecision },

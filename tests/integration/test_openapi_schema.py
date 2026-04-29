@@ -26,6 +26,10 @@ def test_openapi_schema_includes_browser_transport_contracts() -> None:
     assert "/sessions/{session_id}/questions/{question_id}" in paths
     assert "/sessions/{session_id}/approvals/{approval_id}" in paths
     assert "/sessions/{session_id}/fork" in paths
+    assert "/tasks" in paths
+    assert "/tasks/{task_id}" in paths
+    assert "/tasks/{task_id}/steps" in paths
+    assert "/tasks/{task_id}/events" in paths
 
     assert "HealthResponse" in components
     assert "SessionAggregateResponse" in components
@@ -36,6 +40,10 @@ def test_openapi_schema_includes_browser_transport_contracts() -> None:
     assert "SubmitSessionAnswerRequest" in components
     assert "ForkSessionRequest" in components
     assert "ForkSessionResponse" in components
+    assert "TaskListPageResponse" in components
+    assert "TaskDetailResponse" in components
+    assert "TaskStepPageResponse" in components
+    assert "TaskEventPageResponse" in components
     assert "ErrorDetailResponse" in components
     assert "HTTPValidationError" in components
 

@@ -22,6 +22,17 @@ function deferred<T>() {
 }
 
 function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxApiClient {
+  const projectionHealth = {
+    canonical_last_sequence: 0,
+    degraded: false,
+    detail: null,
+    estimated_rebuild_event_count: 0,
+    lag: 0,
+    projected_last_sequence: null,
+    projected_progress_ratio: 1,
+    state: "ok",
+  };
+
   return {
     forkSession: async () => ({
       branch_label: null,
@@ -75,6 +86,39 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
       items: makeSessionSnapshot(sessionId).turn_metrics,
       page: { cursor: 0, has_more: false, limit: 100, next_cursor: null, returned_count: 0 },
       session_id: sessionId,
+    }),
+    getTaskDetail: async (taskId) => ({
+      projection_health: projectionHealth,
+      steps: [],
+      task: {
+        goal: "Inspect task state",
+        next_action_summary: "inspect task",
+        session_id: "session-1",
+        status: "proposed",
+        step_count: 0,
+        task_id: taskId,
+        title: "Task",
+        updated_at: "2025-01-01T00:00:00Z",
+      },
+      verifications: [],
+    }),
+    getTaskEventPage: async (taskId) => ({
+      items: [],
+      page: { cursor: 0, has_more: false, limit: 100, next_cursor: null, returned_count: 0 },
+      projection_health: projectionHealth,
+      task_id: taskId,
+    }),
+    getTaskPage: async () => ({
+      items: [],
+      page: { cursor: 0, has_more: false, limit: 100, next_cursor: null, returned_count: 0 },
+      projection_health: null,
+      session_id: null,
+    }),
+    getTaskStepPage: async (taskId) => ({
+      items: [],
+      page: { cursor: 0, has_more: false, limit: 100, next_cursor: null, returned_count: 0 },
+      projection_health: projectionHealth,
+      task_id: taskId,
     }),
     listSessions: async () => [],
     cancelTurn: async () => ({ status: "ok" }),

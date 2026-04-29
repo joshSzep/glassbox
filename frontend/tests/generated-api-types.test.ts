@@ -8,15 +8,18 @@ describe("generated OpenAPI types", () => {
       paths["/sessions/{session_id}/approvals/{approval_id}"]["post"]["responses"][200]["content"]["application/json"];
     type SnapshotResponse =
       paths["/sessions/{session_id}"]["get"]["responses"][200]["content"]["application/json"];
+    type TaskPageResponse = paths["/tasks"]["get"]["responses"][200]["content"]["application/json"];
 
     const approvalBody: components["schemas"]["ResolveApprovalRequest"] = {
       decision: "approved",
     };
     const accepted: ApprovalResponse = { status: "ok" };
     const snapshotId: keyof SnapshotResponse = "session_id";
+    const taskPageKey: keyof TaskPageResponse = "items";
 
     expect(approvalBody.decision).toBe("approved");
     expect(accepted.status).toBe("ok");
     expect(snapshotId).toBe("session_id");
+    expect(taskPageKey).toBe("items");
   });
 });

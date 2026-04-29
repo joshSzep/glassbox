@@ -167,6 +167,48 @@ describe("createGlassboxApiClient", () => {
     ]);
   });
 
+  it("shapes task read requests", async () => {
+    const { calls, fetch } = createMockFetch([
+      jsonResponse({
+        items: [],
+        page: { cursor: 0, has_more: false, limit: 20, next_cursor: null, returned_count: 0 },
+        projection_health: null,
+        session_id: "session/1",
+      }),
+      jsonResponse({
+        projection_health: { state: "ok" },
+        steps: [],
+        task: { task_id: "task/1" },
+        verifications: [],
+      }),
+      jsonResponse({
+        items: [],
+        page: { cursor: 0, has_more: false, limit: 1, next_cursor: null, returned_count: 0 },
+        projection_health: { state: "ok" },
+        task_id: "task/1",
+      }),
+      jsonResponse({
+        items: [],
+        page: { cursor: 2, has_more: false, limit: 2, next_cursor: null, returned_count: 0 },
+        projection_health: { state: "ok" },
+        task_id: "task/1",
+      }),
+    ]);
+    const client = createGlassboxApiClient({ fetch });
+
+    await client.getTaskPage({ limit: 20, session_id: "session/1" });
+    await client.getTaskDetail("task/1");
+    await client.getTaskStepPage("task/1", { limit: 1 });
+    await client.getTaskEventPage("task/1", { cursor: 2, limit: 2 });
+
+    expect(calls.map((call) => call.input)).toEqual([
+      "/tasks?limit=20&session_id=session%2F1",
+      "/tasks/task%2F1",
+      "/tasks/task%2F1/steps?limit=1",
+      "/tasks/task%2F1/events?cursor=2&limit=2",
+    ]);
+  });
+
   it("normalizes FastAPI validation errors", async () => {
     const { fetch } = createMockFetch([
       jsonResponse(

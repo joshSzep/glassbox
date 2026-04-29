@@ -316,6 +316,86 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/tasks": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Task Page
+     * @description Return a bounded page of durable task summaries.
+     */
+    get: operations["list_task_page_tasks_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/tasks/{task_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Task Detail
+     * @description Return projected task detail by task ID.
+     */
+    get: operations["get_task_detail_tasks__task_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/tasks/{task_id}/events": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Task Event Page
+     * @description Return canonical task-plan events after the sequence cursor.
+     */
+    get: operations["get_task_event_page_tasks__task_id__events_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/tasks/{task_id}/steps": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Task Step Page
+     * @description Return a bounded page of projected task steps.
+     */
+    get: operations["get_task_step_page_tasks__task_id__steps_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1025,6 +1105,122 @@ export interface components {
     SubmitSessionMessageRequest: {
       /** Text */
       text: string;
+    };
+    /** TaskDetailResponse */
+    TaskDetailResponse: {
+      projection_health: components["schemas"]["ProjectionHealthResponse"];
+      /** Steps */
+      steps: components["schemas"]["TaskStepResponse"][];
+      task: components["schemas"]["TaskSummaryResponse"];
+      /** Verifications */
+      verifications: components["schemas"]["TaskVerificationResponse"][];
+    };
+    /** TaskEventPageResponse */
+    TaskEventPageResponse: {
+      /** Items */
+      items: components["schemas"]["TaskEventResponse"][];
+      page: components["schemas"]["PageInfoResponse"];
+      projection_health: components["schemas"]["ProjectionHealthResponse"];
+      /** Task Id */
+      task_id: string;
+    };
+    /** TaskEventResponse */
+    TaskEventResponse: {
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Event Id */
+      event_id: string;
+      /** Event Type */
+      event_type: string;
+      /** Payload */
+      payload: {
+        [key: string]: unknown;
+      };
+      /** Sequence */
+      sequence: number;
+      /** Session Id */
+      session_id: string;
+      /** Task Id */
+      task_id: string;
+      /** Turn Id */
+      turn_id?: string | null;
+    };
+    /** TaskListPageResponse */
+    TaskListPageResponse: {
+      /** Items */
+      items: components["schemas"]["TaskSummaryResponse"][];
+      page: components["schemas"]["PageInfoResponse"];
+      projection_health?: components["schemas"]["ProjectionHealthResponse"] | null;
+      /** Session Id */
+      session_id: string | null;
+    };
+    /** TaskStepPageResponse */
+    TaskStepPageResponse: {
+      /** Items */
+      items: components["schemas"]["TaskStepResponse"][];
+      page: components["schemas"]["PageInfoResponse"];
+      projection_health: components["schemas"]["ProjectionHealthResponse"];
+      /** Task Id */
+      task_id: string;
+    };
+    /** TaskStepResponse */
+    TaskStepResponse: {
+      /** Blocked Reason */
+      blocked_reason?: string | null;
+      /** Description */
+      description?: string | null;
+      /** Order */
+      order: number;
+      /** Status */
+      status: string;
+      /** Step Id */
+      step_id: string;
+      /** Title */
+      title: string;
+    };
+    /** TaskSummaryResponse */
+    TaskSummaryResponse: {
+      /** Blocked Detail */
+      blocked_detail?: string | null;
+      /** Blocked Reason */
+      blocked_reason?: string | null;
+      /** Current Step Id */
+      current_step_id?: string | null;
+      /** Goal */
+      goal: string;
+      /** Next Action Summary */
+      next_action_summary: string;
+      /** Session Id */
+      session_id: string;
+      /** Status */
+      status: string;
+      /** Step Count */
+      step_count: number;
+      /** Task Id */
+      task_id: string;
+      /** Title */
+      title: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /** TaskVerificationResponse */
+    TaskVerificationResponse: {
+      /** Check Name */
+      check_name: string;
+      /** Status */
+      status: string;
+      /** Step Id */
+      step_id?: string | null;
+      /** Summary */
+      summary?: string | null;
+      /** Verification Id */
+      verification_id: string;
     };
     /** Format: uuid */
     ToolCallId: string;
@@ -1792,6 +1988,165 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["SessionTurnMetricsPageResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_task_page_tasks_get: {
+    parameters: {
+      query?: {
+        session_id?: string | null;
+        cursor?: number;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaskListPageResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_task_detail_tasks__task_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaskDetailResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_task_event_page_tasks__task_id__events_get: {
+    parameters: {
+      query?: {
+        cursor?: number;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaskEventPageResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_task_step_page_tasks__task_id__steps_get: {
+    parameters: {
+      query?: {
+        cursor?: number;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaskStepPageResponse"];
         };
       };
       /** @description Not Found */
