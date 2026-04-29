@@ -1428,7 +1428,7 @@ The intended v8 milestone order is:
 
 ### GBX-881: Add Task Queue And Plan Inspector To Dashboard
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-880`, `GBX-823`
 - Goal: let operators inspect task plans, steps, statuses, blockers, and related session events from the dashboard
 - Deliverables:

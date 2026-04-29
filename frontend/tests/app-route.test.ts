@@ -23,7 +23,10 @@ describe("app route parsing", () => {
       compareSessionId: null,
       queue: "approvals",
       selectedSessionId: "session-1",
+      selectedTaskId: null,
+      surface: "sessions",
       tab: "overview",
+      taskQueue: "active",
     });
   });
 
@@ -32,7 +35,10 @@ describe("app route parsing", () => {
       compareSessionId: "parent-1",
       queue: "all",
       selectedSessionId: "session/1",
+      selectedTaskId: null,
+      surface: "sessions",
       tab: "evidence",
+      taskQueue: "active",
     });
   });
 
@@ -41,9 +47,25 @@ describe("app route parsing", () => {
       compareSessionId: null,
       queue: "questions",
       selectedSessionId: null,
+      selectedTaskId: null,
+      surface: "sessions",
       tab: "overview",
+      taskQueue: "active",
     });
     expect(parseAppRoute("/app/queues/not-real")).toEqual(createDefaultAppRoute());
+  });
+
+  it("parses task queue and selected task links", () => {
+    expect(parseAppRoute("/app/tasks?taskQueue=blocked")).toMatchObject({
+      selectedTaskId: null,
+      surface: "tasks",
+      taskQueue: "blocked",
+    });
+    expect(parseAppRoute("/app/tasks/task%2F1?taskQueue=failed")).toMatchObject({
+      selectedTaskId: "task/1",
+      surface: "tasks",
+      taskQueue: "failed",
+    });
   });
 });
 
@@ -53,7 +75,10 @@ describe("app route building", () => {
       compareSessionId: null,
       queue: "failures",
       selectedSessionId: "session-1",
+      selectedTaskId: null,
+      surface: "sessions",
       tab: "timeline",
+      taskQueue: "active",
     };
 
     expect(buildAppRoute(route)).toBe("/app/sessions/session-1?queue=failures&tab=timeline");
@@ -65,7 +90,10 @@ describe("app route building", () => {
       compareSessionId: "child-1",
       queue: "all",
       selectedSessionId: "session/1",
+      selectedTaskId: null,
+      surface: "sessions",
       tab: "compare",
+      taskQueue: "active",
     };
 
     expect(buildAppRoute(route, { basePath: "/" })).toBe(
@@ -85,6 +113,17 @@ describe("app route building", () => {
         tab: "overview",
       }),
     ).toBe("/app/queues/approvals");
+    expect(
+      buildAppRoute({
+        compareSessionId: null,
+        queue: "all",
+        selectedSessionId: null,
+        selectedTaskId: "task/1",
+        surface: "tasks",
+        tab: "overview",
+        taskQueue: "blocked",
+      }),
+    ).toBe("/app/tasks/task%2F1?taskQueue=blocked");
   });
 });
 
@@ -118,7 +157,10 @@ describe("app navigation helpers", () => {
       compareSessionId: null,
       queue: "degraded",
       selectedSessionId: null,
+      selectedTaskId: null,
+      surface: "sessions",
       tab: "overview",
+      taskQueue: "active",
     });
     expect(buildAppRoute(recoverInvalidSessionRoute(route))).toBe("/app/queues/degraded");
   });

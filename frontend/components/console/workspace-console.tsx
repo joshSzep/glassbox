@@ -5,6 +5,7 @@ import { useStore } from "zustand";
 
 import { createGlassboxApiClient } from "@/api/client";
 import { SessionInspector } from "@/components/console/session-inspector";
+import { TaskAutonomyConsole } from "@/components/console/task-autonomy-console";
 import { WorkspaceOverview } from "@/components/console/workspace-overview";
 import {
   buildAppRoute,
@@ -13,19 +14,23 @@ import {
   parseAppRoute,
   selectQueueRoute,
   selectSessionRoute,
+  selectTaskQueueRoute,
+  selectTaskRoute,
   setCompareRoute,
   setInspectorTabRoute,
   type AppQueue,
   type AppRouteState,
 } from "@/routing/app-route";
-import { createConsoleStore, createSessionStore } from "@/stores/dashboard-stores";
+import { createConsoleStore, createSessionStore, createTaskStore } from "@/stores/dashboard-stores";
 
 export function WorkspaceConsole() {
   const apiClient = useMemo(() => createGlassboxApiClient(), []);
   const consoleStore = useMemo(() => createConsoleStore(apiClient), [apiClient]);
   const sessionStore = useMemo(() => createSessionStore({ apiClient }), [apiClient]);
+  const taskStore = useMemo(() => createTaskStore(apiClient), [apiClient]);
   const consoleState = useStore(consoleStore);
   const sessionState = useStore(sessionStore);
+  const taskState = useStore(taskStore);
   const [route, setRoute] = useState<AppRouteState>(createDefaultAppRoute);
 
   useEffect(() => {
@@ -33,7 +38,16 @@ export function WorkspaceConsole() {
       const nextRoute = parseAppRoute(window.location.href);
       setRoute(nextRoute);
       void consoleStore.getState().loadAggregate({ queue: nextRoute.queue });
-      if (nextRoute.selectedSessionId !== null) {
+      if (nextRoute.surface === "tasks") {
+        sessionStore.getState().resetForRoute(null);
+        void (async () => {
+          await taskStore.getState().loadTaskPage({ queue: nextRoute.taskQueue });
+          if (nextRoute.selectedTaskId !== null) {
+            await taskStore.getState().selectTask(nextRoute.selectedTaskId);
+          }
+        })();
+      } else if (nextRoute.selectedSessionId !== null) {
+        taskStore.getState().reset();
         void (async () => {
           await sessionStore.getState().loadSession(nextRoute.selectedSessionId as string);
           if (nextRoute.compareSessionId !== null) {
@@ -41,6 +55,7 @@ export function WorkspaceConsole() {
           }
         })();
       } else {
+        taskStore.getState().reset();
         sessionStore.getState().resetForRoute(null);
       }
     };
@@ -48,7 +63,7 @@ export function WorkspaceConsole() {
     syncFromLocation();
     window.addEventListener("popstate", syncFromLocation);
     return () => window.removeEventListener("popstate", syncFromLocation);
-  }, [consoleStore, sessionStore]);
+  }, [consoleStore, sessionStore, taskStore]);
 
   const navigate = (nextRoute: AppRouteState) => {
     setRoute(nextRoute);
@@ -71,6 +86,37 @@ export function WorkspaceConsole() {
     sessionStore.getState().connectStream();
     return () => sessionStore.getState().disconnectStream();
   }, [sessionState.data.sessionId, sessionState.loadState, sessionStore]);
+
+  if (route.surface === "tasks") {
+    return (
+      <TaskAutonomyConsole
+        detail={taskState.detail}
+        onLoadMoreEvents={() => {
+          void taskStore.getState().loadMoreTaskEvents();
+        }}
+        onRefresh={() => {
+          void taskStore.getState().applyTaskUpdate();
+        }}
+        onSelectQueue={(queue) => {
+          const nextRoute = selectTaskQueueRoute(parseAppRoute(window.location.href), queue);
+          navigate(nextRoute);
+          void taskStore.getState().setQueueFilter(queue);
+        }}
+        onSelectSession={(sessionId) => {
+          const nextRoute = selectSessionRoute(route, sessionId);
+          navigate(nextRoute);
+          taskStore.getState().reset();
+          void sessionStore.getState().loadSession(sessionId);
+        }}
+        onSelectTask={(taskId) => {
+          const nextRoute = selectTaskRoute(route, taskId);
+          navigate(nextRoute);
+          void taskStore.getState().selectTask(taskId);
+        }}
+        queue={taskState.queue}
+      />
+    );
+  }
 
   return (
     <WorkspaceOverview

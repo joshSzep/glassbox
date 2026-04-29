@@ -1,6 +1,7 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
 
 import type { GlassboxApiClient, SessionAggregateQuery } from "@/api/client";
+import type { TaskDetailResponse, TaskEventPageResponse, TaskListPageResponse } from "@/api/client";
 import {
   createSessionEventStream,
   type SessionEventStreamOptions,
@@ -16,6 +17,7 @@ import {
   hydrateSessionAggregate,
   type DashboardState,
 } from "@/state/session-state";
+import type { TaskQueueFilter } from "@/routing/app-route";
 
 export type LoadState = "failed" | "idle" | "loaded" | "loading";
 export type ActionKind = "answer" | "approval" | "cancel" | "fork" | "prompt";
@@ -57,6 +59,36 @@ export type ConsoleStoreState = {
   loadState: LoadState;
   reset: () => void;
   selectQueue: (queue: ConsoleFilters["queue"]) => Promise<void>;
+};
+
+export type TaskQueuePageState = {
+  error: string | null;
+  items: TaskListPageResponse["items"];
+  loadState: LoadState;
+  page: TaskListPageResponse["page"] | null;
+  projectionHealth: TaskListPageResponse["projection_health"];
+  queue: TaskQueueFilter;
+};
+
+export type TaskDetailState = {
+  detail: TaskDetailResponse | null;
+  error: string | null;
+  eventPage: TaskEventPageResponse["page"] | null;
+  events: TaskEventPageResponse["items"];
+  eventState: LoadState;
+  loadState: LoadState;
+  selectedTaskId: string | null;
+};
+
+export type TaskStoreState = {
+  applyTaskUpdate: (taskId?: string | null) => Promise<void>;
+  detail: TaskDetailState;
+  loadMoreTaskEvents: () => Promise<void>;
+  loadTaskPage: (query?: { queue?: TaskQueueFilter; sessionId?: string | null }) => Promise<void>;
+  queue: TaskQueuePageState;
+  reset: () => void;
+  selectTask: (taskId: string) => Promise<void>;
+  setQueueFilter: (queue: TaskQueueFilter) => Promise<void>;
 };
 
 export type SessionEventStreamHandle = ReturnType<typeof createSessionEventStream>;
@@ -140,6 +172,146 @@ export function createConsoleStore(apiClient: GlassboxApiClient): StoreApi<Conso
     },
     selectQueue: async (queue) => {
       await get().loadAggregate({ queue });
+    },
+  }));
+}
+
+export function createTaskStore(apiClient: GlassboxApiClient): StoreApi<TaskStoreState> {
+  let listRequestId = 0;
+  let detailRequestId = 0;
+
+  return createStore<TaskStoreState>((set, get) => ({
+    applyTaskUpdate: async (taskId = get().detail.selectedTaskId) => {
+      await get().loadTaskPage({ queue: get().queue.queue });
+      if (taskId !== null && taskId !== undefined) {
+        await get().selectTask(taskId);
+      }
+    },
+    detail: createIdleTaskDetailState(),
+    loadMoreTaskEvents: async () => {
+      const current = get().detail;
+      if (
+        current.selectedTaskId === null ||
+        current.eventPage === null ||
+        !current.eventPage.has_more ||
+        current.eventPage.next_cursor === null ||
+        current.eventState === "loading"
+      ) {
+        return;
+      }
+
+      set((state) => ({
+        detail: { ...state.detail, error: null, eventState: "loading" },
+      }));
+
+      try {
+        const page = await apiClient.getTaskEventPage(current.selectedTaskId, {
+          cursor: current.eventPage.next_cursor,
+          limit: TASK_EVENT_PAGE_SIZE,
+        });
+        set((state) => ({
+          detail: {
+            ...state.detail,
+            eventPage: page.page,
+            events: [...state.detail.events, ...page.items],
+            eventState: "loaded",
+          },
+        }));
+      } catch (error) {
+        set((state) => ({
+          detail: { ...state.detail, error: errorMessage(error), eventState: "failed" },
+        }));
+      }
+    },
+    loadTaskPage: async (query = {}) => {
+      const currentRequestId = ++listRequestId;
+      const queue = query.queue ?? get().queue.queue;
+      set((state) => ({
+        queue: { ...state.queue, error: null, loadState: "loading", queue },
+      }));
+
+      try {
+        const page = await apiClient.getTaskPage({
+          limit: TASK_QUEUE_PAGE_SIZE,
+          session_id: query.sessionId ?? undefined,
+        });
+        if (currentRequestId !== listRequestId) {
+          return;
+        }
+        set((state) => ({
+          queue: {
+            ...state.queue,
+            error: null,
+            items: page.items,
+            loadState: "loaded",
+            page: page.page,
+            projectionHealth: page.projection_health,
+            queue,
+          },
+        }));
+      } catch (error) {
+        if (currentRequestId !== listRequestId) {
+          return;
+        }
+        set((state) => ({
+          queue: { ...state.queue, error: errorMessage(error), loadState: "failed", queue },
+        }));
+      }
+    },
+    queue: createIdleTaskQueueState(),
+    reset: () => {
+      listRequestId += 1;
+      detailRequestId += 1;
+      set({
+        detail: createIdleTaskDetailState(),
+        queue: createIdleTaskQueueState(),
+      });
+    },
+    selectTask: async (taskId) => {
+      const currentRequestId = ++detailRequestId;
+      set({
+        detail: {
+          ...createIdleTaskDetailState(),
+          loadState: "loading",
+          selectedTaskId: taskId,
+        },
+      });
+
+      try {
+        const [detail, eventPage] = await Promise.all([
+          apiClient.getTaskDetail(taskId),
+          apiClient.getTaskEventPage(taskId, { limit: TASK_EVENT_PAGE_SIZE }),
+        ]);
+        if (currentRequestId !== detailRequestId) {
+          return;
+        }
+        set({
+          detail: {
+            detail,
+            error: null,
+            eventPage: eventPage.page,
+            events: eventPage.items,
+            eventState: "loaded",
+            loadState: "loaded",
+            selectedTaskId: taskId,
+          },
+        });
+      } catch (error) {
+        if (currentRequestId !== detailRequestId) {
+          return;
+        }
+        set({
+          detail: {
+            ...createIdleTaskDetailState(),
+            error: errorMessage(error),
+            loadState: "failed",
+            selectedTaskId: taskId,
+          },
+        });
+      }
+    },
+    setQueueFilter: async (queue) => {
+      await get().loadTaskPage({ queue });
     },
   }));
 }
@@ -439,6 +611,31 @@ function createIdleActionStatus(): ActionStatus {
 }
 
 const DETAIL_PAGE_SIZE = 80;
+const TASK_EVENT_PAGE_SIZE = 80;
+const TASK_QUEUE_PAGE_SIZE = 200;
+
+function createIdleTaskQueueState(): TaskQueuePageState {
+  return {
+    error: null,
+    items: [],
+    loadState: "idle",
+    page: null,
+    projectionHealth: null,
+    queue: "active",
+  };
+}
+
+function createIdleTaskDetailState(): TaskDetailState {
+  return {
+    detail: null,
+    error: null,
+    eventPage: null,
+    events: [],
+    eventState: "idle",
+    loadState: "idle",
+    selectedTaskId: null,
+  };
+}
 
 function createIdleDetailPageState(): DetailPageState {
   return {

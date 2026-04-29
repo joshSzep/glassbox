@@ -42,6 +42,26 @@ export function QueueNavigation({
         </Badge>
         <p className="mt-2 text-xs text-muted-foreground">{priority.description}</p>
       </section>
+      <a
+        className="mb-3 grid min-h-density-row rounded-md border border-border/70 bg-surface px-3 py-2 text-left transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        href={buildAppRoute({
+          compareSessionId: null,
+          queue: "all",
+          selectedSessionId: null,
+          selectedTaskId: null,
+          surface: "tasks",
+          tab: "overview",
+          taskQueue: "active",
+        })}
+      >
+        <span className="flex items-center justify-between gap-3 text-sm font-medium">
+          Tasks
+          <Badge variant="info">Autonomy</Badge>
+        </span>
+        <span className="mt-1 text-xs text-muted-foreground">
+          Inspect durable plans, blockers, verification, and task events.
+        </span>
+      </a>
       <div className="grid gap-1">
         {queueDescriptors.map((queue) => {
           const selected = selectedQueue === queue.queue;

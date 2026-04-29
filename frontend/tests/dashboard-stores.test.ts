@@ -3,13 +3,28 @@ import { describe, expect, it } from "vitest";
 import { GlassboxApiError, type GlassboxApiClient } from "../api/client";
 import type { SessionEventStreamOptions, SessionStreamState, SseEventEnvelope } from "../api/sse";
 import type { components } from "@/generated/api-types";
-import { createConsoleStore, createSessionStore } from "../stores/dashboard-stores";
+import {
+  createConsoleStore,
+  createSessionStore,
+  createTaskStore,
+} from "../stores/dashboard-stores";
 import {
   makeEnvelope,
   makeSessionAggregate,
   makeSessionSnapshot,
   makeSessionSummary,
 } from "./fixtures/session-state";
+
+const projectionHealth = {
+  canonical_last_sequence: 0,
+  degraded: false,
+  detail: null,
+  estimated_rebuild_event_count: 0,
+  lag: 0,
+  projected_last_sequence: null,
+  projected_progress_ratio: 1,
+  state: "ok",
+} as const;
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -22,17 +37,6 @@ function deferred<T>() {
 }
 
 function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxApiClient {
-  const projectionHealth = {
-    canonical_last_sequence: 0,
-    degraded: false,
-    detail: null,
-    estimated_rebuild_event_count: 0,
-    lag: 0,
-    projected_last_sequence: null,
-    projected_progress_ratio: 1,
-    state: "ok",
-  };
-
   return {
     forkSession: async () => ({
       branch_label: null,
@@ -205,6 +209,153 @@ describe("console store", () => {
 
     expect(store.getState().data.sessionIndex[0]?.session_id).toBe("fresh");
     expect(store.getState().data.selectedQueue).toBe("failures");
+  });
+});
+
+describe("task store", () => {
+  it("loads task pages and selected task details", async () => {
+    const calls: string[] = [];
+    const store = createTaskStore(
+      createApiClient({
+        getTaskDetail: async (taskId) => {
+          calls.push(`detail:${taskId}`);
+          return {
+            projection_health: projectionHealth,
+            steps: [
+              {
+                blocked_reason: null,
+                description: "Implement task queue",
+                order: 0,
+                status: "running",
+                step_id: "step-1",
+                title: "Build UI",
+              },
+            ],
+            task: makeTaskSummary(taskId),
+            verifications: [],
+          };
+        },
+        getTaskEventPage: async (taskId) => {
+          calls.push(`events:${taskId}`);
+          return {
+            items: [
+              {
+                created_at: timestamp(1),
+                event_id: "event-1",
+                event_type: "TaskPlanProposed",
+                payload: { summary: "Plan captured" },
+                sequence: 1,
+                session_id: "session-1",
+                task_id: taskId,
+                turn_id: null,
+              },
+            ],
+            page: { cursor: 0, has_more: false, limit: 80, next_cursor: null, returned_count: 1 },
+            projection_health: projectionHealth,
+            task_id: taskId,
+          };
+        },
+        getTaskPage: async () => {
+          calls.push("page");
+          return {
+            items: [makeTaskSummary("task-1")],
+            page: { cursor: 0, has_more: false, limit: 200, next_cursor: null, returned_count: 1 },
+            projection_health: null,
+            session_id: null,
+          };
+        },
+      }),
+    );
+
+    await store.getState().loadTaskPage({ queue: "active" });
+    await store.getState().selectTask("task-1");
+
+    expect(calls).toEqual(["page", "detail:task-1", "events:task-1"]);
+    expect(store.getState().queue.items).toHaveLength(1);
+    expect(store.getState().detail.detail?.steps[0]?.title).toBe("Build UI");
+    expect(store.getState().detail.events[0]?.event_type).toBe("TaskPlanProposed");
+  });
+
+  it("loads additional task events and applies task refresh updates", async () => {
+    const store = createTaskStore(
+      createApiClient({
+        getTaskDetail: async (taskId) => ({
+          projection_health: projectionHealth,
+          steps: [],
+          task: makeTaskSummary(taskId, { status: "active" }),
+          verifications: [],
+        }),
+        getTaskEventPage: async (taskId, query = {}) => {
+          const cursor = query.cursor ?? 0;
+          return {
+            items: [
+              {
+                created_at: timestamp(cursor),
+                event_id: `event-${cursor}`,
+                event_type: "TaskStatusChanged",
+                payload: { status: cursor === 0 ? "active" : "completed" },
+                sequence: cursor + 1,
+                session_id: "session-1",
+                task_id: taskId,
+                turn_id: null,
+              },
+            ],
+            page: {
+              cursor,
+              has_more: cursor === 0,
+              limit: query.limit ?? 80,
+              next_cursor: cursor === 0 ? 1 : null,
+              returned_count: 1,
+            },
+            projection_health: projectionHealth,
+            task_id: taskId,
+          };
+        },
+        getTaskPage: async () => ({
+          items: [makeTaskSummary("task-1")],
+          page: { cursor: 0, has_more: false, limit: 200, next_cursor: null, returned_count: 1 },
+          projection_health: null,
+          session_id: null,
+        }),
+      }),
+    );
+
+    await store.getState().selectTask("task-1");
+    expect(store.getState().detail.eventPage?.has_more).toBe(true);
+
+    await store.getState().loadMoreTaskEvents();
+    expect(store.getState().detail.events.map((event) => event.sequence)).toEqual([1, 2]);
+
+    await store.getState().applyTaskUpdate("task-1");
+    expect(store.getState().queue.loadState).toBe("loaded");
+    expect(store.getState().detail.selectedTaskId).toBe("task-1");
+  });
+
+  it("surfaces task page and detail failures", async () => {
+    const store = createTaskStore(
+      createApiClient({
+        getTaskDetail: async () => {
+          throw new GlassboxApiError({ kind: "not_found", message: "task missing" });
+        },
+        getTaskPage: async () => {
+          throw new GlassboxApiError({ kind: "network", message: "task API down" });
+        },
+      }),
+    );
+
+    await store.getState().loadTaskPage({ queue: "failed" });
+    expect(store.getState().queue).toMatchObject({
+      error: "task API down",
+      loadState: "failed",
+      queue: "failed",
+    });
+
+    await store.getState().selectTask("missing");
+    expect(store.getState().detail).toMatchObject({
+      error: "task missing",
+      loadState: "failed",
+      selectedTaskId: "missing",
+    });
   });
 });
 
@@ -528,8 +679,26 @@ describe("session store", () => {
 
 type EventLogEntry = components["schemas"]["EventLogEntryResponse"];
 type PageInfo = components["schemas"]["PageInfoResponse"];
+type TaskSummary = components["schemas"]["TaskSummaryResponse"];
 type TranscriptMessage = components["schemas"]["TranscriptMessageResponse"];
 type TurnMetrics = components["schemas"]["TurnMetricsResponse"];
+
+function makeTaskSummary(taskId: string, overrides: Partial<TaskSummary> = {}): TaskSummary {
+  return {
+    blocked_detail: null,
+    blocked_reason: null,
+    current_step_id: null,
+    goal: "Inspect autonomous work",
+    next_action_summary: "continue from current step",
+    session_id: "session-1",
+    status: "active",
+    step_count: 1,
+    task_id: taskId,
+    title: "Task",
+    updated_at: timestamp(0),
+    ...overrides,
+  };
+}
 
 function makeDetailPage<T>(
   sessionId: string,
