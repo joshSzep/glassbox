@@ -38,6 +38,7 @@ def test_build_targets_package_dashboard_static_assets() -> None:
     assert "src/glassbox" in hatch_config["wheel"]["packages"]
     assert "/evals" in hatch_config["sdist"]["include"]
     assert "/frontend/generated" in hatch_config["sdist"]["include"]
+    assert "/scripts" in hatch_config["sdist"]["include"]
 
 
 def test_distribution_content_validator_accepts_complete_wheel_and_sdist(
@@ -93,8 +94,12 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
         "sdist missing required file: docs/v8-auditable-autonomy-contract.md"
         in problems
     )
+    assert "sdist missing required file: docs/v8-release-gate.md" in problems
     assert "sdist missing required file: evals/profiles.json" in problems
     assert "sdist missing required file: frontend/generated/openapi.json" in problems
+    assert (
+        "sdist missing required file: scripts/validate_v8_release_gate.py" in problems
+    )
     assert (
         "sdist missing required file: docs/manual-v7-release-validation.md" in problems
     )
@@ -204,6 +209,7 @@ def _write_sdist(
                 "docs/tasks-v8.md",
                 "docs/v8-auditable-autonomy-contract.md",
                 "docs/v8-autonomy-baseline-inventory.md",
+                "docs/v8-release-gate.md",
                 "docs/verification-loops.md",
                 "docs/workspace-memory.md",
             ):
@@ -240,6 +246,13 @@ def _write_sdist(
                 "glassbox-0.1.0/frontend/generated/api-types.ts",
                 "export type Api = unknown;\n",
             )
+            for script_path in (
+                "scripts/background_autonomy_smoke.py",
+                "scripts/validate_installed_wheel_smoke.py",
+                "scripts/validate_package_contents.py",
+                "scripts/validate_v8_release_gate.py",
+            ):
+                _add_tar_text(sdist, f"glassbox-0.1.0/{script_path}", "\n")
             for source_path in (
                 "src/glassbox/cli/autonomy_commands.py",
                 "src/glassbox/cli/branch_search_commands.py",

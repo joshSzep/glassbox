@@ -229,7 +229,7 @@ uv run glassbox provider diagnostics --cwd . --json
 uv run glassbox provider canary run --cwd . --output-dir .glassbox/provider-canary/v8 --json
 uv run glassbox eval recommend src/glassbox/runtime/autonomy.py --cwd .
 uv run python scripts/validate_package_contents.py
-uv run python scripts/validate_v7_release_gate.py --dry-run --evidence-dir .glassbox/releases/v8-gate-dry-run
+uv run python scripts/validate_v8_release_gate.py --dry-run --evidence-dir .glassbox/releases/v8-gate-dry-run
 ```
 
 Once `GBX-893` exists, use the v8 gate as the canonical full validation command:
@@ -1628,7 +1628,7 @@ The intended v8 milestone order is:
 
 ### GBX-893: Add v8 Release Gate
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-890`, `GBX-891`, `GBX-892`
 - Goal: compose the v7 release gate with v8 autonomy-specific evidence into one objective release-candidate command
 - Deliverables:
