@@ -72,6 +72,7 @@ Use this page to jump to the right level of detail.
 - [providers.md](./providers.md): configure OpenAI or Anthropic credentials for real provider execution
 - [workspace-profiles.md](./workspace-profiles.md): configure reviewable repository defaults without storing runtime secrets
 - [tool-policy.md](./tool-policy.md): understand risk buckets, approval gating, blocked commands, and `ask_user` semantics
+- [tool-expansion-v8.md](./tool-expansion-v8.md): review the v8 contract for adding structured local tools without plugin-marketplace or remote-execution authority
 - [verification-loops.md](./verification-loops.md): operate explicit, budgeted verification checks for autonomous task work
 
 ## Deep Reference
@@ -113,6 +114,7 @@ Use this page to jump to the right level of detail.
 - [tasks-v8.md](./tasks-v8.md): concrete v8 task graph for auditable autonomy, durable task plans, autonomy budgets, background jobs, memory, repository intelligence, verify-repair, branch search, tool/provider depth, dashboard autonomy controls, and release signoff
 - [v8-auditable-autonomy-contract.md](./v8-auditable-autonomy-contract.md): v8 scope, non-goals, supported workflow set, auditable-autonomy definition, v7 follow-up mapping, evidence classes, release-readiness checklist, residual-risk register shape, and pass/fail policy
 - [v8-autonomy-baseline-inventory.md](./v8-autonomy-baseline-inventory.md): v8 inventory of command surfaces, turn execution, policy gates, cancellation, daemon seams, runtime context, repository context, replay/eval flows, dashboard gaps, provider depth, and safe loosening opportunities
+- [tool-expansion-v8.md](./tool-expansion-v8.md): v8 candidate-tool matrix, risk classification, sandboxing controls, validation matrix, migration notes, and non-goals
 - [verification-loops.md](./verification-loops.md): v8 verification loop contract, event vocabulary, failure categories, artifact posture, and release-check relationship
 - [v7-adoption-scale-contract.md](./v7-adoption-scale-contract.md): v7 scope, non-goals, supported workflow set, v6 follow-up mapping, evidence classes, release-readiness checklist, residual-risk register shape, and pass/fail policy
 - [v7-release-candidate.md](./v7-release-candidate.md): v7 release-candidate operating model, validation path, evidence status, residual risks, non-goals, and hold/go decision

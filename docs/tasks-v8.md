@@ -1207,9 +1207,10 @@ The intended v8 milestone order is:
 
 ### GBX-870: Define v8 Tool Expansion And Sandboxing Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-833`, `GBX-811`
 - Goal: decide which new local tools should exist for more agentic workflows and how they remain policy-bounded
+- Evidence: [tool-expansion-v8.md](./tool-expansion-v8.md)
 - Deliverables:
   - docs identifying candidate tools for structured file edits, test discovery, dependency inspection, package scripts, code search, symbol lookup, diff review, artifact summarization, and optional browser/network diagnostics
   - risk classification for each candidate tool and required policy/budget controls
@@ -1223,6 +1224,14 @@ The intended v8 milestone order is:
 - Tests and validation included in task:
   - docs review against current tool registry and policy engine
   - tool schema tests if any candidate model is added
+- Completed vertical slice:
+  - documented the v8 candidate-tool matrix for structured edits, test discovery, dependency/package script inspection, code search, symbol lookup, diff review, artifact summarization, and browser/network diagnostics
+  - classified each candidate against the existing `read_only`, `workspace_write`, and `command` risk buckets and named the policy/budget controls required before use
+  - recorded non-goals for plugin marketplaces, remote tool execution, unrestricted browsing, browser-native code editing, package publication, and opaque provider-side memory
+  - added a validation matrix for schema exposure, workspace scope, policy traces, streaming output, cancellation, artifacts, replay capture, and verification integration
+  - captured migration notes for additive tool schema exposure, risk-bucket changes, replay metadata, and sensitive-output redaction
+- Validation:
+  - docs review against `src/glassbox/tools/registry.py`, `src/glassbox/tools/read_only.py`, `src/glassbox/tools/runtime.py`, and [tool-policy.md](./tool-policy.md)
 - Done when:
   - v8 has a principled tool expansion path that increases capability without becoming a plugin free-for-all
 
