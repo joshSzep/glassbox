@@ -76,6 +76,9 @@ class SessionStarted(EventPayload):
     dashboard_url: str | None = None
     model_name: str
     approval_mode: str
+    autonomy_mode: AutonomyMode | None = None
+    autonomy_budget: AutonomyBudget | None = None
+    autonomy_budget_preset: str | None = None
     parent_session_id: SessionId | None = None
     forked_from_turn_id: TurnId | None = None
     forked_from_sequence: int | None = Field(default=None, ge=0)

@@ -3,6 +3,7 @@
 import argparse
 
 from glassbox.cli.parser_common import _SESSION_STATUS_CHOICES
+from glassbox.cli.parser_common import _add_autonomy_selection_arguments
 from glassbox.cli.parser_common import _add_runtime_location_arguments
 from glassbox.cli.parser_common import _add_session_start_default_arguments
 from glassbox.cli.parser_common import _parse_port
@@ -114,6 +115,7 @@ def _add_session_workflow_parsers(
     message_parser.add_argument("session_id", type=_parse_uuid)
     message_parser.add_argument("prompt", help="user prompt to submit")
     _add_runtime_location_arguments(message_parser)
+    _add_autonomy_selection_arguments(message_parser)
 
     cancel_parser = session_subparsers.add_parser(
         "cancel",
@@ -187,6 +189,7 @@ def _add_session_workflow_parsers(
     )
     resume_parser.add_argument("session_id", type=_parse_uuid)
     _add_runtime_location_arguments(resume_parser)
+    _add_autonomy_selection_arguments(resume_parser)
 
     fork_parser = session_subparsers.add_parser(
         "fork",
@@ -283,6 +286,49 @@ def _add_session_workflow_parsers(
         help="print the import result as JSON",
     )
     _add_runtime_location_arguments(session_import_parser)
+
+
+def _add_autonomy_parsers(
+    subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    autonomy_parser = subparsers.add_parser(
+        "autonomy",
+        help="inspect autonomy modes and budget presets",
+        description="Inspect effective bounded-autonomy profiles for a workspace.",
+    )
+    autonomy_subparsers = autonomy_parser.add_subparsers(
+        dest="autonomy_command",
+        required=True,
+    )
+
+    profile_parser = autonomy_subparsers.add_parser(
+        "profile",
+        help="inspect autonomy profile defaults",
+        description="List or show autonomy modes and resolved budget presets.",
+    )
+    profile_subparsers = profile_parser.add_subparsers(
+        dest="autonomy_profile_command",
+        required=True,
+    )
+
+    list_parser = profile_subparsers.add_parser(
+        "list",
+        help="list built-in autonomy modes and workspace presets",
+    )
+    _add_runtime_location_arguments(list_parser)
+    list_parser.add_argument("--json", action="store_true")
+
+    show_parser = profile_subparsers.add_parser(
+        "show",
+        help="show one effective autonomy profile",
+    )
+    show_parser.add_argument(
+        "preset",
+        nargs="?",
+        help="built-in mode or workspace budget preset to show",
+    )
+    _add_runtime_location_arguments(show_parser)
+    show_parser.add_argument("--json", action="store_true")
 
 
 def _add_interactive_launch_arguments(parser: argparse.ArgumentParser) -> None:

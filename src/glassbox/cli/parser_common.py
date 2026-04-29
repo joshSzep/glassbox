@@ -4,6 +4,15 @@ import argparse
 from uuid import UUID
 
 _APPROVAL_MODE_CHOICES = ("confirm", "review", "on-request", "never")
+_AUTONOMY_MODE_CHOICES = (
+    "manual",
+    "guided",
+    "inspect",
+    "edit-safe",
+    "test-driven",
+    "autonomous-local",
+    "release-candidate",
+)
 _SESSION_STATUS_CHOICES = (
     "idle",
     "running",
@@ -64,6 +73,26 @@ def _add_session_start_default_arguments(parser: argparse.ArgumentParser) -> Non
         default=None,
         choices=_APPROVAL_MODE_CHOICES,
         help=("approval mode for risky tool actions; overrides glassbox.profile.json"),
+    )
+    _add_autonomy_selection_arguments(parser)
+
+
+def _add_autonomy_selection_arguments(parser: argparse.ArgumentParser) -> None:
+    """Add scriptable autonomy selection flags."""
+
+    parser.add_argument(
+        "--autonomy-mode",
+        default=None,
+        choices=_AUTONOMY_MODE_CHOICES,
+        help="bounded autonomy mode; overrides glassbox.profile.json",
+    )
+    parser.add_argument(
+        "--autonomy-budget-preset",
+        default=None,
+        help=(
+            "named autonomy budget preset or built-in mode budget; overrides "
+            "glassbox.profile.json"
+        ),
     )
 
 

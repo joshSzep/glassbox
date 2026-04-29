@@ -241,6 +241,12 @@ def _ensure_session_row_for_append(
             model_name=payload.model_name,
             cwd=Path(payload.cwd),
             approval_mode=payload.approval_mode,
+            autonomy_mode=(
+                payload.autonomy_mode
+                or SessionConfig.model_fields["autonomy_mode"].default
+            ),
+            autonomy_budget=payload.autonomy_budget,
+            autonomy_budget_preset=payload.autonomy_budget_preset,
             parent_session_id=payload.parent_session_id,
             forked_from_turn_id=payload.forked_from_turn_id,
             forked_from_sequence=payload.forked_from_sequence,

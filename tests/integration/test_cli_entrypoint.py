@@ -43,6 +43,7 @@ def test_cli_command_tree_prints_command_tree(
     assert "inspect the Glassbox command surface" in captured.out
     assert "|   `-- tree  print the command tree" in captured.out
     assert "|-- observability" in captured.out
+    assert "|-- autonomy" in captured.out
     assert "summarize runtime, projection, and verification health" in captured.out
     assert "|-- performance" in captured.out
     assert "inspect larger-session performance expectations" in captured.out
@@ -107,6 +108,75 @@ def test_cli_performance_budgets_prints_guidance(
     assert "session snapshot payload: 1500000 bytes" in captured.out
     assert "dashboard render-critical payload: 300000 bytes" in captured.out
     assert "Guidance:" in captured.out
+
+
+def test_cli_autonomy_profile_list_prints_built_in_modes(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = main(["autonomy", "profile", "list", "--cwd", str(tmp_path)])
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Built-in autonomy modes:" in captured.out
+    assert "manual: steps" in captured.out
+    assert "test-driven: steps" in captured.out
+
+
+def test_cli_autonomy_profile_show_prints_json_budget(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = main(
+        [
+            "autonomy",
+            "profile",
+            "show",
+            "test-driven",
+            "--cwd",
+            str(tmp_path),
+            "--json",
+        ]
+    )
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert '"mode": "test-driven"' in captured.out
+    assert '"budget_preset": "test-driven"' in captured.out
+    assert '"max_command_operations"' in captured.out
+
+
+def test_session_message_and_resume_parse_autonomy_flags() -> None:
+    parser = build_parser()
+    session_id = "00000000-0000-4000-8000-000000000001"
+
+    message_args = parser.parse_args(
+        [
+            "session",
+            "message",
+            session_id,
+            "continue",
+            "--autonomy-mode",
+            "test-driven",
+            "--autonomy-budget-preset",
+            "test-driven",
+        ]
+    )
+    resume_args = parser.parse_args(
+        [
+            "session",
+            "resume",
+            session_id,
+            "--autonomy-mode",
+            "release-candidate",
+        ]
+    )
+
+    assert message_args.autonomy_mode == "test-driven"
+    assert message_args.autonomy_budget_preset == "test-driven"
+    assert resume_args.autonomy_mode == "release-candidate"
 
 
 def test_cli_provider_diagnostics_prints_first_run_checklist(

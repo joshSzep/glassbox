@@ -408,6 +408,44 @@ def test_cli_run_explicit_flags_override_workspace_profile_defaults(
     assert started_event.approval_mode == "confirm"
 
 
+def test_cli_run_explicit_autonomy_flags_override_workspace_profile_defaults(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    _write_workspace_profile(
+        tmp_path,
+        runtime={
+            "autonomy_mode": "inspect",
+            "autonomy_budget_preset": "inspect",
+        },
+    )
+
+    exit_code = main(
+        [
+            "session",
+            "run",
+            "--autonomy-mode",
+            "test-driven",
+            "--autonomy-budget-preset",
+            "test-driven",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    started_event = _single_session_started_event(db_path)
+
+    assert exit_code == 0
+    assert "Autonomy: test-driven; budget test-driven" in captured.out
+    assert started_event.autonomy_mode == "test-driven"
+    assert started_event.autonomy_budget_preset == "test-driven"
+    assert started_event.autonomy_budget is not None
+    assert started_event.autonomy_budget.max_command_operations > 0
+
+
 def test_cli_run_rejects_invalid_workspace_profile(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

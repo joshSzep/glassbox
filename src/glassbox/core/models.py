@@ -162,6 +162,9 @@ class SessionConfig(BaseModel):
     model_name: str
     cwd: Path
     approval_mode: str
+    autonomy_mode: AutonomyMode = AutonomyMode.MANUAL
+    autonomy_budget: AutonomyBudget | None = None
+    autonomy_budget_preset: str | None = None
     dashboard_url: str | None = None
     parent_session_id: SessionId | None = None
     forked_from_turn_id: TurnId | None = None

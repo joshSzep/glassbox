@@ -94,6 +94,25 @@ daemon unavailable, and ambiguous plan are first-class escalation reasons.
 Autonomy mode does not override hard invariants. Workspace-scope checks,
 destructive command blocks, approval mode, and repository policy still apply.
 
+### Configuring Autonomy From The CLI
+
+Session-start commands accept `--autonomy-mode` and
+`--autonomy-budget-preset`. Explicit CLI values win over `glassbox.profile.json`,
+and profile values win over built-in defaults. The same autonomy selection flags
+are accepted by `session message` and `session resume` so scriptable follow-up
+flows can surface the intended budget posture alongside the operation.
+
+Use `glassbox autonomy profile list` to inspect built-in modes and workspace
+budget presets. Use `glassbox autonomy profile show [preset] --json` when a
+script needs the resolved budget fields after CLI/profile/default resolution.
+
+Common operator postures:
+
+- Manual inspection: `--autonomy-mode manual` keeps work operator-driven.
+- Test-driven repair: `--autonomy-mode test-driven --autonomy-budget-preset test-driven` allows bounded local edits and targeted tests.
+- Bounded local implementation: `--autonomy-mode autonomous-local` gives a larger local budget while preserving hard policy stops.
+- Release candidate verification: `--autonomy-mode release-candidate` focuses authority on verification and release checks.
+
 ## Decision Rules
 
 The policy engine evaluates tools in this order:

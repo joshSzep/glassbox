@@ -580,7 +580,7 @@ The intended v8 milestone order is:
 
 ### GBX-834: Add Autonomy Mode CLI And Session Configuration Surfaces
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-833`
 - Goal: make autonomy mode and budget selection available through scriptable session commands
 - Deliverables:
@@ -598,6 +598,10 @@ The intended v8 milestone order is:
   - CLI parser tests
   - workspace profile precedence tests
   - interactive launch tests for displayed mode summaries
+- Evidence:
+  - `uv run pytest tests/integration/test_cli_entrypoint.py tests/integration/test_cli_interactive_commands.py::test_cli_run_explicit_flags_override_workspace_profile_defaults tests/integration/test_cli_interactive_commands.py::test_cli_run_explicit_autonomy_flags_override_workspace_profile_defaults tests/unit/test_workspace_profile.py`
+  - `uv run ruff check src/glassbox/cli/parser_common.py src/glassbox/cli/parser_sessions.py src/glassbox/cli/parser.py src/glassbox/cli/entry.py src/glassbox/cli/autonomy_commands.py src/glassbox/cli/interactive_commands.py src/glassbox/core/models.py src/glassbox/core/events.py src/glassbox/runtime/supervisor.py src/glassbox/store/sqlite_events.py tests/integration/test_cli_entrypoint.py tests/integration/test_cli_interactive_commands.py`
+  - `uv run ty check`
 - Done when:
   - operators can choose bounded autonomy from the CLI without editing internal config files
 

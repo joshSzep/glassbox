@@ -49,6 +49,7 @@ def dispatch_command(
 
 def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
     from glassbox.cli.artifact_commands import _artifacts_command
+    from glassbox.cli.autonomy_commands import _autonomy_command
     from glassbox.cli.backup_commands import _backup_command
     from glassbox.cli.daemon_commands import _daemon_command
     from glassbox.cli.observability_commands import _observability_command
@@ -62,6 +63,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
 
     command_handlers: dict[str, CommandHandler] = {
         "command": _command_command,
+        "autonomy": _autonomy_command,
         "session": _session_command,
         "task": _task_command,
         "replay": _replay_command,

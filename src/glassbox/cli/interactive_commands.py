@@ -50,6 +50,7 @@ async def _run_command_async(args: argparse.Namespace) -> int:
             config
         )
         await asyncio.sleep(0)
+        _print_autonomy_config_summary(config)
         await _submit_prompt_if_present(
             runtime_context,
             session_state.session_id,
@@ -97,6 +98,7 @@ async def _chat_command_async(args: argparse.Namespace) -> int:
                 await runtime_context.services.session_service.start_session(config)
             )
             await asyncio.sleep(0)
+            _print_autonomy_config_summary(config)
             await _submit_prompt_if_present(
                 runtime_context,
                 session_state.session_id,
@@ -143,6 +145,7 @@ async def _chat_tui_command_async(
             session_state = (
                 await runtime_context.services.session_service.start_session(config)
             )
+            _print_autonomy_config_summary(config)
             await _submit_prompt_if_present(
                 runtime_context,
                 session_state.session_id,
@@ -265,8 +268,11 @@ async def _resume_command_async(args: argparse.Namespace) -> int:
         args,
         require_daemon_unowned_for="resume a session locally",
     )
+    autonomy_config = _build_ad_hoc_autonomy_config(args, cwd)
 
     async def action(runtime_context: RuntimeContext, _prompt_state) -> None:
+        if autonomy_config is not None:
+            _print_autonomy_config_summary(autonomy_config)
         await runtime_context.services.session_service.resume_session(args.session_id)
         await asyncio.sleep(0)
 
@@ -282,8 +288,11 @@ async def _message_command_async(args: argparse.Namespace) -> int:
         args,
         require_daemon_unowned_for="submit a message locally",
     )
+    autonomy_config = _build_ad_hoc_autonomy_config(args, cwd)
 
     async def action(runtime_context: RuntimeContext, _prompt_state) -> None:
+        if autonomy_config is not None:
+            _print_autonomy_config_summary(autonomy_config)
         await runtime_context.services.session_service.submit_user_message(
             args.session_id,
             args.prompt,
@@ -391,11 +400,56 @@ def _build_start_session_config(
         cwd,
         explicit_model_name=args.model_name,
         explicit_approval_mode=args.approval_mode,
+        explicit_autonomy_mode=getattr(args, "autonomy_mode", None),
+        explicit_autonomy_budget_preset=getattr(args, "autonomy_budget_preset", None),
     )
     return SessionConfig(
         model_name=defaults.model_name,
         cwd=cwd,
         approval_mode=defaults.approval_mode,
+        autonomy_mode=defaults.autonomy_mode,
+        autonomy_budget=defaults.autonomy_budget,
+        autonomy_budget_preset=defaults.autonomy_budget_preset,
+    )
+
+
+def _print_autonomy_config_summary(config: SessionConfig) -> None:
+    budget = config.autonomy_budget
+    if budget is None:
+        print(f"Autonomy: {config.autonomy_mode.value}; budget unavailable")
+        return
+    print(
+        "Autonomy: "
+        f"{config.autonomy_mode.value}; "
+        f"budget {config.autonomy_budget_preset or config.autonomy_mode.value}; "
+        f"steps {budget.max_steps}, tools {budget.max_tool_calls}, "
+        f"writes {budget.max_write_operations}, "
+        f"commands {budget.max_command_operations}"
+    )
+
+
+def _build_ad_hoc_autonomy_config(
+    args: argparse.Namespace,
+    cwd: Path,
+) -> SessionConfig | None:
+    autonomy_mode = getattr(args, "autonomy_mode", None)
+    autonomy_budget_preset = getattr(args, "autonomy_budget_preset", None)
+    if not (autonomy_mode or autonomy_budget_preset):
+        return None
+    defaults = resolve_session_start_defaults(
+        cwd,
+        explicit_model_name=None,
+        explicit_approval_mode=None,
+        explicit_autonomy_mode=autonomy_mode,
+        explicit_autonomy_budget_preset=autonomy_budget_preset,
+    )
+    return SessionConfig(
+        model_name=defaults.model_name,
+        cwd=cwd,
+        approval_mode=defaults.approval_mode,
+        autonomy_mode=defaults.autonomy_mode,
+        autonomy_budget=defaults.autonomy_budget,
+        autonomy_budget_preset=defaults.autonomy_budget_preset,
     )
 
 

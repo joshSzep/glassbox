@@ -5,6 +5,7 @@ import argparse
 from glassbox.cli.parser_operations import _add_operations_parsers
 from glassbox.cli.parser_replay_eval import _add_eval_parsers
 from glassbox.cli.parser_replay_eval import _add_replay_parsers
+from glassbox.cli.parser_sessions import _add_autonomy_parsers
 from glassbox.cli.parser_sessions import _add_session_workflow_parsers
 from glassbox.cli.parser_storage import _add_artifact_parsers
 from glassbox.cli.parser_storage import _add_backup_parsers
@@ -25,6 +26,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command")
 
     _add_command_parsers(subparsers)
+    _add_autonomy_parsers(subparsers)
     _add_session_workflow_parsers(subparsers)
     _add_task_parsers(subparsers)
     _add_replay_parsers(subparsers)
