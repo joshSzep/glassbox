@@ -235,6 +235,10 @@ The `store` package should not own runtime orchestration, CLI formatting, or web
 - `repositories.py` should remain the stable adapter surface for service
   protocols, but method bodies should be thin pass-throughs to store-owned
   modules once query domains split
+- the repository adapter split now keeps `repositories.py` as the stable public
+  facade for `SQLiteSessionRepository` and `FilesystemArtifactRepository`, with
+  session, event/fork, projection-read, background-job, workspace-memory, task,
+  branch-search, and artifact behavior owned by focused `repository_*` modules
 - repository adapters may import store implementation modules and core/service
   contracts. They should not import runtime orchestration modules, web routes,
   CLI modules, or frontend code

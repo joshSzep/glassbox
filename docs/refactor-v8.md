@@ -464,7 +464,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R221: Thin The SQLite Repository Adapter With Domain Delegates
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R220`
 - Goal: reduce [repositories.py](../src/glassbox/store/repositories.py) while
   keeping `SQLiteSessionRepository` as the stable public adapter
