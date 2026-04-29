@@ -384,11 +384,13 @@ The guardrails are intentionally narrow:
 - CLI command modules and web route modules are guarded against reaching into raw SQLite helpers instead of using repository, service, or query seams
 - thin public facades are kept reviewable with soft size caps and explicit delegate-module checks for `runtime/__init__.py`, `store/sqlite.py`, `runtime/eval_summary.py`, `runtime/replay.py`, and the browser entry facades in `web/static/`
 - those guardrails intentionally protect the public runtime entry surfaces around bootstrap, replay, and eval without turning internal coordinator modules such as `turn_engine.py` or `replay_orchestrator.py` into brittle size-capped policy targets
-- post-v8 guardrails extend the same idea to autonomy-era areas: runtime
-  modules are checked against transport/UI/raw-store imports, TUI modules are
-  checked against raw store and runtime worker imports, frontend stores are
-  checked against component/server/backend imports, and source-owned frontend
-  compatibility surfaces are kept reviewable
+- post-v8 guardrails extend the same idea to autonomy-era areas: the current
+  background-job, workspace-memory, observability, repository-index, and
+  provider-evidence modules are checked against transport/UI/raw-store imports,
+  TUI modules are checked against raw store and runtime worker imports,
+  frontend stores are checked against component/server/backend imports, and
+  `frontend/stores/dashboard-stores.ts` is kept reviewable as the source-owned
+  compatibility surface until domain stores split underneath it
 
 If a guardrail fails, the default repair should be to move new behavior into the owning split module or add one focused neighbor module, not to widen a facade or cross a subsystem boundary.
 

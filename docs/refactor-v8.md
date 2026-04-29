@@ -245,7 +245,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R201: Extend Architecture Guardrails For Post-v8 Growth Areas
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R200`
 - Goal: prevent the autonomy-era modules from re-accumulating the coupling that
   the original refactor pass removed elsewhere
