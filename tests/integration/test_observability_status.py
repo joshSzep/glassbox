@@ -61,6 +61,9 @@ def test_observability_status_json_reports_health_lag_and_verification(
     assert payload["projections"]["max_rebuild_event_count"] > 0
     assert payload["projections"]["total_rebuild_event_count"] > 0
     assert str(ids.session_id) in payload["projections"]["degraded_sessions"]
+    assert payload["background_jobs"]["pending_count"] == 0
+    assert payload["background_jobs"]["running_count"] == 0
+    assert payload["background_jobs"]["stale_count"] == 0
     assert payload["artifacts"]["glassbox_size_bytes"] > 0
     assert payload["artifacts"]["protected_count"] >= 0
     assert payload["artifacts"]["candidate_count"] >= 0
@@ -96,6 +99,7 @@ def test_observability_status_text_reports_next_actions(
     assert "queue peak 0/64" in captured.out
     assert "Reconnect hint:" in captured.out
     assert "Projections:" in captured.out
+    assert "Background jobs:" in captured.out
     assert "Artifacts:" in captured.out
     assert "Verification: not run" in captured.out
     assert "glassbox eval run" in captured.out

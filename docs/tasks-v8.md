@@ -666,7 +666,7 @@ The intended v8 milestone order is:
 
 ### GBX-841: Add Background Job Store, Queue Projection, And CLI Inspection
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-840`
 - Goal: persist and inspect daemon job queues before running autonomous work through them
 - Deliverables:
@@ -683,6 +683,11 @@ The intended v8 milestone order is:
   - SQLite projection tests
   - CLI job command tests
   - observability tests
+- Evidence:
+  - `uv run pytest tests/integration/test_background_jobs.py tests/integration/test_sqlite_bootstrap.py tests/integration/test_observability_status.py tests/unit/test_service_contracts.py tests/unit/test_context_builder.py`
+  - `uv run ruff check --fix src/glassbox/core/models.py src/glassbox/core/__init__.py src/glassbox/store/sqlite_schema.py src/glassbox/store/sqlite_schema_statements.py src/glassbox/store/sqlite_projections.py src/glassbox/store/sqlite_projection_background_jobs.py src/glassbox/store/sqlite_background_jobs.py src/glassbox/store/repositories.py src/glassbox/services/contracts.py src/glassbox/cli/job_commands.py src/glassbox/cli/parser_operations.py src/glassbox/cli/entry.py src/glassbox/runtime/observability.py src/glassbox/cli/observability_commands.py tests/integration/test_background_jobs.py tests/integration/test_sqlite_bootstrap.py tests/integration/test_observability_status.py tests/unit/test_service_contracts.py tests/unit/test_context_builder.py`
+  - `uv run ruff format src/glassbox/core/models.py src/glassbox/core/__init__.py src/glassbox/store/sqlite_schema.py src/glassbox/store/sqlite_schema_statements.py src/glassbox/store/sqlite_projections.py src/glassbox/store/sqlite_projection_background_jobs.py src/glassbox/store/sqlite_background_jobs.py src/glassbox/store/repositories.py src/glassbox/services/contracts.py src/glassbox/cli/job_commands.py src/glassbox/cli/parser_operations.py src/glassbox/cli/entry.py src/glassbox/runtime/observability.py src/glassbox/cli/observability_commands.py tests/integration/test_background_jobs.py tests/integration/test_sqlite_bootstrap.py tests/integration/test_observability_status.py tests/unit/test_service_contracts.py tests/unit/test_context_builder.py`
+  - `uv run ty check`
 - Done when:
   - background jobs are durable, inspectable, and cancellable as data even before the daemon executes them
 

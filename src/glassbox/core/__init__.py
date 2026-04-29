@@ -95,6 +95,7 @@ from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import AutonomyBudgetRemaining
 from glassbox.core.models import AutonomyBudgetUsage
 from glassbox.core.models import AutonomySelection
+from glassbox.core.models import BackgroundJobRecord
 from glassbox.core.models import ForkedSession
 from glassbox.core.models import InheritedTranscriptMessage
 from glassbox.core.models import MessagePart
@@ -160,6 +161,7 @@ __all__ = [
     "BackgroundJobKind",
     "BackgroundJobPaused",
     "BackgroundJobProgressRecorded",
+    "BackgroundJobRecord",
     "BackgroundJobRecoveryReason",
     "BackgroundJobRecoveryRecorded",
     "BackgroundJobStarted",

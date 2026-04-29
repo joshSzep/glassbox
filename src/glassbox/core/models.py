@@ -11,6 +11,7 @@ from pydantic import field_validator
 from pydantic import model_validator
 
 from glassbox.core.ids import ApprovalId
+from glassbox.core.ids import BackgroundJobId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import QuestionId
 from glassbox.core.ids import SessionId
@@ -23,6 +24,10 @@ from glassbox.core.types import ApprovalMode
 from glassbox.core.types import ApprovalStatus
 from glassbox.core.types import AutonomyEscalationReason
 from glassbox.core.types import AutonomyMode
+from glassbox.core.types import BackgroundJobFailureKind
+from glassbox.core.types import BackgroundJobKind
+from glassbox.core.types import BackgroundJobRecoveryReason
+from glassbox.core.types import BackgroundJobState
 from glassbox.core.types import SessionStatus
 from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
@@ -207,6 +212,46 @@ class SessionRecord(BaseModel):
     forked_from_turn_id: TurnId | None = None
     forked_from_sequence: int | None = Field(default=None, ge=0)
     branch_label: str | None = None
+
+
+class BackgroundJobRecord(BaseModel):
+    """Projected state for one daemon-owned background job."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    job_id: BackgroundJobId
+    session_id: SessionId
+    state: BackgroundJobState
+    kind: BackgroundJobKind
+    job_type: str
+    title: str
+    requested_by: str
+    payload: dict[str, object] = Field(default_factory=dict)
+    priority: int = Field(ge=0)
+    task_id: TaskId | None = None
+    parent_job_id: BackgroundJobId | None = None
+    worker_id: str | None = None
+    claim_token: str | None = None
+    attempt: int = Field(default=0, ge=0)
+    lease_expires_at: datetime | None = None
+    last_heartbeat_at: datetime | None = None
+    progress_message: str | None = None
+    completed_units: int | None = Field(default=None, ge=0)
+    total_units: int | None = Field(default=None, ge=0)
+    failure_kind: BackgroundJobFailureKind | None = None
+    failure_message: str | None = None
+    retryable: bool = False
+    next_retry_at: datetime | None = None
+    cancellation_requested_by: str | None = None
+    cancellation_reason: str | None = None
+    cancelled_by: str | None = None
+    recovery_reason: BackgroundJobRecoveryReason | None = None
+    recovery_detail: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    last_sequence: int = Field(ge=0)
 
 
 class ProjectionHealth(BaseModel):

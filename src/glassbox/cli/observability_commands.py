@@ -57,6 +57,18 @@ def _print_observability_report(report: WorkspaceObservabilityReport) -> None:
         f"max rebuild scope {report.projections.max_rebuild_event_count} event(s)"
     )
     print(
+        "Background jobs: "
+        f"{report.background_jobs.pending_count} pending, "
+        f"{report.background_jobs.running_count} running, "
+        f"{report.background_jobs.stale_count} stale"
+    )
+    if report.background_jobs.last_failure_job_id is not None:
+        print(
+            "Last job failure: "
+            f"{report.background_jobs.last_failure_job_id} "
+            f"({report.background_jobs.last_failure_message or 'no message'})"
+        )
+    print(
         "Artifacts: "
         f"{report.artifacts.protected_count} protected, "
         f"{report.artifacts.candidate_count} prune candidate(s), "

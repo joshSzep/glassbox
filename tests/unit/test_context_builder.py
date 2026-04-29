@@ -202,6 +202,36 @@ class FakeSessionRepository:
         del offset
         return []
 
+    def enqueue_background_job(self, session_id, **kwargs):
+        raise NotImplementedError
+
+    def claim_background_job(self, job_id, **kwargs):
+        raise NotImplementedError
+
+    def heartbeat_background_job(self, job_id, **kwargs):
+        raise NotImplementedError
+
+    def complete_background_job(self, job_id, **kwargs):
+        raise NotImplementedError
+
+    def fail_background_job(self, job_id, **kwargs):
+        raise NotImplementedError
+
+    def cancel_background_job(self, job_id, **kwargs):
+        raise NotImplementedError
+
+    def list_background_jobs(self, **kwargs):
+        return []
+
+    def get_background_job(self, job_id):
+        return None
+
+    def count_background_jobs_by_state(self):
+        return {}
+
+    def latest_failed_background_job(self):
+        return None
+
     def resolve_fork_point(self, session_id, *, turn_id=None):
         return ResolvedForkPoint(
             parent_session_id=session_id,

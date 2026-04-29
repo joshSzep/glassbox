@@ -11,6 +11,85 @@ from glassbox.cli.parser_common import _parse_uuid
 def _add_operations_parsers(
     subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
 ) -> None:
+    job_parser = subparsers.add_parser(
+        "job",
+        help="inspect daemon background jobs",
+        description="Inspect and cancel event-sourced daemon background jobs.",
+    )
+    job_subparsers = job_parser.add_subparsers(
+        dest="job_command",
+        required=True,
+    )
+    job_list_parser = job_subparsers.add_parser(
+        "list",
+        help="list background jobs",
+        description="List projected background job state.",
+    )
+    job_list_parser.add_argument(
+        "--state",
+        choices=(
+            "queued",
+            "claimed",
+            "running",
+            "paused",
+            "completed",
+            "failed",
+            "cancellation_requested",
+            "cancelled",
+            "stale",
+        ),
+        default=None,
+        help="filter jobs by projected state",
+    )
+    job_list_parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="maximum number of jobs to return",
+    )
+    job_list_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print jobs as JSON",
+    )
+    _add_runtime_location_arguments(job_list_parser)
+
+    job_show_parser = job_subparsers.add_parser(
+        "show",
+        help="show one background job",
+        description="Show projected state for one background job.",
+    )
+    job_show_parser.add_argument("job_id", type=_parse_uuid)
+    job_show_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the job as JSON",
+    )
+    _add_runtime_location_arguments(job_show_parser)
+
+    job_cancel_parser = job_subparsers.add_parser(
+        "cancel",
+        help="request cancellation for one background job",
+        description="Append a background job cancellation request event.",
+    )
+    job_cancel_parser.add_argument("job_id", type=_parse_uuid)
+    job_cancel_parser.add_argument(
+        "--requested-by",
+        default="operator",
+        help="actor requesting cancellation",
+    )
+    job_cancel_parser.add_argument(
+        "--reason",
+        default=None,
+        help="optional cancellation reason",
+    )
+    job_cancel_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the updated job as JSON",
+    )
+    _add_runtime_location_arguments(job_cancel_parser)
+
     observability_parser = subparsers.add_parser(
         "observability",
         help="summarize runtime, projection, and verification health",

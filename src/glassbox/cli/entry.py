@@ -52,6 +52,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
     from glassbox.cli.autonomy_commands import _autonomy_command
     from glassbox.cli.backup_commands import _backup_command
     from glassbox.cli.daemon_commands import _daemon_command
+    from glassbox.cli.job_commands import _job_command
     from glassbox.cli.observability_commands import _observability_command
     from glassbox.cli.provider_commands import _provider_command
     from glassbox.cli.replay_eval_commands import _eval_command
@@ -70,6 +71,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
         "eval": _eval_command,
         "artifacts": _artifacts_command,
         "backup": _backup_command,
+        "job": _job_command,
         "observability": _observability_command,
         "provider": _provider_command,
         "performance": _performance_command,

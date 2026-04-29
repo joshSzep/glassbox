@@ -10,12 +10,15 @@ from typing import runtime_checkable
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import ArtifactId
+from glassbox.core.ids import BackgroundJobId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import QuestionId
 from glassbox.core.ids import SessionId
+from glassbox.core.ids import TaskId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.models import ApprovalRecord
+from glassbox.core.models import BackgroundJobRecord
 from glassbox.core.models import ForkedSession
 from glassbox.core.models import ProjectionHealth
 from glassbox.core.models import ResolvedForkPoint
@@ -28,6 +31,9 @@ from glassbox.core.models import TranscriptMessage
 from glassbox.core.models import TurnMetricsRecord
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import ApprovalStatus
+from glassbox.core.types import BackgroundJobFailureKind
+from glassbox.core.types import BackgroundJobKind
+from glassbox.core.types import BackgroundJobState
 from glassbox.core.types import SessionStatus
 from glassbox.core.types import ToolExecutionStatus
 
@@ -166,6 +172,82 @@ class SessionRepository(Protocol):
         limit: int | None = None,
         offset: int = 0,
     ) -> list[TurnMetricsRecord]: ...
+
+    def enqueue_background_job(
+        self,
+        session_id: SessionId,
+        *,
+        kind: BackgroundJobKind,
+        job_type: str,
+        title: str,
+        payload: dict[str, object] | None = None,
+        requested_by: str = "operator",
+        priority: int = 0,
+        task_id: TaskId | None = None,
+        parent_job_id: BackgroundJobId | None = None,
+        job_id: BackgroundJobId | None = None,
+    ) -> BackgroundJobRecord: ...
+
+    def claim_background_job(
+        self,
+        job_id: BackgroundJobId,
+        *,
+        worker_id: str,
+        claim_token: str,
+        lease_expires_at: datetime,
+        now: datetime | None = None,
+    ) -> BackgroundJobRecord: ...
+
+    def heartbeat_background_job(
+        self,
+        job_id: BackgroundJobId,
+        *,
+        worker_id: str,
+        claim_token: str,
+        lease_expires_at: datetime,
+        message: str | None = None,
+    ) -> BackgroundJobRecord: ...
+
+    def complete_background_job(
+        self,
+        job_id: BackgroundJobId,
+        *,
+        summary: str,
+    ) -> BackgroundJobRecord: ...
+
+    def fail_background_job(
+        self,
+        job_id: BackgroundJobId,
+        *,
+        failure_kind: BackgroundJobFailureKind,
+        message: str,
+        retryable: bool = False,
+        next_retry_at: datetime | None = None,
+    ) -> BackgroundJobRecord: ...
+
+    def cancel_background_job(
+        self,
+        job_id: BackgroundJobId,
+        *,
+        requested_by: str = "operator",
+        reason: str | None = None,
+    ) -> BackgroundJobRecord: ...
+
+    def list_background_jobs(
+        self,
+        *,
+        state: BackgroundJobState | None = None,
+        limit: int | None = None,
+    ) -> list[BackgroundJobRecord]: ...
+
+    def get_background_job(
+        self,
+        job_id: BackgroundJobId,
+    ) -> BackgroundJobRecord | None: ...
+
+    def count_background_jobs_by_state(self) -> dict[str, int]: ...
+
+    def latest_failed_background_job(self) -> BackgroundJobRecord | None: ...
 
     def resolve_fork_point(
         self,

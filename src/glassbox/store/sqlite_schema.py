@@ -8,7 +8,7 @@ from pathlib import Path
 from glassbox.store.sqlite_schema_statements import BOOTSTRAP_STATEMENTS
 from glassbox.store.sqlite_schema_statements import V3_BASELINE_SCHEMA_STATEMENTS
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 BASELINE_SCHEMA_VERSION = 3
 BASELINE_MIGRATION_NAME = "baseline event store and projections"
 
@@ -326,6 +326,67 @@ def _ensure_autonomy_budget_projection_schema(connection: sqlite3.Connection) ->
     )
 
 
+def _ensure_background_job_projection_schema(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        create table if not exists background_jobs (
+            job_id text primary key,
+            session_id text not null,
+            state text not null,
+            kind text not null,
+            job_type text not null,
+            title text not null,
+            requested_by text not null,
+            payload_json text not null,
+            priority integer not null,
+            task_id text,
+            parent_job_id text,
+            worker_id text,
+            claim_token text,
+            attempt integer not null default 0,
+            lease_expires_at text,
+            last_heartbeat_at text,
+            progress_message text,
+            completed_units integer,
+            total_units integer,
+            failure_kind text,
+            failure_message text,
+            retryable integer not null default 0,
+            next_retry_at text,
+            cancellation_requested_by text,
+            cancellation_reason text,
+            cancelled_by text,
+            recovery_reason text,
+            recovery_detail text,
+            created_at text not null,
+            updated_at text not null,
+            started_at text,
+            completed_at text,
+            last_sequence integer not null,
+            foreign key (session_id) references sessions(session_id)
+        )
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_background_jobs_state_updated
+            on background_jobs (state, updated_at desc)
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_background_jobs_session_updated
+            on background_jobs (session_id, updated_at desc)
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_background_jobs_lease
+            on background_jobs (state, lease_expires_at)
+        """
+    )
+
+
 MIGRATIONS = (
     SchemaMigration(
         version=4,
@@ -351,6 +412,11 @@ MIGRATIONS = (
         version=8,
         name="add autonomy budget projection table",
         apply=_ensure_autonomy_budget_projection_schema,
+    ),
+    SchemaMigration(
+        version=9,
+        name="add background job projection table",
+        apply=_ensure_background_job_projection_schema,
     ),
 )
 

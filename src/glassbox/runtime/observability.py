@@ -99,6 +99,19 @@ class VerificationObservability(BaseModel):
     next_actions: list[str] = Field(default_factory=list)
 
 
+class BackgroundJobObservability(BaseModel):
+    """Projected daemon background job queue status."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    pending_count: int
+    running_count: int
+    stale_count: int
+    last_failure_job_id: str | None = None
+    last_failure_message: str | None = None
+    next_actions: list[str] = Field(default_factory=list)
+
+
 class WorkspaceObservabilityReport(BaseModel):
     """Operator-facing summary of workspace health and inspection paths."""
 
@@ -107,6 +120,7 @@ class WorkspaceObservabilityReport(BaseModel):
     workspace_root: str
     runtime: RuntimeObservability
     projections: ProjectionObservability
+    background_jobs: BackgroundJobObservability
     artifacts: ArtifactObservability
     verification: VerificationObservability
     provider_canary: ProviderCanaryEvidenceSummary
@@ -134,18 +148,27 @@ def build_workspace_observability_report(
         workspace_root=workspace_root,
     )
     projections = build_projection_observability(session_repository)
+    background_jobs = build_background_job_observability(session_repository)
     artifacts = build_artifact_observability(workspace_root, session_repository)
     verification = build_verification_observability(workspace_root)
     provider_canary = load_provider_canary_evidence(workspace_root)
     next_actions = [
         action
-        for section in (runtime, projections, artifacts, verification, provider_canary)
+        for section in (
+            runtime,
+            projections,
+            background_jobs,
+            artifacts,
+            verification,
+            provider_canary,
+        )
         for action in section.next_actions
     ]
     return WorkspaceObservabilityReport(
         workspace_root=str(workspace_root),
         runtime=runtime,
         projections=projections,
+        background_jobs=background_jobs,
         artifacts=artifacts,
         verification=verification,
         provider_canary=provider_canary,
@@ -287,6 +310,36 @@ def build_artifact_observability(
         storage_warning=report.storage_warning,
         oldest_age_days=report.oldest_age_days,
         category_counts=report.category_counts,
+        next_actions=next_actions,
+    )
+
+
+def build_background_job_observability(
+    session_repository: SessionRepository,
+) -> BackgroundJobObservability:
+    counts = session_repository.count_background_jobs_by_state()
+    pending_count = counts.get("queued", 0) + counts.get(
+        "cancellation_requested",
+        0,
+    )
+    running_count = counts.get("claimed", 0) + counts.get("running", 0)
+    stale_count = counts.get("stale", 0)
+    last_failure = session_repository.latest_failed_background_job()
+    next_actions: list[str] = []
+    if pending_count:
+        next_actions.append("glassbox job list --state queued")
+    if running_count:
+        next_actions.append("glassbox job list --state running")
+    if stale_count:
+        next_actions.append("glassbox job list --state stale")
+    if last_failure is not None:
+        next_actions.append(f"glassbox job show {last_failure.job_id}")
+    return BackgroundJobObservability(
+        pending_count=pending_count,
+        running_count=running_count,
+        stale_count=stale_count,
+        last_failure_job_id=(str(last_failure.job_id) if last_failure else None),
+        last_failure_message=(last_failure.failure_message if last_failure else None),
         next_actions=next_actions,
     )
 
