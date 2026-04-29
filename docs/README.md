@@ -139,6 +139,7 @@ Use this page to jump to the right level of detail.
 - [release-packaging.md](./release-packaging.md): Python distribution packaging path, SPA asset checks, and installed-dashboard smoke validation
 - [refactor-boundaries.md](./refactor-boundaries.md): code-aligned boundary map, dependency-direction rules, and guardrails that explain why the current facades and module splits look the way they do
 - [refactor-v1.md](./refactor-v1.md): architecture-first refactor roadmap, completed follow-on queue, and status tracker for the v1 decomposition work
+- [refactor-v8.md](./refactor-v8.md): completed post-v8 refactor roadmap for runtime autonomy, store queries, TUI, dashboard stores, console components, documentation, and closeout guardrails
 - [tasks-v1.md](./tasks-v1.md): implementation history, completed v1 task graph, and roadmap context
 - [tasks-v2.md](./tasks-v2.md): concrete v2 task graph and milestone plan for persistent runtime ownership, operator-console evolution, upgrade safety, and long-lived workflow hardening
 

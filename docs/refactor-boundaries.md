@@ -12,6 +12,19 @@ What are the intended module boundaries for the current Glassbox implementation,
 
 This note is intentionally code-aligned. It describes the current implementation shape and the target decomposition boundaries for refactor work already captured in [refactor-v1.md](./refactor-v1.md) and [refactor-v8.md](./refactor-v8.md). It does not define a new product architecture.
 
+## Implementation Status
+
+The post-v8 boundary map is implemented as of Phase 55 of
+[refactor-v8.md](./refactor-v8.md). Runtime autonomy, store projection reads and
+repository adapters, TUI state/widgets/app coordination, dashboard stores,
+autonomy console sections, and session-inspector diagnostic panes now follow the
+module boundaries described here.
+
+The remaining compatibility modules named in this document are stable import
+facades. They preserve public call sites while delegating to owned
+implementation modules; they are not license for new behavior to accumulate in
+the facade.
+
 ## Scope
 
 This refactor pass is about implementation structure, not product behavior.
@@ -435,9 +448,10 @@ The guardrails are intentionally narrow:
 
 If a guardrail fails, the default repair should be to move new behavior into the owning split module or add one focused neighbor module, not to widen a facade or cross a subsystem boundary.
 
-## Acceptable Temporary Compatibility Shims
+## Stable Compatibility Facades
 
-The following temporary compatibility patterns are acceptable during this refactor pass:
+The following compatibility patterns are acceptable in the completed refactor
+shape:
 
 - `__init__.py` re-exports that preserve stable import paths while internals move behind them
 - thin forwarding wrappers that preserve repository adapter behavior while internal store modules split
@@ -451,9 +465,12 @@ The following temporary compatibility patterns are acceptable during this refact
   observability, repository-index, and provider evidence entry points while
   implementation details move into owned neighbors
 
-These shims are acceptable only if they are clearly transitional and do not reintroduce the same architectural ambiguity the refactor is trying to remove.
+These facades are acceptable only while they stay thin, reviewable, and oriented
+around stable public imports. New behavior should move into the owning domain
+module first, with the facade forwarding or re-exporting only when compatibility
+requires it.
 
-## Shims That Must Not Become Permanent
+## Patterns That Must Not Become Permanent
 
 The following patterns are not acceptable as stable endpoints:
 

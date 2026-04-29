@@ -73,6 +73,31 @@ following as the implemented baseline that v2 extends:
 v2 architecture work should extend these shipped boundaries rather than restate
 them as if they are still only design intent.
 
+## Current Post-v8 Refactor Shape
+
+The post-v8 implementation keeps the same local-first, event-sourced product
+contract while splitting the autonomy-era modules that had accumulated broad
+coordination responsibilities.
+
+The important current boundaries are:
+
+- runtime autonomy facades preserve stable public entrypoints while delegating
+    background-job lifecycle, workspace-memory extraction, observability
+    collection, repository-index discovery, and provider evidence into focused
+    modules
+- store read models and repository adapters remain the persistence boundary, but
+    projection queries and adapter methods now delegate by projection or domain
+    instead of growing inside one large file
+- the terminal TUI keeps stable `conversation.py`, `widgets.py`, and `app.py`
+    entrypoints while state models, reducers, selectors, pane widgets, stream
+    handling, commands, and refresh logic live in owned neighbor modules
+- the Next.js dashboard keeps a compatibility store import path and stable
+    console component entrypoints while domain stores, autonomy sections, and
+    session-inspector diagnostic panes are split by responsibility
+
+These splits are refactor-only architecture. They do not add new autonomy
+behavior, change event semantics, or make projection tables authoritative.
+
 ## Runtime Model
 
 The current shipped implementation still centers on one runtime owner per
@@ -164,6 +189,38 @@ now split deliberately:
 - `runtime/bootstrap_storage.py` owns storage-path resolution and SQLite initialization
 - `runtime/bootstrap_provider.py` owns provider configuration and model/tool builders
 - `runtime/bootstrap_assembly.py` assembles repositories, services, and infrastructure into `RuntimeContext`
+
+### Runtime Autonomy Boundaries
+
+The v8 autonomy surfaces are implemented as stable facades over focused
+runtime-owned helpers:
+
+- `runtime/background_jobs.py` owns the public worker loop, worker tick, and
+    job-runner entrypoints. Lease recovery, stale-claim cancellation, read-only
+    maintenance handlers, mutating task continuation, and job progress or
+    failure recording live in `background_job_lifecycle.py`,
+    `background_job_handlers.py`, `background_task_continuation.py`, and
+    `background_job_records.py`.
+- `runtime/workspace_memory_capture.py` owns the public capture service and
+    repository protocol. Candidate models, filtering, extraction, redaction, and
+    review-gated commit-event construction live in
+    `workspace_memory_candidates.py`, `workspace_memory_extraction.py`,
+    `workspace_memory_redaction.py`, and `workspace_memory_commits.py`.
+- `runtime/observability.py` owns `build_workspace_observability_report` as the
+    aggregation facade. Report models and read-only domain collectors live in
+    `observability_models.py` and the `observability_*` modules for runtime,
+    projections, artifacts, verification, background jobs, task autonomy,
+    workspace memory, repository index, and branch search.
+- `runtime/repository_index.py` owns the public build, write, load, search, and
+    entry-fetch helpers. Discovery, entry extraction, persistence/freshness, and
+    search ranking live in `repository_index_discovery.py`,
+    `repository_index_extraction.py`, `repository_index_persistence.py`, and
+    `repository_index_search.py`.
+
+Maintenance collectors and observability modules are read-only except for
+explicit job-progress records. Task continuation is the runtime background path
+that may mutate task or session state. Repository intelligence remains derived
+from local files and rebuildable persisted state.
 
 ### Tool Runtime
 
@@ -891,6 +948,19 @@ The dashboard and CLI should depend on projections, not on mutable runtime inter
 
 The detailed projection-table direction lives in [database.md](./database.md), but the important architectural rule is simple: projections are read models, not a second source of truth.
 
+The store implementation follows that rule with a split read boundary:
+
+- `store/sqlite_queries.py` is a compatibility facade over focused
+    `sqlite_query_*` modules for transcript, runtime notes, tools and
+    approvals, turn metrics, autonomy budgets, tasks, and branch search
+- `store/repositories.py` is a compatibility facade over domain repository
+    delegates for sessions, events and forks, projection reads, background jobs,
+    workspace memory, tasks, branch search, and artifacts
+
+Those modules may shape projection records and adapter results, but they do not
+own runtime orchestration, HTTP response models, CLI formatting, or frontend
+state.
+
 ## Richer Runtime Context Model
 
 Glassbox treats turn context as a first-class runtime contract rather than as an
@@ -1493,6 +1563,24 @@ The SPA architecture should keep these boundaries explicit:
 - React components render the operator console from typed store state and call
     transport/store actions instead of issuing ad hoc HTTP requests
 
+The current post-v8 dashboard split keeps those boundaries concrete:
+
+- `frontend/stores/dashboard-stores.ts` is a compatibility facade that
+    re-exports domain stores and public state types
+- session summary/detail streaming, task queue/detail/action state, workspace
+    memory and repository inspector state, branch-search state, and shared
+    request/action/load-state helpers live in dedicated store modules
+- task, knowledge, branch-search, and verification-cue console sections live in
+    focused `*-sections.tsx` modules while the public console component
+    entrypoints remain stable
+- session-inspector diagnostics keep `diagnostics-panes.tsx` as the pane export
+    facade while runtime context, metrics, event/projection evidence, and shared
+    pagination controls live in dedicated pane modules
+
+Frontend stores consume generated API client types and browser transport
+helpers. They must not import React components, Next.js server-only modules, or
+backend Python source.
+
 [operator-console.md](./operator-console.md) remains the product UX baseline for
 the SPA. The first SPA screen is the operator console itself: workspace overview,
 action queues, runtime/projection health, and selected-session inspection. The
@@ -1595,6 +1683,24 @@ The CLI should expose two complementary layers:
 
 - interactive commands for the normal conversational workflow
 - non-interactive commands for scripting, recovery, and explicit low-level control
+
+The full-screen TUI is split so terminal state remains testable without starting
+the Textual app:
+
+- `cli/tui/conversation.py` is the stable conversation-state facade over
+    `conversation_models.py`, `conversation_hydration.py`,
+    `conversation_reducer.py`, and `conversation_selectors.py`
+- `cli/tui/widgets.py` is the stable widget facade over pane-family modules for
+    header, footer/action strip, transcript, composer, command palette, details,
+    and shared formatting
+- `cli/tui/app.py` owns Textual lifecycle while `app_commands.py`,
+    `app_stream.py`, `app_refresh.py`, `app_feedback.py`, and `app_paths.py`
+    own command dispatch, stream lifecycle, widget refresh, feedback mapping,
+    and local artifact path resolution
+
+TUI reducers consume core events and CLI-local snapshot models. TUI widgets may
+depend on Textual/Rich and terminal selectors, but they do not import raw store
+helpers, web routes, frontend modules, or runtime background-job orchestration.
 
 ### Scriptable Command Surface
 
@@ -2184,7 +2290,8 @@ Guidelines:
 
 ## Module Boundaries
 
-The current v1 package layout reflects the post-refactor ownership boundaries rather than a small set of large mixed-responsibility modules.
+The current package layout reflects the post-v8 ownership boundaries rather
+than a small set of large mixed-responsibility modules.
 
 ```text
 src/glassbox/
@@ -2202,6 +2309,26 @@ src/glassbox/
         server_commands.py
         session_state_commands.py
         status_formatters.py
+        tui/
+            app.py
+            app_commands.py
+            app_feedback.py
+            app_paths.py
+            app_refresh.py
+            app_stream.py
+            conversation.py
+            conversation_hydration.py
+            conversation_models.py
+            conversation_reducer.py
+            conversation_selectors.py
+            widget_action.py
+            widget_composer.py
+            widget_details.py
+            widget_formatting.py
+            widget_header.py
+            widget_palette.py
+            widget_transcript.py
+            widgets.py
     core/
         __init__.py
         events.py
@@ -2211,6 +2338,11 @@ src/glassbox/
     runtime/
         __init__.py
         bootstrap.py
+        background_job_handlers.py
+        background_job_lifecycle.py
+        background_job_records.py
+        background_jobs.py
+        background_task_continuation.py
         bus.py
         context.py
         context_builder.py
@@ -2224,6 +2356,10 @@ src/glassbox/
         eval_summary_release.py
         eval_summary_suite.py
         model_loop.py
+        observability.py
+        observability_*.py
+        repository_index.py
+        repository_index_*.py
         replay.py
         replay_bundle_io.py
         replay_capture.py
@@ -2240,6 +2376,8 @@ src/glassbox/
         turn_preparation.py
         turn_resumption.py
         turn_tool_executor.py
+        workspace_memory_capture.py
+        workspace_memory_*.py
     llm/
         __init__.py
         adapters.py
@@ -2261,46 +2399,40 @@ src/glassbox/
         sqlite_fork.py
         sqlite_projections.py
         sqlite_queries.py
+        sqlite_query_*.py
         sqlite_schema.py
         sqlite_sessions.py
         artifacts.py
         repositories.py
+        repository_*.py
         sqlite.py
     web/
         __init__.py
         app.py
         routes/
             approvals.py
+            branch_searches.py
             events.py
             health.py
+            jobs.py
+            memory.py
             sessions.py
+            tasks.py
         server.py
         session_api.py
-        static/
-            dashboard.js
-            dashboard-controller.js
-            dashboard-dom.js
-            dashboard-transport.js
-            interaction-actions.js
-            render-action-panes.js
-            render-activity-panes.js
-            render-diagnostics-panes.js
-            render-session-panes.js
-            render-utils.js
-            render.js
-            state-core.js
-            state-events.js
-            state-interaction.js
-            state-snapshot.js
-            state-stream.js
-            state.js
         static_next/
             # built Next.js static export, when present
     frontend/
         app/
         components/
+            console/
+                *-sections.tsx
+                session-inspector/
+                    panes/
         lib/
-        styles/
+        stores/
+            dashboard-stores.ts
+            *-store.ts
         tests/
         package.json
     services/
@@ -2316,8 +2448,20 @@ The public entry modules are intentionally thinner than their neighbors:
 
 - `runtime/__init__.py` stays a curated package surface for runtime wiring types
 - `runtime/replay.py` and `runtime/eval_summary.py` stay as compatibility facades over the split replay and eval-reporting modules
-- `store/sqlite.py` stays as the stable SQLite facade while internal ownership lives in `sqlite_*` modules
-- during the v3 migration, `web/static/state.js`, `render.js`, and `dashboard.js` are legacy browser facades for the no-framework dashboard, while `frontend/` becomes the target SPA source and `web/static_next/` holds built SPA assets
+- `runtime/background_jobs.py`, `runtime/workspace_memory_capture.py`,
+    `runtime/observability.py`, and `runtime/repository_index.py` stay as
+    stable autonomy facades over focused helper modules
+- `store/sqlite.py`, `store/sqlite_queries.py`, and `store/repositories.py`
+    stay as stable store facades while internal ownership lives in
+    `sqlite_*`, `sqlite_query_*`, and `repository_*` modules
+- `cli/tui/conversation.py`, `cli/tui/widgets.py`, and `cli/tui/app.py` stay as
+    stable terminal entrypoints over state, reducer, selector, pane-widget, and
+    app-coordination modules
+- `frontend/stores/dashboard-stores.ts` stays as the compatibility store
+    surface while domain stores own session, task, knowledge, branch-search,
+    stream, request, and action state
+- `frontend/` is the SPA source, and `web/static_next/` holds the built static
+    dashboard assets served by FastAPI
 
 ### Boundary Rules
 
@@ -2325,9 +2469,12 @@ The public entry modules are intentionally thinner than their neighbors:
 - `services` contains repository and service contracts plus contract-layer shared values such as `StoredArtifact`; it should remain concrete-implementation free.
 - `store` owns persistence internals, repository adapters, artifact storage, and projection rebuild logic. Raw SQLite helpers stay in `sqlite_*` modules behind `store/sqlite.py`.
 - `runtime` owns orchestration, context assembly, the shared model-loop boundary, session-query shaping, replay execution, and eval reporting. Bootstrap code may wire concrete store implementations, but orchestration code should prefer service and repository contracts.
+- runtime autonomy collectors and repository-index helpers must not import CLI/TUI widgets, raw SQLite helpers, HTTP routes, or frontend modules.
 - `tools` depends on `core` and minimal runtime contracts.
 - `cli` depends on runtime and service/query seams, not on raw store helpers. `cli/__init__.py` remains a compatibility wrapper while parser, command, interactive-session, and formatting responsibilities live in owned neighbor modules.
-- `web` owns HTTP transport, SSE endpoints, and browser asset serving. Route modules should use runtime query and service seams rather than rebuilding business logic inline. During the v3 migration, the legacy `web/static/` dashboard remains available until SPA parity, and the production SPA is served as static assets by FastAPI rather than by a Node process.
+- TUI state and widget modules depend on events, snapshots, selectors, Textual, and Rich, not on store internals, web routes, frontend code, or background-worker orchestration.
+- `web` owns HTTP transport, SSE endpoints, and browser asset serving. Route modules should use runtime query and service seams rather than rebuilding business logic inline. The production SPA is served as static assets by FastAPI rather than by a Node process.
+- frontend stores depend on generated API types, browser transport, route-state helpers, and pure store utilities. Components render from store/API state and should not become store factories or backend event-derivation modules.
 
 ## Service Interfaces
 

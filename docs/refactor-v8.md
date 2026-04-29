@@ -696,7 +696,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R250: Update Architecture Docs For The Post-v8 Refactor Shape
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R210`, `GBX-R211`, `GBX-R212`, `GBX-R213`, `GBX-R220`,
   `GBX-R221`, `GBX-R230`, `GBX-R231`, `GBX-R232`, `GBX-R240`, `GBX-R241`,
   `GBX-R242`
@@ -718,6 +718,7 @@ Each phase below corresponds to one concrete refactor milestone.
 - Tests and validation included in task:
   - `uv run pytest tests/unit/test_release_candidate_docs.py`
   - doc review against the final implementation
+  - verified with `uv run pytest tests/unit/test_release_candidate_docs.py`
 - Done when:
   - docs and code describe the same post-v8 architecture and remaining shims are
     either justified or tracked

@@ -91,13 +91,25 @@ The persistence contract above is stable even though the store implementation is
 now decomposed internally.
 
 - `src/glassbox/store/sqlite.py` is the public compatibility facade for schema bootstrap, append/read helpers, rebuild entrypoints, and list-style query helpers
-- `src/glassbox/store/sqlite_schema.py`, `sqlite_sessions.py`, `sqlite_events.py`, `sqlite_projections.py`, `sqlite_queries.py`, and `sqlite_fork.py` own the internal storage concerns separately
-- `src/glassbox/store/repositories.py` owns the concrete repository adapters over those helpers
+- `src/glassbox/store/sqlite_schema.py`, `sqlite_sessions.py`, `sqlite_events.py`, `sqlite_projections.py`, `sqlite_queries.py`, and `sqlite_fork.py` own the broad internal storage concerns separately
+- `src/glassbox/store/sqlite_queries.py` remains a thin read-model facade over
+    focused `sqlite_query_*` modules for transcript, runtime notes, tools and
+    approvals, turn metrics, autonomy budgets, task projections, and
+    branch-search projections
+- `src/glassbox/store/repositories.py` owns the concrete repository adapter
+    surface while session, event/fork, projection-read, background-job,
+    workspace-memory, task, branch-search, and artifact behavior live in
+    focused `repository_*` delegates
 - `src/glassbox/store/artifacts.py` owns filesystem artifact writes and reads while returning the shared `StoredArtifact` contract type from `services/contracts.py`
 
 This refactor changed internal ownership, not the operator-visible storage model.
 Schema bootstrap, append ordering, projection rebuild semantics, and artifact
 layout remain aligned with the tables and rules documented here.
+
+Store query modules remain below runtime and transport layers. They may read and
+shape deterministic projection records, but runtime query services, CLI
+formatters, and web serializers own operator-facing summaries and response
+models.
 
 The schema upgrade story now starts with an explicit v3 baseline and applies
 ordered migrations to the current schema version during runtime bootstrap. The
@@ -476,6 +488,13 @@ workspace's `.glassbox` directory. Existing target files are not overwritten
 unless `--force` is supplied.
 
 ## Query Patterns This Design Optimizes
+
+The query patterns below are implemented behind the split store read boundary:
+SQLite-specific row reads live in `sqlite_query_*` modules, while concrete
+service adapters call them through focused `repository_*` delegates and the
+stable `repositories.py` facade. That keeps projection reads rebuildable from
+canonical events without making HTTP, CLI, or dashboard code responsible for
+raw SQL.
 
 ### Rebuild A Session Transcript Snapshot
 
