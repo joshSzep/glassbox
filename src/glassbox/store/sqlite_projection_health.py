@@ -13,6 +13,9 @@ _PROJECTION_TABLES = (
     "approvals",
     "runtime_notes",
     "turn_metrics",
+    "tasks",
+    "task_steps",
+    "task_verifications",
 )
 
 

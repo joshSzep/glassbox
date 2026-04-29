@@ -302,6 +302,26 @@ class TaskStepRecord(BaseModel):
     blocked_reason: TaskBlockedReason | None = None
 
 
+class TaskRecord(BaseModel):
+    """A query-friendly view of a durable task plan."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    task_id: TaskId
+    session_id: SessionId
+    title: str
+    goal: str
+    status: TaskPlanStatus
+    created_at: datetime
+    updated_at: datetime
+    source_turn_id: TurnId | None = None
+    current_step_id: TaskStepId | None = None
+    blocked_reason: TaskBlockedReason | None = None
+    blocked_detail: str | None = None
+    last_sequence: int = Field(ge=0)
+    step_count: int = Field(default=0, ge=0)
+
+
 class TaskVerificationRecord(BaseModel):
     """A query-friendly view of a task verification run."""
 

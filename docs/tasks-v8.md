@@ -356,9 +356,10 @@ The intended v8 milestone order is:
 
 ### GBX-821: Add Task Projections, Repository Queries, And Rebuild Semantics
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-820`
 - Goal: make task plans queryable and rebuildable from canonical events
+- Evidence: [task-plans.md](./task-plans.md)
 - Deliverables:
   - SQLite projection tables for tasks, task steps, task verification runs, and task budget summary fields where needed
   - projection application logic for every task-plan event from GBX-820

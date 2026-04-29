@@ -188,6 +188,80 @@ BOOTSTRAP_STATEMENTS = (
     create index if not exists idx_turn_metrics_session_started
         on turn_metrics (session_id, started_at desc)
     """,
+    """
+    create table if not exists tasks (
+        session_id text not null,
+        task_id text not null,
+        title text not null,
+        goal text not null,
+        status text not null,
+        source_turn_id text,
+        current_step_id text,
+        blocked_reason text,
+        blocked_detail text,
+        created_at text not null,
+        updated_at text not null,
+        last_sequence integer not null,
+        primary key (session_id, task_id),
+        foreign key (session_id) references sessions(session_id)
+    )
+    """,
+    """
+    create index if not exists idx_tasks_session_status_updated
+        on tasks (session_id, status, updated_at desc)
+    """,
+    """
+    create index if not exists idx_tasks_session_blocked
+        on tasks (session_id, blocked_reason, updated_at desc)
+    """,
+    """
+    create table if not exists task_steps (
+        session_id text not null,
+        task_id text not null,
+        step_id text not null,
+        title text not null,
+        description text,
+        step_order integer not null,
+        status text not null,
+        blocked_reason text,
+        started_at text,
+        completed_at text,
+        summary text,
+        failure_reason text,
+        last_sequence integer not null,
+        primary key (session_id, step_id),
+        foreign key (session_id, task_id) references tasks(session_id, task_id)
+    )
+    """,
+    """
+    create index if not exists idx_task_steps_task_order
+        on task_steps (session_id, task_id, step_order)
+    """,
+    """
+    create index if not exists idx_task_steps_session_status
+        on task_steps (session_id, status)
+    """,
+    """
+    create table if not exists task_verifications (
+        session_id text not null,
+        task_id text not null,
+        verification_id text not null,
+        step_id text,
+        check_name text not null,
+        status text not null,
+        started_at text,
+        completed_at text,
+        summary text,
+        artifact_id text,
+        last_sequence integer not null,
+        primary key (session_id, verification_id),
+        foreign key (session_id, task_id) references tasks(session_id, task_id)
+    )
+    """,
+    """
+    create index if not exists idx_task_verifications_task
+        on task_verifications (session_id, task_id, started_at)
+    """,
 )
 
 V3_BASELINE_SCHEMA_STATEMENTS = (

@@ -8,7 +8,7 @@ from pathlib import Path
 from glassbox.store.sqlite_schema_statements import BOOTSTRAP_STATEMENTS
 from glassbox.store.sqlite_schema_statements import V3_BASELINE_SCHEMA_STATEMENTS
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 BASELINE_SCHEMA_VERSION = 3
 BASELINE_MIGRATION_NAME = "baseline event store and projections"
 
@@ -202,6 +202,99 @@ def _ensure_policy_metadata_projection_schema(connection: sqlite3.Connection) ->
         connection.execute("alter table approvals add column policy_source_label text")
 
 
+def _ensure_task_projection_schema(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        create table if not exists tasks (
+            session_id text not null,
+            task_id text not null,
+            title text not null,
+            goal text not null,
+            status text not null,
+            source_turn_id text,
+            current_step_id text,
+            blocked_reason text,
+            blocked_detail text,
+            created_at text not null,
+            updated_at text not null,
+            last_sequence integer not null,
+            primary key (session_id, task_id),
+            foreign key (session_id) references sessions(session_id)
+        )
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_tasks_session_status_updated
+            on tasks (session_id, status, updated_at desc)
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_tasks_session_blocked
+            on tasks (session_id, blocked_reason, updated_at desc)
+        """
+    )
+    connection.execute(
+        """
+        create table if not exists task_steps (
+            session_id text not null,
+            task_id text not null,
+            step_id text not null,
+            title text not null,
+            description text,
+            step_order integer not null,
+            status text not null,
+            blocked_reason text,
+            started_at text,
+            completed_at text,
+            summary text,
+            failure_reason text,
+            last_sequence integer not null,
+            primary key (session_id, step_id),
+            foreign key (session_id, task_id) references tasks(session_id, task_id)
+        )
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_task_steps_task_order
+            on task_steps (session_id, task_id, step_order)
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_task_steps_session_status
+            on task_steps (session_id, status)
+        """
+    )
+    connection.execute(
+        """
+        create table if not exists task_verifications (
+            session_id text not null,
+            task_id text not null,
+            verification_id text not null,
+            step_id text,
+            check_name text not null,
+            status text not null,
+            started_at text,
+            completed_at text,
+            summary text,
+            artifact_id text,
+            last_sequence integer not null,
+            primary key (session_id, verification_id),
+            foreign key (session_id, task_id) references tasks(session_id, task_id)
+        )
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_task_verifications_task
+            on task_verifications (session_id, task_id, started_at)
+        """
+    )
+
+
 MIGRATIONS = (
     SchemaMigration(
         version=4,
@@ -217,6 +310,11 @@ MIGRATIONS = (
         version=6,
         name="add policy metadata projection columns",
         apply=_ensure_policy_metadata_projection_schema,
+    ),
+    SchemaMigration(
+        version=7,
+        name="add task plan projection tables",
+        apply=_ensure_task_projection_schema,
     ),
 )
 

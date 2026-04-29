@@ -60,12 +60,18 @@ def test_cli_rebuild_restores_one_session_projections_only(
         "transcript_messages": 2,
         "tool_calls": 1,
         "approvals": 1,
+        "tasks": 0,
+        "task_steps": 0,
+        "task_verifications": 0,
     }
     assert untouched_counts == {
         "session_state": 0,
         "transcript_messages": 0,
         "tool_calls": 0,
         "approvals": 0,
+        "tasks": 0,
+        "task_steps": 0,
+        "task_verifications": 0,
     }
 
 
@@ -112,12 +118,18 @@ def test_cli_rebuild_all_restores_all_sessions(
         "transcript_messages": 2,
         "tool_calls": 1,
         "approvals": 1,
+        "tasks": 0,
+        "task_steps": 0,
+        "task_verifications": 0,
     }
     assert second_counts == {
         "session_state": 1,
         "transcript_messages": 2,
         "tool_calls": 1,
         "approvals": 1,
+        "tasks": 0,
+        "task_steps": 0,
+        "task_verifications": 0,
     }
 
 
@@ -336,6 +348,9 @@ def _wipe_all_projections(db_path: Path) -> None:
             connection.execute("delete from transcript_messages")
             connection.execute("delete from tool_calls")
             connection.execute("delete from approvals")
+            connection.execute("delete from tasks")
+            connection.execute("delete from task_steps")
+            connection.execute("delete from task_verifications")
     finally:
         connection.close()
 
@@ -358,6 +373,18 @@ def _projection_counts(db_path: Path, session_id: UUID) -> dict[str, int]:
             ).fetchone()[0],
             "approvals": connection.execute(
                 "select count(*) from approvals where session_id = ?",
+                (str(session_id),),
+            ).fetchone()[0],
+            "tasks": connection.execute(
+                "select count(*) from tasks where session_id = ?",
+                (str(session_id),),
+            ).fetchone()[0],
+            "task_steps": connection.execute(
+                "select count(*) from task_steps where session_id = ?",
+                (str(session_id),),
+            ).fetchone()[0],
+            "task_verifications": connection.execute(
+                "select count(*) from task_verifications where session_id = ?",
                 (str(session_id),),
             ).fetchone()[0],
         }

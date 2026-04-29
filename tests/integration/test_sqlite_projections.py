@@ -5,7 +5,21 @@ from pathlib import Path
 from glassbox.core import EventEnvelope
 from glassbox.core import RuntimeNoteRecorded
 from glassbox.core import SessionStarted
+from glassbox.core import TaskBlockedReason
+from glassbox.core import TaskCreated
+from glassbox.core import TaskPaused
+from glassbox.core import TaskPlanProposed
+from glassbox.core import TaskPlanSnapshot
+from glassbox.core import TaskStepCompleted
+from glassbox.core import TaskStepProposal
+from glassbox.core import TaskStepStarted
+from glassbox.core import TaskVerificationCompleted
+from glassbox.core import TaskVerificationStarted
+from glassbox.core import TaskVerificationStatus
 from glassbox.core import new_session_id
+from glassbox.core import new_task_id
+from glassbox.core import new_task_step_id
+from glassbox.core import new_task_verification_id
 from glassbox.store.sqlite import append_events
 from glassbox.store.sqlite import list_runtime_notes
 from glassbox.store.sqlite import rebuild_session_projections
@@ -203,3 +217,134 @@ def test_runtime_note_projection_keeps_history_and_bounded_active_set(
         (4, "runtime", "Repo indexing is warm", False),
     ]
     assert active_notes_after == active_notes_before
+
+
+def test_task_projection_rebuilds_task_steps_and_verifications(tmp_path: Path) -> None:
+    session_id = new_session_id()
+    task_id = new_task_id()
+    step_id = new_task_step_id()
+    verification_id = new_task_verification_id()
+    connection = open_initialized_database(tmp_path)
+    try:
+        append_events(
+            connection,
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=SessionStarted(
+                        cwd=str(tmp_path),
+                        model_name="openai:gpt-5.4",
+                        approval_mode="confirm",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskCreated(
+                        task_id=task_id,
+                        title="Add projections",
+                        goal="Make task plans queryable",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskPlanProposed(
+                        task_id=task_id,
+                        plan=TaskPlanSnapshot(
+                            task_id=task_id,
+                            title="Add projections",
+                            goal="Make task plans queryable",
+                            steps=[
+                                TaskStepProposal(
+                                    step_id=step_id,
+                                    title="Create task tables",
+                                    order=0,
+                                )
+                            ],
+                        ),
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskStepStarted(task_id=task_id, step_id=step_id),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskStepCompleted(
+                        task_id=task_id,
+                        step_id=step_id,
+                        summary="tables created",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskVerificationStarted(
+                        task_id=task_id,
+                        verification_id=verification_id,
+                        step_id=step_id,
+                        check_name="pytest",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskVerificationCompleted(
+                        task_id=task_id,
+                        verification_id=verification_id,
+                        status=TaskVerificationStatus.PASSED,
+                        summary="projection tests passed",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskPaused(
+                        task_id=task_id,
+                        reason=TaskBlockedReason.MANUAL_PAUSE,
+                        detail="waiting for review",
+                    ),
+                ),
+            ],
+        )
+
+        task_before = list(connection.execute("select * from tasks"))
+        steps_before = list(connection.execute("select * from task_steps"))
+        verifications_before = list(
+            connection.execute("select * from task_verifications")
+        )
+
+        connection.execute("delete from task_verifications")
+        connection.execute("delete from task_steps")
+        connection.execute("delete from tasks")
+        rebuild_session_projections(connection, session_id)
+
+        task = connection.execute(
+            """
+            select status, blocked_reason, blocked_detail
+            from tasks
+            where task_id = ?
+            """,
+            (str(task_id),),
+        ).fetchone()
+        step = connection.execute(
+            "select status, summary from task_steps where step_id = ?",
+            (str(step_id),),
+        ).fetchone()
+        verification = connection.execute(
+            "select status, summary from task_verifications where verification_id = ?",
+            (str(verification_id),),
+        ).fetchone()
+    finally:
+        connection.close()
+
+    assert task_before
+    assert steps_before
+    assert verifications_before
+    assert tuple(task) == ("paused", "manual_pause", "waiting for review")
+    assert tuple(step) == ("completed", "tables created")
+    assert tuple(verification) == ("passed", "projection tests passed")

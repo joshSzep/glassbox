@@ -14,6 +14,16 @@ Task plans live in the canonical event stream. The first v8 event payloads cover
 
 The initial model layer is intentionally execution-neutral. It lets Glassbox persist and validate task-plan facts without granting the agent more autonomy yet. Later phases add projections, query services, APIs, background continuation, budgets, verification loops, and dashboard controls on top of these events.
 
+## Projection Boundary
+
+The first task projection tables are:
+
+- `tasks`: one row per durable task plan, including status, blocked reason, current step, source turn, and sequence progress
+- `task_steps`: one row per planned step, including plan order, status, summary, failure reason, and blocked reason
+- `task_verifications`: one row per verification attempt, including check name, status, summary, artifact pointer, and sequence progress
+
+These tables are derived state. `projection rebuild` must be able to delete and reconstruct them from canonical task-plan events without changing session history.
+
 ## Relationship To Existing Objects
 
 Task plans differ from existing runtime objects in these ways:
@@ -34,3 +44,4 @@ Task-plan payloads use the existing `EventEnvelope.event_version` field for pers
 - [v8-auditable-autonomy-contract.md](./v8-auditable-autonomy-contract.md)
 - [v8-autonomy-baseline-inventory.md](./v8-autonomy-baseline-inventory.md)
 - [architecture.md](./architecture.md)
+- [database.md](./database.md)

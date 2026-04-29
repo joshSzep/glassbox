@@ -16,6 +16,7 @@ from glassbox.core.events import RuntimeNoteRecorded
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import SessionId
+from glassbox.core.ids import TaskId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.models import ApprovalRecord
@@ -25,6 +26,9 @@ from glassbox.core.models import RuntimeNoteRecord
 from glassbox.core.models import SessionConfig
 from glassbox.core.models import SessionRecord
 from glassbox.core.models import SessionState
+from glassbox.core.models import TaskRecord
+from glassbox.core.models import TaskStepRecord
+from glassbox.core.models import TaskVerificationRecord
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TranscriptMessage
 from glassbox.core.models import TurnMetricsRecord
@@ -251,6 +255,51 @@ class SQLiteSessionRepository:
             limit=limit,
             offset=offset,
         )
+
+    def list_tasks(
+        self,
+        session_id: SessionId,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[TaskRecord]:
+        return query_store.list_tasks(
+            self._connection,
+            session_id,
+            limit=limit,
+            offset=offset,
+        )
+
+    def get_task(
+        self,
+        session_id: SessionId,
+        task_id: TaskId,
+    ) -> TaskRecord | None:
+        return query_store.get_task(self._connection, session_id, task_id)
+
+    def list_task_steps(
+        self,
+        session_id: SessionId,
+        task_id: TaskId,
+    ) -> list[TaskStepRecord]:
+        return query_store.list_task_steps(self._connection, session_id, task_id)
+
+    def list_task_verifications(
+        self,
+        session_id: SessionId,
+        task_id: TaskId,
+    ) -> list[TaskVerificationRecord]:
+        return query_store.list_task_verifications(
+            self._connection,
+            session_id,
+            task_id,
+        )
+
+    def list_open_blocked_tasks(
+        self,
+        session_id: SessionId,
+    ) -> list[TaskRecord]:
+        return query_store.list_open_blocked_tasks(self._connection, session_id)
 
     def resolve_fork_point(
         self,

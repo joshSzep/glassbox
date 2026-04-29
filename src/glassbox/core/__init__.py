@@ -83,6 +83,7 @@ from glassbox.core.models import SessionConfig
 from glassbox.core.models import SessionRecord
 from glassbox.core.models import SessionState
 from glassbox.core.models import TaskPlanSnapshot
+from glassbox.core.models import TaskRecord
 from glassbox.core.models import TaskStepProposal
 from glassbox.core.models import TaskStepRecord
 from glassbox.core.models import TaskVerificationRecord
@@ -152,6 +153,7 @@ __all__ = [
     "TaskPlanRevised",
     "TaskPlanSnapshot",
     "TaskPlanStatus",
+    "TaskRecord",
     "TaskResumed",
     "TaskStatusChanged",
     "TaskStepCompleted",

@@ -10,7 +10,11 @@ from glassbox.store.sqlite_fork import build_imported_transcript_events
 from glassbox.store.sqlite_fork import resolve_fork_point
 from glassbox.store.sqlite_projection_health import inspect_session_projection_health
 from glassbox.store.sqlite_queries import list_approvals
+from glassbox.store.sqlite_queries import list_open_blocked_tasks
 from glassbox.store.sqlite_queries import list_runtime_notes
+from glassbox.store.sqlite_queries import list_task_steps
+from glassbox.store.sqlite_queries import list_task_verifications
+from glassbox.store.sqlite_queries import list_tasks
 from glassbox.store.sqlite_queries import list_tool_calls
 from glassbox.store.sqlite_queries import list_transcript_messages
 from glassbox.store.sqlite_queries import list_turn_metrics
@@ -38,8 +42,12 @@ __all__ = [
     "initialize_database",
     "inspect_session_projection_health",
     "list_approvals",
+    "list_open_blocked_tasks",
     "list_runtime_notes",
     "list_sessions",
+    "list_task_steps",
+    "list_task_verifications",
+    "list_tasks",
     "list_tool_calls",
     "list_transcript_messages",
     "list_turn_metrics",
