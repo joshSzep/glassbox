@@ -661,7 +661,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R242: Split Session Inspector Diagnostic Panes By Evidence Type
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R240`
 - Goal: reduce the largest session-inspector pane modules by grouping runtime,
   policy, verification, projection, and replay evidence into focused sections
@@ -674,11 +674,18 @@ Each phase below corresponds to one concrete refactor milestone.
   - preserve current tab names, inspector layout, and payload expectations
   - do not move canonical session-state normalization into components
   - keep component tests focused on rendered evidence and action availability
+  - completed split keeps `diagnostics-panes.tsx` as the stable pane export
+    facade while runtime context, metric evidence, event/projection evidence,
+    and shared pagination controls live in `runtime-pane.tsx`,
+    `metrics-pane.tsx`, `evidence-pane.tsx`, and `diagnostics-shared.tsx`
 - Tests and validation included in task:
   - `pnpm --dir frontend test -- session-inspector.test.ts`
   - `pnpm --dir frontend test -- session-state.test.ts`
   - `pnpm --dir frontend typecheck`
   - `pnpm --dir frontend lint`
+  - verified with `pnpm --dir frontend test -- session-inspector.test.ts
+    session-state.test.ts`, `pnpm --dir frontend typecheck`, and
+    `pnpm --dir frontend lint`
 - Done when:
   - session inspector panes remain behavior-compatible while large diagnostic
     surfaces are organized by evidence type

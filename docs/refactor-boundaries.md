@@ -352,6 +352,10 @@ the Next.js SPA contract in [architecture.md](./architecture.md) and
   focused `*-sections.tsx` modules. These section modules own list/detail,
   evidence, action-control, and formatting UI while preserving current routes,
   API calls, and workflow behavior
+- session-inspector diagnostic panes keep `diagnostics-panes.tsx` as a stable
+  export facade while runtime context, metrics, event/projection evidence, and
+  shared diagnostic pagination live in focused pane modules under
+  `frontend/components/console/session-inspector/panes/`
 - frontend components should consume store state and generated API types, not
   duplicate backend event derivation rules that already exist in runtime/store
   read models
