@@ -607,7 +607,7 @@ The intended v8 milestone order is:
 
 ### GBX-835: Surface Autonomy Budgets In Session Status, Web Snapshots, And Exports
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-834`
 - Goal: make effective autonomy mode, budget use, and budget stops visible everywhere operators already inspect sessions
 - Deliverables:
@@ -625,6 +625,12 @@ The intended v8 milestone order is:
   - web snapshot tests
   - export tests
   - frontend typecheck if generated API changes
+- Evidence:
+  - `uv run pytest tests/unit/test_cli_facade_characterization.py tests/integration/test_web_session_snapshot.py::test_get_session_snapshot_exposes_autonomy_budget_posture tests/integration/test_cli_session_export.py::test_cli_session_export_includes_autonomy_budget_posture tests/integration/test_web_session_aggregate.py::test_get_sessions_aggregate_matches_snapshot_summary_fields`
+  - `uv run ruff check src/glassbox/web/session_api.py src/glassbox/runtime/session_export_models.py src/glassbox/runtime/session_export.py src/glassbox/runtime/session_query_helpers.py src/glassbox/runtime/session_query_service.py src/glassbox/cli/status_formatters.py tests/unit/test_cli_facade_characterization.py tests/integration/test_web_session_snapshot.py tests/integration/test_cli_session_export.py`
+  - `uv run ty check`
+  - `pnpm exec vitest run tests/generated-api-types.test.ts`
+  - `pnpm run typecheck`
 - Done when:
   - an operator can tell why Glassbox acted, paused, or stopped without reading raw event JSON
 

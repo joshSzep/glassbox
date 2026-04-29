@@ -250,6 +250,8 @@ def test_get_sessions_summary_response_includes_expected_top_level_keys(
                 "model_name",
                 "cwd",
                 "approval_mode",
+                "approval_behavior",
+                "budget_posture",
                 "parent_session_id",
                 "forked_from_turn_id",
                 "forked_from_sequence",

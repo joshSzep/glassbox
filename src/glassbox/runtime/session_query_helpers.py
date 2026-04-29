@@ -13,6 +13,7 @@ from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import TurnId
 from glassbox.core.models import ApprovalRecord
+from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import PolicyActivitySummary
 from glassbox.core.models import ProjectionHealth
 from glassbox.core.models import SessionRecord
@@ -140,9 +141,15 @@ def next_action_summary(
     pending_question_text: str | None,
     session_failure: SessionFailed | None,
     current_turn_id,
+    budget_posture: AutonomyBudgetPostureRecord | None = None,
 ) -> str:
     if projection_health.degraded:
         return "Rebuild derived projections from canonical events"
+
+    if budget_posture is not None:
+        budget_action = _budget_next_action_summary(budget_posture)
+        if budget_action is not None:
+            return budget_action
 
     if status == "awaiting_user_input":
         if pending_question_text is not None:
@@ -169,6 +176,22 @@ def next_action_summary(
         return "Inspect cancelled session"
 
     return "Inspect session"
+
+
+def _budget_next_action_summary(
+    budget_posture: AutonomyBudgetPostureRecord,
+) -> str | None:
+    if budget_posture.last_reason is None:
+        return None
+    if budget_posture.last_reason == "budget_exhausted":
+        return "Review budget exhaustion and choose a smaller next step or override"
+    if budget_posture.last_reason == "policy_blocked":
+        return "Review policy block before continuing"
+    if budget_posture.last_reason == "verification_failed":
+        return "Review failed verification before continuing"
+    if budget_posture.last_reason == "approval_required":
+        return "Resolve pending approval"
+    return None
 
 
 def session_status(record: SessionRecord, state: SessionState | None) -> str:

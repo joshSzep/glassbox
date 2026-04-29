@@ -527,6 +527,150 @@ export interface components {
       /** Turn Id */
       turn_id: string;
     };
+    /**
+     * AutonomyBudget
+     * @description Explicit local limits for one autonomy mode selection.
+     */
+    AutonomyBudget: {
+      /** Allowed Risk Buckets */
+      allowed_risk_buckets: ("read_only" | "workspace_write" | "command")[];
+      /** Max Artifact Bytes */
+      max_artifact_bytes: number;
+      /** Max Branch Attempts */
+      max_branch_attempts: number;
+      /** Max Command Operations */
+      max_command_operations: number;
+      /** Max Steps */
+      max_steps: number;
+      /** Max Tool Calls */
+      max_tool_calls: number;
+      /** Max Verification Attempts */
+      max_verification_attempts: number;
+      /** Max Wall Clock Seconds */
+      max_wall_clock_seconds: number;
+      /** Max Write Operations */
+      max_write_operations: number;
+    };
+    /**
+     * AutonomyBudgetPostureRecord
+     * @description Latest projected autonomy budget posture for a session or task.
+     */
+    AutonomyBudgetPostureRecord: {
+      budget?: components["schemas"]["AutonomyBudget"] | null;
+      /** Last Decision */
+      last_decision: string;
+      /** Last Detail */
+      last_detail?: string | null;
+      /** Last Limit Name */
+      last_limit_name?: string | null;
+      last_reason?: components["schemas"]["AutonomyEscalationReason"] | null;
+      /** Last Sequence */
+      last_sequence: number;
+      mode?: components["schemas"]["AutonomyMode"] | null;
+      remaining?: components["schemas"]["AutonomyBudgetRemaining"] | null;
+      session_id: components["schemas"]["SessionId"];
+      task_id?: components["schemas"]["TaskId"] | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      usage: components["schemas"]["AutonomyBudgetUsage"];
+    };
+    /**
+     * AutonomyBudgetRemaining
+     * @description Remaining budget counters after one decision.
+     */
+    AutonomyBudgetRemaining: {
+      /** Artifact Bytes */
+      artifact_bytes: number;
+      /** Branch Attempts */
+      branch_attempts: number;
+      /** Command Operations */
+      command_operations: number;
+      /** Steps */
+      steps: number;
+      /** Tool Calls */
+      tool_calls: number;
+      /** Verification Attempts */
+      verification_attempts: number;
+      /** Wall Clock Seconds */
+      wall_clock_seconds: number;
+      /** Write Operations */
+      write_operations: number;
+    };
+    /**
+     * AutonomyBudgetUsage
+     * @description Current budget usage counters for a session or task.
+     */
+    AutonomyBudgetUsage: {
+      /**
+       * Artifact Bytes
+       * @default 0
+       */
+      artifact_bytes: number;
+      /**
+       * Branch Attempts
+       * @default 0
+       */
+      branch_attempts: number;
+      /**
+       * Command Operations
+       * @default 0
+       */
+      command_operations: number;
+      /**
+       * Steps
+       * @default 0
+       */
+      steps: number;
+      /**
+       * Tool Calls
+       * @default 0
+       */
+      tool_calls: number;
+      /**
+       * Verification Attempts
+       * @default 0
+       */
+      verification_attempts: number;
+      /**
+       * Wall Clock Seconds
+       * @default 0
+       */
+      wall_clock_seconds: number;
+      /**
+       * Write Operations
+       * @default 0
+       */
+      write_operations: number;
+    };
+    /**
+     * AutonomyEscalationReason
+     * @description Reasons autonomy must pause or escalate to the operator.
+     * @enum {string}
+     */
+    AutonomyEscalationReason:
+      | "approval_required"
+      | "budget_exhausted"
+      | "policy_blocked"
+      | "verification_failed"
+      | "provider_unavailable"
+      | "daemon_unavailable"
+      | "ambiguous_plan";
+    /**
+     * AutonomyMode
+     * @description Operator-selected posture for bounded autonomous local work.
+     * @enum {string}
+     */
+    AutonomyMode:
+      | "manual"
+      | "guided"
+      | "inspect"
+      | "edit-safe"
+      | "test-driven"
+      | "autonomous-local"
+      | "release-candidate";
     /** BranchableTurnResponse */
     BranchableTurnResponse: {
       /**
@@ -665,10 +809,16 @@ export interface components {
     OperatorSessionSummaryResponse: {
       /** Action Needed */
       action_needed: boolean;
+      /**
+       * Approval Behavior
+       * @default
+       */
+      approval_behavior: string;
       /** Approval Mode */
       approval_mode: string;
       /** Branch Label */
       branch_label: string | null;
+      budget_posture?: components["schemas"]["AutonomyBudgetPostureRecord"] | null;
       /** Can Fork */
       can_fork: boolean;
       /** Child Session Count */
@@ -945,12 +1095,18 @@ export interface components {
     SessionSnapshotResponse: {
       /** Active Tool Calls */
       active_tool_calls: components["schemas"]["ActiveToolCallResponse"][];
+      /**
+       * Approval Behavior
+       * @default
+       */
+      approval_behavior: string;
       /** Approval Mode */
       approval_mode: string;
       /** Branch Label */
       branch_label: string | null;
       /** Branchable Turns */
       branchable_turns: components["schemas"]["BranchableTurnResponse"][];
+      budget_posture?: components["schemas"]["AutonomyBudgetPostureRecord"] | null;
       /** Can Fork */
       can_fork: boolean;
       /** Child Sessions */
@@ -1014,10 +1170,16 @@ export interface components {
     };
     /** SessionSummaryResponse */
     SessionSummaryResponse: {
+      /**
+       * Approval Behavior
+       * @default
+       */
+      approval_behavior: string;
       /** Approval Mode */
       approval_mode: string;
       /** Branch Label */
       branch_label: string | null;
+      budget_posture?: components["schemas"]["AutonomyBudgetPostureRecord"] | null;
       /** Can Fork */
       can_fork: boolean;
       /** Child Session Count */
@@ -1148,6 +1310,8 @@ export interface components {
       /** Turn Id */
       turn_id?: string | null;
     };
+    /** Format: uuid */
+    TaskId: string;
     /** TaskListPageResponse */
     TaskListPageResponse: {
       /** Items */

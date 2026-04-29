@@ -1,9 +1,19 @@
 """Characterization coverage for CLI status and replay formatters."""
 
+from datetime import UTC
+from datetime import datetime
 from uuid import UUID
 
 from glassbox.cli.replay_eval_formatters import _print_replay_report
+from glassbox.cli.status_formatters import _format_budget_posture_line
+from glassbox.cli.status_formatters import _format_next_action_line
 from glassbox.cli.status_formatters import _print_session_status
+from glassbox.core import AutonomyBudgetPostureRecord
+from glassbox.core import AutonomyBudgetRemaining
+from glassbox.core import AutonomyBudgetUsage
+from glassbox.core.types import AutonomyEscalationReason
+from glassbox.core.types import AutonomyMode
+from glassbox.runtime.autonomy import default_budget_for_autonomy_mode
 from glassbox.runtime.replay import ReplayFinalStateSnapshot
 from glassbox.runtime.replay import ReplayNormalizedSession
 from glassbox.runtime.replay import ReplayResult
@@ -227,6 +237,60 @@ def test_print_session_status_preserves_status_output_contract(
     assert (
         "read_file succeeded (turn 00000000-0000-0000-0000-000000000222) "
         "[allow read_only via default:read_only]" in captured.out
+    )
+
+
+def test_status_budget_lines_explain_budget_exhaustion_next_action() -> None:
+    budget = default_budget_for_autonomy_mode(AutonomyMode.TEST_DRIVEN)
+    posture = AutonomyBudgetPostureRecord(
+        session_id=UUID("00000000-0000-0000-0000-000000000111"),
+        task_id=None,
+        mode=AutonomyMode.TEST_DRIVEN,
+        budget=budget,
+        usage=AutonomyBudgetUsage(
+            steps=budget.max_steps,
+            tool_calls=4,
+            write_operations=2,
+            command_operations=1,
+            wall_clock_seconds=30,
+            verification_attempts=1,
+            branch_attempts=0,
+            artifact_bytes=64,
+        ),
+        remaining=AutonomyBudgetRemaining(
+            steps=0,
+            tool_calls=1,
+            write_operations=1,
+            command_operations=0,
+            wall_clock_seconds=10,
+            verification_attempts=0,
+            branch_attempts=0,
+            artifact_bytes=512,
+        ),
+        last_decision="exhausted",
+        last_reason=AutonomyEscalationReason.BUDGET_EXHAUSTED,
+        last_limit_name="steps",
+        last_detail="step budget exhausted",
+        last_sequence=7,
+        updated_at=datetime(2026, 4, 24, 0, 0, 1, tzinfo=UTC),
+    )
+
+    assert _format_budget_posture_line(posture) == (
+        "Autonomy budget: test-driven; exhausted; budget_exhausted; "
+        "limit steps; remaining steps 0, tools 1, writes 1, commands 0"
+    )
+    next_action = _format_next_action_line(
+        UUID("00000000-0000-0000-0000-000000000111"),
+        "running",
+        None,
+        None,
+        None,
+        None,
+        budget_posture=posture,
+    )
+    assert next_action == (
+        "Next action: review budget exhaustion and choose a smaller next step "
+        "or override"
     )
 
 

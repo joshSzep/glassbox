@@ -7,8 +7,14 @@ from uuid import UUID
 import pytest
 
 from glassbox.cli import main
+from glassbox.core import AutonomyBudgetRemaining
+from glassbox.core import AutonomyBudgetUsage
+from glassbox.core import BudgetDecisionRecorded
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import new_turn_id
+from glassbox.core.types import AutonomyEscalationReason
+from glassbox.core.types import AutonomyMode
+from glassbox.runtime.autonomy import default_budget_for_autonomy_mode
 from glassbox.runtime.session_export import SESSION_EXPORT_KIND
 from glassbox.runtime.session_export import SESSION_EXPORT_VERSION
 from glassbox.runtime.session_export import SessionExportPayload
@@ -118,6 +124,80 @@ def test_cli_session_export_captures_paused_approval_handoff(
     assert decision.trace.reason == "needs confirmation"
     assert "secret-value" not in raw_package
     assert "ANTHROPIC_API_KEY=<redacted>" in raw_package
+
+
+def test_cli_session_export_includes_autonomy_budget_posture(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    budget = default_budget_for_autonomy_mode(AutonomyMode.EDIT_SAFE)
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=BudgetDecisionRecorded(
+                    scope="session",
+                    mode=AutonomyMode.EDIT_SAFE,
+                    budget=budget,
+                    usage=AutonomyBudgetUsage(
+                        steps=2,
+                        tool_calls=3,
+                        write_operations=1,
+                        command_operations=0,
+                        wall_clock_seconds=12,
+                        verification_attempts=0,
+                        branch_attempts=0,
+                        artifact_bytes=32,
+                    ),
+                    remaining=AutonomyBudgetRemaining(
+                        steps=1,
+                        tool_calls=2,
+                        write_operations=0,
+                        command_operations=0,
+                        wall_clock_seconds=30,
+                        verification_attempts=0,
+                        branch_attempts=0,
+                        artifact_bytes=256,
+                    ),
+                    decision="exhausted",
+                    reason=AutonomyEscalationReason.BUDGET_EXHAUSTED,
+                    limit_name="write_operations",
+                ),
+            )
+        )
+    finally:
+        connection.close()
+
+    output_path = tmp_path / "budget-session.json"
+    _ = capsys.readouterr()
+    exit_code = main(
+        [
+            "session",
+            "export",
+            str(session_id),
+            str(output_path),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    payload = SessionExportPayload.model_validate_json(
+        output_path.read_text(encoding="utf-8")
+    )
+
+    assert exit_code == 0
+    assert payload.autonomy_budget_posture is not None
+    assert payload.autonomy_budget_posture.mode == AutonomyMode.EDIT_SAFE
+    assert payload.autonomy_budget_posture.last_reason == "budget_exhausted"
+    assert payload.autonomy_budget_posture.last_limit_name == "write_operations"
+    assert payload.handoff.next_action_summary == (
+        "Review budget exhaustion and choose a smaller next step or override"
+    )
 
 
 def test_cli_session_export_captures_branched_session_lineage(

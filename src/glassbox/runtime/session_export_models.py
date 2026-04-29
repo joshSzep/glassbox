@@ -12,6 +12,7 @@ from glassbox.core.ids import TaskId
 from glassbox.core.ids import TaskStepId
 from glassbox.core.ids import TaskVerificationId
 from glassbox.core.models import ApprovalRecord
+from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import MessagePart
 from glassbox.core.models import MessageRole
 from glassbox.core.models import PolicyDecisionTrace
@@ -197,6 +198,7 @@ class SessionExportPayload(BaseModel):
     metadata: SessionExportMetadata
     lineage: SessionExportLineage
     handoff: SessionExportHandoff
+    autonomy_budget_posture: AutonomyBudgetPostureRecord | None = None
     transcript: list[SessionExportTranscriptMessage] = Field(default_factory=list)
     active_tool_calls: list[ToolCallRecord] = Field(default_factory=list)
     pending_approvals: list[ApprovalRecord] = Field(default_factory=list)

@@ -6,6 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import ForkedSession
 from glassbox.runtime.context_builder import RuntimeContextSnapshot
 from glassbox.runtime.session_queries import SessionAggregateView
@@ -211,6 +212,8 @@ class SessionSummaryResponse(BaseModel):
     model_name: str
     cwd: str
     approval_mode: str
+    budget_posture: AutonomyBudgetPostureRecord | None = None
+    approval_behavior: str = ""
     parent_session_id: str | None
     forked_from_turn_id: str | None
     forked_from_sequence: int | None
@@ -291,6 +294,8 @@ class SessionSnapshotResponse(BaseModel):
     model_name: str
     cwd: str
     approval_mode: str
+    budget_posture: AutonomyBudgetPostureRecord | None = None
+    approval_behavior: str = ""
     parent_session_id: str | None
     forked_from_turn_id: str | None
     forked_from_sequence: int | None

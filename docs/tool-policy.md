@@ -113,6 +113,21 @@ Common operator postures:
 - Bounded local implementation: `--autonomy-mode autonomous-local` gives a larger local budget while preserving hard policy stops.
 - Release candidate verification: `--autonomy-mode release-candidate` focuses authority on verification and release checks.
 
+### Inspecting Budget Evidence
+
+`glassbox session status SESSION_ID` shows the latest autonomy budget posture:
+mode, last decision, escalation reason, exhausted limit, and remaining step/tool/
+write/command budget. The same posture is available in session snapshot API
+responses as `budget_posture`, and portable session exports include
+`autonomy_budget_posture` so handoffs keep the budget evidence with the session.
+
+Budget exhaustion means the bounded local work allowance has run out; choose a
+smaller next step, select a tighter prompt, or request an override rather than
+assuming the tool failed. Policy blocks are different: they mean repository
+policy or a hard invariant stopped the action, so inspect the policy trace or
+approval behavior before continuing. Verification failures mean the work ran but
+the configured checks did not pass.
+
 ## Decision Rules
 
 The policy engine evaluates tools in this order:

@@ -43,8 +43,10 @@ export function makeSessionSummary(
 ): components["schemas"]["OperatorSessionSummaryResponse"] {
   return {
     action_needed: false,
+    approval_behavior: "confirm: risky actions request approval",
     approval_mode: "confirm",
     branch_label: null,
+    budget_posture: null,
     can_fork: false,
     child_session_count: 0,
     created_at: "2026-04-23T00:00:00Z",
@@ -122,9 +124,11 @@ export function makeSessionSnapshot(
 ): components["schemas"]["SessionSnapshotResponse"] {
   return {
     active_tool_calls: [],
+    approval_behavior: "confirm: risky actions request approval",
     approval_mode: "confirm",
     branch_label: null,
     branchable_turns: [],
+    budget_posture: null,
     can_fork: false,
     child_sessions: [],
     created_at: "2026-04-23T00:00:00Z",

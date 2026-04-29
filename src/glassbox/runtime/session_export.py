@@ -147,6 +147,7 @@ def build_session_export_payload(
             expected_custodian=expected_custodian,
             note=note,
         ),
+        autonomy_budget_posture=snapshot.budget_posture,
         transcript=_export_transcript(snapshot.transcript, redaction_context),
         active_tool_calls=snapshot.active_tool_calls,
         pending_approvals=_redact_pending_approvals(
@@ -552,6 +553,10 @@ def _event_summary(event: EventEnvelope) -> SessionExportEventSummary:
 def _session_next_action_summary(snapshot: SessionSnapshotView) -> str:
     if snapshot.projection_health.degraded:
         return "Rebuild derived projections from canonical events"
+    if snapshot.budget_posture is not None:
+        budget_action = _budget_export_next_action(snapshot.budget_posture)
+        if budget_action is not None:
+            return budget_action
     if snapshot.status == "awaiting_user_input":
         return "Answer pending question"
     if snapshot.status == "awaiting_approval":
@@ -565,6 +570,20 @@ def _session_next_action_summary(snapshot: SessionSnapshotView) -> str:
     if snapshot.status == "completed":
         return "Inspect historical session or fork from a stable turn"
     return "Inspect session state"
+
+
+def _budget_export_next_action(budget_posture) -> str | None:
+    if budget_posture.last_reason is None:
+        return None
+    if budget_posture.last_reason == "budget_exhausted":
+        return "Review budget exhaustion and choose a smaller next step or override"
+    if budget_posture.last_reason == "policy_blocked":
+        return "Review policy block before continuing"
+    if budget_posture.last_reason == "verification_failed":
+        return "Review failed verification before continuing"
+    if budget_posture.last_reason == "approval_required":
+        return "Resolve pending approval"
+    return None
 
 
 def _last_actor_hint(

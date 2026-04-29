@@ -403,6 +403,7 @@ class SessionQueryService:
                 pending_question_text=pending_question_text,
                 session_failure=latest_failure,
                 current_turn_id=state.current_turn_id if state is not None else None,
+                budget_posture=budget_posture,
             ),
         )
 

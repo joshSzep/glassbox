@@ -7,6 +7,9 @@ from pathlib import Path
 
 import httpx
 
+from glassbox.core import AutonomyBudgetRemaining
+from glassbox.core import AutonomyBudgetUsage
+from glassbox.core import BudgetDecisionRecorded
 from glassbox.core import EventEnvelope
 from glassbox.core import MessagePart
 from glassbox.core import SessionConfig
@@ -23,6 +26,9 @@ from glassbox.core.ids import new_message_id
 from glassbox.core.ids import new_question_id
 from glassbox.core.ids import new_tool_call_id
 from glassbox.core.ids import new_turn_id
+from glassbox.core.types import AutonomyEscalationReason
+from glassbox.core.types import AutonomyMode
+from glassbox.runtime.autonomy import default_budget_for_autonomy_mode
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.runtime.bus import EventBus
 from glassbox.runtime.context_builder import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
@@ -169,6 +175,83 @@ def test_get_session_returns_snapshot_after_session_started(tmp_path: Path) -> N
                 "items": [],
                 "additional_item_count": 0,
             }
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_get_session_snapshot_exposes_autonomy_budget_posture(
+    tmp_path: Path,
+) -> None:
+    """Snapshot exposes projected autonomy budget posture for operators."""
+
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app, runtime_context = _make_app(tmp_path, connection)
+            bus: EventBus[EventEnvelope] = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(runtime_context.repositories.sessions, bus)
+            budget = default_budget_for_autonomy_mode(AutonomyMode.TEST_DRIVEN)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="on-request",
+                autonomy_mode=AutonomyMode.TEST_DRIVEN,
+                autonomy_budget=budget,
+                autonomy_budget_preset="test-driven",
+            )
+            state = await supervisor.start_session(config)
+            runtime_context.repositories.sessions.append_event(
+                EventEnvelope(
+                    session_id=state.session_id,
+                    sequence=0,
+                    payload=BudgetDecisionRecorded(
+                        scope="session",
+                        mode=AutonomyMode.TEST_DRIVEN,
+                        budget=budget,
+                        usage=AutonomyBudgetUsage(
+                            steps=4,
+                            tool_calls=6,
+                            write_operations=2,
+                            command_operations=1,
+                            wall_clock_seconds=15,
+                            verification_attempts=1,
+                            branch_attempts=0,
+                            artifact_bytes=128,
+                        ),
+                        remaining=AutonomyBudgetRemaining(
+                            steps=0,
+                            tool_calls=2,
+                            write_operations=1,
+                            command_operations=0,
+                            wall_clock_seconds=45,
+                            verification_attempts=1,
+                            branch_attempts=0,
+                            artifact_bytes=1024,
+                        ),
+                        decision="exhausted",
+                        reason=AutonomyEscalationReason.BUDGET_EXHAUSTED,
+                        limit_name="steps",
+                        detail="step budget exhausted",
+                    ),
+                )
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get(f"/sessions/{state.session_id}")
+
+            assert response.status_code == 200
+            body = response.json()
+            assert body["budget_posture"]["mode"] == "test-driven"
+            assert body["budget_posture"]["last_decision"] == "exhausted"
+            assert body["budget_posture"]["last_reason"] == "budget_exhausted"
+            assert body["budget_posture"]["last_limit_name"] == "steps"
+            assert body["budget_posture"]["remaining"]["steps"] == 0
+            assert "on-request" in body["approval_behavior"]
         finally:
             connection.close()
 

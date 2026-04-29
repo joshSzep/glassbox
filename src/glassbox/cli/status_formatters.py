@@ -61,6 +61,7 @@ def _print_session_status(status_view: SessionStatusView) -> None:
             snapshot.pending_question_id,
             _session_failure_from_status_view(status_view),
             snapshot.projection_health,
+            snapshot.budget_posture,
         )
     )
 
@@ -360,12 +361,17 @@ def _format_next_action_line(
     pending_question_id,
     latest_session_failure: SessionFailed | None,
     projection_health=None,
+    budget_posture=None,
 ) -> str:
     if projection_health is not None and projection_health.degraded:
         return (
             "Next action: rebuild derived projections with "
             f"'glassbox projection rebuild {session_id}'"
         )
+
+    budget_action = _format_budget_next_action(budget_posture)
+    if budget_action is not None:
+        return f"Next action: {budget_action}"
 
     if status == "awaiting_approval" and pending_approval_id is not None:
         return (
@@ -412,3 +418,17 @@ def _format_next_action_line(
         )
 
     return "Next action: inspect the session details above before taking another step"
+
+
+def _format_budget_next_action(budget_posture) -> str | None:
+    if budget_posture is None or budget_posture.last_reason is None:
+        return None
+    if budget_posture.last_reason == "budget_exhausted":
+        return "review budget exhaustion and choose a smaller next step or override"
+    if budget_posture.last_reason == "policy_blocked":
+        return "review policy block before continuing"
+    if budget_posture.last_reason == "verification_failed":
+        return "review failed verification before continuing"
+    if budget_posture.last_reason == "approval_required":
+        return "resolve the pending approval before continuing"
+    return None
