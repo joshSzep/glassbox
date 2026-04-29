@@ -1,6 +1,7 @@
 """Session query service implementation for shared CLI and web read models."""
 
 from glassbox.core.ids import SessionId
+from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import SessionRecord
 from glassbox.core.types import ApprovalStatus
 from glassbox.core.types import SessionStatus
@@ -125,6 +126,9 @@ class SessionQueryService:
             if projections_available
             else []
         )
+        budget_posture = (
+            self._get_budget_posture(session_id) if projections_available else None
+        )
         dashboard_url = dashboard_url_from_events(session_events)
         latest_failure = latest_session_failure(session_events)
         pending_question_id = state.pending_question_id if state is not None else None
@@ -163,6 +167,7 @@ class SessionQueryService:
             model_name=record.model_name,
             cwd=str(record.cwd),
             approval_mode=record.approval_mode,
+            budget_posture=budget_posture,
             parent_session_id=record.parent_session_id,
             forked_from_turn_id=record.forked_from_turn_id,
             forked_from_sequence=record.forked_from_sequence,
@@ -337,6 +342,11 @@ class SessionQueryService:
             latest_fork_point_turn_id = None
             latest_fork_point_sequence = None
             fork_blocked_reason = projection_health.detail
+        budget_posture = (
+            self._get_budget_posture(record.session_id)
+            if projections_available
+            else None
+        )
         status = session_status(record, state)
 
         return SessionSummaryView(
@@ -345,6 +355,7 @@ class SessionQueryService:
             model_name=record.model_name,
             cwd=str(record.cwd),
             approval_mode=record.approval_mode,
+            budget_posture=budget_posture,
             parent_session_id=record.parent_session_id,
             forked_from_turn_id=record.forked_from_turn_id,
             forked_from_sequence=record.forked_from_sequence,
@@ -397,6 +408,19 @@ class SessionQueryService:
             record.cwd,
             artifact_repository=self._artifact_repository,
         )
+
+    def _get_budget_posture(
+        self,
+        session_id: SessionId,
+    ) -> AutonomyBudgetPostureRecord | None:
+        get_budget_posture = getattr(
+            self._session_repository,
+            "get_budget_posture",
+            None,
+        )
+        if get_budget_posture is None:
+            return None
+        return get_budget_posture(session_id)
 
     def _build_degraded_runtime_context(
         self,

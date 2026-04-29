@@ -8,7 +8,7 @@ from pathlib import Path
 from glassbox.store.sqlite_schema_statements import BOOTSTRAP_STATEMENTS
 from glassbox.store.sqlite_schema_statements import V3_BASELINE_SCHEMA_STATEMENTS
 
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 BASELINE_SCHEMA_VERSION = 3
 BASELINE_MIGRATION_NAME = "baseline event store and projections"
 
@@ -223,6 +223,7 @@ def _ensure_task_projection_schema(connection: sqlite3.Connection) -> None:
         )
         """
     )
+
     connection.execute(
         """
         create index if not exists idx_tasks_session_status_updated
@@ -295,6 +296,36 @@ def _ensure_task_projection_schema(connection: sqlite3.Connection) -> None:
     )
 
 
+def _ensure_autonomy_budget_projection_schema(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        create table if not exists autonomy_budget_posture (
+            session_id text not null,
+            task_id text not null default '',
+            scope text not null,
+            mode text,
+            budget_json text,
+            usage_json text not null,
+            remaining_json text,
+            last_decision text not null,
+            last_reason text,
+            last_limit_name text,
+            last_detail text,
+            updated_at text not null,
+            last_sequence integer not null,
+            primary key (session_id, task_id),
+            foreign key (session_id) references sessions(session_id)
+        )
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_autonomy_budget_posture_session_updated
+            on autonomy_budget_posture (session_id, updated_at desc)
+        """
+    )
+
+
 MIGRATIONS = (
     SchemaMigration(
         version=4,
@@ -315,6 +346,11 @@ MIGRATIONS = (
         version=7,
         name="add task plan projection tables",
         apply=_ensure_task_projection_schema,
+    ),
+    SchemaMigration(
+        version=8,
+        name="add autonomy budget projection table",
+        apply=_ensure_autonomy_budget_projection_schema,
     ),
 )
 

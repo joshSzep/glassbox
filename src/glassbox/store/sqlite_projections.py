@@ -5,6 +5,7 @@ import sqlite3
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import SessionId
 from glassbox.store.sqlite_projection_approvals import _apply_approval_projection
+from glassbox.store.sqlite_projection_budgets import _apply_budget_projection
 from glassbox.store.sqlite_projection_runtime_notes import (
     _apply_runtime_note_projection,
 )
@@ -26,6 +27,7 @@ _PROJECTION_TABLES = (
     "tasks",
     "task_steps",
     "task_verifications",
+    "autonomy_budget_posture",
 )
 
 
@@ -40,6 +42,7 @@ def _apply_projection_event(
     _apply_runtime_note_projection(connection, event)
     _apply_turn_metrics_projection(connection, event)
     _apply_task_projection(connection, event)
+    _apply_budget_projection(connection, event)
 
 
 def _clear_session_projections(

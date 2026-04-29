@@ -20,6 +20,7 @@ from glassbox.core.ids import TaskId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.models import ApprovalRecord
+from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import ProjectionHealth
 from glassbox.core.models import ResolvedForkPoint
 from glassbox.core.models import RuntimeNoteRecord
@@ -254,6 +255,18 @@ class SQLiteSessionRepository:
             session_id,
             limit=limit,
             offset=offset,
+        )
+
+    def get_budget_posture(
+        self,
+        session_id: SessionId,
+        *,
+        task_id: TaskId | None = None,
+    ) -> AutonomyBudgetPostureRecord | None:
+        return query_store.get_budget_posture(
+            self._connection,
+            session_id,
+            task_id=task_id,
         )
 
     def list_tasks(

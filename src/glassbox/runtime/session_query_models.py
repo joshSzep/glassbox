@@ -9,6 +9,7 @@ from pydantic import Field
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import TurnId
 from glassbox.core.models import ApprovalRecord
+from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import PolicyActivitySummary
 from glassbox.core.models import ProjectionHealth
 from glassbox.core.models import ToolCallRecord
@@ -67,6 +68,7 @@ class SessionSummaryView(BaseModel):
     model_name: str
     cwd: str
     approval_mode: str
+    budget_posture: AutonomyBudgetPostureRecord | None = None
     parent_session_id: SessionId | None = None
     forked_from_turn_id: TurnId | None = None
     forked_from_sequence: int | None = None
@@ -166,6 +168,7 @@ class SessionSnapshotView(BaseModel):
     model_name: str
     cwd: str
     approval_mode: str
+    budget_posture: AutonomyBudgetPostureRecord | None = None
     parent_session_id: SessionId | None = None
     forked_from_turn_id: TurnId | None = None
     forked_from_sequence: int | None = None

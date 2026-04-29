@@ -501,7 +501,7 @@ The intended v8 milestone order is:
 
 ### GBX-831: Add Budget Evaluation Engine And Durable Budget Evidence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-830`
 - Goal: enforce autonomy budgets during task execution and record why work continued or stopped
 - Deliverables:
@@ -519,6 +519,10 @@ The intended v8 milestone order is:
   - budget unit tests
   - integration tests for step/tool/write/command/verification exhaustion
   - replay tests for budget drift reporting
+- Evidence:
+  - `uv run pytest tests/unit/test_autonomy_budgeting.py tests/integration/test_sqlite_bootstrap.py tests/integration/test_sqlite_projections.py tests/integration/test_projection_rebuild.py`
+  - `uv run pytest tests/integration/test_replay_runner.py tests/unit/test_replay_triage.py`
+  - `uv run ty check`
 - Done when:
   - autonomous work can continue only while typed local budgets allow it, and every stop is explainable
 

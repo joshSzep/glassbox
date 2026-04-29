@@ -5,6 +5,10 @@ from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import AssistantMessageCompleted
 from glassbox.core.events import AssistantMessageDelta
 from glassbox.core.events import AssistantMessageStarted
+from glassbox.core.events import BudgetDecisionRecorded
+from glassbox.core.events import BudgetExhausted
+from glassbox.core.events import BudgetOverrideRequested
+from glassbox.core.events import BudgetOverrideResolved
 from glassbox.core.events import CancellationAcknowledged
 from glassbox.core.events import CancellationFailed
 from glassbox.core.events import CancellationRequested
@@ -51,6 +55,7 @@ from glassbox.core.events import UserMessageReceived
 from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import ArtifactId
+from glassbox.core.ids import BudgetOverrideId
 from glassbox.core.ids import EventId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import QuestionId
@@ -62,6 +67,7 @@ from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.ids import new_approval_id
 from glassbox.core.ids import new_artifact_id
+from glassbox.core.ids import new_budget_override_id
 from glassbox.core.ids import new_event_id
 from glassbox.core.ids import new_message_id
 from glassbox.core.ids import new_question_id
@@ -72,6 +78,9 @@ from glassbox.core.ids import new_task_verification_id
 from glassbox.core.ids import new_tool_call_id
 from glassbox.core.ids import new_turn_id
 from glassbox.core.models import AutonomyBudget
+from glassbox.core.models import AutonomyBudgetPostureRecord
+from glassbox.core.models import AutonomyBudgetRemaining
+from glassbox.core.models import AutonomyBudgetUsage
 from glassbox.core.models import AutonomySelection
 from glassbox.core.models import ForkedSession
 from glassbox.core.models import InheritedTranscriptMessage
@@ -112,6 +121,9 @@ __all__ = [
     "ApprovalResolved",
     "ApprovalStatus",
     "AutonomyBudget",
+    "AutonomyBudgetPostureRecord",
+    "AutonomyBudgetRemaining",
+    "AutonomyBudgetUsage",
     "AutonomyEscalationReason",
     "AutonomyMode",
     "AutonomySelection",
@@ -119,6 +131,11 @@ __all__ = [
     "AssistantMessageDelta",
     "AssistantMessageStarted",
     "ArtifactId",
+    "BudgetDecisionRecorded",
+    "BudgetExhausted",
+    "BudgetOverrideId",
+    "BudgetOverrideRequested",
+    "BudgetOverrideResolved",
     "CancellationAcknowledged",
     "CancellationFailed",
     "CancellationRequested",
@@ -199,6 +216,7 @@ __all__ = [
     "UserQuestionAsked",
     "new_approval_id",
     "new_artifact_id",
+    "new_budget_override_id",
     "new_event_id",
     "new_message_id",
     "new_question_id",

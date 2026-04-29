@@ -105,6 +105,55 @@ class AutonomySelection(BaseModel):
     )
 
 
+class AutonomyBudgetUsage(BaseModel):
+    """Current budget usage counters for a session or task."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    steps: int = Field(default=0, ge=0)
+    tool_calls: int = Field(default=0, ge=0)
+    write_operations: int = Field(default=0, ge=0)
+    command_operations: int = Field(default=0, ge=0)
+    wall_clock_seconds: int = Field(default=0, ge=0)
+    verification_attempts: int = Field(default=0, ge=0)
+    branch_attempts: int = Field(default=0, ge=0)
+    artifact_bytes: int = Field(default=0, ge=0)
+
+
+class AutonomyBudgetRemaining(BaseModel):
+    """Remaining budget counters after one decision."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    steps: int = Field(ge=0)
+    tool_calls: int = Field(ge=0)
+    write_operations: int = Field(ge=0)
+    command_operations: int = Field(ge=0)
+    wall_clock_seconds: int = Field(ge=0)
+    verification_attempts: int = Field(ge=0)
+    branch_attempts: int = Field(ge=0)
+    artifact_bytes: int = Field(ge=0)
+
+
+class AutonomyBudgetPostureRecord(BaseModel):
+    """Latest projected autonomy budget posture for a session or task."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: SessionId
+    task_id: TaskId | None = None
+    mode: AutonomyMode | None = None
+    budget: AutonomyBudget | None = None
+    usage: AutonomyBudgetUsage
+    remaining: AutonomyBudgetRemaining | None = None
+    last_decision: str
+    last_reason: AutonomyEscalationReason | None = None
+    last_limit_name: str | None = None
+    last_detail: str | None = None
+    last_sequence: int = Field(ge=0)
+    updated_at: datetime
+
+
 class SessionConfig(BaseModel):
     """Session-scoped configuration for a Glassbox runtime."""
 

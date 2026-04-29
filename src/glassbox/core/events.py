@@ -14,6 +14,7 @@ from pydantic import model_validator
 
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import ArtifactId
+from glassbox.core.ids import BudgetOverrideId
 from glassbox.core.ids import EventId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import QuestionId
@@ -24,6 +25,9 @@ from glassbox.core.ids import TaskVerificationId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.ids import new_event_id
+from glassbox.core.models import AutonomyBudget
+from glassbox.core.models import AutonomyBudgetRemaining
+from glassbox.core.models import AutonomyBudgetUsage
 from glassbox.core.models import MessagePart
 from glassbox.core.models import PolicyDecisionOutcome
 from glassbox.core.models import PolicyDecisionSourceKind
@@ -32,6 +36,8 @@ from glassbox.core.models import PolicyRiskLevel
 from glassbox.core.models import TaskPlanSnapshot
 from glassbox.core.models import TaskStepProposal
 from glassbox.core.types import ApprovalDecision
+from glassbox.core.types import AutonomyEscalationReason
+from glassbox.core.types import AutonomyMode
 from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskVerificationStatus
@@ -321,6 +327,52 @@ class RuntimeNoteImported(EventPayload):
     source_created_at: datetime
 
 
+class BudgetDecisionRecorded(EventPayload):
+    event_type: Literal["BudgetDecisionRecorded"] = "BudgetDecisionRecorded"
+    scope: Literal["session", "task"]
+    mode: AutonomyMode
+    budget: AutonomyBudget
+    usage: AutonomyBudgetUsage
+    remaining: AutonomyBudgetRemaining
+    decision: Literal["allowed", "exhausted", "override_required"]
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    reason: AutonomyEscalationReason | None = None
+    limit_name: str | None = Field(default=None, max_length=120)
+    detail: str | None = Field(default=None, max_length=2000)
+
+
+class BudgetExhausted(EventPayload):
+    event_type: Literal["BudgetExhausted"] = "BudgetExhausted"
+    scope: Literal["session", "task"]
+    limit_name: str = Field(min_length=1, max_length=120)
+    used: int = Field(ge=0)
+    limit: int = Field(ge=0)
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    reason: AutonomyEscalationReason = AutonomyEscalationReason.BUDGET_EXHAUSTED
+    detail: str | None = Field(default=None, max_length=2000)
+
+
+class BudgetOverrideRequested(EventPayload):
+    event_type: Literal["BudgetOverrideRequested"] = "BudgetOverrideRequested"
+    override_id: BudgetOverrideId
+    scope: Literal["session", "task"]
+    reason: AutonomyEscalationReason
+    requested_by: str = Field(default="operator", min_length=1, max_length=200)
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    detail: str | None = Field(default=None, max_length=2000)
+
+
+class BudgetOverrideResolved(EventPayload):
+    event_type: Literal["BudgetOverrideResolved"] = "BudgetOverrideResolved"
+    override_id: BudgetOverrideId
+    decision: ApprovalDecision
+    decided_by: str = Field(min_length=1, max_length=200)
+    reason: str | None = Field(default=None, max_length=2000)
+
+
 class TaskCreated(EventPayload):
     event_type: Literal["TaskCreated"] = "TaskCreated"
     task_id: TaskId
@@ -468,6 +520,10 @@ EventPayloadType = Annotated[
     | UserAnswerProvided
     | RuntimeNoteRecorded
     | RuntimeNoteImported
+    | BudgetDecisionRecorded
+    | BudgetExhausted
+    | BudgetOverrideRequested
+    | BudgetOverrideResolved
     | TaskCreated
     | TaskPlanProposed
     | TaskPlanRevised

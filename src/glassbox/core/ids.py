@@ -14,6 +14,7 @@ type ArtifactId = UUID
 type TaskId = UUID
 type TaskStepId = UUID
 type TaskVerificationId = UUID
+type BudgetOverrideId = UUID
 
 
 def new_session_id() -> SessionId:
@@ -68,4 +69,9 @@ def new_task_step_id() -> TaskStepId:
 
 def new_task_verification_id() -> TaskVerificationId:
     """Create a new task verification identifier."""
+    return uuid4()
+
+
+def new_budget_override_id() -> BudgetOverrideId:
+    """Create a new budget override identifier."""
     return uuid4()

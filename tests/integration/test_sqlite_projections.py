@@ -2,6 +2,11 @@
 
 from pathlib import Path
 
+from glassbox.core import AutonomyBudget
+from glassbox.core import AutonomyBudgetRemaining
+from glassbox.core import AutonomyBudgetUsage
+from glassbox.core import AutonomyMode
+from glassbox.core import BudgetDecisionRecorded
 from glassbox.core import EventEnvelope
 from glassbox.core import RuntimeNoteRecorded
 from glassbox.core import SessionStarted
@@ -21,6 +26,7 @@ from glassbox.core import new_task_id
 from glassbox.core import new_task_step_id
 from glassbox.core import new_task_verification_id
 from glassbox.store.sqlite import append_events
+from glassbox.store.sqlite import get_budget_posture
 from glassbox.store.sqlite import list_runtime_notes
 from glassbox.store.sqlite import rebuild_session_projections
 from tests.integration.fault_test_support import append_representative_completed_session
@@ -348,3 +354,68 @@ def test_task_projection_rebuilds_task_steps_and_verifications(tmp_path: Path) -
     assert tuple(task) == ("paused", "manual_pause", "waiting for review")
     assert tuple(step) == ("completed", "tables created")
     assert tuple(verification) == ("passed", "projection tests passed")
+
+
+def test_budget_projection_records_latest_session_posture(tmp_path: Path) -> None:
+    session_id = new_session_id()
+    budget = AutonomyBudget(
+        max_steps=3,
+        max_tool_calls=4,
+        max_write_operations=0,
+        max_command_operations=0,
+        max_wall_clock_seconds=60,
+        max_verification_attempts=2,
+        max_branch_attempts=1,
+        max_artifact_bytes=1024,
+        allowed_risk_buckets=["read_only"],
+    )
+    usage = AutonomyBudgetUsage(steps=2, tool_calls=1)
+    remaining = AutonomyBudgetRemaining(
+        steps=1,
+        tool_calls=3,
+        write_operations=budget.max_write_operations,
+        command_operations=budget.max_command_operations,
+        wall_clock_seconds=budget.max_wall_clock_seconds,
+        verification_attempts=budget.max_verification_attempts,
+        branch_attempts=budget.max_branch_attempts,
+        artifact_bytes=budget.max_artifact_bytes,
+    )
+    connection = open_initialized_database(tmp_path)
+    try:
+        append_events(
+            connection,
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=SessionStarted(
+                        cwd="/tmp/glassbox",
+                        model_name="openai:gpt-5.4",
+                        approval_mode="confirm",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=BudgetDecisionRecorded(
+                        scope="session",
+                        mode=AutonomyMode.GUIDED,
+                        budget=budget,
+                        usage=usage,
+                        remaining=remaining,
+                        decision="allowed",
+                    ),
+                ),
+            ],
+        )
+
+        posture = get_budget_posture(connection, session_id)
+    finally:
+        connection.close()
+
+    assert posture is not None
+    assert posture.mode == AutonomyMode.GUIDED
+    assert posture.last_decision == "allowed"
+    assert posture.usage.steps == 2
+    assert posture.remaining is not None
+    assert posture.remaining.tool_calls == 3

@@ -92,14 +92,16 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         "idx_task_steps_task_order",
         "idx_task_steps_session_status",
         "idx_task_verifications_task",
+        "idx_autonomy_budget_posture_session_updated",
     }.issubset(indexes)
-    assert [row[0] for row in migration_rows] == [3, 4, 5, 6, SCHEMA_VERSION]
+    assert [row[0] for row in migration_rows] == [3, 4, 5, 6, 7, SCHEMA_VERSION]
     assert [row[1] for row in migration_rows] == [
         "baseline event store and projections",
         "add session lineage columns",
         "add runtime note source columns",
         "add policy metadata projection columns",
         "add task plan projection tables",
+        "add autonomy budget projection table",
     ]
 
 
@@ -112,7 +114,7 @@ def test_initialize_database_is_idempotent(tmp_path: Path) -> None:
     finally:
         connection.close()
 
-    assert [row[0] for row in migration_rows] == [3, 4, 5, 6, SCHEMA_VERSION]
+    assert [row[0] for row in migration_rows] == [3, 4, 5, 6, 7, SCHEMA_VERSION]
 
 
 def test_initialize_database_migrates_existing_sessions_table_for_lineage(
@@ -188,7 +190,7 @@ def test_initialize_database_migrates_existing_sessions_table_for_lineage(
     assert session.forked_from_turn_id is None
     assert session.forked_from_sequence is None
     assert session.branch_label is None
-    assert [row[0] for row in migration_rows] == [3, 4, 5, 6, SCHEMA_VERSION]
+    assert [row[0] for row in migration_rows] == [3, 4, 5, 6, 7, SCHEMA_VERSION]
 
 
 def test_initialize_database_migrates_runtime_note_source_columns(
@@ -307,7 +309,7 @@ def test_initialize_database_migrates_runtime_note_source_columns(
     assert {"source_session_id", "source_sequence"}.issubset(columns)
     assert note_row[0] == str(session_id)
     assert note_row[1] == 2
-    assert [row[0] for row in migration_rows] == [3, 4, 5, 6, SCHEMA_VERSION]
+    assert [row[0] for row in migration_rows] == [3, 4, 5, 6, 7, SCHEMA_VERSION]
 
 
 def test_initialize_database_normalizes_legacy_current_version_stamp(
@@ -336,13 +338,14 @@ def test_initialize_database_normalizes_legacy_current_version_stamp(
     finally:
         connection.close()
 
-    assert [row[0] for row in migration_rows] == [3, 4, 5, 6, SCHEMA_VERSION]
+    assert [row[0] for row in migration_rows] == [3, 4, 5, 6, 7, SCHEMA_VERSION]
     assert [row[1] for row in migration_rows] == [
         "baseline event store and projections",
         "add session lineage columns",
         "add runtime note source columns",
         "add policy metadata projection columns",
         "add task plan projection tables",
+        "add autonomy budget projection table",
     ]
     assert "parent_session_id" in session_columns
     assert "source_session_id" in note_columns
@@ -379,4 +382,10 @@ def test_initialize_database_rejects_newer_schema_version(tmp_path: Path) -> Non
 
 
 def test_migrations_are_ordered_to_current_schema_version() -> None:
-    assert [migration.version for migration in MIGRATIONS] == [4, 5, 6, SCHEMA_VERSION]
+    assert [migration.version for migration in MIGRATIONS] == [
+        4,
+        5,
+        6,
+        7,
+        SCHEMA_VERSION,
+    ]

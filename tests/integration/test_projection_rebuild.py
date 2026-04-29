@@ -63,6 +63,7 @@ def test_cli_rebuild_restores_one_session_projections_only(
         "tasks": 0,
         "task_steps": 0,
         "task_verifications": 0,
+        "autonomy_budget_posture": 0,
     }
     assert untouched_counts == {
         "session_state": 0,
@@ -72,6 +73,7 @@ def test_cli_rebuild_restores_one_session_projections_only(
         "tasks": 0,
         "task_steps": 0,
         "task_verifications": 0,
+        "autonomy_budget_posture": 0,
     }
 
 
@@ -121,6 +123,7 @@ def test_cli_rebuild_all_restores_all_sessions(
         "tasks": 0,
         "task_steps": 0,
         "task_verifications": 0,
+        "autonomy_budget_posture": 0,
     }
     assert second_counts == {
         "session_state": 1,
@@ -130,6 +133,7 @@ def test_cli_rebuild_all_restores_all_sessions(
         "tasks": 0,
         "task_steps": 0,
         "task_verifications": 0,
+        "autonomy_budget_posture": 0,
     }
 
 
@@ -324,6 +328,10 @@ def _wipe_session_projections(db_path: Path, session_id: UUID) -> None:
                 "delete from approvals where session_id = ?",
                 (str(session_id),),
             )
+            connection.execute(
+                "delete from autonomy_budget_posture where session_id = ?",
+                (str(session_id),),
+            )
     finally:
         connection.close()
 
@@ -351,6 +359,7 @@ def _wipe_all_projections(db_path: Path) -> None:
             connection.execute("delete from tasks")
             connection.execute("delete from task_steps")
             connection.execute("delete from task_verifications")
+            connection.execute("delete from autonomy_budget_posture")
     finally:
         connection.close()
 
@@ -385,6 +394,10 @@ def _projection_counts(db_path: Path, session_id: UUID) -> dict[str, int]:
             ).fetchone()[0],
             "task_verifications": connection.execute(
                 "select count(*) from task_verifications where session_id = ?",
+                (str(session_id),),
+            ).fetchone()[0],
+            "autonomy_budget_posture": connection.execute(
+                "select count(*) from autonomy_budget_posture where session_id = ?",
                 (str(session_id),),
             ).fetchone()[0],
         }

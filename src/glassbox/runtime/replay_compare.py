@@ -17,7 +17,9 @@ from glassbox.core.ids import SessionId
 from glassbox.core.models import SessionConfig
 from glassbox.core.models import SessionRecord
 from glassbox.runtime.replay_failures import ReplayFailure
+from glassbox.runtime.replay_fingerprints import fingerprint_replay_payload
 from glassbox.runtime.replay_models import ReplayApprovalSnapshot
+from glassbox.runtime.replay_models import ReplayBudgetSnapshot
 from glassbox.runtime.replay_models import ReplayBundle
 from glassbox.runtime.replay_models import ReplayCancellationSnapshot
 from glassbox.runtime.replay_models import ReplayFinalStateSnapshot
@@ -91,6 +93,7 @@ def normalize_session(
         questions=normalize_questions(events),
         cancellations=normalize_cancellations(events),
         task_plans=normalize_task_plans(session_id, repository),
+        budget_posture=normalize_budget_posture(session_id, repository),
         event_families=[
             event.event_type
             for event in events
@@ -234,6 +237,34 @@ def normalize_task_plans(
     return task_plans
 
 
+def normalize_budget_posture(
+    session_id: SessionId,
+    repository: SessionRepository,
+) -> ReplayBudgetSnapshot | None:
+    get_budget_posture = getattr(repository, "get_budget_posture", None)
+    if get_budget_posture is None:
+        return None
+    posture = get_budget_posture(session_id)
+    if posture is None:
+        return None
+    payload = {
+        "mode": enum_optional_value(posture.mode),
+        "last_decision": posture.last_decision,
+        "last_reason": enum_optional_value(posture.last_reason),
+        "last_limit_name": posture.last_limit_name,
+        "usage": posture.usage.model_dump(mode="json"),
+        "remaining": (
+            posture.remaining.model_dump(mode="json")
+            if posture.remaining is not None
+            else None
+        ),
+    }
+    return ReplayBudgetSnapshot(
+        **payload,
+        fingerprint=fingerprint_replay_payload(payload),
+    )
+
+
 def collect_mismatches(
     baseline: ReplayNormalizedSession,
     replay: ReplayNormalizedSession,
@@ -251,6 +282,7 @@ def collect_mismatches(
         "questions",
         "cancellations",
         "task_plans",
+        "budget_posture",
         "event_families",
         "final_state",
     ):

@@ -27,6 +27,7 @@ def _print_session_status(status_view: SessionStatusView) -> None:
     print(f"Workspace: {snapshot.cwd}")
     print(f"Model: {snapshot.model_name}")
     print(f"Approval mode: {snapshot.approval_mode}")
+    print(_format_budget_posture_line(snapshot.budget_posture))
     print(_format_projection_health_line(snapshot.projection_health))
     if snapshot.dashboard_url is not None:
         print(f"Dashboard URL: {snapshot.dashboard_url}")
@@ -203,6 +204,25 @@ def _format_projection_health_line(projection_health) -> str:
     if projection_health.detail is not None:
         line += f" ({projection_health.detail})"
     return line
+
+
+def _format_budget_posture_line(budget_posture) -> str:
+    if budget_posture is None:
+        return "Autonomy budget: none"
+    mode = budget_posture.mode.value if budget_posture.mode is not None else "unknown"
+    detail = budget_posture.last_decision
+    if budget_posture.last_reason is not None:
+        detail += f"; {budget_posture.last_reason.value}"
+    if budget_posture.last_limit_name is not None:
+        detail += f"; limit {budget_posture.last_limit_name}"
+    remaining = budget_posture.remaining
+    if remaining is not None:
+        detail += (
+            f"; remaining steps {remaining.steps}, tools {remaining.tool_calls}, "
+            f"writes {remaining.write_operations}, "
+            f"commands {remaining.command_operations}"
+        )
+    return f"Autonomy budget: {mode}; {detail}"
 
 
 def _format_projection_sequence(projection_health) -> str:

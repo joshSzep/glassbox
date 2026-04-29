@@ -262,6 +262,29 @@ BOOTSTRAP_STATEMENTS = (
     create index if not exists idx_task_verifications_task
         on task_verifications (session_id, task_id, started_at)
     """,
+    """
+    create table if not exists autonomy_budget_posture (
+        session_id text not null,
+        task_id text not null default '',
+        scope text not null,
+        mode text,
+        budget_json text,
+        usage_json text not null,
+        remaining_json text,
+        last_decision text not null,
+        last_reason text,
+        last_limit_name text,
+        last_detail text,
+        updated_at text not null,
+        last_sequence integer not null,
+        primary key (session_id, task_id),
+        foreign key (session_id) references sessions(session_id)
+    )
+    """,
+    """
+    create index if not exists idx_autonomy_budget_posture_session_updated
+        on autonomy_budget_posture (session_id, updated_at desc)
+    """,
 )
 
 V3_BASELINE_SCHEMA_STATEMENTS = (

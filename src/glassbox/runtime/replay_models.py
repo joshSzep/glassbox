@@ -179,6 +179,20 @@ class ReplayTaskPlanSnapshot(BaseModel):
     verifications: list[ReplayTaskVerificationSnapshot] = Field(default_factory=list)
 
 
+class ReplayBudgetSnapshot(BaseModel):
+    """Normalized autonomy budget posture used for replay comparison."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mode: str | None = None
+    last_decision: str
+    last_reason: str | None = None
+    last_limit_name: str | None = None
+    usage: dict[str, int]
+    remaining: dict[str, int] | None = None
+    fingerprint: str
+
+
 class ReplayTaskPlanEventReference(BaseModel):
     """Task-plan event metadata retained in replay bundles."""
 
@@ -228,6 +242,7 @@ class ReplayNormalizedSession(BaseModel):
     questions: list[ReplayQuestionSnapshot]
     cancellations: list[ReplayCancellationSnapshot] = Field(default_factory=list)
     task_plans: list[ReplayTaskPlanSnapshot] = Field(default_factory=list)
+    budget_posture: ReplayBudgetSnapshot | None = None
     event_families: list[str]
     final_state: ReplayFinalStateSnapshot
 
