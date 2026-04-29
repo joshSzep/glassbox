@@ -45,6 +45,8 @@ Use this page to jump to the right level of detail.
 - [manual-qa-evidence-v6.md](./manual-qa-evidence-v6.md): record v6 terminal, dashboard, recovery, provider-canary, and accessibility manual evidence without committing large generated artifacts
 - [manual-qa-evidence-v7.md](./manual-qa-evidence-v7.md): record v7 manual validation, named accessibility pairings, onboarding/package smoke, provider-canary review, and release evidence without committing private artifacts
 - [manual-v7-release-validation.md](./manual-v7-release-validation.md): review the retained GBX-784 v7 manual validation pass, focused command results, provider-canary evidence, and residual risks
+- [manual-qa-evidence-v8.md](./manual-qa-evidence-v8.md): record v8 manual autonomy, terminal, dashboard, recovery, provider, package, and accessibility evidence without committing private artifacts
+- [manual-v8-release-validation.md](./manual-v8-release-validation.md): review the retained GBX-894 v8 manual validation pass, focused command results, recovery evidence, provider recommendation, and residual risks
 - [terminal-accessibility-review-v6.md](./terminal-accessibility-review-v6.md): review terminal size, keyboard, and accessibility evidence for the v6 release-candidate track
 - [dashboard-accessibility-review-v6.md](./dashboard-accessibility-review-v6.md): review dashboard responsive, keyboard, screenshot, and accessibility evidence for v6
 - [terminal-accessibility-review-v7.md](./terminal-accessibility-review-v7.md): review named v7 terminal accessibility pairings, supported keyboard claims, and screen-reader non-claims
@@ -101,6 +103,8 @@ Use this page to jump to the right level of detail.
 - [manual-qa-evidence-v6.md](./manual-qa-evidence-v6.md): v6 manual QA evidence directory convention, manifest template, retention policy, and redaction rules
 - [manual-qa-evidence-v7.md](./manual-qa-evidence-v7.md): v7 manual QA evidence directory convention, named accessibility pairing manifest, onboarding/package review shape, retention policy, and redaction rules
 - [manual-v7-release-validation.md](./manual-v7-release-validation.md): GBX-784 v7 manual validation summary, evidence directory, focused terminal/dashboard/provider/recovery/package results, and residual risks
+- [manual-qa-evidence-v8.md](./manual-qa-evidence-v8.md): v8 manual QA evidence directory convention, autonomy workflow manifest, named accessibility pairing manifest, retention policy, and redaction rules
+- [manual-v8-release-validation.md](./manual-v8-release-validation.md): GBX-894 v8 manual validation summary, evidence directories, focused autonomy/dashboard/provider/recovery/package results, and residual risks
 - [terminal-accessibility-review-v6.md](./terminal-accessibility-review-v6.md): v6 terminal review sizes, keyboard workflows, validation results, claims, and non-claims
 - [dashboard-accessibility-review-v6.md](./dashboard-accessibility-review-v6.md): v6 dashboard viewport, keyboard, screenshot archive, validation, claims, and non-claims
 - [terminal-accessibility-review-v7.md](./terminal-accessibility-review-v7.md): v7 terminal named-pairing review for VS Code integrated terminal on macOS, keyboard claims, and assistive-technology non-claims

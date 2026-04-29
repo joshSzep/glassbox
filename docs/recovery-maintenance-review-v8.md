@@ -35,3 +35,19 @@ memory, repository index, and branch-search sections in both JSON and text
 output. The command remains safe for scripts because it only reads runtime,
 projection, artifact, eval, provider, memory, index, job, task, and
 branch-search state; mutating recovery remains behind the named commands above.
+
+## GBX-894 Follow-Up
+
+The `GBX-894` manual validation pass added retained recovery evidence under:
+
+```text
+.glassbox/releases/gbx-894-manual-evidence/recovery/
+```
+
+Reviewed commands and results:
+
+- `glassbox projection check --all --cwd .` reported `23` ok projections and `0` degraded projections.
+- `glassbox artifacts inspect --cwd . --json` reported `58` orphan candidates, `333452` reclaimable candidate bytes, no missing references, and no storage warning.
+- `glassbox repo index build --json --cwd .` completed and left the repository index fresh for the current source digest.
+- `glassbox backup create .../workspace-backup.zip --cwd . --json` and `glassbox backup inspect .../workspace-backup.zip --cwd . --json` succeeded with `944` files and `943` artifacts.
+- `glassbox backup restore /Users/joshszep/code/glassbox/.glassbox/releases/gbx-894-manual-evidence/recovery/workspace-backup.zip --cwd /private/tmp/glassbox-gbx-894-restore --json` succeeded. A prior restore attempt with a relative archive path failed because restore resolves the archive path against the target `--cwd`; cross-workspace restore instructions should use absolute archive paths.

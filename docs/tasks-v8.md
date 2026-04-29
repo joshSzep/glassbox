@@ -1651,7 +1651,7 @@ The intended v8 milestone order is:
 
 ### GBX-894: Complete v8 Manual Validation And Accessibility Evidence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-886`, `GBX-893`
 - Goal: retain human evidence for autonomy workflows that automated tests cannot fully prove
 - Deliverables:

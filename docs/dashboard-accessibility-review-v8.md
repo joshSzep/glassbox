@@ -71,3 +71,16 @@ pnpm --dir frontend exec playwright test e2e/operator-workflows.spec.ts
 - VoiceOver and other screen-reader pairings were not executed.
 - Browser zoom, high-contrast mode, non-Chromium browsers, and long real-world task queues remain manual review items.
 - Dense tables remain optimized for operator scanning; a future pass should review row/column narration with a real screen reader before making broader claims.
+
+## GBX-894 Follow-Up
+
+The `GBX-894` manual validation pass reran the focused Vitest autonomy-console suite:
+
+```bash
+pnpm --dir frontend exec vitest run \
+  tests/task-autonomy-console.test.tsx \
+  tests/knowledge-autonomy-console.test.tsx \
+  tests/branch-search-console.test.tsx
+```
+
+Result: `7` tests passed. A targeted Playwright rerun for task controls, memory/index, and branch-search candidate workflows was attempted but blocked before test execution by local Next.js watcher exhaustion: `EMFILE: too many open files, watch`. This follow-up does not expand the accessibility claim beyond the `GBX-886` named Chromium/Playwright keyboard and mobile pairings.

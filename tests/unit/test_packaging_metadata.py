@@ -103,6 +103,10 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert (
         "sdist missing required file: docs/manual-v7-release-validation.md" in problems
     )
+    assert (
+        "sdist missing required file: docs/manual-v8-release-validation.md" in problems
+    )
+    assert "sdist missing required file: docs/manual-qa-evidence-v8.md" in problems
     assert "sdist missing required file: docs/v7-release-candidate.md" in problems
     assert "sdist missing required file: docs/v7-release-gate.md" in problems
     assert (
@@ -191,6 +195,11 @@ def _write_sdist(
             )
             _add_tar_text(
                 sdist,
+                "glassbox-0.1.0/docs/manual-v8-release-validation.md",
+                "# v8 Manual Release Validation\n",
+            )
+            _add_tar_text(
+                sdist,
                 "glassbox-0.1.0/docs/workspace-profiles.md",
                 "# Workspace Profiles\n",
             )
@@ -198,6 +207,11 @@ def _write_sdist(
                 sdist,
                 "glassbox-0.1.0/docs/manual-qa-evidence-v7.md",
                 "# v7 Manual QA Evidence Archive\n",
+            )
+            _add_tar_text(
+                sdist,
+                "glassbox-0.1.0/docs/manual-qa-evidence-v8.md",
+                "# v8 Manual QA Evidence Archive\n",
             )
             for doc_path in (
                 "docs/autonomy-console.md",
