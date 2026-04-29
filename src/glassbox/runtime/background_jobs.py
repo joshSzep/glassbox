@@ -37,6 +37,8 @@ from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskStepStatus
 from glassbox.runtime.context import RuntimeContext
 from glassbox.runtime.provider_canary import load_provider_canary_evidence
+from glassbox.runtime.repository_index import build_and_write_repository_index
+from glassbox.runtime.repository_index import repository_index_path
 from glassbox.runtime.task_queries import TaskPlanRepository
 from glassbox.store.artifact_retention import inspect_artifact_state
 
@@ -283,12 +285,18 @@ def _run_read_only_job(
         _run_provider_evidence_scan(runtime_context, workspace_root, job)
         return
     if job.job_type == "repository-index-refresh":
-        _record_progress(runtime_context, job, "repository index refresh placeholder")
+        snapshot = build_and_write_repository_index(workspace_root)
+        index_path = repository_index_path(workspace_root)
+        _record_progress(
+            runtime_context,
+            job,
+            f"repository index refreshed {len(snapshot.entries)} entries",
+        )
         runtime_context.repositories.sessions.complete_background_job(
             job.job_id,
             summary=(
-                "Repository index refresh placeholder completed without mutating "
-                "workspace files."
+                f"Repository index refresh wrote {len(snapshot.entries)} entries "
+                f"to {index_path}."
             ),
         )
         return

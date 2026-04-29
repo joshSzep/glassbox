@@ -941,7 +941,7 @@ The intended v8 milestone order is:
 
 ### GBX-854: Implement Repository Index Builder And Read APIs
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-853`
 - Goal: build the first deterministic local repository index and make it queryable from CLI and web surfaces
 - Deliverables:
@@ -959,6 +959,17 @@ The intended v8 milestone order is:
   - integration tests for build/status/search
   - background job tests for refresh
   - OpenAPI and frontend typecheck if APIs change
+- Completed vertical slice:
+  - added a deterministic file-backed repository index builder at `.glassbox/repository-index.json` with bounded crawling, exclusion rules, project marker/docs/eval/source/test/module/symbol/command/dependency entries, stable IDs, freshness digests, search, and entry reads
+  - wired `glassbox repo index build/status/search/show`, including optional background refresh queueing
+  - replaced the daemon `repository-index-refresh` placeholder with a real read-only refresh job
+  - exposed `/repo/index/status`, `/repo/index/search`, and `/repo/index/entries/{entry_id}` read APIs and regenerated frontend OpenAPI types
+  - covered builder staleness/search/detail behavior, CLI commands, web routes, background refresh, and OpenAPI schema expansion
+- Validation:
+  - `uv run ruff format src/glassbox/runtime/repository_index.py src/glassbox/cli/parser_repository.py src/glassbox/cli/repository_commands.py src/glassbox/runtime/background_jobs.py src/glassbox/web/repository_index_api.py src/glassbox/web/repository_index_routes.py src/glassbox/web/app.py tests/unit/test_repository_index.py tests/integration/test_cli_repository_commands.py tests/integration/test_web_repository_index_routes.py tests/integration/test_background_job_runner.py tests/integration/test_openapi_schema.py && uv run ruff check src/glassbox/runtime/repository_index.py src/glassbox/cli/parser_repository.py src/glassbox/cli/repository_commands.py src/glassbox/runtime/background_jobs.py src/glassbox/web/repository_index_api.py src/glassbox/web/repository_index_routes.py src/glassbox/web/app.py tests/unit/test_repository_index.py tests/integration/test_cli_repository_commands.py tests/integration/test_web_repository_index_routes.py tests/integration/test_background_job_runner.py tests/integration/test_openapi_schema.py`
+  - `uv run ty check`
+  - `uv run pytest tests/unit/test_repository_index.py tests/integration/test_cli_repository_commands.py tests/integration/test_web_repository_index_routes.py tests/integration/test_background_job_runner.py tests/integration/test_openapi_schema.py`
+  - `cd frontend && pnpm run api:generate && pnpm run typecheck`
 - Done when:
   - Glassbox can answer basic local repository orientation questions without repeatedly rediscovering the same structure every turn
 

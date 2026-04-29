@@ -128,6 +128,66 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/repo/index/entries/{entry_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Repository Index Entry Detail
+     * @description Return one repository index entry by stable ID.
+     */
+    get: operations["get_repository_index_entry_detail_repo_index_entries__entry_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/repo/index/search": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Search Repository Index Entries
+     * @description Search repository index entries by text.
+     */
+    get: operations["search_repository_index_entries_repo_index_search_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/repo/index/status": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Repository Index Status
+     * @description Return repository index freshness and size.
+     */
+    get: operations["get_repository_index_status_repo_index_status_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/sessions": {
     parameters: {
       query?: never;
@@ -1103,6 +1163,82 @@ export interface components {
       /** Workspace Name */
       workspace_name: string;
     };
+    /** RepositoryIndexEntryDetailResponse */
+    RepositoryIndexEntryDetailResponse: {
+      entry: components["schemas"]["RepositoryIndexEntryResponse"];
+    };
+    /** RepositoryIndexEntryResponse */
+    RepositoryIndexEntryResponse: {
+      /** Entry Id */
+      entry_id: string;
+      /** Kind */
+      kind: string;
+      /** Language */
+      language?: string | null;
+      /** Name */
+      name: string;
+      /** Path */
+      path?: string | null;
+      /** Provenance */
+      provenance: components["schemas"]["RepositoryIndexProvenanceResponse"][];
+      /** Summary */
+      summary?: string | null;
+      /** Symbol */
+      symbol?: string | null;
+      /** Tags */
+      tags: string[];
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /** RepositoryIndexProvenanceResponse */
+    RepositoryIndexProvenanceResponse: {
+      /** Content Sha256 */
+      content_sha256?: string | null;
+      /** Line End */
+      line_end?: number | null;
+      /** Line Start */
+      line_start?: number | null;
+      /** Note */
+      note?: string | null;
+      /** Path */
+      path?: string | null;
+      /** Source Label */
+      source_label?: string | null;
+      /** Source Type */
+      source_type: string;
+      /** Tool Name */
+      tool_name?: string | null;
+    };
+    /** RepositoryIndexSearchPageResponse */
+    RepositoryIndexSearchPageResponse: {
+      /** Items */
+      items: components["schemas"]["RepositoryIndexEntryResponse"][];
+      page: components["schemas"]["PageInfoResponse"];
+      /** Query */
+      query: string;
+    };
+    /** RepositoryIndexStatusResponse */
+    RepositoryIndexStatusResponse: {
+      /** Builder Version */
+      builder_version?: string | null;
+      /** Built At */
+      built_at?: string | null;
+      /** Detail */
+      detail?: string | null;
+      /** Entry Count */
+      entry_count: number;
+      /** Path */
+      path: string;
+      /** Schema Version */
+      schema_version?: number | null;
+      /** Source Digest */
+      source_digest?: string | null;
+      /** Status */
+      status: string;
+    };
     /**
      * ResolveApprovalRequest
      * @description Request body for resolving a pending approval.
@@ -2055,6 +2191,89 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_repository_index_entry_detail_repo_index_entries__entry_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        entry_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RepositoryIndexEntryDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  search_repository_index_entries_repo_index_search_get: {
+    parameters: {
+      query: {
+        query: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RepositoryIndexSearchPageResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_repository_index_status_repo_index_status_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RepositoryIndexStatusResponse"];
         };
       };
     };

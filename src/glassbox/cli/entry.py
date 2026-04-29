@@ -58,6 +58,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
     from glassbox.cli.provider_commands import _provider_command
     from glassbox.cli.replay_eval_commands import _eval_command
     from glassbox.cli.replay_eval_commands import _replay_command
+    from glassbox.cli.repository_commands import _repo_command
     from glassbox.cli.server_commands import _dashboard_command
     from glassbox.cli.session_state_commands import _projection_command
     from glassbox.cli.session_state_commands import _session_command
@@ -76,6 +77,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
         "memory": _memory_command,
         "observability": _observability_command,
         "provider": _provider_command,
+        "repo": _repo_command,
         "performance": _performance_command,
         "projection": _projection_command,
         "dashboard": _dashboard_command,
