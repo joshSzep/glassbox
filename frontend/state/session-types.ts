@@ -46,6 +46,7 @@ export type SessionFields = {
   approvalMode: string | null;
   branchLabel: string | null;
   branchableTurns: BranchableTurn[];
+  budgetPosture: components["schemas"]["AutonomyBudgetPostureRecord"] | null;
   canFork: boolean;
   childSessions: ChildSession[];
   currentTurn: CurrentTurn | null;

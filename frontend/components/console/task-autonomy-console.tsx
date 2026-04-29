@@ -438,6 +438,13 @@ function TaskPlanInspector({
           </DataListItem>
         </DataList>
 
+        <TaskWhyThisActionEvidence
+          budgetEvidence={budgetEvidence}
+          currentStepTitle={currentStep?.title ?? null}
+          events={detail.events}
+          verificationText={verificationSummary(selectedDetail.verifications)}
+        />
+
         <section aria-label="Task plan steps">
           <h3 className="mb-2 text-sm font-semibold uppercase tracking-normal text-muted-foreground">
             Plan
@@ -821,6 +828,85 @@ function verificationSummary(
   const failed = verifications.filter((verification) => verification.status === "failed").length;
   const passed = verifications.filter((verification) => verification.status === "passed").length;
   return `${passed} passed, ${failed} failed, ${verifications.length} total.`;
+}
+
+function TaskWhyThisActionEvidence({
+  budgetEvidence,
+  currentStepTitle,
+  events,
+  verificationText,
+}: {
+  budgetEvidence: string;
+  currentStepTitle: string | null;
+  events: TaskDetailState["events"];
+  verificationText: string;
+}) {
+  const decisionEvent = latestAutonomyDecisionEvent(events);
+  const memoryEvents = events.filter((event) => event.event_type.includes("Memory")).length;
+  const branchEvents = events.filter((event) => event.event_type.startsWith("Branch")).length;
+  return (
+    <section
+      aria-label="Why this action"
+      className="rounded-md border border-border/80 bg-surface p-3"
+    >
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold uppercase tracking-normal text-muted-foreground">
+          Why this action
+        </h3>
+        <Badge variant={decisionEvent === null ? "warning" : "info"}>
+          {decisionEvent === null ? "missing evidence" : "event backed"}
+        </Badge>
+      </div>
+      <DataList density="compact">
+        <DataListItem>
+          <DataListLabel>Decision source</DataListLabel>
+          <DataListMeta>
+            {decisionEvent === null
+              ? "No autonomous decision event is loaded for this task."
+              : `${decisionEvent.event_type} at sequence ${decisionEvent.sequence}`}
+          </DataListMeta>
+        </DataListItem>
+        <DataListItem>
+          <DataListLabel>Plan step</DataListLabel>
+          <DataListMeta>{currentStepTitle ?? "No current plan step retained."}</DataListMeta>
+        </DataListItem>
+        <DataListItem>
+          <DataListLabel>Budget and policy</DataListLabel>
+          <DataListMeta>{budgetEvidence}</DataListMeta>
+        </DataListItem>
+        <DataListItem>
+          <DataListLabel>Verification</DataListLabel>
+          <DataListMeta>{verificationText}</DataListMeta>
+        </DataListItem>
+        <DataListItem>
+          <DataListLabel>Context evidence</DataListLabel>
+          <DataListMeta>
+            {memoryEvents === 0 && branchEvents === 0
+              ? "No memory/index or branch-search event is loaded for this task."
+              : `${memoryEvents} memory event${memoryEvents === 1 ? "" : "s"}; ${branchEvents} branch event${branchEvents === 1 ? "" : "s"}.`}
+          </DataListMeta>
+        </DataListItem>
+      </DataList>
+    </section>
+  );
+}
+
+function latestAutonomyDecisionEvent(events: TaskDetailState["events"]) {
+  return (
+    [...events]
+      .reverse()
+      .find((event) =>
+        [
+          "TaskStatusChanged",
+          "TaskPaused",
+          "TaskResumed",
+          "TaskCancelled",
+          "BudgetDecisionRecorded",
+          "BudgetExhausted",
+          "BackgroundJobCreated",
+        ].includes(event.event_type),
+      ) ?? null
+  );
 }
 
 function latestBudgetEvidence(events: TaskDetailState["events"]): string {

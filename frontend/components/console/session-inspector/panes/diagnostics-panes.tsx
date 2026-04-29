@@ -375,6 +375,7 @@ export function EvidencePane({
           </Badge>
           <Badge variant="outline">{recentEvents.length} recent events</Badge>
         </div>
+        <WhyThisActionEvidence data={data} />
         <EvidenceDetails title="Stream state">
           <DataList density="compact">
             <DataListItem>
@@ -403,6 +404,7 @@ export function EvidencePane({
           ))}
         </EvidenceList>
         <ProjectionDetails projection={projection} />
+        <AutonomyTimelineMarkers events={recentEvents} />
         <EvidenceList title="Event log" empty="No event log entries are attached to this snapshot.">
           {recentEvents.map((event) => (
             <DataListItem key={`${event.event_type}:${event.sequence}`}>
@@ -429,6 +431,142 @@ export function EvidencePane({
       </div>
     </Pane>
   );
+}
+
+function WhyThisActionEvidence({ data }: { data: DashboardState }) {
+  const cues = buildWhyThisActionCues(data);
+  return (
+    <EvidenceDetails title="Why this action">
+      <DataList density="compact">
+        {cues.map((cue) => (
+          <DataListItem key={cue.label}>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <DataListLabel>{cue.label}</DataListLabel>
+                <DataListMeta>{cue.value}</DataListMeta>
+              </div>
+              <Badge variant={cue.variant}>{cue.confidence}</Badge>
+            </div>
+          </DataListItem>
+        ))}
+      </DataList>
+    </EvidenceDetails>
+  );
+}
+
+function AutonomyTimelineMarkers({ events }: { events: DashboardState["eventLog"] }) {
+  const markers = events
+    .map((event) => ({ ...event, marker: autonomyTimelineMarker(event.event_type) }))
+    .filter((event) => event.marker !== null);
+  return (
+    <EvidenceList
+      title="Autonomy timeline markers"
+      empty="No autonomous decision or human intervention markers are in the loaded event window."
+    >
+      {markers.map((event) => (
+        <DataListItem key={`${event.event_type}:${event.sequence}`}>
+          <DataListLabel>{event.marker}</DataListLabel>
+          <DataListMeta>
+            {event.event_type} at sequence {event.sequence}
+          </DataListMeta>
+        </DataListItem>
+      ))}
+    </EvidenceList>
+  );
+}
+
+function buildWhyThisActionCues(data: DashboardState) {
+  const runtimeContext = data.runtimeContext;
+  const memoryCount = runtimeContext?.workspace_memory?.length ?? 0;
+  const indexCount = runtimeContext?.repository_index?.items?.length ?? 0;
+  const verificationFailures = data.turnMetrics.reduce(
+    (total, metric) => total + metric.failed_tool_call_count,
+    0,
+  );
+  return [
+    {
+      confidence: data.currentTurnPolicySummary === null ? "missing" : "direct",
+      label: "Policy",
+      value:
+        data.currentTurnPolicySummary === null
+          ? "No current-turn policy summary is retained for this snapshot."
+          : `${data.currentTurnPolicySummary.total_decisions} decisions; ${data.currentTurnPolicySummary.approve_count} approvals; ${data.currentTurnPolicySummary.blocked_count} blocked.`,
+      variant: data.currentTurnPolicySummary === null ? ("warning" as const) : ("info" as const),
+    },
+    {
+      confidence: data.budgetPosture === null ? "missing" : "direct",
+      label: "Budget",
+      value:
+        data.budgetPosture === null
+          ? "No autonomy budget posture is retained for this snapshot."
+          : `${data.budgetPosture.last_decision} at sequence ${data.budgetPosture.last_sequence}${data.budgetPosture.last_detail ? `; ${data.budgetPosture.last_detail}` : ""}`,
+      variant: data.budgetPosture === null ? ("warning" as const) : ("info" as const),
+    },
+    {
+      confidence: memoryCount === 0 && indexCount === 0 ? "missing" : "direct",
+      label: "Memory and index",
+      value:
+        memoryCount === 0 && indexCount === 0
+          ? "No workspace memory or repository index context is retained for this turn."
+          : `${memoryCount} memory item${memoryCount === 1 ? "" : "s"} and ${indexCount} index item${indexCount === 1 ? "" : "s"} influenced context.`,
+      variant: memoryCount === 0 && indexCount === 0 ? ("warning" as const) : ("success" as const),
+    },
+    {
+      confidence: data.turnMetrics.length === 0 ? "missing" : "direct",
+      label: "Verification",
+      value:
+        data.turnMetrics.length === 0
+          ? "No turn metrics are loaded to explain verification or tool failures."
+          : `${verificationFailures} failed tool call${verificationFailures === 1 ? "" : "s"} across ${data.turnMetrics.length} loaded turn metric row${data.turnMetrics.length === 1 ? "" : "s"}.`,
+      variant: verificationFailures > 0 ? ("warning" as const) : ("success" as const),
+    },
+    {
+      confidence: providerEvidenceCount(data) === 0 ? "missing" : "advisory",
+      label: "Provider readiness",
+      value:
+        providerEvidenceCount(data) === 0
+          ? "No provider readiness artifact is retained; treat provider status as unknown."
+          : `${providerEvidenceCount(data)} advisory provider artifact${providerEvidenceCount(data) === 1 ? "" : "s"} retained.`,
+      variant: providerEvidenceCount(data) === 0 ? ("warning" as const) : ("info" as const),
+    },
+  ];
+}
+
+function providerEvidenceCount(data: DashboardState): number {
+  return (data.runtimeContext?.artifact_context?.summaries ?? []).filter((artifact) => {
+    const searchable = [
+      artifact.artifact_kind,
+      artifact.source_tool_name,
+      artifact.summary,
+      artifact.summary_kind,
+    ]
+      .join(" ")
+      .toLowerCase();
+    return searchable.includes("provider");
+  }).length;
+}
+
+function autonomyTimelineMarker(eventType: string): string | null {
+  if (eventType.startsWith("Task") || eventType.startsWith("BranchCandidate")) {
+    return "autonomous decision";
+  }
+  if (
+    eventType === "BudgetDecisionRecorded" ||
+    eventType === "BudgetExhausted" ||
+    eventType === "BackgroundJobCreated"
+  ) {
+    return "runtime autonomy";
+  }
+  if (
+    eventType.includes("Approval") ||
+    eventType.includes("Question") ||
+    eventType.includes("Selected") ||
+    eventType.includes("Rejected") ||
+    eventType.includes("NeedsReview")
+  ) {
+    return "human intervention";
+  }
+  return null;
 }
 
 function LoadMoreDetail({

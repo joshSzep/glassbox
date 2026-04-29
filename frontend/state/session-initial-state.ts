@@ -67,6 +67,7 @@ export function createEmptySessionFields(): SessionFields {
     approvalMode: null,
     branchLabel: null,
     branchableTurns: [],
+    budgetPosture: null,
     canFork: false,
     childSessions: [],
     currentTurn: null,

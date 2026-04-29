@@ -154,6 +154,11 @@ describe("session inspector", () => {
     const evidenceMarkup = renderInspectorTab(data, "evidence");
     expect(evidenceMarkup).toContain("Verification cues");
     expect(evidenceMarkup).toContain("Evidence overview");
+    expect(evidenceMarkup).toContain("Why this action");
+    expect(evidenceMarkup).toContain("Policy");
+    expect(evidenceMarkup).toContain("Budget");
+    expect(evidenceMarkup).toContain("Memory and index");
+    expect(evidenceMarkup).toContain("Autonomy timeline markers");
     expect(evidenceMarkup).toContain("Stream state");
     expect(evidenceMarkup).toContain("Projection details");
     expect(evidenceMarkup).toContain("progress 100%");

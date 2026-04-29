@@ -1515,7 +1515,7 @@ The intended v8 milestone order is:
 
 ### GBX-885: Add Why-This-Action And Autonomy Evidence Pane
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-882`, `GBX-855`, `GBX-866`
 - Goal: explain why Glassbox took, proposed, paused, or refused an autonomous action
 - Deliverables:

@@ -66,6 +66,29 @@ describe("session state hydration", () => {
           { created_at: "2026-04-23T00:00:01Z", label: "first", sequence: 1, turn_id: "turn-1" },
           { created_at: "2026-04-23T00:00:03Z", label: "latest", sequence: 3, turn_id: "turn-3" },
         ],
+        budget_posture: {
+          budget: null,
+          last_decision: "exhausted",
+          last_detail: "step budget exhausted",
+          last_limit_name: "steps",
+          last_reason: "budget_exhausted",
+          last_sequence: 12,
+          mode: "test-driven",
+          remaining: null,
+          session_id: "session-1",
+          task_id: null,
+          updated_at: "2026-04-23T00:00:05Z",
+          usage: {
+            artifact_bytes: 0,
+            branch_attempts: 0,
+            command_operations: 0,
+            steps: 4,
+            tool_calls: 1,
+            verification_attempts: 1,
+            wall_clock_seconds: 15,
+            write_operations: 1,
+          },
+        },
         can_fork: true,
         child_sessions: [
           {
@@ -137,6 +160,11 @@ describe("session state hydration", () => {
     expect(state.branchableTurns.map((turn) => turn.turn_id)).toEqual(["turn-3", "turn-1"]);
     expect(state.selectedForkTurnId).toBe("turn-3");
     expect(state.childSessions[0]?.session_id).toBe("child-1");
+    expect(state.budgetPosture).toMatchObject({
+      last_limit_name: "steps",
+      last_reason: "budget_exhausted",
+      mode: "test-driven",
+    });
     expect(state.pendingApprovals[0]).toMatchObject({ resolution_state: "idle" });
     expect(state.activeToolCalls[0]?.tool_name).toBe("apply_patch");
     expect(state.runtimeContext?.repository_context.workspace_name).toBe("glassbox");

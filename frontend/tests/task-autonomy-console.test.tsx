@@ -90,6 +90,9 @@ describe("task autonomy console", () => {
     expect(markup).toContain("#3 BudgetDecisionRecorded");
     expect(markup).toContain("Load More Events");
     expect(markup).toContain("Task controls");
+    expect(markup).toContain("Why this action");
+    expect(markup).toContain("BackgroundJobCreated at sequence 4");
+    expect(markup).toContain("No memory/index or branch-search event is loaded");
     expect(markup).toContain("Continue");
     expect(markup).toContain("Adjust Budget");
     expect(markup).toContain("Cancel Job job-1234");

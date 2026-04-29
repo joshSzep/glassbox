@@ -72,6 +72,7 @@ function normalizeSessionFields(snapshot: SessionSnapshot): SessionFields {
     approvalMode: snapshot.approval_mode,
     branchLabel: snapshot.branch_label,
     branchableTurns,
+    budgetPosture: snapshot.budget_posture ?? null,
     canFork: snapshot.can_fork,
     childSessions: [...snapshot.child_sessions],
     currentTurn: inferCurrentTurn(snapshot),
