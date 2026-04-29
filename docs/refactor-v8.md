@@ -394,7 +394,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R213: Split Repository Index Builder Into Discovery, Extraction, And Search Modules
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R200`
 - Goal: reduce
   [repository_index.py](../src/glassbox/runtime/repository_index.py) by
@@ -420,6 +420,17 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - repository intelligence remains behavior-compatible while the builder,
     persistence, freshness, and search concerns are independently owned
+- Completed:
+  - `repository_index.py` remains the stable build/read/search facade
+  - deterministic file discovery, exclusions, index path constants, and source
+    digests live in `runtime/repository_index_discovery.py`
+  - project marker, docs, eval, source, module, symbol, test, command, and
+    dependency entry extraction lives in
+    `runtime/repository_index_extraction.py`
+  - artifact persistence and freshness loading live in
+    `runtime/repository_index_persistence.py`
+  - search matching and entry lookup live in
+    `runtime/repository_index_search.py`
 
 ---
 

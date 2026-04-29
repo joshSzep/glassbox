@@ -181,6 +181,12 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   loading, searching, and fetching index entries while filesystem scanning,
   entity extraction, dependency/script extraction, index serialization, and
   search ranking move behind owned helpers
+- the repository-index split now keeps
+  `src/glassbox/runtime/repository_index.py` as the stable public facade, with
+  deterministic discovery and source digests in `repository_index_discovery.py`,
+  entry extraction in `repository_index_extraction.py`, persistence/freshness
+  checks in `repository_index_persistence.py`, and search/entry lookup in
+  `repository_index_search.py`
 - repository intelligence remains local-file derived. It should not introduce
   network fetches, generated caches that are not rebuildable, or runtime
   orchestration dependencies as part of refactor-only work
