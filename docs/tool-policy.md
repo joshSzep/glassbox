@@ -28,7 +28,7 @@ Each tool is assigned one coarse risk bucket:
 
 Examples from the current toolset:
 
-- `read_only`: `list_dir`, `read_file`, `search_files`, `git_status`, `ask_user`
+- `read_only`: `list_dir`, `read_file`, `search_files`, `git_status`, `workspace_diff_summary`, `ask_user`
 - `workspace_write`: `apply_patch`
 - `command`: `run_command`, `run_tests`
 
@@ -199,6 +199,7 @@ These run immediately when they stay inside the workspace:
 - `read_file path="README.md"`
 - `list_dir path="src"`
 - `git_status`
+- `workspace_diff_summary scope="workspace"`
 - `ask_user question="What colour should I use?"`
 
 Read-only status does not mean “no effect on control flow”. `ask_user` is

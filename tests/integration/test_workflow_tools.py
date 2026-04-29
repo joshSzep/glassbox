@@ -10,6 +10,10 @@ from glassbox.tools import ApprovalMode
 from glassbox.tools import ToolPolicyContext
 from glassbox.tools import ToolPolicyEngine
 from glassbox.tools import build_workflow_tool_registry
+from glassbox.tools.workflow import DIFF_SUMMARY_ARTIFACT_KIND
+from glassbox.tools.workflow import DiffSummaryArgs
+from glassbox.tools.workflow import DiffSummaryScope
+from glassbox.tools.workflow import DiffSummaryTool
 from glassbox.tools.workflow import GitStatusArgs
 from glassbox.tools.workflow import GitStatusTool
 from glassbox.tools.workflow import RunTestsArgs
@@ -148,6 +152,126 @@ def test_git_status_rejects_out_of_scope_cwd(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# DiffSummaryTool tests
+# ---------------------------------------------------------------------------
+
+
+def test_diff_summary_reports_workspace_patch_risk(tmp_path: Path) -> None:
+    _init_git_repo(tmp_path)
+    (tmp_path / "README.md").write_text("init\nchanged\n", encoding="utf-8")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_new.py").write_text(
+        "def test_new():\n    assert True\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "guide.md").write_text("guide\n", encoding="utf-8")
+    tool = DiffSummaryTool(tmp_path)
+
+    async def scenario() -> None:
+        result = await tool.execute(DiffSummaryArgs())
+        assert result.error is None
+        assert result.clean is False
+        assert result.scope == DiffSummaryScope.WORKSPACE
+        assert result.risk_summary.touched_files == 3
+        assert "tests/test_new.py" in result.risk_summary.tests_touched
+        assert "docs/guide.md" in result.risk_summary.docs_touched
+        assert "tests/test_new.py" in result.risk_summary.untracked_files
+
+    asyncio.run(scenario())
+
+
+def test_diff_summary_reports_staged_changes_only(tmp_path: Path) -> None:
+    _init_git_repo(tmp_path)
+    (tmp_path / "README.md").write_text("staged\n", encoding="utf-8")
+    (tmp_path / "later.md").write_text("unstaged\n", encoding="utf-8")
+    subprocess.run(["git", "add", "README.md"], cwd=tmp_path, check=True)
+    tool = DiffSummaryTool(tmp_path)
+
+    async def scenario() -> None:
+        result = await tool.execute(DiffSummaryArgs(scope=DiffSummaryScope.STAGED))
+        assert result.error is None
+        assert [file.path for file in result.files] == ["README.md"]
+        assert result.risk_summary.docs_touched == ["README.md"]
+
+    asyncio.run(scenario())
+
+
+def test_diff_summary_applies_path_filters(tmp_path: Path) -> None:
+    _init_git_repo(tmp_path)
+    (tmp_path / "README.md").write_text("changed\n", encoding="utf-8")
+    (tmp_path / "src.py").write_text("print('new')\n", encoding="utf-8")
+    tool = DiffSummaryTool(tmp_path)
+
+    async def scenario() -> None:
+        result = await tool.execute(DiffSummaryArgs(paths=["README.md"]))
+        assert result.error is None
+        assert [file.path for file in result.files] == ["README.md"]
+
+    asyncio.run(scenario())
+
+
+def test_diff_summary_rejects_out_of_scope_path_filter(tmp_path: Path) -> None:
+    _init_git_repo(tmp_path)
+    tool = DiffSummaryTool(tmp_path)
+
+    async def scenario() -> None:
+        with pytest.raises(ValueError, match="outside workspace"):
+            await tool.execute(DiffSummaryArgs(paths=["../outside"]))
+
+    asyncio.run(scenario())
+
+
+def test_diff_summary_reports_binary_and_policy_sensitive_paths(
+    tmp_path: Path,
+) -> None:
+    _init_git_repo(tmp_path)
+    (tmp_path / "asset.bin").write_bytes(b"\x00\x01changed")
+    (tmp_path / "glassbox-policy.json").write_text("{}", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "binary"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+    (tmp_path / "asset.bin").write_bytes(b"\x00\x02changed")
+    (tmp_path / "glassbox-policy.json").write_text('{"rules":[]}\n', encoding="utf-8")
+    tool = DiffSummaryTool(tmp_path)
+
+    async def scenario() -> None:
+        result = await tool.execute(DiffSummaryArgs())
+        assert result.error is None
+        assert result.risk_summary.binary_files == 1
+        assert "glassbox-policy.json" in result.risk_summary.policy_sensitive_paths
+
+    asyncio.run(scenario())
+
+
+def test_diff_summary_prepares_artifact_payload_for_large_summary(
+    tmp_path: Path,
+) -> None:
+    _init_git_repo(tmp_path)
+    for index in range(4):
+        (tmp_path / f"file_{index}.py").write_text(
+            f"value = {index}\n", encoding="utf-8"
+        )
+    tool = DiffSummaryTool(tmp_path)
+
+    async def scenario() -> None:
+        result = await tool.execute(DiffSummaryArgs(inline_file_limit=2))
+        assert result.error is None
+        assert result.artifact_required is True
+        assert result.artifact_kind == DIFF_SUMMARY_ARTIFACT_KIND
+        assert result.artifact_payload is not None
+        assert len(result.files) == 2
+        assert len(result.artifact_payload.files) == 4
+        assert result.artifact_payload.redaction == "summary-only-no-raw-diff"
+
+    asyncio.run(scenario())
+
+
+# ---------------------------------------------------------------------------
 # RunTestsTool tests
 # ---------------------------------------------------------------------------
 
@@ -266,6 +390,7 @@ def test_build_workflow_tool_registry_includes_all_tools(tmp_path: Path) -> None
         "search_files",
         "run_command",
         "git_status",
+        "workspace_diff_summary",
         "run_tests",
     }
 
@@ -283,6 +408,19 @@ def test_git_status_allowed_without_approval(tmp_path: Path) -> None:
     registry = build_workflow_tool_registry(tmp_path)
     tool = registry.require("git_status")
     decision = engine.evaluate(tool.spec, arguments=GitStatusArgs(), context=context)
+
+    assert decision.allowed is True
+    assert decision.requires_approval is False
+
+
+def test_diff_summary_allowed_without_approval(tmp_path: Path) -> None:
+    engine = ToolPolicyEngine()
+    context = ToolPolicyContext(
+        workspace_root=tmp_path, approval_mode=ApprovalMode.NEVER
+    )
+    registry = build_workflow_tool_registry(tmp_path)
+    tool = registry.require("workspace_diff_summary")
+    decision = engine.evaluate(tool.spec, arguments=DiffSummaryArgs(), context=context)
 
     assert decision.allowed is True
     assert decision.requires_approval is False

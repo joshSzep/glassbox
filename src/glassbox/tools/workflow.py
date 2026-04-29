@@ -1,10 +1,13 @@
-"""Workflow tools: git status and test runner for Glassbox sessions."""
+"""Workflow tools: git status, diff review, and test runner for sessions."""
 
 import asyncio
+import json
 import re
 import sys
 from collections.abc import Callable
+from enum import StrEnum
 from pathlib import Path
+from typing import cast
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -167,6 +170,431 @@ def _parse_porcelain_output(output: str) -> GitStatusResult:
 
 
 # ---------------------------------------------------------------------------
+# Diff summary tool
+# ---------------------------------------------------------------------------
+
+DIFF_SUMMARY_ARTIFACT_KIND = "workspace_diff_summary"
+
+_POLICY_SENSITIVE_PATH_PREFIXES = (
+    ".github/",
+    "docs/tool-policy",
+    "docs/tasks-v",
+    "scripts/validate_",
+    "src/glassbox/tools/policy",
+    "src/glassbox/tools/policy_config",
+)
+_POLICY_SENSITIVE_PATH_NAMES = {
+    ".env",
+    ".env.local",
+    ".envrc",
+    "glassbox-policy.json",
+    "glassbox.tool-policy.json",
+}
+_GENERATED_PATH_MARKERS = (
+    "/__pycache__/",
+    "/generated/",
+    "/static_next/",
+    "/node_modules/",
+)
+_GENERATED_PATH_PREFIXES = (
+    "frontend/generated/",
+    "src/glassbox/web/static_next/",
+)
+
+
+class DiffSummaryScope(StrEnum):
+    """Supported git diff scopes for structured review."""
+
+    WORKSPACE = "workspace"
+    STAGED = "staged"
+    UNSTAGED = "unstaged"
+
+
+class DiffSummaryArgs(BaseModel):
+    """Arguments for summarizing local git diffs without mutating state."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    scope: DiffSummaryScope = Field(
+        default=DiffSummaryScope.WORKSPACE,
+        description=(
+            "Diff scope: workspace compares HEAD to the working tree and includes "
+            "untracked files, staged inspects the index, and unstaged inspects "
+            "working-tree changes not yet staged."
+        ),
+    )
+    paths: list[str] = Field(
+        default_factory=list,
+        description="Optional workspace-relative path filters.",
+        max_length=100,
+    )
+    max_files: int = Field(
+        default=200,
+        ge=1,
+        le=1000,
+        description="Maximum changed files to include in the structured summary.",
+    )
+    inline_file_limit: int = Field(
+        default=50,
+        ge=1,
+        le=200,
+        description=(
+            "Maximum file summaries to return inline before also preparing an "
+            "artifact-sized JSON summary for event recording."
+        ),
+    )
+
+
+class DiffFileSummary(BaseModel):
+    """One file touched by a local diff."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    path: str
+    change_kind: str = "modified"
+    insertions: int | None = None
+    deletions: int | None = None
+    binary: bool = False
+    generated: bool = False
+    test_file: bool = False
+    docs_file: bool = False
+    policy_sensitive: bool = False
+
+
+class PatchRiskSummary(BaseModel):
+    """Aggregated change-risk cues for operators and verification loops."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    touched_files: int = 0
+    insertions: int = 0
+    deletions: int = 0
+    binary_files: int = 0
+    generated_files: list[str] = Field(default_factory=list)
+    tests_touched: list[str] = Field(default_factory=list)
+    docs_touched: list[str] = Field(default_factory=list)
+    policy_sensitive_paths: list[str] = Field(default_factory=list)
+    untracked_files: list[str] = Field(default_factory=list)
+
+
+class DiffSummaryArtifact(BaseModel):
+    """Artifact-ready payload for large structured diff summaries."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    artifact_kind: str = DIFF_SUMMARY_ARTIFACT_KIND
+    scope: DiffSummaryScope
+    path_filters: list[str]
+    risk_summary: PatchRiskSummary
+    files: list[DiffFileSummary]
+    redaction: str = "summary-only-no-raw-diff"
+
+
+class DiffSummaryResult(BaseModel):
+    """Structured read-only summary of local git changes."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    scope: DiffSummaryScope
+    path_filters: list[str] = Field(default_factory=list)
+    clean: bool = False
+    files: list[DiffFileSummary] = Field(default_factory=list)
+    truncated: bool = False
+    risk_summary: PatchRiskSummary = Field(default_factory=PatchRiskSummary)
+    artifact_required: bool = False
+    artifact_kind: str | None = None
+    artifact_payload: DiffSummaryArtifact | None = None
+    error: str | None = None
+
+
+class DiffSummaryTool:
+    """Summarize local git diffs without mutating git or workspace files."""
+
+    spec = ToolSpec(
+        name="workspace_diff_summary",
+        description=(
+            "Summarize local git changes as structured patch-risk evidence. "
+            "The tool is read-only and never mutates git state."
+        ),
+        input_model=DiffSummaryArgs,
+        output_model=DiffSummaryResult,
+        risk_level=ToolRiskLevel.READ_ONLY,
+        path_argument_names=("paths",),
+    )
+
+    def __init__(self, workspace_root: Path) -> None:
+        self._workspace_root = workspace_root.resolve(strict=False)
+
+    async def execute(self, arguments: DiffSummaryArgs) -> DiffSummaryResult:
+        """Return a structured summary for the requested local diff scope."""
+
+        path_filters = _normalize_path_filters(self._workspace_root, arguments.paths)
+        numstat_result = await _run_git_capture(
+            self._workspace_root,
+            _diff_numstat_command(arguments.scope, path_filters),
+        )
+        if numstat_result[0] != 0:
+            return DiffSummaryResult(
+                scope=arguments.scope,
+                path_filters=path_filters,
+                error=numstat_result[2] or f"git diff exited with {numstat_result[0]}",
+            )
+
+        files = _parse_diff_numstat(numstat_result[1])
+        if arguments.scope == DiffSummaryScope.WORKSPACE:
+            untracked = await _list_untracked_files(self._workspace_root, path_filters)
+            files.extend(_summarize_untracked_files(self._workspace_root, untracked))
+
+        files = sorted(_dedupe_file_summaries(files), key=lambda item: item.path)
+        truncated = len(files) > arguments.max_files
+        bounded_files = files[: arguments.max_files]
+        risk_summary = _build_patch_risk_summary(bounded_files)
+        inline_files = bounded_files[: arguments.inline_file_limit]
+        artifact_required = truncated or len(bounded_files) > len(inline_files)
+        artifact_payload = (
+            DiffSummaryArtifact(
+                scope=arguments.scope,
+                path_filters=path_filters,
+                risk_summary=risk_summary,
+                files=bounded_files,
+            )
+            if artifact_required
+            else None
+        )
+
+        return DiffSummaryResult(
+            scope=arguments.scope,
+            path_filters=path_filters,
+            clean=not bounded_files,
+            files=inline_files,
+            truncated=truncated,
+            risk_summary=risk_summary,
+            artifact_required=artifact_required,
+            artifact_kind=DIFF_SUMMARY_ARTIFACT_KIND if artifact_required else None,
+            artifact_payload=artifact_payload,
+        )
+
+
+async def _run_git_capture(
+    cwd: Path,
+    command: list[str],
+    *,
+    timeout: float = 10.0,
+) -> tuple[int, str, str]:
+    try:
+        process = await asyncio.create_subprocess_exec(
+            *command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=cwd,
+        )
+        stdout_bytes, stderr_bytes = await asyncio.wait_for(
+            process.communicate(), timeout=timeout
+        )
+    except FileNotFoundError:
+        return 127, "", "git executable not found"
+    except TimeoutError:
+        return 124, "", "git command timed out"
+    return (
+        process.returncode or 0,
+        stdout_bytes.decode("utf-8", errors="replace"),
+        stderr_bytes.decode("utf-8", errors="replace").strip(),
+    )
+
+
+def _diff_numstat_command(
+    scope: DiffSummaryScope,
+    path_filters: list[str],
+) -> list[str]:
+    command = ["git", "diff", "--numstat"]
+    if scope == DiffSummaryScope.WORKSPACE:
+        command.append("HEAD")
+    elif scope == DiffSummaryScope.STAGED:
+        command.append("--cached")
+    command.append("--")
+    command.extend(path_filters)
+    return command
+
+
+def _parse_diff_numstat(output: str) -> list[DiffFileSummary]:
+    files: list[DiffFileSummary] = []
+    for line in output.splitlines():
+        parts = line.split("\t")
+        if len(parts) < 3:
+            continue
+        insertions_raw, deletions_raw, raw_path = parts[0], parts[1], parts[-1]
+        binary = insertions_raw == "-" or deletions_raw == "-"
+        path = _normalize_git_path(raw_path)
+        files.append(
+            _annotate_diff_file(
+                path,
+                change_kind="modified",
+                insertions=None if binary else int(insertions_raw),
+                deletions=None if binary else int(deletions_raw),
+                binary=binary,
+            )
+        )
+    return files
+
+
+async def _list_untracked_files(
+    workspace_root: Path,
+    path_filters: list[str],
+) -> list[str]:
+    command = ["git", "ls-files", "--others", "--exclude-standard", "--"]
+    command.extend(path_filters)
+    exit_code, stdout, _stderr = await _run_git_capture(workspace_root, command)
+    if exit_code != 0:
+        return []
+    return [_normalize_git_path(line) for line in stdout.splitlines() if line.strip()]
+
+
+def _summarize_untracked_files(
+    workspace_root: Path,
+    paths: list[str],
+) -> list[DiffFileSummary]:
+    summaries: list[DiffFileSummary] = []
+    for path in paths:
+        file_path = workspace_root / path
+        insertions, binary = _untracked_file_insertions(file_path)
+        summaries.append(
+            _annotate_diff_file(
+                path,
+                change_kind="untracked",
+                insertions=insertions,
+                deletions=0 if not binary else None,
+                binary=binary,
+            )
+        )
+    return summaries
+
+
+def _untracked_file_insertions(path: Path) -> tuple[int | None, bool]:
+    try:
+        content = path.read_bytes()
+    except OSError:
+        return None, True
+    if b"\x00" in content:
+        return None, True
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        return None, True
+    return len(text.splitlines()), False
+
+
+def _normalize_path_filters(workspace_root: Path, raw_paths: list[str]) -> list[str]:
+    normalized: list[str] = []
+    for raw_path in raw_paths:
+        candidate = Path(raw_path)
+        resolved = (
+            candidate.resolve(strict=False)
+            if candidate.is_absolute()
+            else (workspace_root / candidate).resolve(strict=False)
+        )
+        try:
+            relative = resolved.relative_to(workspace_root)
+        except ValueError as exc:
+            raise ValueError(f"path filter is outside workspace: {raw_path}") from exc
+        normalized.append("." if relative == Path() else relative.as_posix())
+    return normalized
+
+
+def _normalize_git_path(raw_path: str) -> str:
+    if " => " in raw_path:
+        return raw_path.split(" => ", maxsplit=1)[1].replace("{", "").replace("}", "")
+    return raw_path
+
+
+def _dedupe_file_summaries(files: list[DiffFileSummary]) -> list[DiffFileSummary]:
+    deduped: dict[str, DiffFileSummary] = {}
+    for file_summary in files:
+        deduped[file_summary.path] = file_summary
+    return list(deduped.values())
+
+
+def _annotate_diff_file(
+    path: str,
+    *,
+    change_kind: str,
+    insertions: int | None,
+    deletions: int | None,
+    binary: bool,
+) -> DiffFileSummary:
+    return DiffFileSummary(
+        path=path,
+        change_kind=change_kind,
+        insertions=insertions,
+        deletions=deletions,
+        binary=binary,
+        generated=_is_generated_path(path),
+        test_file=_is_test_path(path),
+        docs_file=_is_docs_path(path),
+        policy_sensitive=_is_policy_sensitive_path(path),
+    )
+
+
+def _build_patch_risk_summary(files: list[DiffFileSummary]) -> PatchRiskSummary:
+    return PatchRiskSummary(
+        touched_files=len(files),
+        insertions=sum(file.insertions or 0 for file in files),
+        deletions=sum(file.deletions or 0 for file in files),
+        binary_files=sum(1 for file in files if file.binary),
+        generated_files=[file.path for file in files if file.generated],
+        tests_touched=[file.path for file in files if file.test_file],
+        docs_touched=[file.path for file in files if file.docs_file],
+        policy_sensitive_paths=[file.path for file in files if file.policy_sensitive],
+        untracked_files=[
+            file.path for file in files if file.change_kind == "untracked"
+        ],
+    )
+
+
+def _is_generated_path(path: str) -> bool:
+    normalized = f"/{path}"
+    return path.startswith(_GENERATED_PATH_PREFIXES) or any(
+        marker in normalized for marker in _GENERATED_PATH_MARKERS
+    )
+
+
+def _is_test_path(path: str) -> bool:
+    name = Path(path).name
+    return (
+        path.startswith("tests/")
+        or "/tests/" in path
+        or name.startswith("test_")
+        or name.endswith("_test.py")
+        or name.endswith(".test.ts")
+        or name.endswith(".test.tsx")
+        or name.endswith(".spec.ts")
+        or name.endswith(".spec.tsx")
+    )
+
+
+def _is_docs_path(path: str) -> bool:
+    return path.startswith("docs/") or Path(path).suffix.lower() in {".md", ".rst"}
+
+
+def _is_policy_sensitive_path(path: str) -> bool:
+    name = Path(path).name
+    return name in _POLICY_SENSITIVE_PATH_NAMES or path.startswith(
+        _POLICY_SENSITIVE_PATH_PREFIXES
+    )
+
+
+def diff_summary_artifact_content(output_payload: dict[str, object]) -> str | None:
+    """Return artifact JSON content for a large diff summary tool result."""
+
+    artifact_payload = output_payload.get("artifact_payload")
+    if not isinstance(artifact_payload, dict):
+        return None
+    artifact_payload = cast(dict[str, object], artifact_payload)
+    if artifact_payload.get("artifact_kind") != DIFF_SUMMARY_ARTIFACT_KIND:
+        return None
+    return json.dumps(artifact_payload, indent=2, sort_keys=True) + "\n"
+
+
+# ---------------------------------------------------------------------------
 # Run tests tool
 # ---------------------------------------------------------------------------
 
@@ -313,5 +741,6 @@ def build_workflow_tool_registry(workspace_root: Path) -> ToolRegistry:
 
     registry = build_command_tool_registry(workspace_root)
     registry.register(GitStatusTool(workspace_root))
+    registry.register(DiffSummaryTool(workspace_root))
     registry.register(RunTestsTool(workspace_root))
     return registry

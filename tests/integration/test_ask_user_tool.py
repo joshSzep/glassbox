@@ -468,7 +468,7 @@ def test_session_status_awaiting_user_input_blocks_new_messages(tmp_path: Path) 
 
 
 def test_build_ask_user_registry_includes_all_tools(tmp_path: Path) -> None:
-    """build_ask_user_tool_registry must expose 8 tools total."""
+    """build_ask_user_tool_registry must expose the full workflow tool set."""
 
     registry = build_ask_user_tool_registry(tmp_path)
     tool_names = {tool.spec.name for tool in registry.list_tools()}
@@ -479,6 +479,7 @@ def test_build_ask_user_registry_includes_all_tools(tmp_path: Path) -> None:
         "search_files",
         "run_command",
         "git_status",
+        "workspace_diff_summary",
         "run_tests",
         "apply_patch",
         "ask_user",

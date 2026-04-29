@@ -40,13 +40,32 @@ New tools must be easier to audit than an equivalent unconstrained shell command
 | Package script discovery | List known scripts and validation commands from package metadata and repository index. | `read_only` | Workspace path scope, no execution, confidence labels, provenance from exact files or index entries. |
 | Code search | Structured regex/plain search with path filters and result summaries. | `read_only` | Workspace path scope, result limits, binary-file skip, artifact recording for large result sets. |
 | Symbol lookup | Resolve indexed symbols, definitions, and simple references from repository intelligence. | `read_only` | Freshness posture, source path and line provenance, graceful stale-index fallback. |
-| Diff review | Summarize working-tree or staged diffs by file, size, risk markers, tests, docs, generated outputs, and binary changes. | `read_only` | No git mutation, path filters, large-diff artifact summary, sensitive-diff redaction posture. |
+| Diff review | Summarize working-tree or staged diffs by file, size, risk markers, tests, docs, generated outputs, and binary changes. | `read_only` | No git mutation, path filters, large-diff artifact summary, sensitive-diff redaction posture. Implemented first as `workspace_diff_summary`. |
 | Artifact summarization | Summarize retained local artifacts such as command logs, eval outputs, and verification failures. | `read_only` | Artifact path/ID scope, byte limits, retention policy, provenance and redaction labels. |
 | Browser/network diagnostics | Check local app health, screenshots, accessibility smoke, or static assets. | Contract-only until GBX-875 | Local-only defaults, host allowlist, timeout budget, output redaction, explicit approval for remote hosts. |
 
 The first implementation candidates should be read-only diff review and test
 discovery because they improve verification and branch-search explanations
 without increasing mutation authority.
+
+## Implemented First Slice
+
+`workspace_diff_summary` is the first GBX-871 implementation of this contract.
+It is a read-only workflow tool that inspects `workspace`, `staged`, or
+`unstaged` git diff scopes with optional workspace-relative path filters.
+
+The tool returns structured patch-risk evidence:
+
+- touched file count, insertions, deletions, binary file count, and clean state
+- per-file summaries without raw diff hunks
+- generated-file, test-file, docs-file, policy-sensitive, and untracked-file cues
+- truncation state when the requested `max_files` limit is reached
+- artifact-ready JSON when the full file summary is too large for inline display
+
+Large summaries are recorded through the existing turn artifact path as
+`workspace_diff_summary` artifacts when the tool is used during a session with an
+artifact repository. The artifact stores summary metadata only; it deliberately
+does not store raw patch hunks.
 
 ## Risk Classification
 

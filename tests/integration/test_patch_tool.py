@@ -200,6 +200,7 @@ def test_build_patch_tool_registry_includes_all_tools(tmp_path: Path) -> None:
         "search_files",
         "run_command",
         "git_status",
+        "workspace_diff_summary",
         "run_tests",
         "apply_patch",
     }

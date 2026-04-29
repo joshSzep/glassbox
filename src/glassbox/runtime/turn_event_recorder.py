@@ -40,6 +40,8 @@ from glassbox.runtime.task_plan_capture import CapturedTaskPlanEvents
 from glassbox.runtime.transport import RuntimeEventTransport
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
+from glassbox.tools.workflow import DIFF_SUMMARY_ARTIFACT_KIND
+from glassbox.tools.workflow import diff_summary_artifact_content
 
 logger = get_runtime_logger("turn_engine")
 
@@ -464,6 +466,24 @@ class TurnEventRecorder:
     ) -> None:
         if self._artifact_repository is None:
             return
+        if prepared_tool_call.tool_name == "workspace_diff_summary":
+            diff_summary_content = diff_summary_artifact_content(
+                execution_result.output_payload
+            )
+            if diff_summary_content is None:
+                return
+
+            _, stored_event = self._artifact_repository.record_text_artifact(
+                session_id,
+                turn_id,
+                execution_result.event_tool_call_id,
+                DIFF_SUMMARY_ARTIFACT_KIND,
+                diff_summary_content,
+                suffix="json",
+            )
+            self._event_bus.publish(stored_event)
+            return
+
         if prepared_tool_call.tool_name != "run_tests":
             return
 

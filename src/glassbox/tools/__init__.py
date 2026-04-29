@@ -44,9 +44,17 @@ from glassbox.tools.registry import ToolStreamingMode
 from glassbox.tools.runtime import PreparedToolExecution
 from glassbox.tools.runtime import ToolExecutionResult
 from glassbox.tools.runtime import ToolRuntime
+from glassbox.tools.workflow import DIFF_SUMMARY_ARTIFACT_KIND
+from glassbox.tools.workflow import DiffFileSummary
+from glassbox.tools.workflow import DiffSummaryArgs
+from glassbox.tools.workflow import DiffSummaryArtifact
+from glassbox.tools.workflow import DiffSummaryResult
+from glassbox.tools.workflow import DiffSummaryScope
+from glassbox.tools.workflow import DiffSummaryTool
 from glassbox.tools.workflow import GitStatusArgs
 from glassbox.tools.workflow import GitStatusResult
 from glassbox.tools.workflow import GitStatusTool
+from glassbox.tools.workflow import PatchRiskSummary
 from glassbox.tools.workflow import RunTestsArgs
 from glassbox.tools.workflow import RunTestsResult
 from glassbox.tools.workflow import RunTestsTool
@@ -61,6 +69,13 @@ __all__ = [
     "AskUserResult",
     "AskUserTool",
     "DEFAULT_TOOL_POLICY_PATH",
+    "DIFF_SUMMARY_ARTIFACT_KIND",
+    "DiffFileSummary",
+    "DiffSummaryArgs",
+    "DiffSummaryArtifact",
+    "DiffSummaryResult",
+    "DiffSummaryScope",
+    "DiffSummaryTool",
     "DirectoryEntry",
     "GitStatusArgs",
     "GitStatusResult",
@@ -68,6 +83,7 @@ __all__ = [
     "ListDirArgs",
     "ListDirResult",
     "ListDirTool",
+    "PatchRiskSummary",
     "PreparedToolExecution",
     "RunCommandArgs",
     "RunCommandResult",

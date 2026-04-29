@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import sqlite3
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -36,6 +37,7 @@ from glassbox.store.repositories import FilesystemArtifactRepository
 from glassbox.store.repositories import SQLiteSessionRepository
 from glassbox.store.sqlite import initialize_database
 from glassbox.store.sqlite import open_database
+from glassbox.tools import DIFF_SUMMARY_ARTIFACT_KIND
 from glassbox.tools import ApprovalMode
 from glassbox.tools import ToolPolicyContext
 from glassbox.tools import ToolPolicyEngine
@@ -648,6 +650,109 @@ def test_turn_engine_records_pytest_failure_digest_for_later_turns(
     asyncio.run(scenario())
 
 
+def test_turn_engine_records_large_diff_summary_artifact(
+    tmp_path: Path,
+) -> None:
+    subprocess.run(
+        ["git", "init", "-b", "main"], cwd=tmp_path, check=True, capture_output=True
+    )
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.com"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Test User"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+    (tmp_path / "README.md").write_text("init\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "init"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+    changes_dir = tmp_path / "changes"
+    changes_dir.mkdir()
+    for index in range(4):
+        (changes_dir / f"file_{index}.py").write_text(
+            f"value = {index}\n", encoding="utf-8"
+        )
+
+    async def scenario() -> None:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifact_repository = FilesystemArtifactRepository(connection, tmp_path)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = TurnEngine(
+                repository,
+                bus,
+                TurnContextBuilder(repository),
+                lambda _session: PydanticAIModelAdapter(
+                    ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+                ),
+                lambda _session: PydanticAIModelExecutor(
+                    FunctionModel(
+                        function=_diff_summary_then_text_response,
+                        stream_function=_stream_diff_summary_then_text_response,
+                        model_name="openai:gpt-5.4",
+                    )
+                ),
+                lambda session: ToolRuntime(
+                    build_workflow_tool_registry(session.cwd),
+                    ToolPolicyEngine(),
+                    ToolPolicyContext(
+                        workspace_root=session.cwd,
+                        approval_mode=ApprovalMode.NEVER,
+                    ),
+                ),
+                artifact_repository=artifact_repository,
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="never",
+            )
+
+            async with bus.subscribe() as subscription:
+                state = await supervisor.start_session(config)
+                await subscription.get()
+
+                await supervisor.submit_user_message(
+                    state.session_id,
+                    "Summarize the patch risk",
+                )
+                events: list[EventEnvelope] = []
+                while not events or events[-1].event_type != "TurnCompleted":
+                    events.append(await subscription.get())
+
+            artifact_events = [
+                event.payload
+                for event in repository.read_session_events(state.session_id)
+                if isinstance(event.payload, ToolArtifactRecorded)
+                and event.payload.artifact_kind == DIFF_SUMMARY_ARTIFACT_KIND
+            ]
+            assert artifact_events[0].path is not None
+            artifact_payload = json.loads(
+                artifact_repository.read_text_artifact(Path(artifact_events[0].path))
+            )
+        finally:
+            connection.close()
+
+        assert len(artifact_events) == 1
+        assert artifact_payload["artifact_kind"] == DIFF_SUMMARY_ARTIFACT_KIND
+        assert artifact_payload["risk_summary"]["touched_files"] == 4
+        assert len(artifact_payload["files"]) == 4
+
+    asyncio.run(scenario())
+
+
 def _tool_then_text_response(messages, _agent_info) -> ModelResponse:
     saw_tool_return = False
     tool_content = None
@@ -787,6 +892,54 @@ def _run_tests_then_use_digest_response(messages, _agent_info) -> ModelResponse:
     assert "[pytest_failure_digest]" in system_prompt_text
     assert "test_fail.py::test_failure" in system_prompt_text
     return ModelResponse(parts=[TextPart(content="Latest failure summarized.")])
+
+
+def _diff_summary_then_text_response(messages, _agent_info) -> ModelResponse:
+    saw_tool_return = False
+    tool_content = None
+
+    for message in messages:
+        if isinstance(message, ModelRequest):
+            for part in message.parts:
+                if (
+                    isinstance(part, ToolReturnPart)
+                    and part.tool_name == "workspace_diff_summary"
+                ):
+                    saw_tool_return = True
+                    tool_content = part.content
+
+    if not saw_tool_return:
+        return ModelResponse(
+            parts=[
+                ToolCallPart(
+                    tool_name="workspace_diff_summary",
+                    args={"paths": ["changes"], "inline_file_limit": 2},
+                    tool_call_id="provider-call-diff-summary-1",
+                )
+            ]
+        )
+
+    assert isinstance(tool_content, dict)
+    assert tool_content["artifact_required"] is True
+    assert tool_content["risk_summary"]["touched_files"] == 4
+    return ModelResponse(parts=[TextPart(content="Patch risk summarized.")])
+
+
+async def _stream_diff_summary_then_text_response(messages, agent_info):
+    response = _diff_summary_then_text_response(messages, agent_info)
+    first_part = response.parts[0]
+    if isinstance(first_part, TextPart):
+        yield first_part.content
+        return
+
+    assert isinstance(first_part, ToolCallPart)
+    yield {
+        0: DeltaToolCall(
+            name=first_part.tool_name,
+            json_args=json.dumps(first_part.args),
+            tool_call_id=first_part.tool_call_id,
+        )
+    }
 
 
 async def _stream_run_tests_then_use_digest_response(messages, agent_info):

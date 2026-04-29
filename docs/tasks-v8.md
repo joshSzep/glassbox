@@ -1237,9 +1237,10 @@ The intended v8 milestone order is:
 
 ### GBX-871: Add Structured Diff Review And Patch Summary Tools
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-870`, `GBX-861`
 - Goal: give agents and operators better local change understanding without relying on raw shell commands or unstructured prose
+- Evidence: [tool-expansion-v8.md](./tool-expansion-v8.md), [tool-policy.md](./tool-policy.md)
 - Deliverables:
   - read-only diff summary tool for workspace changes, staged changes, and optional path filters
   - patch-risk summary output covering touched files, insertions/deletions, generated files, tests touched, docs touched, and policy-sensitive paths
@@ -1254,6 +1255,17 @@ The intended v8 milestone order is:
   - tool unit tests
   - integration tests with fixture git repositories
   - branch-search comparison tests if integrated
+- Completed vertical slice:
+  - added the read-only `workspace_diff_summary` workflow tool for `workspace`, `staged`, and `unstaged` git diff scopes with optional workspace path filters
+  - returns structured patch-risk evidence for touched files, insertions, deletions, binary files, generated files, tests, docs, policy-sensitive paths, and untracked files without returning raw diff hunks
+  - prepares artifact-ready summary JSON for large file lists and records `workspace_diff_summary` artifacts through the existing turn artifact hook when used in a live session
+  - exposed the tool through the workflow registry and package exports while preserving `read_only` policy behavior
+  - documented the implemented first slice in the tool expansion and tool policy guides
+- Validation:
+  - `uv run ruff format src/glassbox/tools/workflow.py src/glassbox/tools/__init__.py src/glassbox/runtime/turn_event_recorder.py tests/integration/test_workflow_tools.py tests/integration/test_turn_engine_tool_loop.py`
+  - `uv run ruff check src/glassbox/tools/workflow.py src/glassbox/tools/__init__.py src/glassbox/runtime/turn_event_recorder.py tests/integration/test_workflow_tools.py tests/integration/test_turn_engine_tool_loop.py`
+  - `uv run ty check`
+  - `uv run pytest tests/integration/test_workflow_tools.py tests/integration/test_turn_engine_tool_loop.py`
 - Done when:
   - autonomous repair loops can explain what changed before asking the operator to trust the result
 
