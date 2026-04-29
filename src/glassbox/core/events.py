@@ -18,6 +18,9 @@ from glassbox.core.ids import EventId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import QuestionId
 from glassbox.core.ids import SessionId
+from glassbox.core.ids import TaskId
+from glassbox.core.ids import TaskStepId
+from glassbox.core.ids import TaskVerificationId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.ids import new_event_id
@@ -26,7 +29,12 @@ from glassbox.core.models import PolicyDecisionOutcome
 from glassbox.core.models import PolicyDecisionSourceKind
 from glassbox.core.models import PolicyDecisionTrace
 from glassbox.core.models import PolicyRiskLevel
+from glassbox.core.models import TaskPlanSnapshot
+from glassbox.core.models import TaskStepProposal
 from glassbox.core.types import ApprovalDecision
+from glassbox.core.types import TaskBlockedReason
+from glassbox.core.types import TaskPlanStatus
+from glassbox.core.types import TaskVerificationStatus
 from glassbox.core.types import TurnStatus
 
 ToolOutputStream = Literal["stdout", "stderr", "structured"]
@@ -313,6 +321,114 @@ class RuntimeNoteImported(EventPayload):
     source_created_at: datetime
 
 
+class TaskCreated(EventPayload):
+    event_type: Literal["TaskCreated"] = "TaskCreated"
+    task_id: TaskId
+    title: str = Field(min_length=1, max_length=200)
+    goal: str = Field(min_length=1, max_length=4000)
+    source_turn_id: TurnId | None = None
+
+
+class TaskPlanProposed(EventPayload):
+    event_type: Literal["TaskPlanProposed"] = "TaskPlanProposed"
+    task_id: TaskId
+    plan: TaskPlanSnapshot
+
+    @model_validator(mode="after")
+    def ensure_plan_matches_task(self) -> TaskPlanProposed:
+        if self.plan.task_id != self.task_id:
+            raise ValueError("plan.task_id must match task_id")
+        return self
+
+
+class TaskPlanRevised(EventPayload):
+    event_type: Literal["TaskPlanRevised"] = "TaskPlanRevised"
+    task_id: TaskId
+    revision_reason: str = Field(min_length=1, max_length=1000)
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    goal: str | None = Field(default=None, min_length=1, max_length=4000)
+    steps: list[TaskStepProposal] | None = Field(default=None, max_length=50)
+
+
+class TaskStepStarted(EventPayload):
+    event_type: Literal["TaskStepStarted"] = "TaskStepStarted"
+    task_id: TaskId
+    step_id: TaskStepId
+    turn_id: TurnId | None = None
+
+
+class TaskStepCompleted(EventPayload):
+    event_type: Literal["TaskStepCompleted"] = "TaskStepCompleted"
+    task_id: TaskId
+    step_id: TaskStepId
+    summary: str | None = Field(default=None, max_length=4000)
+
+
+class TaskStepFailed(EventPayload):
+    event_type: Literal["TaskStepFailed"] = "TaskStepFailed"
+    task_id: TaskId
+    step_id: TaskStepId
+    reason: str = Field(min_length=1, max_length=4000)
+    blocked_reason: TaskBlockedReason | None = None
+
+
+class TaskStepSkipped(EventPayload):
+    event_type: Literal["TaskStepSkipped"] = "TaskStepSkipped"
+    task_id: TaskId
+    step_id: TaskStepId
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class TaskVerificationStarted(EventPayload):
+    event_type: Literal["TaskVerificationStarted"] = "TaskVerificationStarted"
+    task_id: TaskId
+    verification_id: TaskVerificationId
+    step_id: TaskStepId | None = None
+    check_name: str = Field(min_length=1, max_length=200)
+
+
+class TaskVerificationCompleted(EventPayload):
+    event_type: Literal["TaskVerificationCompleted"] = "TaskVerificationCompleted"
+    task_id: TaskId
+    verification_id: TaskVerificationId
+    status: TaskVerificationStatus
+    summary: str | None = Field(default=None, max_length=4000)
+    artifact_id: ArtifactId | None = None
+
+
+class TaskPaused(EventPayload):
+    event_type: Literal["TaskPaused"] = "TaskPaused"
+    task_id: TaskId
+    reason: TaskBlockedReason
+    detail: str | None = Field(default=None, max_length=2000)
+
+
+class TaskResumed(EventPayload):
+    event_type: Literal["TaskResumed"] = "TaskResumed"
+    task_id: TaskId
+    resumed_by: str = Field(default="operator", min_length=1, max_length=200)
+
+
+class TaskCancelled(EventPayload):
+    event_type: Literal["TaskCancelled"] = "TaskCancelled"
+    task_id: TaskId
+    requested_by: str = Field(default="operator", min_length=1, max_length=200)
+    reason: str | None = Field(default=None, max_length=2000)
+
+
+class TaskAbandoned(EventPayload):
+    event_type: Literal["TaskAbandoned"] = "TaskAbandoned"
+    task_id: TaskId
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class TaskStatusChanged(EventPayload):
+    event_type: Literal["TaskStatusChanged"] = "TaskStatusChanged"
+    task_id: TaskId
+    status: TaskPlanStatus
+    reason: str | None = Field(default=None, max_length=2000)
+
+
 class ErrorRecorded(EventPayload):
     event_type: Literal["ErrorRecorded"] = "ErrorRecorded"
     scope: ErrorScope
@@ -352,6 +468,20 @@ EventPayloadType = Annotated[
     | UserAnswerProvided
     | RuntimeNoteRecorded
     | RuntimeNoteImported
+    | TaskCreated
+    | TaskPlanProposed
+    | TaskPlanRevised
+    | TaskStepStarted
+    | TaskStepCompleted
+    | TaskStepFailed
+    | TaskStepSkipped
+    | TaskVerificationStarted
+    | TaskVerificationCompleted
+    | TaskPaused
+    | TaskResumed
+    | TaskCancelled
+    | TaskAbandoned
+    | TaskStatusChanged
     | ErrorRecorded,
     Field(discriminator="event_type"),
 ]
@@ -416,3 +546,7 @@ class EventEnvelope(BaseModel):
     @property
     def approval_id(self) -> ApprovalId | None:
         return getattr(self.payload, "approval_id", None)
+
+    @property
+    def task_id(self) -> TaskId | None:
+        return getattr(self.payload, "task_id", None)

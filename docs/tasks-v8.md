@@ -333,9 +333,10 @@ The intended v8 milestone order is:
 
 ### GBX-820: Define Durable Task, Plan, And Step Event Models
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-811`
 - Goal: make autonomous work a first-class event-sourced runtime object instead of implicit prose inside a model response
+- Evidence: [task-plans.md](./task-plans.md)
 - Deliverables:
   - core event payloads for task creation, plan proposal, plan revision, step start, step completion, step failure, step skip, verification start, verification completion, pause, resume, cancellation, and abandonment
   - typed domain models for task IDs, step IDs, plan status, step status, verification status, and blocked reasons

@@ -21,6 +21,20 @@ from glassbox.core.events import SessionCompleted
 from glassbox.core.events import SessionFailed
 from glassbox.core.events import SessionResumed
 from glassbox.core.events import SessionStarted
+from glassbox.core.events import TaskAbandoned
+from glassbox.core.events import TaskCancelled
+from glassbox.core.events import TaskCreated
+from glassbox.core.events import TaskPaused
+from glassbox.core.events import TaskPlanProposed
+from glassbox.core.events import TaskPlanRevised
+from glassbox.core.events import TaskResumed
+from glassbox.core.events import TaskStatusChanged
+from glassbox.core.events import TaskStepCompleted
+from glassbox.core.events import TaskStepFailed
+from glassbox.core.events import TaskStepSkipped
+from glassbox.core.events import TaskStepStarted
+from glassbox.core.events import TaskVerificationCompleted
+from glassbox.core.events import TaskVerificationStarted
 from glassbox.core.events import ToolArtifactRecorded
 from glassbox.core.events import ToolExecutionCancelled
 from glassbox.core.events import ToolExecutionCompleted
@@ -41,6 +55,9 @@ from glassbox.core.ids import EventId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import QuestionId
 from glassbox.core.ids import SessionId
+from glassbox.core.ids import TaskId
+from glassbox.core.ids import TaskStepId
+from glassbox.core.ids import TaskVerificationId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.ids import new_approval_id
@@ -49,6 +66,9 @@ from glassbox.core.ids import new_event_id
 from glassbox.core.ids import new_message_id
 from glassbox.core.ids import new_question_id
 from glassbox.core.ids import new_session_id
+from glassbox.core.ids import new_task_id
+from glassbox.core.ids import new_task_step_id
+from glassbox.core.ids import new_task_verification_id
 from glassbox.core.ids import new_tool_call_id
 from glassbox.core.ids import new_turn_id
 from glassbox.core.models import ForkedSession
@@ -62,12 +82,20 @@ from glassbox.core.models import RuntimeNoteRecord
 from glassbox.core.models import SessionConfig
 from glassbox.core.models import SessionRecord
 from glassbox.core.models import SessionState
+from glassbox.core.models import TaskPlanSnapshot
+from glassbox.core.models import TaskStepProposal
+from glassbox.core.models import TaskStepRecord
+from glassbox.core.models import TaskVerificationRecord
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TranscriptMessage
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import ApprovalMode
 from glassbox.core.types import ApprovalStatus
 from glassbox.core.types import SessionStatus
+from glassbox.core.types import TaskBlockedReason
+from glassbox.core.types import TaskPlanStatus
+from glassbox.core.types import TaskStepStatus
+from glassbox.core.types import TaskVerificationStatus
 from glassbox.core.types import ToolExecutionStatus
 from glassbox.core.types import TurnStatus
 
@@ -114,6 +142,31 @@ __all__ = [
     "SessionStarted",
     "SessionStatus",
     "SessionState",
+    "TaskAbandoned",
+    "TaskBlockedReason",
+    "TaskCancelled",
+    "TaskCreated",
+    "TaskId",
+    "TaskPaused",
+    "TaskPlanProposed",
+    "TaskPlanRevised",
+    "TaskPlanSnapshot",
+    "TaskPlanStatus",
+    "TaskResumed",
+    "TaskStatusChanged",
+    "TaskStepCompleted",
+    "TaskStepFailed",
+    "TaskStepId",
+    "TaskStepProposal",
+    "TaskStepRecord",
+    "TaskStepSkipped",
+    "TaskStepStarted",
+    "TaskStepStatus",
+    "TaskVerificationCompleted",
+    "TaskVerificationId",
+    "TaskVerificationRecord",
+    "TaskVerificationStarted",
+    "TaskVerificationStatus",
     "ToolCallId",
     "ToolArtifactRecorded",
     "ToolCallRecord",
@@ -140,6 +193,9 @@ __all__ = [
     "new_message_id",
     "new_question_id",
     "new_session_id",
+    "new_task_id",
+    "new_task_step_id",
+    "new_task_verification_id",
     "new_tool_call_id",
     "new_turn_id",
 ]

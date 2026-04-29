@@ -65,3 +65,53 @@ class ApprovalMode(StrEnum):
     REVIEW = "review"
     ON_REQUEST = "on-request"
     NEVER = "never"
+
+
+class TaskPlanStatus(StrEnum):
+    """Lifecycle states for a durable task plan."""
+
+    PROPOSED = "proposed"
+    ACTIVE = "active"
+    PAUSED = "paused"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    ABANDONED = "abandoned"
+
+
+class TaskStepStatus(StrEnum):
+    """Lifecycle states for a task-plan step."""
+
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+    CANCELLED = "cancelled"
+
+
+class TaskVerificationStatus(StrEnum):
+    """Lifecycle states for a task verification run."""
+
+    PLANNED = "planned"
+    RUNNING = "running"
+    PASSED = "passed"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+    CANCELLED = "cancelled"
+
+
+class TaskBlockedReason(StrEnum):
+    """Operator-facing reasons a task cannot continue."""
+
+    AWAITING_APPROVAL = "awaiting_approval"
+    AWAITING_USER_INPUT = "awaiting_user_input"
+    POLICY_BLOCKED = "policy_blocked"
+    BUDGET_EXHAUSTED = "budget_exhausted"
+    VERIFICATION_FAILED = "verification_failed"
+    PROVIDER_UNAVAILABLE = "provider_unavailable"
+    DAEMON_UNAVAILABLE = "daemon_unavailable"
+    AMBIGUOUS_PLAN = "ambiguous_plan"
+    CANCELLED = "cancelled"
+    MANUAL_PAUSE = "manual_pause"
+    UNKNOWN = "unknown"

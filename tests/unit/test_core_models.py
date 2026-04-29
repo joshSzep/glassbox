@@ -16,12 +16,22 @@ from glassbox.core import SessionConfig
 from glassbox.core import SessionRecord
 from glassbox.core import SessionState
 from glassbox.core import SessionStatus
+from glassbox.core import TaskBlockedReason
+from glassbox.core import TaskPlanSnapshot
+from glassbox.core import TaskStepProposal
+from glassbox.core import TaskStepRecord
+from glassbox.core import TaskStepStatus
+from glassbox.core import TaskVerificationRecord
+from glassbox.core import TaskVerificationStatus
 from glassbox.core import ToolCallRecord
 from glassbox.core import ToolExecutionStatus
 from glassbox.core import TranscriptMessage
 from glassbox.core import new_approval_id
 from glassbox.core import new_message_id
 from glassbox.core import new_session_id
+from glassbox.core import new_task_id
+from glassbox.core import new_task_step_id
+from glassbox.core import new_task_verification_id
 from glassbox.core import new_tool_call_id
 from glassbox.core import new_turn_id
 
@@ -183,6 +193,64 @@ def test_policy_decision_round_trip() -> None:
     restored = PolicyDecision.model_validate(decision.model_dump(mode="python"))
 
     assert restored == decision
+
+
+def test_task_plan_snapshot_round_trip() -> None:
+    task_id = new_task_id()
+    step_id = new_task_step_id()
+    plan = TaskPlanSnapshot(
+        task_id=task_id,
+        title="Add task models",
+        goal="Make task plans durable",
+        steps=[
+            TaskStepProposal(
+                step_id=step_id,
+                title="Define event payloads",
+                description="Add core task-plan event payloads",
+                order=0,
+            )
+        ],
+    )
+
+    restored = TaskPlanSnapshot.model_validate(plan.model_dump(mode="python"))
+
+    assert restored == plan
+    assert restored.status == "proposed"
+
+
+def test_task_query_records_round_trip() -> None:
+    task_id = new_task_id()
+    step_id = new_task_step_id()
+    step = TaskStepRecord(
+        task_id=task_id,
+        step_id=step_id,
+        title="Define projection",
+        order=1,
+        status=TaskStepStatus.PENDING,
+        blocked_reason=TaskBlockedReason.AWAITING_APPROVAL,
+    )
+    verification = TaskVerificationRecord(
+        task_id=task_id,
+        verification_id=new_task_verification_id(),
+        step_id=step_id,
+        status=TaskVerificationStatus.PLANNED,
+        check_name="pytest",
+    )
+
+    assert TaskStepRecord.model_validate(step.model_dump(mode="python")) == step
+    assert (
+        TaskVerificationRecord.model_validate(verification.model_dump(mode="python"))
+        == verification
+    )
+
+
+def test_task_step_proposal_rejects_empty_title() -> None:
+    with pytest.raises(ValidationError):
+        TaskStepProposal(
+            step_id=new_task_step_id(),
+            title="",
+            order=0,
+        )
 
 
 def test_session_state_rejects_invalid_status() -> None:

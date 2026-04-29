@@ -19,6 +19,16 @@ from glassbox.core import EventEnvelope
 from glassbox.core import EventPayloadType
 from glassbox.core import MessagePart
 from glassbox.core import SessionStarted
+from glassbox.core import TaskBlockedReason
+from glassbox.core import TaskCreated
+from glassbox.core import TaskPaused
+from glassbox.core import TaskPlanProposed
+from glassbox.core import TaskPlanSnapshot
+from glassbox.core import TaskStepCompleted
+from glassbox.core import TaskStepFailed
+from glassbox.core import TaskStepStarted
+from glassbox.core import TaskVerificationCompleted
+from glassbox.core import TaskVerificationStarted
 from glassbox.core import ToolOutputChunk
 from glassbox.core import TranscriptMessageImported
 from glassbox.core import TurnCancelled
@@ -28,6 +38,9 @@ from glassbox.core import UserMessageReceived
 from glassbox.core import new_approval_id
 from glassbox.core import new_message_id
 from glassbox.core import new_session_id
+from glassbox.core import new_task_id
+from glassbox.core import new_task_step_id
+from glassbox.core import new_task_verification_id
 from glassbox.core import new_tool_call_id
 from glassbox.core import new_turn_id
 
@@ -281,3 +294,117 @@ def test_transcript_message_imported_round_trip() -> None:
 
     assert restored == envelope
     assert restored.message_id == payload.message_id
+
+
+def test_task_plan_payloads_round_trip_through_event_union() -> None:
+    adapter = TypeAdapter(EventPayloadType)
+    task_id = new_task_id()
+    step_id = new_task_step_id()
+    verification_id = new_task_verification_id()
+
+    created = adapter.validate_python(
+        {
+            "event_type": "TaskCreated",
+            "task_id": task_id,
+            "title": "Implement task models",
+            "goal": "Persist durable task-plan payloads",
+            "source_turn_id": new_turn_id(),
+        }
+    )
+    proposed = adapter.validate_python(
+        {
+            "event_type": "TaskPlanProposed",
+            "task_id": task_id,
+            "plan": {
+                "task_id": task_id,
+                "title": "Implement task models",
+                "goal": "Persist durable task-plan payloads",
+                "steps": [
+                    {
+                        "step_id": step_id,
+                        "title": "Add core events",
+                        "order": 0,
+                    }
+                ],
+            },
+        }
+    )
+    step_started = adapter.validate_python(
+        {
+            "event_type": "TaskStepStarted",
+            "task_id": task_id,
+            "step_id": step_id,
+            "turn_id": new_turn_id(),
+        }
+    )
+    step_completed = adapter.validate_python(
+        {
+            "event_type": "TaskStepCompleted",
+            "task_id": task_id,
+            "step_id": step_id,
+            "summary": "Core events added",
+        }
+    )
+    verification_started = adapter.validate_python(
+        {
+            "event_type": "TaskVerificationStarted",
+            "task_id": task_id,
+            "verification_id": verification_id,
+            "step_id": step_id,
+            "check_name": "pytest",
+        }
+    )
+    verification_completed = adapter.validate_python(
+        {
+            "event_type": "TaskVerificationCompleted",
+            "task_id": task_id,
+            "verification_id": verification_id,
+            "status": "passed",
+            "summary": "Focused tests passed",
+        }
+    )
+
+    assert isinstance(created, TaskCreated)
+    assert isinstance(proposed, TaskPlanProposed)
+    assert proposed.plan.steps[0].step_id == step_id
+    assert isinstance(step_started, TaskStepStarted)
+    assert isinstance(step_completed, TaskStepCompleted)
+    assert isinstance(verification_started, TaskVerificationStarted)
+    assert isinstance(verification_completed, TaskVerificationCompleted)
+
+
+def test_task_plan_event_envelope_exposes_task_id() -> None:
+    task_id = new_task_id()
+    envelope = EventEnvelope(
+        session_id=new_session_id(),
+        sequence=7,
+        payload=TaskPaused(task_id=task_id, reason=TaskBlockedReason.MANUAL_PAUSE),
+    )
+
+    assert envelope.task_id == task_id
+
+
+def test_task_plan_proposal_rejects_mismatched_task_id() -> None:
+    with pytest.raises(ValidationError):
+        TaskPlanProposed(
+            task_id=new_task_id(),
+            plan=TaskPlanSnapshot(
+                task_id=new_task_id(),
+                title="Mismatch",
+                goal="Should be rejected",
+                steps=[],
+            ),
+        )
+
+
+def test_task_step_failure_rejects_unknown_blocked_reason() -> None:
+    with pytest.raises(ValidationError):
+        TaskStepFailed.model_validate(
+            {
+                "event_type": "TaskStepFailed",
+                "task_id": new_task_id(),
+                "step_id": new_task_step_id(),
+                "reason": "blocked",
+                "blocked_reason": "approval_queue",
+            }
+        )

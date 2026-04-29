@@ -13,11 +13,18 @@ from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import QuestionId
 from glassbox.core.ids import SessionId
+from glassbox.core.ids import TaskId
+from glassbox.core.ids import TaskStepId
+from glassbox.core.ids import TaskVerificationId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.types import ApprovalMode
 from glassbox.core.types import ApprovalStatus
 from glassbox.core.types import SessionStatus
+from glassbox.core.types import TaskBlockedReason
+from glassbox.core.types import TaskPlanStatus
+from glassbox.core.types import TaskStepStatus
+from glassbox.core.types import TaskVerificationStatus
 from glassbox.core.types import ToolExecutionStatus
 
 MessagePartKind = Literal["text", "tool_result", "reasoning_summary"]
@@ -256,6 +263,56 @@ class PolicyDecisionTrace(BaseModel):
             source_label=decision.source_label,
             reason=decision.reason,
         )
+
+
+class TaskStepProposal(BaseModel):
+    """A proposed task-plan step before it is executed."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    step_id: TaskStepId
+    title: str = Field(min_length=1, max_length=160)
+    description: str | None = Field(default=None, max_length=2000)
+    order: int = Field(ge=0)
+
+
+class TaskPlanSnapshot(BaseModel):
+    """A structured plan proposal owned by the runtime."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    task_id: TaskId
+    title: str = Field(min_length=1, max_length=200)
+    goal: str = Field(min_length=1, max_length=4000)
+    status: TaskPlanStatus = TaskPlanStatus.PROPOSED
+    steps: list[TaskStepProposal] = Field(default_factory=list, max_length=50)
+
+
+class TaskStepRecord(BaseModel):
+    """A query-friendly view of a durable task step."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    task_id: TaskId
+    step_id: TaskStepId
+    title: str
+    order: int = Field(ge=0)
+    status: TaskStepStatus
+    description: str | None = None
+    blocked_reason: TaskBlockedReason | None = None
+
+
+class TaskVerificationRecord(BaseModel):
+    """A query-friendly view of a task verification run."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    task_id: TaskId
+    verification_id: TaskVerificationId
+    step_id: TaskStepId | None = None
+    status: TaskVerificationStatus
+    check_name: str
+    summary: str | None = None
 
 
 class PolicyActivitySummary(BaseModel):

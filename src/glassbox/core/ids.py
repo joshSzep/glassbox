@@ -11,6 +11,9 @@ type ApprovalId = UUID
 type QuestionId = UUID
 type EventId = UUID
 type ArtifactId = UUID
+type TaskId = UUID
+type TaskStepId = UUID
+type TaskVerificationId = UUID
 
 
 def new_session_id() -> SessionId:
@@ -50,4 +53,19 @@ def new_event_id() -> EventId:
 
 def new_artifact_id() -> ArtifactId:
     """Create a new artifact identifier."""
+    return uuid4()
+
+
+def new_task_id() -> TaskId:
+    """Create a new task identifier."""
+    return uuid4()
+
+
+def new_task_step_id() -> TaskStepId:
+    """Create a new task step identifier."""
+    return uuid4()
+
+
+def new_task_verification_id() -> TaskVerificationId:
+    """Create a new task verification identifier."""
     return uuid4()
