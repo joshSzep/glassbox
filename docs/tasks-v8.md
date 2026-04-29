@@ -1011,7 +1011,7 @@ The intended v8 milestone order is:
 
 ### GBX-856: Add Automatic Memory Candidate Extraction Behind Review Gates
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-852`, `GBX-855`
 - Goal: let Glassbox suggest memory updates after sessions and tasks while keeping operator review in control
 - Deliverables:
@@ -1028,6 +1028,17 @@ The intended v8 milestone order is:
   - memory extraction unit tests
   - daemon job tests if automatic candidate generation runs in background
   - dashboard review queue tests if UI is added
+- Completed vertical slice:
+  - expanded deterministic memory candidate extraction with bounded policy controls, max-age expiry, candidate limits, false-positive suppression, deduplication, redaction, stable command capture, repeated failure patterns, approved-fix summaries, task outcomes, and operator/runtime notes
+  - added a model-assisted suggestion path that produces review-only candidates and respects confidence and policy gates
+  - extended the review queue so candidates can be accepted with edits, merged into existing memory, or rejected without becoming active memory automatically
+  - added a read-only `workspace-memory-candidate-scan` background job that reports candidate availability without mutating workspace memory
+  - covered extraction suppression/dedupe/expiry/redaction, model-assisted review-only behavior, CLI edited capture, background scans, and existing web review queue behavior
+- Validation:
+  - `uv run ruff format src/glassbox/runtime/workspace_memory_capture.py src/glassbox/cli/parser_memory.py src/glassbox/cli/memory_commands.py src/glassbox/runtime/background_jobs.py tests/unit/test_workspace_memory_capture.py tests/integration/test_background_job_runner.py tests/integration/test_cli_memory_commands.py && uv run ruff check src/glassbox/runtime/workspace_memory_capture.py src/glassbox/cli/parser_memory.py src/glassbox/cli/memory_commands.py src/glassbox/runtime/background_jobs.py tests/unit/test_workspace_memory_capture.py tests/integration/test_background_job_runner.py tests/integration/test_cli_memory_commands.py`
+  - `uv run ty check`
+  - `uv run pytest tests/unit/test_workspace_memory_capture.py tests/integration/test_background_job_runner.py tests/integration/test_cli_memory_commands.py tests/integration/test_web_memory_routes.py`
+  - `uv run glassbox eval run`
 - Done when:
   - Glassbox can learn from work without silently rewriting its own worldview
 

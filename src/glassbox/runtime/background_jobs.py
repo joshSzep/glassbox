@@ -40,6 +40,9 @@ from glassbox.runtime.provider_canary import load_provider_canary_evidence
 from glassbox.runtime.repository_index import build_and_write_repository_index
 from glassbox.runtime.repository_index import repository_index_path
 from glassbox.runtime.task_queries import TaskPlanRepository
+from glassbox.runtime.workspace_memory_capture import MemoryExtractionPolicy
+from glassbox.runtime.workspace_memory_capture import WorkspaceMemoryCaptureRepository
+from glassbox.runtime.workspace_memory_capture import WorkspaceMemoryCaptureService
 from glassbox.store.artifact_retention import inspect_artifact_state
 
 _READ_ONLY_KINDS = {
@@ -297,6 +300,37 @@ def _run_read_only_job(
             summary=(
                 f"Repository index refresh wrote {len(snapshot.entries)} entries "
                 f"to {index_path}."
+            ),
+        )
+        return
+    if job.job_type == "workspace-memory-candidate-scan":
+        payload = job.payload or {}
+        session_id_value = payload.get("session_id")
+        if session_id_value is None:
+            raise ValueError("workspace-memory-candidate-scan requires session_id")
+        session_id = UUID(str(session_id_value))
+        limit_value = payload.get("max_candidates")
+        max_candidates = 25
+        if isinstance(limit_value, int | str):
+            max_candidates = int(limit_value)
+        candidates = WorkspaceMemoryCaptureService(
+            cast(
+                WorkspaceMemoryCaptureRepository, runtime_context.repositories.sessions
+            )
+        ).list_candidates(
+            session_id,
+            policy=MemoryExtractionPolicy(max_candidates=max_candidates),
+        )
+        _record_progress(
+            runtime_context,
+            job,
+            f"workspace memory scan found {len(candidates)} candidate(s)",
+        )
+        runtime_context.repositories.sessions.complete_background_job(
+            job.job_id,
+            summary=(
+                f"Workspace memory candidate scan found {len(candidates)} "
+                "review-gated candidate(s)."
             ),
         )
         return

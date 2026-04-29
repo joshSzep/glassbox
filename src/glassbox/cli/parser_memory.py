@@ -100,6 +100,19 @@ def _add_memory_parsers(
     capture_parser.add_argument(
         "--session", dest="session_id", type=_parse_uuid, required=True
     )
+    capture_parser.add_argument("--kind", choices=_MEMORY_KINDS, default=None)
+    capture_parser.add_argument("--content", default=None)
+    capture_parser.add_argument("--summary", default=None)
+    capture_parser.add_argument("--tag", dest="tags", action="append", default=None)
+    capture_parser.add_argument(
+        "--merge-into",
+        dest="merge_memory_id",
+        type=_parse_uuid,
+        default=None,
+        help=(
+            "merge the candidate into an existing memory entry instead of creating one"
+        ),
+    )
     capture_parser.add_argument("--confirmed-by", default="operator")
     capture_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(capture_parser)

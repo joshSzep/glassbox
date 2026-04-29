@@ -223,6 +223,8 @@ def test_memory_add_candidates_capture_and_reject_commands(
             captured_candidate_id,
             "--session",
             str(session_id),
+            "--summary",
+            "edited review summary",
             "--cwd",
             str(tmp_path),
             "--db-path",
@@ -274,6 +276,7 @@ def test_memory_add_candidates_capture_and_reject_commands(
     assert "<redacted>" in candidates_payload[0]["content"]
     assert capture_exit == 0
     assert capture_payload["state"] == "active"
+    assert capture_payload["summary"] == "edited review summary"
     assert capture_payload["confirmed_by"] == "operator"
     assert reject_exit == 0
     assert reject_payload["candidate_id"] == rejected_candidate_id

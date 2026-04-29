@@ -14,6 +14,7 @@ from glassbox.core import AutonomyMode
 from glassbox.core import BackgroundJobKind
 from glassbox.core import BackgroundJobState
 from glassbox.core import EventEnvelope
+from glassbox.core import RuntimeNoteRecorded
 from glassbox.core import SessionStarted
 from glassbox.core import TaskCreated
 from glassbox.core import TaskPlanProposed
@@ -113,6 +114,45 @@ def test_worker_refreshes_repository_index(tmp_path: Path) -> None:
     assert any(entry.symbol == "UsefulThing" for entry in snapshot.entries)
     assert updated.progress_message is not None
     assert "Repository index refresh wrote" in updated.progress_message
+
+
+def test_worker_scans_workspace_memory_candidates(tmp_path: Path) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+
+    _seed_session(db_path, tmp_path, session_id)
+    with open_runtime_context(tmp_path, db_path=db_path) as runtime_context:
+        repository = runtime_context.repositories.sessions
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=RuntimeNoteRecorded(
+                    category="operator",
+                    message="Prefer uv run pytest for backend tests.",
+                ),
+            )
+        )
+        job = repository.enqueue_background_job(
+            session_id,
+            kind=BackgroundJobKind.DERIVED_INDEX,
+            job_type="workspace-memory-candidate-scan",
+            title="Scan workspace memory candidates",
+            payload={"session_id": str(session_id), "max_candidates": 5},
+        )
+
+        tick = run_background_job_worker_once(
+            runtime_context,
+            worker_id="test-worker",
+        )
+        updated = repository.get_background_job(job.job_id)
+
+    assert tick.claimed_count == 1
+    assert tick.completed_count == 1
+    assert updated is not None
+    assert updated.state == BackgroundJobState.COMPLETED
+    assert updated.progress_message is not None
+    assert "Workspace memory candidate scan found 1" in updated.progress_message
 
 
 def test_worker_recovers_stale_claim_and_blocks_duplicate_claim(

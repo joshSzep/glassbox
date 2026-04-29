@@ -116,15 +116,28 @@ def _memory_candidates_command(args: argparse.Namespace) -> int:
 def _memory_capture_command(args: argparse.Namespace) -> int:
     cwd, db_path = resolve_runtime_location(args)
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
-        entry = WorkspaceMemoryCaptureService(
+        service = WorkspaceMemoryCaptureService(
             cast(
                 WorkspaceMemoryCaptureRepository, runtime_context.repositories.sessions
             )
-        ).confirm_candidate(
-            args.session_id,
-            args.candidate_id,
-            confirmed_by=args.confirmed_by,
         )
+        if args.merge_memory_id is not None:
+            entry = service.merge_candidate(
+                args.session_id,
+                args.candidate_id,
+                args.merge_memory_id,
+                merged_by=args.confirmed_by,
+            )
+        else:
+            entry = service.confirm_candidate(
+                args.session_id,
+                args.candidate_id,
+                confirmed_by=args.confirmed_by,
+                kind=_optional_kind(args.kind),
+                content=args.content,
+                summary=args.summary,
+                tags=args.tags,
+            )
     if args.json:
         print_json_output(entry.model_dump(mode="json"))
     else:

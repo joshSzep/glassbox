@@ -4,17 +4,24 @@ import hashlib
 import json
 import re
 from collections.abc import Sequence
+from datetime import UTC
 from datetime import datetime
+from datetime import timedelta
 from typing import Protocol
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 
+from glassbox.core.events import ApprovalRequested
+from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import EventEnvelope
+from glassbox.core.events import ModelToolCallRequested
+from glassbox.core.events import ToolExecutionCompleted
 from glassbox.core.events import WorkspaceMemoryCandidateRejected
 from glassbox.core.events import WorkspaceMemoryConfirmed
 from glassbox.core.events import WorkspaceMemoryCreated
+from glassbox.core.events import WorkspaceMemoryUpdated
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import WorkspaceMemoryId
 from glassbox.core.ids import new_workspace_memory_id
@@ -82,6 +89,31 @@ class WorkspaceMemoryCandidate(BaseModel):
     created_at: datetime | None = None
 
 
+class ModelMemorySuggestion(BaseModel):
+    """Model-proposed memory candidate text awaiting review."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: WorkspaceMemoryKind = WorkspaceMemoryKind.FACT
+    content: str = Field(min_length=1, max_length=8000)
+    summary: str | None = Field(default=None, max_length=500)
+    source_label: str = "model-assisted extraction"
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    tags: list[str] = Field(default_factory=list)
+
+
+class MemoryExtractionPolicy(BaseModel):
+    """Review-gated controls for automatic memory candidate extraction."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = True
+    max_candidates: int | None = Field(default=None, ge=1)
+    max_age_days: int = Field(default=30, ge=1)
+    allow_model_assisted: bool = False
+    min_model_confidence: float = Field(default=0.7, ge=0.0, le=1.0)
+
+
 class WorkspaceMemoryCaptureService:
     """Generate and commit operator-confirmed workspace memory."""
 
@@ -93,18 +125,66 @@ class WorkspaceMemoryCaptureService:
         session_id: SessionId,
         *,
         limit: int | None = None,
+        policy: MemoryExtractionPolicy | None = None,
+        model_suggestions: Sequence[ModelMemorySuggestion] = (),
+        now: datetime | None = None,
     ) -> list[WorkspaceMemoryCandidate]:
         self._ensure_session_exists(session_id)
+        extraction_policy = policy or MemoryExtractionPolicy(max_candidates=limit)
+        if not extraction_policy.enabled:
+            return []
         excluded_ids = self._excluded_candidate_ids(session_id)
-        candidates = [
-            candidate
-            for candidate in [
-                *self._runtime_note_candidates(session_id),
-                *self._task_outcome_candidates(session_id),
+        candidate_limit = limit or extraction_policy.max_candidates
+        candidates = _dedupe_candidates(
+            [
+                candidate
+                for candidate in [
+                    *self._runtime_note_candidates(session_id),
+                    *self._task_outcome_candidates(session_id),
+                    *self._stable_command_candidates(session_id),
+                    *self._repeated_failure_candidates(session_id),
+                    *self._confirmed_fix_candidates(session_id),
+                    *self._model_assisted_candidates(
+                        session_id,
+                        model_suggestions,
+                        extraction_policy,
+                    ),
+                ]
+                if candidate.candidate_id not in excluded_ids
+                and _candidate_is_useful(candidate)
             ]
-            if candidate.candidate_id not in excluded_ids
-        ]
-        return candidates if limit is None else candidates[:limit]
+        )
+        candidates = _filter_stale_candidates(
+            candidates,
+            now=now or datetime.now(UTC),
+            max_age=timedelta(days=extraction_policy.max_age_days),
+        )
+        return candidates if candidate_limit is None else candidates[:candidate_limit]
+
+    def list_model_assisted_candidates(
+        self,
+        session_id: SessionId,
+        suggestions: Sequence[ModelMemorySuggestion],
+        *,
+        policy: MemoryExtractionPolicy | None = None,
+    ) -> list[WorkspaceMemoryCandidate]:
+        """Turn model suggestions into review-only candidates, never memory."""
+
+        extraction_policy = policy or MemoryExtractionPolicy(allow_model_assisted=True)
+        self._ensure_session_exists(session_id)
+        if not extraction_policy.enabled:
+            return []
+        return _dedupe_candidates(
+            [
+                candidate
+                for candidate in self._model_assisted_candidates(
+                    session_id,
+                    suggestions,
+                    extraction_policy.model_copy(update={"allow_model_assisted": True}),
+                )
+                if _candidate_is_useful(candidate)
+            ]
+        )
 
     def confirm_candidate(
         self,
@@ -113,9 +193,20 @@ class WorkspaceMemoryCaptureService:
         *,
         confirmed_by: str = "operator",
         memory_id: WorkspaceMemoryId | None = None,
+        kind: WorkspaceMemoryKind | None = None,
+        content: str | None = None,
+        summary: str | None = None,
+        tags: list[str] | None = None,
     ) -> WorkspaceMemoryEntry:
         candidate = self._require_candidate(session_id, candidate_id)
         resolved_memory_id = memory_id or new_workspace_memory_id()
+        resolved_content, content_redacted = redact_sensitive_text(
+            content or candidate.content
+        )
+        resolved_summary = summary if summary is not None else candidate.summary
+        summary_redacted = False
+        if resolved_summary is not None:
+            resolved_summary, summary_redacted = redact_sensitive_text(resolved_summary)
         self._repository.append_events(
             [
                 EventEnvelope(
@@ -123,13 +214,15 @@ class WorkspaceMemoryCaptureService:
                     sequence=0,
                     payload=WorkspaceMemoryCreated(
                         memory_id=resolved_memory_id,
-                        kind=candidate.kind,
-                        content=candidate.content,
-                        summary=candidate.summary,
+                        kind=kind or candidate.kind,
+                        content=resolved_content,
+                        summary=resolved_summary,
                         provenance=candidate.provenance,
                         created_by=confirmed_by,
-                        tags=candidate.tags,
-                        redacted=candidate.redacted,
+                        tags=tags if tags is not None else candidate.tags,
+                        redacted=(
+                            candidate.redacted or content_redacted or summary_redacted
+                        ),
                     ),
                 ),
                 EventEnvelope(
@@ -148,6 +241,48 @@ class WorkspaceMemoryCaptureService:
             raise ValueError(
                 f"workspace memory was not projected: {resolved_memory_id}"
             )
+        return entry
+
+    def merge_candidate(
+        self,
+        session_id: SessionId,
+        candidate_id: str,
+        memory_id: WorkspaceMemoryId,
+        *,
+        merged_by: str = "operator",
+    ) -> WorkspaceMemoryEntry:
+        candidate = self._require_candidate(session_id, candidate_id)
+        existing = self._repository.get_workspace_memory(memory_id)
+        if existing is None:
+            raise ValueError(f"unknown workspace memory: {memory_id}")
+        self._repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=WorkspaceMemoryUpdated(
+                        memory_id=memory_id,
+                        updated_by=merged_by,
+                        content=_merge_text(existing.content, candidate.content),
+                        summary=existing.summary or candidate.summary,
+                        tags=list(dict.fromkeys([*existing.tags, *candidate.tags])),
+                        reason=f"merged candidate {candidate.candidate_id}",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=WorkspaceMemoryConfirmed(
+                        memory_id=memory_id,
+                        confirmed_by=merged_by,
+                        reason=f"confirmed candidate {candidate.candidate_id}",
+                    ),
+                ),
+            ]
+        )
+        entry = self._repository.get_workspace_memory(memory_id)
+        if entry is None:
+            raise ValueError(f"workspace memory was not projected: {memory_id}")
         return entry
 
     def reject_candidate(
@@ -311,6 +446,172 @@ class WorkspaceMemoryCaptureService:
             )
         return candidates
 
+    def _stable_command_candidates(
+        self,
+        session_id: SessionId,
+    ) -> list[WorkspaceMemoryCandidate]:
+        events = self._repository.read_session_events(session_id)
+        requests = _tool_requests_by_id(events)
+        candidates: list[WorkspaceMemoryCandidate] = []
+        seen_commands: set[str] = set()
+        for event in events:
+            payload = event.payload
+            if not isinstance(payload, ToolExecutionCompleted) or not payload.success:
+                continue
+            request = requests.get(payload.tool_call_id)
+            if request is None or request.tool_name != "run_command":
+                continue
+            command = _command_argument(request.arguments_json)
+            if command is None or not _is_stable_command(command):
+                continue
+            normalized_command = " ".join(command.split())
+            if normalized_command in seen_commands:
+                continue
+            seen_commands.add(normalized_command)
+            content, redacted = redact_sensitive_text(
+                f"Stable local command: {normalized_command}"
+            )
+            candidates.append(
+                _candidate(
+                    session_id=session_id,
+                    kind=WorkspaceMemoryKind.COMMAND,
+                    content=content,
+                    summary=f"Stable command: {normalized_command}",
+                    provenance=WorkspaceMemoryProvenance(
+                        source_type=WorkspaceMemorySourceType.TOOL_RESULT,
+                        tool_call_id=payload.tool_call_id,
+                        source_label="successful command",
+                    ),
+                    tags=["command", "automatic"],
+                    redacted=redacted,
+                    source_label=f"tool {payload.tool_call_id}",
+                    created_at=event.created_at,
+                )
+            )
+        return candidates
+
+    def _repeated_failure_candidates(
+        self,
+        session_id: SessionId,
+    ) -> list[WorkspaceMemoryCandidate]:
+        buckets: dict[str, list[tuple[EventEnvelope, ToolExecutionCompleted]]] = {}
+        for event in self._repository.read_session_events(session_id):
+            payload = event.payload
+            if isinstance(payload, ToolExecutionCompleted) and not payload.success:
+                key = _summarize(payload.summary).casefold()
+                buckets.setdefault(key, []).append((event, payload))
+        candidates: list[WorkspaceMemoryCandidate] = []
+        for failures in buckets.values():
+            if len(failures) < 2:
+                continue
+            event, payload = failures[-1]
+            content, redacted = redact_sensitive_text(
+                f"Repeated tool failure observed {len(failures)} times: "
+                f"{payload.summary}"
+            )
+            candidates.append(
+                _candidate(
+                    session_id=session_id,
+                    kind=WorkspaceMemoryKind.FAILURE_PATTERN,
+                    content=content,
+                    summary=f"Repeated failure: {_summarize(payload.summary)}",
+                    provenance=WorkspaceMemoryProvenance(
+                        source_type=WorkspaceMemorySourceType.TOOL_RESULT,
+                        tool_call_id=payload.tool_call_id,
+                        source_label="repeated tool failure",
+                    ),
+                    tags=["failure-pattern", "automatic"],
+                    redacted=redacted,
+                    source_label=f"tool {payload.tool_call_id}",
+                    created_at=event.created_at,
+                )
+            )
+        return candidates
+
+    def _confirmed_fix_candidates(
+        self,
+        session_id: SessionId,
+    ) -> list[WorkspaceMemoryCandidate]:
+        events = self._repository.read_session_events(session_id)
+        approved_approvals = {
+            payload.approval_id
+            for payload in (event.payload for event in events)
+            if isinstance(payload, ApprovalResolved)
+            and getattr(payload.decision, "value", payload.decision) == "approved"
+        }
+        requests = {
+            payload.tool_call_id: payload
+            for payload in (event.payload for event in events)
+            if isinstance(payload, ApprovalRequested)
+            and payload.approval_id in approved_approvals
+            and payload.tool_call_id is not None
+        }
+        candidates: list[WorkspaceMemoryCandidate] = []
+        for event in events:
+            payload = event.payload
+            if not isinstance(payload, ToolExecutionCompleted) or not payload.success:
+                continue
+            approval = requests.get(payload.tool_call_id)
+            if approval is None:
+                continue
+            content, redacted = redact_sensitive_text(
+                f"Operator-approved fix completed for {approval.subject}. "
+                f"Tool summary: {payload.summary}"
+            )
+            candidates.append(
+                _candidate(
+                    session_id=session_id,
+                    kind=WorkspaceMemoryKind.FACT,
+                    content=content,
+                    summary=f"Approved fix completed: {_summarize(approval.subject)}",
+                    provenance=WorkspaceMemoryProvenance(
+                        source_type=WorkspaceMemorySourceType.TOOL_RESULT,
+                        tool_call_id=payload.tool_call_id,
+                        source_label="approved fix",
+                    ),
+                    tags=["confirmed-fix", "automatic"],
+                    redacted=redacted,
+                    source_label=f"approval {approval.approval_id}",
+                    created_at=event.created_at,
+                )
+            )
+        return candidates
+
+    def _model_assisted_candidates(
+        self,
+        session_id: SessionId,
+        suggestions: Sequence[ModelMemorySuggestion],
+        policy: MemoryExtractionPolicy,
+    ) -> list[WorkspaceMemoryCandidate]:
+        if not policy.allow_model_assisted:
+            return []
+        candidates: list[WorkspaceMemoryCandidate] = []
+        for suggestion in suggestions:
+            if suggestion.confidence < policy.min_model_confidence:
+                continue
+            content, redacted = redact_sensitive_text(suggestion.content)
+            summary = suggestion.summary
+            summary_redacted = False
+            if summary is not None:
+                summary, summary_redacted = redact_sensitive_text(summary)
+            candidates.append(
+                _candidate(
+                    session_id=session_id,
+                    kind=suggestion.kind,
+                    content=content,
+                    summary=summary or _summarize(content),
+                    provenance=WorkspaceMemoryProvenance(
+                        source_type=WorkspaceMemorySourceType.RUNTIME_NOTE,
+                        source_label=suggestion.source_label,
+                    ),
+                    tags=["model-assisted", *suggestion.tags],
+                    redacted=redacted or summary_redacted,
+                    source_label=suggestion.source_label,
+                    created_at=None,
+                )
+            )
+        return candidates
+
     def _excluded_candidate_ids(self, session_id: SessionId) -> set[str]:
         excluded_ids: set[str] = set()
         for event in self._repository.read_session_events(session_id):
@@ -334,6 +635,90 @@ _TASK_OUTCOME_STATUSES = {
     TaskPlanStatus.CANCELLED,
     TaskPlanStatus.ABANDONED,
 }
+
+_STABLE_COMMAND_PREFIXES = (
+    "uv run ",
+    "pnpm ",
+    "npm test",
+    "pytest",
+    "make ",
+    "glassbox ",
+)
+_SUPPRESSED_NOTE_CATEGORIES = {"debug", "scratch", "transient"}
+
+
+def _tool_requests_by_id(
+    events: Sequence[EventEnvelope],
+) -> dict[object, ModelToolCallRequested]:
+    return {
+        payload.tool_call_id: payload
+        for payload in (event.payload for event in events)
+        if isinstance(payload, ModelToolCallRequested)
+    }
+
+
+def _command_argument(arguments_json: str) -> str | None:
+    try:
+        arguments = json.loads(arguments_json)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(arguments, dict):
+        return None
+    command = arguments.get("command")
+    if not isinstance(command, str):
+        return None
+    normalized = " ".join(command.split())
+    return normalized or None
+
+
+def _is_stable_command(command: str) -> bool:
+    normalized = command.casefold()
+    return any(normalized.startswith(prefix) for prefix in _STABLE_COMMAND_PREFIXES)
+
+
+def _candidate_is_useful(candidate: WorkspaceMemoryCandidate) -> bool:
+    content = " ".join(candidate.content.split())
+    if len(content) < 16:
+        return False
+    if candidate.provenance.source_label is not None:
+        label = candidate.provenance.source_label.casefold()
+        if any(category in label for category in _SUPPRESSED_NOTE_CATEGORIES):
+            return False
+    return True
+
+
+def _dedupe_candidates(
+    candidates: Sequence[WorkspaceMemoryCandidate],
+) -> list[WorkspaceMemoryCandidate]:
+    seen: set[tuple[str, str]] = set()
+    deduped: list[WorkspaceMemoryCandidate] = []
+    for candidate in candidates:
+        key = (candidate.kind.value, " ".join(candidate.content.casefold().split()))
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(candidate)
+    return deduped
+
+
+def _filter_stale_candidates(
+    candidates: Sequence[WorkspaceMemoryCandidate],
+    *,
+    now: datetime,
+    max_age: timedelta,
+) -> list[WorkspaceMemoryCandidate]:
+    fresh: list[WorkspaceMemoryCandidate] = []
+    for candidate in candidates:
+        if candidate.created_at is not None and now - candidate.created_at > max_age:
+            continue
+        fresh.append(candidate)
+    return fresh
+
+
+def _merge_text(existing: str, candidate: str) -> str:
+    if candidate.casefold() in existing.casefold():
+        return existing
+    return f"{existing.rstrip()}\n\n{candidate.strip()}"
 
 
 def redact_sensitive_text(value: str) -> tuple[str, bool]:
@@ -410,6 +795,8 @@ def _summarize(content: str) -> str:
 
 
 __all__ = [
+    "MemoryExtractionPolicy",
+    "ModelMemorySuggestion",
     "WorkspaceMemoryCandidate",
     "WorkspaceMemoryCaptureService",
     "redact_sensitive_text",
