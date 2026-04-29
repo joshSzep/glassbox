@@ -347,10 +347,11 @@ the Next.js SPA contract in [architecture.md](./architecture.md) and
 - dashboard stores should depend on generated API client types, route-state
   helpers, stream transport helpers, and pure frontend store utilities. They
   should not import React components or server-only modules
-- autonomy console components should split large task, knowledge, and branch
-  search views into focused list, detail, evidence, action-control, and
-  formatting modules while preserving current routes, API calls, and workflow
-  behavior
+- autonomy console components keep stable public entrypoints while task,
+  knowledge, branch-search, and verification-cue presentation sections live in
+  focused `*-sections.tsx` modules. These section modules own list/detail,
+  evidence, action-control, and formatting UI while preserving current routes,
+  API calls, and workflow behavior
 - frontend components should consume store state and generated API types, not
   duplicate backend event derivation rules that already exist in runtime/store
   read models

@@ -622,7 +622,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R241: Split Large Autonomy Console Components
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R240`
 - Goal: reduce large dashboard autonomy components into smaller view sections
   while preserving the operator-console workflow
@@ -639,12 +639,22 @@ Each phase below corresponds to one concrete refactor milestone.
   - preserve current copy, responsive behavior, action affordances, and loading
     states unless a task explicitly changes them
   - avoid adding decorative layout or a new design language during refactor work
+  - completed split keeps the public console component entrypoints stable while
+    moving task queue/detail/action/evidence sections to
+    `task-autonomy-sections.tsx`, workspace-memory and repository-index
+    sections to `knowledge-autonomy-sections.tsx`, branch-search list/detail
+    sections to `branch-search-sections.tsx`, and reusable verification cue
+    presentation sections to `verification-cues-sections.tsx`
 - Tests and validation included in task:
   - `pnpm --dir frontend test -- task-autonomy-console.test.tsx`
   - `pnpm --dir frontend test -- knowledge-autonomy-console.test.tsx`
   - `pnpm --dir frontend test -- verification-cues.test.ts`
   - `pnpm --dir frontend typecheck`
   - `pnpm --dir frontend lint`
+  - verified with `pnpm --dir frontend test -- task-autonomy-console.test.tsx
+    knowledge-autonomy-console.test.tsx branch-search-console.test.tsx
+    verification-cues.test.ts`, `pnpm --dir frontend typecheck`, and
+    `pnpm --dir frontend lint`
 - Done when:
   - the autonomy console is easier to maintain without changing operator-visible
     dashboard behavior

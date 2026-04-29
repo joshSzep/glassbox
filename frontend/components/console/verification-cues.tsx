@@ -1,7 +1,14 @@
 import { FileSearch, ShieldCheck } from "lucide-react";
 
-import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { DataList, DataListItem, DataListLabel, DataListMeta } from "@/components/ui/data-list";
+import {
+  EvidenceCueList,
+  VerificationSummary,
+  WorkingSetProvenance,
+  type EvidenceCue,
+  type WorkingSetItem,
+} from "@/components/console/verification-cues-sections";
 import { policySourceLabel } from "@/components/console/session-inspector/policy-evidence";
 import { operatorIconSizeClass } from "@/design-system/operator-status";
 import type { DashboardState } from "@/state/session-state";
@@ -85,86 +92,11 @@ export function VerificationCues({ data }: { data: DashboardState }) {
         </div>
       )}
 
-      {workingSetItems.length > 0 ? (
-        <div className="mt-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-            Working-set provenance
-          </p>
-          <p className="mb-2 text-sm text-muted-foreground">
-            {inheritedWorkingSetCount > 0
-              ? `${inheritedWorkingSetCount} inherited item${inheritedWorkingSetCount === 1 ? "" : "s"} may explain drift before current-session changes.`
-              : "Working-set items are current to this session."}
-          </p>
-          <DataList density="compact">
-            {workingSetItems.map((item) => (
-              <DataListItem key={`${item.subject_kind}:${item.subject}`}>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <DataListLabel>{item.subject}</DataListLabel>
-                    <DataListMeta>{item.summary}</DataListMeta>
-                  </div>
-                  <Badge variant={item.inherited ? "info" : "outline"}>
-                    {item.inherited ? "inherited working set" : "current working set"}
-                  </Badge>
-                </div>
-                <p className="mt-2 break-all text-xs text-muted-foreground">
-                  {item.signal_types?.join(", ") || "unknown signal"} ·{" "}
-                  {item.reasons?.join(", ") || "no recorded reason"}
-                </p>
-              </DataListItem>
-            ))}
-          </DataList>
-        </div>
-      ) : null}
+      <WorkingSetProvenance
+        inheritedWorkingSetCount={inheritedWorkingSetCount}
+        items={workingSetItems}
+      />
     </section>
-  );
-}
-
-function EvidenceCueList({ cues }: { cues: EvidenceCue[] }) {
-  return (
-    <section aria-label="Evidence interpretation" className="mb-4">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-        Evidence interpretation
-      </p>
-      <DataList density="compact">
-        {cues.map((cue) => (
-          <DataListItem key={cue.label}>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <DataListLabel>{cue.label}</DataListLabel>
-                <DataListMeta>{cue.detail}</DataListMeta>
-              </div>
-              <Badge variant={cue.variant}>{cue.badge}</Badge>
-            </div>
-            {cue.source ? (
-              <p className="mt-2 break-all text-xs text-muted-foreground">{cue.source}</p>
-            ) : null}
-          </DataListItem>
-        ))}
-      </DataList>
-    </section>
-  );
-}
-
-function VerificationSummary({
-  detail,
-  label,
-  value,
-  variant,
-}: {
-  detail: string;
-  label: string;
-  value: string;
-  variant: "destructive" | "info" | "muted" | "success" | "warning";
-}) {
-  return (
-    <div className="rounded-md border bg-card p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
-        <Badge variant={variant}>{value}</Badge>
-      </div>
-      <p className="mt-2 text-xs text-muted-foreground">{detail}</p>
-    </div>
   );
 }
 
@@ -239,18 +171,6 @@ function ArtifactRow({ artifact }: { artifact: ArtifactSummary }) {
 type ArtifactSummary = NonNullable<
   NonNullable<NonNullable<DashboardState["runtimeContext"]>["artifact_context"]>["summaries"]
 >[number];
-
-type WorkingSetItem = NonNullable<
-  NonNullable<NonNullable<DashboardState["runtimeContext"]>["working_set"]>["items"]
->[number];
-
-type EvidenceCue = {
-  badge: string;
-  detail: string;
-  label: string;
-  source?: string;
-  variant: NonNullable<BadgeProps["variant"]>;
-};
 
 function buildEvidenceCues(
   data: DashboardState,

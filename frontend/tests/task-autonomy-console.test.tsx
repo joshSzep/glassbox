@@ -2,10 +2,8 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import {
-  filterTaskSummaries,
-  TaskAutonomyConsole,
-} from "@/components/console/task-autonomy-console";
+import { TaskAutonomyConsole } from "@/components/console/task-autonomy-console";
+import { filterTaskSummaries } from "@/components/console/task-autonomy-sections";
 import type { components } from "@/generated/api-types";
 import type { TaskDetailState, TaskQueuePageState } from "@/stores/dashboard-stores";
 
