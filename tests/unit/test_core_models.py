@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from glassbox.core import AutonomyBudget
 from glassbox.core import ForkedSession
 from glassbox.core import InheritedTranscriptMessage
 from glassbox.core import MessagePart
@@ -193,6 +194,34 @@ def test_policy_decision_round_trip() -> None:
     restored = PolicyDecision.model_validate(decision.model_dump(mode="python"))
 
     assert restored == decision
+
+
+def test_autonomy_budget_rejects_contradictory_risk_limits() -> None:
+    with pytest.raises(ValidationError):
+        AutonomyBudget(
+            max_steps=4,
+            max_tool_calls=10,
+            max_write_operations=1,
+            max_command_operations=0,
+            max_wall_clock_seconds=300,
+            max_verification_attempts=1,
+            max_branch_attempts=0,
+            max_artifact_bytes=1000,
+            allowed_risk_buckets=["read_only"],
+        )
+
+    with pytest.raises(ValidationError):
+        AutonomyBudget(
+            max_steps=4,
+            max_tool_calls=10,
+            max_write_operations=0,
+            max_command_operations=0,
+            max_wall_clock_seconds=300,
+            max_verification_attempts=1,
+            max_branch_attempts=0,
+            max_artifact_bytes=1000,
+            allowed_risk_buckets=["read_only", "command"],
+        )
 
 
 def test_task_plan_snapshot_round_trip() -> None:

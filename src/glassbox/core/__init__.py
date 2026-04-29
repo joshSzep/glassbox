@@ -71,6 +71,8 @@ from glassbox.core.ids import new_task_step_id
 from glassbox.core.ids import new_task_verification_id
 from glassbox.core.ids import new_tool_call_id
 from glassbox.core.ids import new_turn_id
+from glassbox.core.models import AutonomyBudget
+from glassbox.core.models import AutonomySelection
 from glassbox.core.models import ForkedSession
 from glassbox.core.models import InheritedTranscriptMessage
 from glassbox.core.models import MessagePart
@@ -92,6 +94,8 @@ from glassbox.core.models import TranscriptMessage
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import ApprovalMode
 from glassbox.core.types import ApprovalStatus
+from glassbox.core.types import AutonomyEscalationReason
+from glassbox.core.types import AutonomyMode
 from glassbox.core.types import SessionStatus
 from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
@@ -107,6 +111,10 @@ __all__ = [
     "ApprovalRequested",
     "ApprovalResolved",
     "ApprovalStatus",
+    "AutonomyBudget",
+    "AutonomyEscalationReason",
+    "AutonomyMode",
+    "AutonomySelection",
     "AssistantMessageCompleted",
     "AssistantMessageDelta",
     "AssistantMessageStarted",

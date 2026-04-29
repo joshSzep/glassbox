@@ -27,6 +27,27 @@ def test_load_workspace_profile_parses_runtime_and_verification_defaults(
             "runtime": {
                 "model_name": "anthropic:claude-sonnet-4",
                 "approval_mode": "review",
+                "autonomy_mode": "test-driven",
+                "autonomy_budget_preset": "small-local",
+            },
+            "autonomy": {
+                "budget_presets": {
+                    "small-local": {
+                        "max_steps": 4,
+                        "max_tool_calls": 16,
+                        "max_write_operations": 2,
+                        "max_command_operations": 1,
+                        "max_wall_clock_seconds": 900,
+                        "max_verification_attempts": 2,
+                        "max_branch_attempts": 0,
+                        "max_artifact_bytes": 1000000,
+                        "allowed_risk_buckets": [
+                            "read_only",
+                            "workspace_write",
+                            "command",
+                        ],
+                    }
+                }
             },
             "verification": {"eval_profile": "commit-smoke"},
         },
@@ -37,6 +58,9 @@ def test_load_workspace_profile_parses_runtime_and_verification_defaults(
     assert profile is not None
     assert profile.runtime.model_name == "anthropic:claude-sonnet-4"
     assert profile.runtime.approval_mode == "review"
+    assert profile.runtime.autonomy_mode == "test-driven"
+    assert profile.runtime.autonomy_budget_preset == "small-local"
+    assert profile.autonomy.budget_presets["small-local"].max_steps == 4
     assert profile.verification.eval_profile == "commit-smoke"
 
 
@@ -50,6 +74,7 @@ def test_resolve_session_start_defaults_uses_profile_before_built_ins(
             "runtime": {
                 "model_name": "openai:gpt-4.1",
                 "approval_mode": "on-request",
+                "autonomy_mode": "inspect",
             },
         },
     )
@@ -64,6 +89,11 @@ def test_resolve_session_start_defaults_uses_profile_before_built_ins(
     assert defaults.model_name_source == "workspace-profile"
     assert defaults.approval_mode == "on-request"
     assert defaults.approval_mode_source == "workspace-profile"
+    assert defaults.autonomy_mode == "inspect"
+    assert defaults.autonomy_mode_source == "workspace-profile"
+    assert defaults.autonomy_budget_preset == "inspect"
+    assert defaults.autonomy_budget_source == "built-in"
+    assert defaults.autonomy_budget.allowed_risk_buckets == ["read_only"]
 
 
 def test_resolve_session_start_defaults_keeps_explicit_cli_flags_first(
@@ -76,6 +106,7 @@ def test_resolve_session_start_defaults_keeps_explicit_cli_flags_first(
             "runtime": {
                 "model_name": "anthropic:claude-sonnet-4",
                 "approval_mode": "never",
+                "autonomy_mode": "autonomous-local",
             },
         },
     )
@@ -84,12 +115,15 @@ def test_resolve_session_start_defaults_keeps_explicit_cli_flags_first(
         tmp_path,
         explicit_model_name="openai:gpt-5.4",
         explicit_approval_mode="confirm",
+        explicit_autonomy_mode="manual",
     )
 
     assert defaults.model_name == "openai:gpt-5.4"
     assert defaults.model_name_source == "cli"
     assert defaults.approval_mode == "confirm"
     assert defaults.approval_mode_source == "cli"
+    assert defaults.autonomy_mode == "manual"
+    assert defaults.autonomy_mode_source == "cli"
 
 
 def test_resolve_session_start_defaults_falls_back_to_built_ins(
@@ -105,6 +139,52 @@ def test_resolve_session_start_defaults_falls_back_to_built_ins(
     assert defaults.model_name_source == "built-in"
     assert defaults.approval_mode == DEFAULT_APPROVAL_MODE
     assert defaults.approval_mode_source == "built-in"
+    assert defaults.autonomy_mode == "manual"
+    assert defaults.autonomy_mode_source == "built-in"
+    assert defaults.autonomy_budget_preset == "manual"
+    assert defaults.autonomy_budget.max_steps == 0
+
+
+def test_resolve_session_start_defaults_uses_profile_autonomy_budget_preset(
+    tmp_path: Path,
+) -> None:
+    _write_workspace_profile(
+        tmp_path,
+        {
+            "profile_version": 1,
+            "runtime": {
+                "autonomy_mode": "edit-safe",
+                "autonomy_budget_preset": "repo-edit-safe",
+            },
+            "autonomy": {
+                "budget_presets": {
+                    "repo-edit-safe": {
+                        "max_steps": 5,
+                        "max_tool_calls": 20,
+                        "max_write_operations": 3,
+                        "max_command_operations": 0,
+                        "max_wall_clock_seconds": 1200,
+                        "max_verification_attempts": 1,
+                        "max_branch_attempts": 0,
+                        "max_artifact_bytes": 2000000,
+                        "allowed_risk_buckets": ["read_only", "workspace_write"],
+                    }
+                }
+            },
+        },
+    )
+
+    defaults = resolve_session_start_defaults(
+        tmp_path,
+        explicit_model_name=None,
+        explicit_approval_mode=None,
+    )
+
+    assert defaults.autonomy_mode == "edit-safe"
+    assert defaults.autonomy_mode_source == "workspace-profile"
+    assert defaults.autonomy_budget_source == "workspace-profile"
+    assert defaults.autonomy_budget_preset == "repo-edit-safe"
+    assert defaults.autonomy_budget.max_write_operations == 3
 
 
 def test_resolve_eval_profile_default_uses_profile_when_cli_absent(
@@ -146,7 +226,26 @@ def test_resolve_eval_profile_default_keeps_explicit_cli_profile(
     [
         {"profile_version": 999},
         {"profile_version": 1, "runtime": {"approval_mode": "always"}},
+        {"profile_version": 1, "runtime": {"autonomy_mode": "free-run"}},
         {"profile_version": 1, "runtime": {"provider_api_key": "secret"}},
+        {
+            "profile_version": 1,
+            "autonomy": {
+                "budget_presets": {
+                    "bad-write": {
+                        "max_steps": 5,
+                        "max_tool_calls": 10,
+                        "max_write_operations": 1,
+                        "max_command_operations": 0,
+                        "max_wall_clock_seconds": 300,
+                        "max_verification_attempts": 0,
+                        "max_branch_attempts": 0,
+                        "max_artifact_bytes": 1000,
+                        "allowed_risk_buckets": ["read_only"],
+                    }
+                }
+            },
+        },
     ],
 )
 def test_load_workspace_profile_rejects_invalid_configuration(

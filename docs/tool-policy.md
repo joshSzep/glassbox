@@ -57,6 +57,32 @@ If a persisted session row is later corrupted to contain an invalid approval
 mode, runtime bootstrap treats that as a terminal session-scoped failure rather
 than attempting to continue with ambiguous policy behavior.
 
+## Autonomy Modes And Budgets
+
+Autonomy mode is a separate control from approval mode. Approval mode describes
+how Glassbox handles risky actions when policy says they need operator review.
+Autonomy mode describes how much local work Glassbox may attempt before it must
+pause with durable evidence.
+
+The supported autonomy modes are:
+
+- `manual`: no autonomous steps; the operator drives work explicitly
+- `guided`: small read-only continuations for inspected plans
+- `inspect`: broader read-only repository inspection
+- `edit-safe`: bounded workspace edits without command execution
+- `test-driven`: bounded edits plus targeted local command/test execution
+- `autonomous-local`: larger local implementation budgets
+- `release-candidate`: stricter release-focused verification budgets
+
+Every autonomy mode resolves to an explicit budget with max steps, tool calls,
+write operations, command operations, wall-clock seconds, verification attempts,
+branch attempts, artifact bytes, and allowed risk buckets. Budget exhaustion,
+approval required, policy blocked, verification failed, provider unavailable,
+daemon unavailable, and ambiguous plan are first-class escalation reasons.
+
+Autonomy mode does not override hard invariants. Workspace-scope checks,
+destructive command blocks, approval mode, and repository policy still apply.
+
 ## Decision Rules
 
 The policy engine evaluates tools in this order:

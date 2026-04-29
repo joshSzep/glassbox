@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 from pydantic import field_validator
+from pydantic import model_validator
 
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import MessageId
@@ -20,6 +21,8 @@ from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.types import ApprovalMode
 from glassbox.core.types import ApprovalStatus
+from glassbox.core.types import AutonomyEscalationReason
+from glassbox.core.types import AutonomyMode
 from glassbox.core.types import SessionStatus
 from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
@@ -32,6 +35,74 @@ MessageRole = Literal["user", "assistant", "system"]
 PolicyDecisionOutcome = Literal["allow", "approve", "deny", "blocked"]
 PolicyRiskLevel = Literal["read_only", "workspace_write", "command"]
 PolicyDecisionSourceKind = Literal["default", "rule", "invariant"]
+
+
+class AutonomyBudget(BaseModel):
+    """Explicit local limits for one autonomy mode selection."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    max_steps: int = Field(ge=0)
+    max_tool_calls: int = Field(ge=0)
+    max_write_operations: int = Field(ge=0)
+    max_command_operations: int = Field(ge=0)
+    max_wall_clock_seconds: int = Field(ge=1)
+    max_verification_attempts: int = Field(ge=0)
+    max_branch_attempts: int = Field(ge=0)
+    max_artifact_bytes: int = Field(ge=0)
+    allowed_risk_buckets: list[PolicyRiskLevel] = Field(min_length=1)
+
+    @field_validator("allowed_risk_buckets")
+    @classmethod
+    def normalize_allowed_risk_buckets(
+        cls,
+        value: list[PolicyRiskLevel],
+    ) -> list[PolicyRiskLevel]:
+        normalized = list(dict.fromkeys(value))
+        if not normalized:
+            raise ValueError("allowed_risk_buckets must not be empty")
+        return normalized
+
+    @model_validator(mode="after")
+    def validate_budget_consistency(self) -> AutonomyBudget:
+        allowed = set(self.allowed_risk_buckets)
+        if self.max_write_operations > 0 and "workspace_write" not in allowed:
+            raise ValueError(
+                "max_write_operations requires workspace_write in allowed_risk_buckets"
+            )
+        if self.max_command_operations > 0 and "command" not in allowed:
+            raise ValueError(
+                "max_command_operations requires command in allowed_risk_buckets"
+            )
+        if "workspace_write" in allowed and self.max_write_operations == 0:
+            raise ValueError(
+                "workspace_write risk requires a positive max_write_operations budget"
+            )
+        if "command" in allowed and self.max_command_operations == 0:
+            raise ValueError(
+                "command risk requires a positive max_command_operations budget"
+            )
+        return self
+
+
+class AutonomySelection(BaseModel):
+    """Resolved autonomy mode and budget ready for policy/budget checks."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mode: AutonomyMode
+    budget: AutonomyBudget
+    escalation_reasons: list[AutonomyEscalationReason] = Field(
+        default_factory=lambda: [
+            AutonomyEscalationReason.APPROVAL_REQUIRED,
+            AutonomyEscalationReason.BUDGET_EXHAUSTED,
+            AutonomyEscalationReason.POLICY_BLOCKED,
+            AutonomyEscalationReason.VERIFICATION_FAILED,
+            AutonomyEscalationReason.PROVIDER_UNAVAILABLE,
+            AutonomyEscalationReason.DAEMON_UNAVAILABLE,
+            AutonomyEscalationReason.AMBIGUOUS_PLAN,
+        ]
+    )
 
 
 class SessionConfig(BaseModel):

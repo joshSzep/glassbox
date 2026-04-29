@@ -477,9 +477,10 @@ The intended v8 milestone order is:
 
 ### GBX-830: Define Autonomy Mode And Budget Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-820`, `GBX-811`
 - Goal: replace broad approval-mode conservatism with typed autonomy modes and explicit local budgets
+- Evidence: [tool-policy.md](./tool-policy.md), [workspace-profiles.md](./workspace-profiles.md)
 - Deliverables:
   - docs and typed models for autonomy modes such as `manual`, `guided`, `inspect`, `edit-safe`, `test-driven`, `autonomous-local`, and `release-candidate`
   - budget fields for max steps, max tool calls, max write operations, max command operations, max wall-clock duration, max verification attempts, max branch attempts, max artifact bytes, and allowed risk buckets

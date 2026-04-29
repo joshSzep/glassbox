@@ -67,6 +67,30 @@ class ApprovalMode(StrEnum):
     NEVER = "never"
 
 
+class AutonomyMode(StrEnum):
+    """Operator-selected posture for bounded autonomous local work."""
+
+    MANUAL = "manual"
+    GUIDED = "guided"
+    INSPECT = "inspect"
+    EDIT_SAFE = "edit-safe"
+    TEST_DRIVEN = "test-driven"
+    AUTONOMOUS_LOCAL = "autonomous-local"
+    RELEASE_CANDIDATE = "release-candidate"
+
+
+class AutonomyEscalationReason(StrEnum):
+    """Reasons autonomy must pause or escalate to the operator."""
+
+    APPROVAL_REQUIRED = "approval_required"
+    BUDGET_EXHAUSTED = "budget_exhausted"
+    POLICY_BLOCKED = "policy_blocked"
+    VERIFICATION_FAILED = "verification_failed"
+    PROVIDER_UNAVAILABLE = "provider_unavailable"
+    DAEMON_UNAVAILABLE = "daemon_unavailable"
+    AMBIGUOUS_PLAN = "ambiguous_plan"
+
+
 class TaskPlanStatus(StrEnum):
     """Lifecycle states for a durable task plan."""
 
