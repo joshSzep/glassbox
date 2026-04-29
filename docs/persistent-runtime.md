@@ -119,6 +119,10 @@ uv run glassbox daemon stop --cwd .
   in the selected `--cwd` and remember that explicit CLI flags override it.
 - If the dashboard cannot find a direct `?session=...` URL, open the root
   session index printed by `daemon status` and select the session there.
+- Before enabling daemon-owned background work, read
+  [background-jobs.md](./background-jobs.md). Background jobs are opt-in local
+  work items whose durable state must come from canonical events, not daemon
+  memory.
 
 For broader recovery and maintenance checks, use the read-only commands before
 mutating state:

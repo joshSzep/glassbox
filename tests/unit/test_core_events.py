@@ -11,6 +11,21 @@ from glassbox.core import ApprovalDecision
 from glassbox.core import ApprovalRequested
 from glassbox.core import ApprovalResolved
 from glassbox.core import AssistantMessageCompleted
+from glassbox.core import BackgroundJobCancellationRequested
+from glassbox.core import BackgroundJobCancelled
+from glassbox.core import BackgroundJobClaimed
+from glassbox.core import BackgroundJobCompleted
+from glassbox.core import BackgroundJobCreated
+from glassbox.core import BackgroundJobFailed
+from glassbox.core import BackgroundJobFailureKind
+from glassbox.core import BackgroundJobHeartbeat
+from glassbox.core import BackgroundJobKind
+from glassbox.core import BackgroundJobPaused
+from glassbox.core import BackgroundJobProgressRecorded
+from glassbox.core import BackgroundJobRecoveryReason
+from glassbox.core import BackgroundJobRecoveryRecorded
+from glassbox.core import BackgroundJobStarted
+from glassbox.core import BackgroundJobState
 from glassbox.core import CancellationAcknowledged
 from glassbox.core import CancellationFailed
 from glassbox.core import CancellationRequested
@@ -36,6 +51,7 @@ from glassbox.core import TurnStatus
 from glassbox.core import TurnStatusChanged
 from glassbox.core import UserMessageReceived
 from glassbox.core import new_approval_id
+from glassbox.core import new_background_job_id
 from glassbox.core import new_message_id
 from glassbox.core import new_session_id
 from glassbox.core import new_task_id
@@ -217,6 +233,157 @@ def test_turn_cancelled_rejects_unknown_stage() -> None:
                 "turn_id": new_turn_id(),
                 "reason": "operator requested cancellation",
                 "stage": "approval_queue",
+            }
+        )
+
+
+def test_background_job_payloads_round_trip_through_event_union() -> None:
+    adapter = TypeAdapter(EventPayloadType)
+    job_id = new_background_job_id()
+    worker_id = "daemon:1234"
+    claim_token = "claim-token"
+    lease_expires_at = datetime(2026, 4, 28, 12, 5, tzinfo=UTC)
+
+    created = adapter.validate_python(
+        {
+            "event_type": "BackgroundJobCreated",
+            "job_id": job_id,
+            "kind": "read_only_maintenance",
+            "job_type": "projection-health-refresh",
+            "title": "Refresh projection health",
+            "payload": {"scope": "all"},
+        }
+    )
+    claimed = adapter.validate_python(
+        {
+            "event_type": "BackgroundJobClaimed",
+            "job_id": job_id,
+            "worker_id": worker_id,
+            "claim_token": claim_token,
+            "attempt": 1,
+            "lease_expires_at": lease_expires_at,
+        }
+    )
+    started = adapter.validate_python(
+        {
+            "event_type": "BackgroundJobStarted",
+            "job_id": job_id,
+            "worker_id": worker_id,
+            "claim_token": claim_token,
+            "attempt": 1,
+        }
+    )
+    heartbeat = adapter.validate_python(
+        {
+            "event_type": "BackgroundJobHeartbeat",
+            "job_id": job_id,
+            "worker_id": worker_id,
+            "claim_token": claim_token,
+            "lease_expires_at": lease_expires_at,
+            "message": "still scanning",
+        }
+    )
+    progress = adapter.validate_python(
+        {
+            "event_type": "BackgroundJobProgressRecorded",
+            "job_id": job_id,
+            "message": "scanned projections",
+            "completed_units": 3,
+            "total_units": 5,
+        }
+    )
+    paused = adapter.validate_python(
+        {
+            "event_type": "BackgroundJobPaused",
+            "job_id": job_id,
+            "reason": "approval_required",
+        }
+    )
+    completed = adapter.validate_python(
+        {
+            "event_type": "BackgroundJobCompleted",
+            "job_id": job_id,
+            "summary": "projection health refreshed",
+        }
+    )
+    failed = adapter.validate_python(
+        {
+            "event_type": "BackgroundJobFailed",
+            "job_id": job_id,
+            "failure_kind": "storage_error",
+            "message": "database locked",
+            "retryable": True,
+            "attempt": 1,
+        }
+    )
+    cancellation_requested = adapter.validate_python(
+        {
+            "event_type": "BackgroundJobCancellationRequested",
+            "job_id": job_id,
+            "requested_by": "operator",
+            "reason": "no longer needed",
+        }
+    )
+    cancelled = adapter.validate_python(
+        {
+            "event_type": "BackgroundJobCancelled",
+            "job_id": job_id,
+            "reason": "operator requested cancellation",
+        }
+    )
+    recovery = adapter.validate_python(
+        {
+            "event_type": "BackgroundJobRecoveryRecorded",
+            "job_id": job_id,
+            "reason": "stale_claim",
+            "previous_state": "running",
+            "detail": "worker process exited",
+        }
+    )
+
+    assert isinstance(created, BackgroundJobCreated)
+    assert created.kind == BackgroundJobKind.READ_ONLY_MAINTENANCE
+    assert isinstance(claimed, BackgroundJobClaimed)
+    assert isinstance(started, BackgroundJobStarted)
+    assert isinstance(heartbeat, BackgroundJobHeartbeat)
+    assert heartbeat.state == BackgroundJobState.RUNNING
+    assert isinstance(progress, BackgroundJobProgressRecorded)
+    assert isinstance(paused, BackgroundJobPaused)
+    assert isinstance(completed, BackgroundJobCompleted)
+    assert isinstance(failed, BackgroundJobFailed)
+    assert failed.failure_kind == BackgroundJobFailureKind.STORAGE_ERROR
+    assert isinstance(cancellation_requested, BackgroundJobCancellationRequested)
+    assert isinstance(cancelled, BackgroundJobCancelled)
+    assert isinstance(recovery, BackgroundJobRecoveryRecorded)
+    assert recovery.reason == BackgroundJobRecoveryReason.STALE_CLAIM
+
+
+def test_background_job_envelope_exposes_job_id() -> None:
+    job_id = new_background_job_id()
+    envelope = EventEnvelope(
+        session_id=new_session_id(),
+        sequence=12,
+        payload=BackgroundJobCreated(
+            job_id=job_id,
+            kind=BackgroundJobKind.DERIVED_INDEX,
+            job_type="repo-index-refresh",
+            title="Refresh repository index",
+        ),
+    )
+
+    assert envelope.event_type == "BackgroundJobCreated"
+    assert envelope.job_id == job_id
+
+
+def test_background_job_created_rejects_unknown_kind() -> None:
+    with pytest.raises(ValidationError):
+        BackgroundJobCreated.model_validate(
+            {
+                "event_type": "BackgroundJobCreated",
+                "job_id": new_background_job_id(),
+                "kind": "remote_worker",
+                "job_type": "remote",
+                "title": "Remote work",
             }
         )
 

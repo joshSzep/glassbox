@@ -640,7 +640,7 @@ The intended v8 milestone order is:
 
 ### GBX-840: Define Background Job Ownership And Recovery Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-831`, `GBX-811`
 - Goal: define how the workspace daemon can run opt-in background work while preserving single-owner mutation and local-first recovery
 - Deliverables:
@@ -656,6 +656,11 @@ The intended v8 milestone order is:
 - Tests and validation included in task:
   - docs review against daemon, transport, session mutation, and observability code
   - event model tests if job events are added in this task
+- Evidence:
+  - `uv run pytest tests/unit/test_core_events.py`
+  - `uv run pytest tests/unit/test_core_types.py`
+  - `uv run ruff check --fix src/glassbox/core/ids.py src/glassbox/core/types.py src/glassbox/core/events.py src/glassbox/core/__init__.py tests/unit/test_core_events.py`
+  - `uv run ty check`
 - Done when:
   - implementers have a precise local-worker contract before adding daemon job execution
 

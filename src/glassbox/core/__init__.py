@@ -5,6 +5,17 @@ from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import AssistantMessageCompleted
 from glassbox.core.events import AssistantMessageDelta
 from glassbox.core.events import AssistantMessageStarted
+from glassbox.core.events import BackgroundJobCancellationRequested
+from glassbox.core.events import BackgroundJobCancelled
+from glassbox.core.events import BackgroundJobClaimed
+from glassbox.core.events import BackgroundJobCompleted
+from glassbox.core.events import BackgroundJobCreated
+from glassbox.core.events import BackgroundJobFailed
+from glassbox.core.events import BackgroundJobHeartbeat
+from glassbox.core.events import BackgroundJobPaused
+from glassbox.core.events import BackgroundJobProgressRecorded
+from glassbox.core.events import BackgroundJobRecoveryRecorded
+from glassbox.core.events import BackgroundJobStarted
 from glassbox.core.events import BudgetDecisionRecorded
 from glassbox.core.events import BudgetExhausted
 from glassbox.core.events import BudgetOverrideRequested
@@ -55,6 +66,7 @@ from glassbox.core.events import UserMessageReceived
 from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import ArtifactId
+from glassbox.core.ids import BackgroundJobId
 from glassbox.core.ids import BudgetOverrideId
 from glassbox.core.ids import EventId
 from glassbox.core.ids import MessageId
@@ -67,6 +79,7 @@ from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.ids import new_approval_id
 from glassbox.core.ids import new_artifact_id
+from glassbox.core.ids import new_background_job_id
 from glassbox.core.ids import new_budget_override_id
 from glassbox.core.ids import new_event_id
 from glassbox.core.ids import new_message_id
@@ -105,6 +118,10 @@ from glassbox.core.types import ApprovalMode
 from glassbox.core.types import ApprovalStatus
 from glassbox.core.types import AutonomyEscalationReason
 from glassbox.core.types import AutonomyMode
+from glassbox.core.types import BackgroundJobFailureKind
+from glassbox.core.types import BackgroundJobKind
+from glassbox.core.types import BackgroundJobRecoveryReason
+from glassbox.core.types import BackgroundJobState
 from glassbox.core.types import SessionStatus
 from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
@@ -131,6 +148,22 @@ __all__ = [
     "AssistantMessageDelta",
     "AssistantMessageStarted",
     "ArtifactId",
+    "BackgroundJobCancellationRequested",
+    "BackgroundJobCancelled",
+    "BackgroundJobClaimed",
+    "BackgroundJobCompleted",
+    "BackgroundJobCreated",
+    "BackgroundJobFailed",
+    "BackgroundJobFailureKind",
+    "BackgroundJobHeartbeat",
+    "BackgroundJobId",
+    "BackgroundJobKind",
+    "BackgroundJobPaused",
+    "BackgroundJobProgressRecorded",
+    "BackgroundJobRecoveryReason",
+    "BackgroundJobRecoveryRecorded",
+    "BackgroundJobStarted",
+    "BackgroundJobState",
     "BudgetDecisionRecorded",
     "BudgetExhausted",
     "BudgetOverrideId",
@@ -216,6 +249,7 @@ __all__ = [
     "UserQuestionAsked",
     "new_approval_id",
     "new_artifact_id",
+    "new_background_job_id",
     "new_budget_override_id",
     "new_event_id",
     "new_message_id",

@@ -14,6 +14,7 @@ from pydantic import model_validator
 
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import ArtifactId
+from glassbox.core.ids import BackgroundJobId
 from glassbox.core.ids import BudgetOverrideId
 from glassbox.core.ids import EventId
 from glassbox.core.ids import MessageId
@@ -38,6 +39,10 @@ from glassbox.core.models import TaskStepProposal
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import AutonomyEscalationReason
 from glassbox.core.types import AutonomyMode
+from glassbox.core.types import BackgroundJobFailureKind
+from glassbox.core.types import BackgroundJobKind
+from glassbox.core.types import BackgroundJobRecoveryReason
+from glassbox.core.types import BackgroundJobState
 from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskVerificationStatus
@@ -484,6 +489,107 @@ class TaskStatusChanged(EventPayload):
     reason: str | None = Field(default=None, max_length=2000)
 
 
+class BackgroundJobCreated(EventPayload):
+    event_type: Literal["BackgroundJobCreated"] = "BackgroundJobCreated"
+    job_id: BackgroundJobId
+    kind: BackgroundJobKind
+    job_type: str = Field(min_length=1, max_length=120)
+    title: str = Field(min_length=1, max_length=200)
+    requested_by: str = Field(default="operator", min_length=1, max_length=200)
+    payload: dict[str, object] = Field(default_factory=dict)
+    priority: int = Field(default=0, ge=0)
+    task_id: TaskId | None = None
+    parent_job_id: BackgroundJobId | None = None
+
+
+class BackgroundJobClaimed(EventPayload):
+    event_type: Literal["BackgroundJobClaimed"] = "BackgroundJobClaimed"
+    job_id: BackgroundJobId
+    worker_id: str = Field(min_length=1, max_length=200)
+    claim_token: str = Field(min_length=1, max_length=200)
+    attempt: int = Field(ge=1)
+    lease_expires_at: datetime
+
+
+class BackgroundJobStarted(EventPayload):
+    event_type: Literal["BackgroundJobStarted"] = "BackgroundJobStarted"
+    job_id: BackgroundJobId
+    worker_id: str = Field(min_length=1, max_length=200)
+    claim_token: str = Field(min_length=1, max_length=200)
+    attempt: int = Field(ge=1)
+
+
+class BackgroundJobHeartbeat(EventPayload):
+    event_type: Literal["BackgroundJobHeartbeat"] = "BackgroundJobHeartbeat"
+    job_id: BackgroundJobId
+    worker_id: str = Field(min_length=1, max_length=200)
+    claim_token: str = Field(min_length=1, max_length=200)
+    lease_expires_at: datetime
+    state: BackgroundJobState = BackgroundJobState.RUNNING
+    message: str | None = Field(default=None, max_length=1000)
+
+
+class BackgroundJobProgressRecorded(EventPayload):
+    event_type: Literal["BackgroundJobProgressRecorded"] = (
+        "BackgroundJobProgressRecorded"
+    )
+    job_id: BackgroundJobId
+    message: str = Field(min_length=1, max_length=1000)
+    completed_units: int | None = Field(default=None, ge=0)
+    total_units: int | None = Field(default=None, ge=0)
+
+
+class BackgroundJobPaused(EventPayload):
+    event_type: Literal["BackgroundJobPaused"] = "BackgroundJobPaused"
+    job_id: BackgroundJobId
+    reason: AutonomyEscalationReason
+    detail: str | None = Field(default=None, max_length=2000)
+
+
+class BackgroundJobCompleted(EventPayload):
+    event_type: Literal["BackgroundJobCompleted"] = "BackgroundJobCompleted"
+    job_id: BackgroundJobId
+    summary: str = Field(min_length=1, max_length=4000)
+    artifact_id: ArtifactId | None = None
+
+
+class BackgroundJobFailed(EventPayload):
+    event_type: Literal["BackgroundJobFailed"] = "BackgroundJobFailed"
+    job_id: BackgroundJobId
+    failure_kind: BackgroundJobFailureKind
+    message: str = Field(min_length=1, max_length=4000)
+    retryable: bool = False
+    attempt: int = Field(ge=1)
+    next_retry_at: datetime | None = None
+
+
+class BackgroundJobCancellationRequested(EventPayload):
+    event_type: Literal["BackgroundJobCancellationRequested"] = (
+        "BackgroundJobCancellationRequested"
+    )
+    job_id: BackgroundJobId
+    requested_by: str = Field(default="operator", min_length=1, max_length=200)
+    reason: str | None = Field(default=None, max_length=2000)
+
+
+class BackgroundJobCancelled(EventPayload):
+    event_type: Literal["BackgroundJobCancelled"] = "BackgroundJobCancelled"
+    job_id: BackgroundJobId
+    cancelled_by: str = Field(default="runtime", min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class BackgroundJobRecoveryRecorded(EventPayload):
+    event_type: Literal["BackgroundJobRecoveryRecorded"] = (
+        "BackgroundJobRecoveryRecorded"
+    )
+    job_id: BackgroundJobId
+    reason: BackgroundJobRecoveryReason
+    previous_state: BackgroundJobState
+    recovered_by: str = Field(default="runtime", min_length=1, max_length=200)
+    detail: str | None = Field(default=None, max_length=2000)
+
+
 class ErrorRecorded(EventPayload):
     event_type: Literal["ErrorRecorded"] = "ErrorRecorded"
     scope: ErrorScope
@@ -541,6 +647,17 @@ EventPayloadType = Annotated[
     | TaskCancelled
     | TaskAbandoned
     | TaskStatusChanged
+    | BackgroundJobCreated
+    | BackgroundJobClaimed
+    | BackgroundJobStarted
+    | BackgroundJobHeartbeat
+    | BackgroundJobProgressRecorded
+    | BackgroundJobPaused
+    | BackgroundJobCompleted
+    | BackgroundJobFailed
+    | BackgroundJobCancellationRequested
+    | BackgroundJobCancelled
+    | BackgroundJobRecoveryRecorded
     | ErrorRecorded,
     Field(discriminator="event_type"),
 ]
@@ -609,3 +726,7 @@ class EventEnvelope(BaseModel):
     @property
     def task_id(self) -> TaskId | None:
         return getattr(self.payload, "task_id", None)
+
+    @property
+    def job_id(self) -> BackgroundJobId | None:
+        return getattr(self.payload, "job_id", None)

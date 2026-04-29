@@ -139,3 +139,48 @@ class TaskBlockedReason(StrEnum):
     CANCELLED = "cancelled"
     MANUAL_PAUSE = "manual_pause"
     UNKNOWN = "unknown"
+
+
+class BackgroundJobKind(StrEnum):
+    """Coarse authority class for daemon-owned background jobs."""
+
+    READ_ONLY_MAINTENANCE = "read_only_maintenance"
+    DERIVED_INDEX = "derived_index"
+    MUTATING_CONTINUATION = "mutating_continuation"
+
+
+class BackgroundJobState(StrEnum):
+    """Lifecycle states for daemon-owned background jobs."""
+
+    QUEUED = "queued"
+    CLAIMED = "claimed"
+    RUNNING = "running"
+    PAUSED = "paused"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLATION_REQUESTED = "cancellation_requested"
+    CANCELLED = "cancelled"
+    STALE = "stale"
+
+
+class BackgroundJobRecoveryReason(StrEnum):
+    """Reasons a background job needs durable recovery evidence."""
+
+    DAEMON_RESTART = "daemon_restart"
+    STALE_CLAIM = "stale_claim"
+    DUPLICATE_CLAIM = "duplicate_claim"
+    PROJECTION_REBUILD = "projection_rebuild"
+    OPERATOR_REQUEST = "operator_request"
+
+
+class BackgroundJobFailureKind(StrEnum):
+    """Operator-facing failure classes for background jobs."""
+
+    POLICY_BLOCKED = "policy_blocked"
+    BUDGET_EXHAUSTED = "budget_exhausted"
+    VERIFICATION_FAILED = "verification_failed"
+    PROVIDER_UNAVAILABLE = "provider_unavailable"
+    DAEMON_UNAVAILABLE = "daemon_unavailable"
+    STORAGE_ERROR = "storage_error"
+    TOOL_ERROR = "tool_error"
+    UNKNOWN = "unknown"
