@@ -1338,9 +1338,10 @@ The intended v8 milestone order is:
 
 ### GBX-874: Add Provider-Aware Model Selection Recommendations
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-873`, `GBX-830`
 - Goal: recommend model/provider choices for a task based on local configuration, advisory canary evidence, autonomy mode, and workflow needs
+- Evidence: [providers.md](./providers.md)
 - Deliverables:
   - recommendation model that considers provider readiness, selected autonomy mode, needed tool-call reliability, context size, cancellation posture, and advisory canary results
   - CLI command such as `glassbox provider recommend --task-kind ...` or integration into provider diagnostics/session start
@@ -1355,6 +1356,17 @@ The intended v8 milestone order is:
   - provider recommendation unit tests
   - CLI/provider diagnostics tests
   - dashboard cue tests if UI is added
+- Completed vertical slice:
+  - added a non-authoritative provider recommendation model that considers diagnostics state, selected model, task kind, autonomy mode, required workflow capabilities, and retained provider canary evidence
+  - added `glassbox provider recommend --task-kind ... --autonomy-mode ...` with human and JSON output
+  - recommendations report posture, confidence, reasons, warnings, relevant scenario evidence, and next actions while explicitly setting `auto_applied=false`
+  - missing credentials, local fallback, stale canary evidence, skipped scenarios, and missing relevant evidence lower confidence rather than silently changing provider choice
+  - documented recommendation posture and advisory semantics in provider setup docs
+- Validation:
+  - `uv run ruff format src/glassbox/runtime/provider_recommendations.py src/glassbox/cli/parser_operations.py src/glassbox/cli/provider_commands.py tests/unit/test_runtime_provider_config.py tests/integration/test_provider_mode_runtime.py`
+  - `uv run ruff check src/glassbox/runtime/provider_recommendations.py src/glassbox/cli/parser_operations.py src/glassbox/cli/provider_commands.py tests/unit/test_runtime_provider_config.py tests/integration/test_provider_mode_runtime.py`
+  - `uv run ty check`
+  - `uv run pytest tests/unit/test_runtime_provider_config.py tests/integration/test_provider_mode_runtime.py`
 - Done when:
   - provider evidence helps practical workflow setup without becoming hidden provider policy
 

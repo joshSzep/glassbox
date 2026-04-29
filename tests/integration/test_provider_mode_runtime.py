@@ -271,6 +271,42 @@ def test_provider_diagnostics_cli_prints_capability_preflight(
     assert "secret-anthropic" not in captured.out
 
 
+def test_provider_recommend_cli_reports_advisory_posture(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
+
+    exit_code = main(
+        [
+            "provider",
+            "recommend",
+            "--cwd",
+            str(tmp_path),
+            "--model-name",
+            "local-test-model",
+            "--task-kind",
+            "coding",
+            "--autonomy-mode",
+            "test-driven",
+            "--json",
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["advisory"] is True
+    assert payload["auto_applied"] is False
+    assert payload["task_kind"] == "coding"
+    assert payload["autonomy_mode"] == "test-driven"
+    assert payload["posture"] == "local_fallback"
+    assert payload["confidence"] == "low"
+    assert "secret" not in captured.out
+
+
 def test_provider_canary_cli_writes_skipped_summary_without_credentials(
     tmp_path: Path,
     capsys,

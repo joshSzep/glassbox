@@ -5,12 +5,16 @@ from pathlib import Path
 
 from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
+from glassbox.core.types import AutonomyMode
 from glassbox.runtime.provider_canary import ProviderCanaryEvidenceSummary
 from glassbox.runtime.provider_canary import ProviderCanarySummary
 from glassbox.runtime.provider_canary import load_provider_canary_evidence
 from glassbox.runtime.provider_canary import run_provider_canary_sync
 from glassbox.runtime.provider_diagnostics import ProviderDiagnosticsReport
 from glassbox.runtime.provider_diagnostics import build_provider_diagnostics_report
+from glassbox.runtime.provider_recommendations import ProviderRecommendation
+from glassbox.runtime.provider_recommendations import ProviderTaskKind
+from glassbox.runtime.provider_recommendations import recommend_provider
 from glassbox.runtime.workspace_profile import DEFAULT_MODEL_NAME
 
 
@@ -18,6 +22,8 @@ def _provider_command(args: argparse.Namespace) -> int:
     provider_command = getattr(args, "provider_command", None)
     if provider_command == "diagnostics":
         return _provider_diagnostics_command(args)
+    if provider_command == "recommend":
+        return _provider_recommend_command(args)
     if provider_command == "canary":
         return _provider_canary_command(args)
     raise ValueError("specify a provider subcommand")
@@ -33,6 +39,21 @@ def _provider_diagnostics_command(args: argparse.Namespace) -> int:
         print_json_output(report.model_dump(mode="json"))
     else:
         _print_provider_diagnostics(report)
+    return 0
+
+
+def _provider_recommend_command(args: argparse.Namespace) -> int:
+    cwd, _db_path = resolve_runtime_location(args)
+    recommendation = recommend_provider(
+        cwd,
+        task_kind=ProviderTaskKind(args.task_kind),
+        autonomy_mode=AutonomyMode(args.autonomy_mode),
+        model_name=args.model_name,
+    )
+    if args.json:
+        print_json_output(recommendation.model_dump(mode="json"))
+    else:
+        _print_provider_recommendation(recommendation)
     return 0
 
 
@@ -74,6 +95,30 @@ def _print_provider_diagnostics(report: ProviderDiagnosticsReport) -> None:
     print("First-run checklist:")
     for step in report.onboarding_steps:
         print(f"  - {step}")
+
+
+def _print_provider_recommendation(recommendation: ProviderRecommendation) -> None:
+    print("Provider recommendation: advisory")
+    print(f"Task kind: {recommendation.task_kind.value}")
+    print(f"Autonomy mode: {recommendation.autonomy_mode.value}")
+    print(f"Model: {recommendation.recommended_model_name}")
+    print(f"Provider: {recommendation.provider}")
+    print(f"Posture: {recommendation.posture.value}")
+    print(f"Confidence: {recommendation.confidence.value}")
+    print("Required capabilities:")
+    for capability in recommendation.required_capabilities:
+        print(f"  - {capability}")
+    print("Reasons:")
+    for reason in recommendation.reasons:
+        print(f"  - {reason}")
+    if recommendation.warnings:
+        print("Warnings:")
+        for warning in recommendation.warnings:
+            print(f"  - {warning}")
+    if recommendation.next_actions:
+        print("Next:")
+        for action in recommendation.next_actions:
+            print(f"  - {action}")
 
 
 def _provider_canary_command(args: argparse.Namespace) -> int:

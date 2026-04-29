@@ -1,13 +1,17 @@
 """Unit tests for runtime provider config resolution."""
 
+import json
 from pathlib import Path
 
 import pytest
 
+from glassbox.core.types import AutonomyMode
 from glassbox.runtime.provider_capability_matrix import ProviderCapabilityResult
 from glassbox.runtime.provider_capability_matrix import build_provider_capability_matrix
 from glassbox.runtime.provider_config import load_runtime_provider_config
 from glassbox.runtime.provider_diagnostics import build_provider_diagnostics_report
+from glassbox.runtime.provider_recommendations import ProviderTaskKind
+from glassbox.runtime.provider_recommendations import recommend_provider
 
 AGENTIC_CANARY_SCENARIOS = [
     "streaming-text",
@@ -283,3 +287,77 @@ def test_provider_capability_matrix_includes_agentic_workflow_fields(
     assert rows["tool-call-streaming"].tool_call_support == "supported"
     assert rows["verification-loop-interaction"].tool_call_reliability == "assumed"
     assert all(row.scenario_confidence == "preflight" for row in rows.values())
+
+
+def test_provider_recommendation_keeps_local_fallback_advisory(
+    tmp_path: Path,
+) -> None:
+    recommendation = recommend_provider(
+        tmp_path,
+        task_kind=ProviderTaskKind.CODING,
+        autonomy_mode=AutonomyMode.TEST_DRIVEN,
+        model_name="local-test-model",
+    )
+
+    assert recommendation.advisory is True
+    assert recommendation.auto_applied is False
+    assert recommendation.posture == "local_fallback"
+    assert recommendation.confidence == "low"
+    assert recommendation.provider == "local"
+    assert "reliable tool calls" in recommendation.required_capabilities
+    assert any("local fallback" in warning for warning in recommendation.warnings)
+
+
+def test_provider_recommendation_uses_retained_canary_evidence(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / ".env").write_text("OPENAI_API_KEY=secret-openai\n")
+    output_dir = tmp_path / ".glassbox" / "provider-canary"
+    output_dir.mkdir(parents=True)
+    report = build_provider_diagnostics_report(
+        tmp_path,
+        explicit_model_name="openai:gpt-5.4",
+        environ={"OPENAI_API_KEY": "secret-openai"},
+    )
+    results: dict[str, ProviderCapabilityResult] = {
+        "streaming-text": "passed",
+        "tool-call": "passed",
+        "verification-loop-interaction": "skipped",
+    }
+    matrix = build_provider_capability_matrix(
+        report,
+        scenario_ids=AGENTIC_CANARY_SCENARIOS,
+        results=results,
+    )
+    (output_dir / "provider-canary-summary.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-04-29T00:00:00+00:00",
+                "advisory": True,
+                "provider": "openai",
+                "model_name": "openai:gpt-5.4",
+                "diagnostics_state": "ready",
+                "output_path": str(output_dir / "provider-canary-summary.json"),
+                "scenario_definitions": [],
+                "scenarios": [],
+                "capability_matrix": matrix.model_dump(mode="json"),
+                "skipped_reason": None,
+                "next_actions": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    recommendation = recommend_provider(
+        tmp_path,
+        task_kind=ProviderTaskKind.VERIFICATION,
+        autonomy_mode=AutonomyMode.TEST_DRIVEN,
+        model_name="openai:gpt-5.4",
+    )
+
+    assert recommendation.posture == "recommended"
+    assert recommendation.confidence == "high"
+    assert recommendation.evidence.relevant_passed == ["tool-call"]
+    assert "verification-loop-interaction" in (
+        recommendation.evidence.relevant_preflight
+    )

@@ -197,6 +197,53 @@ def _add_operations_parsers(
     )
     _add_runtime_location_arguments(provider_diagnostics_parser)
 
+    provider_recommend_parser = provider_subparsers.add_parser(
+        "recommend",
+        help="recommend provider posture for a workflow",
+        description=(
+            "Recommend a provider/model posture from local diagnostics, autonomy "
+            "mode, workflow needs, and retained advisory canary evidence."
+        ),
+    )
+    provider_recommend_parser.add_argument(
+        "--task-kind",
+        required=True,
+        choices=(
+            "inspection",
+            "coding",
+            "verification",
+            "branch-search",
+            "background",
+            "release",
+        ),
+        help="workflow category to recommend for",
+    )
+    provider_recommend_parser.add_argument(
+        "--autonomy-mode",
+        default="manual",
+        choices=(
+            "manual",
+            "guided",
+            "inspect",
+            "edit-safe",
+            "test-driven",
+            "autonomous-local",
+            "release-candidate",
+        ),
+        help="autonomy mode the workflow will use",
+    )
+    provider_recommend_parser.add_argument(
+        "--model-name",
+        default=None,
+        help="model identifier to evaluate; overrides glassbox.profile.json",
+    )
+    provider_recommend_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print provider recommendation as JSON",
+    )
+    _add_runtime_location_arguments(provider_recommend_parser)
+
     provider_canary_parser = provider_subparsers.add_parser(
         "canary",
         help="run advisory provider canaries",

@@ -261,6 +261,26 @@ high-level state transitions, and any release-relevant failure summary. Do not
 store raw prompts, responses, API keys, or provider request metadata unless they
 have been reviewed and redacted.
 
+## Provider Recommendations
+
+Use provider recommendations when choosing a model/provider for an autonomy mode
+or workflow kind:
+
+```bash
+uv run glassbox provider recommend --cwd . --task-kind coding --autonomy-mode test-driven
+uv run glassbox provider recommend --cwd . --task-kind verification --autonomy-mode release-candidate --json
+```
+
+Recommendations consider local diagnostics, the selected model, autonomy mode,
+workflow needs, and retained advisory canary evidence. They report posture
+(`recommended`, `usable`, `risky`, or `local_fallback`), confidence, required
+capabilities, reasons, warnings, relevant scenarios, and next actions.
+
+Recommendations are advisory. Glassbox does not silently switch the model or
+provider for a session based on recommendation output. Missing credentials,
+missing canary evidence, skipped scenarios, and stale evidence lower confidence
+instead of pretending the provider is ready for autonomous local work.
+
 See [provider-canary-policy-v6.md](./provider-canary-policy-v6.md) and
 [manual-qa-evidence-v7.md](./manual-qa-evidence-v7.md) for release evidence
 retention.
