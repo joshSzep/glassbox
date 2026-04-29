@@ -45,10 +45,21 @@ These values are validated before session configuration is persisted. Invalid
 approval modes are rejected at config or metadata update boundaries rather than
 being silently written.
 
-In the current implementation, `confirm`, `review`, and `on-request` all behave
-the same at the policy gate: risky actions are allowed only after an explicit
-approval step. The mode value is still persisted and surfaced so operators can
-see which mode was chosen for the session.
+Without an explicit non-manual autonomy mode and budget, `confirm`, `review`,
+and `on-request` all remain conservative: risky actions are allowed only after
+an explicit approval step. When a session has a resolved autonomy budget, the
+policy gate calibrates approval mode as follows:
+
+| Approval mode | Read-only | Workspace write | Command |
+| --- | --- | --- | --- |
+| `confirm` | allow in scope | request approval | request approval |
+| `review` | allow in scope | allow only when the autonomy budget includes `workspace_write`; otherwise request approval | request approval |
+| `on-request` | allow in scope | allow default-gated writes when budgeted; explicit workspace `approve` rules still request approval | allow default-gated commands when budgeted; explicit workspace `approve` rules still request approval |
+| `never` | allow in scope | block approval-gated writes | block approval-gated commands |
+
+This keeps existing sessions compatible while making `review` useful for
+budgeted local edits and `on-request` useful for budgeted local workflows where
+the repository can still name explicit approval stops.
 
 `never` is stricter: actions that would normally require approval are blocked
 instead of being suspended for approval.
@@ -89,9 +100,9 @@ The policy engine evaluates tools in this order:
 
 1. Reject any path argument that resolves outside the workspace.
 2. Allow in-scope `read_only` tools immediately.
-3. Gate `workspace_write` tools through approval, unless approval mode is `never`.
+3. Gate or allow `workspace_write` tools according to approval mode, repository policy, and the resolved autonomy budget.
 4. For `command` tools, block destructive command patterns outright.
-5. For other non-destructive commands, require approval unless approval mode is `never`.
+5. For other non-destructive commands, gate or allow according to approval mode, repository policy, and the resolved autonomy budget.
 
 This means a tool call can end in one of three practical outcomes:
 

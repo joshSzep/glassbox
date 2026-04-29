@@ -10,6 +10,8 @@ from pydantic import ConfigDict
 from pydantic import Field
 
 from glassbox.core import ApprovalMode
+from glassbox.core import AutonomyBudget
+from glassbox.core import AutonomyMode
 from glassbox.core import PolicyDecision
 from glassbox.core.models import PolicyDecisionSourceKind
 from glassbox.tools.policy_config import ToolPolicyAction
@@ -27,6 +29,8 @@ class ToolPolicyContext(BaseModel):
 
     workspace_root: Path
     approval_mode: ApprovalMode
+    autonomy_mode: AutonomyMode = AutonomyMode.MANUAL
+    autonomy_budget: AutonomyBudget | None = None
     policy_manifest: ToolPolicyManifest = Field(default_factory=ToolPolicyManifest)
 
 
@@ -100,7 +104,7 @@ class ToolPolicyEngine:
         return _decision_from_outcome(
             outcome,
             tool_spec=tool_spec,
-            approval_mode=context.approval_mode,
+            context=context,
         )
 
     def evaluate_registered(
@@ -186,19 +190,37 @@ def _command_text(tool_spec: ToolSpec, arguments: Mapping[str, object]) -> str |
 
 def _approval_gate(
     *,
-    approval_mode: ApprovalMode,
+    context: ToolPolicyContext,
     blocked_reason: str,
     approval_reason: str,
     risk_level: ToolRiskLevel,
     source_kind: PolicyDecisionSourceKind,
     source_label: str,
 ) -> PolicyDecision:
+    approval_mode = context.approval_mode
     if approval_mode is ApprovalMode.NEVER:
         return PolicyDecision(
             allowed=False,
             requires_approval=False,
             reason=blocked_reason,
             outcome="blocked",
+            risk_level=risk_level.value,
+            source_kind=source_kind,
+            source_label=source_label,
+        )
+
+    budget_allow_reason = _budgeted_approval_allow_reason(
+        context,
+        risk_level=risk_level,
+        source_kind=source_kind,
+        approval_reason=approval_reason,
+    )
+    if budget_allow_reason is not None:
+        return PolicyDecision(
+            allowed=True,
+            requires_approval=False,
+            reason=budget_allow_reason,
+            outcome="allow",
             risk_level=risk_level.value,
             source_kind=source_kind,
             source_label=source_label,
@@ -213,6 +235,83 @@ def _approval_gate(
         source_kind=source_kind,
         source_label=source_label,
     )
+
+
+def _budgeted_approval_allow_reason(
+    context: ToolPolicyContext,
+    *,
+    risk_level: ToolRiskLevel,
+    source_kind: PolicyDecisionSourceKind,
+    approval_reason: str,
+) -> str | None:
+    if not _budget_permits_risk(context.autonomy_budget, risk_level):
+        return None
+    if context.autonomy_mode in {AutonomyMode.MANUAL, AutonomyMode.GUIDED}:
+        return None
+
+    if context.approval_mode is ApprovalMode.REVIEW:
+        if risk_level is not ToolRiskLevel.WORKSPACE_WRITE:
+            return None
+    elif context.approval_mode is ApprovalMode.ON_REQUEST:
+        if source_kind == "rule":
+            return None
+    else:
+        return None
+
+    reason = approval_reason.removeprefix("approval required: ")
+    return (
+        f"allowed: {reason} under {context.approval_mode.value} approval mode "
+        f"with {context.autonomy_mode.value} autonomy budget"
+    )
+
+
+def _budget_permits_risk(
+    budget: AutonomyBudget | None,
+    risk_level: ToolRiskLevel,
+) -> bool:
+    if budget is None or risk_level.value not in budget.allowed_risk_buckets:
+        return False
+    if risk_level is ToolRiskLevel.WORKSPACE_WRITE:
+        return budget.max_write_operations > 0
+    if risk_level is ToolRiskLevel.COMMAND:
+        return budget.max_command_operations > 0
+    return True
+
+
+def describe_effective_approval_behavior(
+    approval_mode: ApprovalMode | str,
+    *,
+    autonomy_mode: AutonomyMode | str | None = None,
+    budget: AutonomyBudget | None = None,
+) -> str:
+    """Describe the effective approval behavior for status surfaces."""
+
+    mode = ApprovalMode(approval_mode)
+    resolved_autonomy_mode = (
+        AutonomyMode(autonomy_mode)
+        if autonomy_mode is not None
+        else AutonomyMode.MANUAL
+    )
+    has_budget = budget is not None and resolved_autonomy_mode not in {
+        AutonomyMode.MANUAL,
+        AutonomyMode.GUIDED,
+    }
+
+    if mode is ApprovalMode.NEVER:
+        return "never: approve-gated write and command actions are blocked"
+    if mode is ApprovalMode.CONFIRM:
+        return "confirm: approve-gated write and command actions request approval"
+    if mode is ApprovalMode.REVIEW:
+        if has_budget and _budget_permits_risk(budget, ToolRiskLevel.WORKSPACE_WRITE):
+            return (
+                "review: budgeted workspace writes may run; commands request approval"
+            )
+        return "review: write and command actions request approval until budgeted"
+    if has_budget:
+        return (
+            "on-request: budgeted default-gated actions may run; approval rules pause"
+        )
+    return "on-request: approve-gated actions request approval until budgeted"
 
 
 def _resolve_policy_outcome(
@@ -338,12 +437,12 @@ def _decision_from_outcome(
     outcome: _ResolvedPolicyOutcome,
     *,
     tool_spec: ToolSpec,
-    approval_mode: ApprovalMode,
+    context: ToolPolicyContext,
 ) -> PolicyDecision:
     if outcome.source_kind == "default":
         return _decision_from_action(
             outcome.action,
-            approval_mode=approval_mode,
+            context=context,
             risk_level=tool_spec.risk_level,
             source_kind=outcome.source_kind,
             source_label=outcome.source_label,
@@ -352,7 +451,7 @@ def _decision_from_outcome(
 
     return _decision_from_action(
         outcome.action,
-        approval_mode=approval_mode,
+        context=context,
         risk_level=tool_spec.risk_level,
         source_kind=outcome.source_kind,
         source_label=outcome.source_label,
@@ -380,7 +479,7 @@ def _decision_from_outcome(
 def _decision_from_action(
     action: ToolPolicyAction,
     *,
-    approval_mode: ApprovalMode,
+    context: ToolPolicyContext,
     risk_level: ToolRiskLevel,
     source_kind: PolicyDecisionSourceKind,
     source_label: str,
@@ -408,7 +507,7 @@ def _decision_from_action(
         )
 
     return _approval_gate(
-        approval_mode=approval_mode,
+        context=context,
         blocked_reason=messages.blocked_reason,
         approval_reason=messages.approval_reason,
         risk_level=risk_level,

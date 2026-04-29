@@ -69,6 +69,7 @@ class SessionSummaryView(BaseModel):
     cwd: str
     approval_mode: str
     budget_posture: AutonomyBudgetPostureRecord | None = None
+    approval_behavior: str = ""
     parent_session_id: SessionId | None = None
     forked_from_turn_id: TurnId | None = None
     forked_from_sequence: int | None = None
@@ -169,6 +170,7 @@ class SessionSnapshotView(BaseModel):
     cwd: str
     approval_mode: str
     budget_posture: AutonomyBudgetPostureRecord | None = None
+    approval_behavior: str = ""
     parent_session_id: SessionId | None = None
     forked_from_turn_id: TurnId | None = None
     forked_from_sequence: int | None = None

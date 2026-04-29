@@ -528,7 +528,7 @@ The intended v8 milestone order is:
 
 ### GBX-832: Calibrate Approval Modes Instead Of Collapsing Them
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-831`
 - Goal: make `confirm`, `review`, `on-request`, and `never` meaningfully different in the presence of autonomy budgets
 - Deliverables:
@@ -546,6 +546,9 @@ The intended v8 milestone order is:
   - `uv run pytest tests/unit/test_tools_policy.py tests/integration/test_command_tool.py`
   - approval workflow integration tests
   - dashboard policy evidence tests if labels change
+- Evidence:
+  - `uv run pytest tests/unit/test_tools_policy.py tests/integration/test_command_tool.py`
+  - `uv run ty check`
 - Done when:
   - existing approval modes become useful controls for calibrated autonomy rather than mostly persisted labels
 

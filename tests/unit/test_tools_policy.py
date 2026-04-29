@@ -6,6 +6,8 @@ import pytest
 from pydantic import BaseModel
 
 from glassbox.cli.policy_formatters import format_policy_summary
+from glassbox.core import AutonomyMode
+from glassbox.core.models import AutonomyBudget
 from glassbox.core.models import PolicyActivitySummary
 from glassbox.tools import DEFAULT_TOOL_POLICY_PATH
 from glassbox.tools import ApprovalMode
@@ -16,6 +18,7 @@ from glassbox.tools import ToolPolicyRule
 from glassbox.tools import ToolRegistry
 from glassbox.tools import ToolRiskLevel
 from glassbox.tools import ToolSpec
+from glassbox.tools import describe_effective_approval_behavior
 from glassbox.tools import load_tool_policy_manifest
 
 EXAMPLE_POLICY_DIR = (
@@ -106,6 +109,34 @@ class RunCommandTool:
         return RunCommandResult(summary=arguments.command)
 
 
+def _workspace_write_budget() -> AutonomyBudget:
+    return AutonomyBudget(
+        max_steps=3,
+        max_tool_calls=5,
+        max_write_operations=2,
+        max_command_operations=0,
+        max_wall_clock_seconds=60,
+        max_verification_attempts=2,
+        max_branch_attempts=0,
+        max_artifact_bytes=1024,
+        allowed_risk_buckets=["read_only", "workspace_write"],
+    )
+
+
+def _command_budget() -> AutonomyBudget:
+    return AutonomyBudget(
+        max_steps=3,
+        max_tool_calls=5,
+        max_write_operations=2,
+        max_command_operations=2,
+        max_wall_clock_seconds=60,
+        max_verification_attempts=2,
+        max_branch_attempts=0,
+        max_artifact_bytes=1024,
+        allowed_risk_buckets=["read_only", "workspace_write", "command"],
+    )
+
+
 def test_policy_allows_read_only_tool_inside_workspace_without_approval() -> None:
     engine = ToolPolicyEngine()
 
@@ -147,6 +178,115 @@ def test_policy_requires_approval_for_workspace_write_in_confirm_mode() -> None:
     assert decision.source_kind == "default"
 
 
+def test_confirm_mode_still_requires_approval_with_autonomy_budget() -> None:
+    engine = ToolPolicyEngine()
+
+    decision = engine.evaluate(
+        WriteFileTool.spec,
+        arguments=WriteFileArgs(path="notes.txt", content="hello"),
+        context=ToolPolicyContext(
+            workspace_root=Path("/tmp/workspace"),
+            approval_mode=ApprovalMode.CONFIRM,
+            autonomy_mode=AutonomyMode.EDIT_SAFE,
+            autonomy_budget=_workspace_write_budget(),
+        ),
+    )
+
+    assert decision.allowed is True
+    assert decision.requires_approval is True
+    assert decision.outcome == "approve"
+
+
+def test_review_mode_allows_budgeted_workspace_write() -> None:
+    engine = ToolPolicyEngine()
+
+    decision = engine.evaluate(
+        WriteFileTool.spec,
+        arguments=WriteFileArgs(path="notes.txt", content="hello"),
+        context=ToolPolicyContext(
+            workspace_root=Path("/tmp/workspace"),
+            approval_mode=ApprovalMode.REVIEW,
+            autonomy_mode=AutonomyMode.EDIT_SAFE,
+            autonomy_budget=_workspace_write_budget(),
+        ),
+    )
+
+    assert decision.allowed is True
+    assert decision.requires_approval is False
+    assert decision.outcome == "allow"
+    assert "review approval mode" in decision.reason
+    assert "edit-safe autonomy budget" in decision.reason
+
+
+def test_review_mode_keeps_commands_approval_gated_with_budget() -> None:
+    engine = ToolPolicyEngine()
+
+    decision = engine.evaluate(
+        RunCommandTool.spec,
+        arguments=RunCommandArgs(command="uv run pytest", cwd="."),
+        context=ToolPolicyContext(
+            workspace_root=Path("/tmp/workspace"),
+            approval_mode=ApprovalMode.REVIEW,
+            autonomy_mode=AutonomyMode.RELEASE_CANDIDATE,
+            autonomy_budget=_command_budget(),
+        ),
+    )
+
+    assert decision.allowed is True
+    assert decision.requires_approval is True
+    assert decision.outcome == "approve"
+
+
+def test_on_request_mode_allows_budgeted_default_command() -> None:
+    engine = ToolPolicyEngine()
+
+    decision = engine.evaluate(
+        RunCommandTool.spec,
+        arguments=RunCommandArgs(command="uv run pytest", cwd="."),
+        context=ToolPolicyContext(
+            workspace_root=Path("/tmp/workspace"),
+            approval_mode=ApprovalMode.ON_REQUEST,
+            autonomy_mode=AutonomyMode.RELEASE_CANDIDATE,
+            autonomy_budget=_command_budget(),
+        ),
+    )
+
+    assert decision.allowed is True
+    assert decision.requires_approval is False
+    assert decision.outcome == "allow"
+    assert "on-request approval mode" in decision.reason
+
+
+def test_on_request_mode_honors_explicit_approval_rules() -> None:
+    engine = ToolPolicyEngine()
+
+    decision = engine.evaluate(
+        RunCommandTool.spec,
+        arguments=RunCommandArgs(command="uv run pytest", cwd="."),
+        context=ToolPolicyContext(
+            workspace_root=Path("/tmp/workspace"),
+            approval_mode=ApprovalMode.ON_REQUEST,
+            autonomy_mode=AutonomyMode.RELEASE_CANDIDATE,
+            autonomy_budget=_command_budget(),
+            policy_manifest=ToolPolicyManifest(
+                rules=[
+                    ToolPolicyRule(
+                        rule_id="request-tests",
+                        tool_name="run_command",
+                        action="approve",
+                        command_prefixes=["uv run pytest"],
+                    )
+                ]
+            ),
+        ),
+    )
+
+    assert decision.allowed is True
+    assert decision.requires_approval is True
+    assert decision.outcome == "approve"
+    assert decision.source_label == "request-tests"
+
+
 def test_policy_blocks_workspace_write_when_approval_mode_is_never() -> None:
     engine = ToolPolicyEngine()
 
@@ -164,6 +304,18 @@ def test_policy_blocks_workspace_write_when_approval_mode_is_never() -> None:
     assert "approval mode is never" in decision.reason
     assert decision.outcome == "blocked"
     assert decision.risk_level == "workspace_write"
+
+
+def test_approval_behavior_label_describes_budgeted_review_mode() -> None:
+    label = describe_effective_approval_behavior(
+        ApprovalMode.REVIEW,
+        autonomy_mode=AutonomyMode.EDIT_SAFE,
+        budget=_workspace_write_budget(),
+    )
+
+    assert label == (
+        "review: budgeted workspace writes may run; commands request approval"
+    )
 
 
 def test_policy_blocks_out_of_scope_path_requests() -> None:

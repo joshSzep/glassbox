@@ -15,6 +15,7 @@ from glassbox.tools.patch import build_patch_tool_registry
 from glassbox.tools.policy import ApprovalMode
 from glassbox.tools.policy import ToolPolicyContext
 from glassbox.tools.policy import ToolPolicyEngine
+from glassbox.tools.policy import describe_effective_approval_behavior
 from glassbox.tools.policy_config import DEFAULT_TOOL_POLICY_PATH
 from glassbox.tools.policy_config import ToolPolicyDefaults
 from glassbox.tools.policy_config import ToolPolicyManifest
@@ -99,5 +100,6 @@ __all__ = [
     "build_patch_tool_registry",
     "build_read_only_tool_registry",
     "build_workflow_tool_registry",
+    "describe_effective_approval_behavior",
     "load_tool_policy_manifest",
 ]

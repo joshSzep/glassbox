@@ -41,6 +41,7 @@ from glassbox.runtime.session_query_models import SessionSummaryView
 from glassbox.runtime.session_query_models import WorkspaceRuntimeSummaryView
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
+from glassbox.tools import describe_effective_approval_behavior
 
 
 class SessionQueryService:
@@ -168,6 +169,10 @@ class SessionQueryService:
             cwd=str(record.cwd),
             approval_mode=record.approval_mode,
             budget_posture=budget_posture,
+            approval_behavior=self._approval_behavior(
+                record.approval_mode,
+                budget_posture,
+            ),
             parent_session_id=record.parent_session_id,
             forked_from_turn_id=record.forked_from_turn_id,
             forked_from_sequence=record.forked_from_sequence,
@@ -356,6 +361,10 @@ class SessionQueryService:
             cwd=str(record.cwd),
             approval_mode=record.approval_mode,
             budget_posture=budget_posture,
+            approval_behavior=self._approval_behavior(
+                record.approval_mode,
+                budget_posture,
+            ),
             parent_session_id=record.parent_session_id,
             forked_from_turn_id=record.forked_from_turn_id,
             forked_from_sequence=record.forked_from_sequence,
@@ -421,6 +430,17 @@ class SessionQueryService:
         if get_budget_posture is None:
             return None
         return get_budget_posture(session_id)
+
+    def _approval_behavior(
+        self,
+        approval_mode: str,
+        budget_posture: AutonomyBudgetPostureRecord | None,
+    ) -> str:
+        return describe_effective_approval_behavior(
+            approval_mode,
+            autonomy_mode=(budget_posture.mode if budget_posture is not None else None),
+            budget=(budget_posture.budget if budget_posture is not None else None),
+        )
 
     def _build_degraded_runtime_context(
         self,

@@ -27,6 +27,7 @@ def _print_session_status(status_view: SessionStatusView) -> None:
     print(f"Workspace: {snapshot.cwd}")
     print(f"Model: {snapshot.model_name}")
     print(f"Approval mode: {snapshot.approval_mode}")
+    print(f"Approval behavior: {snapshot.approval_behavior}")
     print(_format_budget_posture_line(snapshot.budget_posture))
     print(_format_projection_health_line(snapshot.projection_health))
     if snapshot.dashboard_url is not None:
