@@ -219,3 +219,41 @@ class WorkspaceMemorySourceType(StrEnum):
     TOOL_RESULT = "tool_result"
     RUNTIME_NOTE = "runtime_note"
     IMPORT = "import"
+
+
+class RepositoryIndexEntityKind(StrEnum):
+    """Kinds of deterministic repository intelligence entries."""
+
+    PROJECT_MARKER = "project_marker"
+    FILE = "file"
+    MODULE = "module"
+    SYMBOL = "symbol"
+    COMMAND = "command"
+    TEST = "test"
+    DOC = "doc"
+    EVAL_CASE = "eval_case"
+    OWNERSHIP_HINT = "ownership_hint"
+    DEPENDENCY_HINT = "dependency_hint"
+    RECENT_PATH = "recent_path"
+
+
+class RepositoryIndexFreshness(StrEnum):
+    """Freshness states for rebuildable repository index snapshots."""
+
+    FRESH = "fresh"
+    STALE = "stale"
+    BUILDING = "building"
+    FAILED = "failed"
+
+
+class RepositoryIndexSourceType(StrEnum):
+    """Inspectable source classes for repository index entries."""
+
+    FILE_SYSTEM = "file_system"
+    MANIFEST = "manifest"
+    DOCUMENTATION = "documentation"
+    TEST = "test"
+    EVAL = "eval"
+    STATIC_ANALYSIS = "static_analysis"
+    GIT = "git"
+    USER_HINT = "user_hint"

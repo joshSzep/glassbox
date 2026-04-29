@@ -12,6 +12,12 @@ from glassbox.core import ForkedSession
 from glassbox.core import InheritedTranscriptMessage
 from glassbox.core import MessagePart
 from glassbox.core import PolicyDecision
+from glassbox.core import RepositoryIndexEntityKind
+from glassbox.core import RepositoryIndexEntry
+from glassbox.core import RepositoryIndexFreshness
+from glassbox.core import RepositoryIndexProvenance
+from glassbox.core import RepositoryIndexSnapshot
+from glassbox.core import RepositoryIndexSourceType
 from glassbox.core import ResolvedForkPoint
 from glassbox.core import SessionConfig
 from glassbox.core import SessionRecord
@@ -196,6 +202,99 @@ def test_invalidated_workspace_memory_requires_reason() -> None:
             created_at=datetime(2026, 4, 29, tzinfo=UTC),
             updated_at=datetime(2026, 4, 29, tzinfo=UTC),
             last_sequence=7,
+        )
+
+
+def test_repository_index_snapshot_validates_entries_and_provenance() -> None:
+    timestamp = datetime(2026, 4, 29, tzinfo=UTC)
+    entry = RepositoryIndexEntry(
+        entry_id="command:pytest",
+        kind=RepositoryIndexEntityKind.COMMAND,
+        name="pytest",
+        summary="Backend tests run through uv.",
+        path=Path("pyproject.toml"),
+        provenance=[
+            RepositoryIndexProvenance(
+                source_type=RepositoryIndexSourceType.MANIFEST,
+                path=Path("pyproject.toml"),
+                line_start=1,
+                line_end=20,
+            )
+        ],
+        tags=["validation"],
+        updated_at=timestamp,
+    )
+
+    snapshot = RepositoryIndexSnapshot(
+        workspace_root=Path("/tmp/glassbox"),
+        status=RepositoryIndexFreshness.FRESH,
+        built_at=timestamp,
+        source_digest="a" * 64,
+        entries=[entry],
+    )
+
+    restored = RepositoryIndexSnapshot.model_validate(
+        snapshot.model_dump(mode="python")
+    )
+
+    assert restored == snapshot
+    assert restored.entries[0].provenance[0].line_end == 20
+
+
+def test_repository_index_rejects_ambiguous_contract_shapes() -> None:
+    timestamp = datetime(2026, 4, 29, tzinfo=UTC)
+    provenance = RepositoryIndexProvenance(
+        source_type=RepositoryIndexSourceType.FILE_SYSTEM,
+        path=Path("src/glassbox/__init__.py"),
+    )
+
+    with pytest.raises(ValidationError):
+        RepositoryIndexProvenance(
+            source_type=RepositoryIndexSourceType.STATIC_ANALYSIS,
+            path=Path("src/glassbox/core/models.py"),
+            line_start=10,
+            line_end=9,
+        )
+
+    with pytest.raises(ValidationError):
+        RepositoryIndexEntry(
+            entry_id="symbol:missing",
+            kind=RepositoryIndexEntityKind.SYMBOL,
+            name="missing",
+            path=Path("src/glassbox/core/models.py"),
+            provenance=[provenance],
+            updated_at=timestamp,
+        )
+
+    with pytest.raises(ValidationError):
+        RepositoryIndexSnapshot(
+            workspace_root=Path("/tmp/glassbox"),
+            status=RepositoryIndexFreshness.FAILED,
+        )
+
+    with pytest.raises(ValidationError):
+        RepositoryIndexSnapshot(
+            workspace_root=Path("/tmp/glassbox"),
+            status=RepositoryIndexFreshness.FRESH,
+            built_at=timestamp,
+            entries=[
+                RepositoryIndexEntry(
+                    entry_id="file:duplicate",
+                    kind=RepositoryIndexEntityKind.FILE,
+                    name="models.py",
+                    path=Path("src/glassbox/core/models.py"),
+                    provenance=[provenance],
+                    updated_at=timestamp,
+                ),
+                RepositoryIndexEntry(
+                    entry_id="file:duplicate",
+                    kind=RepositoryIndexEntityKind.FILE,
+                    name="events.py",
+                    path=Path("src/glassbox/core/events.py"),
+                    provenance=[provenance],
+                    updated_at=timestamp,
+                ),
+            ],
         )
 
 

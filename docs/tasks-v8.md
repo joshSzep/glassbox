@@ -912,7 +912,7 @@ The intended v8 milestone order is:
 
 ### GBX-853: Add Local Repository Intelligence Index Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-842`, `GBX-850`
 - Goal: define a rebuildable local code-intelligence layer that improves agent orientation without becoming an opaque second source of truth
 - Deliverables:
@@ -929,6 +929,13 @@ The intended v8 milestone order is:
 - Tests and validation included in task:
   - docs review against current repository context and runtime-context architecture
   - model validation tests if index models are added
+- Completed vertical slice:
+  - documented repository index scope, provenance, freshness, invalidation, rebuild/storage, prompt-use rules, non-goals, and test matrix in [repository-intelligence-index.md](./repository-intelligence-index.md)
+  - added repository index entity, freshness, and source-type enums
+  - added typed provenance, entry, and snapshot models with schema version, freshness, unique ID, source path, line-range, and failed-state validation
+  - exported repository index contract models from the core facade
+- Validation:
+  - `uv run ruff format src/glassbox/core tests/unit/test_core_models.py && uv run ruff check src/glassbox/core tests/unit/test_core_models.py && uv run ty check && uv run pytest tests/unit/test_core_models.py`
 - Done when:
   - implementers have a clear contract for richer local repo intelligence that remains inspectable and rebuildable
 

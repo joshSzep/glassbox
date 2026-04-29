@@ -30,6 +30,9 @@ from glassbox.core.types import BackgroundJobFailureKind
 from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import BackgroundJobRecoveryReason
 from glassbox.core.types import BackgroundJobState
+from glassbox.core.types import RepositoryIndexEntityKind
+from glassbox.core.types import RepositoryIndexFreshness
+from glassbox.core.types import RepositoryIndexSourceType
 from glassbox.core.types import SessionStatus
 from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
@@ -358,6 +361,94 @@ class WorkspaceMemoryEntry(BaseModel):
                 )
         if self.confirmed_at is not None and self.confirmed_by is None:
             raise ValueError("confirmed_at requires confirmed_by")
+        return self
+
+
+class RepositoryIndexProvenance(BaseModel):
+    """Inspectable source evidence for one repository index entry."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_type: RepositoryIndexSourceType
+    path: Path | None = None
+    line_start: int | None = Field(default=None, ge=1)
+    line_end: int | None = Field(default=None, ge=1)
+    source_label: str | None = Field(default=None, max_length=500)
+    content_sha256: str | None = Field(default=None, min_length=64, max_length=64)
+    tool_name: str | None = Field(default=None, max_length=200)
+    note: str | None = Field(default=None, max_length=2000)
+
+    @model_validator(mode="after")
+    def validate_line_range(self) -> RepositoryIndexProvenance:
+        if self.line_end is not None and self.line_start is None:
+            raise ValueError("line_end requires line_start")
+        if (
+            self.line_start is not None
+            and self.line_end is not None
+            and self.line_end < self.line_start
+        ):
+            raise ValueError("line_end must be greater than or equal to line_start")
+        if (
+            self.source_type != RepositoryIndexSourceType.USER_HINT
+            and self.path is None
+        ):
+            raise ValueError("repository index provenance requires path")
+        return self
+
+
+class RepositoryIndexEntry(BaseModel):
+    """One deterministic entry in a local repository intelligence index."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    entry_id: str = Field(min_length=1, max_length=200)
+    kind: RepositoryIndexEntityKind
+    name: str = Field(min_length=1, max_length=500)
+    summary: str | None = Field(default=None, max_length=2000)
+    path: Path | None = None
+    symbol: str | None = Field(default=None, max_length=500)
+    language: str | None = Field(default=None, max_length=100)
+    provenance: list[RepositoryIndexProvenance] = Field(min_length=1)
+    tags: list[str] = Field(default_factory=list)
+    updated_at: datetime
+
+    @model_validator(mode="after")
+    def validate_entry_shape(self) -> RepositoryIndexEntry:
+        if self.kind == RepositoryIndexEntityKind.SYMBOL and self.symbol is None:
+            raise ValueError("symbol repository index entries require symbol")
+        if self.kind != RepositoryIndexEntityKind.OWNERSHIP_HINT and self.path is None:
+            raise ValueError("repository index entries require path")
+        return self
+
+
+class RepositoryIndexSnapshot(BaseModel):
+    """Versioned rebuildable repository intelligence snapshot."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: int = Field(default=1, ge=1)
+    workspace_root: Path
+    status: RepositoryIndexFreshness
+    built_at: datetime | None = None
+    builder_version: str = Field(default="v1", min_length=1, max_length=100)
+    source_digest: str | None = Field(default=None, min_length=64, max_length=64)
+    include_patterns: list[str] = Field(default_factory=list)
+    exclude_patterns: list[str] = Field(default_factory=list)
+    entries: list[RepositoryIndexEntry] = Field(default_factory=list)
+    failure_reason: str | None = Field(default=None, max_length=2000)
+
+    @model_validator(mode="after")
+    def validate_snapshot(self) -> RepositoryIndexSnapshot:
+        if (
+            self.status == RepositoryIndexFreshness.FAILED
+            and self.failure_reason is None
+        ):
+            raise ValueError("failed repository index snapshots require failure_reason")
+        if self.status == RepositoryIndexFreshness.FRESH and self.built_at is None:
+            raise ValueError("fresh repository index snapshots require built_at")
+        entry_ids = [entry.entry_id for entry in self.entries]
+        if len(entry_ids) != len(set(entry_ids)):
+            raise ValueError("repository index entries require unique entry_id values")
         return self
 
 

@@ -115,6 +115,9 @@ from glassbox.core.models import MessagePart
 from glassbox.core.models import PolicyDecision
 from glassbox.core.models import PolicyDecisionTrace
 from glassbox.core.models import ProjectionHealth
+from glassbox.core.models import RepositoryIndexEntry
+from glassbox.core.models import RepositoryIndexProvenance
+from glassbox.core.models import RepositoryIndexSnapshot
 from glassbox.core.models import ResolvedForkPoint
 from glassbox.core.models import RuntimeNoteRecord
 from glassbox.core.models import SessionConfig
@@ -138,6 +141,9 @@ from glassbox.core.types import BackgroundJobFailureKind
 from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import BackgroundJobRecoveryReason
 from glassbox.core.types import BackgroundJobState
+from glassbox.core.types import RepositoryIndexEntityKind
+from glassbox.core.types import RepositoryIndexFreshness
+from glassbox.core.types import RepositoryIndexSourceType
 from glassbox.core.types import SessionStatus
 from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
@@ -211,6 +217,12 @@ __all__ = [
     "PolicyDecisionTrace",
     "ProjectionHealth",
     "QuestionId",
+    "RepositoryIndexEntry",
+    "RepositoryIndexEntityKind",
+    "RepositoryIndexFreshness",
+    "RepositoryIndexProvenance",
+    "RepositoryIndexSnapshot",
+    "RepositoryIndexSourceType",
     "ResolvedForkPoint",
     "ReplayArtifactRecorded",
     "RuntimeNoteRecord",
