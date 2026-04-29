@@ -228,3 +228,29 @@ def test_v8_inventory_covers_autonomy_baseline_and_gaps() -> None:
         "tasks-v8.md",
     ):
         assert required_text in content
+
+
+def test_docs_hub_links_to_v8_phase_81_docs() -> None:
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for doc_name in (
+        "tasks-v8.md",
+        "v8-auditable-autonomy-contract.md",
+        "v8-autonomy-baseline-inventory.md",
+    ):
+        assert doc_name in docs_readme
+
+
+def test_v8_phase_81_docs_are_cross_linked() -> None:
+    task_graph = (REPO_ROOT / "docs" / "tasks-v8.md").read_text(encoding="utf-8")
+    contract = (REPO_ROOT / "docs" / "v8-auditable-autonomy-contract.md").read_text(
+        encoding="utf-8"
+    )
+    inventory = (REPO_ROOT / "docs" / "v8-autonomy-baseline-inventory.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "v8-auditable-autonomy-contract.md" in task_graph
+    assert "v8-autonomy-baseline-inventory.md" in task_graph
+    assert "v8-autonomy-baseline-inventory.md" in contract
+    assert "v8-auditable-autonomy-contract.md" in inventory

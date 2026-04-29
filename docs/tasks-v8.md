@@ -308,9 +308,10 @@ The intended v8 milestone order is:
 
 ### GBX-812: Update Documentation Discovery For v8
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-810`, `GBX-811`
 - Goal: make the v8 plan, contract, inventory, and later evidence docs discoverable from the documentation hub without requiring users to know the task file name
+- Evidence: [README.md](./README.md)
 - Deliverables:
   - docs hub update linking this task graph and any v8 contract or inventory docs
   - root README update only if the public supported operating model changes
