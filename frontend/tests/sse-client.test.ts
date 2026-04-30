@@ -7,6 +7,7 @@ import {
   type EventSourceLike,
   type EventSourceMessageEvent,
   type SessionStreamState,
+  type SseStreamStatus,
   type SseEventEnvelope,
 } from "../api/sse";
 
@@ -47,6 +48,30 @@ class FakeEventSource implements EventSourceLike {
   emitRaw(eventType: string, data: string): void {
     const event = { data };
     this.listeners.get(eventType)?.forEach((listener) => listener(event));
+  }
+
+  emitStatus(status: Partial<SseStreamStatus> = {}): void {
+    this.emitRaw(
+      "glassbox.stream.status",
+      JSON.stringify({
+        after_sequence: 0,
+        canonical_last_sequence: 12,
+        history_truncated: false,
+        last_delivered_sequence: 12,
+        message: null,
+        projection_health: { degraded: false, lag: 0, state: "ok" },
+        replayed_count: 0,
+        status: "live",
+        transport: {
+          dropped_events: 0,
+          last_published_sequence: 12,
+          max_queue_depth: 1,
+          queue_capacity: 64,
+          subscriber_count: 1,
+        },
+        ...status,
+      }),
+    );
   }
 }
 
@@ -147,6 +172,48 @@ describe("createSessionEventStream", () => {
     expect(FakeEventSource.instances[1].url).toBe("/sessions/session-1/events?after=5");
     expect(firstSource.closed).toBe(true);
     expect(states.map((state) => state.status)).toContain("reconnecting");
+  });
+
+  it("tracks stream control frames for replay and degraded delivery", () => {
+    resetFakeEventSources();
+    const controls: SseStreamStatus[] = [];
+    const states: SessionStreamState[] = [];
+    const stream = createSessionEventStream({
+      EventSourceImpl: FakeEventSource,
+      onControl: (status) => controls.push(status),
+      onStateChange: (state) => states.push(state),
+      sessionId: "session-1",
+    });
+
+    stream.start();
+    FakeEventSource.instances[0].open();
+    FakeEventSource.instances[0].emitStatus({
+      last_delivered_sequence: 4,
+      replayed_count: 4,
+      status: "replaying_history",
+    });
+    FakeEventSource.instances[0].emitStatus({
+      history_truncated: true,
+      message: "Reconnect with the last delivered sequence.",
+      status: "degraded",
+      transport: {
+        dropped_events: 2,
+        last_published_sequence: 12,
+        max_queue_depth: 64,
+        queue_capacity: 64,
+        subscriber_count: 1,
+      },
+    });
+
+    expect(controls.map((control) => control.status)).toEqual(["replaying_history", "degraded"]);
+    expect(stream.getState()).toMatchObject({
+      deliveryMode: "degraded",
+      droppedEvents: 2,
+      error: "Reconnect with the last delivered sequence.",
+      lastSequence: 12,
+      replayedCount: 4,
+    });
+    expect(states.map((state) => state.deliveryMode)).toContain("replaying_history");
   });
 
   it("ignores duplicate or older sequence frames before dispatch", () => {

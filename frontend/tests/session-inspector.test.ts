@@ -20,8 +20,12 @@ import {
 } from "./fixtures/session-state";
 
 const stream = {
+  deliveryMode: "live" as const,
+  droppedEvents: 0,
   error: null,
   lastSequence: 12,
+  projectionLag: 0,
+  replayedCount: 0,
   retryCount: 0,
   status: "live" as const,
 };

@@ -69,6 +69,14 @@ def _parse_sse_frames(text: str) -> list[dict]:
     return frames
 
 
+def _canonical_frames(frames: list[dict]) -> list[dict]:
+    return [frame for frame in frames if frame.get("event") != "glassbox.stream.status"]
+
+
+def _status_frames(frames: list[dict]) -> list[dict]:
+    return [frame for frame in frames if frame.get("event") == "glassbox.stream.status"]
+
+
 class _MockRequest:
     """Minimal fake Request for testing _event_stream directly.
 
@@ -97,6 +105,13 @@ async def _collect_all_frames(gen) -> list[str]:
 
 async def _next_stream_frame(stream: AsyncIterator[str]) -> str:
     return await anext(stream)
+
+
+async def _next_canonical_stream_frame(stream: AsyncIterator[str]) -> str:
+    while True:
+        frame = await anext(stream)
+        if _canonical_frames(_parse_sse_frames(frame)):
+            return frame
 
 
 # ---------------------------------------------------------------------------
@@ -152,6 +167,7 @@ def test_sse_response_has_event_stream_content_type(tmp_path: Path) -> None:
 
             assert "text/event-stream" in (response.media_type or "")
             assert response.headers.get("cache-control") == "no-cache"
+            assert response.headers.get("x-glassbox-stream-contract") == "cursor-v1"
             assert response.headers.get("x-accel-buffering") == "no"
         finally:
             connection.close()
@@ -187,11 +203,16 @@ def test_sse_replays_historical_events_on_connect(tmp_path: Path) -> None:
 
             raw = "".join(frames)
             parsed = _parse_sse_frames(raw)
-            assert len(parsed) >= 1
-            assert parsed[0]["event"] == "SessionStarted"
-            data = json.loads(parsed[0]["data"])
+            canonical = _canonical_frames(parsed)
+            assert len(canonical) >= 1
+            assert canonical[0]["event"] == "SessionStarted"
+            data = json.loads(canonical[0]["data"])
             assert data["session_id"] == str(state.session_id)
             assert data["event_type"] == "SessionStarted"
+            statuses = [
+                json.loads(frame["data"])["status"] for frame in _status_frames(parsed)
+            ]
+            assert statuses == ["replaying_history", "live"]
         finally:
             connection.close()
 
@@ -259,9 +280,10 @@ def test_sse_frame_contains_required_fields(tmp_path: Path) -> None:
 
             raw = "".join(frames)
             parsed = _parse_sse_frames(raw)
-            assert parsed
+            canonical = _canonical_frames(parsed)
+            assert canonical
 
-            first = json.loads(parsed[0]["data"])
+            first = json.loads(canonical[0]["data"])
             for key in (
                 "event_id",
                 "session_id",
@@ -320,8 +342,9 @@ def test_sse_delivers_live_events(tmp_path: Path) -> None:
 
             raw = "".join(frames)
             parsed = _parse_sse_frames(raw)
-            assert len(parsed) >= 1
-            data = json.loads(parsed[0]["data"])
+            canonical = _canonical_frames(parsed)
+            assert len(canonical) >= 1
+            data = json.loads(canonical[0]["data"])
             assert data["session_id"] == str(state.session_id)
         finally:
             connection.close()
@@ -356,7 +379,10 @@ def test_sse_suppresses_live_events_already_replayed_from_history(
             remaining_frames = [frame async for frame in stream]
 
             parsed = _parse_sse_frames(first_frame + "".join(remaining_frames))
-            assert [frame["id"] for frame in parsed] == [str(live_duplicate.sequence)]
+            canonical = _canonical_frames(parsed)
+            assert [frame["id"] for frame in canonical] == [
+                str(live_duplicate.sequence)
+            ]
         finally:
             connection.close()
 
@@ -406,9 +432,128 @@ def test_sse_skips_duplicate_live_frame_before_delivering_next_event(
             await publisher
             parsed = _parse_sse_frames("".join(frames))
 
-            assert [int(frame["id"]) for frame in parsed] == [next_event.sequence]
+            canonical = _canonical_frames(parsed)
+            assert [int(frame["id"]) for frame in canonical] == [next_event.sequence]
         finally:
             connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_sse_recovers_when_requested_cursor_is_ahead_of_canonical_events(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            runtime_context = _build_runtime_context(connection, tmp_path)
+            bus = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(runtime_context.repositories.sessions, bus)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+            state = await supervisor.start_session(config)
+            canonical_last_sequence = (
+                runtime_context.repositories.sessions.read_session_events(
+                    state.session_id
+                )[-1].sequence
+            )
+            live_event = EventEnvelope(
+                session_id=state.session_id,
+                sequence=canonical_last_sequence + 1,
+                payload=UserMessageReceived(
+                    message_id=new_message_id(),
+                    text="after cursor recovery",
+                ),
+            )
+
+            async def publish_live_frame() -> None:
+                await asyncio.sleep(0.01)
+                bus.publish(live_event)
+
+            publisher = asyncio.create_task(publish_live_frame())
+            frames = await _collect_all_frames(
+                _event_stream(
+                    _MockRequest(disconnect_after=1),
+                    runtime_context,
+                    state.session_id,
+                    canonical_last_sequence + 99,
+                )
+            )
+            await publisher
+            parsed = _parse_sse_frames("".join(frames))
+        finally:
+            connection.close()
+
+        status_payloads = [
+            json.loads(frame["data"]) for frame in _status_frames(parsed)
+        ]
+        assert status_payloads[0]["status"] == "degraded"
+        assert status_payloads[0]["last_delivered_sequence"] == canonical_last_sequence
+        assert [int(frame["id"]) for frame in _canonical_frames(parsed)] == [
+            live_event.sequence
+        ]
+
+    asyncio.run(scenario())
+
+
+def test_sse_bounds_historical_replay_and_reports_reconnect_cursor(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            runtime_context = _build_runtime_context(connection, tmp_path)
+            bus = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(runtime_context.repositories.sessions, bus)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+            state = await supervisor.start_session(config)
+            persisted_events = runtime_context.repositories.sessions.append_events(
+                [
+                    EventEnvelope(
+                        session_id=state.session_id,
+                        sequence=0,
+                        payload=UserMessageReceived(
+                            message_id=new_message_id(),
+                            text=f"history {index}",
+                        ),
+                    )
+                    for index in range(3)
+                ]
+            )
+
+            frames = await _collect_all_frames(
+                _event_stream(
+                    _MockRequest(disconnect_after=0),
+                    runtime_context,
+                    state.session_id,
+                    1,
+                    history_limit=2,
+                )
+            )
+            parsed = _parse_sse_frames("".join(frames))
+        finally:
+            connection.close()
+
+        canonical = _canonical_frames(parsed)
+        status_payloads = [
+            json.loads(frame["data"]) for frame in _status_frames(parsed)
+        ]
+        assert [int(frame["id"]) for frame in canonical] == [
+            persisted_events[0].sequence,
+            persisted_events[1].sequence,
+        ]
+        assert status_payloads[-1]["status"] == "degraded"
+        assert status_payloads[-1]["history_truncated"] is True
+        assert status_payloads[-1]["last_delivered_sequence"] == (
+            persisted_events[1].sequence
+        )
 
     asyncio.run(scenario())
 
@@ -457,8 +602,12 @@ def test_sse_fans_out_live_events_to_multiple_session_observers(
                     last_event.sequence,
                 ),
             )
-            first_frame_task = asyncio.create_task(_next_stream_frame(first_stream))
-            second_frame_task = asyncio.create_task(_next_stream_frame(second_stream))
+            first_frame_task = asyncio.create_task(
+                _next_canonical_stream_frame(first_stream)
+            )
+            second_frame_task = asyncio.create_task(
+                _next_canonical_stream_frame(second_stream)
+            )
             try:
                 for _ in range(10):
                     if (
@@ -479,8 +628,8 @@ def test_sse_fans_out_live_events_to_multiple_session_observers(
                     second_frame_task,
                 )
 
-                first_parsed = _parse_sse_frames(first_frame)
-                second_parsed = _parse_sse_frames(second_frame)
+                first_parsed = _canonical_frames(_parse_sse_frames(first_frame))
+                second_parsed = _canonical_frames(_parse_sse_frames(second_frame))
                 assert [int(frame["id"]) for frame in first_parsed] == [
                     live_event.sequence
                 ]
@@ -522,7 +671,14 @@ def test_sse_emits_keepalive_when_live_stream_is_idle(
                 _event_stream(mock_request, runtime_context, state.session_id, last_seq)
             )
 
-            assert frames == [": keepalive\n\n"]
+            assert frames[-1] == ": keepalive\n\n"
+            parsed = _parse_sse_frames("".join(frames[:-1]))
+            assert [
+                json.loads(frame["data"])["status"] for frame in _status_frames(parsed)
+            ] == [
+                "replaying_history",
+                "live",
+            ]
         finally:
             connection.close()
 
@@ -558,7 +714,8 @@ def test_sse_replays_completed_sessions_without_live_owner(tmp_path: Path) -> No
             )
 
             parsed = _parse_sse_frames("".join(frames))
-            assert [frame["event"] for frame in parsed] == [
+            canonical = _canonical_frames(parsed)
+            assert [frame["event"] for frame in canonical] == [
                 "SessionStarted",
                 "SessionCompleted",
             ]
@@ -590,7 +747,8 @@ def test_sse_disconnect_cleans_up_transport_subscription(tmp_path: Path) -> None
                 _event_stream(mock_request, runtime_context, state.session_id, last_seq)
             )
 
-            assert frames == []
+            parsed = _parse_sse_frames("".join(frames))
+            assert _canonical_frames(parsed) == []
             assert (
                 runtime_context.infrastructure.event_transport.stats().subscriber_count
                 == 0
@@ -660,8 +818,9 @@ def test_sse_reconnect_replays_events_dropped_by_slow_live_subscriber(
                 )
             )
             parsed = _parse_sse_frames("".join(frames))
+            canonical = _canonical_frames(parsed)
 
-            assert [int(frame["id"]) for frame in parsed] == [
+            assert [int(frame["id"]) for frame in canonical] == [
                 event.sequence for event in persisted_events
             ]
         finally:

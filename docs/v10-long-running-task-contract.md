@@ -124,6 +124,28 @@ next operator action explicit. Projection rebuilds continue to derive this
 posture from canonical events, so stale projections can be rebuilt without
 becoming recovery authority.
 
+## SSE Cursor Contract
+
+Long-running dashboards and terminal observers consume canonical events through
+`GET /sessions/{session_id}/events?after=SEQUENCE`. The cursor is always the
+last delivered canonical event sequence, not a projection sequence. The stream
+uses `X-Glassbox-Stream-Contract: cursor-v1` and emits
+`glassbox.stream.status` control frames before canonical event frames so clients
+can explain whether they are replaying history, live, or degraded.
+
+Cursor recovery rules:
+
+- if `after` is behind the canonical event log, the server replays bounded
+  canonical history before entering live mode
+- if bounded replay stops before the canonical tail, the stream reports
+  `history_truncated` and the client reconnects with the last delivered
+  sequence
+- if `after` is ahead of the canonical tail, the stream reports `degraded` and
+  recovers to the latest persisted sequence before accepting live frames
+- if projections lag or are degraded, status frames expose projection health
+  while canonical events remain the delivery authority
+- keepalive comments are explicit and do not advance the cursor
+
 ## Supported Workflow Set
 
 The v10 release candidate should support these operator workflows:

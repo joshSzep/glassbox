@@ -3,11 +3,13 @@
 import asyncio
 import json
 from collections.abc import AsyncIterator
+from typing import Annotated
 from typing import Protocol
 from uuid import UUID
 
 from fastapi import APIRouter
 from fastapi import HTTPException
+from fastapi import Query
 from fastapi import Request
 from fastapi.responses import StreamingResponse
 
@@ -18,6 +20,8 @@ router = APIRouter(prefix="/sessions")
 
 # How long to wait between keepalive comment frames (seconds).
 _KEEPALIVE_INTERVAL = 15
+_DEFAULT_HISTORY_LIMIT = 500
+_STREAM_STATUS_EVENT = "glassbox.stream.status"
 
 
 class _HasIsDisconnected(Protocol):
@@ -48,11 +52,55 @@ def _serialize_event(event: EventEnvelope) -> str:
     return f"id: {event.sequence}\nevent: {event.event_type}\ndata: {data}\n\n"
 
 
+def _serialize_stream_status(
+    *,
+    status: str,
+    after_sequence: int,
+    last_delivered_sequence: int,
+    canonical_last_sequence: int,
+    replayed_count: int = 0,
+    history_truncated: bool = False,
+    message: str | None = None,
+    projection_health=None,
+    transport_stats=None,
+) -> str:
+    data = json.dumps(
+        {
+            "status": status,
+            "after_sequence": after_sequence,
+            "last_delivered_sequence": last_delivered_sequence,
+            "canonical_last_sequence": canonical_last_sequence,
+            "replayed_count": replayed_count,
+            "history_truncated": history_truncated,
+            "message": message,
+            "projection_health": (
+                projection_health.model_dump(mode="json")
+                if projection_health is not None
+                else None
+            ),
+            "transport": (
+                {
+                    "subscriber_count": transport_stats.subscriber_count,
+                    "dropped_events": transport_stats.dropped_events,
+                    "queue_capacity": transport_stats.queue_capacity,
+                    "max_queue_depth": transport_stats.max_queue_depth,
+                    "last_published_sequence": transport_stats.last_published_sequence,
+                }
+                if transport_stats is not None
+                else None
+            ),
+        }
+    )
+    return f"event: {_STREAM_STATUS_EVENT}\ndata: {data}\n\n"
+
+
 async def _event_stream(
     request: _HasIsDisconnected,
     context: RuntimeContextDep,
     session_id: UUID,
     after_sequence: int,
+    *,
+    history_limit: int = _DEFAULT_HISTORY_LIMIT,
 ) -> AsyncIterator[str]:
     """Yield SSE frames: first replay historical events, then stream live ones."""
 
@@ -63,14 +111,81 @@ async def _event_stream(
     if repo.get_session(session_id) is None:
         raise HTTPException(status_code=404, detail=f"session {session_id} not found")
 
-    last_delivered_sequence = after_sequence
+    if after_sequence < 0:
+        raise HTTPException(status_code=422, detail="after must be non-negative")
+
+    projection_health = repo.inspect_session_projection_health(session_id)
+    canonical_last_sequence = projection_health.canonical_last_sequence
+    cursor_ahead = after_sequence > canonical_last_sequence
+    last_delivered_sequence = (
+        canonical_last_sequence if cursor_ahead else after_sequence
+    )
+
     async with transport.subscribe() as subscription:
+        if cursor_ahead:
+            yield _serialize_stream_status(
+                status="degraded",
+                after_sequence=after_sequence,
+                last_delivered_sequence=last_delivered_sequence,
+                canonical_last_sequence=canonical_last_sequence,
+                message=(
+                    "Requested cursor is ahead of canonical events; recovered "
+                    "to the latest persisted sequence"
+                ),
+                projection_health=projection_health,
+                transport_stats=transport.stats(),
+            )
+
+        yield _serialize_stream_status(
+            status="replaying_history",
+            after_sequence=after_sequence,
+            last_delivered_sequence=last_delivered_sequence,
+            canonical_last_sequence=canonical_last_sequence,
+            projection_health=projection_health,
+            transport_stats=transport.stats(),
+        )
+
         # Replay all persisted events after the requested sequence.
-        historical = repo.read_session_events_after(session_id, after_sequence)
-        for event in historical:
+        historical = repo.read_session_events_after(
+            session_id,
+            last_delivered_sequence,
+            limit=history_limit + 1,
+        )
+        replayed_count = 0
+        history_truncated = len(historical) > history_limit
+        for event in historical[:history_limit]:
             if event.session_id == session_id:
                 last_delivered_sequence = max(last_delivered_sequence, event.sequence)
+                replayed_count += 1
                 yield _serialize_event(event)
+
+        if history_truncated:
+            yield _serialize_stream_status(
+                status="degraded",
+                after_sequence=after_sequence,
+                last_delivered_sequence=last_delivered_sequence,
+                canonical_last_sequence=canonical_last_sequence,
+                replayed_count=replayed_count,
+                history_truncated=True,
+                message=(
+                    "Historical replay was bounded; reconnect with the last "
+                    "delivered sequence to continue replaying canonical events"
+                ),
+                projection_health=projection_health,
+                transport_stats=transport.stats(),
+            )
+            return
+
+        live_status = "degraded" if projection_health.degraded else "live"
+        yield _serialize_stream_status(
+            status=live_status,
+            after_sequence=after_sequence,
+            last_delivered_sequence=last_delivered_sequence,
+            canonical_last_sequence=canonical_last_sequence,
+            replayed_count=replayed_count,
+            projection_health=projection_health,
+            transport_stats=transport.stats(),
+        )
 
         # Stream live events until the client disconnects.
         while not await request.is_disconnected():
@@ -98,6 +213,7 @@ async def stream_session_events(
     context: RuntimeContextDep,
     request: Request,
     after: int = 0,
+    limit: Annotated[int, Query(ge=1, le=5000)] = _DEFAULT_HISTORY_LIMIT,
 ) -> StreamingResponse:
     """Stream live session events as Server-Sent Events.
 
@@ -112,10 +228,11 @@ async def stream_session_events(
         raise HTTPException(status_code=404, detail=f"session {session_id} not found")
 
     return StreamingResponse(
-        _event_stream(request, context, session_id, after),
+        _event_stream(request, context, session_id, after, history_limit=limit),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
+            "X-Glassbox-Stream-Contract": "cursor-v1",
             "X-Accel-Buffering": "no",
         },
     )

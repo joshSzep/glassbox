@@ -452,7 +452,7 @@ The intended v10 milestone order is:
 
 ### GBX-1012: Make Event Delivery Cursors Robust For Long Streams
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1010`
 - Goal: harden CLI and dashboard event consumption for long sessions with
   reconnects, large gaps, and projection lag

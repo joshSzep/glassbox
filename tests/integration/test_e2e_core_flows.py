@@ -428,9 +428,12 @@ def test_e2e_dashboard_snapshot_and_event_stream_reflect_session(
             connection.close()
 
         parsed = _parse_sse_frames("".join(frames))
-        event_types = {frame["event"] for frame in parsed}
+        canonical_frames = [
+            frame for frame in parsed if frame.get("event") != "glassbox.stream.status"
+        ]
+        event_types = {frame["event"] for frame in canonical_frames}
         payload_event_types = {
-            json.loads(frame["data"])["event_type"] for frame in parsed
+            json.loads(frame["data"])["event_type"] for frame in canonical_frames
         }
 
         assert "SessionStarted" in event_types

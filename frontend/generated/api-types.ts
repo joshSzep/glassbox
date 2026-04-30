@@ -3894,6 +3894,7 @@ export interface operations {
     parameters: {
       query?: {
         after?: number;
+        limit?: number;
       };
       header?: never;
       path: {

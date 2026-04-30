@@ -230,8 +230,12 @@ class FakeStreamHandle {
   start(): void {
     this.started = true;
     this.options.onStateChange?.({
+      deliveryMode: "live",
+      droppedEvents: 0,
       error: null,
       lastSequence: this.options.afterSequence ?? 0,
+      projectionLag: 0,
+      replayedCount: 0,
       retryCount: 0,
       status: "live",
     });
@@ -239,8 +243,12 @@ class FakeStreamHandle {
 
   getState(): SessionStreamState {
     return {
+      deliveryMode: "live",
+      droppedEvents: 0,
       error: null,
       lastSequence: this.options.afterSequence ?? 0,
+      projectionLag: 0,
+      replayedCount: 0,
       retryCount: 0,
       status: "live",
     };

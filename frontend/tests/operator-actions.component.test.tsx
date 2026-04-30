@@ -15,8 +15,12 @@ import { makeOperatorActionSessionSnapshot, makeProjectionHealth } from "./fixtu
 import { render, screen, userEvent, waitFor, within } from "./test-utils";
 
 const stream = {
+  deliveryMode: "live" as const,
+  droppedEvents: 0,
   error: null,
   lastSequence: 8,
+  projectionLag: 0,
+  replayedCount: 0,
   retryCount: 0,
   status: "live" as const,
 };
@@ -367,8 +371,12 @@ function ActionHarness({
     ...dataOverrides,
   };
   const mergedStream: SessionStreamState = {
+    deliveryMode: streamOverride.deliveryMode ?? stream.deliveryMode,
+    droppedEvents: streamOverride.droppedEvents ?? stream.droppedEvents,
     error: streamOverride.error ?? stream.error,
     lastSequence: streamOverride.lastSequence ?? stream.lastSequence,
+    projectionLag: streamOverride.projectionLag ?? stream.projectionLag,
+    replayedCount: streamOverride.replayedCount ?? stream.replayedCount,
     retryCount: streamOverride.retryCount ?? stream.retryCount,
     status: streamOverride.status ?? stream.status,
   };

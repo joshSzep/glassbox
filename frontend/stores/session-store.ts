@@ -487,7 +487,16 @@ async function loadDetailPage({
 }
 
 function createIdleStreamState(): SessionStreamState {
-  return { error: null, lastSequence: 0, retryCount: 0, status: "historical_snapshot" };
+  return {
+    deliveryMode: "connecting",
+    droppedEvents: 0,
+    error: null,
+    lastSequence: 0,
+    projectionLag: null,
+    replayedCount: 0,
+    retryCount: 0,
+    status: "historical_snapshot",
+  };
 }
 
 function requireSelectedSessionId(data: DashboardState): string {

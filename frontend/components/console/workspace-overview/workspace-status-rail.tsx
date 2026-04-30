@@ -212,6 +212,12 @@ function streamDescriptor(
   if (stream === undefined) {
     return { icon: RadioTower, label: "stream idle", variant: "muted" as const };
   }
+  if (stream.deliveryMode === "replaying_history") {
+    return { icon: RefreshCcw, label: "stream replaying history", variant: "info" as const };
+  }
+  if (stream.deliveryMode === "degraded") {
+    return { icon: AlertTriangle, label: "stream degraded", variant: "warning" as const };
+  }
   if (stream.status === "live") {
     return { icon: RadioTower, label: "stream live", variant: "success" as const };
   }

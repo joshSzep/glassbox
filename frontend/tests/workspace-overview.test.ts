@@ -2,6 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import type { SessionStreamState } from "../api/sse";
 import { WorkspaceOverview } from "../components/console/workspace-overview";
 import { createDashboardState, hydrateSessionAggregate } from "../state/session-state";
 import {
@@ -180,8 +181,12 @@ describe("workspace overview console", () => {
       }),
     );
     const selectedMarkup = renderOverview(runningState, "loaded", null, "active", "session-1", {
+      deliveryMode: "live",
+      droppedEvents: 0,
       error: null,
       lastSequence: 12,
+      projectionLag: 0,
+      replayedCount: 0,
       retryCount: 0,
       status: "live",
     });
@@ -384,12 +389,7 @@ function renderOverview(
     | "historical"
     | "questions",
   selectedSessionId: string | null = null,
-  stream?: {
-    error: string | null;
-    lastSequence: number;
-    retryCount: number;
-    status: "connecting" | "historical_snapshot" | "live" | "live_unavailable" | "reconnecting";
-  },
+  stream?: SessionStreamState,
   inspector?: React.ReactNode,
 ): string {
   return renderToStaticMarkup(

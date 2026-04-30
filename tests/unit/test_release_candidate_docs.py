@@ -580,6 +580,10 @@ def test_v10_long_running_task_contract_covers_product_model() -> None:
         "`non_resumable`",
         "Projection rebuilds continue to derive this",
         "posture from canonical events",
+        "## SSE Cursor Contract",
+        "`glassbox.stream.status`",
+        "`history_truncated`",
+        "keepalive comments are explicit",
     ):
         assert required_text in content
 

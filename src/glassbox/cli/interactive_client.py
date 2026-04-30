@@ -340,17 +340,21 @@ def interactive_snapshot_from_response(
 
 async def iter_sse_events(response: httpx.Response) -> AsyncIterator[EventEnvelope]:
     data_lines: list[str] = []
+    event_type: str | None = None
 
     async for line in response.aiter_lines():
         if line.startswith(":"):
             continue
         if line == "":
             if data_lines:
-                payload = json.loads("\n".join(data_lines))
-                yield EventEnvelope.model_validate(payload)
+                if event_type != "glassbox.stream.status":
+                    payload = json.loads("\n".join(data_lines))
+                    yield EventEnvelope.model_validate(payload)
             data_lines = []
+            event_type = None
             continue
         if line.startswith("event:"):
+            event_type = line[len("event:") :].strip()
             continue
         if line.startswith("id:"):
             continue
@@ -358,8 +362,9 @@ async def iter_sse_events(response: httpx.Response) -> AsyncIterator[EventEnvelo
             data_lines.append(line[len("data:") :].strip())
 
     if data_lines:
-        payload = json.loads("\n".join(data_lines))
-        yield EventEnvelope.model_validate(payload)
+        if event_type != "glassbox.stream.status":
+            payload = json.loads("\n".join(data_lines))
+            yield EventEnvelope.model_validate(payload)
 
 
 async def _request_runtime(
