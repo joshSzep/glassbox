@@ -364,7 +364,7 @@ The intended v10 milestone order is:
 
 ### GBX-1001: Audit Process-Local State And Recovery Boundaries
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1000`
 - Goal: identify every runtime state boundary that can break long-running work
   after restart, stream loss, provider error, or daemon interruption

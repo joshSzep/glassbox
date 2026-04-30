@@ -21,6 +21,9 @@ implementation track after the v9 baseline.
   active v10 contract for durable long-running work, checkpoints,
   compactions, resumable attempts, heartbeats, verification, recovery, and
   release evidence
+- [v10-durability-audit.md](./v10-durability-audit.md): source-linked audit of
+  process-local, durable, rebuildable, and weakly surfaced state boundaries for
+  long-running work
 - [v9-vocabulary.md](./v9-vocabulary.md): shared v9 language for sessions,
   tasks, evidence, memory, branches, verification, providers, daemons, and
   projections, plus command/dashboard copy review and compatibility policy
@@ -93,6 +96,9 @@ implementation track after the v9 baseline.
 - [v10-long-running-task-contract.md](./v10-long-running-task-contract.md):
   contributor-facing contract for long-running task durability and release
   evidence expectations
+- [v10-durability-audit.md](./v10-durability-audit.md): implementation boundary
+  map for turn engine, model loop, tools, suspensions, jobs, daemon ownership,
+  SSE, context, projections, replay, and dashboard reducers
 - [v9-vocabulary.md](./v9-vocabulary.md): standardize operator-facing product
   terms and command/dashboard language for v9
 - [v9-command-surface-review.md](./v9-command-surface-review.md): classify the

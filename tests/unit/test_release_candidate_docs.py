@@ -581,6 +581,51 @@ def test_readmes_link_to_v10_long_running_task_contract() -> None:
     assert "tasks-v10.md" in docs_readme
 
 
+def test_v10_durability_audit_maps_runtime_recovery_boundaries() -> None:
+    content = (REPO_ROOT / "docs" / "v10-durability-audit.md").read_text(
+        encoding="utf-8"
+    )
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Classification Legend",
+        "## Boundary Map",
+        "## Priority Work Queue",
+        "## Test Inventory",
+        "Turn engine",
+        "Model loop",
+        "Tool execution output and completion",
+        "Approval and ask-user suspension reconstruction",
+        "Background job leases, heartbeats, and stale recovery",
+        "Daemon ownership",
+        "SSE server replay and live stream",
+        "Context assembly",
+        "SQLite projections",
+        "Replay and eval",
+        "Dashboard reducers and attention summary",
+        "Already durable",
+        "Rebuildable projection",
+        "Recoverable but weakly surfaced",
+        "Process-local",
+        "Accepted non-goal",
+        "src/glassbox/runtime/turn_engine.py",
+        "src/glassbox/runtime/model_loop.py",
+        "src/glassbox/runtime/turn_tool_executor.py",
+        "src/glassbox/runtime/turn_resumption.py",
+        "src/glassbox/runtime/background_jobs.py",
+        "src/glassbox/runtime/daemon.py",
+        "src/glassbox/web/routes/events.py",
+        "frontend/api/sse.ts",
+        "frontend/state/session-events.ts",
+        "tests/unit/test_turn_resumption.py",
+        "process restart after `ModelCallStarted` without `ModelCallCompleted`",
+        "deterministic replay/eval cases for all promoted v10 long-run contracts",
+    ):
+        assert required_text in content
+
+    assert "v10-durability-audit.md" in docs_readme
+
+
 def test_provider_docs_define_v9_evidence_freshness_contract() -> None:
     content = (REPO_ROOT / "docs" / "providers.md").read_text(encoding="utf-8")
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
