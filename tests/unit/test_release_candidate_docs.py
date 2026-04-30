@@ -442,6 +442,27 @@ def test_v9_eval_promotion_plan_classifies_autonomy_cases() -> None:
     assert "v9-eval-promotion-plan.md" in evals_readme
 
 
+def test_provider_docs_define_v9_evidence_freshness_contract() -> None:
+    content = (REPO_ROOT / "docs" / "providers.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Provider Evidence Freshness",
+        "`latest_status`",
+        "`freshness_status`",
+        "`fresh`, `stale`, `incompatible`, `missing`,",
+        "`credentialless`, `warning`, or `failed`",
+        "provider-evidence-freshness.v1",
+        "current provider/model",
+        "identity",
+        "younger than seven days",
+        "Deterministic replay/eval reports remain the blocking release authority",
+    ):
+        assert required_text in content
+
+    assert "freshness states" in docs_readme
+
+
 def test_docs_hub_separates_operator_docs_from_release_evidence() -> None:
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
 

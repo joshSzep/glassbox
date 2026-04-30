@@ -1,11 +1,13 @@
 """Unit tests for runtime provider config resolution."""
 
 import json
+import os
 from pathlib import Path
 
 import pytest
 
 from glassbox.core.types import AutonomyMode
+from glassbox.runtime.provider_canary import load_provider_canary_evidence
 from glassbox.runtime.provider_capability_matrix import ProviderCapabilityResult
 from glassbox.runtime.provider_capability_matrix import build_provider_capability_matrix
 from glassbox.runtime.provider_config import load_runtime_provider_config
@@ -361,3 +363,101 @@ def test_provider_recommendation_uses_retained_canary_evidence(
     assert "verification-loop-interaction" in (
         recommendation.evidence.relevant_preflight
     )
+
+
+def test_provider_canary_evidence_reports_stale_retained_summary(
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / ".glassbox" / "provider-canary"
+    output_dir.mkdir(parents=True)
+    summary_path = output_dir / "provider-canary-summary.json"
+    report = build_provider_diagnostics_report(
+        tmp_path,
+        explicit_model_name="openai:gpt-5.4",
+        environ={"OPENAI_API_KEY": "secret-openai"},
+    )
+    results: dict[str, ProviderCapabilityResult] = {
+        scenario_id: "passed" for scenario_id in AGENTIC_CANARY_SCENARIOS
+    }
+    matrix = build_provider_capability_matrix(
+        report,
+        scenario_ids=AGENTIC_CANARY_SCENARIOS,
+        results=results,
+    )
+    summary_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "provider-canary-summary.v1",
+                "generated_at": "2026-04-29T00:00:00+00:00",
+                "advisory": True,
+                "provider": "openai",
+                "model_name": "openai:gpt-5.4",
+                "diagnostics_state": "ready",
+                "output_path": str(summary_path),
+                "scenario_definitions": [],
+                "scenarios": [
+                    {
+                        "scenario_id": scenario_id,
+                        "outcome": "passed",
+                        "detail": "test evidence",
+                        "automation_status": "automated",
+                    }
+                    for scenario_id in AGENTIC_CANARY_SCENARIOS
+                ],
+                "capability_matrix": matrix.model_dump(mode="json"),
+                "skipped_reason": None,
+                "next_actions": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    old_mtime = 1_700_000_000
+    os.utime(summary_path, (old_mtime, old_mtime))
+
+    evidence = load_provider_canary_evidence(
+        tmp_path,
+        expected_model_name="openai:gpt-5.4",
+    )
+
+    assert evidence.latest_status == "passed"
+    assert evidence.freshness_status == "stale"
+    assert evidence.stale is True
+    assert evidence.identity_matches_current_config is True
+    assert any("provider canary run" in action for action in evidence.next_actions)
+
+
+def test_provider_canary_evidence_reports_incompatible_retained_summary(
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / ".glassbox" / "provider-canary"
+    output_dir.mkdir(parents=True)
+    summary_path = output_dir / "provider-canary-summary.json"
+    summary_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "provider-canary-summary.v0",
+                "generated_at": "2026-04-29T00:00:00+00:00",
+                "advisory": True,
+                "provider": "openai",
+                "model_name": "openai:gpt-5.4",
+                "diagnostics_state": "ready",
+                "output_path": str(summary_path),
+                "scenarios": [],
+                "capability_matrix": {"entries": [{"scenario_id": "tool-call"}]},
+                "next_actions": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    evidence = load_provider_canary_evidence(
+        tmp_path,
+        expected_model_name="openai:gpt-5.4",
+    )
+
+    assert evidence.latest_status == "warning"
+    assert evidence.freshness_status == "incompatible"
+    assert evidence.schema_version == "provider-canary-summary.v0"
+    assert evidence.matrix_entry_count == 1
+    assert evidence.missing_scenarios == AGENTIC_CANARY_SCENARIOS
+    assert any("stale or incompatible" in action for action in evidence.next_actions)

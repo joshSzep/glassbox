@@ -185,6 +185,7 @@ def _print_provider_canary_summary(summary: ProviderCanarySummary) -> None:
 
 def _print_provider_canary_evidence(evidence: ProviderCanaryEvidenceSummary) -> None:
     print(f"Provider canary evidence: {evidence.latest_status}")
+    print(f"Freshness: {evidence.freshness_status}")
     print(f"Retained summaries: {evidence.summary_count}")
     if evidence.latest_summary_path is not None:
         print(f"Latest summary: {evidence.latest_summary_path}")
@@ -192,6 +193,13 @@ def _print_provider_canary_evidence(evidence: ProviderCanaryEvidenceSummary) -> 
         print(f"Provider: {evidence.provider}")
     if evidence.model_name is not None:
         print(f"Model: {evidence.model_name}")
+    if evidence.configured_model_name is not None:
+        print(f"Configured model: {evidence.configured_model_name}")
+    if evidence.identity_matches_current_config is not None:
+        print(
+            "Model identity matches config: "
+            f"{'yes' if evidence.identity_matches_current_config else 'no'}"
+        )
     print(
         "Scenarios: "
         f"{evidence.passed_count} passed, "
@@ -200,6 +208,10 @@ def _print_provider_canary_evidence(evidence: ProviderCanaryEvidenceSummary) -> 
         f"{evidence.failed_count} failed"
     )
     print(f"Capability matrix rows: {evidence.matrix_entry_count}")
+    if evidence.missing_scenarios:
+        print("Missing scenarios:")
+        for scenario_id in evidence.missing_scenarios:
+            print(f"  - {scenario_id}")
     print(f"Stale: {'yes' if evidence.stale else 'no'}")
     if evidence.next_actions:
         print("Next:")

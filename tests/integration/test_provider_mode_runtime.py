@@ -500,6 +500,7 @@ def test_provider_canary_evidence_cli_and_observability_surface_latest_run(
 
     assert evidence_exit_code == 0
     assert evidence_payload["latest_status"] == "skipped"
+    assert evidence_payload["freshness_status"] == "credentialless"
     assert evidence_payload["summary_count"] == 1
     assert evidence_payload["skipped_count"] == len(AGENTIC_CANARY_SCENARIOS)
     assert evidence_payload["matrix_entry_count"] == len(AGENTIC_CANARY_SCENARIOS)
@@ -599,6 +600,7 @@ def test_provider_canary_evidence_reports_legacy_summary_warning(
 
     assert evidence_exit_code == 0
     assert evidence_payload["latest_status"] == "warning"
+    assert evidence_payload["freshness_status"] == "incompatible"
     assert evidence_payload["matrix_entry_count"] == 1
     assert any(
         "stale or incompatible" in action for action in evidence_payload["next_actions"]

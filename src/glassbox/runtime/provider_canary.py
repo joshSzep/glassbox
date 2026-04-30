@@ -31,6 +31,15 @@ type ProviderCanaryEvidenceStatus = Literal[
     "warning",
     "skipped",
 ]
+type ProviderCanaryFreshnessStatus = Literal[
+    "fresh",
+    "stale",
+    "incompatible",
+    "missing",
+    "credentialless",
+    "warning",
+    "failed",
+]
 
 _DEFAULT_SCENARIOS = (
     "streaming-text",
@@ -50,6 +59,8 @@ _DEFAULT_SCENARIOS = (
     "verification-loop-interaction",
 )
 _EVIDENCE_STALE_AFTER_SECONDS = 7 * 24 * 60 * 60
+_FRESHNESS_POLICY_VERSION = "provider-evidence-freshness.v1"
+_PROVIDER_CANARY_SCHEMA_VERSION = "provider-canary-summary.v1"
 
 
 class ProviderCanaryScenarioDefinition(BaseModel):
@@ -199,6 +210,7 @@ class ProviderCanarySummary(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    schema_version: str = _PROVIDER_CANARY_SCHEMA_VERSION
     generated_at: str
     advisory: bool
     provider: str
@@ -221,11 +233,18 @@ class ProviderCanaryEvidenceSummary(BaseModel):
     latest_summary_path: str | None = None
     latest_generated_at: str | None = None
     latest_status: ProviderCanaryEvidenceStatus
+    freshness_status: ProviderCanaryFreshnessStatus
+    freshness_policy_version: str = _FRESHNESS_POLICY_VERSION
+    stale_after_seconds: int = _EVIDENCE_STALE_AFTER_SECONDS
+    schema_version: str | None = None
     provider: str | None = None
     model_name: str | None = None
+    configured_model_name: str | None = None
+    identity_matches_current_config: bool | None = None
     diagnostics_state: str | None = None
     scenario_count: int = 0
     matrix_entry_count: int = 0
+    missing_scenarios: list[str] = Field(default_factory=list)
     passed_count: int = 0
     skipped_count: int = 0
     warning_count: int = 0
@@ -353,6 +372,7 @@ def load_provider_canary_evidence(
     workspace_root: Path,
     *,
     summary_path: Path | None = None,
+    expected_model_name: str | None = None,
 ) -> ProviderCanaryEvidenceSummary:
     """Load a compact advisory summary for retained provider-canary evidence."""
 
@@ -361,6 +381,11 @@ def load_provider_canary_evidence(
         return ProviderCanaryEvidenceSummary(
             summary_count=0,
             latest_status="missing",
+            freshness_status="missing",
+            configured_model_name=_configured_model_name(
+                workspace_root,
+                expected_model_name=expected_model_name,
+            ),
             next_actions=[
                 f"glassbox provider canary run --cwd {workspace_root}",
             ],
@@ -377,13 +402,38 @@ def load_provider_canary_evidence(
             summary_count=len(summaries),
             workspace_root=workspace_root,
             error=exc,
+            expected_model_name=expected_model_name,
         )
     outcome_counts = _outcome_counts(summary.scenarios)
     latest_status = _evidence_status(outcome_counts)
     stale = _is_stale(latest_path)
+    configured_model_name = _configured_model_name(
+        workspace_root,
+        expected_model_name=expected_model_name,
+    )
+    identity_matches_current_config = _identity_matches_current_config(
+        retained_model_name=summary.model_name,
+        configured_model_name=configured_model_name,
+    )
+    missing_scenarios = _missing_scenarios(summary)
+    freshness_status = _freshness_status(
+        latest_status=latest_status,
+        stale=stale,
+        diagnostics_state=summary.diagnostics_state,
+        provider=summary.provider,
+    )
     next_actions = [f"inspect provider canary evidence {latest_path}"]
     if stale:
         next_actions.append(f"glassbox provider canary run --cwd {workspace_root}")
+    if identity_matches_current_config is False:
+        next_actions.append(
+            "rerun provider canary evidence for the currently configured model"
+        )
+    if missing_scenarios:
+        next_actions.append(
+            "rerun provider canary evidence to cover missing scenarios: "
+            + ", ".join(missing_scenarios)
+        )
     if latest_status in {"failed", "warning", "skipped"}:
         next_actions.extend(summary.next_actions)
 
@@ -392,11 +442,16 @@ def load_provider_canary_evidence(
         latest_summary_path=str(latest_path),
         latest_generated_at=summary.generated_at,
         latest_status=latest_status,
+        freshness_status=freshness_status,
+        schema_version=summary.schema_version,
         provider=summary.provider,
         model_name=summary.model_name,
+        configured_model_name=configured_model_name,
+        identity_matches_current_config=identity_matches_current_config,
         diagnostics_state=summary.diagnostics_state,
         scenario_count=len(summary.scenarios),
         matrix_entry_count=len(summary.capability_matrix.entries),
+        missing_scenarios=missing_scenarios,
         passed_count=outcome_counts["passed"],
         skipped_count=outcome_counts["skipped"],
         warning_count=outcome_counts["warning"],
@@ -413,6 +468,7 @@ def _legacy_or_invalid_provider_canary_evidence(
     summary_count: int,
     workspace_root: Path,
     error: ValueError,
+    expected_model_name: str | None,
 ) -> ProviderCanaryEvidenceSummary:
     scenarios = payload.get("scenarios")
     scenario_count = len(scenarios) if isinstance(scenarios, list) else 0
@@ -426,11 +482,18 @@ def _legacy_or_invalid_provider_canary_evidence(
         latest_summary_path=str(latest_path),
         latest_generated_at=_payload_str(payload.get("generated_at")),
         latest_status="warning",
+        freshness_status="incompatible",
+        schema_version=_payload_str(payload.get("schema_version")),
         provider=_payload_str(payload.get("provider")),
         model_name=_payload_str(payload.get("model_name")),
+        configured_model_name=_configured_model_name(
+            workspace_root,
+            expected_model_name=expected_model_name,
+        ),
         diagnostics_state=_payload_str(payload.get("diagnostics_state")),
         scenario_count=scenario_count,
         matrix_entry_count=matrix_entry_count,
+        missing_scenarios=list(_DEFAULT_SCENARIOS),
         warning_count=1,
         stale=True,
         next_actions=[
@@ -637,9 +700,64 @@ def _evidence_status(
     return "passed"
 
 
+def _freshness_status(
+    *,
+    latest_status: ProviderCanaryEvidenceStatus,
+    stale: bool,
+    diagnostics_state: str,
+    provider: str,
+) -> ProviderCanaryFreshnessStatus:
+    if stale:
+        return "stale"
+    if latest_status == "failed":
+        return "failed"
+    if latest_status == "warning":
+        return "warning"
+    if latest_status == "skipped" and (
+        diagnostics_state in {"missing_credentials", "local_fallback"}
+        or provider == "local"
+    ):
+        return "credentialless"
+    if latest_status == "skipped":
+        return "warning"
+    return "fresh"
+
+
 def _is_stale(path: Path) -> bool:
     age_seconds = datetime.now(UTC).timestamp() - path.stat().st_mtime
     return age_seconds > _EVIDENCE_STALE_AFTER_SECONDS
+
+
+def _configured_model_name(
+    workspace_root: Path,
+    *,
+    expected_model_name: str | None,
+) -> str | None:
+    if expected_model_name is not None:
+        return expected_model_name
+    if not (workspace_root / "glassbox.profile.json").exists():
+        return None
+    try:
+        return build_provider_diagnostics_report(workspace_root).selected_model_name
+    except ValueError:
+        return None
+
+
+def _identity_matches_current_config(
+    *,
+    retained_model_name: str,
+    configured_model_name: str | None,
+) -> bool | None:
+    if configured_model_name is None:
+        return None
+    return retained_model_name == configured_model_name
+
+
+def _missing_scenarios(summary: ProviderCanarySummary) -> list[str]:
+    observed = {entry.scenario_id for entry in summary.capability_matrix.entries}
+    return [
+        scenario_id for scenario_id in _DEFAULT_SCENARIOS if scenario_id not in observed
+    ]
 
 
 def _payload_str(value: object) -> str | None:

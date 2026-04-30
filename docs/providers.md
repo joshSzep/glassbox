@@ -261,6 +261,46 @@ high-level state transitions, and any release-relevant failure summary. Do not
 store raw prompts, responses, API keys, or provider request metadata unless they
 have been reviewed and redacted.
 
+## Provider Evidence Freshness
+
+Provider evidence has two operator-visible states:
+
+- `latest_status` describes the retained canary outcome: `missing`, `passed`,
+  `skipped`, `warning`, or `failed`.
+- `freshness_status` describes whether the retained evidence should guide an
+  operator right now: `fresh`, `stale`, `incompatible`, `missing`,
+  `credentialless`, `warning`, or `failed`.
+
+Fresh evidence is retained evidence that matches the current provider/model
+identity when that identity is known, validates against the supported canary
+summary schema, is younger than seven days, keeps every capability row redacted,
+and covers the default scenario set or lists the scenarios that are missing.
+Glassbox reports the freshness policy as `provider-evidence-freshness.v1` in
+JSON output so dashboard and release tooling can tell which interpretation was
+used.
+
+Use the freshness states this way:
+
+- `fresh`: the retained advisory evidence is recent and schema-compatible.
+- `stale`: the latest summary is older than the freshness window; rerun
+  `glassbox provider canary run --cwd .` before relying on it.
+- `incompatible`: the summary cannot be parsed as supported retained evidence;
+  inspect the file, keep it as historical evidence if useful, and rerun the
+  canary to produce current schema output.
+- `missing`: no retained canary summary exists.
+- `credentialless`: the run was skipped because Glassbox had no usable live
+  provider credentials or was using the local deterministic runtime.
+- `warning`: the evidence is current but incomplete, skipped for a
+  non-credential reason, or otherwise needs review.
+- `failed`: the retained run has a provider canary failure.
+
+Freshness is advisory. It can raise or lower confidence in provider-backed
+autonomy, but deterministic replay/eval reports remain the blocking release
+authority. Missing, stale, credentialless, warning, failed, or incompatible
+provider evidence should produce clear next actions; none of those states should
+silently block a deterministic release gate or silently switch the model used by
+a session.
+
 ## Provider Recommendations
 
 Use provider recommendations when choosing a model/provider for an autonomy mode

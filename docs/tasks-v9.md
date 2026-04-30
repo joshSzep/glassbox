@@ -788,7 +788,7 @@ The intended v9 milestone order is:
 
 ### GBX-960: Define Provider Evidence Freshness Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-910`
 - Goal: make provider diagnostics, canaries, and recommendations trustworthy
   enough for operators to act on without becoming release authority
@@ -812,6 +812,13 @@ The intended v9 milestone order is:
 - Done when:
   - provider warnings are precise enough to guide action instead of merely
     producing generic caution
+  - Completed by adding the v9 provider evidence freshness contract to
+    [providers.md](./providers.md), adding a typed `freshness_status` alongside
+    retained canary `latest_status`, carrying schema version, policy version,
+    current model identity, missing-scenario, stale, credentialless, warning,
+    failed, missing, and incompatible states through JSON and human CLI output,
+    and covering stale and incompatible retained evidence with focused runtime,
+    CLI, observability, and docs tests.
 
 ### GBX-961: Refresh Provider Recommendation Logic For Workflow Fit
 

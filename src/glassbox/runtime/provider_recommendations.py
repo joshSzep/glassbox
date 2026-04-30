@@ -127,7 +127,10 @@ def recommend_provider(
         workspace_root,
         explicit_model_name=model_name,
     )
-    evidence = load_provider_canary_evidence(workspace_root)
+    evidence = load_provider_canary_evidence(
+        workspace_root,
+        expected_model_name=model_name,
+    )
     summary = _load_latest_summary(evidence)
     relevant_scenarios = _TASK_SCENARIOS[task_kind]
     recommendation_evidence = _recommendation_evidence(

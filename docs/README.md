@@ -32,7 +32,7 @@ evidence or milestone history.
   session details, local workspace layout, command inventory, and validation
   commands
 - [providers.md](./providers.md): optional OpenAI or Anthropic provider
-  configuration, diagnostics, canaries, and redaction posture
+  configuration, diagnostics, canaries, freshness states, and redaction posture
 
 ## Daily Workflows
 
