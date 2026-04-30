@@ -191,6 +191,44 @@ def _add_session_workflow_parsers(
     _add_runtime_location_arguments(resume_parser)
     _add_autonomy_selection_arguments(resume_parser)
 
+    compact_parser = session_subparsers.add_parser(
+        "compact",
+        help="create a context compaction",
+        description=(
+            "Create a deterministic artifact-backed context compaction for a "
+            "persisted session."
+        ),
+    )
+    compact_parser.add_argument("session_id", type=_parse_uuid)
+    compact_parser.add_argument(
+        "--scope",
+        choices=(
+            "transcript",
+            "task",
+            "runtime_context",
+            "verification",
+            "tool_output",
+        ),
+        default="transcript",
+        help="compaction scope to record",
+    )
+    compact_parser.add_argument("--task-id", type=_parse_uuid, default=None)
+    compact_parser.add_argument("--source-start-sequence", type=int, default=None)
+    compact_parser.add_argument("--source-end-sequence", type=int, default=None)
+    compact_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(compact_parser)
+
+    compactions_parser = session_subparsers.add_parser(
+        "compactions",
+        help="list context compactions",
+        description="List context compactions recorded for a persisted session.",
+    )
+    compactions_parser.add_argument("session_id", type=_parse_uuid)
+    compactions_parser.add_argument("--task-id", type=_parse_uuid, default=None)
+    compactions_parser.add_argument("--limit", type=int, default=20)
+    compactions_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(compactions_parser)
+
     fork_parser = session_subparsers.add_parser(
         "fork",
         help="create a child session from a historical turn",

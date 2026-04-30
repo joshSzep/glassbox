@@ -620,7 +620,7 @@ The intended v10 milestone order is:
 
 ### GBX-1031: Build Transcript And Task Compaction Service
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1030`
 - Goal: generate bounded compaction artifacts from long session/task history
 - Deliverables:
@@ -643,6 +643,14 @@ The intended v10 milestone order is:
 - Done when:
   - Glassbox can create an inspectable compaction artifact for a long session
     without losing source provenance
+- Completed:
+  - Added a deterministic provider-free compaction service that summarizes a
+    selected session event range into the `context_compaction_v1` artifact
+    schema and records `ContextCompactionCreated`.
+  - Added `glassbox session compact` and `glassbox session compactions` for
+    local creation and inspection of compaction records.
+  - Added integration coverage proving CLI creation writes the artifact,
+    records the canonical event, and rebuilds the projection.
 
 ### GBX-1032: Integrate Compactions Into Turn Context
 

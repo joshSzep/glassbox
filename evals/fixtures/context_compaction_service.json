@@ -1,0 +1,21 @@
+{
+  "fixture_version": 1,
+  "fixture_id": "context.compaction-service",
+  "title": "Deterministic context compaction service",
+  "owner": "runtime.context",
+  "capabilities": ["context_compaction_artifact", "context_compaction_service"],
+  "notes": "GBX-1031 fixture for deterministic replay/eval tests that need compaction creation evidence without provider-assisted summarization.",
+  "actions": [
+    "glassbox session compact SESSION_ID --cwd .",
+    "glassbox session compactions SESSION_ID --cwd ."
+  ],
+  "expected_event_families": [
+    "ContextCompactionCreated"
+  ],
+  "expected_artifact": {
+    "artifact_kind": "context_compaction_v1",
+    "suffix": ".context-compaction.json",
+    "requires_source_references": true,
+    "requires_source_event_range": true
+  }
+}

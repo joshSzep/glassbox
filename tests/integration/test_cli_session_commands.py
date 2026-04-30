@@ -1130,6 +1130,67 @@ def test_cli_status_includes_latest_checkpoint(
     ) in captured.out
 
 
+def test_cli_compact_creates_and_lists_context_compaction(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "session",
+            "compact",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    created = capsys.readouterr()
+
+    list_exit_code = main(
+        [
+            "session",
+            "compactions",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    listed = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        compactions = repository.list_context_compactions(session_id)
+        persisted_events = repository.read_session_events(session_id)
+    finally:
+        connection.close()
+
+    assert exit_code == 0
+    assert list_exit_code == 0
+    assert "Created context compaction" in created.out
+    assert "Context compactions: 1" in listed.out
+    assert len(compactions) == 1
+    assert compactions[0].summary.startswith("Compacted")
+    artifact_path = (
+        tmp_path
+        / ".glassbox"
+        / "sessions"
+        / str(session_id)
+        / "artifacts"
+        / f"{compactions[0].artifact_id}.context-compaction.json"
+    )
+    artifact_payload = json.loads(artifact_path.read_text(encoding="utf-8"))
+    assert artifact_payload["artifact_kind"] == "context_compaction_v1"
+    assert artifact_payload["source_references"]
+    assert persisted_events[-1].event_type == "ContextCompactionCreated"
+
+
 def test_cli_status_includes_session_failure_details(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

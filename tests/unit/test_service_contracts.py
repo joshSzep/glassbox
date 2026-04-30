@@ -184,6 +184,20 @@ class FakeSessionRepository:
         del task_id, limit, offset
         return []
 
+    def get_context_compaction(self, session_id, compaction_id):
+        return None
+
+    def list_context_compactions(
+        self,
+        session_id,
+        *,
+        task_id=None,
+        limit=None,
+        offset=0,
+    ):
+        del task_id, limit, offset
+        return []
+
     def enqueue_background_job(self, session_id, **kwargs):
         raise NotImplementedError
 

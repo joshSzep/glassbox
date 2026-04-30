@@ -4,8 +4,10 @@ import sqlite3
 from typing import TYPE_CHECKING
 
 import glassbox.store.sqlite_queries as query_store
+from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import TaskId
+from glassbox.core.models import ContextCompactionRecord
 from glassbox.core.models import TaskCheckpointRecord
 from glassbox.core.models import TaskRecord
 from glassbox.core.models import TaskStepRecord
@@ -75,6 +77,33 @@ class _SQLiteTaskMethods:
         offset: int = 0,
     ) -> list[TaskCheckpointRecord]:
         return query_store.list_task_checkpoints(
+            self._connection,
+            session_id,
+            task_id=task_id,
+            limit=limit,
+            offset=offset,
+        )
+
+    def get_context_compaction(
+        self,
+        session_id: SessionId,
+        compaction_id: ContextCompactionId,
+    ) -> ContextCompactionRecord | None:
+        return query_store.get_context_compaction(
+            self._connection,
+            session_id,
+            compaction_id,
+        )
+
+    def list_context_compactions(
+        self,
+        session_id: SessionId,
+        *,
+        task_id: TaskId | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[ContextCompactionRecord]:
+        return query_store.list_context_compactions(
             self._connection,
             session_id,
             task_id=task_id,

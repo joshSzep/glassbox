@@ -25,13 +25,17 @@ Compaction does not delete, rewrite, or replace canonical events. When a later
 task adds creation commands, refresh, invalidation, and prompt integration, the
 artifact and projection described here remain the inspection contract.
 
-## Inspecting Evidence
+## Creating And Inspecting Evidence
 
-Until `GBX-1031` adds first-class commands or APIs, compaction records are
-operator-visible through the event log, replay/eval normalization, and the
-rebuildable SQLite projection:
+`GBX-1031` adds a deterministic local compaction path. It summarizes persisted
+session events into the v1 artifact schema, writes a managed
+`.context-compaction.json` artifact, and appends `ContextCompactionCreated`.
+This path is intentionally provider-free so replay and tests can exercise
+compaction provenance without live model drift.
 
 ```bash
+uv run glassbox session compact SESSION_ID --cwd .
+uv run glassbox session compactions SESSION_ID --cwd .
 uv run glassbox session status SESSION_ID --cwd .
 uv run glassbox replay bundle inspect PATH
 ```

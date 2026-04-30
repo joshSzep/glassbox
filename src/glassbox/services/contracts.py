@@ -25,6 +25,7 @@ from glassbox.core.ids import WorkspaceMemoryId
 from glassbox.core.models import ApprovalRecord
 from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import BackgroundJobRecord
+from glassbox.core.models import ContextCompactionRecord
 from glassbox.core.models import ForkedSession
 from glassbox.core.models import ProjectionHealth
 from glassbox.core.models import ResolvedForkPoint
@@ -210,6 +211,21 @@ class SessionRepository(Protocol):
         limit: int | None = None,
         offset: int = 0,
     ) -> list[TaskCheckpointRecord]: ...
+
+    def get_context_compaction(
+        self,
+        session_id: SessionId,
+        compaction_id: ContextCompactionId,
+    ) -> ContextCompactionRecord | None: ...
+
+    def list_context_compactions(
+        self,
+        session_id: SessionId,
+        *,
+        task_id: TaskId | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[ContextCompactionRecord]: ...
 
     def enqueue_background_job(
         self,
