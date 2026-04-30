@@ -68,3 +68,13 @@ def _add_command_parsers(
         help="print the command tree",
         description="Print the Glassbox command tree.",
     )
+    guide_parser = command_subparsers.add_parser(
+        "guide",
+        help="print workflow-oriented command discovery",
+        description="Print workflow-oriented command discovery.",
+    )
+    guide_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the command guide as stable JSON",
+    )

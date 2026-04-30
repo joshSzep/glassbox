@@ -13,6 +13,13 @@ uv run glassbox readiness check --cwd .
 uv run glassbox session chat --cwd .
 ```
 
+When you know the workflow but not the exact command, use the workflow guide:
+
+```bash
+uv run glassbox command guide
+uv run glassbox command guide --json
+```
+
 For a focused first request:
 
 ```bash

@@ -80,6 +80,10 @@ No command rename is recommended for `GBX-930`. The follow-on command discovery
 task, `GBX-931`, should add a workflow-oriented guide beside the existing
 structural tree instead of replacing or reshaping the command hierarchy.
 
+`GBX-931` adds that guide as `glassbox command guide`. Use
+`glassbox command guide --json` when docs tests or generated references need a
+stable workflow map.
+
 ## Dashboard Copy Review
 
 Dashboard copy should keep the same nouns and priority model:

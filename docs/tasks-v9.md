@@ -494,7 +494,7 @@ The intended v9 milestone order is:
 
 ### GBX-931: Add Command Discovery For Daily Workflows
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-930`
 - Goal: help operators find the right command without reading the full command
   tree
@@ -514,6 +514,11 @@ The intended v9 milestone order is:
   - command tree or guide snapshot tests
 - Done when:
   - users can discover practical workflows without scanning every subcommand
+  - Completed by adding `glassbox command guide` with human and JSON output
+    grouped into start work, inspect state, unblock work, verify work, recover
+    workspace, and release evidence. Focused CLI tests cover section stability,
+    JSON shape, command-tree visibility, and command help discovery, while the
+    daily workflow and vocabulary docs now point operators to the guide.
 
 ### GBX-932: Review Low-Value Or Release-Only Surfaces For De-Emphasis
 

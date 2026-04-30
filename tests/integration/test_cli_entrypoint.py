@@ -52,7 +52,8 @@ def test_cli_command_tree_prints_command_tree(
     assert captured.out.startswith("glassbox  Run the Glassbox local-first CLI agent")
     assert "|-- command" in captured.out
     assert "inspect the Glassbox command surface" in captured.out
-    assert "|   `-- tree  print the command tree" in captured.out
+    assert "|   |-- tree" in captured.out
+    assert "print workflow-oriented command discovery" in captured.out
     assert "|-- observability" in captured.out
     assert "|-- readiness" in captured.out
     assert "check first-run workspace readiness" in captured.out
@@ -103,6 +104,54 @@ def test_cli_command_help_lists_tree_subcommand(
     assert exc_info.value.code == 0
     assert "usage: glassbox command" in captured.out
     assert "tree" in captured.out
+    assert "guide" in captured.out
+
+
+def test_cli_command_guide_prints_workflow_sections(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = main(["command", "guide"])
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert captured.out.startswith("Glassbox command guide")
+    for section in (
+        "Start Work",
+        "Inspect State",
+        "Unblock Work",
+        "Verify Work",
+        "Recover Workspace",
+        "Release Evidence",
+    ):
+        assert section in captured.out
+    assert "glassbox readiness check --cwd ." in captured.out
+    assert "glassbox session approve SESSION_ID APPROVAL_ID --cwd ." in captured.out
+    assert "glassbox eval recommend PATH --cwd ." in captured.out
+    assert "glassbox command tree" in captured.out
+
+
+def test_cli_command_guide_prints_json_payload(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = main(["command", "guide", "--json"])
+
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["schema_version"] == 1
+    assert [section["key"] for section in payload["sections"]] == [
+        "start-work",
+        "inspect-state",
+        "unblock-work",
+        "verify-work",
+        "recover-workspace",
+        "release-evidence",
+    ]
+    assert payload["sections"][0]["commands"][0] == {
+        "command": "glassbox readiness check --cwd .",
+        "purpose": "Check first-run workspace readiness and get next actions.",
+    }
 
 
 def test_cli_performance_budgets_prints_guidance(

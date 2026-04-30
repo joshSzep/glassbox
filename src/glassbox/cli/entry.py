@@ -8,6 +8,9 @@ from collections.abc import Callable
 from collections.abc import Sequence
 from typing import TextIO
 
+from glassbox.cli.command_guide import command_guide_json_payload
+from glassbox.cli.command_guide import format_command_guide
+from glassbox.cli.json_output import print_json_output
 from glassbox.cli.parser import CommandTreeColorTheme
 from glassbox.cli.parser import build_parser
 from glassbox.cli.parser import format_command_tree
@@ -97,6 +100,12 @@ def _command_command(args: argparse.Namespace) -> int:
     command_command = getattr(args, "command_command", None)
     if command_command == "tree":
         print(format_command_tree(build_parser(), color_theme=_argparse_color_theme()))
+        return 0
+    if command_command == "guide":
+        if args.json:
+            print_json_output(command_guide_json_payload())
+        else:
+            print(format_command_guide())
         return 0
     raise ValueError(f"unsupported command subcommand: {command_command}")
 
