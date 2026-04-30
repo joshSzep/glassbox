@@ -116,6 +116,7 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert "sdist missing required file: docs/v9-dogfooding-summary.md" in problems
     assert "sdist missing required file: docs/v9-eval-promotion-plan.md" in problems
     assert "sdist missing required file: docs/v9-public-baseline.md" in problems
+    assert "sdist missing required file: docs/v9-release-gate.md" in problems
     assert "sdist missing required file: docs/v9-vocabulary.md" in problems
     assert "sdist missing required file: docs/workspace-profiles.md" in problems
     assert "sdist missing required file: docs/manual-qa-evidence-v7.md" in problems
@@ -129,6 +130,9 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert "sdist missing required file: frontend/generated/openapi.json" in problems
     assert (
         "sdist missing required file: scripts/validate_v8_release_gate.py" in problems
+    )
+    assert (
+        "sdist missing required file: scripts/validate_v9_release_gate.py" in problems
     )
     assert (
         "sdist missing required file: scripts/validate_frontend_release_assets.py"
@@ -250,6 +254,7 @@ def _write_sdist(
                 "docs/v9-command-surface-review.md",
                 "docs/v9-dogfooding-summary.md",
                 "docs/v9-eval-promotion-plan.md",
+                "docs/v9-release-gate.md",
                 "docs/tasks-v9.md",
             ):
                 _add_tar_text(sdist, f"glassbox-0.9.0/{doc_path}", "# v9\n")
@@ -347,6 +352,7 @@ def _write_sdist(
                 "scripts/validate_installed_wheel_smoke.py",
                 "scripts/validate_package_contents.py",
                 "scripts/validate_v8_release_gate.py",
+                "scripts/validate_v9_release_gate.py",
             ):
                 _add_tar_text(sdist, f"glassbox-0.9.0/{script_path}", "\n")
             for source_path in (

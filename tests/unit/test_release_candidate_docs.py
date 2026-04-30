@@ -442,6 +442,28 @@ def test_v9_eval_promotion_plan_classifies_autonomy_cases() -> None:
     assert "v9-eval-promotion-plan.md" in evals_readme
 
 
+def test_v9_release_gate_doc_covers_automated_evidence_contract() -> None:
+    content = (REPO_ROOT / "docs" / "v9-release-gate.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "uv run python scripts/validate_v9_release_gate.py",
+        "v9 first-run readiness smoke",
+        "v9 command discovery smoke",
+        "v9 provider evidence policy check",
+        "v9 provider recommendation release fit",
+        "v9 promoted autonomy release profile",
+        "v9 deterministic eval release report",
+        "adoption_readiness",
+        "release_authority",
+        "Provider canaries remain advisory by default",
+        "Any failed blocking stage fails the v9 release gate.",
+    ):
+        assert required_text in content
+
+    assert "v9-release-gate.md" in docs_readme
+
+
 def test_provider_docs_define_v9_evidence_freshness_contract() -> None:
     content = (REPO_ROOT / "docs" / "providers.md").read_text(encoding="utf-8")
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")

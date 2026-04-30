@@ -1113,7 +1113,7 @@ The intended v9 milestone order is:
 
 ### GBX-991: Add v9 Release Gate
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-990`, `GBX-951`, `GBX-972`
 - Goal: compose inherited v8 release evidence with v9 onboarding, cockpit,
   provider freshness, eval promotion, package, and dogfooding evidence
@@ -1142,6 +1142,14 @@ The intended v9 milestone order is:
 - Done when:
   - v9 readiness has one command that records deterministic, package, provider,
     onboarding, and cockpit evidence clearly
+  - Completed by adding `scripts/validate_v9_release_gate.py`, which inherits
+    the v8 gate and adds v9 first-run readiness, command discovery, provider
+    evidence policy, provider recommendation, promoted `release-candidate`
+    eval profile, and deterministic release-report stages. The gate supports
+    dry-run and explicit evidence directories, writes `summary.json` with
+    adoption-readiness and release-authority sections, records explicit
+    advisory provider-canary skips, and is documented in
+    [v9-release-gate.md](./v9-release-gate.md).
 
 ### GBX-992: Complete v9 Manual Validation And Accessibility Evidence
 

@@ -95,15 +95,16 @@ These workflows exist for contributors and release reviewers:
 - `uv run glassbox eval run`
 - `uv run glassbox eval audit`
 - `uv run glassbox eval report ...`
-- `uv run python scripts/validate_v8_release_gate.py`
+- `uv run python scripts/validate_v9_release_gate.py`
 - package validation with `uv build --wheel --sdist`
 - installed-wheel smoke and package-content validation scripts
 - retained manual validation under documented `.glassbox/releases/...` evidence
   directories
 
-The v9 release gate does not exist until GBX-991. Until then, v8 gate evidence,
-focused v9 task validation, and retained task-specific evidence are the
-transition path.
+The v9 release gate composes inherited v8 release evidence with v9 onboarding,
+command discovery, provider freshness, promoted eval, package, and
+installed-wheel evidence. Manual cockpit, accessibility, and final
+residual-risk evidence are completed by the release-candidate signoff tasks.
 
 ## v8 Residual-Risk Mapping
 

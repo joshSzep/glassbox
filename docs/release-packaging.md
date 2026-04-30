@@ -59,6 +59,7 @@ pnpm --dir frontend build
 uv run python scripts/validate_frontend_release_assets.py
 uv build --wheel --sdist
 uv run python scripts/validate_package_contents.py
+uv run python scripts/validate_v9_release_gate.py --dry-run
 ```
 
 If generated API files are stale, `pnpm --dir frontend api:generate` followed by
@@ -85,6 +86,12 @@ uv run python scripts/validate_package_contents.py
 Before publishing, validate the wheel and sdist contents and confirm `glassbox/web/static_next/index.html`, `_next/static/...` assets, Python package modules, source-distribution docs, `textual>=6,<7`, and the `glassbox` console script are present. The FastAPI app validates the static export at startup time for dashboard requests: if `index.html` is missing or references a missing `/app/_next/...` file, `/` returns a developer-facing 503 that points back to `pnpm --dir frontend build`.
 
 The v6 release gate also refreshes generated API files with `pnpm --dir frontend api:generate`, fails if `frontend/generated/openapi.json` or `frontend/generated/api-types.ts` changed, runs `pnpm --dir frontend build`, validates `src/glassbox/web/static_next/` with `uv run python scripts/validate_frontend_release_assets.py`, builds both distributions, and runs `uv run python scripts/validate_package_contents.py`.
+
+For v9 release candidates, `uv run python scripts/validate_v9_release_gate.py`
+is the canonical package-plus-release gate. It inherits the frontend and
+package stages above, then adds first-run readiness, command discovery,
+provider evidence freshness, provider recommendation, promoted eval profile,
+and installed-wheel smoke evidence.
 
 ## Installed Package Smoke
 
