@@ -822,10 +822,15 @@ class ContextCompactionCreated(EventPayload):
     source_end_sequence: int = Field(ge=0)
     summary: str = Field(min_length=1, max_length=4000)
     artifact_id: ArtifactId
+    artifact_schema_version: int = Field(default=1, ge=1)
     freshness: ContextCompactionFreshness = ContextCompactionFreshness.FRESH
     task_id: TaskId | None = None
     turn_id: TurnId | None = None
     checkpoint_id: TaskCheckpointId | None = None
+    source_artifact_ids: list[ArtifactId] = Field(default_factory=list, max_length=50)
+    decision_count: int = Field(default=0, ge=0)
+    unresolved_question_count: int = Field(default=0, ge=0)
+    accepted_risk_count: int = Field(default=0, ge=0)
     limitations: list[str] = Field(default_factory=list, max_length=20)
 
     @model_validator(mode="after")

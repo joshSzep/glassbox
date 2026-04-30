@@ -59,6 +59,9 @@ implementation track after the v9 baseline.
   branch, recovery, priority, responsive, and keyboard contract
 - [task-plans.md](./task-plans.md): inspect durable task plans, plan steps,
   state transitions, and task evidence
+- [context-compactions.md](./context-compactions.md): understand v10
+  artifact-backed context compaction schema, source references, projections,
+  and inspection posture
 - [verification-loops.md](./verification-loops.md): operate explicit,
   budgeted verification checks and verify-repair loops
 - [branching.md](./branching.md): inspect historical sessions, create child

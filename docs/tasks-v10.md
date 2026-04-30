@@ -586,7 +586,7 @@ The intended v10 milestone order is:
 
 ### GBX-1030: Define The Context Compaction Artifact Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1020`
 - Goal: make compaction a first-class artifact-backed contract with provenance,
   scope, and limitations
@@ -608,6 +608,15 @@ The intended v10 milestone order is:
   - docs review
 - Done when:
   - a compaction can be recorded, inspected, and traced back to source evidence
+- Completed:
+  - Added the `context_compaction_v1` artifact schema with mandatory source
+    references, source ranges, decisions, unresolved questions, assumptions,
+    touched files, verification state, failures, accepted risks, and
+    limitations.
+  - Expanded `ContextCompactionCreated` with artifact schema/provenance counts
+    and added the rebuildable `context_compactions` SQLite projection.
+  - Added operator docs for compaction artifact inspection and docs-hub
+    discovery.
 
 ### GBX-1031: Build Transcript And Task Compaction Service
 

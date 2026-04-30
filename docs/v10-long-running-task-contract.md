@@ -112,6 +112,13 @@ the checkpoint is stale, blocked, failed, or no longer matches the workspace.
 Rejected checkpoint resumes emit recovery-decision and resume-outcome events
 with the checkpoint id and next operator action.
 
+Context compactions use managed artifacts with schema version `1` and artifact
+kind `context_compaction_v1`. The artifact names source event ranges, source
+references, decisions, unresolved questions, assumptions, touched files,
+verification state, failures, accepted risks, and limitations. The
+`context_compactions` projection is rebuildable from `ContextCompactionCreated`
+events; the artifact remains the audit authority for detailed provenance.
+
 ## Incomplete-Turn Recovery Semantics
 
 Turns that have started but lack a terminal event are no longer treated as

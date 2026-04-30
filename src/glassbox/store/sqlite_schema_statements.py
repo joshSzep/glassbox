@@ -522,6 +522,43 @@ BOOTSTRAP_STATEMENTS = (
     create index if not exists idx_task_checkpoints_task_sequence
         on task_checkpoints (session_id, task_id, last_sequence desc)
     """,
+    """
+    create table if not exists context_compactions (
+        compaction_id text not null,
+        session_id text not null,
+        scope text not null,
+        task_id text,
+        turn_id text,
+        checkpoint_id text,
+        artifact_id text not null,
+        artifact_schema_version integer not null,
+        source_start_sequence integer not null,
+        source_end_sequence integer not null,
+        summary text not null,
+        freshness text not null,
+        limitations_json text not null,
+        source_artifact_ids_json text not null,
+        decision_count integer not null,
+        unresolved_question_count integer not null,
+        accepted_risk_count integer not null,
+        created_at text not null,
+        last_sequence integer not null,
+        primary key (session_id, compaction_id),
+        foreign key (session_id) references sessions(session_id)
+    )
+    """,
+    """
+    create index if not exists idx_context_compactions_session_sequence
+        on context_compactions (session_id, last_sequence desc)
+    """,
+    """
+    create index if not exists idx_context_compactions_task_sequence
+        on context_compactions (session_id, task_id, last_sequence desc)
+    """,
+    """
+    create index if not exists idx_context_compactions_checkpoint
+        on context_compactions (session_id, checkpoint_id, last_sequence desc)
+    """,
 )
 
 V3_BASELINE_SCHEMA_STATEMENTS = (

@@ -11,10 +11,12 @@ from glassbox.store.sqlite_fork import resolve_fork_point
 from glassbox.store.sqlite_projection_health import inspect_session_projection_health
 from glassbox.store.sqlite_queries import get_branch_search
 from glassbox.store.sqlite_queries import get_budget_posture
+from glassbox.store.sqlite_queries import get_context_compaction
 from glassbox.store.sqlite_queries import get_latest_task_checkpoint
 from glassbox.store.sqlite_queries import list_approvals
 from glassbox.store.sqlite_queries import list_branch_candidates
 from glassbox.store.sqlite_queries import list_branch_searches
+from glassbox.store.sqlite_queries import list_context_compactions
 from glassbox.store.sqlite_queries import list_open_blocked_tasks
 from glassbox.store.sqlite_queries import list_runtime_notes
 from glassbox.store.sqlite_queries import list_task_checkpoints
@@ -53,6 +55,7 @@ __all__ = [
     "get_budget_posture",
     "get_branch_search",
     "get_latest_task_checkpoint",
+    "get_context_compaction",
     "get_session_state",
     "get_workspace_memory",
     "initialize_database",
@@ -65,6 +68,7 @@ __all__ = [
     "list_runtime_notes",
     "list_sessions",
     "list_task_checkpoints",
+    "list_context_compactions",
     "list_task_steps",
     "list_task_verifications",
     "list_tasks",

@@ -38,6 +38,8 @@ from glassbox.core.types import BackgroundJobState
 from glassbox.core.types import BranchCandidateStatus
 from glassbox.core.types import BranchCandidateVerificationStatus
 from glassbox.core.types import BranchSearchStatus
+from glassbox.core.types import ContextCompactionFreshness
+from glassbox.core.types import ContextCompactionScope
 from glassbox.core.types import LongRunPhase
 from glassbox.core.types import RepositoryIndexEntityKind
 from glassbox.core.types import RepositoryIndexFreshness
@@ -272,6 +274,32 @@ class TaskCheckpointRecord(BaseModel):
     recovery_guidance: str = Field(min_length=1, max_length=4000)
     source_start_sequence: int = Field(ge=0)
     source_end_sequence: int = Field(ge=0)
+    created_at: datetime
+    last_sequence: int = Field(ge=0)
+
+
+class ContextCompactionRecord(BaseModel):
+    """Projected state for one artifact-backed context compaction."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    compaction_id: ContextCompactionId
+    session_id: SessionId
+    scope: ContextCompactionScope
+    source_start_sequence: int = Field(ge=0)
+    source_end_sequence: int = Field(ge=0)
+    summary: str = Field(min_length=1, max_length=4000)
+    artifact_id: ArtifactId
+    artifact_schema_version: int = Field(ge=1)
+    freshness: ContextCompactionFreshness
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    checkpoint_id: TaskCheckpointId | None = None
+    source_artifact_ids: list[ArtifactId] = Field(default_factory=list)
+    decision_count: int = Field(default=0, ge=0)
+    unresolved_question_count: int = Field(default=0, ge=0)
+    accepted_risk_count: int = Field(default=0, ge=0)
+    limitations: list[str] = Field(default_factory=list)
     created_at: datetime
     last_sequence: int = Field(ge=0)
 

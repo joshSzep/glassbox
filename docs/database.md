@@ -140,6 +140,7 @@ The current migration sequence is:
 - `13`: long-run event correlations and projection
 - `14`: task checkpoint projection table
 - `15`: session-scoped task checkpoint projection key for inspection imports
+- `16`: context compaction projection table
 
 Glassbox refuses to open a database with a schema version newer than the running
 build supports. Schema upgrade is distinct from projection rebuild: migrations
@@ -152,6 +153,12 @@ phase, last completed step, next action, blockers, touched files, verification
 and budget posture, recovery guidance, and source event range. Latest checkpoint
 and checkpoint-history queries are read models only; the canonical event log
 remains the authority and projection rebuild must reproduce the table.
+
+The v10 compaction read model lives in `context_compactions`. Each row is
+derived from a canonical `ContextCompactionCreated` event and keeps the scope,
+source event range, managed artifact id, freshness, source artifact ids,
+limitations, and counts for decisions, unresolved questions, and accepted risks.
+The artifact payload remains the detailed provenance authority.
 
 ## Canonical Tables
 

@@ -8,7 +8,7 @@ from pathlib import Path
 from glassbox.store.sqlite_schema_statements import BOOTSTRAP_STATEMENTS
 from glassbox.store.sqlite_schema_statements import V3_BASELINE_SCHEMA_STATEMENTS
 
-SCHEMA_VERSION = 15
+SCHEMA_VERSION = 16
 BASELINE_SCHEMA_VERSION = 3
 BASELINE_MIGRATION_NAME = "baseline event store and projections"
 
@@ -594,6 +594,56 @@ def _ensure_task_checkpoint_projection_schema(connection: sqlite3.Connection) ->
     )
 
 
+def _ensure_context_compaction_projection_schema(
+    connection: sqlite3.Connection,
+) -> None:
+    connection.execute(
+        """
+        create table if not exists context_compactions (
+            compaction_id text not null,
+            session_id text not null,
+            scope text not null,
+            task_id text,
+            turn_id text,
+            checkpoint_id text,
+            artifact_id text not null,
+            artifact_schema_version integer not null,
+            source_start_sequence integer not null,
+            source_end_sequence integer not null,
+            summary text not null,
+            freshness text not null,
+            limitations_json text not null,
+            source_artifact_ids_json text not null,
+            decision_count integer not null,
+            unresolved_question_count integer not null,
+            accepted_risk_count integer not null,
+            created_at text not null,
+            last_sequence integer not null,
+            primary key (session_id, compaction_id),
+            foreign key (session_id) references sessions(session_id)
+        )
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_context_compactions_session_sequence
+            on context_compactions (session_id, last_sequence desc)
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_context_compactions_task_sequence
+            on context_compactions (session_id, task_id, last_sequence desc)
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_context_compactions_checkpoint
+            on context_compactions (session_id, checkpoint_id, last_sequence desc)
+        """
+    )
+
+
 def _ensure_task_checkpoint_session_scoped_key(
     connection: sqlite3.Connection,
 ) -> None:
@@ -772,6 +822,11 @@ MIGRATIONS = (
         version=15,
         name="scope task checkpoint projection key by session",
         apply=_ensure_task_checkpoint_session_scoped_key,
+    ),
+    SchemaMigration(
+        version=16,
+        name="add context compaction projection table",
+        apply=_ensure_context_compaction_projection_schema,
     ),
 )
 

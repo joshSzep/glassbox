@@ -7,6 +7,9 @@ from glassbox.core import AutonomyBudgetRemaining
 from glassbox.core import AutonomyBudgetUsage
 from glassbox.core import AutonomyMode
 from glassbox.core import BudgetDecisionRecorded
+from glassbox.core import ContextCompactionCreated
+from glassbox.core import ContextCompactionFreshness
+from glassbox.core import ContextCompactionScope
 from glassbox.core import EventEnvelope
 from glassbox.core import LongRunPhase
 from glassbox.core import RuntimeNoteRecorded
@@ -31,6 +34,8 @@ from glassbox.core import WorkspaceMemoryKind
 from glassbox.core import WorkspaceMemoryProvenance
 from glassbox.core import WorkspaceMemorySourceType
 from glassbox.core import WorkspaceMemoryUsedInContext
+from glassbox.core import new_artifact_id
+from glassbox.core import new_context_compaction_id
 from glassbox.core import new_session_id
 from glassbox.core import new_task_checkpoint_id
 from glassbox.core import new_task_id
@@ -40,7 +45,9 @@ from glassbox.core import new_turn_id
 from glassbox.core import new_workspace_memory_id
 from glassbox.store.sqlite import append_events
 from glassbox.store.sqlite import get_budget_posture
+from glassbox.store.sqlite import get_context_compaction
 from glassbox.store.sqlite import get_latest_task_checkpoint
+from glassbox.store.sqlite import list_context_compactions
 from glassbox.store.sqlite import list_runtime_notes
 from glassbox.store.sqlite import list_task_checkpoints
 from glassbox.store.sqlite import list_workspace_memory
@@ -341,6 +348,73 @@ def test_task_checkpoint_projection_keeps_latest_history_and_rebuilds(
         latest_checkpoint_id,
         first_checkpoint_id,
     ]
+
+
+def test_context_compaction_projection_keeps_history_and_rebuilds(
+    tmp_path: Path,
+) -> None:
+    session_id = new_session_id()
+    task_id = new_task_id()
+    compaction_id = new_context_compaction_id()
+    source_artifact_id = new_artifact_id()
+    connection = open_initialized_database(tmp_path)
+    try:
+        append_events(
+            connection,
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=SessionStarted(
+                        cwd=str(tmp_path),
+                        model_name="openai:gpt-5.4",
+                        approval_mode="confirm",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ContextCompactionCreated(
+                        compaction_id=compaction_id,
+                        scope=ContextCompactionScope.TRANSCRIPT,
+                        source_start_sequence=1,
+                        source_end_sequence=8,
+                        summary="Condensed decisions and blockers for handoff",
+                        artifact_id=new_artifact_id(),
+                        freshness=ContextCompactionFreshness.FRESH,
+                        task_id=task_id,
+                        source_artifact_ids=[source_artifact_id],
+                        decision_count=2,
+                        unresolved_question_count=1,
+                        accepted_risk_count=1,
+                        limitations=["omits raw command output"],
+                    ),
+                ),
+            ],
+        )
+
+        before = get_context_compaction(connection, session_id, compaction_id)
+        history_before = list_context_compactions(connection, session_id)
+        connection.execute(
+            "delete from context_compactions where session_id = ?",
+            (str(session_id),),
+        )
+        rebuild_session_projections(connection, session_id)
+        after = get_context_compaction(connection, session_id, compaction_id)
+        history_after = list_context_compactions(connection, session_id)
+    finally:
+        connection.close()
+
+    assert before == after
+    assert history_before == history_after
+    assert after is not None
+    assert after.scope == ContextCompactionScope.TRANSCRIPT
+    assert after.freshness == ContextCompactionFreshness.FRESH
+    assert after.source_artifact_ids == [source_artifact_id]
+    assert after.decision_count == 2
+    assert after.unresolved_question_count == 1
+    assert after.accepted_risk_count == 1
+    assert after.limitations == ["omits raw command output"]
 
 
 def test_task_projection_rebuilds_task_steps_and_verifications(tmp_path: Path) -> None:

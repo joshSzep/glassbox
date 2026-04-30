@@ -145,6 +145,7 @@ from glassbox.core.models import AutonomySelection
 from glassbox.core.models import BackgroundJobRecord
 from glassbox.core.models import BranchCandidateRecord
 from glassbox.core.models import BranchSearchRecord
+from glassbox.core.models import ContextCompactionRecord
 from glassbox.core.models import ForkedSession
 from glassbox.core.models import InheritedTranscriptMessage
 from glassbox.core.models import MessagePart
@@ -276,6 +277,7 @@ __all__ = [
     "ContextCompactionCreated",
     "ContextCompactionFreshness",
     "ContextCompactionId",
+    "ContextCompactionRecord",
     "ContextCompactionScope",
     "ErrorRecorded",
     "EventId",

@@ -16,6 +16,10 @@ DOMAIN_EXPORTS: Mapping[str, set[str]] = {
         "get_latest_task_checkpoint",
         "list_task_checkpoints",
     },
+    "glassbox.store.sqlite_query_compactions": {
+        "get_context_compaction",
+        "list_context_compactions",
+    },
     "glassbox.store.sqlite_query_tasks": {
         "get_task",
         "list_open_blocked_tasks",
@@ -57,5 +61,6 @@ def test_sqlite_query_domains_are_split_by_projection_family() -> None:
     assert loaded_modules["glassbox.store.sqlite_query_metrics"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_budgets"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_checkpoints"].__doc__
+    assert loaded_modules["glassbox.store.sqlite_query_compactions"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_tasks"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_branch_search"].__doc__
