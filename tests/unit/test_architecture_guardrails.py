@@ -375,6 +375,188 @@ FRONTEND_FACADE_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
 )
 
+V10_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
+    (
+        SRC_ROOT / "web" / "routes" / "sessions.py",
+        850,
+        (
+            "v10 session routes should move new query/action/serialization "
+            "behavior into web route helper modules"
+        ),
+    ),
+    (
+        SRC_ROOT / "web" / "routes" / "tasks.py",
+        780,
+        (
+            "v10 task routes should move new query/action/serialization "
+            "behavior into web route helper modules"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "task_queries.py",
+        820,
+        (
+            "v10 task_queries should move models, verification, and "
+            "repair-history derivation into focused runtime helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_canary.py",
+        840,
+        (
+            "v10 provider_canary should move scenarios, execution, evidence "
+            "loading, freshness, and reporting into provider-canary helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_recommendations.py",
+        800,
+        (
+            "v10 provider_recommendations should move capability, risk, "
+            "credential, failure, budget, and action scoring into helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "tools" / "policy.py",
+        850,
+        (
+            "v10 tools.policy should move path, rule, autonomy, message, "
+            "and command-risk behavior into tool-policy helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema.py",
+        1100,
+        (
+            "v10 sqlite_schema should move projection-domain schema "
+            "definitions into explicit schema helper modules"
+        ),
+    ),
+)
+
+V10_FRONTEND_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
+    (
+        FRONTEND_ROOT / "components" / "console" / "task-autonomy-sections.tsx",
+        1400,
+        (
+            "v10 task-autonomy sections should move queue, inspector, "
+            "actions, evidence, and formatting behavior into owned modules"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "verification-cues.tsx",
+        650,
+        (
+            "v10 verification cues should move cue derivation into pure "
+            "verification analysis helpers"
+        ),
+    ),
+    (
+        FRONTEND_ROOT
+        / "components"
+        / "console"
+        / "session-inspector"
+        / "panes"
+        / "compare-pane.tsx",
+        575,
+        (
+            "v10 compare-pane should move comparison derivation into pure "
+            "session compare helpers"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "workspace-console.tsx",
+        450,
+        (
+            "v10 workspace-console should move route synchronization and "
+            "action binding into focused hooks or helpers"
+        ),
+    ),
+)
+
+V10_PYTHON_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
+    (
+        SRC_ROOT / "runtime" / "task_queries.py",
+        ("glassbox.cli", "glassbox.store", "glassbox.web"),
+        (
+            "v10 runtime task query helpers must stay transport-agnostic and "
+            "use repository contracts instead of CLI, raw store, or web imports"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_canary.py",
+        ("glassbox.cli", "glassbox.store", "glassbox.web"),
+        (
+            "v10 provider canary helpers must keep execution/evidence logic "
+            "separate from CLI, raw store, and web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_recommendations.py",
+        ("glassbox.cli", "glassbox.store", "glassbox.web"),
+        (
+            "v10 provider recommendation scoring must consume diagnostics and "
+            "canary evidence without importing CLI, raw store, or web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "tools" / "policy.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.store", "glassbox.web"),
+        (
+            "v10 tool-policy helpers must keep policy decisions independent "
+            "from CLI, runtime orchestration, raw store, and web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        (
+            "v10 sqlite schema helpers must stay below runtime and transport "
+            "layers with explicit migration ownership"
+        ),
+    ),
+)
+
+V10_FRONTEND_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
+    (
+        FRONTEND_ROOT / "components" / "console" / "task-autonomy-sections.tsx",
+        ("@/api/sse", "next/", "src/glassbox"),
+        (
+            "v10 task autonomy presentation should consume store state and "
+            "generated types without opening SSE, Next server, or backend seams"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "verification-cues.tsx",
+        ("@/api/", "@/stores", "next/", "src/glassbox"),
+        (
+            "v10 verification cue rendering should stay presentation-focused "
+            "over pure derivation results and avoid transport or store imports"
+        ),
+    ),
+    (
+        FRONTEND_ROOT
+        / "components"
+        / "console"
+        / "session-inspector"
+        / "panes"
+        / "compare-pane.tsx",
+        ("@/api/", "@/stores", "next/", "src/glassbox"),
+        (
+            "v10 compare rendering should stay presentation-focused over pure "
+            "comparison results and avoid transport or store imports"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "workspace-console.tsx",
+        ("@/api/sse", "next/", "src/glassbox"),
+        (
+            "v10 workspace-console routing should stay in the frontend store "
+            "and route layers without opening SSE, Next server, or backend seams"
+        ),
+    ),
+)
+
 
 def test_dependency_direction_rules_hold_for_refactor_boundaries() -> None:
     violations: list[str] = []
@@ -474,6 +656,40 @@ def test_frontend_public_store_surfaces_stay_reviewable() -> None:
     assert violations == []
 
 
+def test_v10_python_pressure_points_do_not_grow_before_split() -> None:
+    violations = _line_count_violations(V10_PYTHON_PRESSURE_POINT_RULES)
+
+    assert violations == []
+
+
+def test_v10_frontend_pressure_points_do_not_grow_before_split() -> None:
+    violations = _line_count_violations(V10_FRONTEND_PRESSURE_POINT_RULES)
+
+    assert violations == []
+
+
+def test_v10_python_boundaries_avoid_transport_and_raw_store_imports() -> None:
+    violations: list[str] = []
+
+    for file_path, forbidden_prefixes, message in V10_PYTHON_IMPORT_RULES:
+        violations.extend(
+            _python_import_violations(file_path, forbidden_prefixes, message)
+        )
+
+    assert violations == []
+
+
+def test_v10_frontend_boundaries_avoid_transport_and_backend_imports() -> None:
+    violations: list[str] = []
+
+    for file_path, forbidden_prefixes, message in V10_FRONTEND_IMPORT_RULES:
+        violations.extend(
+            _frontend_import_violations(file_path, forbidden_prefixes, message)
+        )
+
+    assert violations == []
+
+
 def test_post_v8_python_guardrail_messages_point_to_owned_boundaries(
     tmp_path: Path,
 ) -> None:
@@ -524,6 +740,51 @@ def test_frontend_store_guardrail_messages_point_to_domain_store_splits(
             f"{store_file}: frontend stores should stay "
             "framework-light and must not import React components, Next server "
             "modules, or backend source: @/components/console/session-inspector"
+        )
+    ]
+
+
+def test_v10_guardrail_messages_point_to_next_owner(tmp_path: Path) -> None:
+    route_file = tmp_path / "sessions.py"
+    route_file.write_text(
+        "from glassbox.store.sqlite import open_database\n",
+        encoding="utf-8",
+    )
+
+    import_violations = _python_import_violations(
+        route_file,
+        ("glassbox.store",),
+        (
+            "v10 session route helpers should use service/query seams instead "
+            "of raw store imports"
+        ),
+    )
+
+    assert import_violations == [
+        (
+            f"{route_file}: v10 session route helpers should use service/query "
+            "seams instead of raw store imports: glassbox.store.sqlite"
+        )
+    ]
+
+    growth_violations = _line_count_violations(
+        (
+            (
+                route_file,
+                0,
+                (
+                    "v10 session routes should move new query/action/"
+                    "serialization behavior into web route helper modules"
+                ),
+            ),
+        )
+    )
+
+    assert growth_violations == [
+        (
+            f"{route_file}: v10 session routes should move new query/action/"
+            "serialization behavior into web route helper modules: 1 lines "
+            "exceeds 0"
         )
     ]
 
@@ -590,7 +851,8 @@ def _frontend_import_violations(
 ) -> list[str]:
     violations: list[str] = []
 
-    for file_path in sorted(directory.rglob("*")):
+    file_paths = [directory] if directory.is_file() else sorted(directory.rglob("*"))
+    for file_path in file_paths:
         if file_path.suffix not in {".ts", ".tsx"}:
             continue
         for module in _frontend_import_modules(file_path):
@@ -615,6 +877,23 @@ def _python_future_features(file_path: Path) -> set[str]:
 
 def _line_count(file_path: Path) -> int:
     return len(file_path.read_text(encoding="utf-8").splitlines())
+
+
+def _line_count_violations(rules: tuple[tuple[Path, int, str], ...]) -> list[str]:
+    violations: list[str] = []
+
+    for file_path, max_lines, message in rules:
+        line_count = _line_count(file_path)
+        if line_count > max_lines:
+            violations.append(
+                _format_violation(
+                    file_path,
+                    message,
+                    f"{line_count} lines exceeds {max_lines}",
+                )
+            )
+
+    return violations
 
 
 def _format_violation(file_path: Path, message: str, detail: str) -> str:

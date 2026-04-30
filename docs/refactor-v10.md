@@ -268,7 +268,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R301: Extend Architecture Guardrails For V10 Pressure Points
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R300`
 - Goal: prevent the current second-order modules from growing into new hidden
   monoliths after they are split
@@ -294,6 +294,14 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - v10 refactor-sensitive boundaries have lightweight enforcement before code
     starts moving in bulk
+- Completed notes:
+  - Added v10 guardrails for pre-split growth in the known frontend, web,
+    runtime, provider, tool-policy, and SQLite schema pressure-point modules.
+  - Added import-direction checks that keep v10 runtime/provider/tool/schema
+    helpers away from transport, raw-store, and backend/frontend seams where
+    applicable.
+  - Added focused assertions that guardrail messages name the intended repair
+    boundary.
 
 ---
 

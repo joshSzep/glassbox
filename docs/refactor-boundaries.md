@@ -621,11 +621,12 @@ The guardrails are intentionally narrow:
 - the largest frontend console entrypoints are kept reviewable as facades over
   domain section modules, including task autonomy, knowledge autonomy, branch
   search, and session-inspector diagnostics
-- v10 guardrails should be added before broad movement to keep
-  task-autonomy sections, verification cue derivation, compare analysis,
-  workspace-console routing, session/task route helpers, task query helpers,
-  provider canary/recommendation helpers, tool-policy helpers, and SQLite schema
-  helpers from becoming new hidden monoliths
+- v10 guardrails in `tests/unit/test_architecture_guardrails.py` now keep the
+  second-order pressure-point files from growing before their splits and block
+  transport/raw-store/backend imports across task-autonomy sections,
+  verification cue derivation, compare analysis, workspace-console routing,
+  runtime task query helpers, provider canary/recommendation helpers,
+  tool-policy helpers, and SQLite schema helpers
 
 If a guardrail fails, the default repair should be to move new behavior into the owning split module or add one focused neighbor module, not to widen a facade or cross a subsystem boundary.
 
