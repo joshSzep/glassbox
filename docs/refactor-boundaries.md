@@ -581,11 +581,32 @@ discriminated-union maintenance, or review ownership error-prone.
   import surfaces even if domain modules are introduced underneath them.
 - Candidate future event/model domains are sessions, turns, tools, tasks,
   branch search, background jobs, workspace memory, repository index, provider
-  recovery, verification, and compaction.
+  recovery, verification, and compaction. Optional modules should be introduced
+  one domain at a time, with names that make ownership obvious, such as
+  `core/events_tasks.py`, `core/events_background_jobs.py`,
+  `core/models_tasks.py`, or `core/models_workspace_memory.py`.
+- `core/events.py` should keep the base `EventPayload`, `EventPayloadType`,
+  `event_payload_adapter`, `EventEnvelope`, and compatibility re-exports. If
+  event payload classes move into domain modules, `core/events.py` remains the
+  single registration point.
+- `core/models.py` should keep compatibility re-exports for shared public
+  records and value models. Domain modules should own only cohesive model
+  families whose validators and review ownership naturally travel together.
 - Event payload registration must stay explicit and deterministic. If payloads
-  move into domain modules, the discriminated union and serialization tests
-  should continue to prove that canonical event names and payload shapes are
-  unchanged.
+  move into domain modules, the discriminated union should be assembled from an
+  explicit registry or manually maintained union in `core/events.py`; dynamic
+  discovery, import-time filesystem scans, and plugin-style event registration
+  are not appropriate for canonical persisted events.
+- Event serialization tests should continue to prove that canonical event names,
+  discriminator values, envelope correlation properties, and payload shapes are
+  unchanged. Any future implementation split should run import-smoke,
+  `tests/unit/test_core_events.py`, `tests/unit/test_core_models.py`,
+  SQLite event-store/projection tests, replay/eval tests, and API/schema tests
+  when the moved domain affects those surfaces.
+- Do not split model-heavy code for line count alone. Keep a domain in the
+  current public module when the change is a small field addition, a shared
+  validator, a cross-domain value object, or a compatibility model usually
+  reviewed with neighboring contracts.
 - Core modules should not import runtime, store, CLI, web, frontend, or provider
   execution code. They may define shared models consumed by those layers.
 

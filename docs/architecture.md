@@ -659,6 +659,32 @@ EventPayloadType = Annotated[
 
 In practice, this is easier to maintain if each payload model includes a literal discriminator field such as `event_type`.
 
+### Core Domain Module Strategy
+
+`src/glassbox/core/events.py` and `src/glassbox/core/models.py` are intentionally
+broad public import surfaces. They should stay stable even if future growth
+moves cohesive event or model families into domain-owned helpers.
+
+Future splits should be domain-first and explicit. Reasonable event/model
+families include sessions, turns, tools, tasks, branch search, background jobs,
+workspace memory, repository index, provider recovery, verification, and
+compaction. A split should happen only when a domain expansion makes review,
+registration, or ownership risky; line count alone is not enough.
+
+`core/events.py` remains the canonical registration point for persisted event
+payloads. If event classes move into modules such as `core/events_tasks.py` or
+`core/events_background_jobs.py`, the `EventPayloadType` discriminated union,
+`event_payload_adapter`, and `EventEnvelope` compatibility imports must remain
+available from `glassbox.core.events` and `glassbox.core`. Event registration
+must stay explicit and deterministic; do not use filesystem discovery or hidden
+plugin registration for canonical persisted events.
+
+`core/models.py` should follow the same compatibility rule for shared records
+and value objects. Domain-owned model modules may be introduced when validators,
+record contracts, and review ownership naturally travel together, but the public
+imports used by runtime, store, CLI, web, and tests should remain stable during
+the migration.
+
 ## Session Domain Models
 
 These models represent the current runtime state and projection inputs.

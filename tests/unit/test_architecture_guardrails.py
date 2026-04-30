@@ -1259,6 +1259,41 @@ def test_v10_guardrail_messages_point_to_next_owner(tmp_path: Path) -> None:
     ]
 
 
+def test_v10_core_domain_strategy_is_documented() -> None:
+    boundary_doc = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
+        encoding="utf-8"
+    )
+    architecture_doc = (REPO_ROOT / "docs" / "architecture.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "#### V10 Core Domain Strategy",
+        "`glassbox.core.events` and `glassbox.core.models` should remain stable",
+        "sessions, turns, tools, tasks",
+        "branch search, background jobs, workspace memory",
+        "repository index",
+        "provider recovery",
+        "verification",
+        "compaction",
+        "single registration point",
+        "dynamic discovery",
+        "import-time filesystem scans",
+        "Do not split model-heavy code for line count alone",
+    ):
+        assert required_text in boundary_doc
+
+    for required_text in (
+        "### Core Domain Module Strategy",
+        "`src/glassbox/core/events.py` and `src/glassbox/core/models.py`",
+        "`EventPayloadType` discriminated union",
+        "Event registration",
+        "explicit and deterministic",
+        "`core/models.py` should follow the same compatibility rule",
+    ):
+        assert required_text in architecture_doc
+
+
 def test_spa_source_replaces_legacy_static_dashboard() -> None:
     legacy_static_dir = SRC_ROOT / "web" / "static"
     assert not any(legacy_static_dir.rglob("*"))

@@ -750,7 +750,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R341: Define Core Event And Model Domain Module Strategy
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R300`
 - Goal: plan the next safe split for [core/events.py](../src/glassbox/core/events.py)
   and [core/models.py](../src/glassbox/core/models.py) before another major
@@ -777,6 +777,15 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - the repository has a clear strategy for future core domain splits and can
     avoid ad hoc growth in the next feature cycle
+- Completed notes:
+  - Expanded the boundary map with a core event/model split strategy covering
+    optional session, turn, tool, task, branch-search, background-job,
+    workspace-memory, repository-index, provider-recovery, verification, and
+    compaction modules.
+  - Documented compatibility requirements for keeping `glassbox.core.events`,
+    `glassbox.core.models`, and `glassbox.core` stable public import surfaces.
+  - Documented an explicit event-payload registration strategy and when not to
+    split model-heavy code.
 
 ---
 
