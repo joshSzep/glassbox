@@ -119,6 +119,48 @@ class TaskVerificationDriftResponse(BaseModel):
     error: str | None = None
 
 
+class TaskLastKnownGoodResponse(BaseModel):
+    task_id: str
+    verification_id: str
+    check_name: str
+    sequence: int
+    summary: str | None = None
+    artifact_id: str | None = None
+    checkpoint_id: str | None = None
+    checkpoint_sequence: int | None = None
+    checkpoint_objective: str | None = None
+    changed_paths: list[str]
+    changed_path_digest: str | None = None
+    drift_posture: str
+    evidence_status: str
+    stale_paths: list[str]
+
+
+class TaskRepairAttemptResponse(BaseModel):
+    verification_id: str
+    next_verification_id: str
+    attempt: int
+    reason: str
+    source_sequence: int
+    failed_summary: str | None = None
+    failed_artifact_id: str | None = None
+    repaired: bool
+    accepted_risk_count: int
+
+
+class TaskRepairHistoryResponse(BaseModel):
+    task_id: str
+    status: str
+    failure_count: int
+    retry_count: int
+    repaired_count: int
+    repeated_failure_count: int
+    accepted_risk_count: int
+    latest_failure_sequence: int | None = None
+    latest_failure_summary: str | None = None
+    attempts: list[TaskRepairAttemptResponse]
+
+
 class TaskEventResponse(BaseModel):
     event_id: str
     session_id: str
@@ -144,6 +186,8 @@ class TaskDetailResponse(BaseModel):
     verification_ledger: list[TaskVerificationLedgerResponse]
     verification_summary: TaskVerificationLedgerSummaryResponse
     verification_drift: TaskVerificationDriftResponse
+    last_known_good: TaskLastKnownGoodResponse | None = None
+    repair_history: TaskRepairHistoryResponse | None = None
     projection_health: ProjectionHealthResponse
 
 
@@ -335,6 +379,16 @@ def build_task_detail_response(
         ),
         verification_drift=TaskVerificationDriftResponse.model_validate(
             detail.verification_drift.model_dump(mode="json")
+        ),
+        last_known_good=(
+            TaskLastKnownGoodResponse.model_validate(
+                detail.last_known_good.model_dump(mode="json")
+            )
+            if detail.last_known_good is not None
+            else None
+        ),
+        repair_history=TaskRepairHistoryResponse.model_validate(
+            detail.repair_history.model_dump(mode="json")
         ),
         projection_health=ProjectionHealthResponse.model_validate(
             projection_health.model_dump(mode="json")

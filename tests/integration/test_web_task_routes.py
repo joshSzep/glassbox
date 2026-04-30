@@ -9,22 +9,34 @@ import httpx
 from glassbox.core import ContinuationWindowRequested
 from glassbox.core import ContinuationWindowResolved
 from glassbox.core import EventEnvelope
+from glassbox.core import LongRunPhase
 from glassbox.core import PauseWindowCancelled
 from glassbox.core import PauseWindowScheduled
 from glassbox.core import SessionStarted
+from glassbox.core import TaskCheckpointCreated
 from glassbox.core import TaskCreated
 from glassbox.core import TaskPlanProposed
 from glassbox.core import TaskPlanSnapshot
 from glassbox.core import TaskStepProposal
 from glassbox.core import TaskVerificationCompleted
+from glassbox.core import TaskVerificationFailed
+from glassbox.core import TaskVerificationPlanned
+from glassbox.core import TaskVerificationRetried
 from glassbox.core import TaskVerificationStarted
+from glassbox.core import VerificationCheckKind
+from glassbox.core import VerificationFailureDigest
+from glassbox.core import VerificationPlanEntry
+from glassbox.core import VerificationPlanSource
+from glassbox.core import new_artifact_id
 from glassbox.core import new_session_id
+from glassbox.core import new_task_checkpoint_id
 from glassbox.core import new_task_id
 from glassbox.core import new_task_step_id
 from glassbox.core import new_task_verification_id
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskVerificationStatus
+from glassbox.core.types import VerificationFailureCategory
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.store import SQLiteSessionRepository
 from glassbox.store.sqlite import initialize_database
@@ -130,6 +142,9 @@ def test_task_routes_return_pages_and_detail(tmp_path: Path) -> None:
             )
             assert detail_body["verification_drift"]["posture"] == "unknown"
             assert detail_body["verification_drift"]["error"] is not None
+            assert detail_body["last_known_good"]["check_name"] == "pytest"
+            assert detail_body["last_known_good"]["evidence_status"] == "unknown"
+            assert detail_body["repair_history"]["status"] == "clean"
 
             assert steps_response.status_code == 200
             steps_body = steps_response.json()
@@ -143,6 +158,152 @@ def test_task_routes_return_pages_and_detail(tmp_path: Path) -> None:
                 "TaskCreated",
                 "TaskPlanProposed",
             ]
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_task_detail_reports_last_known_good_and_repair_history(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app = _make_app(tmp_path, connection)
+            session_id = new_session_id()
+            task_id = new_task_id()
+            step_id = new_task_step_id()
+            verification_id = new_task_verification_id()
+            failed_verification_id = new_task_verification_id()
+            repair_verification_id = new_task_verification_id()
+            checkpoint_id = new_task_checkpoint_id()
+            artifact_id = new_artifact_id()
+            repo = SQLiteSessionRepository(connection)
+            _seed_task(
+                repo,
+                tmp_path,
+                session_id,
+                task_id,
+                [step_id],
+                verification_id,
+                title="Repair task",
+            )
+            repo.append_events(
+                [
+                    EventEnvelope(
+                        session_id=session_id,
+                        sequence=0,
+                        payload=TaskCheckpointCreated(
+                            checkpoint_id=checkpoint_id,
+                            task_id=task_id,
+                            objective="Repair task",
+                            current_phase=LongRunPhase.VERIFYING,
+                            completed_step="initial implementation",
+                            next_action="rerun focused tests",
+                            verification_status="pytest passed",
+                            budget_status="within budget",
+                            recovery_guidance="resume from pytest evidence",
+                            source_start_sequence=1,
+                            source_end_sequence=99,
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=session_id,
+                        sequence=0,
+                        payload=TaskVerificationPlanned(
+                            task_id=task_id,
+                            verification=VerificationPlanEntry(
+                                verification_id=failed_verification_id,
+                                check_name="ty check",
+                                kind=VerificationCheckKind.TYPECHECK,
+                                command=["uv", "run", "ty", "check"],
+                                source=VerificationPlanSource.OPERATOR,
+                                rationale="type coverage",
+                                changed_paths=[
+                                    Path("src/glassbox/runtime/task_queries.py")
+                                ],
+                            ),
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=session_id,
+                        sequence=0,
+                        payload=TaskVerificationFailed(
+                            task_id=task_id,
+                            verification_id=failed_verification_id,
+                            failure=VerificationFailureDigest(
+                                category=VerificationFailureCategory.TYPECHECK,
+                                summary="task query type gap",
+                                exit_code=1,
+                                artifact_id=artifact_id,
+                            ),
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=session_id,
+                        sequence=0,
+                        payload=TaskVerificationRetried(
+                            task_id=task_id,
+                            verification_id=failed_verification_id,
+                            next_verification_id=repair_verification_id,
+                            attempt=2,
+                            reason="added typed repair history response",
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=session_id,
+                        sequence=0,
+                        payload=TaskVerificationPlanned(
+                            task_id=task_id,
+                            verification=VerificationPlanEntry(
+                                verification_id=repair_verification_id,
+                                check_name="ty check",
+                                kind=VerificationCheckKind.TYPECHECK,
+                                command=["uv", "run", "ty", "check"],
+                                source=VerificationPlanSource.OPERATOR,
+                                rationale="type coverage after repair",
+                                changed_paths=[
+                                    Path("src/glassbox/runtime/task_queries.py")
+                                ],
+                            ),
+                            attempt=2,
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=session_id,
+                        sequence=0,
+                        payload=TaskVerificationCompleted(
+                            task_id=task_id,
+                            verification_id=repair_verification_id,
+                            status=TaskVerificationStatus.PASSED,
+                            summary="typecheck passed after repair",
+                        ),
+                    ),
+                ]
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get(f"/tasks/{task_id}")
+
+            assert response.status_code == 200
+            body = response.json()
+            assert body["last_known_good"]["verification_id"] == str(
+                repair_verification_id
+            )
+            assert body["last_known_good"]["checkpoint_id"] == str(checkpoint_id)
+            assert body["last_known_good"]["checkpoint_objective"] == "Repair task"
+            assert body["repair_history"]["status"] == "repaired"
+            assert body["repair_history"]["failure_count"] == 1
+            assert body["repair_history"]["retry_count"] == 1
+            assert body["repair_history"]["repaired_count"] == 1
+            assert body["repair_history"]["attempts"][0]["repaired"] is True
+            assert body["repair_history"]["attempts"][0]["failed_summary"] == (
+                "task query type gap"
+            )
         finally:
             connection.close()
 

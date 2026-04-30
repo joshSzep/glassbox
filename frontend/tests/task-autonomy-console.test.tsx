@@ -94,6 +94,10 @@ describe("task autonomy console", () => {
     expect(markup).toContain("Selected Task");
     expect(markup).toContain("Write tests");
     expect(markup).toContain("Verification stale");
+    expect(markup).toContain("Last known good");
+    expect(markup).toContain("frontend tests at sequence 3 (stale)");
+    expect(markup).toContain("Repair history");
+    expect(markup).toContain("regressed: 1 failure");
     expect(markup).toContain("allowed: one step remains");
     expect(markup).toContain("#3 BudgetDecisionRecorded");
     expect(markup).toContain("Load More Events");
@@ -291,6 +295,46 @@ function makeTaskDetail(task: TaskSummary): TaskDetail {
       stale_verification_ids: ["verification-1"],
       task_id: task.task_id,
       workspace_clean: false,
+    },
+    last_known_good: {
+      artifact_id: "artifact-ok",
+      changed_path_digest: "digest",
+      changed_paths: ["src/app.py"],
+      check_name: "frontend tests",
+      checkpoint_id: "checkpoint-1",
+      checkpoint_objective: "Dashboard evidence",
+      checkpoint_sequence: 6,
+      drift_posture: "stale",
+      evidence_status: "stale",
+      sequence: 3,
+      stale_paths: ["src/app.py"],
+      summary: "unit pass",
+      task_id: task.task_id,
+      verification_id: "verification-1",
+    },
+    repair_history: {
+      accepted_risk_count: 0,
+      attempts: [
+        {
+          accepted_risk_count: 0,
+          attempt: 2,
+          failed_artifact_id: "artifact-1",
+          failed_summary: "type gap",
+          next_verification_id: "verification-3",
+          reason: "patched type gap",
+          repaired: false,
+          source_sequence: 6,
+          verification_id: "verification-2",
+        },
+      ],
+      failure_count: 1,
+      latest_failure_sequence: 4,
+      latest_failure_summary: "type gap",
+      repaired_count: 0,
+      repeated_failure_count: 0,
+      retry_count: 1,
+      status: "regressed",
+      task_id: task.task_id,
     },
     verification_summary: {
       accepted_risk_count: 0,

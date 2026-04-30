@@ -5094,8 +5094,28 @@
       },
       "TaskDetailResponse": {
         "properties": {
+          "last_known_good": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskLastKnownGoodResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "projection_health": {
             "$ref": "#/components/schemas/ProjectionHealthResponse"
+          },
+          "repair_history": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskRepairHistoryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "steps": {
             "items": {
@@ -5223,6 +5243,126 @@
       "TaskId": {
         "format": "uuid",
         "type": "string"
+      },
+      "TaskLastKnownGoodResponse": {
+        "properties": {
+          "artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifact Id"
+          },
+          "changed_path_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changed Path Digest"
+          },
+          "changed_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Changed Paths",
+            "type": "array"
+          },
+          "check_name": {
+            "title": "Check Name",
+            "type": "string"
+          },
+          "checkpoint_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkpoint Id"
+          },
+          "checkpoint_objective": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkpoint Objective"
+          },
+          "checkpoint_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkpoint Sequence"
+          },
+          "drift_posture": {
+            "title": "Drift Posture",
+            "type": "string"
+          },
+          "evidence_status": {
+            "title": "Evidence Status",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "stale_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Stale Paths",
+            "type": "array"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "verification_id": {
+            "title": "Verification Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "verification_id",
+          "check_name",
+          "sequence",
+          "changed_paths",
+          "drift_posture",
+          "evidence_status",
+          "stale_paths"
+        ],
+        "title": "TaskLastKnownGoodResponse",
+        "type": "object"
       },
       "TaskListPageResponse": {
         "properties": {
@@ -5405,6 +5545,144 @@
         },
         "required": ["pause_window_id", "reason"],
         "title": "TaskPauseWindowResponse",
+        "type": "object"
+      },
+      "TaskRepairAttemptResponse": {
+        "properties": {
+          "accepted_risk_count": {
+            "title": "Accepted Risk Count",
+            "type": "integer"
+          },
+          "attempt": {
+            "title": "Attempt",
+            "type": "integer"
+          },
+          "failed_artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failed Artifact Id"
+          },
+          "failed_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failed Summary"
+          },
+          "next_verification_id": {
+            "title": "Next Verification Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "repaired": {
+            "title": "Repaired",
+            "type": "boolean"
+          },
+          "source_sequence": {
+            "title": "Source Sequence",
+            "type": "integer"
+          },
+          "verification_id": {
+            "title": "Verification Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "verification_id",
+          "next_verification_id",
+          "attempt",
+          "reason",
+          "source_sequence",
+          "repaired",
+          "accepted_risk_count"
+        ],
+        "title": "TaskRepairAttemptResponse",
+        "type": "object"
+      },
+      "TaskRepairHistoryResponse": {
+        "properties": {
+          "accepted_risk_count": {
+            "title": "Accepted Risk Count",
+            "type": "integer"
+          },
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/TaskRepairAttemptResponse"
+            },
+            "title": "Attempts",
+            "type": "array"
+          },
+          "failure_count": {
+            "title": "Failure Count",
+            "type": "integer"
+          },
+          "latest_failure_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Failure Sequence"
+          },
+          "latest_failure_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Failure Summary"
+          },
+          "repaired_count": {
+            "title": "Repaired Count",
+            "type": "integer"
+          },
+          "repeated_failure_count": {
+            "title": "Repeated Failure Count",
+            "type": "integer"
+          },
+          "retry_count": {
+            "title": "Retry Count",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "status",
+          "failure_count",
+          "retry_count",
+          "repaired_count",
+          "repeated_failure_count",
+          "accepted_risk_count",
+          "attempts"
+        ],
+        "title": "TaskRepairHistoryResponse",
         "type": "object"
       },
       "TaskStepPageResponse": {

@@ -3,6 +3,7 @@
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from typing import Literal
 from typing import Protocol
 
 from pydantic import BaseModel
@@ -10,12 +11,15 @@ from pydantic import ConfigDict
 from pydantic import Field
 
 from glassbox.core.events import EventEnvelope
+from glassbox.core.events import TaskVerificationRetried
 from glassbox.core.ids import EventId
 from glassbox.core.ids import SessionId
+from glassbox.core.ids import TaskCheckpointId
 from glassbox.core.ids import TaskId
 from glassbox.core.ids import TaskStepId
 from glassbox.core.ids import TaskVerificationId
 from glassbox.core.ids import TurnId
+from glassbox.core.models import TaskCheckpointRecord
 from glassbox.core.models import TaskRecord
 from glassbox.core.models import TaskStepRecord
 from glassbox.core.models import TaskVerificationLedgerRecord
@@ -69,6 +73,15 @@ class TaskPlanRepository(Protocol):
         session_id: SessionId,
         task_id: TaskId,
     ) -> TaskVerificationLedgerSummary: ...
+
+    def list_task_checkpoints(
+        self,
+        session_id: SessionId,
+        *,
+        task_id: TaskId | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[TaskCheckpointRecord]: ...
 
     def read_session_events_after(
         self,
@@ -178,6 +191,69 @@ class TaskVerificationLedgerSummaryView(BaseModel):
     current_posture: str
 
 
+class TaskLastKnownGoodView(BaseModel):
+    """Operator-facing marker for the latest successful verification point."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    task_id: TaskId
+    verification_id: TaskVerificationId
+    check_name: str
+    sequence: int = Field(ge=0)
+    summary: str | None = None
+    artifact_id: str | None = None
+    checkpoint_id: TaskCheckpointId | None = None
+    checkpoint_sequence: int | None = Field(default=None, ge=0)
+    checkpoint_objective: str | None = None
+    changed_paths: list[str] = Field(default_factory=list)
+    changed_path_digest: str | None = None
+    drift_posture: str
+    evidence_status: Literal["fresh", "stale", "unknown"]
+    stale_paths: list[str] = Field(default_factory=list)
+
+
+class TaskRepairAttemptView(BaseModel):
+    """One retry edge in the task verification repair history."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    verification_id: TaskVerificationId
+    next_verification_id: TaskVerificationId
+    attempt: int = Field(ge=1)
+    reason: str
+    source_sequence: int = Field(ge=0)
+    failed_summary: str | None = None
+    failed_artifact_id: str | None = None
+    repaired: bool = False
+    accepted_risk_count: int = Field(default=0, ge=0)
+
+
+class TaskRepairHistoryView(BaseModel):
+    """Current task-local verify-repair posture and compact retry history."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    task_id: TaskId
+    status: Literal[
+        "no_verification",
+        "clean",
+        "partial",
+        "failed",
+        "repairing",
+        "repaired",
+        "accepted_with_risk",
+        "regressed",
+    ]
+    failure_count: int = Field(ge=0)
+    retry_count: int = Field(ge=0)
+    repaired_count: int = Field(ge=0)
+    repeated_failure_count: int = Field(ge=0)
+    accepted_risk_count: int = Field(ge=0)
+    latest_failure_sequence: int | None = Field(default=None, ge=0)
+    latest_failure_summary: str | None = None
+    attempts: list[TaskRepairAttemptView] = Field(default_factory=list)
+
+
 class TaskEventView(BaseModel):
     """Task-related event detail for CLI and API reads."""
 
@@ -204,6 +280,8 @@ class TaskDetailView(BaseModel):
     verification_ledger: list[TaskVerificationLedgerView]
     verification_summary: TaskVerificationLedgerSummaryView
     verification_drift: VerificationDriftAssessment
+    last_known_good: TaskLastKnownGoodView | None = None
+    repair_history: TaskRepairHistoryView
 
 
 class TaskQueryService:
@@ -242,6 +320,31 @@ class TaskQueryService:
             record.session_id,
             record.task_id,
         )
+        verification_summary = self._repository.get_task_verification_ledger_summary(
+            record.session_id,
+            record.task_id,
+        )
+        verification_drift = (
+            assess_verification_drift(
+                self._workspace_root,
+                task_id=record.task_id,
+                ledger=ledger_records,
+            )
+            if self._workspace_root is not None
+            else not_assessed_verification_drift(record.task_id)
+        )
+        checkpoints = self._repository.list_task_checkpoints(
+            record.session_id,
+            task_id=record.task_id,
+        )
+        task_events = [
+            event
+            for event in self._repository.read_session_events_after(
+                record.session_id,
+                0,
+            )
+            if event.task_id == record.task_id
+        ]
         return TaskDetailView(
             task=_summary_from_record(record),
             steps=[
@@ -262,19 +365,20 @@ class TaskQueryService:
                 _verification_ledger_view_from_record(entry) for entry in ledger_records
             ],
             verification_summary=_verification_summary_view_from_record(
-                self._repository.get_task_verification_ledger_summary(
-                    record.session_id,
-                    record.task_id,
-                )
+                verification_summary
             ),
-            verification_drift=(
-                assess_verification_drift(
-                    self._workspace_root,
-                    task_id=record.task_id,
-                    ledger=ledger_records,
-                )
-                if self._workspace_root is not None
-                else not_assessed_verification_drift(record.task_id)
+            verification_drift=verification_drift,
+            last_known_good=_last_known_good_view(
+                task_id=record.task_id,
+                ledger=ledger_records,
+                checkpoints=checkpoints,
+                drift=verification_drift,
+            ),
+            repair_history=_repair_history_view(
+                task_id=record.task_id,
+                ledger=ledger_records,
+                events=task_events,
+                summary=verification_summary,
             ),
         )
 
@@ -404,6 +508,213 @@ def _event_view_from_envelope(
     )
 
 
+def _last_known_good_view(
+    *,
+    task_id: TaskId,
+    ledger: list[TaskVerificationLedgerRecord],
+    checkpoints: list[TaskCheckpointRecord],
+    drift: VerificationDriftAssessment,
+) -> TaskLastKnownGoodView | None:
+    latest_success = max(
+        (
+            entry
+            for entry in ledger
+            if entry.status == TaskVerificationStatus.PASSED
+            and entry.last_success_sequence is not None
+        ),
+        key=lambda entry: entry.last_success_sequence or entry.last_sequence,
+        default=None,
+    )
+    if latest_success is None or latest_success.last_success_sequence is None:
+        return None
+    checkpoint = _checkpoint_for_sequence(
+        checkpoints,
+        latest_success.last_success_sequence,
+    )
+    evidence_status: Literal["fresh", "stale", "unknown"] = "fresh"
+    if drift.posture in {"unknown", "not_assessed"}:
+        evidence_status = "unknown"
+    elif (
+        drift.posture in {"stale", "missing_coverage"}
+        or latest_success.verification_id in drift.stale_verification_ids
+    ):
+        evidence_status = "stale"
+    return TaskLastKnownGoodView(
+        task_id=task_id,
+        verification_id=latest_success.verification_id,
+        check_name=latest_success.check_name,
+        sequence=latest_success.last_success_sequence,
+        summary=latest_success.summary,
+        artifact_id=(
+            str(latest_success.latest_artifact_id)
+            if latest_success.latest_artifact_id
+            else None
+        ),
+        checkpoint_id=checkpoint.checkpoint_id if checkpoint else None,
+        checkpoint_sequence=checkpoint.last_sequence if checkpoint else None,
+        checkpoint_objective=checkpoint.objective if checkpoint else None,
+        changed_paths=[str(path) for path in latest_success.changed_paths],
+        changed_path_digest=drift.changed_path_digest,
+        drift_posture=drift.posture,
+        evidence_status=evidence_status,
+        stale_paths=drift.stale_changed_paths,
+    )
+
+
+def _checkpoint_for_sequence(
+    checkpoints: list[TaskCheckpointRecord],
+    sequence: int,
+) -> TaskCheckpointRecord | None:
+    containing = [
+        checkpoint
+        for checkpoint in checkpoints
+        if (
+            checkpoint.source_start_sequence
+            <= sequence
+            <= checkpoint.source_end_sequence
+        )
+    ]
+    if containing:
+        return max(containing, key=lambda checkpoint: checkpoint.last_sequence)
+    preceding = [
+        checkpoint for checkpoint in checkpoints if checkpoint.last_sequence <= sequence
+    ]
+    if preceding:
+        return max(preceding, key=lambda checkpoint: checkpoint.last_sequence)
+    return checkpoints[0] if checkpoints else None
+
+
+def _repair_history_view(
+    *,
+    task_id: TaskId,
+    ledger: list[TaskVerificationLedgerRecord],
+    events: list[EventEnvelope],
+    summary: TaskVerificationLedgerSummary,
+) -> TaskRepairHistoryView:
+    ledger_by_id = {entry.verification_id: entry for entry in ledger}
+    failed_entries = [
+        entry for entry in ledger if entry.latest_failed_sequence is not None
+    ]
+    attempts: list[TaskRepairAttemptView] = []
+    for event in events:
+        payload = event.payload
+        if not isinstance(payload, TaskVerificationRetried):
+            continue
+        failed_entry = ledger_by_id.get(payload.verification_id)
+        next_entry = ledger_by_id.get(payload.next_verification_id)
+        attempts.append(
+            TaskRepairAttemptView(
+                verification_id=payload.verification_id,
+                next_verification_id=payload.next_verification_id,
+                attempt=payload.attempt,
+                reason=payload.reason,
+                source_sequence=event.sequence,
+                failed_summary=(
+                    failed_entry.latest_failed_summary if failed_entry else None
+                ),
+                failed_artifact_id=(
+                    str(failed_entry.latest_failed_artifact_id)
+                    if failed_entry and failed_entry.latest_failed_artifact_id
+                    else None
+                ),
+                repaired=(
+                    next_entry is not None
+                    and next_entry.status == TaskVerificationStatus.PASSED
+                ),
+                accepted_risk_count=(
+                    next_entry.accepted_risk_count if next_entry else 0
+                ),
+            )
+        )
+
+    latest_failure = max(
+        failed_entries,
+        key=lambda entry: entry.latest_failed_sequence or entry.last_sequence,
+        default=None,
+    )
+    repaired_count = sum(1 for attempt in attempts if attempt.repaired)
+    repeated_failure_count = _repeated_failure_count(failed_entries)
+    status = _repair_history_status(
+        ledger=ledger,
+        summary=summary,
+        latest_failure=latest_failure,
+        retry_count=len(attempts),
+        repaired_count=repaired_count,
+    )
+    return TaskRepairHistoryView(
+        task_id=task_id,
+        status=status,
+        failure_count=len(failed_entries),
+        retry_count=len(attempts),
+        repaired_count=repaired_count,
+        repeated_failure_count=repeated_failure_count,
+        accepted_risk_count=summary.accepted_risk_count,
+        latest_failure_sequence=(
+            latest_failure.latest_failed_sequence if latest_failure else None
+        ),
+        latest_failure_summary=(
+            latest_failure.latest_failed_summary if latest_failure else None
+        ),
+        attempts=attempts,
+    )
+
+
+def _repair_history_status(
+    *,
+    ledger: list[TaskVerificationLedgerRecord],
+    summary: TaskVerificationLedgerSummary,
+    latest_failure: TaskVerificationLedgerRecord | None,
+    retry_count: int,
+    repaired_count: int,
+) -> Literal[
+    "no_verification",
+    "clean",
+    "partial",
+    "failed",
+    "repairing",
+    "repaired",
+    "accepted_with_risk",
+    "regressed",
+]:
+    if not ledger:
+        return "no_verification"
+    if summary.running_count:
+        return "repairing"
+    if summary.accepted_risk_count:
+        return "accepted_with_risk"
+    latest_failure_sequence = (
+        latest_failure.latest_failed_sequence if latest_failure else None
+    )
+    latest_success_sequence = summary.latest_success_sequence
+    if latest_failure_sequence is not None and (
+        latest_success_sequence is None
+        or latest_failure_sequence > latest_success_sequence
+    ):
+        return "regressed" if latest_success_sequence is not None else "failed"
+    if retry_count and repaired_count:
+        return "repaired"
+    if summary.passed_count == summary.total_count:
+        return "clean"
+    return "partial"
+
+
+def _repeated_failure_count(entries: list[TaskVerificationLedgerRecord]) -> int:
+    seen: set[tuple[str | None, str | None]] = set()
+    repeated = 0
+    for entry in entries:
+        category = (
+            entry.latest_failed_category.value if entry.latest_failed_category else None
+        )
+        signature = (
+            category,
+            entry.latest_failed_summary,
+        )
+        if signature in seen:
+            repeated += 1
+        seen.add(signature)
+    return repeated
+
+
 def _next_action_summary(record: TaskRecord) -> str:
     if record.blocked_reason is not None:
         return f"blocked: {record.blocked_reason.value}"
@@ -427,7 +738,10 @@ def _next_action_summary(record: TaskRecord) -> str:
 __all__ = [
     "TaskDetailView",
     "TaskEventView",
+    "TaskLastKnownGoodView",
     "TaskPlanRepository",
+    "TaskRepairAttemptView",
+    "TaskRepairHistoryView",
     "TaskQueryService",
     "TaskStepView",
     "TaskSummaryView",

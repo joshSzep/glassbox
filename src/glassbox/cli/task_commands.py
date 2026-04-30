@@ -291,6 +291,33 @@ def _print_task_detail(detail: TaskDetailView) -> None:
             f"{summary.latest_failed_check_name} "
             f"(sequence {summary.latest_failed_sequence})"
         )
+    if detail.last_known_good is None:
+        print("Last known good: none")
+    else:
+        lkg = detail.last_known_good
+        print(
+            "Last known good: "
+            f"{lkg.check_name} at sequence {lkg.sequence} "
+            f"[{lkg.evidence_status}]"
+        )
+        if lkg.checkpoint_id is not None:
+            print(
+                "  Checkpoint: "
+                f"{lkg.checkpoint_id} "
+                f"(sequence {lkg.checkpoint_sequence})"
+            )
+        if lkg.changed_paths:
+            print(f"  Covered paths: {', '.join(lkg.changed_paths[:5])}")
+    repair = detail.repair_history
+    print(f"Repair history: {repair.status}")
+    print(
+        "  "
+        f"{repair.failure_count} failures, "
+        f"{repair.retry_count} retries, "
+        f"{repair.repaired_count} repaired"
+    )
+    if repair.latest_failure_summary is not None:
+        print(f"  Latest failure: {repair.latest_failure_summary}")
     drift = detail.verification_drift
     print(f"Verification drift: {drift.posture}")
     print(f"  {drift.reason}")

@@ -260,6 +260,8 @@ export function TaskPlanInspector({
   );
   const verificationDrift =
     selectedDetail.verification_drift ?? defaultVerificationDrift(selectedDetail.task.task_id);
+  const repairHistory =
+    selectedDetail.repair_history ?? defaultRepairHistory(selectedDetail.task.task_id);
   const budgetEvidence = latestBudgetEvidence(detail.events);
   const jobIds = backgroundJobIds(detail.events);
 
@@ -312,6 +314,14 @@ export function TaskPlanInspector({
             </DataListMeta>
           </DataListItem>
           <DataListItem>
+            <DataListLabel>Last known good</DataListLabel>
+            <DataListMeta>{lastKnownGoodSummary(selectedDetail.last_known_good)}</DataListMeta>
+          </DataListItem>
+          <DataListItem>
+            <DataListLabel>Repair history</DataListLabel>
+            <DataListMeta>{repairHistorySummary(repairHistory)}</DataListMeta>
+          </DataListItem>
+          <DataListItem>
             <DataListLabel>Budget</DataListLabel>
             <DataListMeta>{budgetEvidence}</DataListMeta>
           </DataListItem>
@@ -343,6 +353,8 @@ export function TaskPlanInspector({
           events={detail.events}
           steps={selectedDetail.steps}
           task={selectedDetail.task}
+          lastKnownGood={selectedDetail.last_known_good}
+          repairHistory={repairHistory}
           verificationDrift={verificationDrift}
           verifications={selectedDetail.verifications}
         />
@@ -764,6 +776,47 @@ function defaultVerificationDrift(
   };
 }
 
+function defaultRepairHistory(
+  taskId: string,
+): NonNullable<NonNullable<TaskDetailState["detail"]>["repair_history"]> {
+  return {
+    accepted_risk_count: 0,
+    attempts: [],
+    failure_count: 0,
+    latest_failure_sequence: null,
+    latest_failure_summary: null,
+    repaired_count: 0,
+    repeated_failure_count: 0,
+    retry_count: 0,
+    status: "no_verification",
+    task_id: taskId,
+  };
+}
+
+function lastKnownGoodSummary(
+  lastKnownGood: NonNullable<TaskDetailState["detail"]>["last_known_good"] | null | undefined,
+): string {
+  if (lastKnownGood == null) {
+    return "No passed verification marker retained.";
+  }
+  const checkpoint =
+    lastKnownGood.checkpoint_id === null
+      ? "no checkpoint linked"
+      : `checkpoint ${lastKnownGood.checkpoint_id} at sequence ${lastKnownGood.checkpoint_sequence}`;
+  return `${lastKnownGood.check_name} at sequence ${lastKnownGood.sequence} (${lastKnownGood.evidence_status}); ${checkpoint}.`;
+}
+
+function repairHistorySummary(
+  repairHistory:
+    | NonNullable<NonNullable<TaskDetailState["detail"]>["repair_history"]>
+    | null
+    | undefined,
+): string {
+  const history: NonNullable<NonNullable<TaskDetailState["detail"]>["repair_history"]> =
+    repairHistory ?? defaultRepairHistory("unknown");
+  return `${history.status}: ${history.failure_count} failure${history.failure_count === 1 ? "" : "s"}, ${history.retry_count} retry${history.retry_count === 1 ? "" : "ies"}, ${history.repaired_count} repaired.`;
+}
+
 function TaskWhyThisActionEvidence({
   budgetEvidence,
   currentStepTitle,
@@ -837,18 +890,30 @@ type TaskEvidenceRow = {
 
 function TaskEvidenceDrillDown({
   events,
+  lastKnownGood,
+  repairHistory,
   steps,
   task,
   verificationDrift,
   verifications,
 }: {
   events: TaskDetailState["events"];
+  lastKnownGood: TaskDetail["last_known_good"];
+  repairHistory: TaskDetail["repair_history"];
   steps: TaskDetail["steps"];
   task: TaskDetail["task"];
   verificationDrift: TaskDetail["verification_drift"];
   verifications: TaskDetail["verifications"];
 }) {
-  const rows = taskEvidenceRows({ events, steps, task, verificationDrift, verifications });
+  const rows = taskEvidenceRows({
+    events,
+    lastKnownGood,
+    repairHistory,
+    steps,
+    task,
+    verificationDrift,
+    verifications,
+  });
   return (
     <section
       aria-label="Task evidence drill-down"
@@ -890,17 +955,24 @@ function TaskEvidenceDrillDown({
 
 function taskEvidenceRows({
   events,
+  lastKnownGood,
+  repairHistory,
   steps,
   task,
   verificationDrift,
   verifications,
 }: {
   events: TaskDetailState["events"];
+  lastKnownGood: TaskDetail["last_known_good"];
+  repairHistory: TaskDetail["repair_history"];
   steps: TaskDetail["steps"];
   task: TaskDetail["task"];
   verificationDrift: TaskDetail["verification_drift"];
   verifications: TaskDetail["verifications"];
 }): TaskEvidenceRow[] {
+  const safeLastKnownGood = lastKnownGood ?? null;
+  const safeRepairHistory: NonNullable<TaskDetail["repair_history"]> =
+    repairHistory ?? defaultRepairHistory(task.task_id);
   const failedVerification = verifications.find((verification) => verification.status === "failed");
   const currentStep = steps.find((step) => step.step_id === task.current_step_id);
   const failedStep =
@@ -982,6 +1054,45 @@ function taskEvidenceRows({
           : failedVerification === undefined
             ? "success"
             : "destructive",
+    },
+    {
+      detail: lastKnownGoodSummary(safeLastKnownGood),
+      event:
+        safeLastKnownGood === null
+          ? null
+          : latestMatchingEvent(
+              events,
+              (event) =>
+                event.event_type.startsWith("TaskVerification") &&
+                event.payload.verification_id === safeLastKnownGood.verification_id,
+            ),
+      label: "Last known good",
+      state: safeLastKnownGood?.evidence_status ?? "missing",
+      tone:
+        safeLastKnownGood === null
+          ? "default"
+          : safeLastKnownGood.evidence_status === "stale"
+            ? "warning"
+            : safeLastKnownGood.evidence_status === "fresh"
+              ? "success"
+              : "info",
+    },
+    {
+      detail: repairHistorySummary(safeRepairHistory),
+      event: latestMatchingEvent(events, (event) =>
+        ["TaskVerificationFailed", "TaskVerificationRetried"].includes(event.event_type),
+      ),
+      label: "Repair history",
+      state: safeRepairHistory.status,
+      tone:
+        safeRepairHistory.status === "failed" || safeRepairHistory.status === "regressed"
+          ? "destructive"
+          : safeRepairHistory.status === "accepted_with_risk" ||
+              safeRepairHistory.status === "repairing"
+            ? "warning"
+            : safeRepairHistory.status === "repaired" || safeRepairHistory.status === "clean"
+              ? "success"
+              : "default",
     },
     {
       detail:

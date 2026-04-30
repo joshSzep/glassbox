@@ -58,6 +58,21 @@ resume decisions: inspect the last successful check, compare it with any later
 failures or accepted risks, then run the focused commands needed to prove the
 current workspace state.
 
+## Last Known Good And Repair History
+
+Task detail reads also derive a `last_known_good` marker from durable
+verification events, the ledger projection, checkpoint history, and the current
+drift assessment. The marker names the latest passed verification, source
+sequence, linked artifact, changed paths, current changed-path digest, drift
+posture, and the nearest checkpoint that covered or preceded the successful
+proof. It is a recovery marker, not a claim that the git workspace is clean.
+
+The `repair_history` summary compacts repeated failure and retry evidence from
+`TaskVerificationFailed`, `TaskVerificationRetried`, passed reruns, and accepted
+residual risks. CLI and dashboard task detail surfaces show whether the task is
+clean, failed, repaired, regressed after a prior pass, still repairing, or
+accepted with risk, plus the retained retry edges and latest failure summary.
+
 ## Stale Verification Drift
 
 Task detail reads now compare the verification ledger with the current local git

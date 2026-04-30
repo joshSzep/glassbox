@@ -2918,7 +2918,9 @@ export interface components {
     };
     /** TaskDetailResponse */
     TaskDetailResponse: {
+      last_known_good?: components["schemas"]["TaskLastKnownGoodResponse"] | null;
       projection_health: components["schemas"]["ProjectionHealthResponse"];
+      repair_history?: components["schemas"]["TaskRepairHistoryResponse"] | null;
       /** Steps */
       steps: components["schemas"]["TaskStepResponse"][];
       task: components["schemas"]["TaskSummaryResponse"];
@@ -2964,6 +2966,37 @@ export interface components {
     };
     /** Format: uuid */
     TaskId: string;
+    /** TaskLastKnownGoodResponse */
+    TaskLastKnownGoodResponse: {
+      /** Artifact Id */
+      artifact_id?: string | null;
+      /** Changed Path Digest */
+      changed_path_digest?: string | null;
+      /** Changed Paths */
+      changed_paths: string[];
+      /** Check Name */
+      check_name: string;
+      /** Checkpoint Id */
+      checkpoint_id?: string | null;
+      /** Checkpoint Objective */
+      checkpoint_objective?: string | null;
+      /** Checkpoint Sequence */
+      checkpoint_sequence?: number | null;
+      /** Drift Posture */
+      drift_posture: string;
+      /** Evidence Status */
+      evidence_status: string;
+      /** Sequence */
+      sequence: number;
+      /** Stale Paths */
+      stale_paths: string[];
+      /** Summary */
+      summary?: string | null;
+      /** Task Id */
+      task_id: string;
+      /** Verification Id */
+      verification_id: string;
+    };
     /** TaskListPageResponse */
     TaskListPageResponse: {
       /** Items */
@@ -3030,6 +3063,50 @@ export interface components {
        * @default scheduled
        */
       status: string;
+    };
+    /** TaskRepairAttemptResponse */
+    TaskRepairAttemptResponse: {
+      /** Accepted Risk Count */
+      accepted_risk_count: number;
+      /** Attempt */
+      attempt: number;
+      /** Failed Artifact Id */
+      failed_artifact_id?: string | null;
+      /** Failed Summary */
+      failed_summary?: string | null;
+      /** Next Verification Id */
+      next_verification_id: string;
+      /** Reason */
+      reason: string;
+      /** Repaired */
+      repaired: boolean;
+      /** Source Sequence */
+      source_sequence: number;
+      /** Verification Id */
+      verification_id: string;
+    };
+    /** TaskRepairHistoryResponse */
+    TaskRepairHistoryResponse: {
+      /** Accepted Risk Count */
+      accepted_risk_count: number;
+      /** Attempts */
+      attempts: components["schemas"]["TaskRepairAttemptResponse"][];
+      /** Failure Count */
+      failure_count: number;
+      /** Latest Failure Sequence */
+      latest_failure_sequence?: number | null;
+      /** Latest Failure Summary */
+      latest_failure_summary?: string | null;
+      /** Repaired Count */
+      repaired_count: number;
+      /** Repeated Failure Count */
+      repeated_failure_count: number;
+      /** Retry Count */
+      retry_count: number;
+      /** Status */
+      status: string;
+      /** Task Id */
+      task_id: string;
     };
     /** TaskStepPageResponse */
     TaskStepPageResponse: {

@@ -1217,7 +1217,7 @@ The intended v10 milestone order is:
 
 ### GBX-1072: Add Last-Known-Good And Repair History
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1071`
 - Goal: make verification recovery easier by recording the last known good
   point and repair attempts
@@ -1239,6 +1239,16 @@ The intended v10 milestone order is:
 - Done when:
   - a long task can recover from failures with a clear proof trail instead of
     repeating tests blindly
+- Completed:
+  - Added task detail `last_known_good` and `repair_history` views derived from
+    durable verification events, the verification ledger projection, task
+    checkpoint projection, artifact links, and drift assessment.
+  - Surfaced last-known-good and repair status through `glassbox task show`,
+    task detail API responses, generated frontend API types, and dashboard task
+    evidence rows.
+  - Added focused web/API, CLI, verify-repair, drift, and dashboard tests for
+    pass, repair, regression, stale proof, and retained failure-artifact
+    evidence.
 
 ### GBX-1073: Improve Eval Recommendations For Long-Running Work
 
