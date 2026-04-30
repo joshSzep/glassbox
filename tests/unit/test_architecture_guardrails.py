@@ -437,11 +437,36 @@ V10_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
 V10_FRONTEND_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     (
         FRONTEND_ROOT / "components" / "console" / "task-autonomy-sections.tsx",
-        1400,
+        80,
         (
-            "v10 task-autonomy sections should move queue, inspector, "
-            "actions, evidence, and formatting behavior into owned modules"
+            "v10 task-autonomy-sections should stay a thin compatibility "
+            "surface over queue, inspector, actions, evidence, and formatting"
         ),
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "task-autonomy" / "queue.tsx",
+        240,
+        "v10 task-autonomy queue rendering should stay owned by queue.tsx",
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "task-autonomy" / "inspector.tsx",
+        320,
+        "v10 task-autonomy inspector layout should stay owned by inspector.tsx",
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "task-autonomy" / "actions.tsx",
+        240,
+        "v10 task-autonomy action controls should stay owned by actions.tsx",
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "task-autonomy" / "evidence.tsx",
+        430,
+        "v10 task-autonomy evidence drilldown should stay owned by evidence.tsx",
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "task-autonomy" / "format.ts",
+        320,
+        "v10 task-autonomy derivation and formatting should stay pure in format.ts",
     ),
     (
         FRONTEND_ROOT / "components" / "console" / "verification-cues.tsx",
@@ -523,6 +548,22 @@ V10_FRONTEND_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
         ("@/api/sse", "next/", "src/glassbox"),
         (
             "v10 task autonomy presentation should consume store state and "
+            "generated types without opening SSE, Next server, or backend seams"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "task-autonomy" / "format.ts",
+        ("@/api/sse", "@/components", "next/", "react", "src/glassbox"),
+        (
+            "v10 task autonomy formatting helpers should stay pure and avoid "
+            "React components, SSE, Next server, or backend seams"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "task-autonomy",
+        ("@/api/sse", "next/", "src/glassbox"),
+        (
+            "v10 task autonomy owned modules should consume store state and "
             "generated types without opening SSE, Next server, or backend seams"
         ),
     ),

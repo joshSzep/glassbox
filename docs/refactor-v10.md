@@ -309,7 +309,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R310: Split Task Autonomy Sections Into Queue, Inspector, Action, And Evidence Modules
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R300`
 - Goal: reduce
   [task-autonomy-sections.tsx](../frontend/components/console/task-autonomy-sections.tsx)
@@ -340,6 +340,15 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - the task autonomy UI remains behavior-compatible while queue, inspector,
     actions, and evidence are independently owned
+- Completed notes:
+  - `task-autonomy-sections.tsx` is now a compatibility facade over
+    `task-autonomy/queue.tsx`, `inspector.tsx`, `actions.tsx`, `evidence.tsx`,
+    `format.ts`, and `types.ts`.
+  - Queue filtering/summary helpers and evidence-row derivation are covered by
+    focused non-rendering tests in addition to the existing console rendering
+    coverage.
+  - Architecture guardrails now cap the facade and new owned task-autonomy
+    modules separately.
 
 ### GBX-R311: Extract Verification Cue And Compare Analysis Derivation From Rendering
 

@@ -462,6 +462,10 @@ the Next.js SPA contract in [architecture.md](./architecture.md) and
   job/budget controls into task-actions modules, verification posture and
   evidence drilldown into task-evidence modules, and event/format helpers into
   pure non-React modules
+- the task-autonomy split now keeps
+  `frontend/components/console/task-autonomy-sections.tsx` as a compatibility
+  facade over `task-autonomy/queue.tsx`, `inspector.tsx`, `actions.tsx`,
+  `evidence.tsx`, and pure helper modules in `format.ts` and `types.ts`
 - verification cue rendering should consume typed pure derivation results for
   policy, eval coverage, replay drift, provider evidence, release evidence,
   artifact grouping, and path overlap rather than recomputing cue facts inline

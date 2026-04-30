@@ -3,6 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { TaskAutonomyConsole } from "@/components/console/task-autonomy-console";
+import { taskEvidenceRows } from "@/components/console/task-autonomy/evidence";
+import { taskFilterCounts } from "@/components/console/task-autonomy/format";
 import { filterTaskSummaries } from "@/components/console/task-autonomy-sections";
 import type { components } from "@/generated/api-types";
 import type { TaskDetailState, TaskQueuePageState } from "@/stores/dashboard-stores";
@@ -38,6 +40,54 @@ describe("task autonomy console", () => {
     expect(filterTaskSummaries(tasks, "background").map((task) => task.task_id)).toEqual([
       "background-task",
     ]);
+    expect(taskFilterCounts(tasks)).toMatchObject({
+      active: 3,
+      all: 5,
+      background: 1,
+      blocked: 1,
+      completed: 1,
+      failed: 1,
+      historical: 1,
+    });
+  });
+
+  it("derives task evidence rows without rendering React", () => {
+    const task = makeTask("task-1", {
+      blocked_reason: "verification_failed",
+      current_step_id: "step-2",
+      status: "paused",
+    });
+    const detail = makeTaskDetail(task);
+    const rows = taskEvidenceRows({
+      events: [
+        makeEvent(
+          "event-4",
+          "TaskVerificationFailed",
+          {
+            artifact_id: "artifact-1",
+            summary: "Typecheck command output retained",
+            verification_id: "verification-2",
+          },
+          5,
+        ),
+      ],
+      lastKnownGood: detail.last_known_good,
+      repairHistory: detail.repair_history,
+      steps: detail.steps,
+      task: detail.task,
+      verificationDrift: detail.verification_drift,
+      verifications: detail.verifications,
+    });
+
+    expect(rows.map((row) => row.label)).toContain("Stale verification");
+    expect(rows.find((row) => row.label === "Stale verification")).toMatchObject({
+      state: "stale",
+      tone: "warning",
+    });
+    expect(rows.find((row) => row.label === "Artifact or output")).toMatchObject({
+      detail: "artifact_id: artifact-1",
+      state: "linked",
+    });
   });
 
   it("renders queue filters, selected task detail, budget evidence, and event history", () => {
