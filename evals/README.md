@@ -260,6 +260,15 @@ small and smoke-focused. The `release-candidate` profile remains the blocking
 deterministic sign-off surface until individual autonomy cases can replay live
 runtime behavior without fixture shortcuts or noisy local context drift.
 
+The v9 promotion review in
+[docs/v9-eval-promotion-plan.md](../docs/v9-eval-promotion-plan.md) classifies
+the v8 autonomy cases for the next release-contract step. It recommends
+promoting `autonomy.budget-exhaustion`, `verification.success`,
+`verification.failure`, and `branch-search.candidate-comparison`; keeping
+memory, repository-index, and continuation drift advisory; and splitting
+`task-plan.proposal-capture` before release-candidate promotion because the
+current bundle is intentionally cancelled-fixture-shaped.
+
 Each run writes one JSON artifact per case plus `summary.json` into the selected
 output directory. If `--output-dir` is omitted, Glassbox creates a timestamped
 directory under `.glassbox/evals/`.

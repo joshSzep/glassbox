@@ -687,7 +687,7 @@ The intended v9 milestone order is:
 
 ### GBX-950: Classify v8 Autonomy Advisory Cases For Promotion
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-910`
 - Goal: decide which v8 autonomy eval cases are stable enough to become
   blocking release evidence
@@ -709,6 +709,12 @@ The intended v9 milestone order is:
 - Done when:
   - v9 has an explicit eval promotion plan instead of a permanently advisory
     autonomy suite
+  - Completed by adding [v9-eval-promotion-plan.md](./v9-eval-promotion-plan.md)
+    with case-by-case classifications for the `v8-autonomy-advisory` suite,
+    retained local review evidence under `.glassbox/evals/`, eval README and
+    coverage-note updates, and a concrete `GBX-951` promotion list for
+    `autonomy.budget-exhaustion`, `verification.success`,
+    `verification.failure`, and `branch-search.candidate-comparison`.
 
 ### GBX-951: Promote Stable Autonomy Cases Into Deterministic Profiles
 

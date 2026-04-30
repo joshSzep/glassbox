@@ -136,6 +136,9 @@ path.
 - [v8-autonomy-baseline-inventory.md](./v8-autonomy-baseline-inventory.md): v8
   command surfaces, autonomy seams, dashboard gaps, provider depth, and safe
   loosening opportunities
+- [v9-eval-promotion-plan.md](./v9-eval-promotion-plan.md): v9 review of the
+  v8 autonomy advisory eval suite, case-by-case promotion decisions, retained
+  local evidence path, and release-candidate follow-up plan
 - [recovery-maintenance-review-v8.md](./recovery-maintenance-review-v8.md): v8
   observability and recovery review for tasks, jobs, memory, repository index,
   branch search, and projection rebuilds

@@ -412,6 +412,35 @@ def test_v9_dashboard_cockpit_contract_covers_operator_priority_model() -> None:
         assert required_text in content
 
 
+def test_v9_eval_promotion_plan_classifies_autonomy_cases() -> None:
+    content = (REPO_ROOT / "docs" / "v9-eval-promotion-plan.md").read_text(
+        encoding="utf-8"
+    )
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+    evals_readme = (REPO_ROOT / "evals" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Review Inputs",
+        "## Promotion Criteria",
+        "## Case Classification",
+        "## GBX-951 Follow-Up",
+        "uv run glassbox eval run --profile v8-autonomy-advisory --cwd .",
+        "uv run glassbox eval audit --cwd .",
+        "Split before promotion",
+        "Keep advisory",
+        "Promote to release-candidate",
+        "autonomy.budget-exhaustion",
+        "verification.success",
+        "verification.failure",
+        "branch-search.candidate-comparison",
+        ".glassbox/evals/gbx-950-promotion-review.md",
+    ):
+        assert required_text in content
+
+    assert "v9-eval-promotion-plan.md" in docs_readme
+    assert "v9-eval-promotion-plan.md" in evals_readme
+
+
 def test_docs_hub_separates_operator_docs_from_release_evidence() -> None:
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
 
