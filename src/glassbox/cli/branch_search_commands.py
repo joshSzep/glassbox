@@ -168,10 +168,21 @@ def _branch_search_mark_candidate_command(
         print_json_output(result)
     else:
         print(
-            f"Marked candidate {args.candidate_id} as {command} "
+            f"Marked candidate {args.candidate_id} as "
+            f"{_candidate_mark_label(command)} "
             f"for branch search {args.search_id}"
         )
     return 0
+
+
+def _candidate_mark_label(command: str) -> str:
+    if command == "select":
+        return "selected"
+    if command == "reject":
+        return "rejected"
+    if command == "needs-review":
+        return "needs review"
+    return command
 
 
 def _candidate_mark_event(args: argparse.Namespace, command: str):

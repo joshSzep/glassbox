@@ -452,6 +452,7 @@ def test_provider_canary_runs_default_multi_scenario_with_fake_provider(
     assert outcomes["tool-call"] == "skipped"
     assert outcomes["verification-loop-interaction"] == "skipped"
     assert summary.scenarios[0].automation_status == "automated"
+    assert summary.scenarios[0].final_status == "completed"
     assert summary.scenarios[1].automation_status == "preflight_only"
     matrix_rows = {
         entry.scenario_id: entry for entry in summary.capability_matrix.entries

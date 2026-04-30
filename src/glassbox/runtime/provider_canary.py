@@ -15,6 +15,8 @@ from pydantic import Field
 from glassbox.core import SessionConfig
 from glassbox.core.events import AssistantMessageCompleted
 from glassbox.core.events import ModelCallStarted
+from glassbox.core.events import TurnCompleted
+from glassbox.core.events import TurnFailed
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.provider_capability_matrix import ProviderCapabilityMatrix
 from glassbox.runtime.provider_capability_matrix import ProviderCapabilityResult
@@ -556,8 +558,20 @@ async def _run_streaming_text_canary(
         timeout_seconds=definition.timeout_seconds,
         event_family_counts=counts,
         session_id=str(state.session_id),
-        final_status=final_state.status if final_state is not None else None,
+        final_status=_final_streaming_text_status(
+            events,
+            fallback=final_state.status if final_state is not None else None,
+        ),
     )
+
+
+def _final_streaming_text_status(events, *, fallback: str | None) -> str | None:
+    for event in reversed(events):
+        if isinstance(event.payload, TurnCompleted):
+            return event.payload.outcome
+        if isinstance(event.payload, TurnFailed):
+            return "failed"
+    return fallback
 
 
 def _event_family_counts(events) -> dict[str, int]:

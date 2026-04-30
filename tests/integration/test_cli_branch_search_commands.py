@@ -109,10 +109,10 @@ def test_branch_search_select_reject_and_needs_review_are_projected(
     _append_candidate(db_path, session_id, search_id, rejected_id, "Reject me")
     _append_candidate(db_path, session_id, search_id, review_id, "Review me")
 
-    for command, candidate_id in (
-        ("select", selected_id),
-        ("reject", rejected_id),
-        ("needs-review", review_id),
+    for command, candidate_id, expected_output in (
+        ("select", selected_id, "as selected"),
+        ("reject", rejected_id, "as rejected"),
+        ("needs-review", review_id, "as needs review"),
     ):
         exit_code = main(
             [
@@ -126,11 +126,10 @@ def test_branch_search_select_reject_and_needs_review_are_projected(
                 str(tmp_path),
                 "--db-path",
                 str(db_path),
-                "--json",
             ]
         )
         assert exit_code == 0
-        _ = capsys.readouterr()
+        assert expected_output in capsys.readouterr().out
 
     show_exit = main(
         [

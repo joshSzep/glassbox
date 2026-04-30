@@ -1047,7 +1047,7 @@ The intended v9 milestone order is:
 
 ### GBX-982: Convert Dogfooding Findings Into Fixes Or Contracts
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-981`
 - Goal: close the loop from real-use findings to implementation, docs, evals,
   or accepted residual risks
@@ -1066,6 +1066,12 @@ The intended v9 milestone order is:
   - eval recommendation or audit checks when eval metadata changes
 - Done when:
   - dogfooding produces a visible improvement trail instead of anecdotal notes
+  - Completed by adding a GBX-982 triage table to
+    [v9-dogfooding-summary.md](./v9-dogfooding-summary.md), fixing provider
+    canary final-status consistency and branch-search decision copy, adding
+    focused regression coverage for both fixes, and recording the remaining
+    onboarding, dashboard, verification, memory/index, and recovery findings as
+    docs dispositions, accepted residual risks, or post-v9 candidates.
 
 ---
 

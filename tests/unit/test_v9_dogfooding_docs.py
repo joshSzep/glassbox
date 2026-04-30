@@ -41,8 +41,9 @@ def test_v9_dogfooding_summary_records_passes_and_findings() -> None:
         "20260429-1400-branch-search-plan",
         "credentialed streaming canary passed",
         "Friction Findings",
-        "provider canary summary consistency",
+        "GBX-982 Triage And Dispositions",
+        "Provider canary summary consistency",
         "Branch-search decision copy",
-        "GBX-982 should triage every finding",
+        "GBX-982 fixed the two high-signal low-risk implementation findings",
     ):
         assert phrase in doc

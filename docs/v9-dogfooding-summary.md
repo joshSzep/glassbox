@@ -101,23 +101,37 @@ Sanitized result:
 | memory/index | Repository-index stale next actions were clear. Source search worked after rebuild; docs terms were not indexed, which should be clearer if docs are intentionally out of scope. | low | docs |
 | recovery | No stale daemon, failed job, projection rebuild, or artifact-pressure recovery path was triggered in these passes. | low | accepted residual risk for GBX-981, covered by GBX-992 |
 
+## GBX-982 Triage And Dispositions
+
+| Area | Finding | Disposition | Evidence |
+| --- | --- | --- | --- |
+| onboarding | `repo` versus `repository` is easy to guess wrong even though command discovery recovers well. | Accepted residual risk for v9; current command guide and quickstart use `repo index` consistently, and adding an alias would expand command surface late in v9. | `glassbox command guide --json`; [docs/daily-workflow-quickstart.md](./daily-workflow-quickstart.md) |
+| terminal | Branch-search selection output said `as select` instead of `as selected`. | Fixed in GBX-982. | `src/glassbox/cli/branch_search_commands.py`; `tests/integration/test_cli_branch_search_commands.py::test_branch_search_select_reject_and_needs_review_are_projected` |
+| dashboard | No browser/dashboard pass was retained in GBX-981. | Accepted residual risk for this dogfooding phase; dashboard cockpit evidence is explicitly covered by GBX-992 before release signoff. | [tasks-v9.md](./tasks-v9.md) GBX-992 |
+| provider | Streaming provider canary passed but retained `final_status` as `running`. | Fixed in GBX-982 by deriving automated canary final status from terminal turn events before falling back to session state. | `src/glassbox/runtime/provider_canary.py`; `tests/integration/test_provider_mode_runtime.py::test_provider_canary_runs_default_multi_scenario_with_fake_provider` |
+| verification | `eval recommend` produced no recommendation for docs plus docs-guardrail tests. | Documentation disposition for v9; deterministic replay/eval impact remains source/runtime oriented, and docs guardrail tests stay operator-selected until a future impact-rule task is scoped. | This summary and [dogfooding.md](./dogfooding.md) record docs/test validation expectations. |
+| memory/index | Source search worked after rebuild, while docs-only terms were not returned even though the broader index contract names documentation. | Post-v9 task candidate unless release signoff finds a blocking docs-index gap; current v9 use can rely on explicit docs links and command docs. | Candidate below: repository-index docs scope. |
+| recovery | No stale daemon, failed job, projection rebuild, or artifact-pressure path was triggered. | Accepted residual risk for GBX-981; recovery manual validation remains part of GBX-992 release evidence. | [tasks-v9.md](./tasks-v9.md) GBX-992 |
+
 ## Candidate Eval Or Test Cases
 
 - Provider canary summary consistency: a passed automated scenario should not
   retain a `final_status` that reads as still running unless the field is
-  explicitly documented as session runtime state.
+  explicitly documented as session runtime state. Covered by
+  `tests/integration/test_provider_mode_runtime.py::test_provider_canary_runs_default_multi_scenario_with_fake_provider`.
 - Branch-search decision copy: selection confirmation should use the same
-  selected-state language as `branch-search show`.
+  selected-state language as `branch-search show`. Covered by
+  `tests/integration/test_cli_branch_search_commands.py::test_branch_search_select_reject_and_needs_review_are_projected`.
 - Eval recommendation docs guardrail: either recommend docs-focused checks for
   docs and docs-test paths, or document that `eval recommend` only covers
   replay/eval-impact surfaces.
 - Repository-index docs scope: document whether docs are intentionally excluded
   from repository index search, or add a test if docs should be discoverable.
 
-## GBX-982 Input
+## GBX-982 Outcome
 
-GBX-982 should triage every finding above. High-signal, low-risk fixes to
-consider first are provider canary summary consistency and branch-search
-selection copy. The verification recommendation and repository-index docs scope
-findings may be better handled as docs updates unless the existing impact rules
-already have a natural home for docs/test guardrail recommendations.
+GBX-982 fixed the two high-signal low-risk implementation findings, added
+focused regression coverage, and left the remaining findings as explicit docs,
+accepted-risk, or post-v9 dispositions. No new replay/eval case was added
+because the repeated deterministic regressions found in this pass were covered
+more directly by existing integration tests.
