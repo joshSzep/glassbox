@@ -149,8 +149,9 @@ facades:
 - `src/glassbox/tools/policy.py` is now the stable policy-engine facade; path
   scope evaluation, rule matching, autonomy budget permits, approval message
   construction, and command-risk heuristics live in focused `policy_*` helpers
-- `src/glassbox/store/sqlite_schema.py` mixes baseline schema/migration running
-  with domain-specific projection table and migration definitions
+- `src/glassbox/store/sqlite_schema.py` is now the schema bootstrap and
+  explicit migration-registry owner; domain-specific projection table and
+  migration helpers live in focused `sqlite_schema_*` modules
 - `src/glassbox/core/events.py` and `src/glassbox/core/models.py` are large
   model-heavy core modules. They are acceptable as broad public import surfaces
   until a domain expansion would otherwise make event registration, review, or
@@ -332,13 +333,14 @@ The `store` package should not own runtime orchestration, CLI formatting, or web
 
 #### V10 SQLite Schema Sub-Boundaries
 
-- `sqlite_schema.py` should keep the public bootstrap and migration runner
+- `sqlite_schema.py` keeps the public bootstrap and migration runner
   surface: `SCHEMA_VERSION`, `MIGRATIONS`, `BOOTSTRAP_STATEMENTS`,
   `open_database`, and `initialize_database`.
-- Domain-specific table statements and migration helpers should move behind an
-  explicit, ordered registry grouped by projection family: tasks, verification
-  ledger, checkpoints, compactions, tool attempts, background jobs, branch
-  search, workspace memory, provider recovery, and long-run state.
+- Domain-specific table statements and migration helpers live behind the
+  explicit, ordered registry grouped by projection family: sessions/runtime
+  notes, tasks, verification ledger, checkpoints, compactions, tool attempts,
+  background jobs, branch search, workspace memory, provider recovery, and
+  long-run state.
 - Schema helpers must remain idempotent and deterministic. They should not
   import runtime services, route serializers, CLI formatters, or frontend
   state, and they must not change table names, column names, indexes, or schema
@@ -681,8 +683,9 @@ shape:
   `workspace-console.tsx`, `web/routes/sessions.py`, `web/routes/tasks.py`,
   `runtime/task_queries.py`, `runtime/provider_canary.py`,
   `runtime/provider_recommendations.py`, `tools/policy.py`, and
-  `store/sqlite_schema.py` may keep compatibility exports or thin wrappers only
-  when existing imports or route declarations require a stable transition path
+  `store/sqlite_schema.py` may keep compatibility exports, explicit registries,
+  or thin wrappers only when existing imports, route declarations, or migration
+  ordering require a stable transition path
 
 These facades are acceptable only while they stay thin, reviewable, and oriented
 around stable public imports. New behavior should move into the owning domain

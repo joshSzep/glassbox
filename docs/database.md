@@ -91,7 +91,8 @@ The persistence contract above is stable even though the store implementation is
 now decomposed internally.
 
 - `src/glassbox/store/sqlite.py` is the public compatibility facade for schema bootstrap, append/read helpers, rebuild entrypoints, and list-style query helpers
-- `src/glassbox/store/sqlite_schema.py`, `sqlite_sessions.py`, `sqlite_events.py`, `sqlite_projections.py`, `sqlite_queries.py`, and `sqlite_fork.py` own the broad internal storage concerns separately
+- `src/glassbox/store/sqlite_schema.py` owns schema bootstrap and the explicit ordered migration registry, while projection-family DDL and migration helpers live in focused `sqlite_schema_*` modules for sessions, tasks, verification ledger, checkpoints, compactions, tool attempts, background jobs, branch search, workspace memory, provider recovery, and long-run correlations
+- `src/glassbox/store/sqlite_sessions.py`, `sqlite_events.py`, `sqlite_projections.py`, `sqlite_queries.py`, and `sqlite_fork.py` own the other broad internal storage concerns separately
 - `src/glassbox/store/sqlite_queries.py` remains a thin read-model facade over
     focused `sqlite_query_*` modules for transcript, runtime notes, tools and
     approvals, turn metrics, autonomy budgets, task projections, checkpoint

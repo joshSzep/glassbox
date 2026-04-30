@@ -535,10 +535,80 @@ V10_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
     (
         SRC_ROOT / "store" / "sqlite_schema.py",
-        1100,
+        320,
         (
-            "v10 sqlite_schema should move projection-domain schema "
-            "definitions into explicit schema helper modules"
+            "v10 sqlite_schema should stay a migration runner and explicit "
+            "registry over projection-domain schema helper modules"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_background_jobs.py",
+        120,
+        (
+            "v10 background-job schema should stay owned by "
+            "sqlite_schema_background_jobs.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_branch_search.py",
+        90,
+        (
+            "v10 branch-search schema should stay owned by "
+            "sqlite_schema_branch_search.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_checkpoints.py",
+        140,
+        "v10 checkpoint schema should stay owned by sqlite_schema_checkpoints.py",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_compactions.py",
+        100,
+        "v10 compaction schema should stay owned by sqlite_schema_compactions.py",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_helpers.py",
+        40,
+        "v10 schema helpers should stay small and shared only by migrations",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_long_run.py",
+        120,
+        "v10 long-run schema should stay owned by sqlite_schema_long_run.py",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_provider_recovery.py",
+        80,
+        (
+            "v10 provider-recovery schema should stay owned by "
+            "sqlite_schema_provider_recovery.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_sessions.py",
+        80,
+        "v10 session lineage schema should stay owned by sqlite_schema_sessions.py",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_tasks.py",
+        220,
+        (
+            "v10 task, budget, and verification-ledger schema should stay "
+            "owned by sqlite_schema_tasks.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_tools.py",
+        130,
+        "v10 tool schema should stay owned by sqlite_schema_tools.py",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_workspace_memory.py",
+        90,
+        (
+            "v10 workspace-memory schema should stay owned by "
+            "sqlite_schema_workspace_memory.py"
         ),
     ),
 )
@@ -814,6 +884,61 @@ V10_PYTHON_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
             "v10 sqlite schema helpers must stay below runtime and transport "
             "layers with explicit migration ownership"
         ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_background_jobs.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        "v10 schema domain helpers must stay below runtime and transport layers",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_branch_search.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        "v10 schema domain helpers must stay below runtime and transport layers",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_checkpoints.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        "v10 schema domain helpers must stay below runtime and transport layers",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_compactions.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        "v10 schema domain helpers must stay below runtime and transport layers",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_helpers.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        "v10 schema domain helpers must stay below runtime and transport layers",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_long_run.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        "v10 schema domain helpers must stay below runtime and transport layers",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_provider_recovery.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        "v10 schema domain helpers must stay below runtime and transport layers",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_sessions.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        "v10 schema domain helpers must stay below runtime and transport layers",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_tasks.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        "v10 schema domain helpers must stay below runtime and transport layers",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_tools.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        "v10 schema domain helpers must stay below runtime and transport layers",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_schema_workspace_memory.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        "v10 schema domain helpers must stay below runtime and transport layers",
     ),
 )
 

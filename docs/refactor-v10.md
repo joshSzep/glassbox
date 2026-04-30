@@ -707,7 +707,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R340: Split SQLite Schema Migrations By Projection Domain
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R300`
 - Goal: reduce [sqlite_schema.py](../src/glassbox/store/sqlite_schema.py) by
   moving domain-specific table shape and migration helpers into schema modules
@@ -736,6 +736,17 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - schema bootstrap and migration behavior is unchanged while domain-specific
     projection schema code is easier to review
+- Completed notes:
+  - `store/sqlite_schema.py` now keeps connection setup, baseline bootstrap,
+    migration table maintenance, and the explicit ordered `MIGRATIONS`
+    registry.
+  - Projection-family schema helpers now live in focused `sqlite_schema_*`
+    modules for sessions/runtime notes, tasks/budgets/verification ledger,
+    checkpoints, compactions, tool attempts/policy metadata, background jobs,
+    branch search, workspace memory, provider recovery, and long-run event
+    correlations.
+  - Added schema-boundary tests covering migration order and domain ownership,
+    plus v10 guardrails for the schema registry and helper modules.
 
 ### GBX-R341: Define Core Event And Model Domain Module Strategy
 
