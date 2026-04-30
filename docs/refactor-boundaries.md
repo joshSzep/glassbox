@@ -142,9 +142,10 @@ facades:
   provider-canary scenarios, live execution, retained evidence reads,
   freshness checks, report writing, and outcome counting live in focused
   `provider_canary_*` helper modules
-- `src/glassbox/runtime/provider_recommendations.py` mixes recommendation
-  models with capability, risk, credential, failure, budget, and next-action
-  scoring dimensions
+- `src/glassbox/runtime/provider_recommendations.py` is now a recommendation
+  orchestration facade; recommendation models and capability, risk, credential,
+  failure, budget, and next-action scoring live in focused
+  `provider_recommendation_*` helper modules
 - `src/glassbox/tools/policy.py` mixes path-scope evaluation, rule matching,
   autonomy budget permits, approval message construction, and command-risk
   heuristics
@@ -269,10 +270,15 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   deterministic scenario definitions, opt-in live execution, stored evidence
   loading/freshness checks, report persistence/outcome counting, and retained
   evidence models.
-- Provider recommendations should keep output models and wording stable while
-  capability fit, risk posture, credential readiness, failure posture, budget
-  impact, and next-step guidance move into owned scoring helpers that accept
-  diagnostics/canary evidence as inputs.
+- Provider recommendations now keep `runtime/provider_recommendations.py` as the
+  stable public facade while `provider_recommendation_models.py`,
+  `provider_recommendation_capability.py`, `provider_recommendation_risk.py`,
+  `provider_recommendation_credentials.py`,
+  `provider_recommendation_failures.py`, and
+  `provider_recommendation_actions.py` own output contracts, capability fit,
+  risk posture, credential readiness, failure posture, budget impact, and
+  next-step guidance. Scoring helpers should continue to accept diagnostics,
+  canary evidence, and recovery records as explicit inputs.
 - Provider modules should not hide global evidence reads inside scoring helpers
   or let observability formatting leak into canary execution.
 

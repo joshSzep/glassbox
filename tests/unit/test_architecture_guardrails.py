@@ -441,10 +441,52 @@ V10_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
     (
         SRC_ROOT / "runtime" / "provider_recommendations.py",
-        800,
+        220,
         (
-            "v10 provider_recommendations should move capability, risk, "
-            "credential, failure, budget, and action scoring into helpers"
+            "v10 provider_recommendations should stay a thin compatibility "
+            "facade over provider recommendation scoring helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_recommendation_models.py",
+        190,
+        "v10 provider recommendation models should stay owned by models.py",
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_recommendation_capability.py",
+        240,
+        (
+            "v10 provider recommendation capability fit should stay owned by "
+            "capability.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_recommendation_risk.py",
+        230,
+        ("v10 provider recommendation risk posture should stay owned by risk.py"),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_recommendation_credentials.py",
+        80,
+        (
+            "v10 provider recommendation credential readiness should stay "
+            "owned by credentials.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_recommendation_failures.py",
+        120,
+        (
+            "v10 provider recommendation failure and budget posture should "
+            "stay owned by failures.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_recommendation_actions.py",
+        120,
+        (
+            "v10 provider recommendation action selection should stay owned "
+            "by actions.py"
         ),
     ),
     (
@@ -619,8 +661,58 @@ V10_PYTHON_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
         SRC_ROOT / "runtime" / "provider_recommendations.py",
         ("glassbox.cli", "glassbox.store", "glassbox.web"),
         (
-            "v10 provider recommendation scoring must consume diagnostics and "
+            "v10 provider recommendation facade must consume diagnostics and "
             "canary evidence without importing CLI, raw store, or web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_recommendation_models.py",
+        ("glassbox.cli", "glassbox.store", "glassbox.web"),
+        (
+            "v10 provider recommendation models must stay independent from "
+            "CLI, raw store, and web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_recommendation_capability.py",
+        ("glassbox.cli", "glassbox.store", "glassbox.web"),
+        (
+            "v10 provider recommendation capability scoring must consume "
+            "diagnostics and canary evidence without importing CLI, raw store, "
+            "or web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_recommendation_risk.py",
+        ("glassbox.cli", "glassbox.store", "glassbox.web"),
+        (
+            "v10 provider recommendation risk scoring must consume diagnostics "
+            "and canary evidence without importing CLI, raw store, or web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_recommendation_credentials.py",
+        ("glassbox.cli", "glassbox.store", "glassbox.web"),
+        (
+            "v10 provider recommendation credential scoring must consume "
+            "diagnostics without importing CLI, raw store, or web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_recommendation_failures.py",
+        ("glassbox.cli", "glassbox.store", "glassbox.web"),
+        (
+            "v10 provider recommendation failure scoring must consume recovery "
+            "records without importing CLI, raw store, or web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_recommendation_actions.py",
+        ("glassbox.cli", "glassbox.store", "glassbox.web"),
+        (
+            "v10 provider recommendation action selection must consume "
+            "diagnostics and canary evidence without importing CLI, raw store, "
+            "or web layers"
         ),
     ),
     (

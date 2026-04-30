@@ -613,7 +613,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R331: Split Provider Recommendation Scoring Into Capability, Risk, Credential, And Action Modules
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R330`
 - Goal: reduce
   [provider_recommendations.py](../src/glassbox/runtime/provider_recommendations.py)
@@ -638,6 +638,21 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - provider recommendation behavior remains stable while each scoring
     dimension is owned and testable
+- Completed notes:
+  - `runtime/provider_recommendations.py` now stays the stable public
+    recommendation facade and orchestration point.
+  - Recommendation contracts live in `provider_recommendation_models.py`;
+    workflow scenario selection, retained canary summary loading, relevant
+    evidence derivation, required capabilities, and capability fit live in
+    `provider_recommendation_capability.py`.
+  - Risk posture, posture/confidence, reasons, warnings, and unknowns live in
+    `provider_recommendation_risk.py`; credential readiness lives in
+    `provider_recommendation_credentials.py`; recovery failure posture and
+    budget impact live in `provider_recommendation_failures.py`; action
+    selection and next-step guidance live in `provider_recommendation_actions.py`.
+  - V10 guardrails now cap the provider recommendation facade and scoring
+    helper modules separately and keep the scoring helpers away from CLI,
+    raw-store, and web-layer imports.
 
 ### GBX-R332: Split Tool Policy Into Path, Rule, Autonomy, Message, And Command-Risk Modules
 
