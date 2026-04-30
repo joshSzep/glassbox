@@ -3,6 +3,8 @@
 import asyncio
 import json
 import sqlite3
+from datetime import UTC
+from datetime import datetime
 from pathlib import Path
 
 from pydantic_ai.messages import ModelRequest
@@ -13,7 +15,14 @@ from pydantic_ai.messages import UserPromptPart
 from pydantic_ai.models.function import FunctionModel
 
 from glassbox.cli import main
+from glassbox.core import EventEnvelope
+from glassbox.core import ProviderRecoveryAction
+from glassbox.core import ProviderRecoveryKind
+from glassbox.core import ProviderRecoveryRecorded
 from glassbox.core import SessionConfig
+from glassbox.core import SessionStarted
+from glassbox.core import new_session_id
+from glassbox.core import new_turn_id
 from glassbox.core.events import AssistantMessageCompleted
 from glassbox.core.events import AssistantMessageDelta
 from glassbox.core.events import ModelCallStarted
@@ -22,6 +31,7 @@ from glassbox.runtime import bootstrap as runtime_bootstrap
 from glassbox.runtime.provider_canary import run_provider_canary_sync
 from glassbox.store import initialize_database
 from glassbox.store import open_database
+from glassbox.store.sqlite import append_events
 
 AGENTIC_CANARY_SCENARIOS = [
     "streaming-text",
@@ -308,7 +318,86 @@ def test_provider_recommend_cli_reports_advisory_posture(
     assert payload["risk_posture"] == "medium"
     assert payload["evidence_freshness"] == "missing"
     assert payload["credential_readiness"] == "not_required"
+    assert payload["recommended_action"] == "local_fallback"
+    assert payload["failure_posture"]["state"] == "none"
+    assert payload["budget_impact"]["budget_warning"] is None
     assert "secret" not in captured.out
+
+
+def test_provider_recommend_cli_json_includes_session_recovery_guidance(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "secret-openai")
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    connection = open_database(tmp_path / ".glassbox" / "glassbox.sqlite3")
+    initialize_database(connection)
+    try:
+        append_events(
+            connection,
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=SessionStarted(
+                        cwd=str(tmp_path),
+                        model_name="openai:gpt-5.4",
+                        approval_mode="confirm",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ProviderRecoveryRecorded(
+                        provider="openai",
+                        model_name="gpt-5.4",
+                        failure_kind=ProviderRecoveryKind.RATE_LIMIT,
+                        action=ProviderRecoveryAction.RETRY_SCHEDULED,
+                        reason="rate limit exceeded",
+                        retryable=True,
+                        safe_to_continue=True,
+                        operator_next_action="wait for bounded retry",
+                        turn_id=turn_id,
+                        attempt=1,
+                        max_attempts=3,
+                        backoff_seconds=4,
+                        next_retry_at=datetime(2026, 4, 30, 12, 5, tzinfo=UTC),
+                    ),
+                ),
+            ],
+        )
+    finally:
+        connection.close()
+
+    exit_code = main(
+        [
+            "provider",
+            "recommend",
+            "--cwd",
+            str(tmp_path),
+            "--model-name",
+            "openai:gpt-5.4",
+            "--task-kind",
+            "background",
+            "--autonomy-mode",
+            "autonomous-local",
+            "--session-id",
+            str(session_id),
+            "--json",
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["recommended_action"] == "retry"
+    assert payload["failure_posture"]["state"] == "retryable"
+    assert payload["failure_posture"]["provider"] == "openai"
+    assert payload["budget_impact"]["retry_delay_seconds"] == 4
+    assert "secret-openai" not in captured.out
 
 
 def test_provider_canary_cli_writes_skipped_summary_without_credentials(

@@ -161,12 +161,19 @@ function providerRecoveryCue(data: DashboardState): RecoveryCue {
     };
   }
 
+  const guidance =
+    recovery.safe_to_continue && recovery.retryable
+      ? "Retry within budget, or pause before switching provider."
+      : recovery.degraded || recovery.action === "retry_exhausted"
+        ? "Pause work, run diagnostics, and consider an operator-approved provider switch."
+        : "Pause and inspect checkpoint state before retrying or using local fallback for deterministic-only work.";
+
   return {
     commands: [
       "uv run glassbox session status " + recovery.session_id + " --cwd .",
       "uv run glassbox provider diagnostics --cwd .",
     ],
-    detail: `${recovery.provider} ${recovery.model_name}: ${recovery.failure_kind.replaceAll("_", " ")} -> ${recovery.action.replaceAll("_", " ")}. Next: ${recovery.operator_next_action}`,
+    detail: `${recovery.provider} ${recovery.model_name}: ${recovery.failure_kind.replaceAll("_", " ")} -> ${recovery.action.replaceAll("_", " ")}. ${guidance} Next: ${recovery.operator_next_action}`,
     label: "Provider recovery",
     state: recovery.safe_to_continue ? "bounded retry" : "attention",
     tone: recovery.safe_to_continue ? "warning" : "warning",

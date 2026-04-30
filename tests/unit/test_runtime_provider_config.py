@@ -2,11 +2,18 @@
 
 import json
 import os
+from datetime import UTC
+from datetime import datetime
 from pathlib import Path
 
 import pytest
 
+from glassbox.core import new_session_id
+from glassbox.core import new_turn_id
+from glassbox.core.models import ProviderRecoveryRecord
 from glassbox.core.types import AutonomyMode
+from glassbox.core.types import ProviderRecoveryAction
+from glassbox.core.types import ProviderRecoveryKind
 from glassbox.runtime.provider_canary import load_provider_canary_evidence
 from glassbox.runtime.provider_capability_matrix import ProviderCapabilityResult
 from glassbox.runtime.provider_capability_matrix import build_provider_capability_matrix
@@ -304,6 +311,8 @@ def test_provider_recommendation_keeps_local_fallback_advisory(
     assert recommendation.advisory is True
     assert recommendation.auto_applied is False
     assert recommendation.posture == "local_fallback"
+    assert recommendation.recommended_action == "local_fallback"
+    assert recommendation.failure_posture.state == "none"
     assert recommendation.confidence == "low"
     assert recommendation.provider == "local"
     assert "reliable tool calls" in recommendation.required_capabilities
@@ -358,6 +367,7 @@ def test_provider_recommendation_uses_retained_canary_evidence(
     )
 
     assert recommendation.posture == "usable"
+    assert recommendation.recommended_action == "continue"
     assert recommendation.confidence == "medium"
     assert recommendation.capability_fit == "partial"
     assert recommendation.risk_posture == "medium"
@@ -385,6 +395,7 @@ def test_provider_recommendation_reports_missing_credentials(
     assert recommendation.capability_fit == "insufficient"
     assert recommendation.risk_posture == "high"
     assert recommendation.credential_readiness == "missing"
+    assert recommendation.recommended_action == "fix_credentials"
     assert recommendation.evidence_freshness == "missing"
     assert any("local_fallback" in unknown for unknown in recommendation.unknowns)
 
@@ -404,6 +415,7 @@ def test_provider_recommendation_reports_unknown_model(
     assert recommendation.capability_fit == "insufficient"
     assert recommendation.risk_posture == "high"
     assert recommendation.credential_readiness == "unsupported"
+    assert recommendation.recommended_action == "local_fallback"
     assert any("unsupported_model" in unknown for unknown in recommendation.unknowns)
 
 
@@ -431,7 +443,81 @@ def test_provider_recommendation_degrades_stale_evidence(
     assert recommendation.confidence == "low"
     assert recommendation.risk_posture == "high"
     assert recommendation.evidence_freshness == "stale"
+    assert recommendation.recommended_action == "refresh_evidence"
     assert any("freshness is stale" in warning for warning in recommendation.warnings)
+
+
+def test_provider_recommendation_switches_after_repeated_provider_failure(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / ".env").write_text("OPENAI_API_KEY=secret-openai\n")
+    now = datetime(2026, 4, 30, 12, 0, tzinfo=UTC)
+    history = [
+        _provider_recovery_record(
+            reason="stream interrupted after retry budget",
+            failure_kind=ProviderRecoveryKind.LOST_STREAM,
+            action=ProviderRecoveryAction.RETRY_EXHAUSTED,
+            safe_to_continue=False,
+            retryable=True,
+            sequence=5,
+            created_at=now,
+        ),
+        _provider_recovery_record(
+            reason="rate limit exceeded",
+            failure_kind=ProviderRecoveryKind.RATE_LIMIT,
+            action=ProviderRecoveryAction.RETRY_SCHEDULED,
+            safe_to_continue=True,
+            retryable=True,
+            sequence=4,
+            created_at=now,
+            backoff_seconds=4,
+        ),
+    ]
+
+    recommendation = recommend_provider(
+        tmp_path,
+        task_kind=ProviderTaskKind.CODING,
+        autonomy_mode=AutonomyMode.TEST_DRIVEN,
+        model_name="openai:gpt-5.4",
+        provider_recovery_history=history,
+    )
+
+    assert recommendation.recommended_action == "switch_provider"
+    assert recommendation.failure_posture.state == "repeated_failure"
+    assert recommendation.failure_posture.repeated_failure_count == 2
+    assert recommendation.risk_posture == "high"
+    assert any("provider switch" in action for action in recommendation.next_actions)
+
+
+def test_provider_recommendation_retries_fresh_retryable_failure(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / ".env").write_text("OPENAI_API_KEY=secret-openai\n")
+    history = [
+        _provider_recovery_record(
+            reason="rate limit exceeded",
+            failure_kind=ProviderRecoveryKind.RATE_LIMIT,
+            action=ProviderRecoveryAction.RETRY_SCHEDULED,
+            safe_to_continue=True,
+            retryable=True,
+            sequence=5,
+            created_at=datetime(2026, 4, 30, 12, 0, tzinfo=UTC),
+            backoff_seconds=4,
+        ),
+    ]
+
+    recommendation = recommend_provider(
+        tmp_path,
+        task_kind=ProviderTaskKind.CODING,
+        autonomy_mode=AutonomyMode.TEST_DRIVEN,
+        model_name="openai:gpt-5.4",
+        provider_recovery_history=history,
+    )
+
+    assert recommendation.recommended_action == "retry"
+    assert recommendation.failure_posture.state == "retryable"
+    assert recommendation.budget_impact.retry_delay_seconds == 4
+    assert recommendation.risk_posture == "medium"
 
 
 def test_provider_recommendation_degrades_provider_mismatch(
@@ -557,6 +643,36 @@ def test_provider_canary_evidence_reports_incompatible_retained_summary(
     assert evidence.matrix_entry_count == 1
     assert evidence.missing_scenarios == AGENTIC_CANARY_SCENARIOS
     assert any("stale or incompatible" in action for action in evidence.next_actions)
+
+
+def _provider_recovery_record(
+    *,
+    reason: str,
+    failure_kind: ProviderRecoveryKind,
+    action: ProviderRecoveryAction,
+    safe_to_continue: bool,
+    retryable: bool,
+    sequence: int,
+    created_at: datetime,
+    backoff_seconds: int | None = None,
+) -> ProviderRecoveryRecord:
+    return ProviderRecoveryRecord(
+        session_id=new_session_id(),
+        turn_id=new_turn_id(),
+        provider="openai",
+        model_name="gpt-5.4",
+        failure_kind=failure_kind,
+        action=action,
+        reason=reason,
+        retryable=retryable,
+        safe_to_continue=safe_to_continue,
+        operator_next_action="inspect provider recovery",
+        attempt=1,
+        max_attempts=3,
+        backoff_seconds=backoff_seconds,
+        created_at=created_at,
+        last_sequence=sequence,
+    )
 
 
 def _write_provider_canary_summary(

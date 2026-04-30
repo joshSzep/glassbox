@@ -271,6 +271,12 @@ def _add_operations_parsers(
         help="model identifier to evaluate; overrides glassbox.profile.json",
     )
     provider_recommend_parser.add_argument(
+        "--session-id",
+        type=_parse_uuid,
+        default=None,
+        help="include latest provider recovery evidence from a persisted session",
+    )
+    provider_recommend_parser.add_argument(
         "--json",
         action="store_true",
         help="print provider recommendation as JSON",

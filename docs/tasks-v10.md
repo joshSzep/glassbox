@@ -1366,7 +1366,7 @@ The intended v10 milestone order is:
 
 ### GBX-1082: Add Model Switch And Fallback Recommendations For Long Work
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1081`, `GBX-1060`
 - Goal: help operators decide whether to continue, pause, switch providers, or
   fall back to deterministic local behavior after provider degradation
@@ -1389,6 +1389,23 @@ The intended v10 milestone order is:
 - Done when:
   - long-running provider degradation has clear advisory next actions without
     hiding uncertainty
+- Completed:
+  - Extended provider recommendations with typed `recommended_action`,
+    `failure_posture`, and `budget_impact` fields, while keeping advice
+    advisory and never auto-applying provider or model switches.
+  - Added optional `--session-id` recovery-history input for
+    `glassbox provider recommend`, including JSON and human-readable output for
+    retry, pause, switch-provider, local-fallback, credential, and evidence
+    refresh decisions.
+  - Added dashboard recovery cue guidance for bounded retries, degraded
+    provider posture, provider switching, checkpoint inspection, and
+    deterministic-only local fallback.
+  - Updated provider docs to describe the advisory recommendation contract,
+    persisted recovery evidence inputs, budget impact, and deterministic
+    replay/eval release boundary.
+  - Covered fresh evidence, stale evidence, repeated provider failure,
+    retryable recovery, unsupported model, missing credentials, CLI JSON
+    recovery guidance, and dashboard provider recovery cues.
 
 ---
 

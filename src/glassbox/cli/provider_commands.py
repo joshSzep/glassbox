@@ -6,6 +6,7 @@ from pathlib import Path
 from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.core.types import AutonomyMode
+from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.provider_canary import ProviderCanaryEvidenceSummary
 from glassbox.runtime.provider_canary import ProviderCanarySummary
 from glassbox.runtime.provider_canary import load_provider_canary_evidence
@@ -43,12 +44,22 @@ def _provider_diagnostics_command(args: argparse.Namespace) -> int:
 
 
 def _provider_recommend_command(args: argparse.Namespace) -> int:
-    cwd, _db_path = resolve_runtime_location(args)
+    cwd, db_path = resolve_runtime_location(args)
+    provider_recovery_history = []
+    if args.session_id is not None:
+        with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+            provider_recovery_history = (
+                runtime_context.repositories.sessions.list_provider_recovery(
+                    args.session_id,
+                    limit=5,
+                )
+            )
     recommendation = recommend_provider(
         cwd,
         task_kind=ProviderTaskKind(args.task_kind),
         autonomy_mode=AutonomyMode(args.autonomy_mode),
         model_name=args.model_name,
+        provider_recovery_history=provider_recovery_history,
     )
     if args.json:
         print_json_output(recommendation.model_dump(mode="json"))
@@ -109,6 +120,14 @@ def _print_provider_recommendation(recommendation: ProviderRecommendation) -> No
     print(f"Risk posture: {recommendation.risk_posture.value}")
     print(f"Evidence freshness: {recommendation.evidence_freshness}")
     print(f"Credential readiness: {recommendation.credential_readiness.value}")
+    print(f"Recommended action: {recommendation.recommended_action.value}")
+    print(f"Failure posture: {recommendation.failure_posture.state}")
+    if recommendation.failure_posture.latest_reason is not None:
+        print(
+            f"Latest provider failure: {recommendation.failure_posture.latest_reason}"
+        )
+    if recommendation.budget_impact.budget_warning is not None:
+        print(f"Budget impact: {recommendation.budget_impact.budget_warning}")
     print("Required capabilities:")
     for capability in recommendation.required_capabilities:
         print(f"  - {capability}")

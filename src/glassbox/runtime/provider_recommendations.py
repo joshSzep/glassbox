@@ -1,6 +1,7 @@
 """Provider-aware model recommendation helpers."""
 
 import json
+from collections.abc import Sequence
 from enum import StrEnum
 from pathlib import Path
 
@@ -8,6 +9,7 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 
+from glassbox.core.models import ProviderRecoveryRecord
 from glassbox.core.types import AutonomyMode
 from glassbox.runtime.provider_canary import ProviderCanaryEvidenceSummary
 from glassbox.runtime.provider_canary import ProviderCanarySummary
@@ -74,6 +76,48 @@ class ProviderCredentialReadiness(StrEnum):
     UNKNOWN = "unknown"
 
 
+class ProviderRecommendedAction(StrEnum):
+    """Concrete advisory action for continuing after provider posture changes."""
+
+    CONTINUE = "continue"
+    RETRY = "retry"
+    PAUSE = "pause"
+    SWITCH_PROVIDER = "switch_provider"
+    LOCAL_FALLBACK = "local_fallback"
+    FIX_CREDENTIALS = "fix_credentials"
+    REFRESH_EVIDENCE = "refresh_evidence"
+
+
+class ProviderFailurePosture(BaseModel):
+    """Latest provider recovery evidence folded into recommendations."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    state: str
+    provider: str | None = None
+    model_name: str | None = None
+    failure_kind: str | None = None
+    recovery_action: str | None = None
+    retryable: bool = False
+    safe_to_continue: bool | None = None
+    degraded: bool = False
+    repeated_failure_count: int = 0
+    latest_reason: str | None = None
+    operator_next_action: str | None = None
+
+
+class ProviderBudgetImpact(BaseModel):
+    """Budget-relevant retry and pause impact for advisory recommendations."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    retry_delay_seconds: int | None = None
+    retry_attempt: int | None = None
+    max_attempts: int | None = None
+    next_retry_at: str | None = None
+    budget_warning: str | None = None
+
+
 class ProviderRecommendationEvidence(BaseModel):
     """Evidence inputs used for one recommendation."""
 
@@ -110,6 +154,9 @@ class ProviderRecommendation(BaseModel):
     risk_posture: ProviderRiskPosture
     evidence_freshness: str
     credential_readiness: ProviderCredentialReadiness
+    recommended_action: ProviderRecommendedAction
+    failure_posture: ProviderFailurePosture
+    budget_impact: ProviderBudgetImpact
     required_capabilities: list[str]
     reasons: list[str]
     warnings: list[str] = Field(default_factory=list)
@@ -156,6 +203,7 @@ def recommend_provider(
     task_kind: ProviderTaskKind,
     autonomy_mode: AutonomyMode,
     model_name: str | None = None,
+    provider_recovery_history: Sequence[ProviderRecoveryRecord] | None = None,
 ) -> ProviderRecommendation:
     """Build a non-authoritative provider recommendation for a workflow."""
 
@@ -175,27 +223,43 @@ def recommend_provider(
         summary,
         relevant_scenarios,
     )
+    recovery_history = list(provider_recovery_history or [])
+    failure_posture = _failure_posture(recovery_history)
+    budget_impact = _budget_impact(recovery_history)
     required_capabilities = _required_capabilities(task_kind, autonomy_mode)
     reasons, warnings = _recommendation_reasons(
         diagnostics,
         recommendation_evidence,
+        failure_posture,
         task_kind=task_kind,
         autonomy_mode=autonomy_mode,
     )
     posture, confidence = _posture_and_confidence(
         diagnostics,
         recommendation_evidence,
+        failure_posture,
         task_kind=task_kind,
         autonomy_mode=autonomy_mode,
     )
-    capability_fit = _capability_fit(diagnostics, recommendation_evidence)
-    risk_posture = _risk_posture(diagnostics, recommendation_evidence)
+    capability_fit = _capability_fit(
+        diagnostics,
+        recommendation_evidence,
+        failure_posture,
+    )
+    risk_posture = _risk_posture(diagnostics, recommendation_evidence, failure_posture)
     credential_readiness = _credential_readiness(diagnostics)
     unknowns = _recommendation_unknowns(
         diagnostics,
         recommendation_evidence,
+        failure_posture,
         task_kind=task_kind,
         autonomy_mode=autonomy_mode,
+    )
+    recommended_action = _recommended_action(
+        diagnostics,
+        recommendation_evidence,
+        failure_posture,
+        credential_readiness,
     )
     selected_model = diagnostics.selected_model_name or model_name or DEFAULT_MODEL_NAME
     return ProviderRecommendation(
@@ -209,12 +273,19 @@ def recommend_provider(
         risk_posture=risk_posture,
         evidence_freshness=evidence.freshness_status,
         credential_readiness=credential_readiness,
+        recommended_action=recommended_action,
+        failure_posture=failure_posture,
+        budget_impact=budget_impact,
         required_capabilities=required_capabilities,
         reasons=reasons,
         warnings=warnings,
         unknowns=unknowns,
         evidence=recommendation_evidence,
-        next_actions=[*diagnostics.next_actions, *evidence.next_actions],
+        next_actions=[
+            *_action_next_steps(recommended_action, failure_posture),
+            *diagnostics.next_actions,
+            *evidence.next_actions,
+        ],
     )
 
 
@@ -346,6 +417,7 @@ def _workflow_scenarios(
 def _recommendation_reasons(
     diagnostics: ProviderDiagnosticsReport,
     evidence: ProviderRecommendationEvidence,
+    failure_posture: ProviderFailurePosture,
     *,
     task_kind: ProviderTaskKind,
     autonomy_mode: AutonomyMode,
@@ -386,16 +458,24 @@ def _recommendation_reasons(
         reasons.append(
             "preflight-only scenarios: " + ", ".join(evidence.relevant_preflight)
         )
+    if failure_posture.state != "none":
+        warnings.append(f"current provider failure posture is {failure_posture.state}")
     return reasons, warnings
 
 
 def _posture_and_confidence(
     diagnostics: ProviderDiagnosticsReport,
     evidence: ProviderRecommendationEvidence,
+    failure_posture: ProviderFailurePosture,
     *,
     task_kind: ProviderTaskKind,
     autonomy_mode: AutonomyMode,
 ) -> tuple[ProviderRecommendationPosture, ProviderRecommendationConfidence]:
+    if failure_posture.state in {"blocked", "degraded", "repeated_failure"}:
+        return (
+            ProviderRecommendationPosture.RISKY,
+            ProviderRecommendationConfidence.LOW,
+        )
     if diagnostics.runtime_mode == "local":
         confidence = (
             ProviderRecommendationConfidence.MEDIUM
@@ -445,7 +525,10 @@ def _posture_and_confidence(
 def _capability_fit(
     diagnostics: ProviderDiagnosticsReport,
     evidence: ProviderRecommendationEvidence,
+    failure_posture: ProviderFailurePosture,
 ) -> ProviderCapabilityFit:
+    if failure_posture.state in {"degraded", "repeated_failure"}:
+        return ProviderCapabilityFit.INSUFFICIENT
     if diagnostics.state != "ready":
         return ProviderCapabilityFit.INSUFFICIENT
     if evidence.model_identity_matches_config is False:
@@ -467,7 +550,12 @@ def _capability_fit(
 def _risk_posture(
     diagnostics: ProviderDiagnosticsReport,
     evidence: ProviderRecommendationEvidence,
+    failure_posture: ProviderFailurePosture,
 ) -> ProviderRiskPosture:
+    if failure_posture.state in {"blocked", "degraded", "repeated_failure"}:
+        return ProviderRiskPosture.HIGH
+    if failure_posture.state == "retryable":
+        return ProviderRiskPosture.MEDIUM
     if diagnostics.state in {
         "local_fallback",
         "missing_credentials",
@@ -510,6 +598,7 @@ def _credential_readiness(
 def _recommendation_unknowns(
     diagnostics: ProviderDiagnosticsReport,
     evidence: ProviderRecommendationEvidence,
+    failure_posture: ProviderFailurePosture,
     *,
     task_kind: ProviderTaskKind,
     autonomy_mode: AutonomyMode,
@@ -536,4 +625,119 @@ def _recommendation_unknowns(
         AutonomyMode.RELEASE_CANDIDATE,
     }:
         unknowns.append("live provider behavior remains advisory for long-running work")
+    if failure_posture.state == "repeated_failure":
+        unknowns.append("repeated provider failures may indicate provider degradation")
+    if failure_posture.state == "blocked":
+        unknowns.append("latest provider recovery evidence says continuation is unsafe")
     return unknowns
+
+
+def _failure_posture(
+    recovery_history: Sequence[ProviderRecoveryRecord],
+) -> ProviderFailurePosture:
+    if not recovery_history:
+        return ProviderFailurePosture(state="none")
+    latest = recovery_history[0]
+    repeated_count = sum(
+        1 for record in recovery_history if record.provider == latest.provider
+    )
+    if repeated_count >= 2:
+        state = "repeated_failure"
+    elif latest.degraded:
+        state = "degraded"
+    elif latest.retryable and latest.safe_to_continue:
+        state = "retryable"
+    elif latest.safe_to_continue is False:
+        state = "blocked"
+    else:
+        state = "unknown"
+    return ProviderFailurePosture(
+        state=state,
+        provider=latest.provider,
+        model_name=latest.model_name,
+        failure_kind=latest.failure_kind.value,
+        recovery_action=latest.action.value,
+        retryable=latest.retryable,
+        safe_to_continue=latest.safe_to_continue,
+        degraded=latest.degraded,
+        repeated_failure_count=repeated_count,
+        latest_reason=latest.reason,
+        operator_next_action=latest.operator_next_action,
+    )
+
+
+def _budget_impact(
+    recovery_history: Sequence[ProviderRecoveryRecord],
+) -> ProviderBudgetImpact:
+    if not recovery_history:
+        return ProviderBudgetImpact()
+    latest = recovery_history[0]
+    warning = None
+    if latest.backoff_seconds is not None:
+        warning = "retry delay consumes provider retry budget and wall-clock budget"
+    if latest.max_attempts is not None and latest.attempt >= latest.max_attempts:
+        warning = "provider retry attempts are exhausted; pause before retrying"
+    return ProviderBudgetImpact(
+        retry_delay_seconds=latest.backoff_seconds,
+        retry_attempt=latest.attempt,
+        max_attempts=latest.max_attempts,
+        next_retry_at=latest.next_retry_at.isoformat()
+        if latest.next_retry_at
+        else None,
+        budget_warning=warning,
+    )
+
+
+def _recommended_action(
+    diagnostics: ProviderDiagnosticsReport,
+    evidence: ProviderRecommendationEvidence,
+    failure_posture: ProviderFailurePosture,
+    credential_readiness: ProviderCredentialReadiness,
+) -> ProviderRecommendedAction:
+    if credential_readiness == ProviderCredentialReadiness.MISSING:
+        return ProviderRecommendedAction.FIX_CREDENTIALS
+    if diagnostics.state == "unsupported_model":
+        return ProviderRecommendedAction.LOCAL_FALLBACK
+    if diagnostics.runtime_mode == "local":
+        return ProviderRecommendedAction.LOCAL_FALLBACK
+    if failure_posture.state == "retryable":
+        return ProviderRecommendedAction.RETRY
+    if failure_posture.state in {"degraded", "repeated_failure"}:
+        return ProviderRecommendedAction.SWITCH_PROVIDER
+    if failure_posture.state == "blocked":
+        return ProviderRecommendedAction.PAUSE
+    if evidence.freshness_status in {"missing", "stale", "incompatible", "failed"}:
+        return ProviderRecommendedAction.REFRESH_EVIDENCE
+    return ProviderRecommendedAction.CONTINUE
+
+
+def _action_next_steps(
+    action: ProviderRecommendedAction,
+    failure_posture: ProviderFailurePosture,
+) -> list[str]:
+    if action == ProviderRecommendedAction.RETRY:
+        return [
+            "retry the provider call only within the configured autonomy "
+            "and retry budget"
+        ]
+    if action == ProviderRecommendedAction.PAUSE:
+        return [
+            "pause long-running work and inspect the latest checkpoint before retrying"
+        ]
+    if action == ProviderRecommendedAction.SWITCH_PROVIDER:
+        return [
+            "pause work, run provider diagnostics, then choose an operator-approved "
+            "provider switch or model switch"
+        ]
+    if action == ProviderRecommendedAction.LOCAL_FALLBACK:
+        return [
+            "use an unprefixed local model only for deterministic local work "
+            "that does not require live-provider capabilities"
+        ]
+    if action == ProviderRecommendedAction.FIX_CREDENTIALS:
+        return ["fix provider credentials, then rerun provider diagnostics"]
+    if action == ProviderRecommendedAction.REFRESH_EVIDENCE:
+        return ["refresh provider canary evidence before relying on provider advice"]
+    if failure_posture.operator_next_action is not None:
+        return [failure_posture.operator_next_action]
+    return ["continue with the selected provider; advice remains advisory"]

@@ -4,11 +4,16 @@ import { describe, expect, it } from "vitest";
 
 import type { SessionStreamState } from "../api/sse";
 import { WorkspaceOverview } from "../components/console/workspace-overview";
-import { createDashboardState, hydrateSessionAggregate } from "../state/session-state";
+import {
+  createDashboardState,
+  hydrateSelectedSession,
+  hydrateSessionAggregate,
+} from "../state/session-state";
 import {
   makeProjectionHealth,
   makeProviderEvidence,
   makeSessionAggregate,
+  makeSessionSnapshot,
   makeSessionSummary,
   makeV4ScenarioAggregate,
 } from "./fixtures/session-state";
@@ -347,6 +352,68 @@ describe("workspace overview console", () => {
     );
     expect(warningMarkup).toContain("Provider evidence advisory");
     expect(warningMarkup).toContain("advisory warning evidence");
+  });
+
+  it("renders provider recovery guidance for retry and provider switch decisions", () => {
+    const retryState = hydrateSessionAggregate(
+      createDashboardState(),
+      makeSessionAggregate([makeSessionSummary("provider-session")]),
+    );
+    const retrySnapshot = makeSessionSnapshot("provider-session", {
+      latest_provider_recovery: {
+        action: "retry_scheduled",
+        attempt: 1,
+        backoff_seconds: 4,
+        checkpoint_id: null,
+        created_at: "2026-04-30T12:00:00Z",
+        degraded: false,
+        failure_kind: "rate_limit",
+        last_sequence: 5,
+        max_attempts: 3,
+        model_name: "gpt-5.4",
+        next_retry_at: "2026-04-30T12:00:04Z",
+        operator_next_action: "wait for bounded retry",
+        provider: "openai",
+        reason: "rate limit exceeded",
+        retryable: true,
+        safe_to_continue: true,
+        session_id: "provider-session",
+        task_id: null,
+        turn_id: "turn-1",
+      },
+    });
+    const retryMarkup = renderOverview(
+      hydrateSelectedSession(retryState, retrySnapshot),
+      "loaded",
+      null,
+      "active",
+      "provider-session",
+    );
+
+    expect(retryMarkup).toContain("Retry within budget, or pause before switching provider.");
+    expect(retryMarkup).toContain("bounded retry");
+
+    const degradedMarkup = renderOverview(
+      hydrateSelectedSession(
+        retryState,
+        makeSessionSnapshot("provider-session", {
+          latest_provider_recovery: {
+            ...retrySnapshot.latest_provider_recovery!,
+            action: "retry_exhausted",
+            degraded: true,
+            safe_to_continue: false,
+          },
+        }),
+      ),
+      "loaded",
+      null,
+      "active",
+      "provider-session",
+    );
+
+    expect(degradedMarkup).toContain(
+      "Pause work, run diagnostics, and consider an operator-approved provider switch.",
+    );
   });
 
   it("renders dense attention rows for urgent, degraded, active, and historical sessions", () => {

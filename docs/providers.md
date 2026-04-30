@@ -335,14 +335,40 @@ or workflow kind:
 ```bash
 uv run glassbox provider recommend --cwd . --task-kind coding --autonomy-mode test-driven
 uv run glassbox provider recommend --cwd . --task-kind verification --autonomy-mode release-candidate --json
+uv run glassbox provider recommend --cwd . --task-kind background --autonomy-mode autonomous-local --session-id SESSION_ID --json
 ```
 
 Recommendations consider local diagnostics, the selected model, autonomy mode,
-workflow needs, and retained advisory canary evidence. They report posture
-(`recommended`, `usable`, `risky`, or `local_fallback`), confidence,
-`capability_fit`, `risk_posture`, `evidence_freshness`,
-`credential_readiness`, required capabilities, reasons, warnings, unknowns,
-relevant scenarios, and next actions.
+workflow needs, retained advisory canary evidence, and optional persisted
+provider recovery evidence for a session. They report posture (`recommended`,
+`usable`, `risky`, or `local_fallback`), confidence, `capability_fit`,
+`risk_posture`, `evidence_freshness`, `credential_readiness`,
+`recommended_action`, `failure_posture`, `budget_impact`, required
+capabilities, reasons, warnings, unknowns, relevant scenarios, and next
+actions.
+
+`recommended_action` is the operator-facing next move. Values are:
+
+- `continue`: current evidence is good enough to continue with advisory
+  provider confidence.
+- `retry`: latest recovery evidence is retryable and safe to continue within
+  the configured retry and autonomy budget.
+- `pause`: latest recovery evidence says continuation is unsafe; inspect the
+  checkpoint or event evidence before retrying.
+- `switch_provider`: repeated or degraded provider recovery evidence suggests
+  pausing, running diagnostics, and choosing an operator-approved provider or
+  model switch.
+- `local_fallback`: use deterministic local behavior only for work that does
+  not require live-provider capabilities.
+- `fix_credentials`: repair missing or partial provider credentials before
+  expecting live-provider execution.
+- `refresh_evidence`: rerun provider canaries or diagnostics before relying on
+  stale, missing, failed, or incompatible evidence.
+
+`failure_posture` folds the latest persisted provider recovery rows into
+states such as `none`, `retryable`, `blocked`, `degraded`, and
+`repeated_failure`. `budget_impact` exposes retry attempt, max attempts, delay,
+next retry time, and budget warnings when that evidence is available.
 
 Workflow scenario mapping is deliberately explicit:
 
@@ -364,6 +390,8 @@ provider for a session based on recommendation output. Missing credentials,
 unknown model families, missing canary evidence, skipped scenarios, stale
 evidence, incompatible evidence, and provider/model mismatches lower confidence
 instead of pretending the provider is ready for autonomous local work.
+Provider recommendations do not become deterministic release authority;
+replay/eval evidence remains the blocking release boundary.
 
 See [provider-canary-policy-v6.md](./provider-canary-policy-v6.md) and
 [manual-qa-evidence-v7.md](./manual-qa-evidence-v7.md) for release evidence
