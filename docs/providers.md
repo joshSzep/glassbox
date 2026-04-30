@@ -120,6 +120,32 @@ Provider setup failures are surfaced with non-secret messages. Raw API keys are
 not echoed into CLI output, dashboard session failure state, logs, or persisted
 events.
 
+## Provider Recovery Evidence
+
+During live provider-backed turns, Glassbox records provider failure recovery
+posture as local event evidence when the model call fails. The
+`ProviderRecoveryRecorded` event and `provider_recovery` projection classify
+retryable errors, non-retryable errors, lost streams, malformed tool calls,
+rate limits, credential changes, and degraded provider posture.
+
+Recovery evidence is intentionally redacted. It stores provider family, model
+name, failure class, bounded action, retry/backoff posture, safe-to-continue
+posture, and the next operator action. It does not store API keys, raw provider
+request metadata, or hidden provider memory.
+
+Inspect the latest posture with:
+
+```bash
+uv run glassbox session status SESSION_ID --cwd .
+uv run glassbox provider diagnostics --cwd .
+```
+
+The dashboard session inspector and recovery cues show the same latest provider
+recovery posture. Retry recommendations remain evidence, not automatic model
+switching; when recovery is unsafe, inspect the latest checkpoint or create a
+fresh one before retrying, switching providers, or falling back to deterministic
+local work.
+
 ## Troubleshooting
 
 Missing API key:

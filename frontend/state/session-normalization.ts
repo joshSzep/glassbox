@@ -96,6 +96,7 @@ function normalizeSessionFields(snapshot: SessionSnapshot): SessionFields {
     forkedFromTurnId: snapshot.forked_from_turn_id,
     lastSequence: snapshot.last_sequence,
     latestCheckpoint: snapshot.latest_checkpoint ?? null,
+    latestProviderRecovery: snapshot.latest_provider_recovery ?? null,
     latestForkPointSequence: snapshot.latest_fork_point_sequence,
     latestForkPointTurnId: snapshot.latest_fork_point_turn_id,
     longRunStatus: snapshot.long_run_status ?? null,

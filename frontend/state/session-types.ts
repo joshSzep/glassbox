@@ -8,6 +8,7 @@ export type ProjectionHealthCounts =
 export type RuntimeSummary = components["schemas"]["WorkspaceRuntimeSummaryResponse"];
 export type RuntimeContext = components["schemas"]["RuntimeContextSnapshot"];
 export type LongRunStatus = components["schemas"]["LongRunStatusResponse"];
+export type ProviderRecovery = components["schemas"]["ProviderRecoveryResponse"];
 export type SessionAggregate = components["schemas"]["SessionAggregateResponse"];
 export type SessionSnapshot = components["schemas"]["SessionSnapshotResponse"];
 export type SessionSummary = components["schemas"]["OperatorSessionSummaryResponse"];
@@ -88,6 +89,7 @@ export type SessionFields = {
   forkedFromTurnId: string | null;
   lastSequence: number;
   latestCheckpoint: TaskCheckpoint | null;
+  latestProviderRecovery: ProviderRecovery | null;
   latestForkPointSequence: number | null;
   latestForkPointTurnId: string | null;
   longRunStatus: LongRunStatus | null;

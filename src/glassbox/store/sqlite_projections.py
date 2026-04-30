@@ -19,6 +19,9 @@ from glassbox.store.sqlite_projection_compactions import (
     _apply_context_compaction_projection,
 )
 from glassbox.store.sqlite_projection_long_run import _apply_long_run_projection
+from glassbox.store.sqlite_projection_provider_recovery import (
+    _apply_provider_recovery_projection,
+)
 from glassbox.store.sqlite_projection_runtime_notes import (
     _apply_runtime_note_projection,
 )
@@ -56,6 +59,7 @@ _PROJECTION_TABLES = (
     "autonomy_budget_posture",
     "background_jobs",
     "workspace_memory",
+    "provider_recovery",
     "long_run_events",
     "task_checkpoints",
     "context_compactions",
@@ -79,6 +83,7 @@ def _apply_projection_event(
     _apply_budget_projection(connection, event)
     _apply_background_job_projection(connection, event)
     _apply_workspace_memory_projection(connection, event)
+    _apply_provider_recovery_projection(connection, event)
     _apply_long_run_projection(connection, event)
     _apply_task_checkpoint_projection(connection, event)
     _apply_context_compaction_projection(connection, event)

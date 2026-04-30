@@ -28,6 +28,7 @@ from glassbox.core.models import BackgroundJobRecord
 from glassbox.core.models import ContextCompactionRecord
 from glassbox.core.models import ForkedSession
 from glassbox.core.models import ProjectionHealth
+from glassbox.core.models import ProviderRecoveryRecord
 from glassbox.core.models import ResolvedForkPoint
 from glassbox.core.models import RuntimeNoteRecord
 from glassbox.core.models import SessionConfig
@@ -243,6 +244,19 @@ class SessionRepository(Protocol):
         limit: int | None = None,
         offset: int = 0,
     ) -> list[ToolAttemptRecord]: ...
+
+    def get_latest_provider_recovery(
+        self,
+        session_id: SessionId,
+    ) -> ProviderRecoveryRecord | None: ...
+
+    def list_provider_recovery(
+        self,
+        session_id: SessionId,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[ProviderRecoveryRecord]: ...
 
     def enqueue_background_job(
         self,

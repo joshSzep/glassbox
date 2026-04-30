@@ -153,6 +153,14 @@ function deriveNextAction(data: DashboardState, stream: SessionStreamState): Ove
   }
 
   if (data.sessionFailureMessage !== null) {
+    if (data.latestProviderRecovery !== null) {
+      return {
+        detail: data.latestProviderRecovery.operator_next_action,
+        label: data.latestProviderRecovery.retryable ? "provider retryable" : "provider stopped",
+        title: `${data.latestProviderRecovery.provider} reported ${data.latestProviderRecovery.failure_kind.replaceAll("_", " ")}.`,
+        variant: data.latestProviderRecovery.safe_to_continue ? "warning" : "destructive",
+      };
+    }
     return {
       detail: data.sessionFailureMessage,
       label: data.sessionFailureRetryable ? "retryable failure" : "failed session",
@@ -216,6 +224,13 @@ function deriveHealthItems(data: DashboardState, stream: SessionStreamState) {
     });
   }
 
+  if (data.latestProviderRecovery !== null) {
+    items.push({
+      label: "provider recovery",
+      value: `${data.latestProviderRecovery.provider} ${data.latestProviderRecovery.action.replaceAll("_", " ")} · ${data.latestProviderRecovery.operator_next_action}`,
+    });
+  }
+
   if (stream.status === "reconnecting" || stream.status === "live_unavailable") {
     items.push({
       label:
@@ -269,6 +284,13 @@ function deriveDecisionSummaries(data: DashboardState, stream: SessionStreamStat
     summaries.push({
       label: "Runtime",
       value: `${workingSetCount} working-set item${workingSetCount === 1 ? "" : "s"} may affect the next action`,
+    });
+  }
+
+  if (data.latestProviderRecovery !== null) {
+    summaries.push({
+      label: "Provider",
+      value: `${data.latestProviderRecovery.failure_kind.replaceAll("_", " ")}; ${data.latestProviderRecovery.safe_to_continue ? "bounded retry evidence recorded" : "checkpoint or operator review required"}`,
     });
   }
 

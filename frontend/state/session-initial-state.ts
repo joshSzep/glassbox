@@ -112,6 +112,7 @@ export function createEmptySessionFields(): SessionFields {
     forkedFromTurnId: null,
     lastSequence: 0,
     latestCheckpoint: null,
+    latestProviderRecovery: null,
     latestForkPointSequence: null,
     latestForkPointTurnId: null,
     longRunStatus: null,

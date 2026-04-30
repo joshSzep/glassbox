@@ -50,6 +50,9 @@ from glassbox.core import PauseWindowCancelled
 from glassbox.core import PauseWindowPolicy
 from glassbox.core import PauseWindowScheduled
 from glassbox.core import PauseWindowTriggered
+from glassbox.core import ProviderRecoveryAction
+from glassbox.core import ProviderRecoveryKind
+from glassbox.core import ProviderRecoveryRecorded
 from glassbox.core import RecoveryDecision
 from glassbox.core import RecoveryDecisionRecorded
 from glassbox.core import ResumeOutcomeRecorded
@@ -635,6 +638,23 @@ def test_long_run_payloads_round_trip_through_event_union() -> None:
             "recovery_decision_id": recovery_decision_id,
         }
     )
+    provider_recovery = adapter.validate_python(
+        {
+            "event_type": "ProviderRecoveryRecorded",
+            "provider": "openai",
+            "model_name": "gpt-5.4",
+            "failure_kind": "rate_limit",
+            "action": "retry_scheduled",
+            "reason": "rate limit exceeded",
+            "retryable": True,
+            "safe_to_continue": True,
+            "operator_next_action": "wait for bounded retry",
+            "turn_id": turn_id,
+            "attempt": 1,
+            "max_attempts": 3,
+            "backoff_seconds": 4,
+        }
+    )
 
     assert isinstance(phase, LongRunPhaseChanged)
     assert phase.phase == LongRunPhase.TOOL_EXECUTION
@@ -658,6 +678,9 @@ def test_long_run_payloads_round_trip_through_event_union() -> None:
     assert decision.decision == RecoveryDecision.RETRY
     assert isinstance(outcome, ResumeOutcomeRecorded)
     assert outcome.outcome == ResumeOutcomeStatus.RESUMED
+    assert isinstance(provider_recovery, ProviderRecoveryRecorded)
+    assert provider_recovery.failure_kind == ProviderRecoveryKind.RATE_LIMIT
+    assert provider_recovery.action == ProviderRecoveryAction.RETRY_SCHEDULED
 
 
 def test_long_run_envelope_exposes_correlation_ids() -> None:

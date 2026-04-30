@@ -13,6 +13,7 @@ from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import LongRunStatusRecord
 from glassbox.core.models import PolicyActivitySummary
 from glassbox.core.models import ProjectionHealth
+from glassbox.core.models import ProviderRecoveryRecord
 from glassbox.core.models import TaskCheckpointRecord
 from glassbox.core.models import ToolAttemptRecord
 from glassbox.core.models import ToolCallRecord
@@ -94,6 +95,7 @@ class SessionSummaryView(BaseModel):
     session_failure_retryable: bool | None = None
     turn_recovery_posture: TurnRecoveryPosture | None = None
     latest_checkpoint: TaskCheckpointRecord | None = None
+    latest_provider_recovery: ProviderRecoveryRecord | None = None
     long_run_status: LongRunStatusRecord
     latest_message_summary: str | None = None
     projection_health: ProjectionHealth
@@ -204,6 +206,7 @@ class SessionSnapshotView(BaseModel):
     turn_recovery_posture: TurnRecoveryPosture | None = None
     latest_checkpoint: TaskCheckpointRecord | None = None
     checkpoint_history: list[TaskCheckpointRecord] = Field(default_factory=list)
+    latest_provider_recovery: ProviderRecoveryRecord | None = None
     long_run_status: LongRunStatusRecord
     active_tool_calls: list[ToolCallRecord] = Field(default_factory=list)
     recent_tool_attempts: list[ToolAttemptRecord] = Field(default_factory=list)

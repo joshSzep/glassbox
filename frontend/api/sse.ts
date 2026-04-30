@@ -37,6 +37,7 @@ export const glassboxEventTypes = [
   "ToolAttemptHeartbeat",
   "RecoveryDecisionRecorded",
   "ResumeOutcomeRecorded",
+  "ProviderRecoveryRecorded",
   "RuntimeNoteRecorded",
   "RuntimeNoteImported",
   "ErrorRecorded",

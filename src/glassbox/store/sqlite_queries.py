@@ -9,6 +9,8 @@ from glassbox.store.sqlite_query_checkpoints import list_task_checkpoints
 from glassbox.store.sqlite_query_compactions import get_context_compaction
 from glassbox.store.sqlite_query_compactions import list_context_compactions
 from glassbox.store.sqlite_query_metrics import list_turn_metrics
+from glassbox.store.sqlite_query_provider_recovery import get_latest_provider_recovery
+from glassbox.store.sqlite_query_provider_recovery import list_provider_recovery
 from glassbox.store.sqlite_query_runtime_notes import list_runtime_notes
 from glassbox.store.sqlite_query_tasks import get_task
 from glassbox.store.sqlite_query_tasks import list_open_blocked_tasks
@@ -26,6 +28,7 @@ __all__ = [
     "get_budget_posture",
     "get_context_compaction",
     "get_latest_task_checkpoint",
+    "get_latest_provider_recovery",
     "get_task",
     "get_tool_attempt",
     "list_approvals",
@@ -33,6 +36,7 @@ __all__ = [
     "list_branch_searches",
     "list_context_compactions",
     "list_open_blocked_tasks",
+    "list_provider_recovery",
     "list_runtime_notes",
     "list_task_checkpoints",
     "list_task_steps",

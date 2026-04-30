@@ -1327,7 +1327,7 @@ The intended v10 milestone order is:
 
 ### GBX-1081: Add Provider Failure Recovery State
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1011`
 - Goal: make retryable provider failures, stream loss, malformed tool calls, and
   degraded provider behavior explicit recovery states
@@ -1351,6 +1351,18 @@ The intended v10 milestone order is:
 - Done when:
   - provider failure during long work produces visible, bounded recovery
     evidence instead of unexplained turn failure
+- Completed:
+  - Added `ProviderRecoveryRecorded` events, provider recovery enums, durable
+    recovery records, SQLite migration/projection/query helpers, and rebuild
+    coverage for retryable errors, non-retryable errors, lost streams,
+    malformed tool calls, rate limits, credential changes, and degraded
+    posture.
+  - Recorded provider recovery evidence before failed-turn evidence in live
+    turn execution, including bounded retry/backoff posture and redacted
+    operator next actions without persisting secrets or raw provider metadata.
+  - Surfaced latest provider recovery state in CLI session status, session
+    summary/snapshot API responses, generated frontend API types, dashboard
+    next-action/health/recovery cues, and provider/cockpit docs.
 
 ### GBX-1082: Add Model Switch And Fallback Recommendations For Long Work
 

@@ -10,6 +10,7 @@ from glassbox.core.ids import SessionId
 from glassbox.core.ids import TaskId
 from glassbox.core.ids import ToolAttemptId
 from glassbox.core.models import ContextCompactionRecord
+from glassbox.core.models import ProviderRecoveryRecord
 from glassbox.core.models import TaskCheckpointRecord
 from glassbox.core.models import TaskRecord
 from glassbox.core.models import TaskStepRecord
@@ -162,6 +163,29 @@ class _SQLiteTaskMethods:
             self._connection,
             session_id,
             status=status,
+            limit=limit,
+            offset=offset,
+        )
+
+    def get_latest_provider_recovery(
+        self,
+        session_id: SessionId,
+    ) -> ProviderRecoveryRecord | None:
+        return query_store.get_latest_provider_recovery(
+            self._connection,
+            session_id,
+        )
+
+    def list_provider_recovery(
+        self,
+        session_id: SessionId,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[ProviderRecoveryRecord]:
+        return query_store.list_provider_recovery(
+            self._connection,
+            session_id,
             limit=limit,
             offset=offset,
         )

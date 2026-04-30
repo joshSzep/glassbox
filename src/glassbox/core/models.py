@@ -41,6 +41,8 @@ from glassbox.core.types import BranchSearchStatus
 from glassbox.core.types import ContextCompactionFreshness
 from glassbox.core.types import ContextCompactionScope
 from glassbox.core.types import LongRunPhase
+from glassbox.core.types import ProviderRecoveryAction
+from glassbox.core.types import ProviderRecoveryKind
 from glassbox.core.types import RepositoryIndexEntityKind
 from glassbox.core.types import RepositoryIndexFreshness
 from glassbox.core.types import RepositoryIndexSourceType
@@ -300,6 +302,32 @@ class LongRunStatusRecord(BaseModel):
     elapsed_seconds: int = Field(ge=0)
     stuck_reason: str | None = Field(default=None, max_length=2000)
     progress_summary: str = Field(min_length=1, max_length=2000)
+
+
+class ProviderRecoveryRecord(BaseModel):
+    """Projected provider failure and recovery posture for long work."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: SessionId
+    provider: str = Field(min_length=1, max_length=120)
+    model_name: str = Field(min_length=1, max_length=200)
+    failure_kind: ProviderRecoveryKind
+    action: ProviderRecoveryAction
+    reason: str = Field(min_length=1, max_length=2000)
+    retryable: bool
+    safe_to_continue: bool
+    degraded: bool = False
+    operator_next_action: str = Field(min_length=1, max_length=2000)
+    turn_id: TurnId | None = None
+    task_id: TaskId | None = None
+    checkpoint_id: TaskCheckpointId | None = None
+    attempt: int = Field(default=1, ge=1)
+    max_attempts: int | None = Field(default=None, ge=1)
+    backoff_seconds: int | None = Field(default=None, ge=0)
+    next_retry_at: datetime | None = None
+    created_at: datetime
+    last_sequence: int = Field(ge=0)
 
 
 class TaskCheckpointRecord(BaseModel):

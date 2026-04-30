@@ -143,6 +143,11 @@ class SessionQueryService:
             else []
         )
         latest_checkpoint = checkpoint_history[0] if checkpoint_history else None
+        latest_provider_recovery = (
+            self._session_repository.get_latest_provider_recovery(session_id)
+            if projections_available
+            else None
+        )
         dashboard_url = dashboard_url_from_events(session_events)
         latest_failure = latest_session_failure(session_events)
         pending_question_id = state.pending_question_id if state is not None else None
@@ -227,6 +232,7 @@ class SessionQueryService:
             turn_recovery_posture=turn_recovery_posture,
             latest_checkpoint=latest_checkpoint,
             checkpoint_history=checkpoint_history,
+            latest_provider_recovery=latest_provider_recovery,
             long_run_status=build_long_run_status(
                 record,
                 status=snapshot_status,
@@ -395,6 +401,11 @@ class SessionQueryService:
             if projections_available
             else None
         )
+        latest_provider_recovery = (
+            self._session_repository.get_latest_provider_recovery(record.session_id)
+            if projections_available
+            else None
+        )
         recent_tool_attempts = (
             self._session_repository.list_tool_attempts(record.session_id, limit=5)
             if projections_available
@@ -449,6 +460,7 @@ class SessionQueryService:
             ),
             turn_recovery_posture=turn_recovery_posture,
             latest_checkpoint=latest_checkpoint,
+            latest_provider_recovery=latest_provider_recovery,
             long_run_status=build_long_run_status(
                 record,
                 status=status,

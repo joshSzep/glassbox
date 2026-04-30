@@ -52,6 +52,7 @@ from glassbox.core.events import ModelToolCallRequested
 from glassbox.core.events import PauseWindowCancelled
 from glassbox.core.events import PauseWindowScheduled
 from glassbox.core.events import PauseWindowTriggered
+from glassbox.core.events import ProviderRecoveryRecorded
 from glassbox.core.events import RecoveryDecisionRecorded
 from glassbox.core.events import ReplayArtifactRecorded
 from glassbox.core.events import ResumeOutcomeRecorded
@@ -162,6 +163,7 @@ from glassbox.core.models import MessagePart
 from glassbox.core.models import PolicyDecision
 from glassbox.core.models import PolicyDecisionTrace
 from glassbox.core.models import ProjectionHealth
+from glassbox.core.models import ProviderRecoveryRecord
 from glassbox.core.models import QuietWindowPolicy
 from glassbox.core.models import RepositoryIndexEntry
 from glassbox.core.models import RepositoryIndexProvenance
@@ -205,6 +207,8 @@ from glassbox.core.types import ContextCompactionScope
 from glassbox.core.types import LongRunPhase
 from glassbox.core.types import LongRunPhaseState
 from glassbox.core.types import PauseWindowPolicy
+from glassbox.core.types import ProviderRecoveryAction
+from glassbox.core.types import ProviderRecoveryKind
 from glassbox.core.types import RecoveryDecision
 from glassbox.core.types import RepositoryIndexEntityKind
 from glassbox.core.types import RepositoryIndexFreshness
@@ -323,6 +327,10 @@ __all__ = [
     "PolicyDecision",
     "PolicyDecisionTrace",
     "ProjectionHealth",
+    "ProviderRecoveryAction",
+    "ProviderRecoveryKind",
+    "ProviderRecoveryRecord",
+    "ProviderRecoveryRecorded",
     "QuietWindowPolicy",
     "QuestionId",
     "RecoveryDecision",

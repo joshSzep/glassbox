@@ -539,6 +539,39 @@ BOOTSTRAP_STATEMENTS = (
         on workspace_memory (session_id, last_sequence)
     """,
     """
+    create table if not exists provider_recovery (
+        session_id text not null,
+        sequence integer not null,
+        turn_id text,
+        task_id text,
+        checkpoint_id text,
+        provider text not null,
+        model_name text not null,
+        failure_kind text not null,
+        action text not null,
+        retryable integer not null,
+        safe_to_continue integer not null,
+        degraded integer not null default 0,
+        attempt integer not null,
+        max_attempts integer,
+        backoff_seconds integer,
+        next_retry_at text,
+        reason text not null,
+        operator_next_action text not null,
+        created_at text not null,
+        primary key (session_id, sequence),
+        foreign key (session_id) references sessions(session_id)
+    )
+    """,
+    """
+    create index if not exists idx_provider_recovery_session_sequence
+        on provider_recovery (session_id, sequence desc)
+    """,
+    """
+    create index if not exists idx_provider_recovery_session_action
+        on provider_recovery (session_id, action, sequence desc)
+    """,
+    """
     create table if not exists long_run_events (
         session_id text not null,
         sequence integer not null,

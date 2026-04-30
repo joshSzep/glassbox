@@ -22,6 +22,7 @@ import type {
   ActiveToolCall,
   BranchableTurn,
   DashboardState,
+  ProviderRecovery,
   TranscriptMessage,
 } from "@/state/session-types";
 
@@ -388,6 +389,49 @@ export function applySessionEvent(
           model_output_tokens_total:
             metrics.model_output_tokens_total + (numberOrNull(payload.output_tokens) ?? 0),
         })),
+      };
+    }
+    case "ProviderRecoveryRecorded": {
+      const provider = stringOrNull(payload.provider);
+      const modelName = stringOrNull(payload.model_name);
+      const failureKind = stringOrNull(payload.failure_kind);
+      const action = stringOrNull(payload.action);
+      const reason = stringOrNull(payload.reason);
+      const operatorNextAction = stringOrNull(payload.operator_next_action);
+      if (
+        provider === null ||
+        modelName === null ||
+        failureKind === null ||
+        action === null ||
+        reason === null ||
+        operatorNextAction === null
+      ) {
+        return next;
+      }
+      const recovery: ProviderRecovery = {
+        action,
+        attempt: numberOrNull(payload.attempt) ?? 1,
+        backoff_seconds: numberOrNull(payload.backoff_seconds),
+        checkpoint_id: stringOrNull(payload.checkpoint_id),
+        created_at: envelope.created_at,
+        degraded: booleanOrNull(payload.degraded) ?? false,
+        failure_kind: failureKind,
+        last_sequence: envelope.sequence,
+        max_attempts: numberOrNull(payload.max_attempts),
+        model_name: modelName,
+        next_retry_at: stringOrNull(payload.next_retry_at),
+        operator_next_action: operatorNextAction,
+        provider,
+        reason,
+        retryable: booleanOrNull(payload.retryable) ?? false,
+        safe_to_continue: booleanOrNull(payload.safe_to_continue) ?? false,
+        session_id: envelope.session_id,
+        task_id: stringOrNull(payload.task_id),
+        turn_id: stringOrNull(payload.turn_id),
+      };
+      return {
+        ...next,
+        latestProviderRecovery: recovery,
       };
     }
     case "RuntimeNoteRecorded":

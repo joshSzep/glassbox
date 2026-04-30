@@ -15,6 +15,9 @@ from glassbox.core import ContextCompactionFreshnessChanged
 from glassbox.core import ContextCompactionScope
 from glassbox.core import EventEnvelope
 from glassbox.core import LongRunPhase
+from glassbox.core import ProviderRecoveryAction
+from glassbox.core import ProviderRecoveryKind
+from glassbox.core import ProviderRecoveryRecorded
 from glassbox.core import RuntimeNoteRecorded
 from glassbox.core import SessionStarted
 from glassbox.core import TaskBlockedReason
@@ -61,9 +64,11 @@ from glassbox.core import new_workspace_memory_id
 from glassbox.store.sqlite import append_events
 from glassbox.store.sqlite import get_budget_posture
 from glassbox.store.sqlite import get_context_compaction
+from glassbox.store.sqlite import get_latest_provider_recovery
 from glassbox.store.sqlite import get_latest_task_checkpoint
 from glassbox.store.sqlite import get_tool_attempt
 from glassbox.store.sqlite import list_context_compactions
+from glassbox.store.sqlite import list_provider_recovery
 from glassbox.store.sqlite import list_runtime_notes
 from glassbox.store.sqlite import list_task_checkpoints
 from glassbox.store.sqlite import list_tool_attempts
@@ -450,6 +455,86 @@ def test_context_compaction_projection_keeps_history_and_rebuilds(
     assert after.unresolved_question_count == 1
     assert after.accepted_risk_count == 1
     assert after.limitations == ["omits raw command output"]
+
+
+def test_provider_recovery_projection_keeps_latest_history_and_rebuilds(
+    tmp_path: Path,
+) -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    next_retry_at = datetime(2026, 4, 30, 12, 5, tzinfo=UTC)
+    connection = open_initialized_database(tmp_path)
+    try:
+        append_events(
+            connection,
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=SessionStarted(
+                        cwd=str(tmp_path),
+                        model_name="openai:gpt-5.4",
+                        approval_mode="confirm",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ProviderRecoveryRecorded(
+                        provider="openai",
+                        model_name="gpt-5.4",
+                        failure_kind=ProviderRecoveryKind.RATE_LIMIT,
+                        action=ProviderRecoveryAction.RETRY_SCHEDULED,
+                        reason="rate limit exceeded",
+                        retryable=True,
+                        safe_to_continue=True,
+                        operator_next_action="wait for bounded retry",
+                        turn_id=turn_id,
+                        attempt=1,
+                        max_attempts=3,
+                        backoff_seconds=4,
+                        next_retry_at=next_retry_at,
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ProviderRecoveryRecorded(
+                        provider="openai",
+                        model_name="gpt-5.4",
+                        failure_kind=ProviderRecoveryKind.LOST_STREAM,
+                        action=ProviderRecoveryAction.RETRY_EXHAUSTED,
+                        reason="stream interrupted after retry budget",
+                        retryable=True,
+                        safe_to_continue=False,
+                        operator_next_action="inspect checkpoint before retrying",
+                        turn_id=turn_id,
+                        attempt=3,
+                        max_attempts=3,
+                    ),
+                ),
+            ],
+        )
+
+        latest_before = get_latest_provider_recovery(connection, session_id)
+        history_before = list_provider_recovery(connection, session_id)
+        connection.execute(
+            "delete from provider_recovery where session_id = ?",
+            (str(session_id),),
+        )
+        rebuild_session_projections(connection, session_id)
+        latest_after = get_latest_provider_recovery(connection, session_id)
+        history_after = list_provider_recovery(connection, session_id)
+    finally:
+        connection.close()
+
+    assert latest_before == latest_after
+    assert history_before == history_after
+    assert latest_after is not None
+    assert latest_after.failure_kind.value == "lost_stream"
+    assert latest_after.action.value == "retry_exhausted"
+    assert latest_after.safe_to_continue is False
+    assert history_after[1].next_retry_at == next_retry_at
 
 
 def test_tool_attempt_projection_rebuilds_from_heartbeats(tmp_path: Path) -> None:

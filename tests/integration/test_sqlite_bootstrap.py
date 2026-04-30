@@ -43,7 +43,25 @@ def _migration_rows(connection: sqlite3.Connection) -> list[sqlite3.Row]:
 
 
 def _expected_migration_versions() -> list[int]:
-    return [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, SCHEMA_VERSION]
+    return [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        SCHEMA_VERSION,
+    ]
 
 
 def _expected_migration_names() -> list[str]:
@@ -64,6 +82,7 @@ def _expected_migration_names() -> list[str]:
         "add context compaction projection table",
         "add tool attempt projection table",
         "add task verification ledger projection table",
+        "add provider recovery projection table",
     ]
 
 
@@ -108,6 +127,7 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         "branch_candidates",
         "background_jobs",
         "workspace_memory",
+        "provider_recovery",
         "long_run_events",
         "task_checkpoints",
         "context_compactions",
@@ -147,6 +167,8 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         "idx_workspace_memory_state_updated",
         "idx_workspace_memory_kind_updated",
         "idx_workspace_memory_session_sequence",
+        "idx_provider_recovery_session_sequence",
+        "idx_provider_recovery_session_action",
         "idx_long_run_events_session_created",
         "idx_long_run_events_task",
         "idx_long_run_events_checkpoint",
@@ -496,5 +518,6 @@ def test_migrations_are_ordered_to_current_schema_version() -> None:
         15,
         16,
         17,
+        18,
         SCHEMA_VERSION,
     ]

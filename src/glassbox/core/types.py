@@ -368,6 +368,29 @@ class ResumeOutcomeStatus(StrEnum):
     FAILED = "failed"
 
 
+class ProviderRecoveryKind(StrEnum):
+    """Operator-facing provider failure and degradation classes."""
+
+    RETRYABLE_ERROR = "retryable_error"
+    NON_RETRYABLE_ERROR = "non_retryable_error"
+    LOST_STREAM = "lost_stream"
+    MALFORMED_TOOL_CALL = "malformed_tool_call"
+    RATE_LIMIT = "rate_limit"
+    CREDENTIAL_CHANGE = "credential_change"
+    DEGRADED_PROVIDER_POSTURE = "degraded_provider_posture"
+
+
+class ProviderRecoveryAction(StrEnum):
+    """Bounded recovery action recorded for provider failures."""
+
+    RETRY_SCHEDULED = "retry_scheduled"
+    RETRYING = "retrying"
+    RETRY_EXHAUSTED = "retry_exhausted"
+    STOPPED_CHECKPOINT_REQUIRED = "stopped_checkpoint_required"
+    DEGRADED = "degraded"
+    CONTINUE_WITH_CAUTION = "continue_with_caution"
+
+
 class WorkspaceMemoryKind(StrEnum):
     """Operator-facing categories for durable workspace memory."""
 

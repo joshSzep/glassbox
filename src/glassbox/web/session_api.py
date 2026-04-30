@@ -172,6 +172,28 @@ class LongRunStatusResponse(BaseModel):
     progress_summary: str
 
 
+class ProviderRecoveryResponse(BaseModel):
+    session_id: str
+    provider: str
+    model_name: str
+    failure_kind: str
+    action: str
+    reason: str
+    retryable: bool
+    safe_to_continue: bool
+    degraded: bool = False
+    operator_next_action: str
+    turn_id: str | None = None
+    task_id: str | None = None
+    checkpoint_id: str | None = None
+    attempt: int
+    max_attempts: int | None = None
+    backoff_seconds: int | None = None
+    next_retry_at: datetime | None = None
+    created_at: datetime
+    last_sequence: int
+
+
 class TaskCheckpointResponse(BaseModel):
     checkpoint_id: str
     session_id: str
@@ -405,6 +427,7 @@ class SessionSummaryResponse(BaseModel):
     session_failure_retryable: bool | None
     turn_recovery_posture: TurnRecoveryPostureResponse | None = None
     latest_checkpoint: TaskCheckpointResponse | None = None
+    latest_provider_recovery: ProviderRecoveryResponse | None = None
     long_run_status: LongRunStatusResponse
     latest_message_summary: str | None
     projection_health: ProjectionHealthResponse
@@ -525,6 +548,7 @@ class SessionSnapshotResponse(BaseModel):
     turn_recovery_posture: TurnRecoveryPostureResponse | None = None
     latest_checkpoint: TaskCheckpointResponse | None = None
     checkpoint_history: list[TaskCheckpointResponse]
+    latest_provider_recovery: ProviderRecoveryResponse | None = None
     long_run_status: LongRunStatusResponse
     active_tool_calls: list[ActiveToolCallResponse]
     recent_tool_attempts: list[ToolAttemptResponse] = Field(default_factory=list)

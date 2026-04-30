@@ -41,6 +41,7 @@ def build_operator_session_summary(
         or summary.pending_question_id is not None
         or summary.status == "failed"
         or summary.projection_health.degraded
+        or _has_provider_recovery_attention(summary)
         or _has_recovery_action(summary)
         or summary.long_run_status.state in {"stale", "stuck"}
     )
@@ -78,6 +79,8 @@ def operator_priority(
         return "failures", 2
     if summary.projection_health.degraded:
         return "degraded", 3
+    if _has_provider_recovery_attention(summary):
+        return "provider_recovery", 3
     if _has_recovery_action(summary):
         return "recovery", 3
     if summary.long_run_status.state == "stuck":
@@ -148,6 +151,11 @@ def operator_queue_memberships(
         queue_memberships.append(OPERATOR_QUEUE_FAILURES)
     if summary.projection_health.degraded:
         queue_memberships.append(OPERATOR_QUEUE_DEGRADED)
+    if (
+        _has_provider_recovery_attention(summary)
+        and OPERATOR_QUEUE_DEGRADED not in queue_memberships
+    ):
+        queue_memberships.append(OPERATOR_QUEUE_DEGRADED)
     if live_actionable:
         queue_memberships.append(OPERATOR_QUEUE_ACTIVE)
     if action_needed:
@@ -161,6 +169,13 @@ def _has_recovery_action(summary: SessionSummaryView) -> bool:
     return (
         summary.turn_recovery_posture is not None
         and summary.turn_recovery_posture.state in _RECOVERY_ACTION_STATES
+    )
+
+
+def _has_provider_recovery_attention(summary: SessionSummaryView) -> bool:
+    recovery = summary.latest_provider_recovery
+    return recovery is not None and (
+        recovery.degraded or not recovery.safe_to_continue or recovery.retryable
     )
 
 

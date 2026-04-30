@@ -60,6 +60,8 @@ from glassbox.core.types import ContextCompactionScope
 from glassbox.core.types import LongRunPhase
 from glassbox.core.types import LongRunPhaseState
 from glassbox.core.types import PauseWindowPolicy
+from glassbox.core.types import ProviderRecoveryAction
+from glassbox.core.types import ProviderRecoveryKind
 from glassbox.core.types import RecoveryDecision
 from glassbox.core.types import ResumeOutcomeStatus
 from glassbox.core.types import TaskBlockedReason
@@ -971,6 +973,26 @@ class ResumeOutcomeRecorded(EventPayload):
     resumed_by: str = Field(default="runtime", min_length=1, max_length=200)
 
 
+class ProviderRecoveryRecorded(EventPayload):
+    event_type: Literal["ProviderRecoveryRecorded"] = "ProviderRecoveryRecorded"
+    provider: str = Field(min_length=1, max_length=120)
+    model_name: str = Field(min_length=1, max_length=200)
+    failure_kind: ProviderRecoveryKind
+    action: ProviderRecoveryAction
+    reason: str = Field(min_length=1, max_length=2000)
+    retryable: bool
+    safe_to_continue: bool
+    operator_next_action: str = Field(min_length=1, max_length=2000)
+    degraded: bool = False
+    turn_id: TurnId | None = None
+    task_id: TaskId | None = None
+    checkpoint_id: TaskCheckpointId | None = None
+    attempt: int = Field(default=1, ge=1)
+    max_attempts: int | None = Field(default=None, ge=1)
+    backoff_seconds: int | None = Field(default=None, ge=0)
+    next_retry_at: datetime | None = None
+
+
 class WorkspaceMemoryCreated(EventPayload):
     event_type: Literal["WorkspaceMemoryCreated"] = "WorkspaceMemoryCreated"
     memory_id: WorkspaceMemoryId
@@ -1147,6 +1169,7 @@ EventPayloadType = Annotated[
     | ToolAttemptHeartbeat
     | RecoveryDecisionRecorded
     | ResumeOutcomeRecorded
+    | ProviderRecoveryRecorded
     | WorkspaceMemoryCreated
     | WorkspaceMemoryConfirmed
     | WorkspaceMemoryUpdated

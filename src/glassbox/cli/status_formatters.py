@@ -28,6 +28,8 @@ def _print_session_status(status_view: SessionStatusView) -> None:
     print(f"Last sequence: {snapshot.last_sequence}")
     print(_format_current_turn_line(current_turn_id, snapshot.status))
     print(_format_long_run_status_line(snapshot.long_run_status))
+    if snapshot.latest_provider_recovery is not None:
+        print(_format_provider_recovery_line(snapshot.latest_provider_recovery))
     if snapshot.turn_recovery_posture is not None:
         print(_format_turn_recovery_line(snapshot.turn_recovery_posture))
     if snapshot.latest_checkpoint is not None:
@@ -571,6 +573,21 @@ def _format_turn_recovery_line(posture: TurnRecoveryPosture) -> str:
     return (
         "Turn recovery: "
         f"{posture.state} for {posture.turn_id}{safe_suffix}{reason_suffix}"
+    )
+
+
+def _format_provider_recovery_line(recovery) -> str:
+    retry_detail = ""
+    if recovery.retryable:
+        if recovery.backoff_seconds is not None:
+            retry_detail = f"; retry in {recovery.backoff_seconds}s"
+        else:
+            retry_detail = "; retryable"
+    return (
+        "Provider recovery: "
+        f"{recovery.provider}/{recovery.model_name} "
+        f"{recovery.failure_kind.value} -> {recovery.action.value}"
+        f"{retry_detail}; next: {recovery.operator_next_action}"
     )
 
 

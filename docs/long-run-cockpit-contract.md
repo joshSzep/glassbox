@@ -138,8 +138,9 @@ Long-run cockpit cues must be derived from explicit local data sources:
   time-window budget fields for unattended duration, checkpoint cadence,
   quiet-window policy, retry delay, checkpoint approval requirement, and
   background job state.
-- Provider posture: provider diagnostics, provider canary evidence, capability
-  matrix summaries, and future provider recovery events.
+- Provider posture: `ProviderRecoveryRecorded` events, `provider_recovery`
+  projection rows, provider diagnostics, provider canary evidence, and
+  capability matrix summaries.
 - Terminal UI: TUI reducer state, session status formatter output, command
   guide text, and dashboard URL or stream status shown by chat/attach.
 - Frontend UI: `createConsoleStore`, `createSessionStore`, `createTaskStore`,

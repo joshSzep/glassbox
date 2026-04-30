@@ -26,6 +26,7 @@ from glassbox.runtime.logging import runtime_log_extra
 from glassbox.runtime.model_loop import ModelConversationState
 from glassbox.runtime.model_loop import ModelLoopRunner
 from glassbox.runtime.model_loop import ModelLoopSuspension
+from glassbox.runtime.provider_recovery import classify_provider_failure
 from glassbox.runtime.replay_capture import ReplayArtifactRecorder
 from glassbox.runtime.task_plan_capture import capture_task_plan_proposal
 from glassbox.runtime.transport import RuntimeEventTransport
@@ -424,18 +425,30 @@ class TurnEngine:
                 task_plan_capture=task_plan_capture,
             )
 
-        await self._model_loop_runner.run(
-            state=state,
-            model_adapter=model_adapter,
-            model_executor=model_executor,
-            cancellation_controller=cancellation_controller,
-            on_model_call_start=on_model_call_start,
-            on_record_model_call=on_record_model_call,
-            on_stream_event=on_stream_event,
-            on_model_call_completed=on_model_call_completed,
-            on_tool_calls=on_tool_calls,
-            on_assistant_completed=on_assistant_completed,
-        )
+        try:
+            await self._model_loop_runner.run(
+                state=state,
+                model_adapter=model_adapter,
+                model_executor=model_executor,
+                cancellation_controller=cancellation_controller,
+                on_model_call_start=on_model_call_start,
+                on_record_model_call=on_record_model_call,
+                on_stream_event=on_stream_event,
+                on_model_call_completed=on_model_call_completed,
+                on_tool_calls=on_tool_calls,
+                on_assistant_completed=on_assistant_completed,
+            )
+        except Exception as exc:
+            recovery = classify_provider_failure(
+                exc,
+                model_adapter=model_adapter,
+            )
+            if recovery is not None:
+                self._event_recorder.record_provider_recovery(
+                    session_id,
+                    recovery=recovery.to_event(turn_id=turn_id),
+                )
+            raise
 
     async def _on_model_tool_calls(
         self,

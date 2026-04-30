@@ -17,6 +17,7 @@ from pydantic_ai.models.function import FunctionModel
 from glassbox.core import EventEnvelope
 from glassbox.core import SessionConfig
 from glassbox.core import SessionStatus
+from glassbox.core.events import ProviderRecoveryRecorded
 from glassbox.core.events import ReplayArtifactRecorded
 from glassbox.core.events import TurnCancelled
 from glassbox.llm import ModelProviderConfig
@@ -432,6 +433,64 @@ def test_turn_engine_records_cancelled_turn_for_in_flight_model_call(
         assert session_state.current_turn_id is None
 
     asyncio.run(scenario())
+
+
+def test_turn_engine_records_provider_recovery_before_failed_turn(
+    tmp_path: Path,
+) -> None:
+    async def failing_stream_response(_messages, _agent_info):
+        raise RuntimeError("rate limit exceeded")
+        yield "unreachable"
+
+    async def scenario() -> list[EventEnvelope]:
+        connection = _open_initialized_database(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            bus: EventBus[EventEnvelope] = EventBus()
+            turn_engine = TurnEngine(
+                repository,
+                bus,
+                TurnContextBuilder(repository),
+                lambda _session: PydanticAIModelAdapter(
+                    ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+                ),
+                lambda _session: PydanticAIModelExecutor(
+                    FunctionModel(
+                        function=_function_model_response,
+                        stream_function=failing_stream_response,
+                        model_name="openai:gpt-5.4",
+                    )
+                ),
+            )
+            supervisor = SessionSupervisor(repository, bus, turn_engine=turn_engine)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+
+            state = await supervisor.start_session(config)
+            with pytest.raises(RuntimeError, match="rate limit"):
+                await supervisor.submit_user_message(
+                    state.session_id,
+                    "Inspect the repo",
+                )
+            return repository.read_session_events(state.session_id)
+        finally:
+            connection.close()
+
+    persisted_events = asyncio.run(scenario())
+    event_types = [event.event_type for event in persisted_events]
+    provider_recovery_index = event_types.index("ProviderRecoveryRecorded")
+    turn_failed_index = event_types.index("TurnFailed")
+    recovery = persisted_events[provider_recovery_index].payload
+
+    assert provider_recovery_index < turn_failed_index
+    assert isinstance(recovery, ProviderRecoveryRecorded)
+    assert recovery.failure_kind.value == "rate_limit"
+    assert recovery.action.value == "retry_exhausted"
+    assert recovery.retryable is True
+    assert recovery.safe_to_continue is False
 
 
 def _function_model_response(messages, _agent_info) -> ModelResponse:

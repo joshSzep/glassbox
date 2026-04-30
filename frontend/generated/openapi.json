@@ -2429,6 +2429,16 @@
             ],
             "title": "Latest Message Summary"
           },
+          "latest_provider_recovery": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProviderRecoveryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "live_actionable": {
             "title": "Live Actionable",
             "type": "boolean"
@@ -3025,6 +3035,147 @@
           }
         },
         "title": "ProviderEvidenceSummaryResponse",
+        "type": "object"
+      },
+      "ProviderRecoveryResponse": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "attempt": {
+            "title": "Attempt",
+            "type": "integer"
+          },
+          "backoff_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backoff Seconds"
+          },
+          "checkpoint_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkpoint Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "degraded": {
+            "default": false,
+            "title": "Degraded",
+            "type": "boolean"
+          },
+          "failure_kind": {
+            "title": "Failure Kind",
+            "type": "string"
+          },
+          "last_sequence": {
+            "title": "Last Sequence",
+            "type": "integer"
+          },
+          "max_attempts": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Attempts"
+          },
+          "model_name": {
+            "title": "Model Name",
+            "type": "string"
+          },
+          "next_retry_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Retry At"
+          },
+          "operator_next_action": {
+            "title": "Operator Next Action",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          },
+          "safe_to_continue": {
+            "title": "Safe To Continue",
+            "type": "boolean"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "turn_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turn Id"
+          }
+        },
+        "required": [
+          "session_id",
+          "provider",
+          "model_name",
+          "failure_kind",
+          "action",
+          "reason",
+          "retryable",
+          "safe_to_continue",
+          "operator_next_action",
+          "attempt",
+          "created_at",
+          "last_sequence"
+        ],
+        "title": "ProviderRecoveryResponse",
         "type": "object"
       },
       "RefreshContextCompactionRequest": {
@@ -4163,6 +4314,16 @@
             ],
             "title": "Latest Fork Point Turn Id"
           },
+          "latest_provider_recovery": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProviderRecoveryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "long_run_status": {
             "$ref": "#/components/schemas/LongRunStatusResponse"
           },
@@ -4476,6 +4637,16 @@
               }
             ],
             "title": "Latest Message Summary"
+          },
+          "latest_provider_recovery": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProviderRecoveryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "long_run_status": {
             "$ref": "#/components/schemas/LongRunStatusResponse"

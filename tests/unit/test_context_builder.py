@@ -291,6 +291,13 @@ class FakeSessionRepository:
         del status, limit, offset
         return []
 
+    def get_latest_provider_recovery(self, session_id):
+        return None
+
+    def list_provider_recovery(self, session_id, *, limit=None, offset=0):
+        del limit, offset
+        return []
+
     def enqueue_background_job(self, session_id, **kwargs):
         raise NotImplementedError
 

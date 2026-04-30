@@ -2022,6 +2022,7 @@ export interface components {
       latest_fork_point_turn_id: string | null;
       /** Latest Message Summary */
       latest_message_summary: string | null;
+      latest_provider_recovery?: components["schemas"]["ProviderRecoveryResponse"] | null;
       /** Live Actionable */
       live_actionable: boolean;
       long_run_status: components["schemas"]["LongRunStatusResponse"];
@@ -2240,6 +2241,53 @@ export interface components {
        * @default 0
        */
       warning_count: number;
+    };
+    /** ProviderRecoveryResponse */
+    ProviderRecoveryResponse: {
+      /** Action */
+      action: string;
+      /** Attempt */
+      attempt: number;
+      /** Backoff Seconds */
+      backoff_seconds?: number | null;
+      /** Checkpoint Id */
+      checkpoint_id?: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Degraded
+       * @default false
+       */
+      degraded: boolean;
+      /** Failure Kind */
+      failure_kind: string;
+      /** Last Sequence */
+      last_sequence: number;
+      /** Max Attempts */
+      max_attempts?: number | null;
+      /** Model Name */
+      model_name: string;
+      /** Next Retry At */
+      next_retry_at?: string | null;
+      /** Operator Next Action */
+      operator_next_action: string;
+      /** Provider */
+      provider: string;
+      /** Reason */
+      reason: string;
+      /** Retryable */
+      retryable: boolean;
+      /** Safe To Continue */
+      safe_to_continue: boolean;
+      /** Session Id */
+      session_id: string;
+      /** Task Id */
+      task_id?: string | null;
+      /** Turn Id */
+      turn_id?: string | null;
     };
     /** RefreshContextCompactionRequest */
     RefreshContextCompactionRequest: {
@@ -2623,6 +2671,7 @@ export interface components {
       latest_fork_point_sequence: number | null;
       /** Latest Fork Point Turn Id */
       latest_fork_point_turn_id: string | null;
+      latest_provider_recovery?: components["schemas"]["ProviderRecoveryResponse"] | null;
       long_run_status: components["schemas"]["LongRunStatusResponse"];
       /** Model Name */
       model_name: string;
@@ -2700,6 +2749,7 @@ export interface components {
       latest_fork_point_turn_id: string | null;
       /** Latest Message Summary */
       latest_message_summary: string | null;
+      latest_provider_recovery?: components["schemas"]["ProviderRecoveryResponse"] | null;
       long_run_status: components["schemas"]["LongRunStatusResponse"];
       /** Model Name */
       model_name: string;

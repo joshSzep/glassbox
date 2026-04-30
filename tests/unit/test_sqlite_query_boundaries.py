@@ -14,6 +14,10 @@ DOMAIN_EXPORTS: Mapping[str, set[str]] = {
         "get_tool_attempt",
         "list_tool_attempts",
     },
+    "glassbox.store.sqlite_query_provider_recovery": {
+        "get_latest_provider_recovery",
+        "list_provider_recovery",
+    },
     "glassbox.store.sqlite_query_metrics": {"list_turn_metrics"},
     "glassbox.store.sqlite_query_budgets": {"get_budget_posture"},
     "glassbox.store.sqlite_query_checkpoints": {
@@ -63,6 +67,7 @@ def test_sqlite_query_domains_are_split_by_projection_family() -> None:
     assert loaded_modules["glassbox.store.sqlite_query_runtime_notes"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_tools"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_tool_attempts"].__doc__
+    assert loaded_modules["glassbox.store.sqlite_query_provider_recovery"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_metrics"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_budgets"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_checkpoints"].__doc__

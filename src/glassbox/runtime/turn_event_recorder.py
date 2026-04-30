@@ -15,6 +15,7 @@ from glassbox.core.events import CancellationStage
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import ModelCallCompleted
 from glassbox.core.events import ModelCallStarted
+from glassbox.core.events import ProviderRecoveryRecorded
 from glassbox.core.events import RecoveryDecisionRecorded
 from glassbox.core.events import SessionFailed
 from glassbox.core.events import TurnCancelled
@@ -301,6 +302,14 @@ class TurnEventRecorder:
                 "question_id": str(question_id) if question_id is not None else None,
             },
         )
+
+    def record_provider_recovery(
+        self,
+        session_id,
+        *,
+        recovery: ProviderRecoveryRecorded,
+    ) -> None:
+        self._append_and_publish(session_id, [recovery])
 
     def record_cancellation_requested(
         self,

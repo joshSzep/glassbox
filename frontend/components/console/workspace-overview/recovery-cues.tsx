@@ -117,6 +117,7 @@ function recoveryCues(data: DashboardState): RecoveryCue[] {
       state: retryableJobs + failedJobs + abandonedJobs > 0 ? "attention" : "check",
       tone: retryableJobs + failedJobs + abandonedJobs > 0 ? "warning" : "info",
     },
+    providerRecoveryCue(data),
     {
       commands: ["uv run glassbox repo index status --cwd ."],
       detail:
@@ -145,6 +146,31 @@ function recoveryCues(data: DashboardState): RecoveryCue[] {
     },
     providerEvidenceCue(data),
   ];
+}
+
+function providerRecoveryCue(data: DashboardState): RecoveryCue {
+  const recovery = data.latestProviderRecovery;
+  if (recovery === null) {
+    return {
+      commands: ["uv run glassbox session status <session-id> --cwd ."],
+      detail:
+        "Selected sessions will show retry, stream-loss, malformed-tool-call, credential, or degraded-provider recovery evidence here when recorded.",
+      label: "Provider recovery",
+      state: "no active cue",
+      tone: "info",
+    };
+  }
+
+  return {
+    commands: [
+      "uv run glassbox session status " + recovery.session_id + " --cwd .",
+      "uv run glassbox provider diagnostics --cwd .",
+    ],
+    detail: `${recovery.provider} ${recovery.model_name}: ${recovery.failure_kind.replaceAll("_", " ")} -> ${recovery.action.replaceAll("_", " ")}. Next: ${recovery.operator_next_action}`,
+    label: "Provider recovery",
+    state: recovery.safe_to_continue ? "bounded retry" : "attention",
+    tone: recovery.safe_to_continue ? "warning" : "warning",
+  };
 }
 
 function providerEvidenceCue(data: DashboardState): RecoveryCue {

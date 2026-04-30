@@ -5,6 +5,7 @@ import sqlite3
 from glassbox.core.events import ContextCompactionCreated
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import LongRunPhaseChanged
+from glassbox.core.events import ProviderRecoveryRecorded
 from glassbox.core.events import RecoveryDecisionRecorded
 from glassbox.core.events import ResumeOutcomeRecorded
 from glassbox.core.events import TaskCheckpointCreated
@@ -17,6 +18,7 @@ _LONG_RUN_EVENT_TYPES = (
     ToolAttemptHeartbeat,
     RecoveryDecisionRecorded,
     ResumeOutcomeRecorded,
+    ProviderRecoveryRecorded,
 )
 
 
@@ -72,7 +74,14 @@ def _phase_for_payload(payload) -> str | None:
 
 
 def _status_for_payload(payload) -> str | None:
-    for attribute_name in ("state", "status", "freshness", "decision", "outcome"):
+    for attribute_name in (
+        "state",
+        "status",
+        "freshness",
+        "decision",
+        "outcome",
+        "action",
+    ):
         value = getattr(payload, attribute_name, None)
         if value is not None:
             return getattr(value, "value", value)
