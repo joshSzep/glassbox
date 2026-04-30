@@ -39,6 +39,25 @@ Full logs should be retained as artifacts. Event payloads should carry compact
 summaries and artifact IDs so replay, export, and dashboard surfaces remain
 responsive.
 
+## Long-Run Ledger
+
+For long tasks, Glassbox also rebuilds a `task_verification_ledger` projection
+from the canonical verification events. The ledger is not a second source of
+truth; it is the durable read model that answers what has been verified so far.
+
+Each ledger row connects one verification ID to its task, optional step,
+status, check family, selection source, command argv, changed paths, eval links,
+attempt counts, latest output artifact, latest failed check, last successful
+check, accepted residual risks, and the event sequence that last updated it.
+`glassbox task show TASK_ID --json` and the task detail API include both the
+ledger entries and a compact `verification_summary` posture such as `missing`,
+`running`, `failing`, `partial`, `accepted_with_risk`, or `verified`.
+
+Operators should use the ledger as checkpoint evidence during handoff and
+resume decisions: inspect the last successful check, compare it with any later
+failures or accepted risks, then run the focused commands needed to prove the
+current workspace state.
+
 ## Failure Categories
 
 Verification failure digests classify output as assertion, lint, typecheck,

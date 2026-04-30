@@ -850,6 +850,64 @@ class TaskVerificationRecord(BaseModel):
     summary: str | None = None
 
 
+class TaskVerificationLedgerRecord(BaseModel):
+    """Rebuildable long-run verification ledger entry for one task check."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: SessionId
+    task_id: TaskId
+    verification_id: TaskVerificationId
+    step_id: TaskStepId | None = None
+    status: TaskVerificationStatus
+    check_name: str
+    kind: VerificationCheckKind | None = None
+    source: VerificationPlanSource | None = None
+    command: list[str] = Field(default_factory=list, max_length=64)
+    changed_paths: list[Path] = Field(default_factory=list, max_length=100)
+    eval_case_id: str | None = None
+    eval_profile_id: str | None = None
+    blocking: bool = True
+    attempt_count: int = Field(default=0, ge=0)
+    latest_attempt: int = Field(default=0, ge=0)
+    planned_sequence: int | None = Field(default=None, ge=0)
+    started_sequence: int | None = Field(default=None, ge=0)
+    last_success_sequence: int | None = Field(default=None, ge=0)
+    latest_failed_sequence: int | None = Field(default=None, ge=0)
+    latest_failed_summary: str | None = Field(default=None, max_length=4000)
+    latest_failed_category: VerificationFailureCategory | None = None
+    latest_failed_artifact_id: ArtifactId | None = None
+    latest_artifact_id: ArtifactId | None = None
+    accepted_risk_count: int = Field(default=0, ge=0)
+    accepted_risks: list[str] = Field(default_factory=list, max_length=100)
+    residual_risk_reason: str | None = Field(default=None, max_length=2000)
+    summary: str | None = Field(default=None, max_length=4000)
+    updated_at: datetime
+    last_sequence: int = Field(ge=0)
+
+
+class TaskVerificationLedgerSummary(BaseModel):
+    """Current long-run verification posture for a task."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    task_id: TaskId
+    total_count: int = Field(default=0, ge=0)
+    passed_count: int = Field(default=0, ge=0)
+    failed_count: int = Field(default=0, ge=0)
+    running_count: int = Field(default=0, ge=0)
+    skipped_count: int = Field(default=0, ge=0)
+    accepted_risk_count: int = Field(default=0, ge=0)
+    latest_success_verification_id: TaskVerificationId | None = None
+    latest_success_check_name: str | None = None
+    latest_success_sequence: int | None = Field(default=None, ge=0)
+    latest_failed_verification_id: TaskVerificationId | None = None
+    latest_failed_check_name: str | None = None
+    latest_failed_sequence: int | None = Field(default=None, ge=0)
+    latest_failed_summary: str | None = None
+    current_posture: str = Field(min_length=1, max_length=200)
+
+
 class BranchCandidateRecord(BaseModel):
     """Projected state for one branch-search candidate."""
 

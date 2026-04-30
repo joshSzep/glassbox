@@ -43,7 +43,7 @@ def _migration_rows(connection: sqlite3.Connection) -> list[sqlite3.Row]:
 
 
 def _expected_migration_versions() -> list[int]:
-    return [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, SCHEMA_VERSION]
+    return [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, SCHEMA_VERSION]
 
 
 def _expected_migration_names() -> list[str]:
@@ -63,6 +63,7 @@ def _expected_migration_names() -> list[str]:
         "scope task checkpoint projection key by session",
         "add context compaction projection table",
         "add tool attempt projection table",
+        "add task verification ledger projection table",
     ]
 
 
@@ -102,6 +103,7 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         "tasks",
         "task_steps",
         "task_verifications",
+        "task_verification_ledger",
         "branch_searches",
         "branch_candidates",
         "background_jobs",
@@ -134,6 +136,8 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         "idx_task_steps_task_order",
         "idx_task_steps_session_status",
         "idx_task_verifications_task",
+        "idx_task_verification_ledger_task",
+        "idx_task_verification_ledger_status",
         "idx_branch_searches_session_updated",
         "idx_branch_candidates_search",
         "idx_autonomy_budget_posture_session_updated",
@@ -491,5 +495,6 @@ def test_migrations_are_ordered_to_current_schema_version() -> None:
         14,
         15,
         16,
+        17,
         SCHEMA_VERSION,
     ]

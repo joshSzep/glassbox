@@ -142,6 +142,7 @@ The current migration sequence is:
 - `15`: session-scoped task checkpoint projection key for inspection imports
 - `16`: context compaction projection table
 - `17`: tool attempt projection table
+- `18`: task verification ledger projection table
 
 Glassbox refuses to open a database with a schema version newer than the running
 build supports. Schema upgrade is distinct from projection rebuild: migrations
@@ -178,6 +179,14 @@ posture, retry policy reason, and last source sequence. It is
 intentionally separate from `tool_calls`: tool calls describe provider-requested
 tool use, while tool attempts describe the runtime execution evidence used for
 long-running inspection and recovery.
+
+The v10 verification ledger read model lives in `task_verification_ledger`.
+Each row is derived from canonical task verification events and keeps the check
+identity, optional task step, check family, source, argv, changed paths, eval
+links, attempts, latest output artifact, latest failed check, last successful
+check, accepted residual risks, and last source sequence. Task detail queries
+derive the current verification posture from this projection so long-running
+work can report incremental proof instead of only a final checklist.
 
 ## Canonical Tables
 

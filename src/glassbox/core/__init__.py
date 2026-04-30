@@ -176,6 +176,8 @@ from glassbox.core.models import TaskPlanSnapshot
 from glassbox.core.models import TaskRecord
 from glassbox.core.models import TaskStepProposal
 from glassbox.core.models import TaskStepRecord
+from glassbox.core.models import TaskVerificationLedgerRecord
+from glassbox.core.models import TaskVerificationLedgerSummary
 from glassbox.core.models import TaskVerificationRecord
 from glassbox.core.models import ToolAttemptRecord
 from glassbox.core.models import ToolCallRecord
@@ -374,6 +376,8 @@ __all__ = [
     "TaskVerificationCompleted",
     "TaskVerificationFailed",
     "TaskVerificationId",
+    "TaskVerificationLedgerRecord",
+    "TaskVerificationLedgerSummary",
     "TaskVerificationPlanned",
     "TaskVerificationRecord",
     "TaskVerificationResidualRiskAccepted",

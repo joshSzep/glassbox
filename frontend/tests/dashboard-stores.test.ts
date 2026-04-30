@@ -130,6 +130,8 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
         title: "Task",
         updated_at: "2025-01-01T00:00:00Z",
       },
+      verification_ledger: [],
+      verification_summary: makeVerificationSummary(taskId),
       verifications: [],
     }),
     getTaskEventPage: async (taskId) => ({
@@ -448,6 +450,8 @@ describe("task store", () => {
               },
             ],
             task: makeTaskSummary(taskId),
+            verification_ledger: [],
+            verification_summary: makeVerificationSummary(taskId),
             verifications: [],
           };
         },
@@ -499,6 +503,8 @@ describe("task store", () => {
           projection_health: projectionHealth,
           steps: [],
           task: makeTaskSummary(taskId, { status: "active" }),
+          verification_ledger: [],
+          verification_summary: makeVerificationSummary(taskId),
           verifications: [],
         }),
         getTaskEventPage: async (taskId, query = {}) => {
@@ -599,6 +605,8 @@ describe("task store", () => {
           projection_health: projectionHealth,
           steps: [],
           task: makeTaskSummary(taskId),
+          verification_ledger: [],
+          verification_summary: makeVerificationSummary(taskId),
           verifications: [],
         }),
         getTaskEventPage: async (taskId) => ({
@@ -1214,6 +1222,7 @@ type BranchCandidate = components["schemas"]["BranchCandidateResponse"];
 type BranchSearchDetail = components["schemas"]["BranchSearchDetailResponse"];
 type BranchSearchSummary = components["schemas"]["BranchSearchSummaryResponse"];
 type RepositoryEntry = components["schemas"]["RepositoryIndexEntryResponse"];
+type TaskDetail = components["schemas"]["TaskDetailResponse"];
 type TaskSummary = components["schemas"]["TaskSummaryResponse"];
 type TranscriptMessage = components["schemas"]["TranscriptMessageResponse"];
 type TurnMetrics = components["schemas"]["TurnMetricsResponse"];
@@ -1232,6 +1241,30 @@ function makeTaskSummary(taskId: string, overrides: Partial<TaskSummary> = {}): 
     task_id: taskId,
     title: "Task",
     updated_at: timestamp(0),
+    ...overrides,
+  };
+}
+
+function makeVerificationSummary(
+  taskId: string,
+  overrides: Partial<TaskDetail["verification_summary"]> = {},
+): TaskDetail["verification_summary"] {
+  return {
+    accepted_risk_count: 0,
+    current_posture: "missing",
+    failed_count: 0,
+    latest_failed_check_name: null,
+    latest_failed_sequence: null,
+    latest_failed_summary: null,
+    latest_failed_verification_id: null,
+    latest_success_check_name: null,
+    latest_success_sequence: null,
+    latest_success_verification_id: null,
+    passed_count: 0,
+    running_count: 0,
+    skipped_count: 0,
+    task_id: taskId,
+    total_count: 0,
     ...overrides,
   };
 }

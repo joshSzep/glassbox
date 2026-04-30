@@ -74,6 +74,8 @@ def test_task_list_show_and_events_commands(tmp_path: Path, capsys) -> None:
     assert show_exit == 0
     assert show_payload["task"]["task_id"] == str(task_id)
     assert show_payload["steps"][0]["step_id"] == str(step_id)
+    assert show_payload["verification_summary"]["current_posture"] == "missing"
+    assert show_payload["verification_ledger"] == []
     assert events_exit == 0
     assert [event["event_type"] for event in events_payload] == [
         "TaskCreated",

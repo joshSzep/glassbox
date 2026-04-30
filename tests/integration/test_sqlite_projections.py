@@ -27,11 +27,19 @@ from glassbox.core import TaskStepCompleted
 from glassbox.core import TaskStepProposal
 from glassbox.core import TaskStepStarted
 from glassbox.core import TaskVerificationCompleted
+from glassbox.core import TaskVerificationFailed
+from glassbox.core import TaskVerificationPlanned
+from glassbox.core import TaskVerificationResidualRiskAccepted
 from glassbox.core import TaskVerificationStarted
 from glassbox.core import TaskVerificationStatus
 from glassbox.core import ToolAttemptHeartbeat
 from glassbox.core import ToolAttemptRetryClassification
 from glassbox.core import ToolAttemptStatus
+from glassbox.core import VerificationCheckKind
+from glassbox.core import VerificationFailureCategory
+from glassbox.core import VerificationFailureDigest
+from glassbox.core import VerificationPlanEntry
+from glassbox.core import VerificationPlanSource
 from glassbox.core import WorkspaceMemoryConfirmed
 from glassbox.core import WorkspaceMemoryCreated
 from glassbox.core import WorkspaceMemoryImported
@@ -61,6 +69,12 @@ from glassbox.store.sqlite import list_task_checkpoints
 from glassbox.store.sqlite import list_tool_attempts
 from glassbox.store.sqlite import list_workspace_memory
 from glassbox.store.sqlite import rebuild_session_projections
+from glassbox.store.sqlite_query_verification_ledger import (
+    get_task_verification_ledger_summary,
+)
+from glassbox.store.sqlite_query_verification_ledger import (
+    list_task_verification_ledger,
+)
 from tests.integration.fault_test_support import append_representative_completed_session
 from tests.integration.fault_test_support import open_initialized_database
 from tests.integration.fault_test_support import projection_snapshot
@@ -652,6 +666,152 @@ def test_task_projection_rebuilds_task_steps_and_verifications(tmp_path: Path) -
     assert tuple(task) == ("paused", "manual_pause", "waiting for review")
     assert tuple(step) == ("completed", "tables created")
     assert tuple(verification) == ("passed", "projection tests passed")
+
+
+def test_verification_ledger_rebuilds_multi_step_history(tmp_path: Path) -> None:
+    session_id = new_session_id()
+    task_id = new_task_id()
+    step_id = new_task_step_id()
+    passed_id = new_task_verification_id()
+    failed_id = new_task_verification_id()
+    artifact_id = new_artifact_id()
+    connection = open_initialized_database(tmp_path)
+    try:
+        append_events(
+            connection,
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=SessionStarted(
+                        cwd=str(tmp_path),
+                        model_name="openai:gpt-5.4",
+                        approval_mode="confirm",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskCreated(
+                        task_id=task_id,
+                        title="Track verification",
+                        goal="Retain incremental proof",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskVerificationPlanned(
+                        task_id=task_id,
+                        step_id=step_id,
+                        verification=VerificationPlanEntry(
+                            verification_id=passed_id,
+                            check_name="pytest unit",
+                            kind=VerificationCheckKind.TEST,
+                            command=["uv", "run", "pytest", "tests/unit"],
+                            source=VerificationPlanSource.OPERATOR,
+                            rationale="focused unit coverage",
+                            changed_paths=[Path("src/glassbox/runtime/example.py")],
+                        ),
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskVerificationStarted(
+                        task_id=task_id,
+                        verification_id=passed_id,
+                        step_id=step_id,
+                        check_name="pytest unit",
+                        attempt=1,
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskVerificationCompleted(
+                        task_id=task_id,
+                        verification_id=passed_id,
+                        status=TaskVerificationStatus.PASSED,
+                        summary="unit tests passed",
+                        artifact_id=artifact_id,
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskVerificationPlanned(
+                        task_id=task_id,
+                        verification=VerificationPlanEntry(
+                            verification_id=failed_id,
+                            check_name="eval recommend",
+                            kind=VerificationCheckKind.EVAL,
+                            command=[
+                                "uv",
+                                "run",
+                                "glassbox",
+                                "eval",
+                                "recommend",
+                                "src/glassbox/runtime/example.py",
+                            ],
+                            source=VerificationPlanSource.EVAL_RECOMMENDATION,
+                            rationale="long-run surface changed",
+                            eval_profile_id="commit-smoke",
+                        ),
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskVerificationFailed(
+                        task_id=task_id,
+                        verification_id=failed_id,
+                        failure=VerificationFailureDigest(
+                            category=VerificationFailureCategory.ASSERTION,
+                            summary="recommended eval failed",
+                            exit_code=1,
+                            artifact_id=artifact_id,
+                        ),
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskVerificationResidualRiskAccepted(
+                        task_id=task_id,
+                        verification_id=failed_id,
+                        reason="known fixture drift accepted for local run",
+                        residual_risks=["fixture drift remains"],
+                    ),
+                ),
+            ],
+        )
+        before = list_task_verification_ledger(connection, session_id, task_id)
+        connection.execute("delete from task_verification_ledger")
+        rebuild_session_projections(connection, session_id)
+        after = list_task_verification_ledger(connection, session_id, task_id)
+        summary = get_task_verification_ledger_summary(
+            connection,
+            session_id,
+            task_id,
+        )
+    finally:
+        connection.close()
+
+    assert before == after
+    assert [entry.check_name for entry in after] == ["pytest unit", "eval recommend"]
+    assert after[0].status == TaskVerificationStatus.PASSED
+    assert after[0].command == ["uv", "run", "pytest", "tests/unit"]
+    assert after[0].changed_paths == [Path("src/glassbox/runtime/example.py")]
+    assert after[0].last_success_sequence is not None
+    assert after[1].status == TaskVerificationStatus.ACCEPTED_WITH_RISK
+    assert after[1].latest_failed_summary == "recommended eval failed"
+    assert after[1].latest_failed_category == VerificationFailureCategory.ASSERTION
+    assert after[1].accepted_risk_count == 1
+    assert after[1].accepted_risks == ["fixture drift remains"]
+    assert summary.current_posture == "accepted_with_risk"
+    assert summary.latest_success_check_name == "pytest unit"
+    assert summary.latest_failed_check_name == "eval recommend"
 
 
 def test_workspace_memory_projection_rebuilds_lifecycle(tmp_path: Path) -> None:

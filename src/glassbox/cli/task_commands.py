@@ -267,6 +267,27 @@ def _print_task_detail(detail: TaskDetailView) -> None:
         )
         if verification.summary:
             print(f"     {verification.summary}")
+    summary = detail.verification_summary
+    print(f"Verification ledger: {summary.current_posture}")
+    print(
+        "  "
+        f"{summary.passed_count} passed, "
+        f"{summary.failed_count} failed, "
+        f"{summary.running_count} running, "
+        f"{summary.total_count} total"
+    )
+    if summary.latest_success_check_name is not None:
+        print(
+            "  Last successful check: "
+            f"{summary.latest_success_check_name} "
+            f"(sequence {summary.latest_success_sequence})"
+        )
+    if summary.latest_failed_check_name is not None:
+        print(
+            "  Latest failed check: "
+            f"{summary.latest_failed_check_name} "
+            f"(sequence {summary.latest_failed_sequence})"
+        )
 
 
 def _print_task_events(events: list[TaskEventView]) -> None:

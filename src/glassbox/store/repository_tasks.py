@@ -4,6 +4,7 @@ import sqlite3
 from typing import TYPE_CHECKING
 
 import glassbox.store.sqlite_queries as query_store
+import glassbox.store.sqlite_query_verification_ledger as verification_query
 from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import TaskId
@@ -12,6 +13,8 @@ from glassbox.core.models import ContextCompactionRecord
 from glassbox.core.models import TaskCheckpointRecord
 from glassbox.core.models import TaskRecord
 from glassbox.core.models import TaskStepRecord
+from glassbox.core.models import TaskVerificationLedgerRecord
+from glassbox.core.models import TaskVerificationLedgerSummary
 from glassbox.core.models import TaskVerificationRecord
 from glassbox.core.models import ToolAttemptRecord
 from glassbox.core.types import ToolAttemptStatus
@@ -54,6 +57,28 @@ class _SQLiteTaskMethods:
         task_id: TaskId,
     ) -> list[TaskVerificationRecord]:
         return query_store.list_task_verifications(
+            self._connection,
+            session_id,
+            task_id,
+        )
+
+    def list_task_verification_ledger(
+        self,
+        session_id: SessionId,
+        task_id: TaskId,
+    ) -> list[TaskVerificationLedgerRecord]:
+        return verification_query.list_task_verification_ledger(
+            self._connection,
+            session_id,
+            task_id,
+        )
+
+    def get_task_verification_ledger_summary(
+        self,
+        session_id: SessionId,
+        task_id: TaskId,
+    ) -> TaskVerificationLedgerSummary:
+        return verification_query.get_task_verification_ledger_summary(
             self._connection,
             session_id,
             task_id,

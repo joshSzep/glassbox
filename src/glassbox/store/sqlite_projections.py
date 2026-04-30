@@ -32,6 +32,9 @@ from glassbox.store.sqlite_projection_tool_attempts import (
 from glassbox.store.sqlite_projection_tools import _apply_tool_call_projection
 from glassbox.store.sqlite_projection_transcript import _apply_transcript_projection
 from glassbox.store.sqlite_projection_turn_metrics import _apply_turn_metrics_projection
+from glassbox.store.sqlite_projection_verification_ledger import (
+    _apply_verification_ledger_projection,
+)
 from glassbox.store.sqlite_projection_workspace_memory import (
     _apply_workspace_memory_projection,
 )
@@ -44,11 +47,12 @@ _PROJECTION_TABLES = (
     "approvals",
     "runtime_notes",
     "turn_metrics",
-    "tasks",
-    "task_steps",
+    "task_verification_ledger",
     "task_verifications",
-    "branch_searches",
+    "task_steps",
+    "tasks",
     "branch_candidates",
+    "branch_searches",
     "autonomy_budget_posture",
     "background_jobs",
     "workspace_memory",
@@ -70,6 +74,7 @@ def _apply_projection_event(
     _apply_runtime_note_projection(connection, event)
     _apply_turn_metrics_projection(connection, event)
     _apply_task_projection(connection, event)
+    _apply_verification_ledger_projection(connection, event)
     _apply_branch_search_projection(connection, event)
     _apply_budget_projection(connection, event)
     _apply_background_job_projection(connection, event)

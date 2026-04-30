@@ -2922,6 +2922,9 @@ export interface components {
       /** Steps */
       steps: components["schemas"]["TaskStepResponse"][];
       task: components["schemas"]["TaskSummaryResponse"];
+      /** Verification Ledger */
+      verification_ledger: components["schemas"]["TaskVerificationLedgerResponse"][];
+      verification_summary: components["schemas"]["TaskVerificationLedgerSummaryResponse"];
       /** Verifications */
       verifications: components["schemas"]["TaskVerificationResponse"][];
     };
@@ -3078,6 +3081,99 @@ export interface components {
        * Format: date-time
        */
       updated_at: string;
+    };
+    /** TaskVerificationLedgerResponse */
+    TaskVerificationLedgerResponse: {
+      /** Accepted Risk Count */
+      accepted_risk_count: number;
+      /** Accepted Risks */
+      accepted_risks: string[];
+      /** Attempt Count */
+      attempt_count: number;
+      /** Blocking */
+      blocking: boolean;
+      /** Changed Paths */
+      changed_paths: string[];
+      /** Check Name */
+      check_name: string;
+      /** Command */
+      command: string[];
+      /** Eval Case Id */
+      eval_case_id?: string | null;
+      /** Eval Profile Id */
+      eval_profile_id?: string | null;
+      /** Kind */
+      kind?: string | null;
+      /** Last Sequence */
+      last_sequence: number;
+      /** Last Success Sequence */
+      last_success_sequence?: number | null;
+      /** Latest Artifact Id */
+      latest_artifact_id?: string | null;
+      /** Latest Attempt */
+      latest_attempt: number;
+      /** Latest Failed Artifact Id */
+      latest_failed_artifact_id?: string | null;
+      /** Latest Failed Category */
+      latest_failed_category?: string | null;
+      /** Latest Failed Sequence */
+      latest_failed_sequence?: number | null;
+      /** Latest Failed Summary */
+      latest_failed_summary?: string | null;
+      /** Planned Sequence */
+      planned_sequence?: number | null;
+      /** Residual Risk Reason */
+      residual_risk_reason?: string | null;
+      /** Source */
+      source?: string | null;
+      /** Started Sequence */
+      started_sequence?: number | null;
+      /** Status */
+      status: string;
+      /** Step Id */
+      step_id?: string | null;
+      /** Summary */
+      summary?: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Verification Id */
+      verification_id: string;
+    };
+    /** TaskVerificationLedgerSummaryResponse */
+    TaskVerificationLedgerSummaryResponse: {
+      /** Accepted Risk Count */
+      accepted_risk_count: number;
+      /** Current Posture */
+      current_posture: string;
+      /** Failed Count */
+      failed_count: number;
+      /** Latest Failed Check Name */
+      latest_failed_check_name?: string | null;
+      /** Latest Failed Sequence */
+      latest_failed_sequence?: number | null;
+      /** Latest Failed Summary */
+      latest_failed_summary?: string | null;
+      /** Latest Failed Verification Id */
+      latest_failed_verification_id?: string | null;
+      /** Latest Success Check Name */
+      latest_success_check_name?: string | null;
+      /** Latest Success Sequence */
+      latest_success_sequence?: number | null;
+      /** Latest Success Verification Id */
+      latest_success_verification_id?: string | null;
+      /** Passed Count */
+      passed_count: number;
+      /** Running Count */
+      running_count: number;
+      /** Skipped Count */
+      skipped_count: number;
+      /** Task Id */
+      task_id: string;
+      /** Total Count */
+      total_count: number;
     };
     /** TaskVerificationResponse */
     TaskVerificationResponse: {

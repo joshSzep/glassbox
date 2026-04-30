@@ -117,6 +117,17 @@ def test_task_routes_return_pages_and_detail(tmp_path: Path) -> None:
                     "summary": "focused tests passed",
                 }
             ]
+            assert detail_body["verification_summary"]["current_posture"] == "verified"
+            assert detail_body["verification_summary"]["latest_success_check_name"] == (
+                "pytest"
+            )
+            assert detail_body["verification_ledger"][0]["verification_id"] == str(
+                verification_id
+            )
+            assert (
+                detail_body["verification_ledger"][0]["last_success_sequence"]
+                is not None
+            )
 
             assert steps_response.status_code == 200
             steps_body = steps_response.json()

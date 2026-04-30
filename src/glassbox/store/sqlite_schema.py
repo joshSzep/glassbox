@@ -8,7 +8,7 @@ from pathlib import Path
 from glassbox.store.sqlite_schema_statements import BOOTSTRAP_STATEMENTS
 from glassbox.store.sqlite_schema_statements import V3_BASELINE_SCHEMA_STATEMENTS
 
-SCHEMA_VERSION = 17
+SCHEMA_VERSION = 18
 BASELINE_SCHEMA_VERSION = 3
 BASELINE_MIGRATION_NAME = "baseline event store and projections"
 
@@ -292,6 +292,58 @@ def _ensure_task_projection_schema(connection: sqlite3.Connection) -> None:
         """
         create index if not exists idx_task_verifications_task
             on task_verifications (session_id, task_id, started_at)
+        """
+    )
+
+
+def _ensure_task_verification_ledger_schema(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        create table if not exists task_verification_ledger (
+            session_id text not null,
+            task_id text not null,
+            verification_id text not null,
+            step_id text,
+            status text not null,
+            check_name text not null,
+            kind text,
+            source text,
+            command_json text not null,
+            changed_paths_json text not null,
+            eval_case_id text,
+            eval_profile_id text,
+            blocking integer not null default 1,
+            attempt_count integer not null default 0,
+            latest_attempt integer not null default 0,
+            planned_sequence integer,
+            started_sequence integer,
+            last_success_sequence integer,
+            latest_failed_sequence integer,
+            latest_failed_summary text,
+            latest_failed_category text,
+            latest_failed_artifact_id text,
+            latest_artifact_id text,
+            accepted_risk_count integer not null default 0,
+            accepted_risks_json text not null,
+            residual_risk_reason text,
+            summary text,
+            updated_at text not null,
+            last_sequence integer not null,
+            primary key (session_id, verification_id),
+            foreign key (session_id) references sessions(session_id)
+        )
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_task_verification_ledger_task
+            on task_verification_ledger (session_id, task_id, last_sequence)
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_task_verification_ledger_status
+            on task_verification_ledger (session_id, task_id, status)
         """
     )
 
@@ -907,6 +959,11 @@ MIGRATIONS = (
         version=17,
         name="add tool attempt projection table",
         apply=_ensure_tool_attempt_projection_schema,
+    ),
+    SchemaMigration(
+        version=18,
+        name="add task verification ledger projection table",
+        apply=_ensure_task_verification_ledger_schema,
     ),
 )
 

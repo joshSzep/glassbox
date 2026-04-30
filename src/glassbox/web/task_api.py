@@ -17,6 +17,8 @@ from glassbox.runtime.task_queries import TaskDetailView
 from glassbox.runtime.task_queries import TaskEventView
 from glassbox.runtime.task_queries import TaskStepView
 from glassbox.runtime.task_queries import TaskSummaryView
+from glassbox.runtime.task_queries import TaskVerificationLedgerSummaryView
+from glassbox.runtime.task_queries import TaskVerificationLedgerView
 from glassbox.runtime.task_queries import TaskVerificationView
 from glassbox.web.session_api import PageInfoResponse
 from glassbox.web.session_api import ProjectionHealthResponse
@@ -53,6 +55,54 @@ class TaskVerificationResponse(BaseModel):
     summary: str | None = None
 
 
+class TaskVerificationLedgerResponse(BaseModel):
+    verification_id: str
+    check_name: str
+    status: str
+    step_id: str | None = None
+    kind: str | None = None
+    source: str | None = None
+    command: list[str]
+    changed_paths: list[str]
+    eval_case_id: str | None = None
+    eval_profile_id: str | None = None
+    blocking: bool
+    attempt_count: int
+    latest_attempt: int
+    planned_sequence: int | None = None
+    started_sequence: int | None = None
+    last_success_sequence: int | None = None
+    latest_failed_sequence: int | None = None
+    latest_failed_summary: str | None = None
+    latest_failed_category: str | None = None
+    latest_failed_artifact_id: str | None = None
+    latest_artifact_id: str | None = None
+    accepted_risk_count: int
+    accepted_risks: list[str]
+    residual_risk_reason: str | None = None
+    summary: str | None = None
+    updated_at: datetime
+    last_sequence: int
+
+
+class TaskVerificationLedgerSummaryResponse(BaseModel):
+    task_id: str
+    total_count: int
+    passed_count: int
+    failed_count: int
+    running_count: int
+    skipped_count: int
+    accepted_risk_count: int
+    latest_success_verification_id: str | None = None
+    latest_success_check_name: str | None = None
+    latest_success_sequence: int | None = None
+    latest_failed_verification_id: str | None = None
+    latest_failed_check_name: str | None = None
+    latest_failed_sequence: int | None = None
+    latest_failed_summary: str | None = None
+    current_posture: str
+
+
 class TaskEventResponse(BaseModel):
     event_id: str
     session_id: str
@@ -75,6 +125,8 @@ class TaskDetailResponse(BaseModel):
     task: TaskSummaryResponse
     steps: list[TaskStepResponse]
     verifications: list[TaskVerificationResponse]
+    verification_ledger: list[TaskVerificationLedgerResponse]
+    verification_summary: TaskVerificationLedgerSummaryResponse
     projection_health: ProjectionHealthResponse
 
 
@@ -212,6 +264,24 @@ def build_task_verification_response(
     return TaskVerificationResponse.model_validate(verification.model_dump(mode="json"))
 
 
+def build_task_verification_ledger_response(
+    entry: TaskVerificationLedgerView,
+) -> TaskVerificationLedgerResponse:
+    """Serialize one verification-ledger entry into an HTTP response model."""
+
+    return TaskVerificationLedgerResponse.model_validate(entry.model_dump(mode="json"))
+
+
+def build_task_verification_summary_response(
+    summary: TaskVerificationLedgerSummaryView,
+) -> TaskVerificationLedgerSummaryResponse:
+    """Serialize verification posture into an HTTP response model."""
+
+    return TaskVerificationLedgerSummaryResponse.model_validate(
+        summary.model_dump(mode="json")
+    )
+
+
 def build_task_event_response(event: TaskEventView) -> TaskEventResponse:
     """Serialize a task event view into the HTTP response model."""
 
@@ -239,6 +309,13 @@ def build_task_detail_response(
             build_task_verification_response(verification)
             for verification in detail.verifications
         ],
+        verification_ledger=[
+            build_task_verification_ledger_response(entry)
+            for entry in detail.verification_ledger
+        ],
+        verification_summary=build_task_verification_summary_response(
+            detail.verification_summary
+        ),
         projection_health=ProjectionHealthResponse.model_validate(
             projection_health.model_dump(mode="json")
         ),

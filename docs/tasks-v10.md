@@ -1143,7 +1143,7 @@ The intended v10 milestone order is:
 
 ### GBX-1070: Add Long-Run Verification Ledger
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1020`, `GBX-1041`
 - Goal: track verification evidence across a long task as a durable ledger
   instead of a final checklist
@@ -1165,6 +1165,17 @@ The intended v10 milestone order is:
 - Done when:
   - a long task can explain what has been verified so far and what still needs
     proof
+- Completed:
+  - Added the rebuildable `task_verification_ledger` SQLite projection from
+    canonical task verification events, including check kind/source, command
+    argv, changed paths, eval links, attempts, latest artifact, latest failed
+    check, last successful check, accepted risks, and source sequence fields.
+  - Added task verification ledger models, repository/query helpers, task
+    detail API fields, generated frontend API types, and `glassbox task show`
+    posture output.
+  - Updated verification and database docs, plus focused unit, projection,
+    CLI, web, and frontend fixture coverage for ledger rebuild and task-detail
+    posture.
 
 ### GBX-1071: Detect Stale Verification After Workspace Drift
 

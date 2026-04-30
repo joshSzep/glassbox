@@ -28,11 +28,15 @@ from glassbox.core import TaskPlanSnapshot
 from glassbox.core import TaskStepProposal
 from glassbox.core import TaskStepRecord
 from glassbox.core import TaskStepStatus
+from glassbox.core import TaskVerificationLedgerRecord
+from glassbox.core import TaskVerificationLedgerSummary
 from glassbox.core import TaskVerificationRecord
 from glassbox.core import TaskVerificationStatus
 from glassbox.core import ToolCallRecord
 from glassbox.core import ToolExecutionStatus
 from glassbox.core import TranscriptMessage
+from glassbox.core import VerificationCheckKind
+from glassbox.core import VerificationPlanSource
 from glassbox.core import WorkspaceMemoryEntry
 from glassbox.core import WorkspaceMemoryKind
 from glassbox.core import WorkspaceMemoryProvenance
@@ -434,11 +438,52 @@ def test_task_query_records_round_trip() -> None:
         status=TaskVerificationStatus.PLANNED,
         check_name="pytest",
     )
+    ledger = TaskVerificationLedgerRecord(
+        session_id=new_session_id(),
+        task_id=task_id,
+        verification_id=new_task_verification_id(),
+        step_id=step_id,
+        status=TaskVerificationStatus.PASSED,
+        check_name="pytest",
+        kind=VerificationCheckKind.TEST,
+        source=VerificationPlanSource.OPERATOR,
+        command=["uv", "run", "pytest"],
+        changed_paths=[Path("src/glassbox/runtime/verification.py")],
+        attempt_count=1,
+        latest_attempt=1,
+        last_success_sequence=42,
+        summary="tests passed",
+        updated_at=datetime.now(UTC),
+        last_sequence=42,
+    )
+    ledger_summary = TaskVerificationLedgerSummary(
+        task_id=task_id,
+        total_count=1,
+        passed_count=1,
+        failed_count=0,
+        running_count=0,
+        skipped_count=0,
+        accepted_risk_count=0,
+        latest_success_verification_id=ledger.verification_id,
+        latest_success_check_name=ledger.check_name,
+        latest_success_sequence=ledger.last_success_sequence,
+        current_posture="verified",
+    )
 
     assert TaskStepRecord.model_validate(step.model_dump(mode="python")) == step
     assert (
         TaskVerificationRecord.model_validate(verification.model_dump(mode="python"))
         == verification
+    )
+    assert (
+        TaskVerificationLedgerRecord.model_validate(ledger.model_dump(mode="python"))
+        == ledger
+    )
+    assert (
+        TaskVerificationLedgerSummary.model_validate(
+            ledger_summary.model_dump(mode="python")
+        )
+        == ledger_summary
     )
 
 

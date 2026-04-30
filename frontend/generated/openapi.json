@@ -5107,6 +5107,16 @@
           "task": {
             "$ref": "#/components/schemas/TaskSummaryResponse"
           },
+          "verification_ledger": {
+            "items": {
+              "$ref": "#/components/schemas/TaskVerificationLedgerResponse"
+            },
+            "title": "Verification Ledger",
+            "type": "array"
+          },
+          "verification_summary": {
+            "$ref": "#/components/schemas/TaskVerificationLedgerSummaryResponse"
+          },
           "verifications": {
             "items": {
               "$ref": "#/components/schemas/TaskVerificationResponse"
@@ -5115,7 +5125,14 @@
             "type": "array"
           }
         },
-        "required": ["task", "steps", "verifications", "projection_health"],
+        "required": [
+          "task",
+          "steps",
+          "verifications",
+          "verification_ledger",
+          "verification_summary",
+          "projection_health"
+        ],
         "title": "TaskDetailResponse",
         "type": "object"
       },
@@ -5535,6 +5552,374 @@
           "next_action_summary"
         ],
         "title": "TaskSummaryResponse",
+        "type": "object"
+      },
+      "TaskVerificationLedgerResponse": {
+        "properties": {
+          "accepted_risk_count": {
+            "title": "Accepted Risk Count",
+            "type": "integer"
+          },
+          "accepted_risks": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Accepted Risks",
+            "type": "array"
+          },
+          "attempt_count": {
+            "title": "Attempt Count",
+            "type": "integer"
+          },
+          "blocking": {
+            "title": "Blocking",
+            "type": "boolean"
+          },
+          "changed_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Changed Paths",
+            "type": "array"
+          },
+          "check_name": {
+            "title": "Check Name",
+            "type": "string"
+          },
+          "command": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Command",
+            "type": "array"
+          },
+          "eval_case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eval Case Id"
+          },
+          "eval_profile_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eval Profile Id"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "last_sequence": {
+            "title": "Last Sequence",
+            "type": "integer"
+          },
+          "last_success_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Success Sequence"
+          },
+          "latest_artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Artifact Id"
+          },
+          "latest_attempt": {
+            "title": "Latest Attempt",
+            "type": "integer"
+          },
+          "latest_failed_artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Failed Artifact Id"
+          },
+          "latest_failed_category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Failed Category"
+          },
+          "latest_failed_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Failed Sequence"
+          },
+          "latest_failed_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Failed Summary"
+          },
+          "planned_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planned Sequence"
+          },
+          "residual_risk_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Residual Risk Reason"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "started_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started Sequence"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "step_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step Id"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "verification_id": {
+            "title": "Verification Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "verification_id",
+          "check_name",
+          "status",
+          "command",
+          "changed_paths",
+          "blocking",
+          "attempt_count",
+          "latest_attempt",
+          "accepted_risk_count",
+          "accepted_risks",
+          "updated_at",
+          "last_sequence"
+        ],
+        "title": "TaskVerificationLedgerResponse",
+        "type": "object"
+      },
+      "TaskVerificationLedgerSummaryResponse": {
+        "properties": {
+          "accepted_risk_count": {
+            "title": "Accepted Risk Count",
+            "type": "integer"
+          },
+          "current_posture": {
+            "title": "Current Posture",
+            "type": "string"
+          },
+          "failed_count": {
+            "title": "Failed Count",
+            "type": "integer"
+          },
+          "latest_failed_check_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Failed Check Name"
+          },
+          "latest_failed_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Failed Sequence"
+          },
+          "latest_failed_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Failed Summary"
+          },
+          "latest_failed_verification_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Failed Verification Id"
+          },
+          "latest_success_check_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Success Check Name"
+          },
+          "latest_success_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Success Sequence"
+          },
+          "latest_success_verification_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Success Verification Id"
+          },
+          "passed_count": {
+            "title": "Passed Count",
+            "type": "integer"
+          },
+          "running_count": {
+            "title": "Running Count",
+            "type": "integer"
+          },
+          "skipped_count": {
+            "title": "Skipped Count",
+            "type": "integer"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "total_count": {
+            "title": "Total Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "task_id",
+          "total_count",
+          "passed_count",
+          "failed_count",
+          "running_count",
+          "skipped_count",
+          "accepted_risk_count",
+          "current_posture"
+        ],
+        "title": "TaskVerificationLedgerSummaryResponse",
         "type": "object"
       },
       "TaskVerificationResponse": {
