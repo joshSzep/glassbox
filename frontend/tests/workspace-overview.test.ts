@@ -72,6 +72,8 @@ describe("workspace overview console", () => {
     expect(markup).toContain("uv run glassbox repo index status --cwd .");
     expect(markup).toContain("retained versus current source digest");
     expect(markup).toContain("Artifact pressure");
+    expect(markup).toContain("uv run glassbox artifacts prune --dry-run --json --cwd .");
+    expect(markup).toContain("before any non-dry-run cleanup");
     expect(markup).toContain("Provider evidence");
     expect(markup).toContain("/tmp/glassbox");
     expect(markup).toContain("approval-session");

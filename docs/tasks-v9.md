@@ -918,7 +918,7 @@ The intended v9 milestone order is:
 
 ### GBX-971: Improve Artifact Pressure And Cleanup Guidance
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-943`
 - Goal: make artifact retention and cleanup safer and clearer
 - Deliverables:
@@ -937,6 +937,13 @@ The intended v9 milestone order is:
 - Done when:
   - operators can clean local Glassbox state without fear of destroying replay
     evidence
+  - Completed by making artifact retention states explicit in CLI and JSON
+    reports: protected event-referenced files, orphaned reclaimable files,
+    general reclaimable files, and missing references are now separated.
+    Reports include retention-state counts and next-action guidance for
+    dry-run review before non-dry-run prune. The dashboard recovery cue now
+    shows both inspect and dry-run commands, and operator docs describe the
+    safe cleanup workflow.
 
 ### GBX-972: Tighten Daemon And Background Job Recovery Guidance
 

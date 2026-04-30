@@ -449,9 +449,13 @@ SHA-256 digests, missing event-referenced files, stale cleanup candidates,
 retention-class counts, protected/candidate byte totals, artifact age, and total
 `.glassbox` storage pressure without deleting anything. Use
 `--warning-threshold-mb` to tune the local storage warning threshold for inspect
-and prune reports. `glassbox artifacts prune --dry-run` shows the same candidate
-cleanup path in prune terms before deleting anything. Running prune without
-`--dry-run` may delete only managed stale files under
+and prune reports. The JSON report distinguishes protected, event-referenced,
+orphaned, reclaimable, and missing-reference states so operators can tell
+storage pressure apart from integrity gaps. `glassbox artifacts prune --dry-run`
+shows the same candidate cleanup path in prune terms before deleting anything.
+Treat that dry-run as the review step: confirm every reclaimable path and reason
+first, then run non-dry-run prune only when the preview matches the intended
+cleanup. Running prune without `--dry-run` may delete only managed stale files under
 `.glassbox/sessions/*/artifacts/` that are not referenced by canonical artifact
 events, and aged derived eval outputs under `.glassbox/evals/`.
 

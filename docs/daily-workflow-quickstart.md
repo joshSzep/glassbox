@@ -188,6 +188,7 @@ Then choose the narrowest recovery action:
 - projection degradation: run `glassbox projection check --all --cwd .` before
   `glassbox projection rebuild --all --cwd .`
 - artifact pressure: inspect first, then use the documented dry-run prune path
+  (`glassbox artifacts prune --dry-run --cwd .`) before any non-dry-run cleanup
   in [release-packaging.md](./release-packaging.md) and
   [replay-evals.md](./replay-evals.md)
 

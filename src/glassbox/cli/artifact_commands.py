@@ -72,7 +72,8 @@ def _print_artifact_prune_report(
     print(
         "Artifact prune: "
         f"{len(report.protected)} protected, "
-        f"{len(report.candidates)} stale, "
+        f"{report.orphaned_count} orphaned, "
+        f"{report.reclaimable_count} reclaimable, "
         f"{action_count} {'would be deleted' if dry_run else 'deleted'} "
         f"({action_size} bytes)"
     )
@@ -96,7 +97,9 @@ def _print_artifact_inspection_report(report: ArtifactGcReport) -> None:
     print(
         "Artifact inspect: "
         f"{len(report.protected)} protected, "
-        f"{len(report.candidates)} stale, "
+        f"{report.event_referenced_count} event-referenced, "
+        f"{report.orphaned_count} orphaned, "
+        f"{report.reclaimable_count} reclaimable, "
         f"{len(report.missing_references)} missing reference(s), "
         f"{report.candidate_size_bytes} reclaimable bytes"
     )
@@ -108,15 +111,20 @@ def _print_artifact_inspection_report(report: ArtifactGcReport) -> None:
 
     for entry in report.protected:
         print(
-            f"Protected: {entry.relative_path.as_posix()} "
+            f"Protected event-referenced: {entry.relative_path.as_posix()} "
             f"[{entry.category}, {entry.size_bytes} bytes, "
             f"age {entry.age_days} day(s), sha256 {entry.content_sha256}]"
         )
         print(f"  Reason: {entry.reason}")
 
     for entry in report.candidates:
+        label = (
+            "Orphaned reclaimable"
+            if entry.retention_state == "orphaned"
+            else "Reclaimable"
+        )
         print(
-            f"Stale: {entry.relative_path.as_posix()} "
+            f"{label}: {entry.relative_path.as_posix()} "
             f"[{entry.category}, {entry.size_bytes} bytes, "
             f"age {entry.age_days} day(s), sha256 {entry.content_sha256}]"
         )
@@ -150,6 +158,10 @@ def _print_artifact_pressure_summary(report: ArtifactGcReport) -> None:
         print(f"Oldest managed artifact age: {report.oldest_age_days} day(s)")
     if report.storage_warning is not None:
         print(f"Storage warning: {report.storage_warning}")
+    if report.next_actions:
+        print("Next actions:")
+        for action in report.next_actions:
+            print(f"- {action}")
 
 
 def _format_category_counts(category_counts: dict[str, int]) -> str:

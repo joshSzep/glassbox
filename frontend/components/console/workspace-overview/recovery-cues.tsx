@@ -117,9 +117,12 @@ function recoveryCues(data: DashboardState): RecoveryCue[] {
       tone: "info",
     },
     {
-      commands: ["uv run glassbox artifacts inspect --json --cwd ."],
+      commands: [
+        "uv run glassbox artifacts inspect --json --cwd .",
+        "uv run glassbox artifacts prune --dry-run --json --cwd .",
+      ],
       detail:
-        "Inspect protected, event-referenced, orphaned, reclaimable, and missing artifact pressure.",
+        "Inspect protected, event-referenced, orphaned, reclaimable, and missing artifact pressure before any non-dry-run cleanup.",
       label: "Artifact pressure",
       state: "safe check",
       tone: "info",

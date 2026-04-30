@@ -48,7 +48,11 @@ def test_artifact_prune_dry_run_reports_without_deleting_protected_or_stale_file
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert "Artifact prune: 1 protected, 2 stale, 2 would be deleted" in captured.out
+    assert (
+        "Artifact prune: 1 protected, 1 orphaned, 2 reclaimable, 2 would be deleted"
+    ) in captured.out
+    assert "Next actions:" in captured.out
+    assert "glassbox artifacts prune --dry-run --cwd ." in captured.out
     assert (
         f"Would delete: {orphan_path.relative_to(tmp_path).as_posix()}" in captured.out
     )
@@ -85,17 +89,27 @@ def test_artifact_inspect_reports_without_deleting_files(
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert "Artifact inspect: 1 protected, 2 stale" in captured.out
+    assert (
+        "Artifact inspect: 1 protected, 1 event-referenced, 1 orphaned, 2 reclaimable"
+    ) in captured.out
     assert "Artifact storage: 3 managed file(s)" in captured.out
     assert "Retention classes: event_referenced_artifact=1" in captured.out
     assert "orphan_session_artifact=1" in captured.out
     assert "stale_eval_artifact=1" in captured.out
     assert "Oldest managed artifact age:" in captured.out
     assert (
-        f"Protected: {protected_path.relative_to(tmp_path).as_posix()}" in captured.out
+        f"Protected event-referenced: {protected_path.relative_to(tmp_path).as_posix()}"
+        in captured.out
     )
-    assert f"Stale: {orphan_path.relative_to(tmp_path).as_posix()}" in captured.out
-    assert f"Stale: {stale_eval_path.relative_to(tmp_path).as_posix()}" in captured.out
+    assert (
+        f"Orphaned reclaimable: {orphan_path.relative_to(tmp_path).as_posix()}"
+        in captured.out
+    )
+    assert (
+        f"Reclaimable: {stale_eval_path.relative_to(tmp_path).as_posix()}"
+        in captured.out
+    )
+    assert "Next actions:" in captured.out
     assert protected_path.exists()
     assert orphan_path.exists()
     assert stale_eval_path.exists()
@@ -131,6 +145,9 @@ def test_artifact_inspect_json_reports_hashes_and_missing_references(
     assert payload["protected_count"] == 0
     assert payload["missing_reference_count"] == 1
     assert payload["candidate_count"] == 2
+    assert payload["event_referenced_count"] == 0
+    assert payload["orphaned_count"] == 1
+    assert payload["reclaimable_count"] == 2
     assert payload["reported_count"] == 2
     assert payload["glassbox_size_bytes"] > 0
     assert payload["oldest_age_days"] >= 39
@@ -138,9 +155,21 @@ def test_artifact_inspect_json_reports_hashes_and_missing_references(
         "orphan_session_artifact": 1,
         "stale_eval_artifact": 1,
     }
+    assert payload["retention_state_counts"] == {
+        "missing_reference": 1,
+        "orphaned": 1,
+        "reclaimable": 1,
+    }
+    assert payload["next_actions"][0].startswith(
+        "inspect missing event-referenced artifacts"
+    )
     assert {candidate["path"] for candidate in payload["candidates"]} == {
         orphan_path.relative_to(tmp_path).as_posix(),
         stale_eval_path.relative_to(tmp_path).as_posix(),
+    }
+    assert {candidate["retention_state"] for candidate in payload["candidates"]} == {
+        "orphaned",
+        "reclaimable",
     }
     assert all(candidate["content_sha256"] for candidate in payload["candidates"])
     assert all(candidate["modified_at"] for candidate in payload["candidates"])
@@ -170,7 +199,10 @@ def test_artifact_prune_deletes_only_unreferenced_and_managed_stale_files(
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert "Artifact prune: 1 protected, 2 stale, 2 deleted" in captured.out
+    assert (
+        "Artifact prune: 1 protected, 1 orphaned, 2 reclaimable, 2 deleted"
+        in captured.out
+    )
     assert protected_path.exists()
     assert not orphan_path.exists()
     assert not stale_eval_path.exists()
@@ -207,11 +239,81 @@ def test_artifact_prune_json_reports_hashes_and_missing_references(
     assert payload["protected_count"] == 0
     assert payload["missing_reference_count"] == 1
     assert payload["candidate_count"] == 2
+    assert payload["orphaned_count"] == 1
+    assert payload["reclaimable_count"] == 2
     assert {candidate["path"] for candidate in payload["candidates"]} == {
         orphan_path.relative_to(tmp_path).as_posix(),
         stale_eval_path.relative_to(tmp_path).as_posix(),
     }
     assert all(candidate["content_sha256"] for candidate in payload["candidates"])
+    assert payload["next_actions"][1].startswith(
+        "run `glassbox artifacts prune --dry-run --cwd .`"
+    )
+
+
+def test_artifact_inspect_reports_storage_pressure_thresholds(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, *_paths = _seed_artifact_gc_workspace(tmp_path)
+
+    exit_code = main(
+        [
+            "artifacts",
+            "inspect",
+            "--warning-threshold-mb",
+            "1",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["storage_warning"] is None
+
+    pressure_file = tmp_path / ".glassbox" / "large-pressure.bin"
+    pressure_file.write_bytes(b"x" * 1024 * 1024)
+
+    exit_code = main(
+        [
+            "artifacts",
+            "inspect",
+            "--warning-threshold-mb",
+            "0",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["storage_warning"] is None
+
+    exit_code = main(
+        [
+            "artifacts",
+            "inspect",
+            "--warning-threshold-mb",
+            "1",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Artifact storage:" in output
+    assert "Storage warning: .glassbox contains" in output
+    assert "Next actions:" in output
 
 
 def test_background_job_failure_artifacts_are_protected(tmp_path: Path) -> None:
