@@ -279,7 +279,7 @@ The intended v9 milestone order is:
 
 ### GBX-910: Define The v9 Public-Baseline Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-895`, `GBX-R251`
 - Goal: convert the v8 release-candidate decision and post-v8 refactor closeout
   into one concrete v9 product contract

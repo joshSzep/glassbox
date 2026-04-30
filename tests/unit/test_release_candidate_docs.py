@@ -289,3 +289,29 @@ def test_readmes_link_to_v8_release_candidate_guide() -> None:
 
     assert "docs/v8-release-candidate.md" in root_readme
     assert "v8-release-candidate.md" in docs_readme
+
+
+def test_v9_public_baseline_covers_supported_product_contract() -> None:
+    content = (REPO_ROOT / "docs" / "v9-public-baseline.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Product Model",
+        "## Supported Daily Workflows",
+        "## Advisory Workflows",
+        "## Release-Evidence Workflows",
+        "## v8 Residual-Risk Mapping",
+        "## Version Contract",
+        "pre-1.0",
+        "`uv run glassbox command tree`",
+        "`session`, `task`, `branch-search`, `memory`, `repo index`, `replay`, `eval`",
+        "provider recommendations",
+        "evidence is the release authority; live-provider evidence is advisory",
+        "GBX-912 owns the next version identifier",
+    ):
+        assert required_text in content
+
+
+def test_docs_hub_links_to_v9_public_baseline() -> None:
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    assert "v9-public-baseline.md" in docs_readme

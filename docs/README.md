@@ -9,6 +9,9 @@ Use this page to jump to the right level of detail.
 
 ## Start Here
 
+- [v9-public-baseline.md](./v9-public-baseline.md): understand the current
+  supported Glassbox product contract, core model, daily workflows, advisory
+  posture, release-evidence split, and v8 residual-risk mapping
 - [getting-started.md](./getting-started.md): install the project, run the first session, understand the local workspace layout, and use the default validation commands
 - [v6-release-candidate.md](./v6-release-candidate.md): review the supported v6 operating model, validation path, evidence expectations, known residual risks, and release decision
 - [v2-release-candidate.md](./v2-release-candidate.md): review the supported v2 operating model, release-readiness checklist, and explicit non-goals
@@ -65,6 +68,8 @@ Use this page to jump to the right level of detail.
 
 ## Operator Guides
 
+- [v9-public-baseline.md](./v9-public-baseline.md): use the v9 supported
+  baseline as the current product contract before diving into release history
 - [v2-release-candidate.md](./v2-release-candidate.md): package the v2 workflow set into one release-candidate guide for operators and contributors
 - [v6-release-candidate.md](./v6-release-candidate.md): package the v6 release-candidate operating model, validation path, residual risks, and decision state for operators and contributors
 - [v8-release-candidate.md](./v8-release-candidate.md): package the v8 auditable-autonomy operating model, validation path, residual risks, and decision state for operators and contributors
@@ -126,6 +131,9 @@ Use this page to jump to the right level of detail.
 - [v8-autonomy-baseline-inventory.md](./v8-autonomy-baseline-inventory.md): v8 inventory of command surfaces, turn execution, policy gates, cancellation, daemon seams, runtime context, repository context, replay/eval flows, dashboard gaps, provider depth, and safe loosening opportunities
 - [v8-release-gate.md](./v8-release-gate.md): v8 automated gate command, stage map, advisory provider-canary policy, autonomy boundedness summary, installed smoke inheritance, evidence summary, and pass/fail policy
 - [v8-release-candidate.md](./v8-release-candidate.md): v8 release-candidate operating model, final evidence summary, non-goals, residual risks, and GO decision
+- [v9-public-baseline.md](./v9-public-baseline.md): v9 public baseline,
+  supported daily workflows, advisory workflows, release-evidence workflows,
+  residual-risk mapping, non-goals, and pre-1.0 version posture
 - [tool-expansion-v8.md](./tool-expansion-v8.md): v8 candidate-tool matrix, risk classification, sandboxing controls, validation matrix, migration notes, and non-goals
 - [network-browser-diagnostics-v8.md](./network-browser-diagnostics-v8.md): v8 accepted use cases, host allowlist policy, timeout/redaction controls, prototype schemas, test matrix, and non-goals for local network/browser diagnostics
 - [verification-loops.md](./verification-loops.md): v8 verification loop contract, event vocabulary, failure categories, artifact posture, and release-check relationship
