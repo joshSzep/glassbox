@@ -402,6 +402,40 @@ class BudgetOverrideResolved(EventPayload):
     reason: str | None = Field(default=None, max_length=2000)
 
 
+class ContinuationWindowRequested(EventPayload):
+    event_type: Literal["ContinuationWindowRequested"] = "ContinuationWindowRequested"
+    approval_id: ApprovalId
+    scope: Literal["session", "task"]
+    requested_minutes: int = Field(ge=1, le=1440)
+    requested_by: str = Field(default="operator", min_length=1, max_length=200)
+    task_id: TaskId | None = None
+    checkpoint_id: TaskCheckpointId | None = None
+    reason: str | None = Field(default=None, max_length=2000)
+
+
+class ContinuationWindowResolved(EventPayload):
+    event_type: Literal["ContinuationWindowResolved"] = "ContinuationWindowResolved"
+    approval_id: ApprovalId
+    decision: ApprovalDecision
+    decided_by: str = Field(min_length=1, max_length=200)
+    approved_minutes: int | None = Field(default=None, ge=1, le=1440)
+    approved_until: datetime | None = None
+    task_id: TaskId | None = None
+    checkpoint_id: TaskCheckpointId | None = None
+    reason: str | None = Field(default=None, max_length=2000)
+
+
+class ContinuationWindowExpired(EventPayload):
+    event_type: Literal["ContinuationWindowExpired"] = "ContinuationWindowExpired"
+    approval_id: ApprovalId
+    scope: Literal["session", "task"]
+    expired_at: datetime
+    stop_reason: str = Field(min_length=1, max_length=2000)
+    task_id: TaskId | None = None
+    job_id: BackgroundJobId | None = None
+    checkpoint_id: TaskCheckpointId | None = None
+
+
 class TaskCreated(EventPayload):
     event_type: Literal["TaskCreated"] = "TaskCreated"
     task_id: TaskId
@@ -1022,6 +1056,9 @@ EventPayloadType = Annotated[
     | BudgetExhausted
     | BudgetOverrideRequested
     | BudgetOverrideResolved
+    | ContinuationWindowRequested
+    | ContinuationWindowResolved
+    | ContinuationWindowExpired
     | TaskCreated
     | TaskPlanProposed
     | TaskPlanRevised

@@ -229,6 +229,18 @@ continuation authority, guided and inspect modes use short unattended and
 checkpoint windows, and the larger local automation presets require explicit
 checkpoint approval where unattended work can continue longer.
 
+`GBX-1061` adds the first bounded continuation-window workflow. Operators can
+approve a task continuation for a fixed number of local minutes through the CLI
+or dashboard/API action without granting indefinite autonomy. The approval is
+recorded as `ContinuationWindowRequested` plus `ContinuationWindowResolved`
+evidence, and the queued background continuation job carries the approved
+deadline, approval id, optional checkpoint id, and minute budget in its payload.
+If the job reaches the worker after the approved deadline, Glassbox records
+`ContinuationWindowExpired`, pauses the task with
+`continuation_window_expired`, and completes the job with the same stop reason.
+Overlapping active windows for the same task are rejected before a new job is
+queued.
+
 ## Evidence Expectations
 
 v10 release evidence is split into blocking deterministic evidence and advisory

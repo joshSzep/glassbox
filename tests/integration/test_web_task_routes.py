@@ -6,6 +6,8 @@ from pathlib import Path
 
 import httpx
 
+from glassbox.core import ContinuationWindowRequested
+from glassbox.core import ContinuationWindowResolved
 from glassbox.core import EventEnvelope
 from glassbox.core import SessionStarted
 from glassbox.core import TaskCreated
@@ -18,6 +20,7 @@ from glassbox.core import new_session_id
 from glassbox.core import new_task_id
 from glassbox.core import new_task_step_id
 from glassbox.core import new_task_verification_id
+from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskVerificationStatus
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
@@ -296,6 +299,91 @@ def test_task_action_routes_mutate_authoritative_events_and_jobs(
             assert cancelled_task is not None
             assert cancelled_task.status == TaskPlanStatus.CANCELLED
             assert blocked_continue.status_code == 409
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_task_continuation_window_approval_denial_and_overlap(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app = _make_app(tmp_path, connection)
+            session_id = new_session_id()
+            task_id = new_task_id()
+            repo = SQLiteSessionRepository(connection)
+            _seed_task(
+                repo,
+                tmp_path,
+                session_id,
+                task_id,
+                [new_task_step_id()],
+                new_task_verification_id(),
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                denied = await client.post(
+                    f"/tasks/{task_id}/continuation-window",
+                    json={
+                        "decision": "denied",
+                        "requested_minutes": 15,
+                        "reason": "needs human review",
+                    },
+                )
+                approved = await client.post(
+                    f"/tasks/{task_id}/continuation-window",
+                    json={
+                        "decision": "approved",
+                        "requested_minutes": 20,
+                        "reason": "bounded continuation",
+                    },
+                )
+                overlap = await client.post(
+                    f"/tasks/{task_id}/continuation-window",
+                    json={
+                        "decision": "approved",
+                        "requested_minutes": 5,
+                        "reason": "overlap",
+                    },
+                )
+
+            assert denied.status_code == 200
+            denied_body = denied.json()
+            assert denied_body["status"] == "denied"
+            assert denied_body["job"] is None
+            assert denied_body["continuation_window"]["decision"] == "denied"
+
+            assert approved.status_code == 200
+            approved_body = approved.json()
+            assert approved_body["status"] == "approved"
+            assert approved_body["job"]["state"] == "queued"
+            assert approved_body["continuation_window"]["approved_until"] is not None
+
+            assert overlap.status_code == 409
+            jobs = repo.list_background_jobs()
+            assert jobs[-1].payload["continuation_window_minutes"] == 20
+            events = repo.read_session_events(session_id)
+            request_events = [
+                event.payload
+                for event in events
+                if isinstance(event.payload, ContinuationWindowRequested)
+            ]
+            resolved_events = [
+                event.payload
+                for event in events
+                if isinstance(event.payload, ContinuationWindowResolved)
+            ]
+            assert [event.requested_minutes for event in request_events] == [15, 20]
+            assert [event.decision for event in resolved_events] == [
+                ApprovalDecision.DENIED,
+                ApprovalDecision.APPROVED,
+            ]
         finally:
             connection.close()
 

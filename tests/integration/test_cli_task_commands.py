@@ -130,6 +130,35 @@ def test_task_continue_queues_background_job_json(tmp_path: Path, capsys) -> Non
     assert payload["payload"]["verify_repair"] is False
 
 
+def test_task_continue_can_approve_bounded_window(tmp_path: Path, capsys) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    task_id = new_task_id()
+    step_id = new_task_step_id()
+    _seed_task(db_path, tmp_path, session_id, task_id, step_id)
+
+    exit_code = main(
+        [
+            "task",
+            "continue",
+            str(task_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--for-minutes",
+            "12",
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["payload"]["continuation_window_minutes"] == 12
+    assert "continuation_window_approval_id" in payload["payload"]
+    assert "continuation_window_approved_until" in payload["payload"]
+
+
 def _seed_task(
     db_path: Path,
     tmp_path: Path,

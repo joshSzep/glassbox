@@ -1066,7 +1066,7 @@ The intended v10 milestone order is:
 
 ### GBX-1061: Add Continue-For-N-Minutes Approval Workflow
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1060`, `GBX-1051`
 - Goal: let operators grant bounded continuation windows without turning on
   indefinite autonomy
@@ -1087,6 +1087,18 @@ The intended v10 milestone order is:
 - Done when:
   - an operator can safely say "continue for a bit" and see when that authority
     ends
+- Completed:
+  - Added canonical `ContinuationWindowRequested`,
+    `ContinuationWindowResolved`, and `ContinuationWindowExpired` events for
+    bounded continuation authority and stop evidence.
+  - Added CLI and API/dashboard actions for approving a task continuation for a
+    fixed number of minutes, with optional checkpoint linkage and overlap
+    rejection for active windows on the same task.
+  - Persisted approved deadlines in background continuation job payloads and
+    made the worker pause expired jobs with a durable
+    `continuation_window_expired` task stop reason.
+  - Added backend, CLI, API, frontend API-client, and generated schema/type
+    coverage for approval, denial, expiry, and overlapping windows.
 
 ### GBX-1062: Add Pause Windows And Scheduled Stop Reasons
 

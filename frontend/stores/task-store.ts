@@ -62,6 +62,8 @@ export type TaskStoreState = {
   cancelBackgroundJob: (input: { jobId: string; reason?: string | null }) => Promise<void>;
   cancelTask: (input?: { reason?: string | null; taskId?: string }) => Promise<void>;
   continueTask: (input?: {
+    checkpointId?: string | null;
+    continueForMinutes?: number | null;
     reason?: string | null;
     taskId?: string;
     verifyRepair?: boolean;
@@ -143,6 +145,8 @@ export function createTaskStore(apiClient: GlassboxApiClient): StoreApi<TaskStor
       await runTaskAction({
         action: () =>
           apiClient.continueTask({
+            checkpointId: input.continueForMinutes ? input.checkpointId : null,
+            continueForMinutes: input.continueForMinutes,
             reason: input.reason,
             taskId,
             verifyRepair: input.verifyRepair,

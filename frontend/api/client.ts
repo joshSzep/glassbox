@@ -16,6 +16,8 @@ export type TaskDetailResponse = components["schemas"]["TaskDetailResponse"];
 export type TaskStepPageResponse = components["schemas"]["TaskStepPageResponse"];
 export type TaskEventPageResponse = components["schemas"]["TaskEventPageResponse"];
 export type BackgroundJobDetailResponse = components["schemas"]["BackgroundJobDetailResponse"];
+export type TaskContinuationWindowActionResponse =
+  components["schemas"]["TaskContinuationWindowActionResponse"];
 export type ActionAcceptedResponse = components["schemas"]["ActionAcceptedResponse"];
 export type BranchCandidateActionResponse = components["schemas"]["BranchCandidateActionResponse"];
 export type BranchSearchDetailResponse = components["schemas"]["BranchSearchDetailResponse"];
@@ -277,6 +279,8 @@ export function createGlassboxApiClient(options: GlassboxApiClientOptions = {}) 
 
     continueTask: (
       input: {
+        checkpointId?: string | null;
+        continueForMinutes?: number | null;
         reason?: string | null;
         requestedBy?: string;
         taskId: string;
@@ -290,8 +294,40 @@ export function createGlassboxApiClient(options: GlassboxApiClientOptions = {}) 
         {
           ...requestOptions,
           body: {
+            checkpoint_id: input.checkpointId ?? null,
+            continue_for_minutes: input.continueForMinutes ?? null,
             reason: input.reason ?? null,
             requested_by: input.requestedBy ?? "operator",
+            verify_repair: input.verifyRepair ?? true,
+          },
+        },
+      ),
+
+    resolveTaskContinuationWindow: (
+      input: {
+        checkpointId?: string | null;
+        decidedBy?: string;
+        decision?: ApprovalDecision;
+        reason?: string | null;
+        requestedBy?: string;
+        requestedMinutes: number;
+        taskId: string;
+        verifyRepair?: boolean;
+      },
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<TaskContinuationWindowActionResponse>(
+        "POST",
+        `/tasks/${encodeURIComponent(input.taskId)}/continuation-window`,
+        {
+          ...requestOptions,
+          body: {
+            checkpoint_id: input.checkpointId ?? null,
+            decided_by: input.decidedBy ?? "operator",
+            decision: input.decision ?? "approved",
+            reason: input.reason ?? null,
+            requested_by: input.requestedBy ?? "operator",
+            requested_minutes: input.requestedMinutes,
             verify_repair: input.verifyRepair ?? true,
           },
         },

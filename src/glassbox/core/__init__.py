@@ -38,6 +38,9 @@ from glassbox.core.events import CancellationFailed
 from glassbox.core.events import CancellationRequested
 from glassbox.core.events import ContextCompactionCreated
 from glassbox.core.events import ContextCompactionFreshnessChanged
+from glassbox.core.events import ContinuationWindowExpired
+from glassbox.core.events import ContinuationWindowRequested
+from glassbox.core.events import ContinuationWindowResolved
 from glassbox.core.events import ErrorRecorded
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import EventPayload
@@ -285,6 +288,9 @@ __all__ = [
     "ContextCompactionId",
     "ContextCompactionRecord",
     "ContextCompactionScope",
+    "ContinuationWindowExpired",
+    "ContinuationWindowRequested",
+    "ContinuationWindowResolved",
     "ErrorRecorded",
     "EventId",
     "EventEnvelope",

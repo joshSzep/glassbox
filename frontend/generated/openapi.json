@@ -1790,6 +1790,48 @@
         "title": "ContextCompactionScope",
         "type": "string"
       },
+      "ContinuationWindowResponse": {
+        "properties": {
+          "approval_id": {
+            "title": "Approval Id",
+            "type": "string"
+          },
+          "approved_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved Until"
+          },
+          "checkpoint_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkpoint Id"
+          },
+          "decision": {
+            "title": "Decision",
+            "type": "string"
+          },
+          "requested_minutes": {
+            "title": "Requested Minutes",
+            "type": "integer"
+          }
+        },
+        "required": ["approval_id", "decision", "requested_minutes"],
+        "title": "ContinuationWindowResponse",
+        "type": "object"
+      },
       "ErrorDetailResponse": {
         "properties": {
           "detail": {
@@ -4685,6 +4727,7 @@
           "ambiguous_plan",
           "cancelled",
           "manual_pause",
+          "continuation_window_expired",
           "unknown"
         ],
         "title": "TaskBlockedReason",
@@ -4903,12 +4946,119 @@
         "title": "TaskCheckpointResponse",
         "type": "object"
       },
+      "TaskContinuationWindowActionResponse": {
+        "properties": {
+          "continuation_window": {
+            "$ref": "#/components/schemas/ContinuationWindowResponse"
+          },
+          "job": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackgroundJobResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": ["status", "continuation_window"],
+        "title": "TaskContinuationWindowActionResponse",
+        "type": "object"
+      },
+      "TaskContinuationWindowRequest": {
+        "properties": {
+          "actor": {
+            "default": "operator",
+            "title": "Actor",
+            "type": "string"
+          },
+          "checkpoint_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkpoint Id"
+          },
+          "decided_by": {
+            "default": "operator",
+            "title": "Decided By",
+            "type": "string"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/ApprovalDecision",
+            "default": "approved"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "requested_by": {
+            "default": "operator",
+            "title": "Requested By",
+            "type": "string"
+          },
+          "requested_minutes": {
+            "maximum": 1440.0,
+            "minimum": 1.0,
+            "title": "Requested Minutes",
+            "type": "integer"
+          },
+          "verify_repair": {
+            "default": true,
+            "title": "Verify Repair",
+            "type": "boolean"
+          }
+        },
+        "required": ["requested_minutes"],
+        "title": "TaskContinuationWindowRequest",
+        "type": "object"
+      },
       "TaskContinueRequest": {
         "properties": {
           "actor": {
             "default": "operator",
             "title": "Actor",
             "type": "string"
+          },
+          "checkpoint_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkpoint Id"
+          },
+          "continue_for_minutes": {
+            "anyOf": [
+              {
+                "maximum": 1440.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Continue For Minutes"
           },
           "reason": {
             "anyOf": [
@@ -9960,6 +10110,77 @@
           }
         },
         "summary": "Cancel Task"
+      }
+    },
+    "/tasks/{task_id}/continuation-window": {
+      "post": {
+        "description": "Approve or deny a bounded task continuation window.",
+        "operationId": "resolve_task_continuation_window_tasks__task_id__continuation_window_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskContinuationWindowRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskContinuationWindowActionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve Task Continuation Window"
       }
     },
     "/tasks/{task_id}/continue": {

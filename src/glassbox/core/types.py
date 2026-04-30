@@ -221,6 +221,7 @@ class TaskBlockedReason(StrEnum):
     AMBIGUOUS_PLAN = "ambiguous_plan"
     CANCELLED = "cancelled"
     MANUAL_PAUSE = "manual_pause"
+    CONTINUATION_WINDOW_EXPIRED = "continuation_window_expired"
     UNKNOWN = "unknown"
 
 

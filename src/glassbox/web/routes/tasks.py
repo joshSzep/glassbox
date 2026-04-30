@@ -1,5 +1,7 @@
 """Task-plan inspection API routes."""
 
+from datetime import UTC
+from datetime import datetime
 from typing import Annotated
 from typing import cast
 from uuid import UUID
@@ -15,9 +17,13 @@ from glassbox.core.events import TaskPaused
 from glassbox.core.events import TaskResumed
 from glassbox.core.events import TaskStatusChanged
 from glassbox.core.models import AutonomyBudgetUsage
+from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import TaskPlanStatus
 from glassbox.runtime.budgeting import evaluate_budget
+from glassbox.runtime.continuation_windows import active_continuation_window_job
+from glassbox.runtime.continuation_windows import approve_continuation_window
+from glassbox.runtime.continuation_windows import deny_continuation_window
 from glassbox.runtime.task_queries import TaskPlanRepository
 from glassbox.runtime.task_queries import TaskQueryService
 from glassbox.web.app import RuntimeContextDep
@@ -25,8 +31,11 @@ from glassbox.web.session_api import ActionAcceptedResponse
 from glassbox.web.session_api import ErrorDetailResponse
 from glassbox.web.session_api import PageInfoResponse
 from glassbox.web.task_api import BackgroundJobDetailResponse
+from glassbox.web.task_api import ContinuationWindowResponse
 from glassbox.web.task_api import TaskActionRequest
 from glassbox.web.task_api import TaskBudgetAdjustmentRequest
+from glassbox.web.task_api import TaskContinuationWindowActionResponse
+from glassbox.web.task_api import TaskContinuationWindowRequest
 from glassbox.web.task_api import TaskContinueRequest
 from glassbox.web.task_api import TaskDetailResponse
 from glassbox.web.task_api import TaskEventPageResponse
@@ -113,6 +122,18 @@ def _append_task_event(context: RuntimeContextDep, session_id: UUID, payload) ->
             payload=payload,
         )
     )
+
+
+def _parse_optional_uuid(value: str | None, *, field_name: str) -> UUID | None:
+    if value is None:
+        return None
+    try:
+        return UUID(value)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=f"{field_name} must be a valid UUID",
+        ) from exc
 
 
 @router.get("", response_model=TaskListPageResponse)
@@ -301,20 +322,181 @@ async def continue_task(
     """Start a bounded background continuation job for one task."""
 
     task = _ensure_mutable_task(task_id, context)
+    payload: dict[str, object] = {
+        "reason": request.reason,
+        "task_id": str(task.task_id),
+        "verify_repair": request.verify_repair,
+    }
+    now = datetime.now(UTC)
+    if request.continue_for_minutes is not None:
+        active_window_job = active_continuation_window_job(
+            context.repositories.sessions.list_background_jobs(),
+            task_id=task.task_id,
+            now=now,
+        )
+        if active_window_job is not None:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "task already has an active bounded continuation window "
+                    f"on job {active_window_job.job_id}"
+                ),
+            )
+        approval = approve_continuation_window(
+            task_id=task.task_id,
+            minutes=request.continue_for_minutes,
+            requested_by=request.requested_by,
+            decided_by=request.actor,
+            reason=request.reason,
+            checkpoint_id=_parse_optional_uuid(
+                request.checkpoint_id,
+                field_name="checkpoint_id",
+            ),
+            now=now,
+        )
+        context.repositories.sessions.append_events(
+            [
+                EventEnvelope(
+                    session_id=task.session_id,
+                    sequence=0,
+                    payload=approval.requested_event,
+                ),
+                EventEnvelope(
+                    session_id=task.session_id,
+                    sequence=0,
+                    payload=approval.resolved_event,
+                ),
+            ]
+        )
+        payload.update(approval.payload)
     job = context.repositories.sessions.enqueue_background_job(
         task.session_id,
         kind=BackgroundJobKind.MUTATING_CONTINUATION,
         job_type="task-continuation-step",
         title=f"Continue task: {task.title}",
         requested_by=request.requested_by,
-        payload={
-            "reason": request.reason,
-            "task_id": str(task.task_id),
-            "verify_repair": request.verify_repair,
-        },
+        payload=payload,
         task_id=task.task_id,
     )
     return BackgroundJobDetailResponse(job=build_background_job_response(job))
+
+
+@router.post(
+    "/{task_id}/continuation-window",
+    response_model=TaskContinuationWindowActionResponse,
+    responses={
+        404: {"model": ErrorDetailResponse},
+        409: {"model": ErrorDetailResponse},
+    },
+)
+async def resolve_task_continuation_window(
+    task_id: UUID,
+    request: TaskContinuationWindowRequest,
+    context: RuntimeContextDep,
+) -> TaskContinuationWindowActionResponse:
+    """Approve or deny a bounded task continuation window."""
+
+    task = _ensure_mutable_task(task_id, context)
+    checkpoint_id = _parse_optional_uuid(
+        request.checkpoint_id, field_name="checkpoint_id"
+    )
+    if request.decision == ApprovalDecision.DENIED:
+        denial = deny_continuation_window(
+            task_id=task.task_id,
+            minutes=request.requested_minutes,
+            requested_by=request.requested_by,
+            decided_by=request.decided_by,
+            reason=request.reason,
+            checkpoint_id=checkpoint_id,
+        )
+        context.repositories.sessions.append_events(
+            [
+                EventEnvelope(
+                    session_id=task.session_id,
+                    sequence=0,
+                    payload=denial.requested_event,
+                ),
+                EventEnvelope(
+                    session_id=task.session_id,
+                    sequence=0,
+                    payload=denial.resolved_event,
+                ),
+            ]
+        )
+        return TaskContinuationWindowActionResponse(
+            status="denied",
+            continuation_window=ContinuationWindowResponse(
+                approval_id=str(denial.approval_id),
+                decision=ApprovalDecision.DENIED.value,
+                requested_minutes=request.requested_minutes,
+                checkpoint_id=request.checkpoint_id,
+            ),
+            job=None,
+        )
+
+    now = datetime.now(UTC)
+    active_window_job = active_continuation_window_job(
+        context.repositories.sessions.list_background_jobs(),
+        task_id=task.task_id,
+        now=now,
+    )
+    if active_window_job is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "task already has an active bounded continuation window "
+                f"on job {active_window_job.job_id}"
+            ),
+        )
+    approval = approve_continuation_window(
+        task_id=task.task_id,
+        minutes=request.requested_minutes,
+        requested_by=request.requested_by,
+        decided_by=request.decided_by,
+        reason=request.reason,
+        checkpoint_id=checkpoint_id,
+        now=now,
+    )
+    context.repositories.sessions.append_events(
+        [
+            EventEnvelope(
+                session_id=task.session_id,
+                sequence=0,
+                payload=approval.requested_event,
+            ),
+            EventEnvelope(
+                session_id=task.session_id,
+                sequence=0,
+                payload=approval.resolved_event,
+            ),
+        ]
+    )
+    payload: dict[str, object] = {
+        "reason": request.reason,
+        "task_id": str(task.task_id),
+        "verify_repair": request.verify_repair,
+    }
+    payload.update(approval.payload)
+    job = context.repositories.sessions.enqueue_background_job(
+        task.session_id,
+        kind=BackgroundJobKind.MUTATING_CONTINUATION,
+        job_type="task-continuation-step",
+        title=f"Continue task for {request.requested_minutes} minutes: {task.title}",
+        requested_by=request.requested_by,
+        payload=payload,
+        task_id=task.task_id,
+    )
+    return TaskContinuationWindowActionResponse(
+        status="approved",
+        continuation_window=ContinuationWindowResponse(
+            approval_id=str(approval.approval_id),
+            decision=ApprovalDecision.APPROVED.value,
+            requested_minutes=request.requested_minutes,
+            approved_until=approval.approved_until,
+            checkpoint_id=request.checkpoint_id,
+        ),
+        job=build_background_job_response(job),
+    )
 
 
 @router.post(

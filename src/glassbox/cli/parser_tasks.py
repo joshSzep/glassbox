@@ -100,6 +100,20 @@ def _add_task_parsers(
         help="allow the queued continuation job to use verify-repair behavior",
     )
     continue_parser.add_argument(
+        "--for-minutes",
+        dest="continue_for_minutes",
+        type=int,
+        default=None,
+        help="approve a bounded continuation window for this many minutes",
+    )
+    continue_parser.add_argument(
+        "--checkpoint",
+        dest="checkpoint_id",
+        type=_parse_uuid,
+        default=None,
+        help="checkpoint this continuation window is tied to",
+    )
+    continue_parser.add_argument(
         "--json",
         action="store_true",
         help="print the queued background job as JSON",

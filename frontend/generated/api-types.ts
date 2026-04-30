@@ -940,6 +940,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/tasks/{task_id}/continuation-window": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Resolve Task Continuation Window
+     * @description Approve or deny a bounded task continuation window.
+     */
+    post: operations["resolve_task_continuation_window_tasks__task_id__continuation_window_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/tasks/{task_id}/continue": {
     parameters: {
       query?: never;
@@ -1740,6 +1760,19 @@ export interface components {
       | "runtime_context"
       | "verification"
       | "tool_output";
+    /** ContinuationWindowResponse */
+    ContinuationWindowResponse: {
+      /** Approval Id */
+      approval_id: string;
+      /** Approved Until */
+      approved_until?: string | null;
+      /** Checkpoint Id */
+      checkpoint_id?: string | null;
+      /** Decision */
+      decision: string;
+      /** Requested Minutes */
+      requested_minutes: number;
+    };
     /** ErrorDetailResponse */
     ErrorDetailResponse: {
       /** Detail */
@@ -2710,6 +2743,7 @@ export interface components {
       | "ambiguous_plan"
       | "cancelled"
       | "manual_pause"
+      | "continuation_window_expired"
       | "unknown";
     /** TaskBudgetAdjustmentRequest */
     TaskBudgetAdjustmentRequest: {
@@ -2773,6 +2807,44 @@ export interface components {
       /** Verification Status */
       verification_status?: string | null;
     };
+    /** TaskContinuationWindowActionResponse */
+    TaskContinuationWindowActionResponse: {
+      continuation_window: components["schemas"]["ContinuationWindowResponse"];
+      job?: components["schemas"]["BackgroundJobResponse"] | null;
+      /** Status */
+      status: string;
+    };
+    /** TaskContinuationWindowRequest */
+    TaskContinuationWindowRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /** Checkpoint Id */
+      checkpoint_id?: string | null;
+      /**
+       * Decided By
+       * @default operator
+       */
+      decided_by: string;
+      /** @default approved */
+      decision: components["schemas"]["ApprovalDecision"];
+      /** Reason */
+      reason?: string | null;
+      /**
+       * Requested By
+       * @default operator
+       */
+      requested_by: string;
+      /** Requested Minutes */
+      requested_minutes: number;
+      /**
+       * Verify Repair
+       * @default true
+       */
+      verify_repair: boolean;
+    };
     /** TaskContinueRequest */
     TaskContinueRequest: {
       /**
@@ -2780,6 +2852,10 @@ export interface components {
        * @default operator
        */
       actor: string;
+      /** Checkpoint Id */
+      checkpoint_id?: string | null;
+      /** Continue For Minutes */
+      continue_for_minutes?: number | null;
       /** Reason */
       reason?: string | null;
       /**
@@ -5420,6 +5496,59 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ActionAcceptedResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  resolve_task_continuation_window_tasks__task_id__continuation_window_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskContinuationWindowRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaskContinuationWindowActionResponse"];
         };
       };
       /** @description Not Found */

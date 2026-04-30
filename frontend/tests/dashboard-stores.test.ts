@@ -207,6 +207,26 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
         title: "Continue task",
       },
     }),
+    resolveTaskContinuationWindow: async () => ({
+      continuation_window: {
+        approval_id: "approval-1",
+        approved_until: "2026-04-30T12:15:00Z",
+        decision: "approved",
+        requested_minutes: 15,
+      },
+      job: {
+        job_id: "job-1",
+        job_type: "task-continuation-step",
+        kind: "mutating_continuation",
+        requested_by: "operator",
+        retryable: false,
+        session_id: "session-1",
+        state: "queued",
+        task_id: "task-1",
+        title: "Continue task",
+      },
+      status: "approved",
+    }),
     pauseTask: async () => ({ status: "ok" }),
     previewWorkspaceMemoryPrune: async (input) => ({
       entry: makeMemoryEntry(input.memoryId),

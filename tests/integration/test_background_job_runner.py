@@ -13,6 +13,7 @@ from glassbox.core import ApprovalRequested
 from glassbox.core import AutonomyMode
 from glassbox.core import BackgroundJobKind
 from glassbox.core import BackgroundJobState
+from glassbox.core import ContinuationWindowExpired
 from glassbox.core import EventEnvelope
 from glassbox.core import RuntimeNoteRecorded
 from glassbox.core import SessionStarted
@@ -361,6 +362,65 @@ def test_async_worker_pauses_continuation_without_explicit_budget(
         assert task.status.value == "paused"
         assert task.blocked_reason is not None
         assert task.blocked_reason.value == "budget_exhausted"
+
+    asyncio.run(run_once())
+
+
+def test_async_worker_stops_expired_continuation_window(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    task_id = new_task_id()
+    step_id = new_task_step_id()
+    approval_id = new_approval_id()
+    expired_at = datetime(2026, 4, 29, 10, tzinfo=UTC)
+    _seed_task(
+        db_path,
+        tmp_path,
+        session_id,
+        task_id,
+        step_id,
+        autonomy_mode=AutonomyMode.TEST_DRIVEN,
+    )
+
+    async def run_once() -> None:
+        with open_runtime_context(tmp_path, db_path=db_path) as runtime_context:
+            repository = runtime_context.repositories.sessions
+            job = repository.enqueue_background_job(
+                session_id,
+                kind=BackgroundJobKind.MUTATING_CONTINUATION,
+                job_type="task-continuation-step",
+                title="Continue task",
+                task_id=task_id,
+                payload={
+                    "continuation_window_approval_id": str(approval_id),
+                    "continuation_window_approved_until": expired_at.isoformat(),
+                    "continuation_window_minutes": 10,
+                    "task_id": str(task_id),
+                },
+            )
+            await run_background_job_worker_once_async(
+                runtime_context,
+                worker_id="test-worker",
+            )
+            updated_job = repository.get_background_job(job.job_id)
+            task = cast(TaskPlanRepository, repository).get_task(task_id)
+            events = repository.read_session_events(session_id)
+
+        assert updated_job is not None
+        assert updated_job.state == BackgroundJobState.COMPLETED
+        assert task is not None
+        assert task.status.value == "paused"
+        assert task.blocked_reason is not None
+        assert task.blocked_reason.value == "continuation_window_expired"
+        expiry = next(
+            event.payload
+            for event in events
+            if isinstance(event.payload, ContinuationWindowExpired)
+        )
+        assert expiry.approval_id == approval_id
+        assert expiry.job_id == job.job_id
 
     asyncio.run(run_once())
 

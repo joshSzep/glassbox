@@ -1,5 +1,7 @@
 """Mutating task continuation background job handling."""
 
+from datetime import UTC
+from datetime import datetime
 from typing import cast
 from uuid import UUID
 
@@ -20,6 +22,8 @@ from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskStepStatus
 from glassbox.runtime.background_job_records import record_background_job_progress
 from glassbox.runtime.context import RuntimeContext
+from glassbox.runtime.continuation_windows import continuation_window_expired_event
+from glassbox.runtime.continuation_windows import continuation_window_from_job
 from glassbox.runtime.task_queries import TaskPlanRepository
 
 
@@ -43,6 +47,28 @@ async def run_task_continuation_background_job(
         raise ValueError(f"unknown task_id for continuation job: {task_id}")
     if task.session_id != job.session_id:
         raise ValueError("task continuation job session_id does not match task")
+
+    window = continuation_window_from_job(job)
+    if window is not None and window.approved_until <= datetime.now(UTC):
+        expired_event = continuation_window_expired_event(job, window)
+        repository.append_event(
+            EventEnvelope(
+                session_id=task.session_id,
+                sequence=0,
+                payload=expired_event,
+            )
+        )
+        _pause_task(
+            runtime_context,
+            task,
+            TaskBlockedReason.CONTINUATION_WINDOW_EXPIRED,
+            detail=expired_event.stop_reason,
+        )
+        repository.complete_background_job(
+            job.job_id,
+            summary=expired_event.stop_reason,
+        )
+        return
 
     pause_reason = _blocked_reason_for_session(runtime_context, task)
     if pause_reason is not None:

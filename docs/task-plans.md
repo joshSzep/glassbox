@@ -100,6 +100,23 @@ During a turn, the model may propose durable task state by including one fenced 
 
 The runtime validates that block with a bounded Pydantic model, creates `TaskCreated` and `TaskPlanProposed` events when it is valid, and leaves normal assistant text untouched. Invalid, ambiguous, or multiple plan blocks are ignored. Captured plans are inspection-only; no step is started or executed by this capture path.
 
+## Bounded Continuation Windows
+
+v10 task continuation can be approved for a fixed local time window without
+enabling indefinite autonomy:
+
+```bash
+uv run glassbox task continue TASK_ID --cwd . --for-minutes 15
+```
+
+The approval creates `ContinuationWindowRequested` and
+`ContinuationWindowResolved` events before the background continuation job is
+queued. The job payload retains the approval id, approved deadline, minute
+budget, and optional checkpoint id. If the daemon reaches the job after the
+deadline, it records `ContinuationWindowExpired`, pauses the task with
+`continuation_window_expired`, and completes the job with that stop reason.
+Glassbox rejects overlapping active continuation windows for the same task.
+
 ## Handoff And Replay
 
 Session exports include redacted task summaries, step summaries, verification summaries, and canonical task-event references. The references retain enough validated payload data to import task-plan history into a new local session while preserving the import session as completed, inspection-only handoff state.

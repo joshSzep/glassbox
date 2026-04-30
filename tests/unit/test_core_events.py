@@ -36,6 +36,9 @@ from glassbox.core import ContextCompactionCreated
 from glassbox.core import ContextCompactionFreshness
 from glassbox.core import ContextCompactionFreshnessChanged
 from glassbox.core import ContextCompactionScope
+from glassbox.core import ContinuationWindowExpired
+from glassbox.core import ContinuationWindowRequested
+from glassbox.core import ContinuationWindowResolved
 from glassbox.core import ErrorRecorded
 from glassbox.core import EventEnvelope
 from glassbox.core import EventPayloadType
@@ -191,6 +194,51 @@ def test_event_payload_union_validates_representative_payloads() -> None:
     assert isinstance(tool_chunk, ToolOutputChunk)
     assert isinstance(approval_resolved, ApprovalResolved)
     assert approval_resolved.decision == ApprovalDecision.APPROVED
+
+
+def test_continuation_window_payloads_round_trip_through_event_union() -> None:
+    adapter = TypeAdapter(EventPayloadType)
+    task_id = new_task_id()
+    approval_id = new_approval_id()
+    approved_until = datetime(2026, 4, 30, 12, 15, tzinfo=UTC)
+
+    requested = adapter.validate_python(
+        {
+            "event_type": "ContinuationWindowRequested",
+            "approval_id": approval_id,
+            "scope": "task",
+            "task_id": task_id,
+            "requested_minutes": 15,
+            "requested_by": "operator",
+            "reason": "continue through focused tests",
+        }
+    )
+    resolved = adapter.validate_python(
+        {
+            "event_type": "ContinuationWindowResolved",
+            "approval_id": approval_id,
+            "decision": "approved",
+            "decided_by": "operator",
+            "approved_minutes": 15,
+            "approved_until": approved_until,
+            "task_id": task_id,
+        }
+    )
+    expired = adapter.validate_python(
+        {
+            "event_type": "ContinuationWindowExpired",
+            "approval_id": approval_id,
+            "scope": "task",
+            "task_id": task_id,
+            "expired_at": approved_until,
+            "stop_reason": "window expired",
+        }
+    )
+
+    assert isinstance(requested, ContinuationWindowRequested)
+    assert isinstance(resolved, ContinuationWindowResolved)
+    assert isinstance(expired, ContinuationWindowExpired)
+    assert resolved.decision == ApprovalDecision.APPROVED
 
 
 def test_event_payload_union_rejects_unknown_event_type() -> None:

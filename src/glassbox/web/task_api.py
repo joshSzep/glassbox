@@ -4,10 +4,12 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from pydantic import BaseModel
+from pydantic import Field
 
 from glassbox.core.models import AutonomyBudget
 from glassbox.core.models import BackgroundJobRecord
 from glassbox.core.models import ProjectionHealth
+from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import AutonomyMode
 from glassbox.core.types import TaskBlockedReason
 from glassbox.runtime.task_queries import TaskDetailView
@@ -102,6 +104,25 @@ class TaskPauseRequest(TaskActionRequest):
 class TaskContinueRequest(TaskActionRequest):
     requested_by: str = "operator"
     verify_repair: bool = True
+    continue_for_minutes: int | None = Field(default=None, ge=1, le=1440)
+    checkpoint_id: str | None = None
+
+
+class TaskContinuationWindowRequest(TaskActionRequest):
+    decision: ApprovalDecision = ApprovalDecision.APPROVED
+    requested_by: str = "operator"
+    decided_by: str = "operator"
+    requested_minutes: int = Field(ge=1, le=1440)
+    checkpoint_id: str | None = None
+    verify_repair: bool = True
+
+
+class ContinuationWindowResponse(BaseModel):
+    approval_id: str
+    decision: str
+    requested_minutes: int
+    approved_until: datetime | None = None
+    checkpoint_id: str | None = None
 
 
 class TaskBudgetAdjustmentRequest(TaskActionRequest):
@@ -123,6 +144,12 @@ class BackgroundJobResponse(BaseModel):
     failure_kind: str | None = None
     failure_message: str | None = None
     retryable: bool = False
+
+
+class TaskContinuationWindowActionResponse(BaseModel):
+    status: str
+    continuation_window: ContinuationWindowResponse
+    job: BackgroundJobResponse | None = None
 
 
 class BackgroundJobDetailResponse(BaseModel):
