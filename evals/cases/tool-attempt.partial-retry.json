@@ -1,0 +1,29 @@
+{
+  "manifest_version": 1,
+  "case_id": "tool-attempt.partial-retry",
+  "title": "Tool-attempt partial output keeps safe retry posture",
+  "bundle_path": "../bundles/tool-attempt.partial-retry.json",
+  "tags": ["v10-long-run", "tool-attempt", "recovery"],
+  "notes": "Deterministic v10 fixture evidence for retained partial tool output and safe-to-retry classification.",
+  "release_contract": {
+    "owner": "runtime.tools",
+    "capabilities": [
+      "tool_attempt_partial_output",
+      "tool_attempt_safe_retry"
+    ],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-30T20:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000109003",
+      "rationale": "Promoted for GBX-1090 to retain deterministic evidence for partial-output recovery and safe retry classification."
+    }
+  ]
+}

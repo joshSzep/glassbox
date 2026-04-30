@@ -1413,7 +1413,7 @@ The intended v10 milestone order is:
 
 ### GBX-1090: Add Deterministic Long-Run Replay And Eval Cases
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1033`, `GBX-1043`, `GBX-1073`
 - Goal: prove the core v10 behavior with deterministic replay/eval evidence
 - Deliverables:
@@ -1437,6 +1437,24 @@ The intended v10 milestone order is:
 - Done when:
   - v10 long-run primitives are represented in repository-owned deterministic
     release evidence
+- Completed:
+  - Added five compact release-candidate replay fixtures for
+    incomplete-turn/checkpoint recovery, compaction provenance and stale
+    exclusion, tool-attempt partial-output safe retry, stale verification
+    review, and long-run cockpit progress/recovery summaries.
+  - Extended the release-candidate profile budget from 8 to 13 selected cases
+    while leaving commit-time and push-time smoke selection unchanged.
+  - Added v10 long-run capability mappings to `evals/coverage.json` and
+    `evals/impact.json`, including release-candidate recommendation routing
+    for checkpoint/compaction, tool-attempt recovery, and cockpit/dashboard
+    changes.
+  - Updated eval documentation with the v10 fixture-backed release-candidate
+    cases and the deterministic boundary for provider and daemon-dependent
+    behavior.
+  - Verified the updated profile with `glassbox eval run --profile
+    release-candidate`, `glassbox eval audit`, and `glassbox eval report
+    release-candidate`, plus focused eval metadata, coverage, recommendation,
+    CLI, and release summary tests.
 
 ### GBX-1091: Add v10 Release Gate
 

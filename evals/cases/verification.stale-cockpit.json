@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "verification.stale-cockpit",
+  "title": "Stale verification remains visible to long-run cockpit review",
+  "bundle_path": "../bundles/verification.stale-cockpit.json",
+  "tags": ["v10-long-run", "verification", "cockpit"],
+  "notes": "Deterministic v10 fixture evidence for stale verification warnings beside task progress and cockpit review posture.",
+  "release_contract": {
+    "owner": "runtime.verification",
+    "capabilities": ["stale_verification_warning"],
+    "severity": "medium",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-30T20:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000109004",
+      "rationale": "Promoted for GBX-1090 to retain deterministic evidence for stale verification posture in long-run review."
+    }
+  ]
+}

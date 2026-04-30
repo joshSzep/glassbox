@@ -1,0 +1,120 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Compact the long transcript and exclude stale context before resume"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "budget_posture": null,
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves compaction provenance state",
+        "turn_id": "00000000-0000-0000-0000-000000109102"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves compaction provenance state",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000109102"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "ContextCompactionCreated",
+      "ContextCompactionCreated",
+      "ContextCompactionFreshnessChanged",
+      "LongRunPhaseChanged",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "lineage": null,
+    "long_run_events": [
+      {
+        "checkpoint_id": null,
+        "compaction_id": "00000000-0000-0000-0000-000000109302",
+        "event_type": "ContextCompactionCreated",
+        "fingerprint": "v10-compaction-provenance-active",
+        "phase": null,
+        "recovery_decision_id": null,
+        "status": "active",
+        "task_id": "00000000-0000-0000-0000-000000109402",
+        "tool_attempt_id": null,
+        "tool_call_id": null,
+        "turn_id": "00000000-0000-0000-0000-000000109102"
+      },
+      {
+        "checkpoint_id": null,
+        "compaction_id": "00000000-0000-0000-0000-000000109303",
+        "event_type": "ContextCompactionCreated",
+        "fingerprint": "v10-compaction-provenance-stale",
+        "phase": null,
+        "recovery_decision_id": null,
+        "status": "stale",
+        "task_id": "00000000-0000-0000-0000-000000109402",
+        "tool_attempt_id": null,
+        "tool_call_id": null,
+        "turn_id": "00000000-0000-0000-0000-000000109102"
+      }
+    ],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Compact the long transcript and exclude stale context before resume"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "questions": [],
+    "task_plans": [],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Compact the long transcript and exclude stale context before resume"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000109002",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "context.compaction-provenance"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

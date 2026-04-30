@@ -204,6 +204,86 @@
       "expected_case_ids": ["branch-search.candidate-comparison"],
       "coverage_mode": "single_case",
       "notes": "GBX-951 promotes this into release-candidate evidence. The replay case retains deterministic candidate comparison summaries. Live branch creation, cleanup, and selection remain integration and manual release evidence."
+    },
+    {
+      "capability_id": "incomplete_turn_recovery",
+      "title": "Incomplete-turn recovery boundaries",
+      "kind": "product_behavior",
+      "criticality": "release-critical",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["long-run.recovery-boundaries"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1090 adds deterministic fixture evidence for incomplete-turn recovery decisions so process-local interruption does not become invisible release risk."
+    },
+    {
+      "capability_id": "checkpoint_resume_recovery",
+      "title": "Checkpoint resume recovery",
+      "kind": "operator_workflow",
+      "criticality": "release-critical",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["long-run.recovery-boundaries"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1090 records checkpoint and resume outcome posture as deterministic release-candidate evidence."
+    },
+    {
+      "capability_id": "context_compaction_provenance",
+      "title": "Context compaction provenance",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["context.compaction-provenance"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1090 protects compaction source provenance as release-candidate evidence without asserting exact generated prose."
+    },
+    {
+      "capability_id": "stale_compaction_exclusion",
+      "title": "Stale compaction exclusion",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["context.compaction-provenance"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1090 records stale compaction exclusion beside active compaction evidence so resume context stays bounded."
+    },
+    {
+      "capability_id": "tool_attempt_partial_output",
+      "title": "Tool-attempt partial-output retention",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["tool-attempt.partial-retry"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1090 records partial tool output and heartbeat evidence as release-candidate replay context."
+    },
+    {
+      "capability_id": "tool_attempt_safe_retry",
+      "title": "Tool-attempt safe retry classification",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["tool-attempt.partial-retry"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1090 protects safe-to-retry classification for stale or interrupted tool attempts."
+    },
+    {
+      "capability_id": "stale_verification_warning",
+      "title": "Stale verification warning",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["verification.stale-cockpit"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1090 records stale verification posture beside the task plan so long work cannot continue on hidden stale evidence."
+    },
+    {
+      "capability_id": "long_run_cockpit_summary",
+      "title": "Long-run cockpit summary",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["long-run.cockpit-summary"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1090 records progress, budget, checkpoint, and recovery posture that the cockpit is expected to summarize."
     }
   ]
 }

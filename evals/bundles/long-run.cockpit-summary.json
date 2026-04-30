@@ -1,0 +1,169 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Summarize the long-running task cockpit state"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "budget_posture": {
+      "fingerprint": "v10-cockpit-budget-posture",
+      "last_decision": "allowed",
+      "last_limit_name": "release-candidate",
+      "last_reason": "within_budget",
+      "mode": "release-candidate",
+      "remaining": {
+        "model_calls": 1,
+        "tool_calls": 2,
+        "wall_clock_seconds": 900
+      },
+      "usage": {
+        "model_calls": 2,
+        "tool_calls": 3,
+        "wall_clock_seconds": 300
+      }
+    },
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves long-run cockpit summary state",
+        "turn_id": "00000000-0000-0000-0000-000000109105"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves long-run cockpit summary state",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000109105"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "LongRunPhaseChanged",
+      "TaskCheckpointCreated",
+      "RecoveryDecisionRecorded",
+      "BudgetDecisionRecorded",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "lineage": null,
+    "long_run_events": [
+      {
+        "checkpoint_id": "00000000-0000-0000-0000-000000109305",
+        "compaction_id": null,
+        "event_type": "TaskCheckpointCreated",
+        "fingerprint": "v10-cockpit-checkpoint",
+        "phase": null,
+        "recovery_decision_id": null,
+        "status": "active",
+        "task_id": "00000000-0000-0000-0000-000000109405",
+        "tool_attempt_id": null,
+        "tool_call_id": null,
+        "turn_id": "00000000-0000-0000-0000-000000109105"
+      },
+      {
+        "checkpoint_id": "00000000-0000-0000-0000-000000109305",
+        "compaction_id": null,
+        "event_type": "RecoveryDecisionRecorded",
+        "fingerprint": "v10-cockpit-recovery",
+        "phase": null,
+        "recovery_decision_id": "00000000-0000-0000-0000-000000109205",
+        "status": "inspect_before_resume",
+        "task_id": "00000000-0000-0000-0000-000000109405",
+        "tool_attempt_id": null,
+        "tool_call_id": null,
+        "turn_id": "00000000-0000-0000-0000-000000109105"
+      }
+    ],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Summarize the long-running task cockpit state"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "questions": [],
+    "task_plans": [
+      {
+        "blocked_detail": null,
+        "blocked_reason": null,
+        "current_step_order": 2,
+        "goal": "Keep long-running release work inspectable.",
+        "status": "running",
+        "steps": [
+          {
+            "blocked_reason": null,
+            "description": "Persist a resumable checkpoint.",
+            "order": 0,
+            "status": "completed",
+            "title": "Checkpoint"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Record recovery posture.",
+            "order": 1,
+            "status": "completed",
+            "title": "Recovery"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Show cockpit progress and next action.",
+            "order": 2,
+            "status": "running",
+            "title": "Cockpit summary"
+          }
+        ],
+        "title": "Long-run cockpit evidence",
+        "verifications": []
+      }
+    ],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Summarize the long-running task cockpit state"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000109005",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "long-run.cockpit-summary"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

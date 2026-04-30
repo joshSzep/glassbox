@@ -1,0 +1,29 @@
+{
+  "manifest_version": 1,
+  "case_id": "long-run.recovery-boundaries",
+  "title": "Incomplete-turn recovery and checkpoint resume stay replay-visible",
+  "bundle_path": "../bundles/long-run.recovery-boundaries.json",
+  "tags": ["v10-long-run", "recovery", "checkpoint"],
+  "notes": "Deterministic v10 fixture evidence for incomplete-turn recovery decisions, checkpoint creation, and resume outcome posture.",
+  "release_contract": {
+    "owner": "runtime.long-run",
+    "capabilities": [
+      "incomplete_turn_recovery",
+      "checkpoint_resume_recovery"
+    ],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-30T20:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000109001",
+      "rationale": "Promoted for GBX-1090 to retain deterministic evidence for checkpoint-backed incomplete-turn recovery."
+    }
+  ]
+}

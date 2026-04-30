@@ -264,15 +264,25 @@
             "owners": ["runtime.context", "runtime.tasks"],
             "capabilities": [
                 "artifact_backed_context",
+                "checkpoint_resume_recovery",
+                "context_compaction_provenance",
                 "context_drift_detection",
+                "incomplete_turn_recovery",
+                "stale_compaction_exclusion",
                 "task_continuation_until_blocked"
             ],
             "case_ids": [
                 "context.artifact",
                 "context.branch-inherited",
+                "context.compaction-provenance",
+                "long-run.recovery-boundaries",
                 "task.continuation-blocked"
             ],
-            "profile_ids": ["commit-smoke", "v8-autonomy-advisory"],
+            "profile_ids": [
+                "commit-smoke",
+                "release-candidate",
+                "v8-autonomy-advisory"
+            ],
             "notes": "Checkpoint or compaction changes should review immediate proof, checkpoint freshness, and pre-resume recovery posture before release-candidate validation."
         },
         {
@@ -288,15 +298,18 @@
             "owners": ["runtime.cancellation", "runtime.verification"],
             "capabilities": [
                 "cancellation",
+                "tool_attempt_partial_output",
+                "tool_attempt_safe_retry",
                 "verification_loop_failure",
                 "verification_loop_success"
             ],
             "case_ids": [
                 "cancellation.tool-execution",
+                "tool-attempt.partial-retry",
                 "verification.failure",
                 "verification.success"
             ],
-            "profile_ids": ["v8-autonomy-advisory"],
+            "profile_ids": ["release-candidate", "v8-autonomy-advisory"],
             "notes": "Tool-attempt recovery changes should verify partial-output evidence, safe retry classification, cancellation posture, and focused repair-loop behavior."
         },
         {
@@ -315,16 +328,20 @@
             "owners": ["web.dashboard", "runtime.tasks"],
             "capabilities": [
                 "dashboard_actions",
+                "long_run_cockpit_summary",
+                "stale_verification_warning",
                 "task_plan_proposal_capture",
                 "task_continuation_until_blocked"
             ],
             "case_ids": [
                 "dashboard.action-approval",
                 "dashboard.action-answer",
+                "long-run.cockpit-summary",
                 "task-plan.proposal-capture",
-                "task.continuation-blocked"
+                "task.continuation-blocked",
+                "verification.stale-cockpit"
             ],
-            "profile_ids": ["v8-autonomy-advisory"],
+            "profile_ids": ["release-candidate", "v8-autonomy-advisory"],
             "notes": "Long-run cockpit changes should pair dashboard component tests with replay-backed action, task-plan, and continuation evidence."
         },
         {

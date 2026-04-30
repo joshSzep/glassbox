@@ -273,6 +273,24 @@ and `branch-search.candidate-comparison`; kept memory, repository-index, and
 continuation drift advisory; and left `task-plan.proposal-capture` split-first
 because the current bundle is intentionally cancelled-fixture-shaped.
 
+Current v10 long-run release-candidate cases:
+
+- `long-run.recovery-boundaries`: fixture-backed replay evidence for
+  incomplete-turn recovery decisions, checkpoint creation, and resume outcome
+  posture.
+- `context.compaction-provenance`: fixture-backed replay evidence for
+  compaction source provenance and stale compaction exclusion.
+- `tool-attempt.partial-retry`: fixture-backed replay evidence for retained
+  partial tool output and safe-to-retry classification.
+- `verification.stale-cockpit`: fixture-backed replay evidence for stale
+  verification warnings beside task progress.
+- `long-run.cockpit-summary`: fixture-backed replay evidence for long-run
+  cockpit progress, budget, checkpoint, and recovery summaries.
+
+These cases are deterministic release-candidate evidence. They intentionally do
+not run live providers, daemon timing, or provider-side recovery; provider
+recovery remains advisory unless a case is explicitly fixture-backed.
+
 Each run writes one JSON artifact per case plus `summary.json` into the selected
 output directory. If `--output-dir` is omitted, Glassbox creates a timestamped
 directory under `.glassbox/evals/`.

@@ -1,0 +1,29 @@
+{
+  "manifest_version": 1,
+  "case_id": "context.compaction-provenance",
+  "title": "Context compaction provenance and stale exclusion stay explicit",
+  "bundle_path": "../bundles/context.compaction-provenance.json",
+  "tags": ["v10-long-run", "context", "compaction"],
+  "notes": "Deterministic v10 fixture evidence for compaction source provenance and stale compaction exclusion from active recovery posture.",
+  "release_contract": {
+    "owner": "runtime.context",
+    "capabilities": [
+      "context_compaction_provenance",
+      "stale_compaction_exclusion"
+    ],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-30T20:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000109002",
+      "rationale": "Promoted for GBX-1090 to retain deterministic evidence for compaction provenance and stale exclusion."
+    }
+  ]
+}

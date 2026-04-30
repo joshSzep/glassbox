@@ -1,0 +1,141 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Inspect stale verification before continuing the long task"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "budget_posture": null,
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves stale verification posture",
+        "turn_id": "00000000-0000-0000-0000-000000109104"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves stale verification posture",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000109104"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TaskCreated",
+      "TaskStepStarted",
+      "TaskVerificationCompleted",
+      "TaskVerificationFailed",
+      "LongRunPhaseChanged",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "lineage": null,
+    "long_run_events": [
+      {
+        "checkpoint_id": null,
+        "compaction_id": null,
+        "event_type": "LongRunPhaseChanged",
+        "fingerprint": "v10-verification-stale-review",
+        "phase": "verify",
+        "recovery_decision_id": null,
+        "status": "attention",
+        "task_id": "00000000-0000-0000-0000-000000109404",
+        "tool_attempt_id": null,
+        "tool_call_id": null,
+        "turn_id": "00000000-0000-0000-0000-000000109104"
+      }
+    ],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Inspect stale verification before continuing the long task"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "questions": [],
+    "task_plans": [
+      {
+        "blocked_detail": "Last known good verification is stale after workspace changes.",
+        "blocked_reason": "verification_required",
+        "current_step_order": 1,
+        "goal": "Continue only after fresh verification evidence exists.",
+        "status": "paused",
+        "steps": [
+          {
+            "blocked_reason": null,
+            "description": "Retain previous passing check.",
+            "order": 0,
+            "status": "completed",
+            "title": "Record last known good"
+          },
+          {
+            "blocked_reason": "verification_required",
+            "description": "Refresh stale verification before continuing.",
+            "order": 1,
+            "status": "blocked",
+            "title": "Refresh verification"
+          }
+        ],
+        "title": "Long-run verification review",
+        "verifications": [
+          {
+            "check_name": "pytest unit",
+            "status": "failed",
+            "step_order": 1,
+            "summary": "stale verification warning requires rerun"
+          }
+        ]
+      }
+    ],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Inspect stale verification before continuing the long task"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000109004",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "verification.stale-cockpit"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

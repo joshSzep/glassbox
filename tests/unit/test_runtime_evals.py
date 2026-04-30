@@ -422,7 +422,7 @@ def test_repository_eval_profiles_align_with_v6_gate_stages() -> None:
     assert profiles["release-candidate"].verification_stage == "release-candidate"
     assert profiles["release-candidate"].blocking is True
     assert profiles["release-candidate"].budget is not None
-    assert profiles["release-candidate"].budget.max_selected_case_count == 8
+    assert profiles["release-candidate"].budget.max_selected_case_count == 13
     assert profiles["release-candidate"].budget.allow_advisory_cases is False
     assert provider_profiles["live-provider-canary"].blocking is False
     assert provider_profiles["live-provider-canary"].track == "live-provider-canary"
@@ -453,6 +453,35 @@ def test_repository_release_candidate_profile_includes_promoted_v8_autonomy_case
     assert all(
         case.release_contract.baseline_refresh_policy != "advisory" for case in cases
     )
+
+
+def test_repository_release_candidate_profile_includes_v10_long_run_cases() -> None:
+    cases = load_eval_suite(REPO_ROOT, profile_id="release-candidate")
+    case_ids = {case.case_id for case in cases}
+    capabilities = {
+        capability
+        for case in cases
+        for capability in case.release_contract.capabilities
+    }
+
+    assert {
+        "long-run.recovery-boundaries",
+        "context.compaction-provenance",
+        "tool-attempt.partial-retry",
+        "verification.stale-cockpit",
+        "long-run.cockpit-summary",
+    }.issubset(case_ids)
+    assert {
+        "incomplete_turn_recovery",
+        "checkpoint_resume_recovery",
+        "context_compaction_provenance",
+        "stale_compaction_exclusion",
+        "tool_attempt_partial_output",
+        "tool_attempt_safe_retry",
+        "stale_verification_warning",
+        "long_run_cockpit_summary",
+    }.issubset(capabilities)
+    assert len(cases) == 13
 
 
 def test_resolve_eval_suite_selection_applies_profile_before_extra_tag_filter(

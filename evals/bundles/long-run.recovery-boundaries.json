@@ -1,0 +1,133 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Resume the interrupted long-running task from the latest checkpoint"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "budget_posture": null,
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves incomplete-turn recovery boundary",
+        "turn_id": "00000000-0000-0000-0000-000000109101"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves incomplete-turn recovery boundary",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000109101"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "RecoveryDecisionRecorded",
+      "TaskCheckpointCreated",
+      "ResumeOutcomeRecorded",
+      "LongRunPhaseChanged",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "lineage": null,
+    "long_run_events": [
+      {
+        "checkpoint_id": null,
+        "compaction_id": null,
+        "event_type": "RecoveryDecisionRecorded",
+        "fingerprint": "v10-recovery-boundaries-decision",
+        "phase": null,
+        "recovery_decision_id": "00000000-0000-0000-0000-000000109201",
+        "status": "checkpoint_required",
+        "task_id": null,
+        "tool_attempt_id": null,
+        "tool_call_id": null,
+        "turn_id": "00000000-0000-0000-0000-000000109101"
+      },
+      {
+        "checkpoint_id": "00000000-0000-0000-0000-000000109301",
+        "compaction_id": null,
+        "event_type": "TaskCheckpointCreated",
+        "fingerprint": "v10-recovery-boundaries-checkpoint",
+        "phase": null,
+        "recovery_decision_id": null,
+        "status": "active",
+        "task_id": "00000000-0000-0000-0000-000000109401",
+        "tool_attempt_id": null,
+        "tool_call_id": null,
+        "turn_id": "00000000-0000-0000-0000-000000109101"
+      },
+      {
+        "checkpoint_id": "00000000-0000-0000-0000-000000109301",
+        "compaction_id": null,
+        "event_type": "ResumeOutcomeRecorded",
+        "fingerprint": "v10-recovery-boundaries-resume",
+        "phase": null,
+        "recovery_decision_id": "00000000-0000-0000-0000-000000109201",
+        "status": "resumed_from_checkpoint",
+        "task_id": "00000000-0000-0000-0000-000000109401",
+        "tool_attempt_id": null,
+        "tool_call_id": null,
+        "turn_id": "00000000-0000-0000-0000-000000109101"
+      }
+    ],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Resume the interrupted long-running task from the latest checkpoint"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "questions": [],
+    "task_plans": [],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Resume the interrupted long-running task from the latest checkpoint"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000109001",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "long-run.recovery-boundaries"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

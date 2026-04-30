@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "long-run.cockpit-summary",
+  "title": "Long-run cockpit summary keeps progress and recovery evidence",
+  "bundle_path": "../bundles/long-run.cockpit-summary.json",
+  "tags": ["v10-long-run", "cockpit", "dashboard"],
+  "notes": "Deterministic v10 fixture evidence for long-run cockpit progress, recovery, checkpoint, and task summary posture.",
+  "release_contract": {
+    "owner": "web.dashboard",
+    "capabilities": ["long_run_cockpit_summary"],
+    "severity": "medium",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-04-30T20:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000109005",
+      "rationale": "Promoted for GBX-1090 to retain deterministic evidence for long-run cockpit summaries."
+    }
+  ]
+}
