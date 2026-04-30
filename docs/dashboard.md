@@ -75,7 +75,9 @@ The v2 operator-console model builds on this shell rather than replacing it. See
 queue, health, and priority contract that future dashboard tasks should follow.
 For the v9 cockpit target, priority rules, responsive and keyboard
 expectations, and backend/frontend data-source map, see
-[dashboard-cockpit-contract.md](./dashboard-cockpit-contract.md).
+[dashboard-cockpit-contract.md](./dashboard-cockpit-contract.md). For the v10
+long-running terminal and dashboard cockpit target, see
+[long-run-cockpit-contract.md](./long-run-cockpit-contract.md).
 For the v7 evidence, comparison, metrics, policy, provider, and release-cue
 target, see [dashboard-evidence-v7.md](./dashboard-evidence-v7.md).
 For the v8 autonomy-control-room information architecture, see

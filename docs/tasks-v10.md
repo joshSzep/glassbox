@@ -883,7 +883,7 @@ The intended v10 milestone order is:
 
 ### GBX-1050: Define The Long-Run Cockpit Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1021`, `GBX-1030`, `GBX-1040`
 - Goal: define how terminal and dashboard surfaces should summarize long-running
   progress, risk, and recovery
@@ -905,6 +905,14 @@ The intended v10 milestone order is:
 - Done when:
   - frontend and terminal implementation has a clear long-run operator-priority
     contract rather than ad hoc panel additions
+- Completed:
+  - Added [long-run-cockpit-contract.md](./long-run-cockpit-contract.md) with
+    the v10 terminal and dashboard cockpit purpose, surface contract, priority
+    rules, data-source map, recovery guidance, responsive expectations,
+    keyboard expectations, and follow-on task boundaries.
+  - Linked the new contract from the docs hub and dashboard guide so cockpit
+    implementers can discover the v10 priority rules beside the older v9
+    dashboard cockpit contract.
 
 ### GBX-1051: Add Heartbeat, Stuck-State, And Progress Summary Surfaces
 

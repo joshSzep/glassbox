@@ -33,6 +33,9 @@ implementation track after the v9 baseline.
 - [dashboard-cockpit-contract.md](./dashboard-cockpit-contract.md): v9
   dashboard cockpit information architecture, priority rules, responsive and
   keyboard expectations, data-source map, and follow-on task boundaries
+- [long-run-cockpit-contract.md](./long-run-cockpit-contract.md): v10 terminal
+  and dashboard cockpit contract for long-running heartbeat, checkpoint,
+  compaction, attempt, verification, budget, provider, and recovery cues
 - [operator-quickstart.md](./operator-quickstart.md): short happy path for
   install, provider setup, terminal chat, dashboard inspection, approvals, and
   verification
@@ -57,6 +60,8 @@ implementation track after the v9 baseline.
 - [dashboard-cockpit-contract.md](./dashboard-cockpit-contract.md): understand
   the v9 workspace-attention, active-session, task, evidence, memory/index,
   branch, recovery, priority, responsive, and keyboard contract
+- [long-run-cockpit-contract.md](./long-run-cockpit-contract.md): understand
+  the v10 long-run terminal and dashboard priority contract
 - [task-plans.md](./task-plans.md): inspect durable task plans, plan steps,
   state transitions, and task evidence
 - [context-compactions.md](./context-compactions.md): understand v10
@@ -117,6 +122,8 @@ implementation track after the v9 baseline.
 - [dashboard-cockpit-contract.md](./dashboard-cockpit-contract.md): v9
   dashboard cockpit contract that maps operator-priority surfaces to typed API
   responses and frontend stores/components
+- [long-run-cockpit-contract.md](./long-run-cockpit-contract.md): v10 cockpit
+  priority rules and data-source map for long-running terminal/dashboard work
 - [autonomy-console.md](./autonomy-console.md): inspect autonomy state,
   budgets, and dashboard controls
 - [frontend-development.md](./frontend-development.md): run the Next.js SPA
