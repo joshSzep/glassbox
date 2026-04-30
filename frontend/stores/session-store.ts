@@ -26,7 +26,14 @@ import {
   type StoreActionStatus,
 } from "@/stores/store-actions";
 
-export type ActionKind = "answer" | "approval" | "cancel" | "fork" | "prompt";
+export type ActionKind =
+  | "answer"
+  | "approval"
+  | "cancel"
+  | "fork"
+  | "prompt"
+  | "tool-abandon"
+  | "tool-retry";
 export type DetailPageKind = "events" | "metrics" | "transcript";
 export type ActionStatus = StoreActionStatus<ActionKind>;
 
@@ -71,6 +78,7 @@ export type SessionStoreState = {
   loadMoreTranscript: () => Promise<void>;
   loadSession: (sessionId: string) => Promise<void>;
   loadState: LoadState;
+  abandonToolAttempt: (input: { reason?: string; toolAttemptId: string }) => Promise<void>;
   requestCancellation: () => Promise<void>;
   resetForRoute: (sessionId?: string | null) => void;
   resolveApproval: (input: {
@@ -84,6 +92,7 @@ export type SessionStoreState = {
   stream: SessionStreamState;
   submitAnswer: (input: { answer?: string; questionId: string }) => Promise<void>;
   submitPrompt: (text?: string) => Promise<void>;
+  retryToolAttempt: (input: { toolAttemptId: string }) => Promise<void>;
 };
 
 const DETAIL_PAGE_SIZE = 80;
@@ -249,6 +258,25 @@ export function createSessionStore({
       }
     },
     loadState: "idle",
+    abandonToolAttempt: async ({ reason, toolAttemptId }) => {
+      const sessionId = requireSelectedSessionId(get().data);
+      const currentActionRequestId = actionRequests.next();
+      set({ action: createPendingActionStatus("tool-abandon") });
+      try {
+        await apiClient.abandonToolAttempt({
+          reason: reason ?? "dashboard abandoned stale tool attempt",
+          sessionId,
+          toolAttemptId,
+        });
+        if (actionRequests.isCurrent(currentActionRequestId)) {
+          set({ action: createSucceededActionStatus("tool-abandon") });
+        }
+      } catch (error) {
+        if (actionRequests.isCurrent(currentActionRequestId)) {
+          set({ action: createFailedActionStatus("tool-abandon", error) });
+        }
+      }
+    },
     requestCancellation: async () => {
       const data = get().data;
       const sessionId = requireSelectedSessionId(data);
@@ -359,6 +387,25 @@ export function createSessionStore({
       } catch (error) {
         if (actionRequests.isCurrent(currentActionRequestId)) {
           set({ action: createFailedActionStatus("prompt", error) });
+        }
+      }
+    },
+    retryToolAttempt: async ({ toolAttemptId }) => {
+      const sessionId = requireSelectedSessionId(get().data);
+      const currentActionRequestId = actionRequests.next();
+      set({ action: createPendingActionStatus("tool-retry") });
+      try {
+        await apiClient.retryToolAttempt({
+          reason: "dashboard requested tool-attempt retry",
+          sessionId,
+          toolAttemptId,
+        });
+        if (actionRequests.isCurrent(currentActionRequestId)) {
+          set({ action: createSucceededActionStatus("tool-retry") });
+        }
+      } catch (error) {
+        if (actionRequests.isCurrent(currentActionRequestId)) {
+          set({ action: createFailedActionStatus("tool-retry", error) });
         }
       }
     },

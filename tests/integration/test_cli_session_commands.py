@@ -11,6 +11,7 @@ import pytest
 from glassbox.cli import main
 from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import EventEnvelope
+from glassbox.core.events import ModelToolCallRequested
 from glassbox.core.events import RecoveryDecisionRecorded
 from glassbox.core.events import ResumeOutcomeRecorded
 from glassbox.core.events import RuntimeNoteRecorded
@@ -22,6 +23,7 @@ from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import new_approval_id
 from glassbox.core.ids import new_task_checkpoint_id
 from glassbox.core.ids import new_tool_attempt_id
+from glassbox.core.ids import new_tool_call_id
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import LongRunPhase
 from glassbox.core.types import ToolAttemptRetryClassification
@@ -1490,6 +1492,184 @@ def test_cli_tool_attempts_lists_durable_attempts(
     assert "Retry requires approval: true" in captured.out
     assert "retry side effects are unknown" in captured.out
     assert "Retry policy reason: command retry requires confirmation" in captured.out
+
+
+def test_cli_tool_attempt_inspect_and_abandon_record_recovery(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id, turn_id, _approval_id = _seed_status_projection_details(
+        tmp_path
+    )
+    tool_attempt_id = new_tool_attempt_id()
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=ToolAttemptHeartbeat(
+                    tool_attempt_id=tool_attempt_id,
+                    status=ToolAttemptStatus.STALE,
+                    turn_id=turn_id,
+                    tool_name="read_file",
+                    message="heartbeat expired before completion",
+                    safe_to_retry=True,
+                    retry_classification=ToolAttemptRetryClassification.RETRYABLE,
+                    retry_requires_approval=False,
+                    retry_reason="read-only tools do not mutate workspace state",
+                ),
+            )
+        )
+    finally:
+        connection.close()
+    _ = capsys.readouterr()
+
+    inspect_code = main(
+        [
+            "session",
+            "tool-attempt",
+            "inspect",
+            str(session_id),
+            str(tool_attempt_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    inspect_output = capsys.readouterr().out
+
+    abandon_code = main(
+        [
+            "session",
+            "tool-attempt",
+            "abandon",
+            str(session_id),
+            str(tool_attempt_id),
+            "--reason",
+            "operator chose a fresh path",
+            "--yes",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    abandon_output = capsys.readouterr().out
+
+    assert inspect_code == 0
+    assert "Recovery actions: inspect, retry, abandon" in inspect_output
+    assert abandon_code == 0
+    assert f"abandoned {tool_attempt_id}" in abandon_output
+    assert "Status: abandoned" in abandon_output
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        attempt = repository.get_tool_attempt(session_id, tool_attempt_id)
+        assert attempt is not None
+        assert attempt.status == ToolAttemptStatus.ABANDONED
+        recovery_events = [
+            event
+            for event in repository.read_session_events(session_id)
+            if isinstance(event.payload, RecoveryDecisionRecorded)
+            and event.payload.tool_attempt_id == tool_attempt_id
+        ]
+        assert len(recovery_events) == 1
+    finally:
+        connection.close()
+
+
+def test_cli_tool_attempt_retry_replays_read_only_tool_call(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    target = tmp_path / "note.txt"
+    target.write_text("hello\n", encoding="utf-8")
+    db_path, session_id, turn_id, _approval_id = _seed_status_projection_details(
+        tmp_path
+    )
+    tool_attempt_id = new_tool_attempt_id()
+    tool_call_id = new_tool_call_id()
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ModelToolCallRequested(
+                        turn_id=turn_id,
+                        tool_call_id=tool_call_id,
+                        tool_name="read_file",
+                        arguments_json=json.dumps({"path": "note.txt"}),
+                        policy_outcome="allow",
+                        policy_risk_level="read_only",
+                        policy_source_kind="default",
+                        policy_source_label="read_only",
+                        policy_reason="allowed: read-only tool within workspace scope",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ToolAttemptHeartbeat(
+                        tool_attempt_id=tool_attempt_id,
+                        status=ToolAttemptStatus.FAILED,
+                        turn_id=turn_id,
+                        tool_call_id=tool_call_id,
+                        tool_name="read_file",
+                        message="transient read failure",
+                        safe_to_retry=True,
+                        retry_classification=ToolAttemptRetryClassification.RETRYABLE,
+                        retry_requires_approval=False,
+                        retry_reason="read-only tools do not mutate workspace state",
+                    ),
+                ),
+            ]
+        )
+    finally:
+        connection.close()
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "session",
+            "tool-attempt",
+            "retry",
+            str(session_id),
+            str(tool_attempt_id),
+            "--yes",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert f"retried {tool_attempt_id}" in captured.out
+    assert "Retry status: succeeded" in captured.out
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        original = repository.get_tool_attempt(session_id, tool_attempt_id)
+        assert original is not None
+        assert original.status == ToolAttemptStatus.RETRIED
+        retry_attempts = [
+            attempt
+            for attempt in repository.list_tool_attempts(session_id)
+            if attempt.tool_attempt_id != tool_attempt_id
+        ]
+        assert len(retry_attempts) == 1
+        assert retry_attempts[0].status == ToolAttemptStatus.SUCCEEDED
+    finally:
+        connection.close()
 
 
 def test_cli_status_includes_pending_question_and_answer_next_action(

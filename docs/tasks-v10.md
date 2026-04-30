@@ -842,7 +842,7 @@ The intended v10 milestone order is:
 
 ### GBX-1043: Expose Tool Attempt Recovery Actions
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1042`
 - Goal: let operators recover stale or failed long-running attempts from CLI
   and dashboard surfaces
@@ -865,6 +865,17 @@ The intended v10 milestone order is:
 - Done when:
   - stale or failed tool attempts have a clear recovery path with retained
     evidence
+- Completed:
+  - Added a durable tool-attempt recovery service for inspection, retained
+    output reading, explicit abandonment, and policy-checked retry from retained
+    `ModelToolCallRequested` arguments.
+  - Added `glassbox session tool-attempt inspect|output|retry|abandon` plus API
+    routes for inspect, retry, and abandon with confirmation gates for mutating
+    actions.
+  - Dashboard Actions now shows confirmed retry and abandon controls beside
+    retained retry posture, with generated OpenAPI/frontend API types refreshed.
+  - Added focused CLI, web route, frontend store, and component coverage for
+    successful retry, blocked confirmation, abandonment, and recovery controls.
 
 ---
 

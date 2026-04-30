@@ -290,6 +290,15 @@ export function WorkspaceConsole() {
             onAnswerTextChange={(questionId, text) =>
               sessionStore.getState().setAnswerText(questionId, text)
             }
+            onAbandonToolAttempt={(toolAttemptId) => {
+              if (!confirmAction("Abandon this tool attempt?")) {
+                return;
+              }
+              void (async () => {
+                await sessionStore.getState().abandonToolAttempt({ toolAttemptId });
+                await refreshSelectedSession();
+              })();
+            }}
             onClearCompare={() => {
               const nextRoute = setCompareRoute(route, null);
               navigate(nextRoute);
@@ -337,6 +346,15 @@ export function WorkspaceConsole() {
             onResolveApproval={(input) => {
               void (async () => {
                 await sessionStore.getState().resolveApproval(input);
+                await refreshSelectedSession();
+              })();
+            }}
+            onRetryToolAttempt={(toolAttemptId) => {
+              if (!confirmAction("Retry this tool attempt using retained arguments?")) {
+                return;
+              }
+              void (async () => {
+                await sessionStore.getState().retryToolAttempt({ toolAttemptId });
                 await refreshSelectedSession();
               })();
             }}

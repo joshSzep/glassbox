@@ -4999,6 +4999,180 @@
         "title": "TaskVerificationResponse",
         "type": "object"
       },
+      "ToolAttemptAbandonRequest": {
+        "properties": {
+          "actor": {
+            "default": "operator",
+            "title": "Actor",
+            "type": "string"
+          },
+          "confirmed": {
+            "default": false,
+            "title": "Confirmed",
+            "type": "boolean"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": ["reason"],
+        "title": "ToolAttemptAbandonRequest",
+        "type": "object"
+      },
+      "ToolAttemptArtifactReferenceResponse": {
+        "properties": {
+          "artifact_id": {
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "artifact_kind": {
+            "title": "Artifact Kind",
+            "type": "string"
+          },
+          "content_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Sha256"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Bytes"
+          }
+        },
+        "required": ["artifact_id", "artifact_kind"],
+        "title": "ToolAttemptArtifactReferenceResponse",
+        "type": "object"
+      },
+      "ToolAttemptInspectionResponse": {
+        "properties": {
+          "attempt": {
+            "$ref": "#/components/schemas/ToolAttemptResponse"
+          },
+          "correlated_event_count": {
+            "title": "Correlated Event Count",
+            "type": "integer"
+          },
+          "output_artifact": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ToolAttemptArtifactReferenceResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recovery_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recovery Actions",
+            "type": "array"
+          },
+          "source_arguments": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Arguments"
+          },
+          "source_tool_call_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Tool Call Id"
+          }
+        },
+        "required": ["attempt", "correlated_event_count", "recovery_actions"],
+        "title": "ToolAttemptInspectionResponse",
+        "type": "object"
+      },
+      "ToolAttemptRecoveryRequest": {
+        "properties": {
+          "actor": {
+            "default": "operator",
+            "title": "Actor",
+            "type": "string"
+          },
+          "confirmed": {
+            "default": false,
+            "title": "Confirmed",
+            "type": "boolean"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "title": "ToolAttemptRecoveryRequest",
+        "type": "object"
+      },
+      "ToolAttemptRecoveryResponse": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "original_attempt": {
+            "$ref": "#/components/schemas/ToolAttemptResponse"
+          },
+          "retry_attempt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ToolAttemptResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["message", "original_attempt"],
+        "title": "ToolAttemptRecoveryResponse",
+        "type": "object"
+      },
       "ToolAttemptResponse": {
         "properties": {
           "completed_at": {
@@ -8703,6 +8877,229 @@
           }
         },
         "summary": "Submit Session Answer"
+      }
+    },
+    "/sessions/{session_id}/tool-attempts/{tool_attempt_id}": {
+      "get": {
+        "description": "Inspect one durable tool-attempt recovery record.",
+        "operationId": "inspect_session_tool_attempt_sessions__session_id__tool_attempts__tool_attempt_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tool_attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Tool Attempt Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToolAttemptInspectionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Inspect Session Tool Attempt"
+      }
+    },
+    "/sessions/{session_id}/tool-attempts/{tool_attempt_id}/abandon": {
+      "post": {
+        "description": "Abandon one stale or failed tool attempt after explicit confirmation.",
+        "operationId": "abandon_session_tool_attempt_sessions__session_id__tool_attempts__tool_attempt_id__abandon_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tool_attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Tool Attempt Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToolAttemptAbandonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToolAttemptRecoveryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Abandon Session Tool Attempt"
+      }
+    },
+    "/sessions/{session_id}/tool-attempts/{tool_attempt_id}/retry": {
+      "post": {
+        "description": "Retry one stale or failed tool attempt after explicit confirmation.",
+        "operationId": "retry_session_tool_attempt_sessions__session_id__tool_attempts__tool_attempt_id__retry_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tool_attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Tool Attempt Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToolAttemptRecoveryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToolAttemptRecoveryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retry Session Tool Attempt"
       }
     },
     "/sessions/{session_id}/tool-calls": {

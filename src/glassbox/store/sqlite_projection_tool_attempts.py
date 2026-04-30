@@ -11,6 +11,7 @@ _TERMINAL_ATTEMPT_STATUSES = {
     ToolAttemptStatus.FAILED,
     ToolAttemptStatus.CANCELLED,
     ToolAttemptStatus.STALE,
+    ToolAttemptStatus.RETRIED,
     ToolAttemptStatus.ABANDONED,
 }
 

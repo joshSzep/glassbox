@@ -28,6 +28,30 @@ const projectionHealth = {
   state: "ok",
 } as const;
 
+const toolAttempt = {
+  completed_at: null,
+  completed_units: null,
+  heartbeat_expires_at: null,
+  last_heartbeat_at: null,
+  last_sequence: 7,
+  message: "retry posture retained",
+  output_artifact_id: null,
+  retry_classification: "retryable",
+  retry_policy_reason: null,
+  retry_reason: "read-only tools do not mutate workspace state",
+  retry_requires_approval: false,
+  safe_to_retry: true,
+  session_id: "session-1",
+  started_at: null,
+  status: "failed",
+  task_id: null,
+  tool_attempt_id: "attempt-1",
+  tool_call_id: "tool-call-1",
+  tool_name: "read_file",
+  total_units: null,
+  turn_id: "turn-1",
+} satisfies components["schemas"]["ToolAttemptResponse"];
+
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (error: unknown) => void;
@@ -209,8 +233,18 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
       }),
     }),
     listSessions: async () => [],
+    abandonToolAttempt: async () => ({
+      message: "abandoned attempt",
+      original_attempt: toolAttempt,
+      retry_attempt: null,
+    }),
     cancelTurn: async () => ({ status: "ok" }),
     resolveApproval: async () => ({ status: "ok" }),
+    retryToolAttempt: async () => ({
+      message: "retried attempt",
+      original_attempt: toolAttempt,
+      retry_attempt: { ...toolAttempt, status: "succeeded", tool_attempt_id: "attempt-2" },
+    }),
     submitAnswer: async () => ({ status: "ok" }),
     submitMessage: async () => ({ status: "ok" }),
     ...overrides,
@@ -1039,6 +1073,22 @@ describe("session store", () => {
           calls.push("approval");
           return { status: "ok" };
         },
+        retryToolAttempt: async () => {
+          calls.push("tool-retry");
+          return {
+            message: "retried",
+            original_attempt: toolAttempt,
+            retry_attempt: { ...toolAttempt, status: "succeeded", tool_attempt_id: "attempt-2" },
+          };
+        },
+        abandonToolAttempt: async () => {
+          calls.push("tool-abandon");
+          return {
+            message: "abandoned",
+            original_attempt: { ...toolAttempt, status: "abandoned" },
+            retry_attempt: null,
+          };
+        },
         submitAnswer: async () => {
           calls.push("answer");
           return { status: "ok" };
@@ -1056,9 +1106,11 @@ describe("session store", () => {
     await store.getState().submitPrompt();
     await store.getState().submitAnswer({ questionId: "question-1" });
     await store.getState().resolveApproval({ approvalId: "approval-1", decision: "approved" });
+    await store.getState().retryToolAttempt({ toolAttemptId: "attempt-1" });
+    await store.getState().abandonToolAttempt({ toolAttemptId: "attempt-1" });
     const childSessionId = await store.getState().forkSession({ turnId: "turn-1" });
 
-    expect(calls).toEqual(["prompt", "answer", "approval"]);
+    expect(calls).toEqual(["prompt", "answer", "approval", "tool-retry", "tool-abandon"]);
     expect(childSessionId).toBe("child-1");
     expect(store.getState().drafts.composerText).toBe("");
     expect(store.getState().drafts.answerTextByQuestionId).toEqual({});

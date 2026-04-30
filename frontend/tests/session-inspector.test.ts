@@ -190,6 +190,8 @@ describe("session inspector", () => {
     expect(actionsMarkup).toContain("idempotent");
     expect(actionsMarkup).toContain("approval required");
     expect(actionsMarkup).toContain("pytest command is verification-only");
+    expect(actionsMarkup).toContain("Retry");
+    expect(actionsMarkup).toContain("Abandon");
   });
 
   it("renders stale compaction cues in the runtime pane", () => {

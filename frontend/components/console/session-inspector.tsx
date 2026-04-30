@@ -48,6 +48,7 @@ export type SessionInspectorProps = {
   error: string | null;
   loadState: LoadState;
   onAnswerTextChange?: (questionId: string, text: string) => void;
+  onAbandonToolAttempt?: (toolAttemptId: string) => void;
   onClearCompare?: () => void;
   onCompareSession?: (sessionId: string) => void;
   onFork?: (input?: { branchLabel?: string | null; turnId?: string | null }) => void;
@@ -62,6 +63,7 @@ export type SessionInspectorProps = {
   onSelectTab?: (tab: InspectorTab) => void;
   onSubmitAnswer?: (questionId: string) => void;
   onSubmitPrompt?: () => void;
+  onRetryToolAttempt?: (toolAttemptId: string) => void;
   queue: AppQueue;
   stream: SessionStreamState;
 };
@@ -75,6 +77,7 @@ export function SessionInspector({
   error,
   loadState,
   onAnswerTextChange,
+  onAbandonToolAttempt,
   onClearCompare,
   onCompareSession,
   onFork,
@@ -89,6 +92,7 @@ export function SessionInspector({
   onSelectTab,
   onSubmitAnswer,
   onSubmitPrompt,
+  onRetryToolAttempt,
   queue,
   stream,
 }: SessionInspectorProps) {
@@ -142,6 +146,7 @@ export function SessionInspector({
         drafts={drafts}
         forkDialogRequest={forkDialogRequest}
         onAnswerTextChange={onAnswerTextChange}
+        onAbandonToolAttempt={onAbandonToolAttempt}
         onClearCompare={onClearCompare}
         onCompareSession={onCompareSession}
         onFork={onFork}
@@ -162,6 +167,7 @@ export function SessionInspector({
         onResolveApproval={onResolveApproval}
         onSubmitAnswer={onSubmitAnswer}
         onSubmitPrompt={onSubmitPrompt}
+        onRetryToolAttempt={onRetryToolAttempt}
         stream={stream}
       />
     </InspectorFrame>
@@ -176,6 +182,7 @@ function InspectorTabContent({
   drafts,
   forkDialogRequest,
   onAnswerTextChange,
+  onAbandonToolAttempt,
   onClearCompare,
   onCompareSession,
   onFork,
@@ -191,6 +198,7 @@ function InspectorTabContent({
   onResolveApproval,
   onSubmitAnswer,
   onSubmitPrompt,
+  onRetryToolAttempt,
   stream,
 }: Omit<SessionInspectorProps, "error" | "loadState" | "queue"> & {
   forkDialogRequest: ForkDialogRequest | null;
@@ -205,6 +213,7 @@ function InspectorTabContent({
       forkDialogRequest={forkDialogRequest}
       onClearForkDialogRequest={onClearForkDialogRequest}
       onAnswerTextChange={onAnswerTextChange}
+      onAbandonToolAttempt={onAbandonToolAttempt}
       onFork={onFork}
       onForkLabelChange={onForkLabelChange}
       onPromptChange={onPromptChange}
@@ -212,6 +221,7 @@ function InspectorTabContent({
       onResolveApproval={onResolveApproval}
       onSubmitAnswer={onSubmitAnswer}
       onSubmitPrompt={onSubmitPrompt}
+      onRetryToolAttempt={onRetryToolAttempt}
       stream={stream}
     />
   );

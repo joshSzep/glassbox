@@ -10,6 +10,7 @@ export type SessionToolCallPageResponse = components["schemas"]["SessionToolCall
 export type SessionTurnMetricsPageResponse =
   components["schemas"]["SessionTurnMetricsPageResponse"];
 export type SessionArtifactPageResponse = components["schemas"]["SessionArtifactPageResponse"];
+export type ToolAttemptRecoveryResponse = components["schemas"]["ToolAttemptRecoveryResponse"];
 export type TaskListPageResponse = components["schemas"]["TaskListPageResponse"];
 export type TaskDetailResponse = components["schemas"]["TaskDetailResponse"];
 export type TaskStepPageResponse = components["schemas"]["TaskStepPageResponse"];
@@ -567,6 +568,54 @@ export function createGlassboxApiClient(options: GlassboxApiClientOptions = {}) 
           body: {
             reason: input.reason ?? null,
             turn_id: input.turnId ?? null,
+          },
+        },
+      ),
+
+    retryToolAttempt: (
+      input: {
+        actor?: string;
+        reason?: string | null;
+        sessionId: string;
+        toolAttemptId: string;
+      },
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<ToolAttemptRecoveryResponse>(
+        "POST",
+        `/sessions/${encodeURIComponent(input.sessionId)}/tool-attempts/${encodeURIComponent(
+          input.toolAttemptId,
+        )}/retry`,
+        {
+          ...requestOptions,
+          body: {
+            actor: input.actor ?? "operator",
+            confirmed: true,
+            reason: input.reason ?? null,
+          },
+        },
+      ),
+
+    abandonToolAttempt: (
+      input: {
+        actor?: string;
+        reason: string;
+        sessionId: string;
+        toolAttemptId: string;
+      },
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<ToolAttemptRecoveryResponse>(
+        "POST",
+        `/sessions/${encodeURIComponent(input.sessionId)}/tool-attempts/${encodeURIComponent(
+          input.toolAttemptId,
+        )}/abandon`,
+        {
+          ...requestOptions,
+          body: {
+            actor: input.actor ?? "operator",
+            confirmed: true,
+            reason: input.reason,
           },
         },
       ),

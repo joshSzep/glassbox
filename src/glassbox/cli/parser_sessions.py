@@ -296,6 +296,74 @@ def _add_session_workflow_parsers(
     tool_attempts_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(tool_attempts_parser)
 
+    tool_attempt_parser = session_subparsers.add_parser(
+        "tool-attempt",
+        help="recover a durable tool attempt",
+        description=(
+            "Inspect, retry, abandon, or read retained output for one durable "
+            "tool attempt."
+        ),
+    )
+    tool_attempt_subparsers = tool_attempt_parser.add_subparsers(
+        dest="tool_attempt_command",
+        required=True,
+    )
+
+    tool_attempt_inspect_parser = tool_attempt_subparsers.add_parser(
+        "inspect",
+        help="inspect one durable tool attempt",
+    )
+    tool_attempt_inspect_parser.add_argument("session_id", type=_parse_uuid)
+    tool_attempt_inspect_parser.add_argument("tool_attempt_id", type=_parse_uuid)
+    tool_attempt_inspect_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(tool_attempt_inspect_parser)
+
+    tool_attempt_retry_parser = tool_attempt_subparsers.add_parser(
+        "retry",
+        help="retry one stale or failed tool attempt",
+    )
+    tool_attempt_retry_parser.add_argument("session_id", type=_parse_uuid)
+    tool_attempt_retry_parser.add_argument("tool_attempt_id", type=_parse_uuid)
+    tool_attempt_retry_parser.add_argument("--reason", default=None)
+    tool_attempt_retry_parser.add_argument("--requested-by", default="operator")
+    tool_attempt_retry_parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="confirm the mutating retry operation",
+    )
+    tool_attempt_retry_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(tool_attempt_retry_parser)
+
+    tool_attempt_abandon_parser = tool_attempt_subparsers.add_parser(
+        "abandon",
+        help="abandon one stale or failed tool attempt",
+    )
+    tool_attempt_abandon_parser.add_argument("session_id", type=_parse_uuid)
+    tool_attempt_abandon_parser.add_argument("tool_attempt_id", type=_parse_uuid)
+    tool_attempt_abandon_parser.add_argument(
+        "--reason",
+        required=True,
+        help="operator-visible reason for abandoning recovery",
+    )
+    tool_attempt_abandon_parser.add_argument("--abandoned-by", default="operator")
+    tool_attempt_abandon_parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="confirm the mutating abandon operation",
+    )
+    tool_attempt_abandon_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(tool_attempt_abandon_parser)
+
+    tool_attempt_output_parser = tool_attempt_subparsers.add_parser(
+        "output",
+        help="print retained output for one tool attempt",
+    )
+    tool_attempt_output_parser.add_argument("session_id", type=_parse_uuid)
+    tool_attempt_output_parser.add_argument("tool_attempt_id", type=_parse_uuid)
+    tool_attempt_output_parser.add_argument("--tail", type=int, default=None)
+    tool_attempt_output_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(tool_attempt_output_parser)
+
     fork_parser = session_subparsers.add_parser(
         "fork",
         help="create a child session from a historical turn",

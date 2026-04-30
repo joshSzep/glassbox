@@ -720,6 +720,66 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/sessions/{session_id}/tool-attempts/{tool_attempt_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Inspect Session Tool Attempt
+     * @description Inspect one durable tool-attempt recovery record.
+     */
+    get: operations["inspect_session_tool_attempt_sessions__session_id__tool_attempts__tool_attempt_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/sessions/{session_id}/tool-attempts/{tool_attempt_id}/abandon": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Abandon Session Tool Attempt
+     * @description Abandon one stale or failed tool attempt after explicit confirmation.
+     */
+    post: operations["abandon_session_tool_attempt_sessions__session_id__tool_attempts__tool_attempt_id__abandon_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/sessions/{session_id}/tool-attempts/{tool_attempt_id}/retry": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Retry Session Tool Attempt
+     * @description Retry one stale or failed tool attempt after explicit confirmation.
+     */
+    post: operations["retry_session_tool_attempt_sessions__session_id__tool_attempts__tool_attempt_id__retry_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/sessions/{session_id}/tool-calls": {
     parameters: {
       query?: never;
@@ -2774,6 +2834,71 @@ export interface components {
       /** Verification Id */
       verification_id: string;
     };
+    /** ToolAttemptAbandonRequest */
+    ToolAttemptAbandonRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /**
+       * Confirmed
+       * @default false
+       */
+      confirmed: boolean;
+      /** Reason */
+      reason: string;
+    };
+    /** ToolAttemptArtifactReferenceResponse */
+    ToolAttemptArtifactReferenceResponse: {
+      /** Artifact Id */
+      artifact_id: string;
+      /** Artifact Kind */
+      artifact_kind: string;
+      /** Content Sha256 */
+      content_sha256?: string | null;
+      /** Path */
+      path?: string | null;
+      /** Size Bytes */
+      size_bytes?: number | null;
+    };
+    /** ToolAttemptInspectionResponse */
+    ToolAttemptInspectionResponse: {
+      attempt: components["schemas"]["ToolAttemptResponse"];
+      /** Correlated Event Count */
+      correlated_event_count: number;
+      output_artifact?: components["schemas"]["ToolAttemptArtifactReferenceResponse"] | null;
+      /** Recovery Actions */
+      recovery_actions: string[];
+      /** Source Arguments */
+      source_arguments?: {
+        [key: string]: unknown;
+      } | null;
+      /** Source Tool Call Id */
+      source_tool_call_id?: string | null;
+    };
+    /** ToolAttemptRecoveryRequest */
+    ToolAttemptRecoveryRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /**
+       * Confirmed
+       * @default false
+       */
+      confirmed: boolean;
+      /** Reason */
+      reason?: string | null;
+    };
+    /** ToolAttemptRecoveryResponse */
+    ToolAttemptRecoveryResponse: {
+      /** Message */
+      message: string;
+      original_attempt: components["schemas"]["ToolAttemptResponse"];
+      retry_attempt?: components["schemas"]["ToolAttemptResponse"] | null;
+    };
     /** ToolAttemptResponse */
     ToolAttemptResponse: {
       /** Completed At */
@@ -4696,6 +4821,155 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ActionAcceptedResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  inspect_session_tool_attempt_sessions__session_id__tool_attempts__tool_attempt_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+        tool_attempt_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ToolAttemptInspectionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  abandon_session_tool_attempt_sessions__session_id__tool_attempts__tool_attempt_id__abandon_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+        tool_attempt_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ToolAttemptAbandonRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ToolAttemptRecoveryResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  retry_session_tool_attempt_sessions__session_id__tool_attempts__tool_attempt_id__retry_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+        tool_attempt_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ToolAttemptRecoveryRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ToolAttemptRecoveryResponse"];
         };
       };
       /** @description Not Found */

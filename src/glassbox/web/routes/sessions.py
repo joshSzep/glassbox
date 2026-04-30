@@ -20,6 +20,10 @@ from glassbox.runtime.provider_canary import load_provider_canary_evidence
 from glassbox.runtime.session_queries import OPERATOR_SORT_PRIORITY
 from glassbox.runtime.session_queries import SessionQueryService
 from glassbox.runtime.session_queries import WorkspaceRuntimeSummaryView
+from glassbox.runtime.tool_attempt_recovery import ToolAttemptRecoveryError
+from glassbox.runtime.tool_attempt_recovery import abandon_tool_attempt
+from glassbox.runtime.tool_attempt_recovery import inspect_tool_attempt
+from glassbox.runtime.tool_attempt_recovery import retry_tool_attempt
 from glassbox.services import SessionRepository
 from glassbox.web.app import RuntimeContextDep
 from glassbox.web.session_api import ActionAcceptedResponse
@@ -48,6 +52,10 @@ from glassbox.web.session_api import SessionTurnMetricsPageResponse
 from glassbox.web.session_api import SubmitSessionAnswerRequest
 from glassbox.web.session_api import SubmitSessionMessageRequest
 from glassbox.web.session_api import TaskCheckpointResponse
+from glassbox.web.session_api import ToolAttemptAbandonRequest
+from glassbox.web.session_api import ToolAttemptInspectionResponse
+from glassbox.web.session_api import ToolAttemptRecoveryRequest
+from glassbox.web.session_api import ToolAttemptRecoveryResponse
 from glassbox.web.session_api import ToolCallResponse
 from glassbox.web.session_api import TranscriptMessageResponse
 from glassbox.web.session_api import TurnMetricsResponse
@@ -499,6 +507,104 @@ async def get_session_compaction_page(
             for item in items
         ],
     )
+
+
+@router.get(
+    "/{session_id}/tool-attempts/{tool_attempt_id}",
+    response_model=ToolAttemptInspectionResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def inspect_session_tool_attempt(
+    session_id: UUID,
+    tool_attempt_id: UUID,
+    context: RuntimeContextDep,
+) -> ToolAttemptInspectionResponse:
+    """Inspect one durable tool-attempt recovery record."""
+
+    _ensure_session_exists(session_id, context)
+    try:
+        inspection = inspect_tool_attempt(
+            context.repositories.sessions,
+            session_id,
+            tool_attempt_id,
+        )
+    except ToolAttemptRecoveryError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return ToolAttemptInspectionResponse.model_validate(
+        inspection.model_dump(mode="json")
+    )
+
+
+@router.post(
+    "/{session_id}/tool-attempts/{tool_attempt_id}/retry",
+    response_model=ToolAttemptRecoveryResponse,
+    responses={
+        404: {"model": ErrorDetailResponse},
+        409: {"model": ErrorDetailResponse},
+    },
+)
+async def retry_session_tool_attempt(
+    session_id: UUID,
+    tool_attempt_id: UUID,
+    body: ToolAttemptRecoveryRequest,
+    context: RuntimeContextDep,
+) -> ToolAttemptRecoveryResponse:
+    """Retry one stale or failed tool attempt after explicit confirmation."""
+
+    _ensure_session_exists(session_id, context)
+    if not body.confirmed:
+        raise HTTPException(
+            status_code=409,
+            detail="tool-attempt retry requires confirmed=true",
+        )
+    try:
+        result = await retry_tool_attempt(
+            context.repositories.sessions,
+            context.repositories.artifacts,
+            session_id,
+            tool_attempt_id,
+            confirmed=body.confirmed,
+            requested_by=body.actor,
+            reason=body.reason,
+        )
+    except ToolAttemptRecoveryError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return ToolAttemptRecoveryResponse.model_validate(result.model_dump(mode="json"))
+
+
+@router.post(
+    "/{session_id}/tool-attempts/{tool_attempt_id}/abandon",
+    response_model=ToolAttemptRecoveryResponse,
+    responses={
+        404: {"model": ErrorDetailResponse},
+        409: {"model": ErrorDetailResponse},
+    },
+)
+async def abandon_session_tool_attempt(
+    session_id: UUID,
+    tool_attempt_id: UUID,
+    body: ToolAttemptAbandonRequest,
+    context: RuntimeContextDep,
+) -> ToolAttemptRecoveryResponse:
+    """Abandon one stale or failed tool attempt after explicit confirmation."""
+
+    _ensure_session_exists(session_id, context)
+    if not body.confirmed:
+        raise HTTPException(
+            status_code=409,
+            detail="tool-attempt abandon requires confirmed=true",
+        )
+    try:
+        result = abandon_tool_attempt(
+            context.repositories.sessions,
+            session_id,
+            tool_attempt_id,
+            reason=body.reason,
+            abandoned_by=body.actor,
+        )
+    except ToolAttemptRecoveryError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return ToolAttemptRecoveryResponse.model_validate(result.model_dump(mode="json"))
 
 
 @router.post(

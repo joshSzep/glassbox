@@ -71,6 +71,41 @@ class ToolAttemptResponse(BaseModel):
     last_sequence: int
 
 
+class ToolAttemptArtifactReferenceResponse(BaseModel):
+    artifact_id: str
+    artifact_kind: str
+    path: str | None = None
+    content_sha256: str | None = None
+    size_bytes: int | None = None
+
+
+class ToolAttemptInspectionResponse(BaseModel):
+    attempt: ToolAttemptResponse
+    source_tool_call_id: str | None = None
+    source_arguments: dict[str, object] | None = None
+    output_artifact: ToolAttemptArtifactReferenceResponse | None = None
+    correlated_event_count: int
+    recovery_actions: list[str]
+
+
+class ToolAttemptRecoveryRequest(BaseModel):
+    reason: str | None = None
+    actor: str = "operator"
+    confirmed: bool = False
+
+
+class ToolAttemptAbandonRequest(BaseModel):
+    reason: str
+    actor: str = "operator"
+    confirmed: bool = False
+
+
+class ToolAttemptRecoveryResponse(BaseModel):
+    message: str
+    original_attempt: ToolAttemptResponse
+    retry_attempt: ToolAttemptResponse | None = None
+
+
 class PendingApprovalResponse(BaseModel):
     approval_id: str
     turn_id: str

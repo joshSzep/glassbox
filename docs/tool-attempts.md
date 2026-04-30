@@ -39,6 +39,8 @@ Inspect attempts from the CLI:
 ```bash
 uv run glassbox session tool-attempts SESSION_ID --cwd .
 uv run glassbox session tool-attempts SESSION_ID --status running --cwd .
+uv run glassbox session tool-attempt inspect SESSION_ID TOOL_ATTEMPT_ID --cwd .
+uv run glassbox session tool-attempt output SESSION_ID TOOL_ATTEMPT_ID --cwd .
 uv run glassbox session status SESSION_ID --cwd .
 ```
 
@@ -48,8 +50,23 @@ completed. Command and test attempts also retain managed `tool_output_*`
 artifacts with stdout/stderr evidence. The artifact kind and payload distinguish
 `partial` versus `final`, `truncated` versus `complete`, and `redacted` versus
 `unredacted` output; terminal attempt heartbeats point at the output artifact ID
-when one is recorded. GBX-1043 adds explicit retry, abandon, and recovery
-actions on top of this read-only classification evidence.
+when one is recorded.
+
+Recover attempts after inspection:
+
+```bash
+uv run glassbox session tool-attempt retry SESSION_ID TOOL_ATTEMPT_ID --yes --cwd .
+uv run glassbox session tool-attempt abandon SESSION_ID TOOL_ATTEMPT_ID \
+  --reason "operator chose a fresh path" --yes --cwd .
+```
+
+Retry replays retained `ModelToolCallRequested` arguments through current tool
+policy and records both `RecoveryDecisionRecorded` evidence and a new durable
+tool attempt. Unsafe, already running, already retried, abandoned, or succeeded
+attempts are blocked. Approval-gated attempts require explicit confirmation.
+Abandon records a terminal `abandoned` heartbeat and keeps output artifacts for
+audit. Dashboard Actions shows retry and abandon controls beside retry posture;
+both actions require browser confirmation before calling the API.
 
 Replay evals include `ToolAttemptHeartbeat` in long-run evidence, but generated
 tool-attempt, tool-call, and turn UUIDs are canonicalized before comparison.

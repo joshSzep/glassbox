@@ -25,8 +25,10 @@ from glassbox.core import new_workspace_memory_id
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import AssistantMessageCompleted
 from glassbox.core.events import ModelCallCompleted
+from glassbox.core.events import ModelToolCallRequested
 from glassbox.core.events import SessionFailed
 from glassbox.core.events import TaskCheckpointCreated
+from glassbox.core.events import ToolAttemptHeartbeat
 from glassbox.core.events import TurnCompleted
 from glassbox.core.events import TurnStarted
 from glassbox.core.events import UserMessageReceived
@@ -37,11 +39,14 @@ from glassbox.core.ids import new_context_compaction_id
 from glassbox.core.ids import new_message_id
 from glassbox.core.ids import new_question_id
 from glassbox.core.ids import new_task_checkpoint_id
+from glassbox.core.ids import new_tool_attempt_id
 from glassbox.core.ids import new_tool_call_id
 from glassbox.core.ids import new_turn_id
 from glassbox.core.types import AutonomyEscalationReason
 from glassbox.core.types import AutonomyMode
 from glassbox.core.types import LongRunPhase
+from glassbox.core.types import ToolAttemptRetryClassification
+from glassbox.core.types import ToolAttemptStatus
 from glassbox.runtime.autonomy import default_budget_for_autonomy_mode
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.runtime.bus import EventBus
@@ -1131,6 +1136,133 @@ def test_get_session_includes_turn_metrics(tmp_path: Path) -> None:
             assert body["turn_metrics"][0]["model_duration_ms_total"] == 600
             assert body["turn_metrics"][0]["model_input_tokens_total"] == 42
             assert body["turn_metrics"][0]["model_output_tokens_total"] == 13
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_tool_attempt_retry_and_abandon_routes_require_confirmation_and_record_evidence(
+    tmp_path: Path,
+) -> None:
+    """Tool-attempt recovery routes mutate only after explicit confirmation."""
+
+    async def scenario() -> None:
+        (tmp_path / "note.txt").write_text("hello\n", encoding="utf-8")
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app, runtime_context = _make_app(tmp_path, connection)
+            repo = runtime_context.repositories.sessions
+            bus: EventBus[EventEnvelope] = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(repo, bus)
+            config = SessionConfig(
+                model_name="openai:gpt-5.4",
+                cwd=tmp_path,
+                approval_mode="confirm",
+            )
+            state = await supervisor.start_session(config)
+            turn_id = new_turn_id()
+            retry_tool_call_id = new_tool_call_id()
+            retry_attempt_id = new_tool_attempt_id()
+            abandon_attempt_id = new_tool_attempt_id()
+            repo.append_events(
+                [
+                    EventEnvelope(
+                        session_id=state.session_id,
+                        sequence=0,
+                        payload=TurnStarted(
+                            turn_id=turn_id,
+                            trigger_message_id=new_message_id(),
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=state.session_id,
+                        sequence=0,
+                        payload=ModelToolCallRequested(
+                            turn_id=turn_id,
+                            tool_call_id=retry_tool_call_id,
+                            tool_name="read_file",
+                            arguments_json=json.dumps({"path": "note.txt"}),
+                            policy_outcome="allow",
+                            policy_risk_level="read_only",
+                            policy_source_kind="default",
+                            policy_source_label="read_only",
+                            policy_reason=(
+                                "allowed: read-only tool within workspace scope"
+                            ),
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=state.session_id,
+                        sequence=0,
+                        payload=ToolAttemptHeartbeat(
+                            tool_attempt_id=retry_attempt_id,
+                            status=ToolAttemptStatus.FAILED,
+                            turn_id=turn_id,
+                            tool_call_id=retry_tool_call_id,
+                            tool_name="read_file",
+                            message="transient read failure",
+                            safe_to_retry=True,
+                            retry_classification=(
+                                ToolAttemptRetryClassification.RETRYABLE
+                            ),
+                            retry_requires_approval=False,
+                            retry_reason=(
+                                "read-only tools do not mutate workspace state"
+                            ),
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=state.session_id,
+                        sequence=0,
+                        payload=ToolAttemptHeartbeat(
+                            tool_attempt_id=abandon_attempt_id,
+                            status=ToolAttemptStatus.STALE,
+                            turn_id=turn_id,
+                            tool_name="run_command",
+                            message="heartbeat expired",
+                            safe_to_retry=None,
+                            retry_classification=ToolAttemptRetryClassification.UNKNOWN,
+                            retry_requires_approval=True,
+                            retry_reason="retry side effects are unknown",
+                        ),
+                    ),
+                ]
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                unconfirmed = await client.post(
+                    f"/sessions/{state.session_id}/tool-attempts/"
+                    f"{retry_attempt_id}/retry",
+                    json={"confirmed": False},
+                )
+                retry_response = await client.post(
+                    f"/sessions/{state.session_id}/tool-attempts/"
+                    f"{retry_attempt_id}/retry",
+                    json={"confirmed": True, "reason": "route smoke"},
+                )
+                abandon_response = await client.post(
+                    f"/sessions/{state.session_id}/tool-attempts/"
+                    f"{abandon_attempt_id}/abandon",
+                    json={
+                        "confirmed": True,
+                        "reason": "operator moved on",
+                    },
+                )
+
+            assert unconfirmed.status_code == 409
+            assert retry_response.status_code == 200
+            retry_body = retry_response.json()
+            assert retry_body["original_attempt"]["status"] == "retried"
+            assert retry_body["retry_attempt"]["status"] == "succeeded"
+
+            assert abandon_response.status_code == 200
+            abandon_body = abandon_response.json()
+            assert abandon_body["original_attempt"]["status"] == "abandoned"
+            assert "operator moved on" in abandon_body["message"]
         finally:
             connection.close()
 

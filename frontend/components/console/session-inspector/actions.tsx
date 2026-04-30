@@ -37,6 +37,7 @@ export function OperatorActionPane({
   drafts,
   forkDialogRequest,
   onAnswerTextChange,
+  onAbandonToolAttempt,
   onClearForkDialogRequest,
   onFork,
   onForkLabelChange,
@@ -45,11 +46,13 @@ export function OperatorActionPane({
   onResolveApproval,
   onSubmitAnswer,
   onSubmitPrompt,
+  onRetryToolAttempt,
   stream,
 }: {
   action: ActionStatus;
   data: DashboardState;
   drafts: DraftState;
+  onAbandonToolAttempt?: (toolAttemptId: string) => void;
   forkDialogRequest?: { requestId: number; turnId: string | null } | null;
   onAnswerTextChange?: (questionId: string, text: string) => void;
   onClearForkDialogRequest?: () => void;
@@ -60,6 +63,7 @@ export function OperatorActionPane({
   onResolveApproval?: (input: { approvalId: string; decision: "approved" | "denied" }) => void;
   onSubmitAnswer?: (questionId: string) => void;
   onSubmitPrompt?: () => void;
+  onRetryToolAttempt?: (toolAttemptId: string) => void;
   stream: SessionStreamState;
 }) {
   const pending = action.state === "pending";
@@ -170,6 +174,37 @@ export function OperatorActionPane({
                 <p className="text-sm text-muted-foreground">
                   {attempt.retry_reason ?? attempt.message ?? "Retry posture is retained."}
                 </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    disabled={
+                      pending ||
+                      attempt.retry_classification === "unsafe_to_retry" ||
+                      attempt.status === "retried" ||
+                      attempt.status === "abandoned"
+                    }
+                    onClick={() => onRetryToolAttempt?.(attempt.tool_attempt_id)}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                  >
+                    <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                    Retry
+                  </Button>
+                  <Button
+                    disabled={
+                      pending ||
+                      attempt.status === "retried" ||
+                      attempt.status === "abandoned" ||
+                      attempt.status === "succeeded"
+                    }
+                    onClick={() => onAbandonToolAttempt?.(attempt.tool_attempt_id)}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    Abandon
+                  </Button>
+                </div>
               </article>
             ))}
           </section>
