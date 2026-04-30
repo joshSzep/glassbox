@@ -129,6 +129,36 @@ describe("workspace overview console", () => {
     );
   });
 
+  it("surfaces incomplete turn recovery posture in attention rows", () => {
+    const recoveryState = hydrateSessionAggregate(
+      createDashboardState(),
+      makeSessionAggregate([
+        makeSessionSummary("recovery-session", {
+          action_needed: true,
+          has_active_turn: false,
+          next_action_summary: "Retry with a new prompt or fork",
+          priority_bucket: "recovery",
+          queue_memberships: ["active", "action-needed"],
+          turn_recovery_posture: {
+            next_action: "Retry with a new prompt or fork",
+            reason: "provider stream was interrupted after restart",
+            recovery_decision_id: "recovery-1",
+            safe_to_resume: false,
+            source_event_type: "RecoveryDecisionRecorded",
+            state: "non_resumable",
+            turn_id: "turn-1",
+          },
+        }),
+      ]),
+    );
+
+    const markup = renderOverview(recoveryState, "loaded", null, "active");
+
+    expect(markup).toContain("Retry with a new prompt or fork");
+    expect(markup).toContain("Turn turn-1: non_resumable; exact resume unsafe");
+    expect(markup).toContain("provider stream was interrupted after restart");
+  });
+
   it("renders route-aware status rail context and stream states", () => {
     const runningState = hydrateSessionAggregate(
       createDashboardState(),

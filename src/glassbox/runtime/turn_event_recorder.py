@@ -15,6 +15,7 @@ from glassbox.core.events import CancellationStage
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import ModelCallCompleted
 from glassbox.core.events import ModelCallStarted
+from glassbox.core.events import RecoveryDecisionRecorded
 from glassbox.core.events import SessionFailed
 from glassbox.core.events import TurnCancelled
 from glassbox.core.events import TurnCompleted
@@ -22,7 +23,9 @@ from glassbox.core.events import TurnFailed
 from glassbox.core.events import TurnStarted
 from glassbox.core.events import TurnStatusChanged
 from glassbox.core.ids import MessageId
+from glassbox.core.ids import new_recovery_decision_id
 from glassbox.core.models import MessagePart
+from glassbox.core.types import RecoveryDecision
 from glassbox.core.types import TurnStatus
 from glassbox.llm import ModelAdapter
 from glassbox.llm import ModelTextDelta
@@ -259,6 +262,21 @@ class TurnEventRecorder:
                 status=TurnStatus.FAILED,
             ),
             TurnFailed(turn_id=turn_id, error_message=str(error)),
+            RecoveryDecisionRecorded(
+                recovery_decision_id=new_recovery_decision_id(),
+                decision=RecoveryDecision.NON_RESUMABLE,
+                reason=(
+                    "turn failed during live execution; provider streams and "
+                    "tool loops cannot be resumed exactly after interruption"
+                ),
+                safe_to_resume=False,
+                next_action=(
+                    "Review the failure, then retry with a new prompt or fork "
+                    "from a completed turn"
+                ),
+                turn_id=turn_id,
+                decided_by="runtime",
+            ),
         ]
         if isinstance(error, SessionRuntimeFailure):
             failure_events.append(

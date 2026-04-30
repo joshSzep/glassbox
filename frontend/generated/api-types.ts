@@ -1524,6 +1524,7 @@ export interface components {
       session_id: string;
       /** Status */
       status: string;
+      turn_recovery_posture?: components["schemas"]["TurnRecoveryPostureResponse"] | null;
       /**
        * Updated At
        * Format: date-time
@@ -2072,6 +2073,7 @@ export interface components {
       transcript: components["schemas"]["TranscriptMessageResponse"][];
       /** Turn Metrics */
       turn_metrics: components["schemas"]["TurnMetricsResponse"][];
+      turn_recovery_posture?: components["schemas"]["TurnRecoveryPostureResponse"] | null;
       /**
        * Updated At
        * Format: date-time
@@ -2138,6 +2140,7 @@ export interface components {
       session_id: string;
       /** Status */
       status: string;
+      turn_recovery_posture?: components["schemas"]["TurnRecoveryPostureResponse"] | null;
       /**
        * Updated At
        * Format: date-time
@@ -2439,6 +2442,23 @@ export interface components {
       tool_duration_ms_total: number;
       /** Turn Duration Ms */
       turn_duration_ms: number | null;
+      /** Turn Id */
+      turn_id: string;
+    };
+    /** TurnRecoveryPostureResponse */
+    TurnRecoveryPostureResponse: {
+      /** Next Action */
+      next_action: string;
+      /** Reason */
+      reason?: string | null;
+      /** Recovery Decision Id */
+      recovery_decision_id?: string | null;
+      /** Safe To Resume */
+      safe_to_resume?: boolean | null;
+      /** Source Event Type */
+      source_event_type?: string | null;
+      /** State */
+      state: string;
       /** Turn Id */
       turn_id: string;
     };

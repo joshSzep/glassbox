@@ -86,6 +86,16 @@ class TurnMetricsResponse(BaseModel):
     failed_tool_call_count: int
 
 
+class TurnRecoveryPostureResponse(BaseModel):
+    turn_id: str
+    state: str
+    safe_to_resume: bool | None = None
+    reason: str | None = None
+    next_action: str
+    source_event_type: str | None = None
+    recovery_decision_id: str | None = None
+
+
 class ProjectionHealthResponse(BaseModel):
     state: str
     canonical_last_sequence: int
@@ -234,6 +244,7 @@ class SessionSummaryResponse(BaseModel):
     pending_question_text: str | None
     session_failure_message: str | None
     session_failure_retryable: bool | None
+    turn_recovery_posture: TurnRecoveryPostureResponse | None = None
     latest_message_summary: str | None
     projection_health: ProjectionHealthResponse
     next_action_summary: str
@@ -350,6 +361,7 @@ class SessionSnapshotResponse(BaseModel):
     session_failure_message: str | None
     session_failure_retryable: bool | None
     transcript: list[TranscriptMessageResponse]
+    turn_recovery_posture: TurnRecoveryPostureResponse | None = None
     active_tool_calls: list[ActiveToolCallResponse]
     pending_approvals: list[PendingApprovalResponse]
     session_policy_summary: PolicyActivitySummaryResponse

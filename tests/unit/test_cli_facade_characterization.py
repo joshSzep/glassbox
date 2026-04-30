@@ -11,8 +11,10 @@ from glassbox.cli.status_formatters import _print_session_status
 from glassbox.core import AutonomyBudgetPostureRecord
 from glassbox.core import AutonomyBudgetRemaining
 from glassbox.core import AutonomyBudgetUsage
+from glassbox.core import TurnRecoveryPosture
 from glassbox.core.types import AutonomyEscalationReason
 from glassbox.core.types import AutonomyMode
+from glassbox.core.types import TurnRecoveryState
 from glassbox.runtime.autonomy import default_budget_for_autonomy_mode
 from glassbox.runtime.replay import ReplayFinalStateSnapshot
 from glassbox.runtime.replay import ReplayNormalizedSession
@@ -292,6 +294,28 @@ def test_status_budget_lines_explain_budget_exhaustion_next_action() -> None:
         "Next action: review budget exhaustion and choose a smaller next step "
         "or override"
     )
+
+
+def test_status_next_action_prefers_non_resumable_turn_recovery() -> None:
+    turn_id = UUID("00000000-0000-0000-0000-000000000222")
+
+    next_action = _format_next_action_line(
+        UUID("00000000-0000-0000-0000-000000000111"),
+        "running",
+        turn_id,
+        None,
+        None,
+        None,
+        turn_recovery_posture=TurnRecoveryPosture(
+            turn_id=turn_id,
+            state=TurnRecoveryState.NON_RESUMABLE,
+            safe_to_resume=False,
+            reason="provider stream was interrupted",
+            next_action="Retry with a new prompt or fork",
+        ),
+    )
+
+    assert next_action == "Next action: Retry with a new prompt or fork"
 
 
 def test_print_replay_report_preserves_triage_guidance_contract(capsys) -> None:

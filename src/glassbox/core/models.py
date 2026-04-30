@@ -44,6 +44,7 @@ from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskStepStatus
 from glassbox.core.types import TaskVerificationStatus
 from glassbox.core.types import ToolExecutionStatus
+from glassbox.core.types import TurnRecoveryState
 from glassbox.core.types import VerificationCheckKind
 from glassbox.core.types import VerificationFailureCategory
 from glassbox.core.types import VerificationPlanSource
@@ -228,6 +229,20 @@ class SessionRecord(BaseModel):
     forked_from_turn_id: TurnId | None = None
     forked_from_sequence: int | None = Field(default=None, ge=0)
     branch_label: str | None = None
+
+
+class TurnRecoveryPosture(BaseModel):
+    """Derived recovery posture for the latest relevant turn in a session."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    turn_id: TurnId
+    state: TurnRecoveryState
+    safe_to_resume: bool | None = None
+    reason: str | None = Field(default=None, max_length=2000)
+    next_action: str = Field(min_length=1, max_length=2000)
+    source_event_type: str | None = None
+    recovery_decision_id: str | None = None
 
 
 class BackgroundJobRecord(BaseModel):

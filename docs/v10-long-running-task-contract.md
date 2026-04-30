@@ -100,6 +100,30 @@ projection from those events. Replay normalization includes these long-run event
 families so future deterministic cases can compare the durable lifecycle record
 without treating projections as authority.
 
+## Incomplete-Turn Recovery Semantics
+
+Turns that have started but lack a terminal event are no longer treated as
+ordinary live work by default. Shared CLI, API, and dashboard query models derive
+a `turn_recovery_posture` from canonical events with these operator-facing
+states:
+
+- `active`: a current in-process turn still has no terminal event
+- `incomplete`: canonical events show a started turn with no terminal event
+- `recoverable`: recovery guidance exists, but exact provider continuation may
+  still be unsafe
+- `abandoned`: recovery was explicitly abandoned
+- `resumed`: a recovery attempt succeeded and should be inspected
+- `non_resumable`: exact continuation is unsafe; retry, fork, or abandon
+
+Local resume after daemon restart or process exit records
+`RecoveryDecisionRecorded` and `ResumeOutcomeRecorded` before rejecting an
+in-flight provider stream that cannot be proven resumable. Live model-call and
+tool-loop failures also record a non-resumable recovery decision after the
+`TurnFailed` event, preserving existing cancellation semantics while making the
+next operator action explicit. Projection rebuilds continue to derive this
+posture from canonical events, so stale projections can be rebuilt without
+becoming recovery authority.
+
 ## Supported Workflow Set
 
 The v10 release candidate should support these operator workflows:

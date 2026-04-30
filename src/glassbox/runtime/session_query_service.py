@@ -30,6 +30,7 @@ from glassbox.runtime.session_query_helpers import pending_question_text_from_ev
 from glassbox.runtime.session_query_helpers import recent_tool_calls
 from glassbox.runtime.session_query_helpers import session_status
 from glassbox.runtime.session_query_helpers import summarize_policy_activity
+from glassbox.runtime.session_query_helpers import turn_recovery_posture_from_events
 from glassbox.runtime.session_query_models import OPERATOR_SORT_PRIORITY
 from glassbox.runtime.session_query_models import ChildSessionSummaryView
 from glassbox.runtime.session_query_models import OperatorQueueName
@@ -155,6 +156,10 @@ class SessionQueryService:
             child_sessions = []
 
         snapshot_status = session_status(record, state)
+        turn_recovery_posture = turn_recovery_posture_from_events(
+            session_events,
+            current_turn_id=state.current_turn_id if state is not None else None,
+        )
         effective_turn_id = effective_current_turn_id(
             state.current_turn_id if state is not None else None,
             snapshot_status,
@@ -207,6 +212,7 @@ class SessionQueryService:
                 latest_failure.retryable if latest_failure is not None else None
             ),
             transcript=transcript,
+            turn_recovery_posture=turn_recovery_posture,
             active_tool_calls=active_tool_calls,
             pending_approvals=pending_approvals,
             session_policy_summary=summarize_policy_activity(all_tool_calls),
@@ -353,6 +359,10 @@ class SessionQueryService:
             else None
         )
         status = session_status(record, state)
+        turn_recovery_posture = turn_recovery_posture_from_events(
+            session_events,
+            current_turn_id=state.current_turn_id if state is not None else None,
+        )
 
         return SessionSummaryView(
             session_id=record.session_id,
@@ -395,6 +405,7 @@ class SessionQueryService:
             session_failure_retryable=(
                 latest_failure.retryable if latest_failure is not None else None
             ),
+            turn_recovery_posture=turn_recovery_posture,
             latest_message_summary=latest_message_summary(transcript),
             projection_health=projection_health,
             next_action_summary=next_action_summary(
@@ -403,6 +414,7 @@ class SessionQueryService:
                 pending_question_text=pending_question_text,
                 session_failure=latest_failure,
                 current_turn_id=state.current_turn_id if state is not None else None,
+                turn_recovery_posture=turn_recovery_posture,
                 budget_posture=budget_posture,
             ),
         )

@@ -32,6 +32,17 @@ class TurnStatus(StrEnum):
     FAILED = "failed"
 
 
+class TurnRecoveryState(StrEnum):
+    """Operator-facing recovery posture for an interrupted or in-flight turn."""
+
+    ACTIVE = "active"
+    INCOMPLETE = "incomplete"
+    RECOVERABLE = "recoverable"
+    ABANDONED = "abandoned"
+    RESUMED = "resumed"
+    NON_RESUMABLE = "non_resumable"
+
+
 class ToolExecutionStatus(StrEnum):
     """Lifecycle states for a tool execution."""
 

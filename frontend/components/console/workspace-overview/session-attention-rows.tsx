@@ -109,6 +109,16 @@ function ProjectionBadge({ health }: { health: ProjectionHealth | null }) {
 }
 
 function attentionDetail(session: SessionSummary): string {
+  if (session.turn_recovery_posture != null) {
+    const posture = session.turn_recovery_posture;
+    const safeText =
+      posture.safe_to_resume === true
+        ? "exact resume safe"
+        : posture.safe_to_resume === false
+          ? "exact resume unsafe"
+          : "resume safety unknown";
+    return `Turn ${posture.turn_id}: ${posture.state}; ${safeText}. ${posture.reason ?? posture.next_action}`;
+  }
   if (session.pending_approval_id !== null) {
     return `Approval ${session.pending_approval_id}: ${session.latest_message_summary ?? "review the requested action"}`;
   }
@@ -158,6 +168,14 @@ function formatUpdatedAt(value: string): string {
 }
 
 function sessionDescriptor(session: SessionSummary) {
+  if (
+    session.turn_recovery_posture != null &&
+    ["incomplete", "recoverable", "non_resumable", "abandoned"].includes(
+      session.turn_recovery_posture.state,
+    )
+  ) {
+    return operatorStatusTokens.actionNeeded;
+  }
   if (session.session_failure_message !== null || session.status === "failed") {
     return operatorStatusTokens.failed;
   }

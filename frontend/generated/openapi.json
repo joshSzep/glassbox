@@ -1630,6 +1630,16 @@
             "title": "Status",
             "type": "string"
           },
+          "turn_recovery_posture": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TurnRecoveryPostureResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "updated_at": {
             "format": "date-time",
             "title": "Updated At",
@@ -3222,6 +3232,16 @@
             "title": "Turn Metrics",
             "type": "array"
           },
+          "turn_recovery_posture": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TurnRecoveryPostureResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "updated_at": {
             "format": "date-time",
             "title": "Updated At",
@@ -3480,6 +3500,16 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "turn_recovery_posture": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TurnRecoveryPostureResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "updated_at": {
             "format": "date-time",
@@ -4316,6 +4346,69 @@
           "failed_tool_call_count"
         ],
         "title": "TurnMetricsResponse",
+        "type": "object"
+      },
+      "TurnRecoveryPostureResponse": {
+        "properties": {
+          "next_action": {
+            "title": "Next Action",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "recovery_decision_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recovery Decision Id"
+          },
+          "safe_to_resume": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safe To Resume"
+          },
+          "source_event_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Event Type"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "turn_id": {
+            "title": "Turn Id",
+            "type": "string"
+          }
+        },
+        "required": ["turn_id", "state", "next_action"],
+        "title": "TurnRecoveryPostureResponse",
         "type": "object"
       },
       "ValidationError": {

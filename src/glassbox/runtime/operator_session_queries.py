@@ -19,6 +19,8 @@ from glassbox.runtime.session_query_models import ProjectionHealthCountsView
 from glassbox.runtime.session_query_models import SessionQueueCountsView
 from glassbox.runtime.session_query_models import SessionSummaryView
 
+_RECOVERY_ACTION_STATES = {"incomplete", "recoverable", "abandoned", "non_resumable"}
+
 
 def build_operator_session_summary(
     summary: SessionSummaryView,
@@ -39,6 +41,7 @@ def build_operator_session_summary(
         or summary.pending_question_id is not None
         or summary.status == "failed"
         or summary.projection_health.degraded
+        or _has_recovery_action(summary)
     )
     queue_memberships = operator_queue_memberships(
         summary,
@@ -74,6 +77,8 @@ def operator_priority(
         return "failures", 2
     if summary.projection_health.degraded:
         return "degraded", 3
+    if _has_recovery_action(summary):
+        return "recovery", 3
     if has_active_turn:
         return "running", 4
     if summary.status == "running":
@@ -145,6 +150,13 @@ def operator_queue_memberships(
     if historical_only:
         queue_memberships.append(OPERATOR_QUEUE_HISTORICAL)
     return queue_memberships
+
+
+def _has_recovery_action(summary: SessionSummaryView) -> bool:
+    return (
+        summary.turn_recovery_posture is not None
+        and summary.turn_recovery_posture.state in _RECOVERY_ACTION_STATES
+    )
 
 
 def queue_count(

@@ -20,6 +20,8 @@ from glassbox.core import TurnStarted
 from glassbox.core import UserMessageReceived
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import AssistantMessageCompleted
+from glassbox.core.events import RecoveryDecisionRecorded
+from glassbox.core.events import ResumeOutcomeRecorded
 from glassbox.core.events import SessionCompleted
 from glassbox.core.ids import new_approval_id
 from glassbox.core.ids import new_message_id
@@ -613,8 +615,26 @@ def test_session_supervisor_rejects_resuming_in_flight_turn_after_restart(
 
             with pytest.raises(ValueError, match="in-flight turn"):
                 await supervisor.resume_session(started_state.session_id)
+            events = repository.read_session_events(started_state.session_id)
+            recovery_payloads = [
+                event.payload
+                for event in events
+                if isinstance(event.payload, RecoveryDecisionRecorded)
+            ]
+            resume_outcome_payloads = [
+                event.payload
+                for event in events
+                if isinstance(event.payload, ResumeOutcomeRecorded)
+            ]
         finally:
             connection.close()
+
+        assert len(recovery_payloads) == 1
+        assert recovery_payloads[0].turn_id == turn_id
+        assert recovery_payloads[0].safe_to_resume is False
+        assert recovery_payloads[0].decision == "non_resumable"
+        assert len(resume_outcome_payloads) == 1
+        assert resume_outcome_payloads[0].outcome == "rejected_non_resumable"
 
     asyncio.run(scenario())
 

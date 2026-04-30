@@ -423,7 +423,7 @@ The intended v10 milestone order is:
 
 ### GBX-1011: Strengthen Incomplete-Turn And Recovery Semantics
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1010`
 - Goal: make interrupted model calls and tool loops produce explicit,
   inspectable recovery posture instead of ambiguous running state

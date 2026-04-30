@@ -575,6 +575,11 @@ def test_v10_long_running_task_contract_covers_product_model() -> None:
         "`RecoveryDecisionRecorded`",
         "`ResumeOutcomeRecorded`",
         "`long_run_events`",
+        "## Incomplete-Turn Recovery Semantics",
+        "`turn_recovery_posture`",
+        "`non_resumable`",
+        "Projection rebuilds continue to derive this",
+        "posture from canonical events",
     ):
         assert required_text in content
 

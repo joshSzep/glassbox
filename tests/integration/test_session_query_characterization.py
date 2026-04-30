@@ -8,11 +8,14 @@ from glassbox.core import EventEnvelope
 from glassbox.core import MessagePart
 from glassbox.core import SessionConfig
 from glassbox.core.events import AssistantMessageCompleted
+from glassbox.core.events import RecoveryDecisionRecorded
 from glassbox.core.events import TurnCompleted
 from glassbox.core.events import TurnStarted
 from glassbox.core.events import UserMessageReceived
 from glassbox.core.ids import new_message_id
+from glassbox.core.ids import new_recovery_decision_id
 from glassbox.core.ids import new_turn_id
+from glassbox.core.types import RecoveryDecision
 from glassbox.runtime.bus import EventBus
 from glassbox.runtime.context_builder import TurnContextBuilder
 from glassbox.runtime.context_formatting import format_repository_context_for_prompt
@@ -148,6 +151,63 @@ def test_session_query_service_preserves_snapshot_shape_for_cli_and_web(
             assert status_view.effective_current_turn_id is None
         finally:
             connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_session_query_surfaces_non_resumable_turn_recovery_posture(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            repository = SQLiteSessionRepository(connection)
+            artifacts = FilesystemArtifactRepository(connection, tmp_path)
+            query_service = SessionQueryService(repository, artifacts)
+            supervisor = SessionSupervisor(repository, EventBus())
+
+            session_state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+            turn_id = new_turn_id()
+            repository.append_event(
+                EventEnvelope(
+                    session_id=session_state.session_id,
+                    sequence=0,
+                    payload=TurnStarted(
+                        turn_id=turn_id,
+                        trigger_message_id=new_message_id(),
+                    ),
+                )
+            )
+            repository.append_event(
+                EventEnvelope(
+                    session_id=session_state.session_id,
+                    sequence=0,
+                    payload=RecoveryDecisionRecorded(
+                        recovery_decision_id=new_recovery_decision_id(),
+                        decision=RecoveryDecision.NON_RESUMABLE,
+                        reason="provider stream was interrupted after restart",
+                        safe_to_resume=False,
+                        next_action="Retry with a new prompt or fork",
+                        turn_id=turn_id,
+                    ),
+                )
+            )
+
+            summary = query_service.list_session_summaries()[0]
+            snapshot = query_service.get_session_snapshot(session_state.session_id)
+        finally:
+            connection.close()
+
+        assert summary.turn_recovery_posture is not None
+        assert summary.turn_recovery_posture.state == "non_resumable"
+        assert summary.next_action_summary == "Retry with a new prompt or fork"
+        assert snapshot.turn_recovery_posture == summary.turn_recovery_posture
 
     asyncio.run(scenario())
 

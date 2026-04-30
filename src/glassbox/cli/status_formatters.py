@@ -12,6 +12,8 @@ from glassbox.core.events import UserQuestionAsked
 from glassbox.core.models import ApprovalRecord
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TurnMetricsRecord
+from glassbox.core.models import TurnRecoveryPosture
+from glassbox.core.types import TurnRecoveryState
 from glassbox.runtime.context_formatting import format_runtime_context_budget_summary
 from glassbox.runtime.session_queries import SessionStatusView
 
@@ -24,6 +26,8 @@ def _print_session_status(status_view: SessionStatusView) -> None:
     print(f"Status: {snapshot.status}")
     print(f"Last sequence: {snapshot.last_sequence}")
     print(_format_current_turn_line(current_turn_id, snapshot.status))
+    if snapshot.turn_recovery_posture is not None:
+        print(_format_turn_recovery_line(snapshot.turn_recovery_posture))
     print(f"Workspace: {snapshot.cwd}")
     print(f"Model: {snapshot.model_name}")
     print(f"Approval mode: {snapshot.approval_mode}")
@@ -62,6 +66,7 @@ def _print_session_status(status_view: SessionStatusView) -> None:
             _session_failure_from_status_view(status_view),
             snapshot.projection_health,
             snapshot.budget_posture,
+            snapshot.turn_recovery_posture,
         )
     )
 
@@ -390,6 +395,19 @@ def _format_pending_question_line(question_id, question_text: str | None) -> str
     return f"Pending question: {question_id}"
 
 
+def _format_turn_recovery_line(posture: TurnRecoveryPosture) -> str:
+    safe_suffix = ""
+    if posture.safe_to_resume is True:
+        safe_suffix = "; exact resume safe"
+    elif posture.safe_to_resume is False:
+        safe_suffix = "; exact resume unsafe"
+    reason_suffix = f"; {posture.reason}" if posture.reason else ""
+    return (
+        "Turn recovery: "
+        f"{posture.state} for {posture.turn_id}{safe_suffix}{reason_suffix}"
+    )
+
+
 def _format_next_action_line(
     session_id,
     status: str,
@@ -399,6 +417,7 @@ def _format_next_action_line(
     latest_session_failure: SessionFailed | None,
     projection_health=None,
     budget_posture=None,
+    turn_recovery_posture: TurnRecoveryPosture | None = None,
 ) -> str:
     if projection_health is not None and projection_health.degraded:
         return (
@@ -409,6 +428,14 @@ def _format_next_action_line(
     budget_action = _format_budget_next_action(budget_posture)
     if budget_action is not None:
         return f"Next action: {budget_action}"
+
+    if turn_recovery_posture is not None and turn_recovery_posture.state in {
+        TurnRecoveryState.INCOMPLETE,
+        TurnRecoveryState.RECOVERABLE,
+        TurnRecoveryState.ABANDONED,
+        TurnRecoveryState.NON_RESUMABLE,
+    }:
+        return f"Next action: {turn_recovery_posture.next_action}"
 
     if status == "awaiting_approval" and pending_approval_id is not None:
         return (

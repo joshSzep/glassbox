@@ -3,6 +3,8 @@
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import EventEnvelope
+from glassbox.core.events import RecoveryDecisionRecorded
+from glassbox.core.events import ResumeOutcomeRecorded
 from glassbox.core.events import RuntimeNoteImported
 from glassbox.core.events import RuntimeNoteRecorded
 from glassbox.core.events import SessionCompleted
@@ -16,11 +18,14 @@ from glassbox.core.ids import QuestionId
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import TurnId
 from glassbox.core.ids import new_message_id
+from glassbox.core.ids import new_recovery_decision_id
 from glassbox.core.ids import new_session_id
 from glassbox.core.models import ForkedSession
 from glassbox.core.models import SessionConfig
 from glassbox.core.models import SessionState
 from glassbox.core.types import ApprovalDecision
+from glassbox.core.types import RecoveryDecision
+from glassbox.core.types import ResumeOutcomeStatus
 from glassbox.core.types import SessionStatus
 from glassbox.runtime.logging import get_runtime_logger
 from glassbox.runtime.logging import runtime_log_extra
@@ -173,10 +178,51 @@ class SessionSupervisor(SessionService):
             current_state.status == SessionStatus.RUNNING
             and current_state.current_turn_id is not None
         ):
+            recovery_decision_id = new_recovery_decision_id()
+            for event in self._session_repository.append_events(
+                [
+                    EventEnvelope(
+                        session_id=session_id,
+                        sequence=0,
+                        payload=RecoveryDecisionRecorded(
+                            recovery_decision_id=recovery_decision_id,
+                            decision=RecoveryDecision.NON_RESUMABLE,
+                            reason=(
+                                "daemon restart or process exit found a turn with "
+                                "no terminal event; provider streams cannot be "
+                                "resumed exactly"
+                            ),
+                            safe_to_resume=False,
+                            next_action=(
+                                "Retry with a new prompt, fork from a completed "
+                                "turn, or abandon the incomplete turn"
+                            ),
+                            turn_id=current_state.current_turn_id,
+                            decided_by="runtime",
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=session_id,
+                        sequence=0,
+                        payload=ResumeOutcomeRecorded(
+                            outcome=ResumeOutcomeStatus.REJECTED_NON_RESUMABLE,
+                            summary=(
+                                "local resume refused an in-flight turn because "
+                                "no durable provider continuation exists"
+                            ),
+                            turn_id=current_state.current_turn_id,
+                            recovery_decision_id=recovery_decision_id,
+                            resumed_by="runtime",
+                        ),
+                    ),
+                ]
+            ):
+                self._event_bus.publish(event)
             raise ValueError(
                 f"session {session_id} has an in-flight turn "
                 f"{current_state.current_turn_id}; active turn execution cannot be "
-                "resumed after restart"
+                "resumed after restart. Retry with a new prompt, fork from a "
+                "completed turn, or abandon the incomplete turn"
             )
 
         event = self._session_repository.append_event(

@@ -4,9 +4,13 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from glassbox.core.events import EventEnvelope
+from glassbox.core.events import RecoveryDecisionRecorded
+from glassbox.core.events import ResumeOutcomeRecorded
 from glassbox.core.events import SessionFailed
 from glassbox.core.events import SessionStarted
+from glassbox.core.events import TurnCancelled
 from glassbox.core.events import TurnCompleted
+from glassbox.core.events import TurnFailed
 from glassbox.core.events import TurnStarted
 from glassbox.core.events import UserMessageReceived
 from glassbox.core.events import UserQuestionAsked
@@ -21,6 +25,10 @@ from glassbox.core.models import SessionState
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TranscriptMessage
 from glassbox.core.models import TurnMetricsRecord
+from glassbox.core.models import TurnRecoveryPosture
+from glassbox.core.types import RecoveryDecision
+from glassbox.core.types import ResumeOutcomeStatus
+from glassbox.core.types import TurnRecoveryState
 from glassbox.runtime.session_query_models import BranchableTurnView
 from glassbox.services import SessionRepository
 
@@ -141,10 +149,19 @@ def next_action_summary(
     pending_question_text: str | None,
     session_failure: SessionFailed | None,
     current_turn_id,
+    turn_recovery_posture: TurnRecoveryPosture | None = None,
     budget_posture: AutonomyBudgetPostureRecord | None = None,
 ) -> str:
     if projection_health.degraded:
         return "Rebuild derived projections from canonical events"
+
+    if turn_recovery_posture is not None and turn_recovery_posture.state in {
+        TurnRecoveryState.INCOMPLETE,
+        TurnRecoveryState.RECOVERABLE,
+        TurnRecoveryState.ABANDONED,
+        TurnRecoveryState.NON_RESUMABLE,
+    }:
+        return turn_recovery_posture.next_action
 
     if budget_posture is not None:
         budget_action = _budget_next_action_summary(budget_posture)
@@ -176,6 +193,147 @@ def next_action_summary(
         return "Inspect cancelled session"
 
     return "Inspect session"
+
+
+def turn_recovery_posture_from_events(
+    events: Sequence[EventEnvelope],
+    *,
+    current_turn_id: TurnId | None,
+) -> TurnRecoveryPosture | None:
+    """Derive the latest turn recovery posture from canonical events."""
+
+    latest_turn_id: TurnId | None = None
+    terminal_turn_ids: set[str] = set()
+
+    for event in events:
+        payload = event.payload
+        if isinstance(payload, TurnStarted):
+            latest_turn_id = payload.turn_id
+        elif isinstance(payload, TurnCompleted | TurnFailed | TurnCancelled):
+            terminal_turn_ids.add(str(payload.turn_id))
+
+    target_turn_id = (
+        current_turn_id or _latest_recovery_turn_id(events) or latest_turn_id
+    )
+    if target_turn_id is None:
+        return None
+
+    target_turn_id_text = str(target_turn_id)
+    recovery_event = _latest_recovery_event_for_turn(events, target_turn_id_text)
+    if recovery_event is not None:
+        payload = recovery_event.payload
+        if isinstance(payload, RecoveryDecisionRecorded):
+            return _posture_from_recovery_decision(payload, recovery_event.event_type)
+        if isinstance(payload, ResumeOutcomeRecorded):
+            return _posture_from_resume_outcome(payload, recovery_event.event_type)
+
+    if current_turn_id is not None and target_turn_id_text == str(current_turn_id):
+        return TurnRecoveryPosture(
+            turn_id=current_turn_id,
+            state=TurnRecoveryState.ACTIVE,
+            safe_to_resume=None,
+            reason="turn has no terminal event yet",
+            next_action=(
+                "Wait for the current turn to finish, or inspect runtime owner "
+                "before attempting recovery"
+            ),
+            source_event_type="TurnStarted",
+        )
+
+    if target_turn_id_text not in terminal_turn_ids:
+        return TurnRecoveryPosture(
+            turn_id=target_turn_id,
+            state=TurnRecoveryState.INCOMPLETE,
+            safe_to_resume=False,
+            reason="turn has no terminal event in canonical events",
+            next_action=(
+                "Inspect runtime owner; if no live owner exists, resume will "
+                "record a recovery decision instead of continuing the stream"
+            ),
+            source_event_type="TurnStarted",
+        )
+
+    return None
+
+
+def _latest_recovery_turn_id(events: Sequence[EventEnvelope]) -> TurnId | None:
+    for event in reversed(events):
+        payload = event.payload
+        if isinstance(payload, RecoveryDecisionRecorded | ResumeOutcomeRecorded):
+            if payload.turn_id is not None:
+                return payload.turn_id
+    return None
+
+
+def _latest_recovery_event_for_turn(
+    events: Sequence[EventEnvelope],
+    turn_id: str,
+) -> EventEnvelope | None:
+    for event in reversed(events):
+        payload = event.payload
+        if not isinstance(payload, RecoveryDecisionRecorded | ResumeOutcomeRecorded):
+            continue
+        if payload.turn_id is not None and str(payload.turn_id) == turn_id:
+            return event
+    return None
+
+
+def _posture_from_recovery_decision(
+    payload: RecoveryDecisionRecorded,
+    source_event_type: str,
+) -> TurnRecoveryPosture:
+    state = TurnRecoveryState.RECOVERABLE
+    if payload.decision == RecoveryDecision.ABANDON:
+        state = TurnRecoveryState.ABANDONED
+    elif payload.decision == RecoveryDecision.NON_RESUMABLE:
+        state = TurnRecoveryState.NON_RESUMABLE
+
+    assert payload.turn_id is not None
+    return TurnRecoveryPosture(
+        turn_id=payload.turn_id,
+        state=state,
+        safe_to_resume=payload.safe_to_resume,
+        reason=payload.reason,
+        next_action=payload.next_action,
+        source_event_type=source_event_type,
+        recovery_decision_id=str(payload.recovery_decision_id),
+    )
+
+
+def _posture_from_resume_outcome(
+    payload: ResumeOutcomeRecorded,
+    source_event_type: str,
+) -> TurnRecoveryPosture:
+    state = TurnRecoveryState.RECOVERABLE
+    if payload.outcome == ResumeOutcomeStatus.RESUMED:
+        state = TurnRecoveryState.RESUMED
+    elif payload.outcome == ResumeOutcomeStatus.REJECTED_NON_RESUMABLE:
+        state = TurnRecoveryState.NON_RESUMABLE
+
+    assert payload.turn_id is not None
+    return TurnRecoveryPosture(
+        turn_id=payload.turn_id,
+        state=state,
+        safe_to_resume=payload.outcome == ResumeOutcomeStatus.RESUMED,
+        reason=payload.summary,
+        next_action=_next_action_for_resume_outcome(payload.outcome),
+        source_event_type=source_event_type,
+        recovery_decision_id=(
+            str(payload.recovery_decision_id)
+            if payload.recovery_decision_id is not None
+            else None
+        ),
+    )
+
+
+def _next_action_for_resume_outcome(outcome: ResumeOutcomeStatus) -> str:
+    if outcome == ResumeOutcomeStatus.RESUMED:
+        return "Inspect resumed turn output"
+    if outcome == ResumeOutcomeStatus.REJECTED_NON_RESUMABLE:
+        return "Retry with a new prompt, fork from a completed turn, or abandon"
+    if outcome == ResumeOutcomeStatus.REJECTED_STALE:
+        return "Refresh status and inspect the latest recovery decision"
+    return "Inspect recovery failure before retrying"
 
 
 def _budget_next_action_summary(

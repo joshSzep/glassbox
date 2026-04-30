@@ -166,6 +166,7 @@ from glassbox.core.models import TaskStepRecord
 from glassbox.core.models import TaskVerificationRecord
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TranscriptMessage
+from glassbox.core.models import TurnRecoveryPosture
 from glassbox.core.models import VerificationFailureDigest
 from glassbox.core.models import VerificationPlan
 from glassbox.core.models import VerificationPlanEntry
@@ -199,6 +200,7 @@ from glassbox.core.types import TaskStepStatus
 from glassbox.core.types import TaskVerificationStatus
 from glassbox.core.types import ToolAttemptStatus
 from glassbox.core.types import ToolExecutionStatus
+from glassbox.core.types import TurnRecoveryState
 from glassbox.core.types import TurnStatus
 from glassbox.core.types import VerificationCheckKind
 from glassbox.core.types import VerificationFailureCategory
@@ -368,6 +370,8 @@ __all__ = [
     "TurnCompleted",
     "TurnCancelled",
     "TurnFailed",
+    "TurnRecoveryPosture",
+    "TurnRecoveryState",
     "TurnStarted",
     "TurnStatus",
     "TurnStatusChanged",
