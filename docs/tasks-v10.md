@@ -1549,7 +1549,7 @@ The intended v10 milestone order is:
 
 ### GBX-1093: Publish v10 Release-Candidate Guide
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1091`, `GBX-1092`
 - Goal: publish a concise public guide for the supported v10 long-running-task
   operating model, validation path, evidence expectations, non-goals,
@@ -1579,6 +1579,18 @@ The intended v10 milestone order is:
 - Done when:
   - v10 has a publishable release-candidate narrative backed by retained
     automated, dogfooding, and manual evidence
+- Completed:
+  - Added `docs/v10-release-candidate.md` with the supported v10
+    long-running-task operating model, operator flows, release-readiness
+    checklist, evidence summary, non-goals, accepted residual risks, and GO
+    release-candidate decision.
+  - Updated the root README and docs hub to link the v10 release candidate,
+    long-running-task contract, release gate, dogfooding summary, checkpoint,
+    compaction, provider, package, and release evidence surfaces.
+  - Required the v10 release-candidate guide in source distributions through
+    package-content validation and packaging metadata tests.
+  - Verified with docs/package focused tests and the final non-dry-run v10
+    release gate at `.glassbox/releases/gbx-1093-v10-release-candidate/summary.json`.
 
 ## v10 Release-Candidate Readiness Checklist
 

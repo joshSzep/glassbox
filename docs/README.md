@@ -39,6 +39,9 @@ implementation track after the v9 baseline.
 - [v10-release-gate.md](./v10-release-gate.md): v10 automated release gate that
   composes inherited v9 evidence with deterministic long-run recovery,
   compaction, tool-attempt, provider, package, and cockpit evidence
+- [v10-release-candidate.md](./v10-release-candidate.md): v10
+  release-candidate guide for the supported long-running-task model,
+  validation path, evidence expectations, residual risks, and decision
 - [v10-dogfooding-summary.md](./v10-dogfooding-summary.md): sanitized v10
   dogfooding findings for long-session compaction, release-gate editing,
   background continuation recovery, and candidate follow-ups
@@ -118,6 +121,9 @@ implementation track after the v9 baseline.
 - [v10-release-gate.md](./v10-release-gate.md): automated v10 release evidence
   command, stage map, retained summary shape, advisory provider policy, and
   pass/fail rules
+- [v10-release-candidate.md](./v10-release-candidate.md): release-candidate
+  narrative tying the v10 contract, gate, dogfooding, package, provider, and
+  residual-risk evidence together
 - [v10-dogfooding-summary.md](./v10-dogfooding-summary.md): sanitized
   long-running-task dogfooding pass summaries, friction findings, and candidate
   test/eval follow-ups
@@ -189,6 +195,9 @@ path.
   provider-canary policy, and pass/fail rules
 - [v10-release-gate.md](./v10-release-gate.md): v10 automated release gate that
   layers long-running-task release evidence on top of the inherited v9 gate
+- [v10-release-candidate.md](./v10-release-candidate.md): v10 operating model,
+  validation path, evidence expectations, non-goals, accepted residual risks,
+  and GO decision
 - [v10-dogfooding-summary.md](./v10-dogfooding-summary.md): sanitized GBX-1092
   dogfooding summaries and finding dispositions for v10 release review
 - [manual-v9-release-validation.md](./manual-v9-release-validation.md): retained

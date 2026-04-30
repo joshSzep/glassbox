@@ -105,7 +105,9 @@ The active v10 implementation track is long-running task reliability:
 checkpointed progress, artifact-backed compaction, resumable attempts,
 heartbeat and recovery surfaces, time-aware budgets, incremental verification,
 and provider failure recovery. Its contract is
-[docs/v10-long-running-task-contract.md](docs/v10-long-running-task-contract.md).
+[docs/v10-long-running-task-contract.md](docs/v10-long-running-task-contract.md),
+with release-candidate evidence summarized in
+[docs/v10-release-candidate.md](docs/v10-release-candidate.md).
 
 ## Documentation
 
@@ -117,6 +119,7 @@ Start here based on what you need:
 
 - [docs/v9-public-baseline.md](docs/v9-public-baseline.md)
 - [docs/v10-long-running-task-contract.md](docs/v10-long-running-task-contract.md)
+- [docs/v10-release-candidate.md](docs/v10-release-candidate.md)
 - [docs/v9-vocabulary.md](docs/v9-vocabulary.md)
 - [docs/operator-quickstart.md](docs/operator-quickstart.md)
 - [docs/daily-workflow-quickstart.md](docs/daily-workflow-quickstart.md)
@@ -137,6 +140,7 @@ Start here based on what you need:
 Release evidence and milestone history remain available when you need them:
 
 - [docs/v9-release-candidate.md](docs/v9-release-candidate.md)
+- [docs/v10-release-candidate.md](docs/v10-release-candidate.md)
 - [docs/v8-release-candidate.md](docs/v8-release-candidate.md)
 - [docs/v7-release-candidate.md](docs/v7-release-candidate.md)
 - [docs/v6-release-candidate.md](docs/v6-release-candidate.md)
