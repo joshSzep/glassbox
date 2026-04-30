@@ -656,7 +656,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R332: Split Tool Policy Into Path, Rule, Autonomy, Message, And Command-Risk Modules
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R300`
 - Goal: reduce [tools/policy.py](../src/glassbox/tools/policy.py) by separating
   path-scope evaluation, policy rule matching, autonomy-budget behavior,
@@ -684,6 +684,22 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - tool-policy decisions remain behavior-compatible while path, rule,
     autonomy, message, and command-risk concerns are independently owned
+- Completed notes:
+  - `tools/policy.py` now stays the stable `ToolPolicyEngine`,
+    `ToolPolicyContext`, `ApprovalMode`, and approval-behavior facade.
+  - Path normalization, workspace containment, path argument extraction,
+    prefix matching, and extension matching live in `policy_paths.py`.
+  - Manifest rule matching and default outcome resolution live in
+    `policy_rules.py`; autonomy budget permits, autonomy-rule matching,
+    timeout checks, and approval-behavior descriptions live in
+    `policy_autonomy.py`.
+  - Approval gates, default/rule/autonomy reason strings, and decision
+    construction live in `policy_messages.py`; command-text extraction and
+    destructive-command heuristics live in `policy_command_risk.py`; shared
+    policy context/outcome models live in `policy_models.py`.
+  - V10 guardrails now cap the tool-policy facade and helper modules
+    separately and keep tool-policy helpers independent from CLI, runtime
+    orchestration, raw-store, and web-layer imports.
 
 ---
 

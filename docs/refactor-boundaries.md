@@ -146,9 +146,9 @@ facades:
   orchestration facade; recommendation models and capability, risk, credential,
   failure, budget, and next-action scoring live in focused
   `provider_recommendation_*` helper modules
-- `src/glassbox/tools/policy.py` mixes path-scope evaluation, rule matching,
-  autonomy budget permits, approval message construction, and command-risk
-  heuristics
+- `src/glassbox/tools/policy.py` is now the stable policy-engine facade; path
+  scope evaluation, rule matching, autonomy budget permits, approval message
+  construction, and command-risk heuristics live in focused `policy_*` helpers
 - `src/glassbox/store/sqlite_schema.py` mixes baseline schema/migration running
   with domain-specific projection table and migration definitions
 - `src/glassbox/core/events.py` and `src/glassbox/core/models.py` are large
@@ -546,15 +546,19 @@ serialization, or CLI presentation.
 
 #### V10 Tool Policy Sub-Boundaries
 
-- `tools/policy.py` should keep `ToolPolicyEngine`, `ToolPolicyContext`, and
-  public decision ergonomics stable while delegating specialized behavior.
-- Path-scope behavior belongs in path-policy helpers: path normalization,
+- `tools/policy.py` now keeps `ToolPolicyEngine`, `ToolPolicyContext`,
+  `ApprovalMode`, and public decision ergonomics stable while delegating
+  specialized behavior.
+- Path-scope behavior now lives in `policy_paths.py`: path normalization,
   workspace containment, extension matching, and path argument extraction.
-- Manifest rule matching and outcome resolution belong in policy-rule helpers.
-- Autonomy budget/risk permit logic belongs in autonomy-policy helpers.
-- Default and autonomy approval message construction belongs in message helpers.
-- Destructive-command and command-text heuristics belong in command-risk
-  helpers.
+- Manifest rule matching and outcome resolution now live in `policy_rules.py`.
+- Autonomy budget/risk permit logic and approval-behavior descriptions now live
+  in `policy_autonomy.py`.
+- Default, rule, and autonomy approval message construction now lives in
+  `policy_messages.py`.
+- Destructive-command and command-text heuristics now live in
+  `policy_command_risk.py`; shared context/outcome models live in
+  `policy_models.py`.
 - Policy helpers may depend on policy config/models and standard-library path
   or shell parsing. They should not import runtime services, web routes, CLI
   formatters, store implementations, or frontend code.

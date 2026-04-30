@@ -491,10 +491,46 @@ V10_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
     (
         SRC_ROOT / "tools" / "policy.py",
-        850,
+        140,
         (
-            "v10 tools.policy should move path, rule, autonomy, message, "
-            "and command-risk behavior into tool-policy helpers"
+            "v10 tools.policy should stay a thin compatibility facade over "
+            "tool-policy helper modules"
+        ),
+    ),
+    (
+        SRC_ROOT / "tools" / "policy_paths.py",
+        190,
+        "v10 tool-policy path scope should stay owned by policy_paths.py",
+    ),
+    (
+        SRC_ROOT / "tools" / "policy_models.py",
+        90,
+        "v10 tool-policy context models should stay owned by policy_models.py",
+    ),
+    (
+        SRC_ROOT / "tools" / "policy_rules.py",
+        150,
+        "v10 tool-policy rule matching should stay owned by policy_rules.py",
+    ),
+    (
+        SRC_ROOT / "tools" / "policy_autonomy.py",
+        240,
+        (
+            "v10 tool-policy autonomy budget behavior should stay owned by "
+            "policy_autonomy.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "tools" / "policy_messages.py",
+        280,
+        ("v10 tool-policy approval messages should stay owned by policy_messages.py"),
+    ),
+    (
+        SRC_ROOT / "tools" / "policy_command_risk.py",
+        80,
+        (
+            "v10 tool-policy command risk behavior should stay owned by "
+            "policy_command_risk.py"
         ),
     ),
     (
@@ -719,8 +755,56 @@ V10_PYTHON_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
         SRC_ROOT / "tools" / "policy.py",
         ("glassbox.cli", "glassbox.runtime", "glassbox.store", "glassbox.web"),
         (
-            "v10 tool-policy helpers must keep policy decisions independent "
+            "v10 tool-policy facade must keep policy decisions independent "
             "from CLI, runtime orchestration, raw store, and web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "tools" / "policy_paths.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.store", "glassbox.web"),
+        (
+            "v10 tool-policy path helpers must keep policy decisions "
+            "independent from CLI, runtime orchestration, raw store, and web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "tools" / "policy_models.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.store", "glassbox.web"),
+        (
+            "v10 tool-policy context models must keep policy decisions "
+            "independent from CLI, runtime orchestration, raw store, and web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "tools" / "policy_rules.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.store", "glassbox.web"),
+        (
+            "v10 tool-policy rule helpers must keep policy decisions "
+            "independent from CLI, runtime orchestration, raw store, and web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "tools" / "policy_autonomy.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.store", "glassbox.web"),
+        (
+            "v10 tool-policy autonomy helpers must keep policy decisions "
+            "independent from CLI, runtime orchestration, raw store, and web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "tools" / "policy_messages.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.store", "glassbox.web"),
+        (
+            "v10 tool-policy message helpers must keep policy decisions "
+            "independent from CLI, runtime orchestration, raw store, and web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "tools" / "policy_command_risk.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.store", "glassbox.web"),
+        (
+            "v10 tool-policy command-risk helpers must keep policy decisions "
+            "independent from CLI, runtime orchestration, raw store, and web layers"
         ),
     ),
     (
