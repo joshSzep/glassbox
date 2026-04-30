@@ -2,6 +2,7 @@
 
 import argparse
 
+from glassbox import __version__
 from glassbox.cli.parser_branch_search import _add_branch_search_parsers
 from glassbox.cli.parser_memory import _add_memory_parsers
 from glassbox.cli.parser_operations import _add_operations_parsers
@@ -25,6 +26,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="glassbox",
         description="Run the Glassbox local-first CLI agent and dashboard runtime.",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
     )
     subparsers = parser.add_subparsers(dest="command")
 

@@ -303,12 +303,12 @@ def test_v9_public_baseline_covers_supported_product_contract() -> None:
         "## Release-Evidence Workflows",
         "## v8 Residual-Risk Mapping",
         "## Version Contract",
-        "pre-1.0",
+        "`0.9.0`",
         "`uv run glassbox command tree`",
         "`session`, `task`, `branch-search`, `memory`, `repo index`, `replay`, `eval`",
         "provider recommendations",
         "evidence is the release authority; live-provider evidence is advisory",
-        "GBX-912 owns the next version identifier",
+        "version-release-policy.md",
     ):
         assert required_text in content
 
@@ -375,6 +375,7 @@ def test_public_operator_doc_links_resolve() -> None:
         REPO_ROOT / "docs" / "README.md",
         REPO_ROOT / "docs" / "v9-public-baseline.md",
         REPO_ROOT / "docs" / "operator-quickstart.md",
+        REPO_ROOT / "docs" / "version-release-policy.md",
     )
 
     for doc_path in doc_paths:
@@ -382,3 +383,20 @@ def test_public_operator_doc_links_resolve() -> None:
         for link in MARKDOWN_LINK.findall(content):
             target = (doc_path.parent / link).resolve()
             assert target.exists(), f"{doc_path.relative_to(REPO_ROOT)} links to {link}"
+
+
+def test_version_release_policy_covers_metadata_and_release_notes() -> None:
+    content = (REPO_ROOT / "docs" / "version-release-policy.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "Glassbox v9 uses package version `0.9.0`",
+        "`pyproject.toml` is the packaging source",
+        "`glassbox.__version__`",
+        "glassbox --version",
+        "v9.0.0-rc.N",
+        "## Release Note Template",
+        "Provider evidence: advisory",
+    ):
+        assert required_text in content

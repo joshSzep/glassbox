@@ -339,7 +339,7 @@ The intended v9 milestone order is:
 
 ### GBX-912: Establish Version And Release Naming Policy
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-910`
 - Goal: align package metadata, docs, and release-candidate language so the
   product maturity story is not contradictory

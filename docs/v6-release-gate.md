@@ -59,6 +59,7 @@ After package validation, the gate runs installed-wheel smoke from the newest
 | Smoke group | Evidence |
 | --- | --- |
 | `installed terminal: root help` | console script imports and prints help |
+| `installed terminal: version` | installed console script prints the package version |
 | `installed terminal: command tree` | installed command inventory is available |
 | `installed terminal: chat help` | interactive chat parser and TUI dependency stack import |
 | `installed terminal: attach help` | attach parser and TUI dependency stack import |

@@ -342,6 +342,10 @@ def build_installed_wheel_smoke_checks(
             _installed_glassbox_command(wheel_path, "--help"),
         ),
         InstalledSmokeCheck(
+            "installed terminal: version",
+            _installed_glassbox_command(wheel_path, "--version"),
+        ),
+        InstalledSmokeCheck(
             "installed terminal: command tree",
             _installed_glassbox_command(wheel_path, "command", "tree"),
         ),

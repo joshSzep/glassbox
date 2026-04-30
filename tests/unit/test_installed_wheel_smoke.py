@@ -10,7 +10,7 @@ SMOKE_SCRIPT = REPO_ROOT / "scripts" / "validate_installed_wheel_smoke.py"
 
 
 def test_installed_wheel_smoke_dry_run_lists_v8_surfaces(tmp_path: Path) -> None:
-    wheel_path = tmp_path / "glassbox-0.1.0-py3-none-any.whl"
+    wheel_path = tmp_path / "glassbox-0.9.0-py3-none-any.whl"
     wheel_path.write_bytes(b"placeholder")
     evidence_dir = tmp_path / "evidence"
 
@@ -32,6 +32,7 @@ def test_installed_wheel_smoke_dry_run_lists_v8_surfaces(tmp_path: Path) -> None
 
     assert result.returncode == 0
     assert "Installed wheel smoke dry run" in result.stdout
+    assert "installed terminal: version" in result.stdout
     assert "installed autonomy: profile list" in result.stdout
     assert "installed task: list" in result.stdout
     assert "installed memory: list" in result.stdout

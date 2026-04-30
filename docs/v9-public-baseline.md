@@ -111,7 +111,7 @@ the product as finished. v9 maps those risks into one of three outcomes:
 | v8 residual-risk area | v9 handling |
 | --- | --- |
 | Public operator story spread across release history | Addressed by GBX-910, GBX-911, and GBX-922 through a baseline contract, docs hub split, and daily workflow quickstart. |
-| Package version still reads `0.1.0` despite mature release evidence | Addressed by GBX-912 with an explicit version and release naming policy. |
+| Package version still read `0.1.0` despite mature release evidence | Addressed by GBX-912 with package version `0.9.0` and an explicit release naming policy. |
 | First-run uncertainty around provider, dashboard assets, writable state, and repository posture | Addressed by GBX-920 and GBX-921. |
 | Command surface is broad and release-oriented | Addressed by GBX-930 through GBX-932 with vocabulary, workflow discovery, and de-emphasis guidance. |
 | Dashboard requires too much correlation across panels | Addressed by GBX-940 through GBX-943 with cockpit priority, evidence drill-down, and recovery cues. |
@@ -129,11 +129,11 @@ release authority with live-provider canaries.
 
 ## Version Contract
 
-At the start of v9, `pyproject.toml` still declares `0.1.0`. GBX-910 does not
-change package metadata. The v9 baseline decision is that Glassbox remains a
-pre-1.0 local-first product while v9 clarifies adoption, release naming, and
-evidence boundaries. GBX-912 owns the next version identifier and any package
-metadata change.
+GBX-912 sets the v9 public-baseline package version to `0.9.0`. Glassbox remains
+a pre-1.0 local-first product while v9 clarifies adoption, release naming, and
+evidence boundaries. See [version-release-policy.md](./version-release-policy.md)
+for the version policy, release-candidate naming convention, installed smoke
+expectations, and future v9 release-note template.
 
 ## Reading Path
 

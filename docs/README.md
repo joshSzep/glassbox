@@ -65,6 +65,9 @@ evidence or milestone history.
   bundles, run eval suites, and work through local-first regression gates
 - [release-packaging.md](./release-packaging.md): build and validate release
   packages with the statically exported dashboard
+- [version-release-policy.md](./version-release-policy.md): align package
+  version metadata, release-candidate names, evidence directories, installed
+  smoke, and future v9 release notes
 - [persistent-runtime.md](./persistent-runtime.md): operate the daemon-backed
   workspace runtime and troubleshoot attach or health states
 - [operator-console.md](./operator-console.md): understand the v2 multi-session

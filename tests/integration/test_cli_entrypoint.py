@@ -30,6 +30,16 @@ def test_cli_help_prints_usage(capsys: pytest.CaptureFixture[str]) -> None:
     assert "|-- session" not in captured.out
 
 
+def test_cli_version_prints_package_version(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--version"])
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 0
+    assert captured.out == "glassbox 0.9.0\n"
+
+
 def test_cli_command_tree_prints_command_tree(
     capsys: pytest.CaptureFixture[str],
 ) -> None:

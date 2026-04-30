@@ -90,6 +90,8 @@ Start with [docs/v9-public-baseline.md](docs/v9-public-baseline.md) for the
 supported product model, then use
 [docs/operator-quickstart.md](docs/operator-quickstart.md) for the short daily
 path from install to chat, dashboard inspection, approvals, and verification.
+Version and release-candidate naming policy lives in
+[docs/version-release-policy.md](docs/version-release-policy.md).
 
 ## Documentation
 
