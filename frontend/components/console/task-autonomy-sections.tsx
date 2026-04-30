@@ -335,6 +335,12 @@ export function TaskPlanInspector({
           events={detail.events}
           verificationText={verificationSummary(selectedDetail.verifications)}
         />
+        <TaskEvidenceDrillDown
+          events={detail.events}
+          steps={selectedDetail.steps}
+          task={selectedDetail.task}
+          verifications={selectedDetail.verifications}
+        />
 
         <section aria-label="Task plan steps">
           <h3 className="mb-2 text-sm font-semibold uppercase tracking-normal text-muted-foreground">
@@ -380,7 +386,7 @@ export function TaskPlanInspector({
               </DataListItem>
             ) : (
               detail.events.map((event) => (
-                <DataListItem key={event.event_id}>
+                <DataListItem id={taskEventAnchor(event.sequence)} key={event.event_id}>
                   <DataListLabel>
                     #{event.sequence} {event.event_type}
                   </DataListLabel>
@@ -782,6 +788,257 @@ function TaskWhyThisActionEvidence({
       </DataList>
     </section>
   );
+}
+
+type TaskDetail = NonNullable<TaskDetailState["detail"]>;
+type TaskEvent = TaskDetailState["events"][number];
+type TaskEvidenceRow = {
+  detail: string;
+  event: TaskEvent | null;
+  label: string;
+  state: string;
+  tone: "default" | "destructive" | "info" | "success" | "warning";
+};
+
+function TaskEvidenceDrillDown({
+  events,
+  steps,
+  task,
+  verifications,
+}: {
+  events: TaskDetailState["events"];
+  steps: TaskDetail["steps"];
+  task: TaskDetail["task"];
+  verifications: TaskDetail["verifications"];
+}) {
+  const rows = taskEvidenceRows({ events, steps, task, verifications });
+  return (
+    <section
+      aria-label="Task evidence drill-down"
+      className="rounded-md border border-border/80 bg-surface p-3"
+    >
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold uppercase tracking-normal text-muted-foreground">
+          Task Evidence
+        </h3>
+        <Badge variant="info">{rows.filter((row) => row.event !== null).length} event links</Badge>
+      </div>
+      <DataList density="compact">
+        {rows.map((row) => (
+          <DataListItem key={row.label}>
+            <DataListLabel>{row.label}</DataListLabel>
+            <DataListMeta>
+              <Badge className="mr-2" variant={evidenceToneVariant(row.tone)}>
+                {row.state}
+              </Badge>
+              {row.detail}
+              {row.event !== null ? (
+                <>
+                  {" "}
+                  <a
+                    className="text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    href={`#${taskEventAnchor(row.event.sequence)}`}
+                  >
+                    Event #{row.event.sequence} {row.event.event_type}
+                  </a>
+                </>
+              ) : null}
+            </DataListMeta>
+          </DataListItem>
+        ))}
+      </DataList>
+    </section>
+  );
+}
+
+function taskEvidenceRows({
+  events,
+  steps,
+  task,
+  verifications,
+}: {
+  events: TaskDetailState["events"];
+  steps: TaskDetail["steps"];
+  task: TaskDetail["task"];
+  verifications: TaskDetail["verifications"];
+}): TaskEvidenceRow[] {
+  const failedVerification = verifications.find((verification) => verification.status === "failed");
+  const currentStep = steps.find((step) => step.step_id === task.current_step_id);
+  const failedStep =
+    currentStep?.status === "failed" ? currentStep : steps.find((step) => step.status === "failed");
+  const budgetEvent = latestEvent(events, ["BudgetExhausted", "BudgetDecisionRecorded"]);
+  const approvalEvent = latestMatchingEvent(events, (event) =>
+    event.event_type.includes("Approval"),
+  );
+  const questionEvent = latestMatchingEvent(
+    events,
+    (event) => event.event_type.includes("Question") || event.event_type.includes("UserInput"),
+  );
+  const verificationEvent =
+    failedVerification === undefined
+      ? latestMatchingEvent(events, (event) => event.event_type.startsWith("TaskVerification"))
+      : latestMatchingEvent(
+          events,
+          (event) =>
+            event.event_type.startsWith("TaskVerification") &&
+            event.payload.verification_id === failedVerification.verification_id,
+        );
+  const cancellationEvent = latestMatchingEvent(
+    events,
+    (event) => event.event_type.includes("Cancel") || event.event_type.includes("Cancelled"),
+  );
+  const providerEvent = latestMatchingEvent(events, (event) => payloadIncludes(event, "provider"));
+  const artifactEvent = latestMatchingEvent(
+    events,
+    (event) =>
+      event.payload.artifact_id !== undefined ||
+      event.payload.artifact_path !== undefined ||
+      event.payload.failure_artifact_path !== undefined,
+  );
+
+  return [
+    {
+      detail:
+        task.blocked_reason === null
+          ? task.next_action_summary
+          : `${task.blocked_reason}${task.blocked_detail ? `: ${task.blocked_detail}` : ""}`,
+      event: latestEvent(events, ["TaskStatusChanged", "TaskPaused", "TaskResumed"]) ?? null,
+      label: "Stop reason",
+      state: task.blocked_reason === null ? task.status : "blocked",
+      tone: task.blocked_reason === null ? "default" : "warning",
+    },
+    {
+      detail:
+        failedStep === undefined
+          ? (currentStep?.title ?? "No failed or current plan step is retained.")
+          : `${failedStep.title}${failedStep.blocked_reason ? `: ${failedStep.blocked_reason}` : ""}`,
+      event: latestMatchingEvent(
+        events,
+        (event) =>
+          event.payload.step_id === (failedStep?.step_id ?? currentStep?.step_id) ||
+          event.event_type.startsWith("TaskStep"),
+      ),
+      label: "Plan step",
+      state: failedStep === undefined ? "current" : "failed",
+      tone: failedStep === undefined ? "default" : "warning",
+    },
+    {
+      detail:
+        failedVerification === undefined
+          ? verificationSummary(verifications)
+          : `${failedVerification.check_name}: ${failedVerification.summary ?? "verification failed"}`,
+      event: verificationEvent,
+      label: "Verification failure",
+      state: failedVerification === undefined ? "not failing" : "failed",
+      tone: failedVerification === undefined ? "success" : "destructive",
+    },
+    {
+      detail:
+        budgetEvent === null
+          ? "No budget exhaustion or decision event is loaded."
+          : eventSummary(budgetEvent.payload),
+      event: budgetEvent,
+      label: "Budget exhaustion",
+      state: budgetEvent?.event_type === "BudgetExhausted" ? "exhausted" : "not exhausted",
+      tone: budgetEvent?.event_type === "BudgetExhausted" ? "warning" : "default",
+    },
+    {
+      detail:
+        approvalEvent === null
+          ? "No approval wait event is loaded for this task."
+          : eventSummary(approvalEvent.payload),
+      event: approvalEvent,
+      label: "Approval wait",
+      state: approvalEvent === null ? "none loaded" : "event backed",
+      tone: approvalEvent === null ? "default" : "warning",
+    },
+    {
+      detail:
+        questionEvent === null
+          ? "No user-input wait event is loaded for this task."
+          : eventSummary(questionEvent.payload),
+      event: questionEvent,
+      label: "User-input wait",
+      state: questionEvent === null ? "none loaded" : "event backed",
+      tone: questionEvent === null ? "default" : "warning",
+    },
+    {
+      detail:
+        providerEvent === null
+          ? "No provider-unavailability event is loaded for this task."
+          : eventSummary(providerEvent.payload),
+      event: providerEvent,
+      label: "Provider availability",
+      state: providerEvent === null ? "not indicated" : "provider cue",
+      tone: providerEvent === null ? "default" : "warning",
+    },
+    {
+      detail:
+        task.status !== "cancelled" && cancellationEvent === null
+          ? "No cancellation evidence is loaded for this task."
+          : eventSummary(cancellationEvent?.payload ?? { status: task.status }),
+      event: cancellationEvent,
+      label: "Cancellation",
+      state:
+        task.status === "cancelled" || cancellationEvent !== null ? "cancelled" : "none loaded",
+      tone: task.status === "cancelled" || cancellationEvent !== null ? "warning" : "default",
+    },
+    {
+      detail:
+        artifactEvent === null
+          ? "No artifact or command-output reference is loaded for this task."
+          : artifactReference(artifactEvent),
+      event: artifactEvent,
+      label: "Artifact or output",
+      state: artifactEvent === null ? "none loaded" : "linked",
+      tone: artifactEvent === null ? "default" : "info",
+    },
+  ];
+}
+
+function taskEventAnchor(sequence: number): string {
+  return `task-event-${sequence}`;
+}
+
+function latestEvent(events: TaskDetailState["events"], eventTypes: string[]): TaskEvent | null {
+  return latestMatchingEvent(events, (event) => eventTypes.includes(event.event_type));
+}
+
+function latestMatchingEvent(
+  events: TaskDetailState["events"],
+  predicate: (event: TaskEvent) => boolean,
+): TaskEvent | null {
+  return [...events].reverse().find(predicate) ?? null;
+}
+
+function payloadIncludes(event: TaskEvent, needle: string): boolean {
+  return Object.values(event.payload).some((value) => String(value).toLowerCase().includes(needle));
+}
+
+function artifactReference(event: TaskEvent): string {
+  for (const key of ["artifact_path", "failure_artifact_path", "artifact_id"]) {
+    const value = event.payload[key];
+    if (typeof value === "string" && value.trim().length > 0) {
+      return `${key}: ${value}`;
+    }
+  }
+  return eventSummary(event.payload);
+}
+
+function evidenceToneVariant(tone: TaskEvidenceRow["tone"]) {
+  if (tone === "destructive") {
+    return "destructive" as const;
+  }
+  if (tone === "success") {
+    return "success" as const;
+  }
+  if (tone === "warning") {
+    return "warning" as const;
+  }
+  if (tone === "info") {
+    return "info" as const;
+  }
+  return "muted" as const;
 }
 
 function latestAutonomyDecisionEvent(events: TaskDetailState["events"]) {

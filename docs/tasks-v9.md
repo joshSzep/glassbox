@@ -620,7 +620,7 @@ The intended v9 milestone order is:
 
 ### GBX-942: Improve Evidence Drill-Down For Tasks And Verification
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-941`
 - Goal: make task and verification evidence easier to inspect from the cockpit
 - Deliverables:
@@ -642,6 +642,12 @@ The intended v9 milestone order is:
 - Done when:
   - a task's current state and proof trail can be understood without manually
     correlating several tabs
+  - Completed by adding a task evidence drill-down to the dashboard task
+    inspector. The drill-down classifies stop reason, plan-step state,
+    verification failure, budget exhaustion, approval waits, user-input waits,
+    provider availability cues, cancellation, and artifact or command-output
+    references, with direct links back to retained task event rows when the
+    supporting event is loaded.
 
 ### GBX-943: Add Dashboard Recovery And Maintenance Cues
 

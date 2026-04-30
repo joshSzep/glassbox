@@ -212,7 +212,12 @@ later provider, repository-index, artifact-pressure, and richer task evidence
 cues should extend the same priority ladder rather than introducing a second
 competing summary.
 
-`GBX-942` should deepen task and verification evidence drill-down without
-copying full event logs into every task surface. `GBX-943` should add read-only
-recovery and maintenance cues first, with mutating actions remaining explicit,
-confirmed, and backend-policy checked.
+`GBX-942` adds the first task evidence drill-down inside the task inspector. It
+classifies stop reason, plan-step state, verification failure, budget
+exhaustion, approval waits, user-input waits, provider availability cues,
+cancellation, and artifact or command-output references, then links each loaded
+cue back to the retained task event row instead of duplicating the full event
+log.
+
+`GBX-943` should add read-only recovery and maintenance cues first, with
+mutating actions remaining explicit, confirmed, and backend-policy checked.

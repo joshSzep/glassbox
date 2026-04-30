@@ -65,6 +65,16 @@ describe("task autonomy console", () => {
             { job_id: "job-1234567890", summary: "Continuation queued" },
             4,
           ),
+          makeEvent(
+            "event-4",
+            "TaskVerificationFailed",
+            {
+              artifact_id: "artifact-1",
+              summary: "Typecheck command output retained",
+              verification_id: "verification-2",
+            },
+            5,
+          ),
         ],
         eventState: "loaded",
         loadState: "loaded",
@@ -91,9 +101,70 @@ describe("task autonomy console", () => {
     expect(markup).toContain("Why this action");
     expect(markup).toContain("BackgroundJobCreated at sequence 4");
     expect(markup).toContain("No memory/index or branch-search event is loaded");
+    expect(markup).toContain("Task Evidence");
+    expect(markup).toContain("Verification failure");
+    expect(markup).toContain("typecheck: type gap");
+    expect(markup).toContain("Artifact or output");
+    expect(markup).toContain("artifact_id: artifact-1");
+    expect(markup).toContain("#task-event-5");
+    expect(markup).toContain("Event #5 TaskVerificationFailed");
     expect(markup).toContain("Continue");
     expect(markup).toContain("Adjust Budget");
     expect(markup).toContain("Cancel Job job-1234");
+  });
+
+  it("renders task evidence states for waits, budget exhaustion, provider, and cancellation", () => {
+    const task = makeTask("task-2", {
+      blocked_detail: "max steps reached",
+      blocked_reason: "budget_exhausted",
+      current_step_id: "step-2",
+      status: "cancelled",
+    });
+    const detail = {
+      ...makeTaskDetail(task),
+      verifications: [],
+    };
+    const markup = renderTaskConsole({
+      detail: {
+        ...idleDetail,
+        detail,
+        eventPage: page,
+        events: [
+          makeEvent("event-6", "BudgetExhausted", { detail: "max steps reached" }, 6),
+          makeEvent("event-7", "ApprovalRequested", { subject: "Run pytest" }, 7),
+          makeEvent("event-8", "UserQuestionAsked", { question: "Which branch?" }, 8),
+          makeEvent(
+            "event-9",
+            "TaskStepFailed",
+            { reason: "provider unavailable", step_id: "step-2" },
+            9,
+          ),
+          makeEvent("event-10", "TaskCancelled", { reason: "operator stop" }, 10),
+        ],
+        eventState: "loaded",
+        loadState: "loaded",
+        selectedTaskId: "task-2",
+      },
+      queue: {
+        ...idleQueue,
+        items: [task],
+        loadState: "loaded",
+        queue: "historical",
+      },
+    });
+
+    expect(markup).toContain("Budget exhaustion");
+    expect(markup).toContain("exhausted");
+    expect(markup).toContain("Event #6 BudgetExhausted");
+    expect(markup).toContain("Approval wait");
+    expect(markup).toContain("Event #7 ApprovalRequested");
+    expect(markup).toContain("User-input wait");
+    expect(markup).toContain("Event #8 UserQuestionAsked");
+    expect(markup).toContain("Provider availability");
+    expect(markup).toContain("provider cue");
+    expect(markup).toContain("Event #9 TaskStepFailed");
+    expect(markup).toContain("Cancellation");
+    expect(markup).toContain("Event #10 TaskCancelled");
   });
 
   it("renders loading and empty states", () => {
