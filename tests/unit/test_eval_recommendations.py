@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from glassbox.runtime.eval_recommendations import recommend_eval_change_impact
+from glassbox.runtime.eval_verification import build_eval_verification_plan
 
 
 def _write_bundle(tmp_path: Path, case_id: str) -> None:
@@ -70,6 +71,15 @@ def _write_profiles(tmp_path: Path) -> None:
             indent=2,
         )
         + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_profiles_payload(tmp_path: Path, profiles: list[dict[str, object]]) -> None:
+    profiles_path = tmp_path / "evals" / "profiles.json"
+    profiles_path.parent.mkdir(parents=True, exist_ok=True)
+    profiles_path.write_text(
+        json.dumps({"manifest_version": 1, "profiles": profiles}, indent=2) + "\n",
         encoding="utf-8",
     )
 
@@ -267,3 +277,130 @@ def test_recommend_eval_change_impact_routes_policy_changes_to_approval_case(
     assert any(
         "approval.approved-patch" in command for command in report.suggested_commands
     )
+
+
+def test_recommend_eval_change_impact_narrows_advisory_profiles_by_case_ids(
+    tmp_path: Path,
+) -> None:
+    _write_case(
+        tmp_path,
+        case_id="cancellation.cancelled-turn",
+        title="Cancelled turn",
+        owner="runtime.cancellation",
+        capabilities=["cancellation"],
+        verification_stages=["advisory"],
+    )
+    _write_case(
+        tmp_path,
+        case_id="context.artifact",
+        title="Artifact context",
+        owner="runtime.context",
+        capabilities=["context_drift_detection"],
+        verification_stages=["advisory"],
+    )
+    _write_profiles_payload(
+        tmp_path,
+        [
+            {
+                "profile_id": "v7-workflow-advisory",
+                "title": "v7 advisory",
+                "verification_stage": "advisory",
+                "case_ids": ["cancellation.cancelled-turn"],
+                "blocking": False,
+            },
+            {
+                "profile_id": "advisory-context",
+                "title": "Context advisory",
+                "verification_stage": "advisory",
+                "tags": ["context"],
+                "blocking": False,
+            },
+        ],
+    )
+    _write_coverage(tmp_path)
+    impact_path = tmp_path / "evals" / "impact.json"
+    impact_path.parent.mkdir(parents=True, exist_ok=True)
+    impact_path.write_text(
+        json.dumps(
+            {
+                "manifest_version": 1,
+                "rules": [
+                    {
+                        "rule_id": "runtime-cancellation",
+                        "title": "Cancellation",
+                        "path_globs": ["src/glassbox/runtime/turn_engine.py"],
+                        "case_ids": ["cancellation.cancelled-turn"],
+                        "capabilities": ["cancellation"],
+                    }
+                ],
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = recommend_eval_change_impact(
+        tmp_path,
+        touched_paths=["src/glassbox/runtime/turn_engine.py"],
+    )
+
+    assert [profile.profile_id for profile in report.profiles] == [
+        "v7-workflow-advisory"
+    ]
+    advisory_surface = next(
+        surface
+        for surface in report.release_surfaces
+        if surface.verification_stage == "advisory"
+    )
+    assert advisory_surface.recommended_profile_ids == ["v7-workflow-advisory"]
+
+
+def test_recommend_eval_change_impact_keeps_live_provider_canary_explicitly_skipped(
+    tmp_path: Path,
+) -> None:
+    _write_profiles_payload(
+        tmp_path,
+        [
+            {
+                "profile_id": "live-provider-canary",
+                "title": "Live provider canary",
+                "verification_stage": "advisory",
+                "track": "live-provider-canary",
+                "blocking": False,
+            }
+        ],
+    )
+    _write_coverage(tmp_path)
+    impact_path = tmp_path / "evals" / "impact.json"
+    impact_path.parent.mkdir(parents=True, exist_ok=True)
+    impact_path.write_text(
+        json.dumps(
+            {
+                "manifest_version": 1,
+                "rules": [
+                    {
+                        "rule_id": "provider-readiness",
+                        "title": "Provider readiness",
+                        "path_globs": ["docs/providers.md"],
+                        "profile_ids": ["live-provider-canary"],
+                    }
+                ],
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = recommend_eval_change_impact(tmp_path, touched_paths=["docs/providers.md"])
+    plan = build_eval_verification_plan(report)
+
+    assert [profile.profile_id for profile in report.profiles] == [
+        "live-provider-canary"
+    ]
+    assert report.suggested_commands == []
+    assert plan.plan_entries == []
+    assert len(plan.skipped_checks) == 1
+    assert plan.skipped_checks[0].target_id == "live-provider-canary"
+    assert "explicit selection" in plan.skipped_checks[0].reason

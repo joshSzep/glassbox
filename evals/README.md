@@ -71,6 +71,10 @@ Change-impact rules now live in `evals/impact.json`. `glassbox eval recommend`
 uses those repository-owned path heuristics together with case ownership,
 capability coverage, and verification-stage metadata to suggest practical
 follow-up cases or profiles for a change set while still showing its reasoning.
+The recommendation output groups impact by `commit-time`, `push-time`,
+`release-candidate`, and `advisory` surfaces. Live-provider canary profiles may
+appear in the advisory surface, but executable verification plans skip them by
+default and explain that canary evidence requires explicit operator selection.
 
 The `eval` pre-commit hook runs the full curated eval suite with a stable
 local output directory:

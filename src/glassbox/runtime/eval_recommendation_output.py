@@ -85,6 +85,8 @@ def build_suggested_commands(
         )
         commands.append(f"uv run glassbox eval run {case_ids} --cwd .")
     for recommendation in profile_recommendations:
+        if recommendation.track != "deterministic":
+            continue
         commands.append(
             f"uv run glassbox eval run --profile {recommendation.profile_id} --cwd ."
         )

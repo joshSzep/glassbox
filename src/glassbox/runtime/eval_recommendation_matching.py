@@ -240,10 +240,20 @@ def add_stage_derived_profile_recommendations(
     *,
     profiles: list[EvalProfileDefinition],
     impacted_stages: set[str],
+    case_reasons: _RecommendationReasonMap,
     profile_reasons: _RecommendationReasonMap,
 ) -> None:
+    recommended_case_ids = set(case_reasons)
     for profile in profiles:
         if profile.verification_stage not in impacted_stages:
+            continue
+        if profile.track != "deterministic":
+            continue
+        if profile.case_ids and not recommended_case_ids.intersection(
+            set(profile.case_ids)
+        ):
+            continue
+        if profile.verification_stage == "advisory" and not profile.case_ids:
             continue
         _add_reason(
             profile_reasons,

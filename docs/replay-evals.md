@@ -196,10 +196,13 @@ The recommendation steps are:
 4. Rank and explain recommendations by confidence rather than flattening them into one opaque list.
 
 `eval recommend` also prints a compact daily-development release-surface view for
-`commit-time`, `push-time`, and `release-candidate`. Each row shows whether that
-surface is impacted, which deterministic profiles and cases are recommended,
+`commit-time`, `push-time`, `release-candidate`, and `advisory`. Each row shows
+whether that surface is impacted, which profiles and cases are recommended,
 which blocking profiles are involved, and any profile-budget notes that matter
-for local verification scope.
+for local verification scope. Advisory rows may include deterministic advisory
+profiles or live-provider canary profiles, but live-provider checks are skipped
+from the executable verification plan unless the operator explicitly includes
+that canary surface.
 
 Recommendation confidence should be visible in output:
 
@@ -214,7 +217,8 @@ Practical operator expectations:
 - changes to `evals/cases/*.json` should recommend the touched case directly plus any deterministic profiles that include its verification stages
 - changes to `evals/profiles.json` should recommend the affected profiles themselves and explain that the change is profile-governance metadata, not a behavior-specific product signal
 - changes to `evals/coverage.json` should recommend `eval audit` plus the deterministic profiles or cases named by the affected capabilities
-- changes to runtime, tool, CLI, or dashboard code should resolve through impact rules into owners and capabilities first, then expand outward to cases and profiles
+- changes to runtime, tool, CLI, dashboard, task, memory, repository-index, provider, or branch-search code should resolve through impact rules into owners and capabilities first, then expand outward to cases and profiles
+- provider readiness changes may recommend `live-provider-canary`, but that profile remains advisory and skipped unless explicitly selected
 - documentation-only changes outside replay or eval governance surfaces may legitimately produce no strong replay recommendation
 
 Examples:

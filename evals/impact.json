@@ -127,6 +127,12 @@
             "path_globs": [
                 "src/glassbox/web/routes/sessions.py",
                 "src/glassbox/web/routes/approvals.py",
+                "frontend/api/**/*.ts",
+                "frontend/components/console/*.ts",
+                "frontend/components/console/*.tsx",
+                "frontend/components/console/**/*.ts",
+                "frontend/components/console/**/*.tsx",
+                "frontend/state/**/*.ts",
                 "frontend/**/*action*.ts",
                 "frontend/**/*action*.tsx",
                 "frontend/**/*dashboard*.ts",
@@ -242,6 +248,20 @@
             ],
             "profile_ids": ["v8-autonomy-advisory"],
             "notes": "Verification-loop or branch-search changes should run the v8 autonomy advisory replay profile plus focused tests for command outcomes, repair budgets, candidate limits, and cleanup behavior."
+        },
+        {
+            "rule_id": "provider-readiness",
+            "title": "Provider diagnostics and recommendation surfaces",
+            "path_globs": [
+                "src/glassbox/runtime/provider*.py",
+                "src/glassbox/cli/provider_commands.py",
+                "tests/unit/test_runtime_provider_config.py",
+                "tests/integration/test_provider_mode_runtime.py",
+                "docs/providers.md"
+            ],
+            "owners": ["runtime.provider"],
+            "profile_ids": ["live-provider-canary"],
+            "notes": "Provider diagnostics and recommendation changes should review deterministic tests first; live-provider canary evidence remains advisory and requires explicit operator selection."
         },
         {
             "rule_id": "eval-profile-governance",

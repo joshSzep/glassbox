@@ -63,11 +63,7 @@ def recommend_eval_change_impact(
         )
         for case in cases
     }
-    profiles = [
-        profile
-        for profile in load_eval_profiles(resolved_workspace_root)
-        if profile.track == "deterministic"
-    ]
+    profiles = load_eval_profiles(resolved_workspace_root)
     profiles_by_id = {profile.profile_id: profile for profile in profiles}
     capabilities = _load_capabilities(
         resolved_workspace_root,
@@ -126,6 +122,7 @@ def recommend_eval_change_impact(
     add_stage_derived_profile_recommendations(
         profiles=profiles,
         impacted_stages=impacted_stages,
+        case_reasons=case_reasons,
         profile_reasons=profile_reasons,
     )
     add_fallback_profile_recommendations(

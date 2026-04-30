@@ -29,6 +29,7 @@ _DAILY_RELEASE_STAGES: tuple[EvalVerificationStage, ...] = (
     "commit-time",
     "push-time",
     "release-candidate",
+    "advisory",
 )
 
 

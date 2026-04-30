@@ -294,7 +294,8 @@ def _print_eval_recommendations(result: EvalRecommendationReport) -> None:
         for profile in result.profiles:
             print(
                 f"  - {profile.profile_id}: {profile.title} "
-                f"({profile.confidence}, {profile.verification_stage})"
+                f"({profile.confidence}, {profile.verification_stage}, "
+                f"{profile.track})"
             )
             for reason in profile.reasons:
                 print(f"    Reason: {reason.summary}")

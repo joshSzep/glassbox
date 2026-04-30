@@ -753,7 +753,7 @@ The intended v9 milestone order is:
 
 ### GBX-952: Improve Eval Recommendation For Daily Development
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-951`
 - Goal: make `eval recommend` more useful for ordinary change verification
 - Deliverables:
@@ -774,6 +774,13 @@ The intended v9 milestone order is:
   - focused CLI tests
 - Done when:
   - developers get a useful, explainable verification plan from changed paths
+  - Completed by expanding `eval recommend` release-surface output to include
+    advisory recommendations, narrowing advisory profile selection to explicit
+    case overlap, mapping dashboard and provider-readiness paths more clearly,
+    and keeping live-provider canary recommendations visible but skipped from
+    executable verification plans unless explicitly included. Focused unit and
+    CLI tests cover advisory grouping, provider-canary skipped checks, and the
+    stable JSON fields used by automation.
 
 ---
 

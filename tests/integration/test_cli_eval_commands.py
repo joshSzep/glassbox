@@ -768,6 +768,7 @@ def test_cli_eval_recommend_reports_cases_profiles_and_reasons(
         "commit-time",
         "push-time",
         "release-candidate",
+        "advisory",
     ]
     assert payload["release_surfaces"][0] == {
         "verification_stage": "commit-time",
@@ -782,6 +783,7 @@ def test_cli_eval_recommend_reports_cases_profiles_and_reasons(
         ],
     }
     assert payload["release_surfaces"][2]["impacted"] is False
+    assert payload["release_surfaces"][3]["impacted"] is False
     assert all(
         profile["confidence"] == "stage-derived" for profile in payload["profiles"]
     )
@@ -797,6 +799,69 @@ def test_cli_eval_recommend_reports_cases_profiles_and_reasons(
     ] == ["commit-smoke", "push-confirmation", None]
     assert payload["verification_plan_entries"][2]["eval_case_id"] == "smoke.readme"
     assert payload["skipped_verification_checks"] == []
+
+
+def test_cli_eval_recommend_reports_live_provider_canary_as_skipped_check(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "live-provider-canary",
+                "title": "Live provider canary",
+                "verification_stage": "advisory",
+                "track": "live-provider-canary",
+                "blocking": False,
+            }
+        ],
+    )
+    _write_eval_coverage(tmp_path, profiles=[])
+    _write_eval_impact(
+        tmp_path,
+        rules=[
+            {
+                "rule_id": "provider-readiness",
+                "title": "Provider readiness",
+                "path_globs": ["docs/providers.md"],
+                "profile_ids": ["live-provider-canary"],
+            }
+        ],
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "recommend",
+            "docs/providers.md",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["matched_rule_ids"] == ["provider-readiness"]
+    assert [profile["profile_id"] for profile in payload["profiles"]] == [
+        "live-provider-canary"
+    ]
+    assert payload["suggested_commands"] == []
+    assert payload["verification_plan_entries"] == []
+    assert payload["skipped_verification_checks"] == [
+        {
+            "target_type": "profile",
+            "target_id": "live-provider-canary",
+            "reason": "live-provider canary profiles require explicit selection",
+        }
+    ]
+    advisory_surface = payload["release_surfaces"][3]
+    assert advisory_surface["verification_stage"] == "advisory"
+    assert advisory_surface["impacted"] is True
+    assert advisory_surface["recommended_profile_ids"] == ["live-provider-canary"]
 
 
 def test_cli_eval_recommend_reports_coverage_manifest_warning(
