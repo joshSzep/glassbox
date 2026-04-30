@@ -588,7 +588,7 @@ The intended v9 milestone order is:
 
 ### GBX-941: Add Workspace Attention Summary To Dashboard
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-940`
 - Goal: make the dashboard first screen identify the highest-priority action
   across sessions, tasks, memory/index, provider, daemon, and projections
@@ -610,6 +610,13 @@ The intended v9 milestone order is:
   - API tests if backend response models change
 - Done when:
   - opening the dashboard tells the operator what matters first
+  - Completed by adding a typed frontend `workspaceAttention` summary derived
+    from the existing `GET /sessions/aggregate` data, rendering it on the
+    workspace overview above queue drill-downs, and linking the top state to
+    the relevant session, queue, or safe inspection command. The first priority
+    pass covers approvals, questions, session failures, retryable or failed
+    background jobs, degraded projections, degraded runtime owner state, and
+    healthy empty state without hiding the existing queue summaries.
 
 ### GBX-942: Improve Evidence Drill-Down For Tasks And Verification
 

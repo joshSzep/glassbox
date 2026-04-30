@@ -54,6 +54,10 @@ describe("workspace overview console", () => {
     expect(markup).toContain("runtime online");
     expect(markup).toContain("projection fresh");
     expect(markup).toContain("1 retryable job");
+    expect(markup).toContain("Workspace Attention");
+    expect(markup).toContain("Approval needed");
+    expect(markup).toContain("Approve command execution");
+    expect(markup).toContain("/app/sessions/approval-session?queue=approvals");
     expect(markup).toContain("Queue approvals");
     expect(markup).toContain("Metric Patterns");
     expect(markup).toContain("Workspace metric patterns");
@@ -70,6 +74,10 @@ describe("workspace overview console", () => {
   it("renders loading, empty, error, and degraded states", () => {
     const emptyState = hydrateSessionAggregate(createDashboardState(), makeSessionAggregate([]));
     expect(renderOverview(emptyState, "idle", null, "all")).toContain("runtime offline");
+    expect(renderOverview(emptyState, "idle", null, "all")).toContain("No workspace action needed");
+    expect(renderOverview(emptyState, "idle", null, "all")).toContain(
+      "No approvals, questions, failures, degraded projections, or recovery cues need attention.",
+    );
     expect(renderOverview(emptyState, "idle", null, "all")).toContain("not loaded");
     expect(renderOverview(emptyState, "loading", null, "all")).toContain(
       "Loading workspace queues",

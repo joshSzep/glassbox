@@ -205,8 +205,14 @@ Recovery and maintenance:
 
 ## Follow-On Task Boundaries
 
-`GBX-941` should add the workspace attention summary model and UI using this
-priority order. `GBX-942` should deepen task and verification evidence
-drill-down without copying full event logs into every task surface. `GBX-943`
-should add read-only recovery and maintenance cues first, with mutating actions
-remaining explicit, confirmed, and backend-policy checked.
+`GBX-941` adds the first frontend workspace attention summary model and UI
+using this priority order. It is intentionally based on `GET
+/sessions/aggregate` and the current runtime/projection/session summary fields;
+later provider, repository-index, artifact-pressure, and richer task evidence
+cues should extend the same priority ladder rather than introducing a second
+competing summary.
+
+`GBX-942` should deepen task and verification evidence drill-down without
+copying full event logs into every task surface. `GBX-943` should add read-only
+recovery and maintenance cues first, with mutating actions remaining explicit,
+confirmed, and backend-policy checked.

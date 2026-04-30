@@ -7,6 +7,7 @@ import { QueueNavigation } from "@/components/console/workspace-overview/queue-n
 import { queueDescriptor } from "@/components/console/workspace-overview/queue-descriptors";
 import { SessionAttentionRows } from "@/components/console/workspace-overview/session-attention-rows";
 import { StatePanel } from "@/components/console/workspace-overview/state-panel";
+import { WorkspaceAttentionSummary } from "@/components/console/workspace-overview/workspace-attention-summary";
 import { WorkspaceStatusRail } from "@/components/console/workspace-overview/workspace-status-rail";
 import { WorkspaceSummary } from "@/components/console/workspace-overview/workspace-summary";
 import { buildAppRoute, type AppQueue } from "@/routing/app-route";
@@ -54,6 +55,7 @@ export function WorkspaceOverview({
           selectedSessionId={selectedSessionId}
           stream={stream}
         />
+        <WorkspaceAttentionSummary summary={data.workspaceAttention} />
 
         <section
           aria-label="Console frame"

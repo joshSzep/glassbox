@@ -41,6 +41,23 @@ export type EventLogEntry = {
   sequence: number;
 };
 
+export type WorkspaceAttentionLevel = "action" | "healthy" | "info" | "warning";
+
+export type WorkspaceAttentionTarget =
+  | { kind: "command"; command: string }
+  | { kind: "none" }
+  | { kind: "queue"; queue: string }
+  | { kind: "session"; queue: string; sessionId: string };
+
+export type WorkspaceAttentionSummary = {
+  actionLabel: string;
+  detail: string;
+  kind: "approval" | "failure" | "healthy" | "job" | "projection" | "question" | "runtime";
+  level: WorkspaceAttentionLevel;
+  target: WorkspaceAttentionTarget;
+  title: string;
+};
+
 export type SessionFields = {
   activeToolCalls: ActiveToolCall[];
   approvalMode: string | null;
@@ -95,4 +112,5 @@ export type DashboardState = SessionFields & {
   selectedSessionId: string | null;
   sessionIndex: SessionSummary[];
   sessionIndexSort: string;
+  workspaceAttention: WorkspaceAttentionSummary;
 };

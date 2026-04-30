@@ -5,6 +5,7 @@ import type {
   RuntimeSummary,
   SessionFields,
 } from "@/state/session-types";
+import { createHealthyWorkspaceAttentionSummary } from "@/state/workspace-attention";
 
 export function createDashboardState(): DashboardState {
   return {
@@ -20,6 +21,7 @@ export function createDashboardState(): DashboardState {
     selectedSessionId: null,
     sessionIndex: [],
     sessionIndexSort: "priority",
+    workspaceAttention: createHealthyWorkspaceAttentionSummary(),
   };
 }
 

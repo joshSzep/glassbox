@@ -9,12 +9,13 @@ import type {
   SessionFields,
   SessionSnapshot,
 } from "@/state/session-types";
+import { buildWorkspaceAttentionSummary } from "@/state/workspace-attention";
 
 export function hydrateSessionAggregate(
   state: DashboardState,
   aggregate: SessionAggregate,
 ): DashboardState {
-  return {
+  const nextState = {
     ...state,
     projectionHealthCounts: { ...aggregate.projection_health_counts },
     queueCounts: { ...aggregate.queue_counts },
@@ -22,6 +23,10 @@ export function hydrateSessionAggregate(
     selectedQueue: aggregate.queue ?? state.selectedQueue,
     sessionIndex: [...aggregate.sessions],
     sessionIndexSort: aggregate.sort,
+  };
+  return {
+    ...nextState,
+    workspaceAttention: buildWorkspaceAttentionSummary(nextState),
   };
 }
 

@@ -273,6 +273,64 @@ describe("console store", () => {
     expect(store.getState()).toMatchObject({ loadState: "loaded" });
     expect(store.getState().data.selectedQueue).toBe("questions");
     expect(store.getState().data.sessionIndex[0]?.session_id).toBe("session-1");
+    expect(store.getState().data.workspaceAttention).toMatchObject({
+      kind: "question",
+      target: { kind: "session", queue: "questions", sessionId: "session-1" },
+      title: "Answer needed",
+    });
+  });
+
+  it("derives the highest priority workspace attention summary from aggregate state", async () => {
+    const store = createConsoleStore(
+      createApiClient({
+        getSessionAggregate: async () =>
+          makeSessionAggregate(
+            [
+              makeSessionSummary("failed-session", {
+                priority_rank: 3,
+                queue_memberships: ["failures", "action-needed"],
+                session_failure_message: "pytest failed",
+                session_failure_retryable: true,
+                status: "failed",
+              }),
+              makeSessionSummary("approval-session", {
+                action_needed: true,
+                next_action_summary: "Approve command execution",
+                pending_approval_id: "approval-1",
+                priority_rank: 1,
+                queue_memberships: ["approvals", "action-needed"],
+              }),
+            ],
+            {
+              projection_health_counts: { degraded: 1, ok: 1, stale: 1, unavailable: 0 },
+              runtime: {
+                background_job_abandoned_count: 0,
+                background_job_failed_count: 1,
+                background_job_retryable_count: 1,
+                dashboard_url: null,
+                health: "degraded",
+                health_url: null,
+                pid: 1234,
+                session_index_url: null,
+                started_at: "2026-04-23T00:00:00Z",
+                state: "degraded",
+                workspace_root: "/tmp/glassbox",
+              },
+            },
+          ),
+      }),
+    );
+
+    await store.getState().loadAggregate();
+
+    expect(store.getState().data.workspaceAttention).toEqual({
+      actionLabel: "Open session",
+      detail: "Approve command execution",
+      kind: "approval",
+      level: "action",
+      target: { kind: "session", queue: "approvals", sessionId: "approval-session" },
+      title: "Approval needed",
+    });
   });
 
   it("ignores stale aggregate responses", async () => {
