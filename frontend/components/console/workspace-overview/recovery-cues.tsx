@@ -111,7 +111,7 @@ function recoveryCues(data: DashboardState): RecoveryCue[] {
     {
       commands: ["uv run glassbox repo index status --cwd ."],
       detail:
-        "Check whether rebuildable repository intelligence is fresh, stale, missing, or failed.",
+        "Check whether rebuildable repository intelligence is fresh, stale, missing, or failed; stale status explains the retained versus current source digest and any path-level source diff available.",
       label: "Repository index",
       state: "safe check",
       tone: "info",

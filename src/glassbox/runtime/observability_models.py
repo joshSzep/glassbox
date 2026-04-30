@@ -146,6 +146,8 @@ class RepositoryIndexObservability(BaseModel):
     entry_count: int
     built_at: str | None = None
     failure_reason: str | None = None
+    detail: str | None = None
+    stale_reason: str | None = None
     next_actions: list[str] = Field(default_factory=list)
 
 

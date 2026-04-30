@@ -3,12 +3,17 @@
 from pathlib import Path
 
 from glassbox.core import RepositoryIndexFreshness
+from glassbox.core import RepositoryIndexSnapshot
 from glassbox.core import RepositoryIndexSourceType
 from glassbox.runtime.repository_index import build_and_write_repository_index
 from glassbox.runtime.repository_index import get_repository_index_entry
 from glassbox.runtime.repository_index import load_repository_index
 from glassbox.runtime.repository_index import repository_index_path
 from glassbox.runtime.repository_index import search_repository_index
+from glassbox.runtime.repository_index import write_repository_index
+from glassbox.runtime.repository_index_status import (
+    build_repository_index_status_summary,
+)
 
 
 def test_repository_index_builds_searchable_local_snapshot(tmp_path: Path) -> None:
@@ -52,6 +57,75 @@ def test_repository_index_marks_snapshot_stale_after_source_change(
     loaded = load_repository_index(tmp_path)
 
     assert loaded.status == RepositoryIndexFreshness.STALE
+
+
+def test_repository_index_status_explains_stale_source_inputs(
+    tmp_path: Path,
+) -> None:
+    _seed_repository(tmp_path)
+    build_and_write_repository_index(tmp_path)
+
+    (tmp_path / "src" / "sample.py").write_text(
+        "class UsefulThing:\n    pass\n\ndef changed() -> None:\n    pass\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "src" / "new_module.py").write_text(
+        "VALUE = 1\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "README.md").unlink()
+
+    summary = build_repository_index_status_summary(tmp_path)
+
+    assert summary.status == "stale"
+    assert summary.stale_reason is not None
+    assert summary.source_diff is not None
+    assert summary.source_diff.added_count == 1
+    assert summary.source_diff.removed_count == 1
+    assert summary.source_diff.changed_count >= 1
+    assert "src/new_module.py" in summary.source_diff.added_paths
+    assert "README.md" in summary.source_diff.removed_paths
+    assert "src/sample.py" in summary.source_diff.changed_paths
+    assert summary.next_actions == [
+        f"glassbox repo index status --cwd {tmp_path.resolve()} --json",
+        f"glassbox repo index build --cwd {tmp_path.resolve()}",
+    ]
+
+
+def test_repository_index_status_reports_missing_guidance(tmp_path: Path) -> None:
+    _seed_repository(tmp_path)
+
+    summary = build_repository_index_status_summary(tmp_path)
+
+    assert summary.status == "missing"
+    assert summary.entry_count == 0
+    assert summary.current_source_file_count > 0
+    assert summary.next_actions == [
+        f"glassbox repo index build --cwd {tmp_path.resolve()}",
+    ]
+
+
+def test_repository_index_status_reports_failed_guidance(tmp_path: Path) -> None:
+    _seed_repository(tmp_path)
+    write_repository_index(
+        tmp_path,
+        RepositoryIndexSnapshot(
+            workspace_root=tmp_path.resolve(),
+            status=RepositoryIndexFreshness.FAILED,
+            failure_reason="parser crashed",
+        ),
+    )
+
+    summary = build_repository_index_status_summary(tmp_path)
+
+    assert summary.status == "failed"
+    assert summary.failure_reason == "parser crashed"
+    assert summary.stale_reason == "parser crashed"
+    assert summary.detail.startswith("The last repository index refresh failed")
+    assert summary.next_actions == [
+        f"glassbox repo index status --cwd {tmp_path.resolve()} --json",
+        f"glassbox repo index build --cwd {tmp_path.resolve()}",
+    ]
 
 
 def _seed_repository(root: Path) -> None:

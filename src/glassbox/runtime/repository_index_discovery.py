@@ -47,14 +47,21 @@ def is_excluded(relative: Path) -> bool:
 
 def source_digest(root: Path, files: list[Path]) -> str:
     hasher = hashlib.sha256()
+    for source_input in source_digest_inputs(root, files):
+        hasher.update(f"{source_input}\n".encode())
+    return hasher.hexdigest()
+
+
+def source_digest_inputs(root: Path, files: list[Path]) -> list[str]:
+    inputs: list[str] = []
     for path in files:
         try:
             stat = path.stat()
         except OSError:
             continue
         relative = path.relative_to(root).as_posix()
-        hasher.update(f"{relative}:{stat.st_size}:{stat.st_mtime_ns}\n".encode())
-    return hasher.hexdigest()
+        inputs.append(f"{relative}:{stat.st_size}:{stat.st_mtime_ns}")
+    return inputs
 
 
 __all__ = [
@@ -64,4 +71,5 @@ __all__ = [
     "iter_indexable_files",
     "repository_index_path",
     "source_digest",
+    "source_digest_inputs",
 ]

@@ -10,12 +10,15 @@ from glassbox.core.models import RepositoryIndexEntry
 from glassbox.core.models import RepositoryIndexSnapshot
 from glassbox.core.types import BackgroundJobKind
 from glassbox.runtime.bootstrap import open_runtime_context
-from glassbox.runtime.repository_index import RepositoryIndexNotFoundError
 from glassbox.runtime.repository_index import build_and_write_repository_index
 from glassbox.runtime.repository_index import get_repository_index_entry
-from glassbox.runtime.repository_index import load_repository_index
 from glassbox.runtime.repository_index import repository_index_path
 from glassbox.runtime.repository_index import search_repository_index
+from glassbox.runtime.repository_index_status import RepositoryIndexSourceDiff
+from glassbox.runtime.repository_index_status import RepositoryIndexStatusSummary
+from glassbox.runtime.repository_index_status import (
+    build_repository_index_status_summary,
+)
 
 
 def _repo_command(args: argparse.Namespace) -> int:
@@ -67,24 +70,11 @@ def _repo_index_build_command(args: argparse.Namespace) -> int:
 
 def _repo_index_status_command(args: argparse.Namespace) -> int:
     cwd, _ = resolve_runtime_location(args)
-    try:
-        snapshot = load_repository_index(cwd)
-    except RepositoryIndexNotFoundError:
-        if args.json:
-            print_json_output(
-                {
-                    "status": "missing",
-                    "path": str(repository_index_path(cwd)),
-                    "entry_count": 0,
-                }
-            )
-        else:
-            print(f"Repository index: missing at {repository_index_path(cwd)}")
-        return 0
+    summary = build_repository_index_status_summary(cwd)
     if args.json:
-        print_json_output(_status_payload(snapshot, repository_index_path(cwd)))
+        print_json_output(summary.model_dump(mode="json"))
     else:
-        _print_index_snapshot(snapshot, repository_index_path(cwd))
+        _print_status_summary(summary)
     return 0
 
 
@@ -110,16 +100,53 @@ def _repo_index_show_command(args: argparse.Namespace) -> int:
     return 0
 
 
-def _status_payload(snapshot: RepositoryIndexSnapshot, path: Path) -> dict[str, object]:
-    return {
-        "status": snapshot.status.value,
-        "path": str(path),
-        "entry_count": len(snapshot.entries),
-        "built_at": snapshot.built_at.isoformat() if snapshot.built_at else None,
-        "schema_version": snapshot.schema_version,
-        "builder_version": snapshot.builder_version,
-        "source_digest": snapshot.source_digest,
-    }
+def _print_status_summary(summary: RepositoryIndexStatusSummary) -> None:
+    print(f"Repository index: {summary.status}")
+    print(f"Path: {summary.path}")
+    print(f"Entries: {summary.entry_count}")
+    if summary.built_at is not None:
+        print(f"Built: {summary.built_at}")
+    print(f"Detail: {summary.detail}")
+    if summary.stale_reason is not None:
+        print(f"Reason: {summary.stale_reason}")
+    if summary.failure_reason is not None:
+        print(f"Failure: {summary.failure_reason}")
+    if summary.current_source_digest is not None:
+        print(f"Current source digest: {summary.current_source_digest}")
+    if summary.source_digest is not None:
+        print(f"Indexed source digest: {summary.source_digest}")
+    if summary.source_file_count or summary.current_source_file_count:
+        print(
+            "Source files: "
+            f"{summary.source_file_count} indexed, "
+            f"{summary.current_source_file_count} current"
+        )
+    if summary.source_diff is not None:
+        _print_source_diff(summary.source_diff)
+    if summary.next_actions:
+        print("Next actions:")
+        for action in summary.next_actions:
+            print(f"- {action}")
+
+
+def _print_source_diff(source_diff: RepositoryIndexSourceDiff) -> None:
+    if not source_diff.available:
+        if source_diff.detail is not None:
+            print(f"Source diff: {source_diff.detail}")
+        return
+    print(
+        "Source diff: "
+        f"{source_diff.added_count} added, "
+        f"{source_diff.removed_count} removed, "
+        f"{source_diff.changed_count} changed"
+    )
+    for label, paths in (
+        ("Added", source_diff.added_paths),
+        ("Removed", source_diff.removed_paths),
+        ("Changed", source_diff.changed_paths),
+    ):
+        if paths:
+            print(f"{label} sample: {', '.join(paths)}")
 
 
 def _print_index_snapshot(snapshot: RepositoryIndexSnapshot, path: Path) -> None:

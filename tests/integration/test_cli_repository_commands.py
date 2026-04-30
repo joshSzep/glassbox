@@ -74,6 +74,10 @@ def test_repo_index_build_status_search_and_show_commands(
     assert status_exit == 0
     assert status_payload["status"] == "fresh"
     assert status_payload["entry_count"] == len(build_payload["entries"])
+    assert status_payload["detail"] == (
+        "Repository intelligence is fresh for the current source digest."
+    )
+    assert status_payload["current_source_digest"] == status_payload["source_digest"]
     assert search_exit == 0
     assert len(search_payload) == 1
     assert search_payload[0]["symbol"] == "UsefulThing"
@@ -97,6 +101,52 @@ def test_repo_index_status_reports_missing_snapshot(tmp_path: Path, capsys) -> N
     assert status_exit == 0
     assert status_payload["status"] == "missing"
     assert status_payload["entry_count"] == 0
+    assert status_payload["detail"].startswith("No repository index exists")
+    assert status_payload["next_actions"] == [
+        f"glassbox repo index build --cwd {tmp_path.resolve()}",
+    ]
+
+
+def test_repo_index_status_human_output_explains_stale_snapshot(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    _seed_repository(tmp_path)
+    assert (
+        main(
+            [
+                "repo",
+                "index",
+                "build",
+                "--cwd",
+                str(tmp_path),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+    (tmp_path / "src" / "sample.py").write_text(
+        "class UsefulThing:\n    pass\n\ndef changed() -> None:\n    pass\n",
+        encoding="utf-8",
+    )
+
+    status_exit = main(
+        [
+            "repo",
+            "index",
+            "status",
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    output = capsys.readouterr().out
+
+    assert status_exit == 0
+    assert "Repository index: stale" in output
+    assert "Reason: Current source digest differs" in output
+    assert "Source diff:" in output
+    assert "Changed sample: src/sample.py" in output
+    assert f"- glassbox repo index build --cwd {tmp_path.resolve()}" in output
 
 
 def _seed_repository(root: Path) -> None:

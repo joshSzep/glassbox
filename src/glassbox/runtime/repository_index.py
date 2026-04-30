@@ -13,6 +13,7 @@ from glassbox.runtime.repository_index_discovery import MAX_INDEXED_FILES
 from glassbox.runtime.repository_index_discovery import iter_indexable_files
 from glassbox.runtime.repository_index_discovery import repository_index_path
 from glassbox.runtime.repository_index_discovery import source_digest
+from glassbox.runtime.repository_index_discovery import source_digest_inputs
 from glassbox.runtime.repository_index_extraction import command_entries
 from glassbox.runtime.repository_index_extraction import dedupe_entry_id
 from glassbox.runtime.repository_index_extraction import dependency_entries
@@ -29,6 +30,7 @@ def build_repository_index(workspace_root: Path) -> RepositoryIndexSnapshot:
 
     root = workspace_root.resolve()
     files = list(iter_indexable_files(root))[:MAX_INDEXED_FILES]
+    source_inputs = source_digest_inputs(root, files)
     digest = source_digest(root, files)
     built_at = datetime.now(UTC)
     entries: list[RepositoryIndexEntry] = []
@@ -53,6 +55,7 @@ def build_repository_index(workspace_root: Path) -> RepositoryIndexSnapshot:
         built_at=built_at,
         builder_version=BUILDER_VERSION,
         source_digest=digest,
+        source_inputs=source_inputs,
         exclude_patterns=sorted(EXCLUDED_NAMES),
         entries=entries,
     )

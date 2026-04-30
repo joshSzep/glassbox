@@ -889,7 +889,7 @@ The intended v9 milestone order is:
 
 ### GBX-970: Add Repository Index Freshness Workflow Polish
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-943`
 - Goal: reduce friction around stale local repository intelligence
 - Deliverables:
@@ -908,6 +908,13 @@ The intended v9 milestone order is:
   - CLI output tests
 - Done when:
   - stale repository intelligence is understandable and easy to refresh
+  - Completed by adding a shared repository-index status summary used by the
+    CLI and observability output. `glassbox repo index status` now reports
+    missing, fresh, stale, building, and failed states with clear detail,
+    retained/current source digests, safe next actions, and bounded source
+    input diffs for v9-built snapshots. The dashboard recovery cue points
+    operators to the safer status check, and repository-index docs describe the
+    freshness workflow and older-snapshot fallback.
 
 ### GBX-971: Improve Artifact Pressure And Cleanup Guidance
 

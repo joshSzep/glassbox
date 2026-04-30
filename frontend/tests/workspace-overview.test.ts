@@ -70,6 +70,7 @@ describe("workspace overview console", () => {
     expect(markup).toContain("uv run glassbox job list --state failed --cwd .");
     expect(markup).toContain("Repository index");
     expect(markup).toContain("uv run glassbox repo index status --cwd .");
+    expect(markup).toContain("retained versus current source digest");
     expect(markup).toContain("Artifact pressure");
     expect(markup).toContain("Provider evidence");
     expect(markup).toContain("/tmp/glassbox");

@@ -440,6 +440,7 @@ class RepositoryIndexSnapshot(BaseModel):
     built_at: datetime | None = None
     builder_version: str = Field(default="v1", min_length=1, max_length=100)
     source_digest: str | None = Field(default=None, min_length=64, max_length=64)
+    source_inputs: list[str] = Field(default_factory=list)
     include_patterns: list[str] = Field(default_factory=list)
     exclude_patterns: list[str] = Field(default_factory=list)
     entries: list[RepositoryIndexEntry] = Field(default_factory=list)

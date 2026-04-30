@@ -80,6 +80,8 @@ Fresh snapshots require a build timestamp. Failed snapshots require a reason. Sn
 
 Invalidation can be triggered by changed manifest digests, changed indexed file digests, deleted paths, schema version changes, builder version changes, configuration changes, or explicit operator refresh requests.
 
+`glassbox repo index status --cwd .` is the operator-facing freshness check. It reports missing, fresh, stale, building, and failed states with the retained index path, entry count, current source digest, retained source digest when available, and safe next actions. New v9 snapshots also retain bounded source input metadata so stale status can show read-only samples of added, removed, or changed paths. Older snapshots that do not have this inventory still report the digest mismatch and ask the operator to rebuild once to enable path-level stale explanations.
+
 ## Storage And Rebuild Strategy
 
 The first implementation may store the index as a retained JSON artifact or as a projection table. In either case:
