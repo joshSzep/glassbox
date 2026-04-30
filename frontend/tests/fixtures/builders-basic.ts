@@ -102,6 +102,7 @@ export function makeSessionSummary(
     latest_fork_point_sequence: null,
     latest_fork_point_turn_id: null,
     latest_checkpoint: null,
+    long_run_status: makeLongRunStatus(),
     latest_message_summary: "user: Inspect the repository",
     live_actionable: true,
     model_name: "openai:gpt-5.4",
@@ -190,6 +191,7 @@ export function makeSessionSnapshot(
     latest_fork_point_sequence: null,
     latest_fork_point_turn_id: null,
     latest_checkpoint: null,
+    long_run_status: makeLongRunStatus(),
     model_name: "openai:gpt-5.4",
     parent_session_id: null,
     pending_approval_id: null,
@@ -223,6 +225,28 @@ export function makeSessionSnapshot(
     ],
     turn_metrics: [],
     updated_at: "2026-04-23T00:00:01Z",
+    ...overrides,
+  };
+}
+
+export function makeLongRunStatus(
+  overrides: Partial<components["schemas"]["LongRunStatusResponse"]> = {},
+): components["schemas"]["LongRunStatusResponse"] {
+  return {
+    current_attempt_id: null,
+    current_attempt_status: null,
+    current_attempt_tool_name: null,
+    current_phase: null,
+    elapsed_seconds: 1,
+    heartbeat_age_seconds: null,
+    heartbeat_at: null,
+    heartbeat_expires_at: null,
+    last_event_at: "2026-04-23T00:00:01Z",
+    last_event_sequence: 4,
+    last_event_type: "SessionStarted",
+    progress_summary: "waiting for the next durable progress event",
+    state: "healthy",
+    stuck_reason: null,
     ...overrides,
   };
 }

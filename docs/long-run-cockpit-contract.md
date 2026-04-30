@@ -111,6 +111,9 @@ Long-run cockpit cues must be derived from explicit local data sources:
 - Session state: `GET /sessions/{session_id}`,
   `SessionSnapshotView`, `SessionSummaryView`, canonical session and turn
   events, and `glassbox session status`.
+- Long-run status: the `long_run_status` field on session summaries and
+  snapshots, derived from canonical events, latest checkpoints, recent
+  `ToolAttemptHeartbeat` projection rows, and session metadata.
 - Workspace overview: `GET /sessions/aggregate`,
   `WorkspaceRuntimeSummaryView`, queue counts, projection-health counts,
   provider evidence, and `glassbox observability status`.
@@ -212,9 +215,10 @@ close.
 
 ## Follow-On Task Boundaries
 
-`GBX-1051` adds heartbeat, stuck-state, and progress summaries. It should use
-this contract's priority rules and data-source map without introducing
-timeline navigation or broad recovery guidance.
+`GBX-1051` added heartbeat, stuck-state, and progress summaries through the
+derived `long_run_status` read model. It uses this contract's priority rules
+and data-source map without introducing timeline navigation or broad recovery
+guidance.
 
 `GBX-1052` adds checkpoint, compaction, tool-attempt, verification, approval,
 question, cancellation, and recovery timeline views. It should point back to

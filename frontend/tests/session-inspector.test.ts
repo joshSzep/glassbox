@@ -49,6 +49,8 @@ describe("session inspector", () => {
     expect(markup).toContain("awaiting approval");
     expect(markup).toContain("Review the pending approval before continuing.");
     expect(markup).toContain("Session readout");
+    expect(markup).toContain("Long run");
+    expect(markup).toContain("healthy");
     expect(markup).toContain("Runtime owner");
     expect(markup).toContain("Recent narrative");
     expect(markup).toContain("Decision context");

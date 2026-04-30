@@ -1929,6 +1929,149 @@
         "title": "LongRunPhase",
         "type": "string"
       },
+      "LongRunStatusResponse": {
+        "properties": {
+          "current_attempt_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Attempt Id"
+          },
+          "current_attempt_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Attempt Status"
+          },
+          "current_attempt_tool_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Attempt Tool Name"
+          },
+          "current_phase": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Phase"
+          },
+          "elapsed_seconds": {
+            "title": "Elapsed Seconds",
+            "type": "integer"
+          },
+          "heartbeat_age_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Heartbeat Age Seconds"
+          },
+          "heartbeat_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Heartbeat At"
+          },
+          "heartbeat_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Heartbeat Expires At"
+          },
+          "last_event_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Event At"
+          },
+          "last_event_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Event Sequence"
+          },
+          "last_event_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Event Type"
+          },
+          "progress_summary": {
+            "title": "Progress Summary",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "stuck_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stuck Reason"
+          }
+        },
+        "required": ["state", "elapsed_seconds", "progress_summary"],
+        "title": "LongRunStatusResponse",
+        "type": "object"
+      },
       "MessagePartResponse": {
         "properties": {
           "kind": {
@@ -2100,6 +2243,9 @@
             "title": "Live Actionable",
             "type": "boolean"
           },
+          "long_run_status": {
+            "$ref": "#/components/schemas/LongRunStatusResponse"
+          },
           "model_name": {
             "title": "Model Name",
             "type": "string"
@@ -2240,6 +2386,7 @@
           "pending_question_text",
           "session_failure_message",
           "session_failure_retryable",
+          "long_run_status",
           "latest_message_summary",
           "projection_health",
           "next_action_summary",
@@ -3820,6 +3967,9 @@
             ],
             "title": "Latest Fork Point Turn Id"
           },
+          "long_run_status": {
+            "$ref": "#/components/schemas/LongRunStatusResponse"
+          },
           "model_name": {
             "title": "Model Name",
             "type": "string"
@@ -3979,6 +4129,7 @@
           "session_failure_retryable",
           "transcript",
           "checkpoint_history",
+          "long_run_status",
           "active_tool_calls",
           "pending_approvals",
           "session_policy_summary",
@@ -4130,6 +4281,9 @@
             ],
             "title": "Latest Message Summary"
           },
+          "long_run_status": {
+            "$ref": "#/components/schemas/LongRunStatusResponse"
+          },
           "model_name": {
             "title": "Model Name",
             "type": "string"
@@ -4255,6 +4409,7 @@
           "pending_question_text",
           "session_failure_message",
           "session_failure_retryable",
+          "long_run_status",
           "latest_message_summary",
           "projection_health",
           "next_action_summary"

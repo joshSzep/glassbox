@@ -27,6 +27,7 @@ def _print_session_status(status_view: SessionStatusView) -> None:
     print(f"Status: {snapshot.status}")
     print(f"Last sequence: {snapshot.last_sequence}")
     print(_format_current_turn_line(current_turn_id, snapshot.status))
+    print(_format_long_run_status_line(snapshot.long_run_status))
     if snapshot.turn_recovery_posture is not None:
         print(_format_turn_recovery_line(snapshot.turn_recovery_posture))
     if snapshot.latest_checkpoint is not None:
@@ -304,6 +305,33 @@ def _format_current_turn_line(turn_id: UUID | None, status: str) -> str:
     if turn_id is None:
         return "Current turn: none"
     return f"Current turn: {turn_id} ({status})"
+
+
+def _format_long_run_status_line(long_run_status) -> str:
+    parts = [
+        f"Long-run status: {long_run_status.state}",
+        f"elapsed {long_run_status.elapsed_seconds}s",
+    ]
+    if long_run_status.current_phase is not None:
+        parts.append(f"phase {long_run_status.current_phase}")
+    if long_run_status.current_attempt_id is not None:
+        parts.append(
+            "attempt "
+            f"{str(long_run_status.current_attempt_id)[:8]} "
+            f"{long_run_status.current_attempt_tool_name or 'tool'} "
+            f"{long_run_status.current_attempt_status or 'unknown'}"
+        )
+    if long_run_status.heartbeat_age_seconds is not None:
+        parts.append(f"heartbeat {long_run_status.heartbeat_age_seconds}s ago")
+    if long_run_status.stuck_reason is not None:
+        parts.append(long_run_status.stuck_reason)
+    if long_run_status.last_event_type is not None:
+        parts.append(
+            f"last event {long_run_status.last_event_type}"
+            f"#{long_run_status.last_event_sequence}"
+        )
+    parts.append(long_run_status.progress_summary)
+    return "; ".join(parts)
 
 
 def _format_turn_metrics(metrics: TurnMetricsRecord) -> str:

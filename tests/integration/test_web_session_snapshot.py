@@ -182,6 +182,9 @@ def test_get_session_returns_snapshot_after_session_started(tmp_path: Path) -> N
             assert body["pending_question_text"] is None
             assert body["session_failure_message"] is None
             assert body["session_failure_retryable"] is None
+            assert body["long_run_status"]["state"] == "healthy"
+            assert body["long_run_status"]["last_event_type"] == "SessionStarted"
+            assert body["long_run_status"]["progress_summary"]
             assert body["transcript"] == []
             assert body["active_tool_calls"] == []
             assert body["pending_approvals"] == []

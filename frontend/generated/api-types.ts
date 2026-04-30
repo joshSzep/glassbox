@@ -1810,6 +1810,37 @@ export interface components {
       | "paused"
       | "completed"
       | "failed";
+    /** LongRunStatusResponse */
+    LongRunStatusResponse: {
+      /** Current Attempt Id */
+      current_attempt_id?: string | null;
+      /** Current Attempt Status */
+      current_attempt_status?: string | null;
+      /** Current Attempt Tool Name */
+      current_attempt_tool_name?: string | null;
+      /** Current Phase */
+      current_phase?: string | null;
+      /** Elapsed Seconds */
+      elapsed_seconds: number;
+      /** Heartbeat Age Seconds */
+      heartbeat_age_seconds?: number | null;
+      /** Heartbeat At */
+      heartbeat_at?: string | null;
+      /** Heartbeat Expires At */
+      heartbeat_expires_at?: string | null;
+      /** Last Event At */
+      last_event_at?: string | null;
+      /** Last Event Sequence */
+      last_event_sequence?: number | null;
+      /** Last Event Type */
+      last_event_type?: string | null;
+      /** Progress Summary */
+      progress_summary: string;
+      /** State */
+      state: string;
+      /** Stuck Reason */
+      stuck_reason?: string | null;
+    };
     /** MessagePartResponse */
     MessagePartResponse: {
       /** Kind */
@@ -1865,6 +1896,7 @@ export interface components {
       latest_message_summary: string | null;
       /** Live Actionable */
       live_actionable: boolean;
+      long_run_status: components["schemas"]["LongRunStatusResponse"];
       /** Model Name */
       model_name: string;
       /** Next Action Summary */
@@ -2457,6 +2489,7 @@ export interface components {
       latest_fork_point_sequence: number | null;
       /** Latest Fork Point Turn Id */
       latest_fork_point_turn_id: string | null;
+      long_run_status: components["schemas"]["LongRunStatusResponse"];
       /** Model Name */
       model_name: string;
       /** Parent Session Id */
@@ -2533,6 +2566,7 @@ export interface components {
       latest_fork_point_turn_id: string | null;
       /** Latest Message Summary */
       latest_message_summary: string | null;
+      long_run_status: components["schemas"]["LongRunStatusResponse"];
       /** Model Name */
       model_name: string;
       /** Next Action Summary */

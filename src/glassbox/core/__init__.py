@@ -149,6 +149,7 @@ from glassbox.core.models import BranchSearchRecord
 from glassbox.core.models import ContextCompactionRecord
 from glassbox.core.models import ForkedSession
 from glassbox.core.models import InheritedTranscriptMessage
+from glassbox.core.models import LongRunStatusRecord
 from glassbox.core.models import MessagePart
 from glassbox.core.models import PolicyDecision
 from glassbox.core.models import PolicyDecisionTrace
@@ -293,6 +294,7 @@ __all__ = [
     "LongRunPhase",
     "LongRunPhaseChanged",
     "LongRunPhaseState",
+    "LongRunStatusRecord",
     "MessagePart",
     "MessageId",
     "ModelCallCompleted",

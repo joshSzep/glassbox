@@ -7,6 +7,7 @@ export type ProjectionHealthCounts =
   components["schemas"]["ProjectionHealthCountsAggregateResponse"];
 export type RuntimeSummary = components["schemas"]["WorkspaceRuntimeSummaryResponse"];
 export type RuntimeContext = components["schemas"]["RuntimeContextSnapshot"];
+export type LongRunStatus = components["schemas"]["LongRunStatusResponse"];
 export type SessionAggregate = components["schemas"]["SessionAggregateResponse"];
 export type SessionSnapshot = components["schemas"]["SessionSnapshotResponse"];
 export type SessionSummary = components["schemas"]["OperatorSessionSummaryResponse"];
@@ -86,6 +87,7 @@ export type SessionFields = {
   lastSequence: number;
   latestForkPointSequence: number | null;
   latestForkPointTurnId: string | null;
+  longRunStatus: LongRunStatus | null;
   modelName: string | null;
   parentSessionId: string | null;
   pendingApprovalId: string | null;

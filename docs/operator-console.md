@@ -27,10 +27,10 @@ The current dashboard already provides the shell the console should extend:
 
 - `GET /sessions` returns recent session summaries with status, lineage,
   next-action text, failure detail, pending question or approval identifiers,
-  and projection health
+  projection health, and derived long-run status
 - `GET /sessions/{session_id}` returns a full selected-session snapshot with
   transcript, active tool calls, pending approvals, turn metrics, runtime
-  context, lineage, branchable turns, and projection health
+  context, lineage, branchable turns, projection health, and long-run status
 - `GET /sessions/{session_id}/events?after=...` streams per-session SSE events
   and replays persisted events after a requested sequence
 - browser actions already exist for next prompts, `ask_user` answers, approval
@@ -100,7 +100,8 @@ Action queues:
 - queue tabs cover approvals, questions, failures, degraded sessions, active
   work, historical sessions, and all sessions where useful
 - rows show session ID, status, branch label or lineage hint, updated time,
-  next-action summary, projection health, and pending approval/question subject
+  next-action summary, projection health, long-run state, and pending
+  approval/question subject
 - row ordering follows server priority first and local UI filtering second
 - empty states should be compact and operational, confirming there is no current
   work in that queue rather than explaining the product
@@ -108,7 +109,8 @@ Action queues:
 Session inspector:
 
 - selected-session header shows status, live stream state, projection health,
-  model, workspace, branch label or lineage hint, and next action
+  model, workspace, branch label or lineage hint, long-run state, and next
+  action
 - transcript remains the central narrative surface for what happened and what is
   happening now
 - timeline summarizes turns, model calls, tool calls, suspensions, failures,

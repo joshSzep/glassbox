@@ -21,6 +21,11 @@ describe("workspace overview console", () => {
         [
           makeSessionSummary("approval-session", {
             action_needed: true,
+            long_run_status: {
+              ...makeSessionSummary("long-run-template").long_run_status,
+              state: "paused",
+              progress_summary: "session awaiting approval",
+            },
             next_action_summary: "Approve command execution",
             pending_approval_id: "approval-1",
             queue_memberships: ["approvals", "action-needed"],
@@ -58,6 +63,7 @@ describe("workspace overview console", () => {
     expect(markup).toContain("1 retryable job");
     expect(markup).toContain("Workspace Attention");
     expect(markup).toContain("Approval needed");
+    expect(markup).toContain("long run paused");
     expect(markup).toContain("Approve command execution");
     expect(markup).toContain("/app/sessions/approval-session?queue=approvals");
     expect(markup).toContain("Queue approvals");
@@ -158,6 +164,35 @@ describe("workspace overview console", () => {
     expect(markup).toContain("Retry with a new prompt or fork");
     expect(markup).toContain("Turn turn-1: non_resumable; exact resume unsafe");
     expect(markup).toContain("provider stream was interrupted after restart");
+  });
+
+  it("surfaces stale long-run progress in attention rows", () => {
+    const staleState = hydrateSessionAggregate(
+      createDashboardState(),
+      makeSessionAggregate([
+        makeSessionSummary("stale-session", {
+          action_needed: true,
+          long_run_status: {
+            ...makeSessionSummary("long-run-template").long_run_status,
+            current_attempt_tool_name: "pytest",
+            heartbeat_age_seconds: 600,
+            progress_summary: "pytest: heartbeat 600s ago",
+            state: "stale",
+            stuck_reason: "tool attempt heartbeat expired",
+          },
+          next_action_summary: "Inspect stale tool attempt",
+          priority_bucket: "stale",
+          queue_memberships: ["active", "action-needed"],
+        }),
+      ]),
+    );
+
+    const markup = renderOverview(staleState, "loaded", null, "active");
+
+    expect(markup).toContain("Inspect stale tool attempt");
+    expect(markup).toContain("long run stale");
+    expect(markup).toContain("pytest: heartbeat 600s ago");
+    expect(markup).toContain("tool attempt heartbeat expired");
   });
 
   it("renders route-aware status rail context and stream states", () => {

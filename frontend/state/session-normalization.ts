@@ -96,6 +96,7 @@ function normalizeSessionFields(snapshot: SessionSnapshot): SessionFields {
     lastSequence: snapshot.last_sequence,
     latestForkPointSequence: snapshot.latest_fork_point_sequence,
     latestForkPointTurnId: snapshot.latest_fork_point_turn_id,
+    longRunStatus: snapshot.long_run_status ?? null,
     modelName: snapshot.model_name,
     parentSessionId: snapshot.parent_session_id,
     pendingApprovalId: snapshot.pending_approval_id,

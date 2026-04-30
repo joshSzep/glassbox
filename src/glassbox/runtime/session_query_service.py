@@ -8,6 +8,7 @@ from glassbox.core.types import SessionStatus
 from glassbox.core.types import ToolExecutionStatus
 from glassbox.runtime.context_builder import RuntimeContextSnapshot
 from glassbox.runtime.context_builder import build_repository_context_snapshot
+from glassbox.runtime.long_running import build_long_run_status
 from glassbox.runtime.operator_session_queries import build_operator_session_summary
 from glassbox.runtime.operator_session_queries import matches_operator_queue
 from glassbox.runtime.operator_session_queries import matches_operator_status
@@ -226,6 +227,13 @@ class SessionQueryService:
             turn_recovery_posture=turn_recovery_posture,
             latest_checkpoint=latest_checkpoint,
             checkpoint_history=checkpoint_history,
+            long_run_status=build_long_run_status(
+                record,
+                status=snapshot_status,
+                events=session_events,
+                latest_checkpoint=latest_checkpoint,
+                recent_tool_attempts=recent_tool_attempts,
+            ),
             active_tool_calls=active_tool_calls,
             recent_tool_attempts=recent_tool_attempts,
             pending_approvals=pending_approvals,
@@ -387,6 +395,11 @@ class SessionQueryService:
             if projections_available
             else None
         )
+        recent_tool_attempts = (
+            self._session_repository.list_tool_attempts(record.session_id, limit=5)
+            if projections_available
+            else []
+        )
         status = session_status(record, state)
         turn_recovery_posture = turn_recovery_posture_from_events(
             session_events,
@@ -436,6 +449,13 @@ class SessionQueryService:
             ),
             turn_recovery_posture=turn_recovery_posture,
             latest_checkpoint=latest_checkpoint,
+            long_run_status=build_long_run_status(
+                record,
+                status=status,
+                events=session_events,
+                latest_checkpoint=latest_checkpoint,
+                recent_tool_attempts=recent_tool_attempts,
+            ),
             latest_message_summary=latest_message_summary(transcript),
             projection_health=projection_health,
             next_action_summary=next_action_summary(

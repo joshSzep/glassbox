@@ -54,6 +54,22 @@ def test_print_session_status_preserves_status_output_contract(
                 "pending_question_text": "Which branch should I inspect?",
                 "session_failure_message": None,
                 "session_failure_retryable": None,
+                "long_run_status": {
+                    "state": "paused",
+                    "current_phase": None,
+                    "last_event_type": "UserQuestionAsked",
+                    "last_event_sequence": 8,
+                    "last_event_at": "2026-04-24T00:00:01Z",
+                    "current_attempt_id": None,
+                    "current_attempt_tool_name": None,
+                    "current_attempt_status": None,
+                    "heartbeat_at": None,
+                    "heartbeat_expires_at": None,
+                    "heartbeat_age_seconds": None,
+                    "elapsed_seconds": 1,
+                    "stuck_reason": "session is awaiting_user_input",
+                    "progress_summary": "session awaiting_user_input",
+                },
                 "transcript": [
                     {
                         "message_id": "00000000-0000-0000-0000-000000000444",
@@ -222,6 +238,7 @@ def test_print_session_status_preserves_status_output_contract(
     captured = capsys.readouterr()
 
     assert "Status: awaiting_user_input" in captured.out
+    assert "Long-run status: paused" in captured.out
     assert "Runtime context:" in captured.out
     assert "High-signal paths: README.md, src/" in captured.out
     assert "Pending question: 00000000-0000-0000-0000-000000000333" in captured.out

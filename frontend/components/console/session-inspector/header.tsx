@@ -54,6 +54,7 @@ export function SessionHeader({
       <div className="grid gap-2 text-sm sm:grid-cols-2 xl:grid-cols-4">
         <HeaderFact label="Model" value={data.modelName ?? "unknown"} />
         <HeaderFact label="Last sequence" value={String(data.lastSequence)} />
+        <HeaderFact label="Long run" value={longRunLabel(data)} />
         <HeaderFact label="Lineage" value={lineageLabel(data)} />
         <HeaderFact label="Next action" value={nextActionLabel(data)} />
       </div>
@@ -84,6 +85,18 @@ function lineageLabel(data: DashboardState): string {
     return `${data.childSessions.length} child sessions`;
   }
   return data.branchLabel ?? "root session";
+}
+
+function longRunLabel(data: DashboardState): string {
+  const status = data.longRunStatus;
+  if (status === null) {
+    return "not available";
+  }
+  const phase = status.current_phase === null ? "" : `; ${status.current_phase}`;
+  const heartbeat =
+    status.heartbeat_age_seconds === null ? "" : `; heartbeat ${status.heartbeat_age_seconds}s`;
+  const stuck = status.stuck_reason === null ? "" : `; ${status.stuck_reason}`;
+  return `${status.state}${phase}${heartbeat}${stuck}`;
 }
 
 function nextActionLabel(data: DashboardState): string {

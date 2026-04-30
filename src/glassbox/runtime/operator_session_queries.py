@@ -42,6 +42,7 @@ def build_operator_session_summary(
         or summary.status == "failed"
         or summary.projection_health.degraded
         or _has_recovery_action(summary)
+        or summary.long_run_status.state in {"stale", "stuck"}
     )
     queue_memberships = operator_queue_memberships(
         summary,
@@ -79,6 +80,10 @@ def operator_priority(
         return "degraded", 3
     if _has_recovery_action(summary):
         return "recovery", 3
+    if summary.long_run_status.state == "stuck":
+        return "stuck", 3
+    if summary.long_run_status.state == "stale":
+        return "stale", 3
     if has_active_turn:
         return "running", 4
     if summary.status == "running":

@@ -112,6 +112,7 @@ export function createEmptySessionFields(): SessionFields {
     lastSequence: 0,
     latestForkPointSequence: null,
     latestForkPointTurnId: null,
+    longRunStatus: null,
     modelName: null,
     parentSessionId: null,
     pendingApprovalId: null,

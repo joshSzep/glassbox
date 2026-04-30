@@ -57,6 +57,8 @@ The dashboard shell exposes the operator surfaces backed by the snapshot and SSE
 
 - workspace overview
 - queue tabs for approvals, questions, failures, degraded sessions, and active work
+- long-run status cues for healthy, paused, stale, stuck, idle, or completed
+  work
 - transcript
 - recent sessions
 - next action composer
@@ -69,6 +71,11 @@ The dashboard shell exposes the operator surfaces backed by the snapshot and SSE
 - event log
 
 The browser first reads `GET /sessions/{session_id}` and then subscribes to `GET /sessions/{session_id}/events`.
+Session summary and snapshot responses include a `long_run_status` read model
+derived from persisted events, latest checkpoints, recent durable tool-attempt
+heartbeats, and session metadata. Use it as the dashboard's quick "is this
+alive or stuck?" signal, then inspect the timeline, event log, or tool-attempt
+evidence for detail.
 
 The v2 operator-console model builds on this shell rather than replacing it. See
 [operator-console.md](./operator-console.md) for the multi-session overview,

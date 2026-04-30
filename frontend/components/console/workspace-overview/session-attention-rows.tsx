@@ -95,6 +95,7 @@ function SessionAttentionRow({
           {status.label}
         </Badge>
         <ProjectionBadge health={session.projection_health} />
+        <LongRunBadge state={session.long_run_status?.state ?? null} />
       </div>
     </a>
   );
@@ -108,7 +109,25 @@ function ProjectionBadge({ health }: { health: ProjectionHealth | null }) {
   return <Badge variant={variant}>{health.state}</Badge>;
 }
 
+function LongRunBadge({ state }: { state: string | null }) {
+  if (state === null) {
+    return <Badge variant="muted">long run unknown</Badge>;
+  }
+  const variant =
+    state === "stale" || state === "stuck"
+      ? "warning"
+      : state === "healthy"
+        ? "success"
+        : state === "paused"
+          ? "info"
+          : "muted";
+  return <Badge variant={variant}>long run {state}</Badge>;
+}
+
 function attentionDetail(session: SessionSummary): string {
+  if (session.long_run_status?.state === "stale" || session.long_run_status?.state === "stuck") {
+    return `${session.long_run_status.progress_summary}. ${session.long_run_status.stuck_reason ?? "Inspect durable progress evidence."}`;
+  }
   if (session.turn_recovery_posture != null) {
     const posture = session.turn_recovery_posture;
     const safeText =

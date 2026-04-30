@@ -916,7 +916,7 @@ The intended v10 milestone order is:
 
 ### GBX-1051: Add Heartbeat, Stuck-State, And Progress Summary Surfaces
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1050`, `GBX-1040`
 - Goal: make active long work visibly alive, stuck, paused, or stale
 - Deliverables:
@@ -938,6 +938,17 @@ The intended v10 milestone order is:
 - Done when:
   - an operator can glance at terminal or dashboard and tell whether long work
     is making progress
+- Completed:
+  - Added a derived `LongRunStatusRecord` summary on session summaries and
+    snapshots, covering state, heartbeat age/expiry, current phase, latest
+    durable event, current tool attempt, elapsed time, stuck reason, and
+    progress summary.
+  - Surfaced long-run state in `glassbox session status`, operator-console
+    priority rows, workspace overview badges, and selected-session header
+    facts, with stale and stuck states promoted into action-needed priority.
+  - Refreshed OpenAPI/frontend generated API types and added backend,
+    frontend, and web snapshot coverage for healthy active work, stale
+    heartbeat, stuck attempt, paused work, and completed work.
 
 ### GBX-1052: Add Checkpoint And Compaction Timeline Views
 

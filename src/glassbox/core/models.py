@@ -253,6 +253,27 @@ class TurnRecoveryPosture(BaseModel):
     recovery_decision_id: str | None = None
 
 
+class LongRunStatusRecord(BaseModel):
+    """Derived cockpit summary for long-running session progress."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    state: Literal["healthy", "idle", "paused", "stale", "stuck", "completed"]
+    current_phase: str | None = None
+    last_event_type: str | None = None
+    last_event_sequence: int | None = Field(default=None, ge=0)
+    last_event_at: datetime | None = None
+    current_attempt_id: ToolAttemptId | None = None
+    current_attempt_tool_name: str | None = None
+    current_attempt_status: str | None = None
+    heartbeat_at: datetime | None = None
+    heartbeat_expires_at: datetime | None = None
+    heartbeat_age_seconds: int | None = Field(default=None, ge=0)
+    elapsed_seconds: int = Field(ge=0)
+    stuck_reason: str | None = Field(default=None, max_length=2000)
+    progress_summary: str = Field(min_length=1, max_length=2000)
+
+
 class TaskCheckpointRecord(BaseModel):
     """Projected durable checkpoint for task or session handoff."""
 

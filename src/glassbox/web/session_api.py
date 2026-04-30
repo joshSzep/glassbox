@@ -155,6 +155,23 @@ class TurnRecoveryPostureResponse(BaseModel):
     recovery_decision_id: str | None = None
 
 
+class LongRunStatusResponse(BaseModel):
+    state: str
+    current_phase: str | None = None
+    last_event_type: str | None = None
+    last_event_sequence: int | None = None
+    last_event_at: datetime | None = None
+    current_attempt_id: str | None = None
+    current_attempt_tool_name: str | None = None
+    current_attempt_status: str | None = None
+    heartbeat_at: datetime | None = None
+    heartbeat_expires_at: datetime | None = None
+    heartbeat_age_seconds: int | None = None
+    elapsed_seconds: int
+    stuck_reason: str | None = None
+    progress_summary: str
+
+
 class TaskCheckpointResponse(BaseModel):
     checkpoint_id: str
     session_id: str
@@ -388,6 +405,7 @@ class SessionSummaryResponse(BaseModel):
     session_failure_retryable: bool | None
     turn_recovery_posture: TurnRecoveryPostureResponse | None = None
     latest_checkpoint: TaskCheckpointResponse | None = None
+    long_run_status: LongRunStatusResponse
     latest_message_summary: str | None
     projection_health: ProjectionHealthResponse
     next_action_summary: str
@@ -507,6 +525,7 @@ class SessionSnapshotResponse(BaseModel):
     turn_recovery_posture: TurnRecoveryPostureResponse | None = None
     latest_checkpoint: TaskCheckpointResponse | None = None
     checkpoint_history: list[TaskCheckpointResponse]
+    long_run_status: LongRunStatusResponse
     active_tool_calls: list[ActiveToolCallResponse]
     recent_tool_attempts: list[ToolAttemptResponse] = Field(default_factory=list)
     pending_approvals: list[PendingApprovalResponse]
