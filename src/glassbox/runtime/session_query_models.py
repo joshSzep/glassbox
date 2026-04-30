@@ -203,6 +203,7 @@ class SessionSnapshotView(BaseModel):
     latest_checkpoint: TaskCheckpointRecord | None = None
     checkpoint_history: list[TaskCheckpointRecord] = Field(default_factory=list)
     active_tool_calls: list[ToolCallRecord] = Field(default_factory=list)
+    recent_tool_attempts: list[ToolAttemptRecord] = Field(default_factory=list)
     pending_approvals: list[ApprovalRecord] = Field(default_factory=list)
     session_policy_summary: PolicyActivitySummary = Field(
         default_factory=PolicyActivitySummary

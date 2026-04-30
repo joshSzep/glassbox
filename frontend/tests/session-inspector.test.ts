@@ -184,6 +184,12 @@ describe("session inspector", () => {
     expect(metricsMarkup).toContain("Tokens");
     expect(metricsMarkup).toContain("6.5s");
     expect(metricsMarkup).not.toContain("Continue session");
+
+    const actionsMarkup = renderInspectorTab(data, "actions");
+    expect(actionsMarkup).toContain("run_command attempt");
+    expect(actionsMarkup).toContain("idempotent");
+    expect(actionsMarkup).toContain("approval required");
+    expect(actionsMarkup).toContain("pytest command is verification-only");
   });
 
   it("renders stale compaction cues in the runtime pane", () => {
@@ -386,6 +392,30 @@ describe("session inspector", () => {
         pending_question_id: "question-1",
         pending_question_text: "Which branch should be inspected?",
         projection_health: makeProjectionHealth({ degraded: true, state: "stale" }),
+        recent_tool_attempts: [
+          {
+            completed_at: "2026-04-23T00:00:09Z",
+            completed_units: null,
+            heartbeat_expires_at: null,
+            last_heartbeat_at: "2026-04-23T00:00:09Z",
+            last_sequence: 11,
+            message: "pytest failed",
+            output_artifact_id: "artifact-output-1",
+            retry_classification: "idempotent",
+            retry_policy_reason: "command retry requires confirmation",
+            retry_reason: "attempt failed before completion; pytest command is verification-only",
+            retry_requires_approval: true,
+            safe_to_retry: true,
+            session_id: "session-1",
+            status: "failed",
+            task_id: null,
+            tool_attempt_id: "attempt-1",
+            tool_call_id: "tool-1",
+            tool_name: "run_command",
+            total_units: null,
+            turn_id: "turn-1",
+          },
+        ],
         runtime_context: makeRuntimeContext({
           runtime_notes: [{ category: "policy", inherited: false, message: "Approval pending" }],
           working_set: {

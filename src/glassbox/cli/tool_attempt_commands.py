@@ -38,8 +38,18 @@ def _session_tool_attempts_command(args: argparse.Namespace) -> int:
             print(f"  Message: {row.message}")
         if row.heartbeat_expires_at is not None:
             print(f"  Heartbeat expires: {row.heartbeat_expires_at.isoformat()}")
+        if row.retry_classification is not None:
+            print(f"  Retry classification: {row.retry_classification.value}")
         if row.safe_to_retry is not None:
             print(f"  Safe to retry: {str(row.safe_to_retry).lower()}")
+        if row.retry_requires_approval is not None:
+            print(
+                f"  Retry requires approval: {str(row.retry_requires_approval).lower()}"
+            )
+        if row.retry_reason:
+            print(f"  Retry reason: {row.retry_reason}")
+        if row.retry_policy_reason:
+            print(f"  Retry policy reason: {row.retry_policy_reason}")
     return 0
 
 

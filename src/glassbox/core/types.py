@@ -327,6 +327,17 @@ class ToolAttemptStatus(StrEnum):
     ABANDONED = "abandoned"
 
 
+class ToolAttemptRetryClassification(StrEnum):
+    """Operator-facing retry and resume posture for a tool attempt."""
+
+    RETRYABLE = "retryable"
+    UNSAFE_TO_RETRY = "unsafe_to_retry"
+    IDEMPOTENT = "idempotent"
+    UNKNOWN = "unknown"
+    ALREADY_RUNNING = "already_running"
+    ABANDONED = "abandoned"
+
+
 class RecoveryDecision(StrEnum):
     """Operator-facing recovery decisions for interrupted long work."""
 

@@ -108,6 +108,7 @@ function normalizeSessionFields(snapshot: SessionSnapshot): SessionFields {
     pendingQuestionId: snapshot.pending_question_id,
     pendingQuestionText: snapshot.pending_question_text,
     projectionHealth: snapshot.projection_health,
+    recentToolAttempts: [...(snapshot.recent_tool_attempts ?? [])],
     runtimeContext: cloneRuntimeContext(snapshot.runtime_context),
     selectedForkTurnId: defaultSelectedForkTurnId(
       branchableTurns,

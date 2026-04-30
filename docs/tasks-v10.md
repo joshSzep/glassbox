@@ -801,7 +801,7 @@ The intended v10 milestone order is:
 
 ### GBX-1042: Add Safe-To-Retry And Resume Classification
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1041`
 - Goal: make retry and resume posture explicit for long-running tool attempts
 - Deliverables:
@@ -825,6 +825,20 @@ The intended v10 milestone order is:
 - Done when:
   - retrying a long command or test attempt is explainable and bounded instead
     of ad hoc
+- Completed:
+  - Added typed retry classifications for retryable, unsafe-to-retry,
+    idempotent, unknown, already-running, and abandoned tool attempts, with
+    approval-gating and policy-reason fields persisted through
+    `ToolAttemptHeartbeat` and the `tool_attempts` projection.
+  - Added conservative command/test retry heuristics for repeatable
+    verification, static checks, read-only inspection, unknown commands, shell
+    redirection, dependency mutation, git mutation, and destructive command
+    families.
+  - Surfaced retry posture in `glassbox session tool-attempts`,
+    `glassbox session status`, session snapshots, generated frontend API
+    types, and dashboard Actions views.
+  - Added unit, projection, CLI, web schema, web snapshot, and frontend
+    component coverage for classification, persistence, and operator display.
 
 ### GBX-1043: Expose Tool Attempt Recovery Actions
 

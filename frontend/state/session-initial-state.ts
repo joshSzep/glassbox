@@ -119,6 +119,7 @@ export function createEmptySessionFields(): SessionFields {
     pendingQuestionId: null,
     pendingQuestionText: null,
     projectionHealth: null,
+    recentToolAttempts: [],
     runtimeContext: null,
     selectedForkTurnId: null,
     sessionFailureMessage: null,

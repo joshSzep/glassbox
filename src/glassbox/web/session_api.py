@@ -47,6 +47,30 @@ class ToolCallResponse(ActiveToolCallResponse):
     """Tool-call detail row for paginated session reads."""
 
 
+class ToolAttemptResponse(BaseModel):
+    tool_attempt_id: str
+    session_id: str
+    turn_id: str
+    tool_name: str
+    status: str
+    tool_call_id: str | None = None
+    task_id: str | None = None
+    message: str | None = None
+    started_at: datetime | None = None
+    last_heartbeat_at: datetime | None = None
+    heartbeat_expires_at: datetime | None = None
+    completed_at: datetime | None = None
+    completed_units: int | None = None
+    total_units: int | None = None
+    output_artifact_id: str | None = None
+    safe_to_retry: bool | None = None
+    retry_classification: str | None = None
+    retry_requires_approval: bool | None = None
+    retry_reason: str | None = None
+    retry_policy_reason: str | None = None
+    last_sequence: int
+
+
 class PendingApprovalResponse(BaseModel):
     approval_id: str
     turn_id: str
@@ -449,6 +473,7 @@ class SessionSnapshotResponse(BaseModel):
     latest_checkpoint: TaskCheckpointResponse | None = None
     checkpoint_history: list[TaskCheckpointResponse]
     active_tool_calls: list[ActiveToolCallResponse]
+    recent_tool_attempts: list[ToolAttemptResponse] = Field(default_factory=list)
     pending_approvals: list[PendingApprovalResponse]
     session_policy_summary: PolicyActivitySummaryResponse
     current_turn_policy_summary: PolicyActivitySummaryResponse | None

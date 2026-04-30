@@ -202,6 +202,7 @@ from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskStepStatus
 from glassbox.core.types import TaskVerificationStatus
+from glassbox.core.types import ToolAttemptRetryClassification
 from glassbox.core.types import ToolAttemptStatus
 from glassbox.core.types import ToolExecutionStatus
 from glassbox.core.types import TurnRecoveryState
@@ -364,6 +365,7 @@ __all__ = [
     "ToolArtifactRecorded",
     "ToolAttemptHeartbeat",
     "ToolAttemptId",
+    "ToolAttemptRetryClassification",
     "ToolAttemptStatus",
     "ToolAttemptRecord",
     "ToolCallRecord",

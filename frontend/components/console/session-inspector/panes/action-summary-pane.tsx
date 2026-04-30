@@ -9,6 +9,10 @@ import {
 import type { DashboardState } from "@/state/session-state";
 
 export function ActionSummaryPane({ data }: { data: DashboardState }) {
+  const retryAttempts = data.recentToolAttempts
+    .filter((attempt) => attempt.retry_classification !== null)
+    .slice(0, 3);
+
   return (
     <Pane icon={ListChecks} title="Actions">
       <DataList density="compact">
@@ -30,9 +34,16 @@ export function ActionSummaryPane({ data }: { data: DashboardState }) {
             <DataListMeta>{formatToolEvidence(tool)}</DataListMeta>
           </DataListItem>
         ))}
+        {retryAttempts.map((attempt) => (
+          <DataListItem key={attempt.tool_attempt_id}>
+            <DataListLabel>{attempt.tool_name} attempt</DataListLabel>
+            <DataListMeta>{formatAttemptRetryEvidence(attempt)}</DataListMeta>
+          </DataListItem>
+        ))}
         {data.pendingApprovals.length === 0 &&
         data.pendingQuestionId === null &&
-        data.activeToolCalls.length === 0 ? (
+        data.activeToolCalls.length === 0 &&
+        retryAttempts.length === 0 ? (
           <DataListItem>
             <DataListMeta>No active approvals, questions, or tool calls.</DataListMeta>
           </DataListItem>
@@ -62,6 +73,14 @@ function formatToolEvidence(tool: DashboardState["activeToolCalls"][number]): st
     sourceKind: tool.policy_source_kind,
     sourceLabel: tool.policy_source_label,
   });
+}
+
+function formatAttemptRetryEvidence(attempt: DashboardState["recentToolAttempts"][number]): string {
+  const approval = attempt.retry_requires_approval ? "approval required" : "no approval";
+  const classification = attempt.retry_classification ?? "unknown";
+  return [attempt.status, classification, approval, attempt.retry_reason]
+    .filter(Boolean)
+    .join(" / ");
 }
 
 function compactPolicyEvidence({

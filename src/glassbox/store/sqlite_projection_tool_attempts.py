@@ -48,9 +48,12 @@ def _apply_tool_attempt_projection(
             total_units,
             output_artifact_id,
             safe_to_retry,
+            retry_classification,
+            retry_requires_approval,
             retry_reason,
+            retry_policy_reason,
             last_sequence
-        ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         on conflict(session_id, tool_attempt_id) do update set
             turn_id = excluded.turn_id,
             tool_call_id = coalesce(excluded.tool_call_id, tool_attempts.tool_call_id),
@@ -77,7 +80,19 @@ def _apply_tool_attempt_projection(
                 excluded.safe_to_retry,
                 tool_attempts.safe_to_retry
             ),
+            retry_classification = coalesce(
+                excluded.retry_classification,
+                tool_attempts.retry_classification
+            ),
+            retry_requires_approval = coalesce(
+                excluded.retry_requires_approval,
+                tool_attempts.retry_requires_approval
+            ),
             retry_reason = coalesce(excluded.retry_reason, tool_attempts.retry_reason),
+            retry_policy_reason = coalesce(
+                excluded.retry_policy_reason,
+                tool_attempts.retry_policy_reason
+            ),
             last_sequence = excluded.last_sequence
         """,
         (
@@ -97,7 +112,10 @@ def _apply_tool_attempt_projection(
             payload.total_units,
             _optional_text(payload.output_artifact_id),
             _optional_bool(payload.safe_to_retry),
+            _optional_enum(payload.retry_classification),
+            _optional_bool(payload.retry_requires_approval),
             payload.retry_reason,
+            payload.retry_policy_reason,
             event.sequence,
         ),
     )
@@ -111,6 +129,12 @@ def _optional_bool(value: bool | None) -> int | None:
     if value is None:
         return None
     return 1 if value else 0
+
+
+def _optional_enum(value) -> str | None:
+    if value is None:
+        return None
+    return value.value
 
 
 def _optional_datetime(value) -> str | None:

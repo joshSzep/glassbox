@@ -400,7 +400,12 @@ def _format_tool_call_summary(tool_call: ToolCallRecord) -> str:
 def _format_tool_attempt_summary(attempt: ToolAttemptRecord) -> str:
     message_suffix = f": {attempt.message}" if attempt.message else ""
     retry_suffix = ""
-    if attempt.safe_to_retry is not None:
+    if attempt.retry_classification is not None:
+        retry_suffix = f" (retry={attempt.retry_classification.value}"
+        if attempt.retry_requires_approval is not None:
+            retry_suffix += f", approval={str(attempt.retry_requires_approval).lower()}"
+        retry_suffix += ")"
+    elif attempt.safe_to_retry is not None:
         retry_suffix = f" (safe_to_retry={str(attempt.safe_to_retry).lower()})"
     return (
         f"{attempt.tool_name} attempt {str(attempt.tool_attempt_id)[:8]} "

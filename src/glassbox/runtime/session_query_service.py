@@ -112,6 +112,11 @@ class SessionQueryService:
             for tool_call in all_tool_calls
             if tool_call.status == ToolExecutionStatus.RUNNING
         ]
+        recent_tool_attempts = (
+            self._session_repository.list_tool_attempts(session_id, limit=5)
+            if projections_available
+            else []
+        )
         pending_approvals = (
             self._session_repository.list_approvals(
                 session_id,
@@ -222,6 +227,7 @@ class SessionQueryService:
             latest_checkpoint=latest_checkpoint,
             checkpoint_history=checkpoint_history,
             active_tool_calls=active_tool_calls,
+            recent_tool_attempts=recent_tool_attempts,
             pending_approvals=pending_approvals,
             session_policy_summary=summarize_policy_activity(all_tool_calls),
             current_turn_policy_summary=(

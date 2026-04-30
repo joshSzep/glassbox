@@ -63,6 +63,7 @@ from glassbox.core.types import ResumeOutcomeStatus
 from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskVerificationStatus
+from glassbox.core.types import ToolAttemptRetryClassification
 from glassbox.core.types import ToolAttemptStatus
 from glassbox.core.types import TurnStatus
 from glassbox.core.types import WorkspaceMemoryKind
@@ -868,7 +869,10 @@ class ToolAttemptHeartbeat(EventPayload):
     heartbeat_expires_at: datetime | None = None
     output_artifact_id: ArtifactId | None = None
     safe_to_retry: bool | None = None
+    retry_classification: ToolAttemptRetryClassification | None = None
+    retry_requires_approval: bool | None = None
     retry_reason: str | None = Field(default=None, max_length=2000)
+    retry_policy_reason: str | None = Field(default=None, max_length=2000)
 
 
 class RecoveryDecisionRecorded(EventPayload):

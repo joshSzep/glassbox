@@ -12,6 +12,7 @@ export type SessionSnapshot = components["schemas"]["SessionSnapshotResponse"];
 export type SessionSummary = components["schemas"]["OperatorSessionSummaryResponse"];
 export type TranscriptMessage = components["schemas"]["TranscriptMessageResponse"];
 export type ActiveToolCall = components["schemas"]["ActiveToolCallResponse"];
+export type ToolAttempt = components["schemas"]["ToolAttemptResponse"];
 export type PendingApproval = components["schemas"]["PendingApprovalResponse"] & {
   resolution_decision?: string | null;
   resolution_error?: string | null;
@@ -92,6 +93,7 @@ export type SessionFields = {
   pendingQuestionId: string | null;
   pendingQuestionText: string | null;
   projectionHealth: ProjectionHealth | null;
+  recentToolAttempts: ToolAttempt[];
   runtimeContext: RuntimeContext | null;
   selectedForkTurnId: string | null;
   sessionFailureMessage: string | null;

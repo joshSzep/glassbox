@@ -676,7 +676,10 @@ def _ensure_tool_attempt_projection_schema(connection: sqlite3.Connection) -> No
             total_units integer,
             output_artifact_id text,
             safe_to_retry integer,
+            retry_classification text,
+            retry_requires_approval integer,
             retry_reason text,
+            retry_policy_reason text,
             last_sequence integer not null,
             primary key (session_id, tool_attempt_id),
             foreign key (session_id) references sessions(session_id)
@@ -701,6 +704,19 @@ def _ensure_tool_attempt_projection_schema(connection: sqlite3.Connection) -> No
             on tool_attempts (session_id, tool_call_id, last_sequence desc)
         """
     )
+    existing_columns = _column_names(connection, "tool_attempts")
+    if "retry_classification" not in existing_columns:
+        connection.execute(
+            "alter table tool_attempts add column retry_classification text"
+        )
+    if "retry_requires_approval" not in existing_columns:
+        connection.execute(
+            "alter table tool_attempts add column retry_requires_approval integer"
+        )
+    if "retry_policy_reason" not in existing_columns:
+        connection.execute(
+            "alter table tool_attempts add column retry_policy_reason text"
+        )
 
 
 def _ensure_task_checkpoint_session_scoped_key(

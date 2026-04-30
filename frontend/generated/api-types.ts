@@ -2410,6 +2410,8 @@ export interface components {
       /** Pending Question Text */
       pending_question_text: string | null;
       projection_health: components["schemas"]["ProjectionHealthResponse"];
+      /** Recent Tool Attempts */
+      recent_tool_attempts?: components["schemas"]["ToolAttemptResponse"][];
       runtime_context: components["schemas"]["RuntimeContextSnapshot"];
       /** Session Failure Message */
       session_failure_message: string | null;
@@ -2771,6 +2773,51 @@ export interface components {
       summary?: string | null;
       /** Verification Id */
       verification_id: string;
+    };
+    /** ToolAttemptResponse */
+    ToolAttemptResponse: {
+      /** Completed At */
+      completed_at?: string | null;
+      /** Completed Units */
+      completed_units?: number | null;
+      /** Heartbeat Expires At */
+      heartbeat_expires_at?: string | null;
+      /** Last Heartbeat At */
+      last_heartbeat_at?: string | null;
+      /** Last Sequence */
+      last_sequence: number;
+      /** Message */
+      message?: string | null;
+      /** Output Artifact Id */
+      output_artifact_id?: string | null;
+      /** Retry Classification */
+      retry_classification?: string | null;
+      /** Retry Policy Reason */
+      retry_policy_reason?: string | null;
+      /** Retry Reason */
+      retry_reason?: string | null;
+      /** Retry Requires Approval */
+      retry_requires_approval?: boolean | null;
+      /** Safe To Retry */
+      safe_to_retry?: boolean | null;
+      /** Session Id */
+      session_id: string;
+      /** Started At */
+      started_at?: string | null;
+      /** Status */
+      status: string;
+      /** Task Id */
+      task_id?: string | null;
+      /** Tool Attempt Id */
+      tool_attempt_id: string;
+      /** Tool Call Id */
+      tool_call_id?: string | null;
+      /** Tool Name */
+      tool_name: string;
+      /** Total Units */
+      total_units?: number | null;
+      /** Turn Id */
+      turn_id: string;
     };
     /** Format: uuid */
     ToolCallId: string;

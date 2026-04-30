@@ -513,6 +513,8 @@ def test_long_run_payloads_round_trip_through_event_union() -> None:
             "completed_units": 3,
             "total_units": 10,
             "safe_to_retry": False,
+            "retry_classification": "already_running",
+            "retry_requires_approval": False,
         }
     )
     decision = adapter.validate_python(
@@ -553,6 +555,8 @@ def test_long_run_payloads_round_trip_through_event_union() -> None:
     assert compaction_freshness.freshness == ContextCompactionFreshness.INVALIDATED
     assert isinstance(heartbeat, ToolAttemptHeartbeat)
     assert heartbeat.status == ToolAttemptStatus.RUNNING
+    assert heartbeat.retry_classification == "already_running"
+    assert heartbeat.retry_requires_approval is False
     assert isinstance(decision, RecoveryDecisionRecorded)
     assert decision.decision == RecoveryDecision.RETRY
     assert isinstance(outcome, ResumeOutcomeRecorded)

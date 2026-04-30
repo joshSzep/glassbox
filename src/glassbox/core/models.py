@@ -49,6 +49,7 @@ from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskStepStatus
 from glassbox.core.types import TaskVerificationStatus
+from glassbox.core.types import ToolAttemptRetryClassification
 from glassbox.core.types import ToolAttemptStatus
 from glassbox.core.types import ToolExecutionStatus
 from glassbox.core.types import TurnRecoveryState
@@ -649,7 +650,10 @@ class ToolAttemptRecord(BaseModel):
     total_units: int | None = Field(default=None, ge=0)
     output_artifact_id: ArtifactId | None = None
     safe_to_retry: bool | None = None
+    retry_classification: ToolAttemptRetryClassification | None = None
+    retry_requires_approval: bool | None = None
     retry_reason: str | None = None
+    retry_policy_reason: str | None = None
     last_sequence: int = Field(ge=0)
 
 

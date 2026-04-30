@@ -6,6 +6,7 @@ from datetime import datetime
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import ToolAttemptId
 from glassbox.core.models import ToolAttemptRecord
+from glassbox.core.types import ToolAttemptRetryClassification
 from glassbox.core.types import ToolAttemptStatus
 
 
@@ -78,7 +79,12 @@ def _tool_attempt_record_from_row(row: sqlite3.Row) -> ToolAttemptRecord:
         total_units=row["total_units"],
         output_artifact_id=row["output_artifact_id"],
         safe_to_retry=_optional_bool(row["safe_to_retry"]),
+        retry_classification=_optional_retry_classification(
+            row["retry_classification"]
+        ),
+        retry_requires_approval=_optional_bool(row["retry_requires_approval"]),
         retry_reason=row["retry_reason"],
+        retry_policy_reason=row["retry_policy_reason"],
         last_sequence=row["last_sequence"],
     )
 
@@ -93,6 +99,14 @@ def _optional_bool(value: int | None) -> bool | None:
     if value is None:
         return None
     return bool(value)
+
+
+def _optional_retry_classification(
+    value: str | None,
+) -> ToolAttemptRetryClassification | None:
+    if value is None:
+        return None
+    return ToolAttemptRetryClassification(value)
 
 
 __all__ = ["get_tool_attempt", "list_tool_attempts"]

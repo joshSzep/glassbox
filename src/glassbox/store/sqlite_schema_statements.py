@@ -169,7 +169,10 @@ BOOTSTRAP_STATEMENTS = (
         total_units integer,
         output_artifact_id text,
         safe_to_retry integer,
+        retry_classification text,
+        retry_requires_approval integer,
         retry_reason text,
+        retry_policy_reason text,
         last_sequence integer not null,
         primary key (session_id, tool_attempt_id),
         foreign key (session_id) references sessions(session_id)
@@ -728,7 +731,10 @@ V3_BASELINE_SCHEMA_STATEMENTS = (
         total_units integer,
         output_artifact_id text,
         safe_to_retry integer,
+        retry_classification text,
+        retry_requires_approval integer,
         retry_reason text,
+        retry_policy_reason text,
         last_sequence integer not null,
         primary key (session_id, tool_attempt_id),
         foreign key (session_id) references sessions(session_id)

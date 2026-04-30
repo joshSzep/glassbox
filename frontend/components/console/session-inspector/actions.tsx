@@ -3,6 +3,7 @@
 import {
   ListChecks,
   MessageSquareText,
+  RotateCcw,
   SendHorizontal,
   ShieldCheck,
   Square,
@@ -66,6 +67,9 @@ export function OperatorActionPane({
   const answerText = questionId === null ? "" : (drafts.answerTextByQuestionId[questionId] ?? "");
   const canPrompt = data.status === "running" && data.sessionFailureMessage === null;
   const canCancel = data.currentTurn?.status === "running";
+  const retryAttempts = data.recentToolAttempts
+    .filter((attempt) => attempt.retry_classification !== null)
+    .slice(0, 3);
 
   return (
     <Pane icon={ListChecks} title="Operator actions">
@@ -138,6 +142,36 @@ export function OperatorActionPane({
                 </article>
               );
             })}
+          </section>
+        ) : null}
+
+        {retryAttempts.length > 0 ? (
+          <section className="space-y-3 rounded-md border bg-card p-3">
+            <SectionHeader
+              detail="Recent tool attempts with retained retry classification."
+              icon={<RotateCcw className="h-4 w-4" aria-hidden="true" />}
+              title="Tool retry posture"
+            />
+            {retryAttempts.map((attempt) => (
+              <article
+                className="grid gap-2 border-t pt-3 first:border-t-0 first:pt-0"
+                key={attempt.tool_attempt_id}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="break-words text-sm font-medium">{attempt.tool_name} attempt</p>
+                  <Badge variant="outline">{attempt.status}</Badge>
+                  <Badge variant="outline">{attempt.retry_classification}</Badge>
+                  {attempt.retry_requires_approval ? (
+                    <Badge variant="warning">approval required</Badge>
+                  ) : (
+                    <Badge variant="outline">no approval</Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {attempt.retry_reason ?? attempt.message ?? "Retry posture is retained."}
+                </p>
+              </article>
+            ))}
           </section>
         ) : null}
 

@@ -24,6 +24,7 @@ from glassbox.core.ids import new_task_checkpoint_id
 from glassbox.core.ids import new_tool_attempt_id
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import LongRunPhase
+from glassbox.core.types import ToolAttemptRetryClassification
 from glassbox.core.types import ToolAttemptStatus
 from glassbox.runtime.context_builder import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
 from glassbox.runtime.context_builder import PytestFailureDigestArtifact
@@ -1451,6 +1452,13 @@ def test_cli_tool_attempts_lists_durable_attempts(
                     tool_name="run_command",
                     message="heartbeat expired before completion",
                     safe_to_retry=None,
+                    retry_classification=ToolAttemptRetryClassification.UNKNOWN,
+                    retry_requires_approval=True,
+                    retry_reason=(
+                        "attempt heartbeat is stale; retry side effects are unknown "
+                        "from retained evidence"
+                    ),
+                    retry_policy_reason="command retry requires confirmation",
                 ),
             )
         )
@@ -1478,6 +1486,10 @@ def test_cli_tool_attempts_lists_durable_attempts(
     assert str(tool_attempt_id) in captured.out
     assert "run_command  stale" in captured.out
     assert "heartbeat expired before completion" in captured.out
+    assert "Retry classification: unknown" in captured.out
+    assert "Retry requires approval: true" in captured.out
+    assert "retry side effects are unknown" in captured.out
+    assert "Retry policy reason: command retry requires confirmation" in captured.out
 
 
 def test_cli_status_includes_pending_question_and_answer_next_action(

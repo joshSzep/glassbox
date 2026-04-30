@@ -30,6 +30,7 @@ from glassbox.core import TaskVerificationCompleted
 from glassbox.core import TaskVerificationStarted
 from glassbox.core import TaskVerificationStatus
 from glassbox.core import ToolAttemptHeartbeat
+from glassbox.core import ToolAttemptRetryClassification
 from glassbox.core import ToolAttemptStatus
 from glassbox.core import WorkspaceMemoryConfirmed
 from glassbox.core import WorkspaceMemoryCreated
@@ -480,6 +481,14 @@ def test_tool_attempt_projection_rebuilds_from_heartbeats(tmp_path: Path) -> Non
                         completed_units=1,
                         total_units=1,
                         safe_to_retry=False,
+                        retry_classification=(
+                            ToolAttemptRetryClassification.UNSAFE_TO_RETRY
+                        ),
+                        retry_requires_approval=False,
+                        retry_reason=(
+                            "attempt already succeeded; retrying could duplicate "
+                            "completed work"
+                        ),
                     ),
                 ),
             ],
@@ -505,6 +514,11 @@ def test_tool_attempt_projection_rebuilds_from_heartbeats(tmp_path: Path) -> Non
     assert after.completed_units == 1
     assert after.total_units == 1
     assert after.safe_to_retry is False
+    assert after.retry_classification == "unsafe_to_retry"
+    assert after.retry_requires_approval is False
+    assert after.retry_reason == (
+        "attempt already succeeded; retrying could duplicate completed work"
+    )
     assert after.completed_at is not None
     assert after.heartbeat_expires_at == heartbeat_expires_at
 
