@@ -486,7 +486,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R321: Split Runtime Task Query Models, Verification, And Repair-History Derivation
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R300`
 - Goal: reduce
   [task_queries.py](../src/glassbox/runtime/task_queries.py) by separating
@@ -515,6 +515,17 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - task query behavior remains stable while verification and repair-history
     decisions are independently testable
+- Completed notes:
+  - `runtime/task_queries.py` now keeps `TaskQueryService` as the small
+    repository-backed read facade and compatibility import surface.
+  - Transport-agnostic task query view models and the repository protocol now
+    live in `task_query_models.py`.
+  - Record-to-view assembly lives in `task_query_assembly.py`; verification
+    ledger and last-known-good evidence derivation live in
+    `task_query_verification.py`; repair-history status and retry-edge
+    derivation live in `task_query_repair.py`.
+  - Added focused unit coverage for last-known-good evidence, repaired retry
+    edges, and repeated failure signature counting.
 
 ### GBX-R322: Split Session API Response Models By Surface
 
