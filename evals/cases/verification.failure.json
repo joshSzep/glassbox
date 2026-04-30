@@ -4,13 +4,13 @@
   "title": "Verify-repair loop records a failed check",
   "bundle_path": "../bundles/verification.failure.json",
   "tags": ["v8-autonomy", "verification"],
-  "notes": "Advisory v8 deterministic evidence for failed verify-repair projection and residual task failure state.",
+  "notes": "Blocking v9 release-candidate evidence for failed verify-repair projection and residual task failure state. Actual command failure handling remains covered by focused verification-loop tests.",
   "release_contract": {
     "owner": "runtime.verification",
     "capabilities": ["verification_loop_failure"],
     "severity": "medium",
-    "verification_stages": ["advisory"],
-    "baseline_refresh_policy": "advisory"
+    "verification_stages": ["advisory", "release-candidate"],
+    "baseline_refresh_policy": "review_required"
   },
   "expectation": {
     "mode": "exact_match"

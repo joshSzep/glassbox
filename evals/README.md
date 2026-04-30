@@ -241,33 +241,33 @@ Current v8 autonomy cases:
   task-plan proposal projection.
 - `task.continuation-blocked`: advisory replay evidence that bounded task
   continuation records a stop reason instead of silently proceeding.
-- `autonomy.budget-exhaustion`: advisory replay evidence for budget usage,
-  remaining limits, and exhaustion posture.
-- `verification.success` and `verification.failure`: advisory replay evidence
-  for successful and failed verify-repair projections.
+- `autonomy.budget-exhaustion`: blocking release-candidate replay evidence for
+  budget usage, remaining limits, and exhaustion posture.
+- `verification.success` and `verification.failure`: blocking
+  release-candidate replay evidence for successful and failed verify-repair
+  projections.
 - `memory.context-drift` and `repository-index.context-drift`: advisory replay
   evidence that memory and index context posture remains retained with eval
   artifacts; focused context tests remain the stronger blocking evidence for
   prompt-source drift.
-- `branch-search.candidate-comparison`: advisory replay evidence for retained
-  branch-search candidate comparison summaries.
+- `branch-search.candidate-comparison`: blocking release-candidate replay
+  evidence for retained branch-search candidate comparison summaries.
 
 `v8-autonomy-advisory` collects these cases without making daemon lifecycle,
 provider-dependent behavior, long-running branch search, dashboard-only
 interactions, or local freshness timing part of the blocking deterministic
 release profile. The commit-time and push-time profiles intentionally remain
-small and smoke-focused. The `release-candidate` profile remains the blocking
-deterministic sign-off surface until individual autonomy cases can replay live
-runtime behavior without fixture shortcuts or noisy local context drift.
+small and smoke-focused. The `release-candidate` profile is the blocking
+deterministic sign-off surface for the stable autonomy core that can replay
+without fixture shortcuts or noisy local context drift.
 
 The v9 promotion review in
 [docs/v9-eval-promotion-plan.md](../docs/v9-eval-promotion-plan.md) classifies
-the v8 autonomy cases for the next release-contract step. It recommends
-promoting `autonomy.budget-exhaustion`, `verification.success`,
-`verification.failure`, and `branch-search.candidate-comparison`; keeping
-memory, repository-index, and continuation drift advisory; and splitting
-`task-plan.proposal-capture` before release-candidate promotion because the
-current bundle is intentionally cancelled-fixture-shaped.
+the v8 autonomy cases for the release-contract step. `GBX-951` promoted
+`autonomy.budget-exhaustion`, `verification.success`, `verification.failure`,
+and `branch-search.candidate-comparison`; kept memory, repository-index, and
+continuation drift advisory; and left `task-plan.proposal-capture` split-first
+because the current bundle is intentionally cancelled-fixture-shaped.
 
 Each run writes one JSON artifact per case plus `summary.json` into the selected
 output directory. If `--output-dir` is omitted, Glassbox creates a timestamped

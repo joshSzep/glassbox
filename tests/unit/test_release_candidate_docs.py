@@ -426,6 +426,7 @@ def test_v9_eval_promotion_plan_classifies_autonomy_cases() -> None:
         "## GBX-951 Follow-Up",
         "uv run glassbox eval run --profile v8-autonomy-advisory --cwd .",
         "uv run glassbox eval audit --cwd .",
+        "`GBX-951` updates `evals/profiles.json`",
         "Split before promotion",
         "Keep advisory",
         "Promote to release-candidate",

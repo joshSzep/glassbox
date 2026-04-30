@@ -421,6 +421,9 @@ def test_repository_eval_profiles_align_with_v6_gate_stages() -> None:
     assert profiles["push-confirmation"].blocking is True
     assert profiles["release-candidate"].verification_stage == "release-candidate"
     assert profiles["release-candidate"].blocking is True
+    assert profiles["release-candidate"].budget is not None
+    assert profiles["release-candidate"].budget.max_selected_case_count == 8
+    assert profiles["release-candidate"].budget.allow_advisory_cases is False
     assert provider_profiles["live-provider-canary"].blocking is False
     assert provider_profiles["live-provider-canary"].track == "live-provider-canary"
     assert {
@@ -429,6 +432,27 @@ def test_repository_eval_profiles_align_with_v6_gate_stages() -> None:
         "frontend static asset validation",
         "package contents validation",
     }.issubset(stage_labels)
+
+
+def test_repository_release_candidate_profile_includes_promoted_v8_autonomy_cases() -> (
+    None
+):
+    cases = load_eval_suite(REPO_ROOT, profile_id="release-candidate")
+    case_ids = {case.case_id for case in cases}
+
+    assert {
+        "autonomy.budget-exhaustion",
+        "verification.success",
+        "verification.failure",
+        "branch-search.candidate-comparison",
+    }.issubset(case_ids)
+    assert "task-plan.proposal-capture" not in case_ids
+    assert "task.continuation-blocked" not in case_ids
+    assert "memory.context-drift" not in case_ids
+    assert "repository-index.context-drift" not in case_ids
+    assert all(
+        case.release_contract.baseline_refresh_policy != "advisory" for case in cases
+    )
 
 
 def test_resolve_eval_suite_selection_applies_profile_before_extra_tag_filter(

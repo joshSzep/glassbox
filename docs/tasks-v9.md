@@ -718,7 +718,7 @@ The intended v9 milestone order is:
 
 ### GBX-951: Promote Stable Autonomy Cases Into Deterministic Profiles
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-950`
 - Goal: strengthen release authority by moving stable autonomy behavior into
   blocking deterministic profiles
@@ -742,6 +742,14 @@ The intended v9 milestone order is:
 - Done when:
   - release-candidate evidence covers the stable core of v8 autonomy as
     blocking deterministic behavior
+  - Completed by promoting `autonomy.budget-exhaustion`,
+    `verification.success`, `verification.failure`, and
+    `branch-search.candidate-comparison` into the blocking
+    `release-candidate` profile while keeping commit and push smoke budgets
+    unchanged. The promoted case manifests now carry
+    `advisory` plus `release-candidate` stages with `review_required` refresh
+    policy, coverage notes and eval docs describe the updated eval ladder, and
+    focused tests assert the promoted selection and release-candidate budget.
 
 ### GBX-952: Improve Eval Recommendation For Daily Development
 

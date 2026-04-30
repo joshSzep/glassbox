@@ -4,13 +4,13 @@
   "title": "Autonomy budget exhaustion remains replay-visible",
   "bundle_path": "../bundles/autonomy.budget-exhaustion.json",
   "tags": ["v8-autonomy", "autonomy-budget"],
-  "notes": "Advisory v8 deterministic evidence for budget posture, usage, remaining limits, and exhaustion reason.",
+  "notes": "Blocking v9 release-candidate evidence for deterministic budget posture, usage, remaining limits, and exhaustion reason. The case remains selected by the v8 autonomy advisory profile for comparison, but baseline refresh now requires release review.",
   "release_contract": {
     "owner": "runtime.autonomy",
     "capabilities": ["autonomy_budget_exhaustion"],
     "severity": "high",
-    "verification_stages": ["advisory"],
-    "baseline_refresh_policy": "advisory"
+    "verification_stages": ["advisory", "release-candidate"],
+    "baseline_refresh_policy": "review_required"
   },
   "expectation": {
     "mode": "exact_match"

@@ -62,7 +62,7 @@ invariant later.
 
 ## GBX-951 Follow-Up
 
-`GBX-951` should update `evals/profiles.json`, `evals/coverage.json`, and the
+`GBX-951` updates `evals/profiles.json`, `evals/coverage.json`, and the
 selected case manifests so the blocking `release-candidate` profile includes:
 
 - `autonomy.budget-exhaustion`
@@ -70,8 +70,8 @@ selected case manifests so the blocking `release-candidate` profile includes:
 - `verification.failure`
 - `branch-search.candidate-comparison`
 
-It should keep the commit-time and push-time smoke profiles unchanged, expand
-the release-candidate budget deliberately, and leave the remaining v8 autonomy
+It keeps the commit-time and push-time smoke profiles unchanged, expands the
+release-candidate budget deliberately, and leaves the remaining v8 autonomy
 cases in the advisory suite with their current operational value visible.
 
 ## Non-Promoted Advisory Value

@@ -4,13 +4,13 @@
   "title": "Branch-search candidate comparison remains replay-visible",
   "bundle_path": "../bundles/branch-search.candidate-comparison.json",
   "tags": ["v8-autonomy", "branch-search"],
-  "notes": "Advisory v8 deterministic evidence for retained candidate comparison summaries. Live branch creation and cleanup remain integration and manual release evidence.",
+  "notes": "Blocking v9 release-candidate evidence for retained candidate comparison summaries. Live branch creation, cleanup, and selection remain integration and manual release evidence.",
   "release_contract": {
     "owner": "runtime.branch-search",
     "capabilities": ["branch_search_candidate_comparison"],
     "severity": "medium",
-    "verification_stages": ["advisory"],
-    "baseline_refresh_policy": "advisory"
+    "verification_stages": ["advisory", "release-candidate"],
+    "baseline_refresh_policy": "review_required"
   },
   "expectation": {
     "mode": "exact_match"
