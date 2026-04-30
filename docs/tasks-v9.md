@@ -984,7 +984,7 @@ The intended v9 milestone order is:
 
 ### GBX-980: Define Dogfooding Evidence Protocol
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-922`, `GBX-950`
 - Goal: make real-use feedback concrete without committing private transcripts,
   secrets, or large artifacts
@@ -1007,6 +1007,11 @@ The intended v9 milestone order is:
 - Done when:
   - real-world use can generate actionable evidence without leaking private
     data
+  - Completed by adding [dogfooding.md](./dogfooding.md), which defines the
+    local evidence directory convention, required pass mix, reusable evidence
+    template, redaction rules, structured summary shape, and disposition policy
+    for converting findings into fixes, docs updates, eval/test candidates,
+    accepted residual risks, or post-v9 work.
 
 ### GBX-981: Run Focused Dogfooding Passes
 

@@ -33,6 +33,8 @@ evidence or milestone history.
   commands
 - [providers.md](./providers.md): optional OpenAI or Anthropic provider
   configuration, diagnostics, canaries, freshness states, and redaction posture
+- [dogfooding.md](./dogfooding.md): real-repository dogfooding protocol,
+  evidence template, redaction rules, and finding-disposition policy
 
 ## Daily Workflows
 
@@ -110,6 +112,8 @@ evidence or milestone history.
   expansion contract and non-goals
 - [network-browser-diagnostics-v8.md](./network-browser-diagnostics-v8.md):
   local-only network/browser diagnostic contract and policy gates
+- [dogfooding.md](./dogfooding.md): protocol for turning real repository use
+  into sanitized v9 findings, docs fixes, eval candidates, or residual risks
 
 ## Release Evidence
 
