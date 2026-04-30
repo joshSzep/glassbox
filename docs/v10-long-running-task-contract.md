@@ -74,6 +74,32 @@ private process memory:
 These records must be reconstructable from canonical events, typed API
 responses, retained artifacts, or documented rebuildable projections.
 
+## Canonical Event Vocabulary
+
+`GBX-1010` adds the first v10 event vocabulary without changing runtime
+behavior yet:
+
+- `LongRunPhaseChanged`: records phase entry, heartbeat, exit, or blocked state
+  for preparing, model call, tool execution, checkpointing, compaction,
+  verification, recovery, pause, completion, or failure.
+- `TaskCheckpointCreated`: records objective, completed step, next action,
+  blockers, verification posture, budget posture, artifact link, and recovery
+  guidance.
+- `ContextCompactionCreated`: records compaction scope, source event range,
+  artifact, freshness, limitations, and related checkpoint/task/turn.
+- `ToolAttemptHeartbeat`: records tool-attempt progress, status, output
+  artifact, retry posture, and related turn/tool/task identifiers.
+- `RecoveryDecisionRecorded`: records whether interrupted work should resume,
+  retry, fork, wait for the operator, abandon, or be treated as non-resumable.
+- `ResumeOutcomeRecorded`: records whether a resume attempt succeeded, failed,
+  or was rejected because the checkpoint was stale or non-resumable.
+
+SQLite stores task, checkpoint, compaction, tool-attempt, and recovery-decision
+correlation columns on canonical events and rebuilds a `long_run_events`
+projection from those events. Replay normalization includes these long-run event
+families so future deterministic cases can compare the durable lifecycle record
+without treating projections as authority.
+
 ## Supported Workflow Set
 
 The v10 release candidate should support these operator workflows:

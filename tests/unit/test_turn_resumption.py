@@ -45,7 +45,14 @@ class FakeSessionRepository:
         session_id,
         *,
         turn_id=None,
+        message_id=None,
+        tool_call_id=None,
         approval_id=None,
+        task_id=None,
+        checkpoint_id=None,
+        compaction_id=None,
+        tool_attempt_id=None,
+        recovery_decision_id=None,
     ):
         assert session_id
         if turn_id is not None:

@@ -39,6 +39,11 @@ BOOTSTRAP_STATEMENTS = (
         message_id text,
         tool_call_id text,
         approval_id text,
+        task_id text,
+        checkpoint_id text,
+        compaction_id text,
+        tool_attempt_id text,
+        recovery_decision_id text,
         actor text,
         payload_json text not null,
         primary key (session_id, sequence),
@@ -69,6 +74,26 @@ BOOTSTRAP_STATEMENTS = (
     """
     create index if not exists idx_events_approval
         on events (session_id, approval_id, sequence)
+    """,
+    """
+    create index if not exists idx_events_task
+        on events (session_id, task_id, sequence)
+    """,
+    """
+    create index if not exists idx_events_checkpoint
+        on events (session_id, checkpoint_id, sequence)
+    """,
+    """
+    create index if not exists idx_events_compaction
+        on events (session_id, compaction_id, sequence)
+    """,
+    """
+    create index if not exists idx_events_tool_attempt
+        on events (session_id, tool_attempt_id, sequence)
+    """,
+    """
+    create index if not exists idx_events_recovery_decision
+        on events (session_id, recovery_decision_id, sequence)
     """,
     """
     create table if not exists session_state (
@@ -430,6 +455,38 @@ BOOTSTRAP_STATEMENTS = (
     """
     create index if not exists idx_workspace_memory_session_sequence
         on workspace_memory (session_id, last_sequence)
+    """,
+    """
+    create table if not exists long_run_events (
+        session_id text not null,
+        sequence integer not null,
+        event_type text not null,
+        task_id text,
+        turn_id text,
+        tool_call_id text,
+        tool_attempt_id text,
+        checkpoint_id text,
+        compaction_id text,
+        recovery_decision_id text,
+        phase text,
+        status text,
+        summary text,
+        created_at text not null,
+        primary key (session_id, sequence),
+        foreign key (session_id) references sessions(session_id)
+    )
+    """,
+    """
+    create index if not exists idx_long_run_events_session_created
+        on long_run_events (session_id, created_at, sequence)
+    """,
+    """
+    create index if not exists idx_long_run_events_task
+        on long_run_events (session_id, task_id, sequence)
+    """,
+    """
+    create index if not exists idx_long_run_events_checkpoint
+        on long_run_events (session_id, checkpoint_id, sequence)
     """,
 )
 

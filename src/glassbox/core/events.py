@@ -18,13 +18,17 @@ from glassbox.core.ids import BackgroundJobId
 from glassbox.core.ids import BranchCandidateId
 from glassbox.core.ids import BranchSearchId
 from glassbox.core.ids import BudgetOverrideId
+from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import EventId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import QuestionId
+from glassbox.core.ids import RecoveryDecisionId
 from glassbox.core.ids import SessionId
+from glassbox.core.ids import TaskCheckpointId
 from glassbox.core.ids import TaskId
 from glassbox.core.ids import TaskStepId
 from glassbox.core.ids import TaskVerificationId
+from glassbox.core.ids import ToolAttemptId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.ids import WorkspaceMemoryId
@@ -50,9 +54,16 @@ from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import BackgroundJobRecoveryReason
 from glassbox.core.types import BackgroundJobState
 from glassbox.core.types import BranchCandidateVerificationStatus
+from glassbox.core.types import ContextCompactionFreshness
+from glassbox.core.types import ContextCompactionScope
+from glassbox.core.types import LongRunPhase
+from glassbox.core.types import LongRunPhaseState
+from glassbox.core.types import RecoveryDecision
+from glassbox.core.types import ResumeOutcomeStatus
 from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskVerificationStatus
+from glassbox.core.types import ToolAttemptStatus
 from glassbox.core.types import TurnStatus
 from glassbox.core.types import WorkspaceMemoryKind
 from glassbox.core.types import WorkspaceMemoryState
@@ -760,6 +771,104 @@ class BackgroundJobAbandoned(EventPayload):
     reason: str = Field(min_length=1, max_length=2000)
 
 
+class LongRunPhaseChanged(EventPayload):
+    event_type: Literal["LongRunPhaseChanged"] = "LongRunPhaseChanged"
+    phase: LongRunPhase
+    state: LongRunPhaseState
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    tool_attempt_id: ToolAttemptId | None = None
+    checkpoint_id: TaskCheckpointId | None = None
+    compaction_id: ContextCompactionId | None = None
+    reason: str | None = Field(default=None, max_length=2000)
+    detail: str | None = Field(default=None, max_length=4000)
+
+
+class TaskCheckpointCreated(EventPayload):
+    event_type: Literal["TaskCheckpointCreated"] = "TaskCheckpointCreated"
+    checkpoint_id: TaskCheckpointId
+    objective: str = Field(min_length=1, max_length=4000)
+    completed_step: str | None = Field(default=None, max_length=2000)
+    next_action: str = Field(min_length=1, max_length=2000)
+    recovery_guidance: str = Field(min_length=1, max_length=4000)
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    tool_attempt_id: ToolAttemptId | None = None
+    compaction_id: ContextCompactionId | None = None
+    blockers: list[str] = Field(default_factory=list, max_length=20)
+    verification_status: str | None = Field(default=None, max_length=200)
+    budget_status: str | None = Field(default=None, max_length=200)
+    artifact_id: ArtifactId | None = None
+
+
+class ContextCompactionCreated(EventPayload):
+    event_type: Literal["ContextCompactionCreated"] = "ContextCompactionCreated"
+    compaction_id: ContextCompactionId
+    scope: ContextCompactionScope
+    source_start_sequence: int = Field(ge=0)
+    source_end_sequence: int = Field(ge=0)
+    summary: str = Field(min_length=1, max_length=4000)
+    artifact_id: ArtifactId
+    freshness: ContextCompactionFreshness = ContextCompactionFreshness.FRESH
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    checkpoint_id: TaskCheckpointId | None = None
+    limitations: list[str] = Field(default_factory=list, max_length=20)
+
+    @model_validator(mode="after")
+    def ensure_source_range_is_ordered(self) -> ContextCompactionCreated:
+        if self.source_end_sequence < self.source_start_sequence:
+            raise ValueError(
+                "source_end_sequence must be greater than or equal to "
+                "source_start_sequence"
+            )
+        return self
+
+
+class ToolAttemptHeartbeat(EventPayload):
+    event_type: Literal["ToolAttemptHeartbeat"] = "ToolAttemptHeartbeat"
+    tool_attempt_id: ToolAttemptId
+    status: ToolAttemptStatus
+    turn_id: TurnId
+    tool_name: str = Field(min_length=1, max_length=200)
+    tool_call_id: ToolCallId | None = None
+    task_id: TaskId | None = None
+    message: str | None = Field(default=None, max_length=1000)
+    completed_units: int | None = Field(default=None, ge=0)
+    total_units: int | None = Field(default=None, ge=0)
+    output_artifact_id: ArtifactId | None = None
+    safe_to_retry: bool | None = None
+    retry_reason: str | None = Field(default=None, max_length=2000)
+
+
+class RecoveryDecisionRecorded(EventPayload):
+    event_type: Literal["RecoveryDecisionRecorded"] = "RecoveryDecisionRecorded"
+    recovery_decision_id: RecoveryDecisionId
+    decision: RecoveryDecision
+    reason: str = Field(min_length=1, max_length=2000)
+    safe_to_resume: bool
+    next_action: str = Field(min_length=1, max_length=2000)
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    tool_attempt_id: ToolAttemptId | None = None
+    checkpoint_id: TaskCheckpointId | None = None
+    compaction_id: ContextCompactionId | None = None
+    decided_by: str = Field(default="runtime", min_length=1, max_length=200)
+
+
+class ResumeOutcomeRecorded(EventPayload):
+    event_type: Literal["ResumeOutcomeRecorded"] = "ResumeOutcomeRecorded"
+    outcome: ResumeOutcomeStatus
+    summary: str = Field(min_length=1, max_length=4000)
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    tool_attempt_id: ToolAttemptId | None = None
+    checkpoint_id: TaskCheckpointId | None = None
+    compaction_id: ContextCompactionId | None = None
+    recovery_decision_id: RecoveryDecisionId | None = None
+    resumed_by: str = Field(default="runtime", min_length=1, max_length=200)
+
+
 class WorkspaceMemoryCreated(EventPayload):
     event_type: Literal["WorkspaceMemoryCreated"] = "WorkspaceMemoryCreated"
     memory_id: WorkspaceMemoryId
@@ -923,6 +1032,12 @@ EventPayloadType = Annotated[
     | BackgroundJobRetryRequested
     | BackgroundJobRetryExhausted
     | BackgroundJobAbandoned
+    | LongRunPhaseChanged
+    | TaskCheckpointCreated
+    | ContextCompactionCreated
+    | ToolAttemptHeartbeat
+    | RecoveryDecisionRecorded
+    | ResumeOutcomeRecorded
     | WorkspaceMemoryCreated
     | WorkspaceMemoryConfirmed
     | WorkspaceMemoryUpdated
@@ -1015,3 +1130,19 @@ class EventEnvelope(BaseModel):
     @property
     def candidate_id(self) -> BranchCandidateId | None:
         return getattr(self.payload, "candidate_id", None)
+
+    @property
+    def checkpoint_id(self) -> TaskCheckpointId | None:
+        return getattr(self.payload, "checkpoint_id", None)
+
+    @property
+    def compaction_id(self) -> ContextCompactionId | None:
+        return getattr(self.payload, "compaction_id", None)
+
+    @property
+    def tool_attempt_id(self) -> ToolAttemptId | None:
+        return getattr(self.payload, "tool_attempt_id", None)
+
+    @property
+    def recovery_decision_id(self) -> RecoveryDecisionId | None:
+        return getattr(self.payload, "recovery_decision_id", None)

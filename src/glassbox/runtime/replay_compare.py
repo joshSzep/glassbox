@@ -7,7 +7,13 @@ from typing import cast
 from glassbox.core.events import CancellationAcknowledged
 from glassbox.core.events import CancellationFailed
 from glassbox.core.events import CancellationRequested
+from glassbox.core.events import ContextCompactionCreated
 from glassbox.core.events import EventEnvelope
+from glassbox.core.events import LongRunPhaseChanged
+from glassbox.core.events import RecoveryDecisionRecorded
+from glassbox.core.events import ResumeOutcomeRecorded
+from glassbox.core.events import TaskCheckpointCreated
+from glassbox.core.events import ToolAttemptHeartbeat
 from glassbox.core.events import ToolExecutionCancelled
 from glassbox.core.events import TranscriptMessageImported
 from glassbox.core.events import TurnCancelled
@@ -24,6 +30,7 @@ from glassbox.runtime.replay_models import ReplayBundle
 from glassbox.runtime.replay_models import ReplayCancellationSnapshot
 from glassbox.runtime.replay_models import ReplayFinalStateSnapshot
 from glassbox.runtime.replay_models import ReplayLineageSnapshot
+from glassbox.runtime.replay_models import ReplayLongRunEventSnapshot
 from glassbox.runtime.replay_models import ReplayNormalizedSession
 from glassbox.runtime.replay_models import ReplayQuestionSnapshot
 from glassbox.runtime.replay_models import ReplayTaskPlanSnapshot
@@ -94,6 +101,7 @@ def normalize_session(
         cancellations=normalize_cancellations(events),
         task_plans=normalize_task_plans(session_id, repository),
         budget_posture=normalize_budget_posture(session_id, repository),
+        long_run_events=normalize_long_run_events(events),
         event_families=[
             event.event_type
             for event in events
@@ -265,6 +273,45 @@ def normalize_budget_posture(
     )
 
 
+def normalize_long_run_events(
+    events: Sequence[EventEnvelope],
+) -> list[ReplayLongRunEventSnapshot]:
+    normalized: list[ReplayLongRunEventSnapshot] = []
+    for event in events:
+        payload = event.payload
+        if not isinstance(
+            payload,
+            (
+                LongRunPhaseChanged,
+                TaskCheckpointCreated,
+                ContextCompactionCreated,
+                ToolAttemptHeartbeat,
+                RecoveryDecisionRecorded,
+                ResumeOutcomeRecorded,
+            ),
+        ):
+            continue
+        raw = {
+            "event_type": event.event_type,
+            "task_id": optional_identifier(event.task_id),
+            "turn_id": optional_identifier(event.turn_id),
+            "tool_call_id": optional_identifier(event.tool_call_id),
+            "tool_attempt_id": optional_identifier(event.tool_attempt_id),
+            "checkpoint_id": optional_identifier(event.checkpoint_id),
+            "compaction_id": optional_identifier(event.compaction_id),
+            "recovery_decision_id": optional_identifier(event.recovery_decision_id),
+            "status": long_run_status(payload),
+            "phase": enum_optional_value(getattr(payload, "phase", None)),
+        }
+        normalized.append(
+            ReplayLongRunEventSnapshot(
+                **raw,
+                fingerprint=fingerprint_replay_payload(raw),
+            )
+        )
+    return normalized
+
+
 def collect_mismatches(
     baseline: ReplayNormalizedSession,
     replay: ReplayNormalizedSession,
@@ -283,6 +330,7 @@ def collect_mismatches(
         "cancellations",
         "task_plans",
         "budget_posture",
+        "long_run_events",
         "event_families",
         "final_state",
     ):
@@ -373,3 +421,15 @@ def enum_optional_value(value: Any | None) -> str | None:
     if value is None:
         return None
     return enum_value(value)
+
+
+def optional_identifier(value: object | None) -> str | None:
+    return None if value is None else str(value)
+
+
+def long_run_status(payload: object) -> str | None:
+    for attribute_name in ("state", "status", "freshness", "decision", "outcome"):
+        value = getattr(payload, attribute_name, None)
+        if value is not None:
+            return enum_optional_value(value)
+    return None

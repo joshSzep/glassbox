@@ -11,10 +11,14 @@ from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import ArtifactId
 from glassbox.core.ids import BackgroundJobId
+from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import QuestionId
+from glassbox.core.ids import RecoveryDecisionId
 from glassbox.core.ids import SessionId
+from glassbox.core.ids import TaskCheckpointId
 from glassbox.core.ids import TaskId
+from glassbox.core.ids import ToolAttemptId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.ids import WorkspaceMemoryId
@@ -145,6 +149,11 @@ class SessionRepository(Protocol):
         message_id: MessageId | None = None,
         tool_call_id: ToolCallId | None = None,
         approval_id: ApprovalId | None = None,
+        task_id: TaskId | None = None,
+        checkpoint_id: TaskCheckpointId | None = None,
+        compaction_id: ContextCompactionId | None = None,
+        tool_attempt_id: ToolAttemptId | None = None,
+        recovery_decision_id: RecoveryDecisionId | None = None,
     ) -> list[EventEnvelope]: ...
 
     def rebuild_session_projections(self, session_id: SessionId) -> None: ...

@@ -32,12 +32,23 @@ from glassbox.core import BackgroundJobState
 from glassbox.core import CancellationAcknowledged
 from glassbox.core import CancellationFailed
 from glassbox.core import CancellationRequested
+from glassbox.core import ContextCompactionCreated
+from glassbox.core import ContextCompactionFreshness
+from glassbox.core import ContextCompactionScope
 from glassbox.core import ErrorRecorded
 from glassbox.core import EventEnvelope
 from glassbox.core import EventPayloadType
+from glassbox.core import LongRunPhase
+from glassbox.core import LongRunPhaseChanged
+from glassbox.core import LongRunPhaseState
 from glassbox.core import MessagePart
+from glassbox.core import RecoveryDecision
+from glassbox.core import RecoveryDecisionRecorded
+from glassbox.core import ResumeOutcomeRecorded
+from glassbox.core import ResumeOutcomeStatus
 from glassbox.core import SessionStarted
 from glassbox.core import TaskBlockedReason
+from glassbox.core import TaskCheckpointCreated
 from glassbox.core import TaskCreated
 from glassbox.core import TaskPaused
 from glassbox.core import TaskPlanProposed
@@ -47,6 +58,8 @@ from glassbox.core import TaskStepFailed
 from glassbox.core import TaskStepStarted
 from glassbox.core import TaskVerificationCompleted
 from glassbox.core import TaskVerificationStarted
+from glassbox.core import ToolAttemptHeartbeat
+from glassbox.core import ToolAttemptStatus
 from glassbox.core import ToolOutputChunk
 from glassbox.core import TranscriptMessageImported
 from glassbox.core import TurnCancelled
@@ -66,12 +79,17 @@ from glassbox.core import WorkspaceMemoryState
 from glassbox.core import WorkspaceMemoryUpdated
 from glassbox.core import WorkspaceMemoryUsedInContext
 from glassbox.core import new_approval_id
+from glassbox.core import new_artifact_id
 from glassbox.core import new_background_job_id
+from glassbox.core import new_context_compaction_id
 from glassbox.core import new_message_id
+from glassbox.core import new_recovery_decision_id
 from glassbox.core import new_session_id
+from glassbox.core import new_task_checkpoint_id
 from glassbox.core import new_task_id
 from glassbox.core import new_task_step_id
 from glassbox.core import new_task_verification_id
+from glassbox.core import new_tool_attempt_id
 from glassbox.core import new_tool_call_id
 from glassbox.core import new_turn_id
 from glassbox.core import new_workspace_memory_id
@@ -418,6 +436,135 @@ def test_background_job_envelope_exposes_job_id() -> None:
 
     assert envelope.event_type == "BackgroundJobCreated"
     assert envelope.job_id == job_id
+
+
+def test_long_run_payloads_round_trip_through_event_union() -> None:
+    adapter = TypeAdapter(EventPayloadType)
+    task_id = new_task_id()
+    turn_id = new_turn_id()
+    tool_call_id = new_tool_call_id()
+    tool_attempt_id = new_tool_attempt_id()
+    checkpoint_id = new_task_checkpoint_id()
+    compaction_id = new_context_compaction_id()
+    recovery_decision_id = new_recovery_decision_id()
+
+    phase = adapter.validate_python(
+        {
+            "event_type": "LongRunPhaseChanged",
+            "phase": "tool_execution",
+            "state": "entered",
+            "task_id": task_id,
+            "turn_id": turn_id,
+            "tool_attempt_id": tool_attempt_id,
+            "reason": "running tests",
+        }
+    )
+    checkpoint = adapter.validate_python(
+        {
+            "event_type": "TaskCheckpointCreated",
+            "checkpoint_id": checkpoint_id,
+            "task_id": task_id,
+            "turn_id": turn_id,
+            "objective": "finish the release task",
+            "completed_step": "updated docs",
+            "next_action": "run focused tests",
+            "recovery_guidance": "resume from the next test command",
+            "blockers": ["provider unavailable"],
+            "verification_status": "pending",
+        }
+    )
+    compaction = adapter.validate_python(
+        {
+            "event_type": "ContextCompactionCreated",
+            "compaction_id": compaction_id,
+            "scope": "transcript",
+            "source_start_sequence": 3,
+            "source_end_sequence": 9,
+            "summary": "summarized earlier work",
+            "artifact_id": new_artifact_id(),
+            "freshness": "fresh",
+            "checkpoint_id": checkpoint_id,
+        }
+    )
+    heartbeat = adapter.validate_python(
+        {
+            "event_type": "ToolAttemptHeartbeat",
+            "tool_attempt_id": tool_attempt_id,
+            "status": "running",
+            "turn_id": turn_id,
+            "tool_call_id": tool_call_id,
+            "tool_name": "run_tests",
+            "message": "pytest still running",
+            "completed_units": 3,
+            "total_units": 10,
+            "safe_to_retry": False,
+        }
+    )
+    decision = adapter.validate_python(
+        {
+            "event_type": "RecoveryDecisionRecorded",
+            "recovery_decision_id": recovery_decision_id,
+            "decision": "retry",
+            "reason": "tool attempt timed out before completion",
+            "safe_to_resume": False,
+            "next_action": "rerun the failed command from checkpoint",
+            "tool_attempt_id": tool_attempt_id,
+            "checkpoint_id": checkpoint_id,
+        }
+    )
+    outcome = adapter.validate_python(
+        {
+            "event_type": "ResumeOutcomeRecorded",
+            "outcome": "resumed",
+            "summary": "continued from checkpoint",
+            "checkpoint_id": checkpoint_id,
+            "recovery_decision_id": recovery_decision_id,
+        }
+    )
+
+    assert isinstance(phase, LongRunPhaseChanged)
+    assert phase.phase == LongRunPhase.TOOL_EXECUTION
+    assert phase.state == LongRunPhaseState.ENTERED
+    assert isinstance(checkpoint, TaskCheckpointCreated)
+    assert checkpoint.checkpoint_id == checkpoint_id
+    assert isinstance(compaction, ContextCompactionCreated)
+    assert compaction.scope == ContextCompactionScope.TRANSCRIPT
+    assert compaction.freshness == ContextCompactionFreshness.FRESH
+    assert isinstance(heartbeat, ToolAttemptHeartbeat)
+    assert heartbeat.status == ToolAttemptStatus.RUNNING
+    assert isinstance(decision, RecoveryDecisionRecorded)
+    assert decision.decision == RecoveryDecision.RETRY
+    assert isinstance(outcome, ResumeOutcomeRecorded)
+    assert outcome.outcome == ResumeOutcomeStatus.RESUMED
+
+
+def test_long_run_envelope_exposes_correlation_ids() -> None:
+    checkpoint_id = new_task_checkpoint_id()
+    envelope = EventEnvelope(
+        session_id=new_session_id(),
+        sequence=18,
+        payload=TaskCheckpointCreated(
+            checkpoint_id=checkpoint_id,
+            objective="ship v10 event vocabulary",
+            next_action="run event tests",
+            recovery_guidance="resume with the focused validation command",
+        ),
+    )
+
+    assert envelope.event_type == "TaskCheckpointCreated"
+    assert envelope.checkpoint_id == checkpoint_id
+
+
+def test_context_compaction_rejects_inverted_source_range() -> None:
+    with pytest.raises(ValidationError):
+        ContextCompactionCreated(
+            compaction_id=new_context_compaction_id(),
+            scope=ContextCompactionScope.TRANSCRIPT,
+            source_start_sequence=10,
+            source_end_sequence=3,
+            summary="bad source range",
+            artifact_id=new_artifact_id(),
+        )
 
 
 def test_workspace_memory_payloads_round_trip_through_event_union() -> None:

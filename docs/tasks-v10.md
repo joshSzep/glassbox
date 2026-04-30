@@ -395,7 +395,7 @@ The intended v10 milestone order is:
 
 ### GBX-1010: Add Long-Run Lifecycle Event Vocabulary
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1001`
 - Goal: add typed event payloads for long-running lifecycle boundaries that are
   currently implicit or process-local

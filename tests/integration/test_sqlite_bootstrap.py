@@ -38,7 +38,7 @@ def _migration_rows(connection: sqlite3.Connection) -> list[sqlite3.Row]:
 
 
 def _expected_migration_versions() -> list[int]:
-    return [3, 4, 5, 6, 7, 8, 9, 10, 11, SCHEMA_VERSION]
+    return [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, SCHEMA_VERSION]
 
 
 def _expected_migration_names() -> list[str]:
@@ -53,6 +53,7 @@ def _expected_migration_names() -> list[str]:
         "add background job retry triage columns",
         "add workspace memory projection table",
         "add branch search projection tables",
+        "add long-run event correlations and projection",
     ]
 
 
@@ -96,6 +97,7 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         "branch_candidates",
         "background_jobs",
         "workspace_memory",
+        "long_run_events",
     }.issubset(tables)
     assert {
         "idx_sessions_status_updated",
@@ -106,6 +108,11 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         "idx_events_message",
         "idx_events_tool_call",
         "idx_events_approval",
+        "idx_events_task",
+        "idx_events_checkpoint",
+        "idx_events_compaction",
+        "idx_events_tool_attempt",
+        "idx_events_recovery_decision",
         "idx_transcript_messages_session_created",
         "idx_tool_calls_session_status",
         "idx_tool_calls_session_turn",
@@ -124,6 +131,9 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         "idx_workspace_memory_state_updated",
         "idx_workspace_memory_kind_updated",
         "idx_workspace_memory_session_sequence",
+        "idx_long_run_events_session_created",
+        "idx_long_run_events_task",
+        "idx_long_run_events_checkpoint",
     }.issubset(indexes)
     assert [row[0] for row in migration_rows] == _expected_migration_versions()
     assert [row[1] for row in migration_rows] == _expected_migration_names()
@@ -359,6 +369,7 @@ def test_initialize_database_normalizes_legacy_current_version_stamp(
         migration_rows = _migration_rows(connection)
         session_columns = _column_names(connection, "sessions")
         note_columns = _column_names(connection, "runtime_notes")
+        event_columns = _column_names(connection, "events")
     finally:
         connection.close()
 
@@ -366,6 +377,7 @@ def test_initialize_database_normalizes_legacy_current_version_stamp(
     assert [row[1] for row in migration_rows] == _expected_migration_names()
     assert "parent_session_id" in session_columns
     assert "source_session_id" in note_columns
+    assert "checkpoint_id" in event_columns
 
 
 def test_initialize_database_rejects_newer_schema_version(tmp_path: Path) -> None:
@@ -408,5 +420,6 @@ def test_migrations_are_ordered_to_current_schema_version() -> None:
         9,
         10,
         11,
+        12,
         SCHEMA_VERSION,
     ]

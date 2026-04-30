@@ -19,6 +19,10 @@ type BackgroundJobId = UUID
 type WorkspaceMemoryId = UUID
 type BranchSearchId = UUID
 type BranchCandidateId = UUID
+type TaskCheckpointId = UUID
+type ContextCompactionId = UUID
+type ToolAttemptId = UUID
+type RecoveryDecisionId = UUID
 
 
 def new_session_id() -> SessionId:
@@ -98,4 +102,24 @@ def new_branch_search_id() -> BranchSearchId:
 
 def new_branch_candidate_id() -> BranchCandidateId:
     """Create a new branch-search candidate identifier."""
+    return uuid4()
+
+
+def new_task_checkpoint_id() -> TaskCheckpointId:
+    """Create a new task checkpoint identifier."""
+    return uuid4()
+
+
+def new_context_compaction_id() -> ContextCompactionId:
+    """Create a new context compaction identifier."""
+    return uuid4()
+
+
+def new_tool_attempt_id() -> ToolAttemptId:
+    """Create a new tool attempt identifier."""
+    return uuid4()
+
+
+def new_recovery_decision_id() -> RecoveryDecisionId:
+    """Create a new recovery decision identifier."""
     return uuid4()

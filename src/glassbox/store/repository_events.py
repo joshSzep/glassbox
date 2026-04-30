@@ -9,8 +9,13 @@ import glassbox.store.sqlite_fork as fork_store
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import RuntimeNoteRecorded
 from glassbox.core.ids import ApprovalId
+from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import MessageId
+from glassbox.core.ids import RecoveryDecisionId
 from glassbox.core.ids import SessionId
+from glassbox.core.ids import TaskCheckpointId
+from glassbox.core.ids import TaskId
+from glassbox.core.ids import ToolAttemptId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.models import ResolvedForkPoint
@@ -78,6 +83,11 @@ class _SQLiteEventMethods:
         message_id: MessageId | None = None,
         tool_call_id: ToolCallId | None = None,
         approval_id: ApprovalId | None = None,
+        task_id: TaskId | None = None,
+        checkpoint_id: TaskCheckpointId | None = None,
+        compaction_id: ContextCompactionId | None = None,
+        tool_attempt_id: ToolAttemptId | None = None,
+        recovery_decision_id: RecoveryDecisionId | None = None,
     ) -> list[EventEnvelope]:
         return event_store.read_events_by_correlation_id(
             self._connection,
@@ -86,6 +96,11 @@ class _SQLiteEventMethods:
             message_id=message_id,
             tool_call_id=tool_call_id,
             approval_id=approval_id,
+            task_id=task_id,
+            checkpoint_id=checkpoint_id,
+            compaction_id=compaction_id,
+            tool_attempt_id=tool_attempt_id,
+            recovery_decision_id=recovery_decision_id,
         )
 
     def rebuild_session_projections(self, session_id: SessionId) -> None:

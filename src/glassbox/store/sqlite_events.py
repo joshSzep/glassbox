@@ -10,8 +10,13 @@ from glassbox.core.events import SessionFailed
 from glassbox.core.events import SessionResumed
 from glassbox.core.events import SessionStarted
 from glassbox.core.ids import ApprovalId
+from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import MessageId
+from glassbox.core.ids import RecoveryDecisionId
 from glassbox.core.ids import SessionId
+from glassbox.core.ids import TaskCheckpointId
+from glassbox.core.ids import TaskId
+from glassbox.core.ids import ToolAttemptId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.models import SessionConfig
@@ -75,9 +80,14 @@ def append_events(
                     message_id,
                     tool_call_id,
                     approval_id,
+                    task_id,
+                    checkpoint_id,
+                    compaction_id,
+                    tool_attempt_id,
+                    recovery_decision_id,
                     actor,
                     payload_json
-                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     str(stored_event.session_id),
@@ -90,6 +100,11 @@ def append_events(
                     _stringify_identifier(stored_event.message_id),
                     _stringify_identifier(stored_event.tool_call_id),
                     _stringify_identifier(stored_event.approval_id),
+                    _stringify_identifier(stored_event.task_id),
+                    _stringify_identifier(stored_event.checkpoint_id),
+                    _stringify_identifier(stored_event.compaction_id),
+                    _stringify_identifier(stored_event.tool_attempt_id),
+                    _stringify_identifier(stored_event.recovery_decision_id),
                     _actor_for_event(stored_event),
                     stored_event.payload.model_dump_json(),
                 ),
@@ -165,6 +180,11 @@ def read_events_by_correlation_id(
     message_id: MessageId | None = None,
     tool_call_id: ToolCallId | None = None,
     approval_id: ApprovalId | None = None,
+    task_id: TaskId | None = None,
+    checkpoint_id: TaskCheckpointId | None = None,
+    compaction_id: ContextCompactionId | None = None,
+    tool_attempt_id: ToolAttemptId | None = None,
+    recovery_decision_id: RecoveryDecisionId | None = None,
 ) -> list[EventEnvelope]:
     """Read session events filtered by exactly one correlation identifier."""
 
@@ -173,6 +193,11 @@ def read_events_by_correlation_id(
         "message_id": message_id,
         "tool_call_id": tool_call_id,
         "approval_id": approval_id,
+        "task_id": task_id,
+        "checkpoint_id": checkpoint_id,
+        "compaction_id": compaction_id,
+        "tool_attempt_id": tool_attempt_id,
+        "recovery_decision_id": recovery_decision_id,
     }
     active_filters = [
         (column_name, value)

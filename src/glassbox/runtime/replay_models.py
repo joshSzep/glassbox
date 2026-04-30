@@ -193,6 +193,24 @@ class ReplayBudgetSnapshot(BaseModel):
     fingerprint: str
 
 
+class ReplayLongRunEventSnapshot(BaseModel):
+    """Normalized long-running lifecycle event used for replay comparison."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    event_type: str
+    task_id: str | None = None
+    turn_id: str | None = None
+    tool_call_id: str | None = None
+    tool_attempt_id: str | None = None
+    checkpoint_id: str | None = None
+    compaction_id: str | None = None
+    recovery_decision_id: str | None = None
+    status: str | None = None
+    phase: str | None = None
+    fingerprint: str
+
+
 class ReplayTaskPlanEventReference(BaseModel):
     """Task-plan event metadata retained in replay bundles."""
 
@@ -243,6 +261,7 @@ class ReplayNormalizedSession(BaseModel):
     cancellations: list[ReplayCancellationSnapshot] = Field(default_factory=list)
     task_plans: list[ReplayTaskPlanSnapshot] = Field(default_factory=list)
     budget_posture: ReplayBudgetSnapshot | None = None
+    long_run_events: list[ReplayLongRunEventSnapshot] = Field(default_factory=list)
     event_families: list[str]
     final_state: ReplayFinalStateSnapshot
 

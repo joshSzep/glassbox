@@ -567,6 +567,14 @@ def test_v10_long_running_task_contract_covers_product_model() -> None:
         "provider failure, model-switch, fallback, and advisory-posture evidence",
         "Provider evidence remains advisory.",
         "tasks-v10.md",
+        "## Canonical Event Vocabulary",
+        "`LongRunPhaseChanged`",
+        "`TaskCheckpointCreated`",
+        "`ContextCompactionCreated`",
+        "`ToolAttemptHeartbeat`",
+        "`RecoveryDecisionRecorded`",
+        "`ResumeOutcomeRecorded`",
+        "`long_run_events`",
     ):
         assert required_text in content
 

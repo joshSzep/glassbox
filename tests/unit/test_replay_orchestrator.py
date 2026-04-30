@@ -4,11 +4,22 @@ from pathlib import Path
 
 import pytest
 
+from glassbox.core import EventEnvelope
+from glassbox.core import LongRunPhase
+from glassbox.core import LongRunPhaseChanged
+from glassbox.core import LongRunPhaseState
 from glassbox.core import SessionConfig
+from glassbox.core import TaskCheckpointCreated
 from glassbox.core import new_session_id
+from glassbox.core import new_task_checkpoint_id
+from glassbox.core import new_task_id
+from glassbox.core import new_turn_id
+from glassbox.runtime.replay_compare import collect_mismatches
+from glassbox.runtime.replay_compare import normalize_long_run_events
 from glassbox.runtime.replay_failures import ReplayFailure
 from glassbox.runtime.replay_models import ReplayBundle
 from glassbox.runtime.replay_models import ReplayFinalStateSnapshot
+from glassbox.runtime.replay_models import ReplayLongRunEventSnapshot
 from glassbox.runtime.replay_models import ReplayNormalizedSession
 from glassbox.runtime.replay_orchestrator import ReplayComparisonOutcome
 from glassbox.runtime.replay_orchestrator import ReplayExecutionOutcome
@@ -74,6 +85,69 @@ def test_replay_orchestrator_builds_behavioral_drift_result() -> None:
     assert result.message == "normalized replay drift detected"
     assert result.triage is not None
     assert result.triage.classification == "behavioral_drift"
+
+
+def test_replay_normalizes_long_run_event_families() -> None:
+    session_id = new_session_id()
+    task_id = new_task_id()
+    turn_id = new_turn_id()
+    checkpoint_id = new_task_checkpoint_id()
+    normalized = normalize_long_run_events(
+        [
+            EventEnvelope(
+                session_id=session_id,
+                sequence=1,
+                payload=LongRunPhaseChanged(
+                    phase=LongRunPhase.MODEL_CALL,
+                    state=LongRunPhaseState.ENTERED,
+                    task_id=task_id,
+                    turn_id=turn_id,
+                    reason="starting provider call",
+                ),
+            ),
+            EventEnvelope(
+                session_id=session_id,
+                sequence=2,
+                payload=TaskCheckpointCreated(
+                    checkpoint_id=checkpoint_id,
+                    task_id=task_id,
+                    turn_id=turn_id,
+                    objective="finish replay normalization",
+                    completed_step="added event vocabulary",
+                    next_action="compare normalized long-run event",
+                    recovery_guidance="resume from checkpoint",
+                ),
+            ),
+        ]
+    )
+
+    assert [event.event_type for event in normalized] == [
+        "LongRunPhaseChanged",
+        "TaskCheckpointCreated",
+    ]
+    assert normalized[0].phase == "model_call"
+    assert normalized[0].status == "entered"
+    assert normalized[0].task_id == str(task_id)
+    assert normalized[1].checkpoint_id == str(checkpoint_id)
+    assert normalized[0].fingerprint != normalized[1].fingerprint
+
+
+def test_replay_mismatch_detection_includes_long_run_events() -> None:
+    baseline = _normalized_session()
+    replay = baseline.model_copy(
+        update={
+            "long_run_events": [
+                ReplayLongRunEventSnapshot(
+                    event_type="LongRunPhaseChanged",
+                    status="entered",
+                    phase="model_call",
+                    fingerprint="different",
+                )
+            ]
+        }
+    )
+
+    assert collect_mismatches(baseline, replay) == ["long_run_events drift"]
 
 
 @pytest.mark.anyio

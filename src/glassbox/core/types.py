@@ -259,6 +259,79 @@ class BackgroundJobFailureKind(StrEnum):
     UNKNOWN = "unknown"
 
 
+class LongRunPhase(StrEnum):
+    """Operator-visible phases for long-running local work."""
+
+    PREPARING = "preparing"
+    MODEL_CALL = "model_call"
+    TOOL_EXECUTION = "tool_execution"
+    CHECKPOINTING = "checkpointing"
+    COMPACTING_CONTEXT = "compacting_context"
+    VERIFYING = "verifying"
+    RECOVERING = "recovering"
+    PAUSED = "paused"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class LongRunPhaseState(StrEnum):
+    """State of a long-running phase transition."""
+
+    ENTERED = "entered"
+    HEARTBEAT = "heartbeat"
+    EXITED = "exited"
+    BLOCKED = "blocked"
+
+
+class ContextCompactionScope(StrEnum):
+    """Scope of a durable context compaction artifact."""
+
+    TRANSCRIPT = "transcript"
+    TASK = "task"
+    RUNTIME_CONTEXT = "runtime_context"
+    VERIFICATION = "verification"
+    TOOL_OUTPUT = "tool_output"
+
+
+class ContextCompactionFreshness(StrEnum):
+    """Freshness posture for compaction artifacts."""
+
+    FRESH = "fresh"
+    STALE = "stale"
+    UNKNOWN = "unknown"
+
+
+class ToolAttemptStatus(StrEnum):
+    """Durable status values for a long-running tool attempt."""
+
+    STARTED = "started"
+    RUNNING = "running"
+    WAITING = "waiting"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class RecoveryDecision(StrEnum):
+    """Operator-facing recovery decisions for interrupted long work."""
+
+    RESUME = "resume"
+    RETRY = "retry"
+    FORK = "fork"
+    ABANDON = "abandon"
+    WAIT_FOR_OPERATOR = "wait_for_operator"
+    NON_RESUMABLE = "non_resumable"
+
+
+class ResumeOutcomeStatus(StrEnum):
+    """Outcome of attempting to resume from durable recovery state."""
+
+    RESUMED = "resumed"
+    REJECTED_STALE = "rejected_stale"
+    REJECTED_NON_RESUMABLE = "rejected_non_resumable"
+    FAILED = "failed"
+
+
 class WorkspaceMemoryKind(StrEnum):
     """Operator-facing categories for durable workspace memory."""
 

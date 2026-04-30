@@ -36,14 +36,18 @@ from glassbox.core.events import BudgetOverrideResolved
 from glassbox.core.events import CancellationAcknowledged
 from glassbox.core.events import CancellationFailed
 from glassbox.core.events import CancellationRequested
+from glassbox.core.events import ContextCompactionCreated
 from glassbox.core.events import ErrorRecorded
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import EventPayload
 from glassbox.core.events import EventPayloadType
+from glassbox.core.events import LongRunPhaseChanged
 from glassbox.core.events import ModelCallCompleted
 from glassbox.core.events import ModelCallStarted
 from glassbox.core.events import ModelToolCallRequested
+from glassbox.core.events import RecoveryDecisionRecorded
 from glassbox.core.events import ReplayArtifactRecorded
+from glassbox.core.events import ResumeOutcomeRecorded
 from glassbox.core.events import RuntimeNoteRecorded
 from glassbox.core.events import SessionCompleted
 from glassbox.core.events import SessionFailed
@@ -51,6 +55,7 @@ from glassbox.core.events import SessionResumed
 from glassbox.core.events import SessionStarted
 from glassbox.core.events import TaskAbandoned
 from glassbox.core.events import TaskCancelled
+from glassbox.core.events import TaskCheckpointCreated
 from glassbox.core.events import TaskCreated
 from glassbox.core.events import TaskPaused
 from glassbox.core.events import TaskPlanProposed
@@ -70,6 +75,7 @@ from glassbox.core.events import TaskVerificationSkipped
 from glassbox.core.events import TaskVerificationStarted
 from glassbox.core.events import TaskVerificationStreamed
 from glassbox.core.events import ToolArtifactRecorded
+from glassbox.core.events import ToolAttemptHeartbeat
 from glassbox.core.events import ToolExecutionCancelled
 from glassbox.core.events import ToolExecutionCompleted
 from glassbox.core.events import ToolExecutionStarted
@@ -97,13 +103,17 @@ from glassbox.core.ids import BackgroundJobId
 from glassbox.core.ids import BranchCandidateId
 from glassbox.core.ids import BranchSearchId
 from glassbox.core.ids import BudgetOverrideId
+from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import EventId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import QuestionId
+from glassbox.core.ids import RecoveryDecisionId
 from glassbox.core.ids import SessionId
+from glassbox.core.ids import TaskCheckpointId
 from glassbox.core.ids import TaskId
 from glassbox.core.ids import TaskStepId
 from glassbox.core.ids import TaskVerificationId
+from glassbox.core.ids import ToolAttemptId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.ids import WorkspaceMemoryId
@@ -113,13 +123,17 @@ from glassbox.core.ids import new_background_job_id
 from glassbox.core.ids import new_branch_candidate_id
 from glassbox.core.ids import new_branch_search_id
 from glassbox.core.ids import new_budget_override_id
+from glassbox.core.ids import new_context_compaction_id
 from glassbox.core.ids import new_event_id
 from glassbox.core.ids import new_message_id
 from glassbox.core.ids import new_question_id
+from glassbox.core.ids import new_recovery_decision_id
 from glassbox.core.ids import new_session_id
+from glassbox.core.ids import new_task_checkpoint_id
 from glassbox.core.ids import new_task_id
 from glassbox.core.ids import new_task_step_id
 from glassbox.core.ids import new_task_verification_id
+from glassbox.core.ids import new_tool_attempt_id
 from glassbox.core.ids import new_tool_call_id
 from glassbox.core.ids import new_turn_id
 from glassbox.core.ids import new_workspace_memory_id
@@ -169,14 +183,21 @@ from glassbox.core.types import BackgroundJobState
 from glassbox.core.types import BranchCandidateStatus
 from glassbox.core.types import BranchCandidateVerificationStatus
 from glassbox.core.types import BranchSearchStatus
+from glassbox.core.types import ContextCompactionFreshness
+from glassbox.core.types import ContextCompactionScope
+from glassbox.core.types import LongRunPhase
+from glassbox.core.types import LongRunPhaseState
+from glassbox.core.types import RecoveryDecision
 from glassbox.core.types import RepositoryIndexEntityKind
 from glassbox.core.types import RepositoryIndexFreshness
 from glassbox.core.types import RepositoryIndexSourceType
+from glassbox.core.types import ResumeOutcomeStatus
 from glassbox.core.types import SessionStatus
 from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskStepStatus
 from glassbox.core.types import TaskVerificationStatus
+from glassbox.core.types import ToolAttemptStatus
 from glassbox.core.types import ToolExecutionStatus
 from glassbox.core.types import TurnStatus
 from glassbox.core.types import VerificationCheckKind
@@ -249,6 +270,10 @@ __all__ = [
     "CancellationAcknowledged",
     "CancellationFailed",
     "CancellationRequested",
+    "ContextCompactionCreated",
+    "ContextCompactionFreshness",
+    "ContextCompactionId",
+    "ContextCompactionScope",
     "ErrorRecorded",
     "EventId",
     "EventEnvelope",
@@ -256,6 +281,9 @@ __all__ = [
     "EventPayloadType",
     "ForkedSession",
     "InheritedTranscriptMessage",
+    "LongRunPhase",
+    "LongRunPhaseChanged",
+    "LongRunPhaseState",
     "MessagePart",
     "MessageId",
     "ModelCallCompleted",
@@ -265,12 +293,17 @@ __all__ = [
     "PolicyDecisionTrace",
     "ProjectionHealth",
     "QuestionId",
+    "RecoveryDecision",
+    "RecoveryDecisionId",
+    "RecoveryDecisionRecorded",
     "RepositoryIndexEntry",
     "RepositoryIndexEntityKind",
     "RepositoryIndexFreshness",
     "RepositoryIndexProvenance",
     "RepositoryIndexSnapshot",
     "RepositoryIndexSourceType",
+    "ResumeOutcomeRecorded",
+    "ResumeOutcomeStatus",
     "ResolvedForkPoint",
     "ReplayArtifactRecorded",
     "RuntimeNoteRecord",
@@ -287,6 +320,8 @@ __all__ = [
     "TaskAbandoned",
     "TaskBlockedReason",
     "TaskCancelled",
+    "TaskCheckpointCreated",
+    "TaskCheckpointId",
     "TaskCreated",
     "TaskId",
     "TaskPaused",
@@ -318,6 +353,9 @@ __all__ = [
     "TaskVerificationStatus",
     "ToolCallId",
     "ToolArtifactRecorded",
+    "ToolAttemptHeartbeat",
+    "ToolAttemptId",
+    "ToolAttemptStatus",
     "ToolCallRecord",
     "ToolExecutionCompleted",
     "ToolExecutionCancelled",
@@ -362,13 +400,17 @@ __all__ = [
     "new_branch_candidate_id",
     "new_branch_search_id",
     "new_budget_override_id",
+    "new_context_compaction_id",
     "new_event_id",
     "new_message_id",
     "new_question_id",
+    "new_recovery_decision_id",
     "new_session_id",
+    "new_task_checkpoint_id",
     "new_task_id",
     "new_task_step_id",
     "new_task_verification_id",
+    "new_tool_attempt_id",
     "new_tool_call_id",
     "new_turn_id",
     "new_workspace_memory_id",
