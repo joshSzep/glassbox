@@ -3,6 +3,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { SessionInspector } from "../components/console/session-inspector";
+import {
+  buildCompareAnalysis,
+  compareStringSets,
+} from "../components/console/session-inspector/panes/compare-analysis";
 import { WorkspaceOverview } from "../components/console/workspace-overview";
 import {
   createDashboardState,
@@ -203,6 +207,31 @@ describe("session inspector", () => {
     expect(actionsMarkup).toContain("pytest command is verification-only");
     expect(actionsMarkup).toContain("Retry");
     expect(actionsMarkup).toContain("Abandon");
+  });
+
+  it("derives compare facts without rendering React", () => {
+    const data = makeRichSessionData();
+    const compare = data.compareSession;
+
+    expect(compare).not.toBeNull();
+    if (compare === null) {
+      throw new Error("expected compare session");
+    }
+
+    const analysis = buildCompareAnalysis(data, compare);
+
+    expect(analysis.summary.find((item) => item.label === "Transcript divergence")).toMatchObject({
+      value: "2 shared · 0 current-only · 1 compared-only",
+    });
+    expect(
+      analysis.policy.current.find((item) => item.label === "Session decisions"),
+    ).toMatchObject({
+      value: "2 total, 1 allowed, 1 approval, 0 denied, 0 blocked",
+    });
+    expect(compareStringSets(["a", "b"], ["b", "c"])).toEqual({
+      comparedOnly: ["c"],
+      currentOnly: ["a"],
+    });
   });
 
   it("renders stale compaction cues in the runtime pane", () => {

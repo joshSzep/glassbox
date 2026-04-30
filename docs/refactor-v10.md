@@ -352,7 +352,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R311: Extract Verification Cue And Compare Analysis Derivation From Rendering
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R300`
 - Goal: reduce
   [verification-cues.tsx](../frontend/components/console/verification-cues.tsx)
@@ -382,6 +382,15 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - verification and compare rendering is thin over pure, covered analysis
     helpers
+- Completed notes:
+  - Verification cue grouping, policy/eval/replay/provider/release cue
+    derivation, artifact classification, and path-overlap logic now live in
+    `verification-cues-analysis.ts`.
+  - Session comparison summary, branch/runtime/tool/policy facts, transcript
+    divergence, and string-set comparison now live in
+    `session-inspector/panes/compare-analysis.ts`.
+  - Added non-rendering tests for verification analysis and compare derivation,
+    while preserving the existing rendering coverage.
 
 ### GBX-R312: Extract Workspace Console Routing And Action Binding
 

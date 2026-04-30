@@ -470,10 +470,18 @@ V10_FRONTEND_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
     (
         FRONTEND_ROOT / "components" / "console" / "verification-cues.tsx",
-        650,
+        240,
         (
-            "v10 verification cues should move cue derivation into pure "
+            "v10 verification-cues should stay a thin renderer over pure "
             "verification analysis helpers"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "verification-cues-analysis.ts",
+        540,
+        (
+            "v10 verification cue derivation should stay owned by "
+            "verification-cues-analysis.ts"
         ),
     ),
     (
@@ -483,11 +491,21 @@ V10_FRONTEND_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
         / "session-inspector"
         / "panes"
         / "compare-pane.tsx",
-        575,
+        380,
         (
-            "v10 compare-pane should move comparison derivation into pure "
-            "session compare helpers"
+            "v10 compare-pane should stay a thin renderer over pure session "
+            "compare helpers"
         ),
+    ),
+    (
+        FRONTEND_ROOT
+        / "components"
+        / "console"
+        / "session-inspector"
+        / "panes"
+        / "compare-analysis.ts",
+        280,
+        "v10 session comparison derivation should stay owned by compare-analysis.ts",
     ),
     (
         FRONTEND_ROOT / "components" / "console" / "workspace-console.tsx",
@@ -576,6 +594,14 @@ V10_FRONTEND_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
         ),
     ),
     (
+        FRONTEND_ROOT / "components" / "console" / "verification-cues-analysis.ts",
+        ("@/api/", "@/stores", "next/", "react", "src/glassbox"),
+        (
+            "v10 verification cue derivation should stay pure and avoid "
+            "transport, store, React, Next server, or backend imports"
+        ),
+    ),
+    (
         FRONTEND_ROOT
         / "components"
         / "console"
@@ -586,6 +612,19 @@ V10_FRONTEND_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
         (
             "v10 compare rendering should stay presentation-focused over pure "
             "comparison results and avoid transport or store imports"
+        ),
+    ),
+    (
+        FRONTEND_ROOT
+        / "components"
+        / "console"
+        / "session-inspector"
+        / "panes"
+        / "compare-analysis.ts",
+        ("@/api/", "@/stores", "next/", "react", "src/glassbox"),
+        (
+            "v10 compare derivation should stay pure and avoid transport, "
+            "store, React, Next server, or backend imports"
         ),
     ),
     (

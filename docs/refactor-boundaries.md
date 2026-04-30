@@ -472,6 +472,11 @@ the Next.js SPA contract in [architecture.md](./architecture.md) and
 - session compare panes should consume pure comparison analysis for branch
   metadata, transcript divergence, tool activity, policy outcomes, runtime
   projection facts, and string-set comparisons
+- the verification/compare split now keeps
+  `frontend/components/console/verification-cues.tsx` and
+  `session-inspector/panes/compare-pane.tsx` as renderers over pure analysis
+  helpers in `verification-cues-analysis.ts` and
+  `session-inspector/panes/compare-analysis.ts`
 - `workspace-console.tsx` should remain the surface composition owner while
   route synchronization, popstate handling, per-surface load/reset behavior, and
   repeated action binding move into focused hooks/helpers
