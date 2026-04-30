@@ -116,6 +116,7 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert "sdist missing required file: docs/v9-dogfooding-summary.md" in problems
     assert "sdist missing required file: docs/v9-eval-promotion-plan.md" in problems
     assert "sdist missing required file: docs/v9-public-baseline.md" in problems
+    assert "sdist missing required file: docs/v9-release-candidate.md" in problems
     assert "sdist missing required file: docs/v9-release-gate.md" in problems
     assert "sdist missing required file: docs/v9-vocabulary.md" in problems
     assert "sdist missing required file: docs/workspace-profiles.md" in problems
@@ -258,6 +259,7 @@ def _write_sdist(
                 "docs/v9-command-surface-review.md",
                 "docs/v9-dogfooding-summary.md",
                 "docs/v9-eval-promotion-plan.md",
+                "docs/v9-release-candidate.md",
                 "docs/v9-release-gate.md",
                 "docs/tasks-v9.md",
             ):

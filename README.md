@@ -98,6 +98,8 @@ supported product model, then use
 path from install to chat, dashboard inspection, approvals, and verification.
 Version and release-candidate naming policy lives in
 [docs/version-release-policy.md](docs/version-release-policy.md).
+Release-candidate validation and accepted residual risks are summarized in
+[docs/v9-release-candidate.md](docs/v9-release-candidate.md).
 
 ## Documentation
 
@@ -127,6 +129,7 @@ Start here based on what you need:
 
 Release evidence and milestone history remain available when you need them:
 
+- [docs/v9-release-candidate.md](docs/v9-release-candidate.md)
 - [docs/v8-release-candidate.md](docs/v8-release-candidate.md)
 - [docs/v7-release-candidate.md](docs/v7-release-candidate.md)
 - [docs/v6-release-candidate.md](docs/v6-release-candidate.md)

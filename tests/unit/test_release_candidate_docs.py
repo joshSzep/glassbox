@@ -504,6 +504,39 @@ def test_v9_manual_validation_docs_cover_accessibility_and_residual_risks() -> N
     assert "manual-qa-evidence-v9.md" in docs_readme
 
 
+def test_v9_release_candidate_doc_covers_decision_and_evidence() -> None:
+    content = (REPO_ROOT / "docs" / "v9-release-candidate.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Release Posture",
+        "## Supported Operating Model",
+        "## Release-Readiness Checklist",
+        "## Current Evidence Summary",
+        "## Known Residual Risks",
+        "## Deliberate Non-Goals",
+        "## Release Decision",
+        "uv run python scripts/validate_v9_release_gate.py",
+        ".glassbox/releases/gbx-993-v9-release-candidate/",
+        ".glassbox/evals/gbx-993-v9-release-candidate/",
+        "Provider evidence improves operational confidence",
+        "deterministic replay/eval release authority",
+        "Browser-rendered dashboard keyboard and mobile evidence was blocked",
+        "Decision: GO for v9 release candidate publication.",
+        "63` passed stages",
+        "No deterministic blocker remains open",
+        "manual-v9-release-validation.md",
+        "v9-dogfooding-summary.md",
+    ):
+        assert required_text in content
+
+    assert "docs/v9-release-candidate.md" in root_readme
+    assert "v9-release-candidate.md" in docs_readme
+
+
 def test_provider_docs_define_v9_evidence_freshness_contract() -> None:
     content = (REPO_ROOT / "docs" / "providers.md").read_text(encoding="utf-8")
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")

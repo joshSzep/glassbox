@@ -143,6 +143,9 @@ path.
 - [v9-eval-promotion-plan.md](./v9-eval-promotion-plan.md): v9 review of the
   v8 autonomy advisory eval suite, case-by-case promotion decisions, retained
   local evidence path, and release-candidate follow-up plan
+- [v9-release-candidate.md](./v9-release-candidate.md): v9 operating model,
+  validation path, evidence expectations, non-goals, residual risks, and
+  release decision
 - [v9-release-gate.md](./v9-release-gate.md): v9 automated release gate,
   onboarding/package/provider/eval stage map, evidence summary shape, advisory
   provider-canary policy, and pass/fail rules

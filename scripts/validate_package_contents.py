@@ -62,6 +62,7 @@ SDIST_REQUIRED_SUFFIXES = (
     "docs/v9-dogfooding-summary.md",
     "docs/v9-eval-promotion-plan.md",
     "docs/v9-public-baseline.md",
+    "docs/v9-release-candidate.md",
     "docs/v9-release-gate.md",
     "docs/v9-vocabulary.md",
     "docs/v7-release-candidate.md",

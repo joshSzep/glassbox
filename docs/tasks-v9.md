@@ -1191,7 +1191,7 @@ The intended v9 milestone order is:
 
 ### GBX-993: Publish v9 Release-Candidate Guide
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-991`, `GBX-992`
 - Goal: publish a concise public guide for the supported v9 operating model,
   validation path, evidence expectations, non-goals, residual risks, and release
@@ -1220,6 +1220,14 @@ The intended v9 milestone order is:
 - Done when:
   - v9 has a publishable release-candidate narrative backed by retained
     automated and manual evidence
+  - Completed by adding
+    [v9-release-candidate.md](./v9-release-candidate.md), linking it from the
+    root README and docs hub, adding package/docs guardrails, and running the
+    final non-dry-run v9 release gate. Retained local evidence is under
+    `.glassbox/releases/gbx-993-v9-release-candidate/` and
+    `.glassbox/evals/gbx-993-v9-release-candidate/`; the automated gate passed
+    with `63` passed stages and one explicit advisory skip. The decision is GO
+    for v9 release-candidate publication with the named residual risks accepted.
 
 ## v9 Release-Candidate Readiness Checklist
 
