@@ -555,6 +555,66 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/sessions/{session_id}/compactions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Session Compaction Page
+     * @description Return a bounded page of projected context compactions.
+     */
+    get: operations["get_session_compaction_page_sessions__session_id__compactions_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/sessions/{session_id}/compactions/{compaction_id}/invalidate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Invalidate Session Compaction
+     * @description Mark a compaction as invalidated after explicit confirmation.
+     */
+    post: operations["invalidate_session_compaction_sessions__session_id__compactions__compaction_id__invalidate_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/sessions/{session_id}/compactions/{compaction_id}/refresh": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Refresh Session Compaction
+     * @description Create a replacement compaction after explicit operator confirmation.
+     */
+    post: operations["refresh_session_compaction_sessions__session_id__compactions__compaction_id__refresh_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/sessions/{session_id}/event-log": {
     parameters: {
       query?: never;
@@ -1443,6 +1503,8 @@ export interface components {
        */
       decision_count: number;
       freshness: components["schemas"]["ContextCompactionFreshness"];
+      /** Freshness Reason */
+      freshness_reason?: string | null;
       /** Limitations */
       limitations?: string[];
       scope: components["schemas"]["ContextCompactionScope"];
@@ -1452,6 +1514,7 @@ export interface components {
       source_start_sequence: number;
       /** Summary */
       summary: string;
+      superseded_by_compaction_id?: components["schemas"]["ContextCompactionId"] | null;
       /**
        * Unresolved Question Count
        * @default 0
@@ -1475,15 +1538,82 @@ export interface components {
        * @default 0
        */
       stale_item_count: number;
+      /** Stale Items */
+      stale_items?: components["schemas"]["ContextCompactionFreshnessCueSnapshot"][];
     };
     /**
      * ContextCompactionFreshness
      * @description Freshness posture for compaction artifacts.
      * @enum {string}
      */
-    ContextCompactionFreshness: "fresh" | "stale" | "unknown";
+    ContextCompactionFreshness: "fresh" | "stale" | "invalidated" | "unknown";
+    /**
+     * ContextCompactionFreshnessCueSnapshot
+     * @description Operator-facing cue for a stale or invalidated compaction.
+     */
+    ContextCompactionFreshnessCueSnapshot: {
+      artifact_id: components["schemas"]["ArtifactId"];
+      compaction_id: components["schemas"]["ContextCompactionId"];
+      freshness: components["schemas"]["ContextCompactionFreshness"];
+      /** Reason */
+      reason: string;
+      scope: components["schemas"]["ContextCompactionScope"];
+      /** Source End Sequence */
+      source_end_sequence: number;
+      /** Source Start Sequence */
+      source_start_sequence: number;
+      superseded_by_compaction_id?: components["schemas"]["ContextCompactionId"] | null;
+    };
     /** Format: uuid */
     ContextCompactionId: string;
+    /** ContextCompactionResponse */
+    ContextCompactionResponse: {
+      /** Accepted Risk Count */
+      accepted_risk_count: number;
+      /** Artifact Id */
+      artifact_id: string;
+      /** Artifact Schema Version */
+      artifact_schema_version: number;
+      /** Checkpoint Id */
+      checkpoint_id?: string | null;
+      /** Compaction Id */
+      compaction_id: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Decision Count */
+      decision_count: number;
+      /** Freshness */
+      freshness: string;
+      /** Freshness Reason */
+      freshness_reason?: string | null;
+      /** Last Sequence */
+      last_sequence: number;
+      /** Limitations */
+      limitations: string[];
+      /** Scope */
+      scope: string;
+      /** Session Id */
+      session_id: string;
+      /** Source Artifact Ids */
+      source_artifact_ids: string[];
+      /** Source End Sequence */
+      source_end_sequence: number;
+      /** Source Start Sequence */
+      source_start_sequence: number;
+      /** Summary */
+      summary: string;
+      /** Superseded By Compaction Id */
+      superseded_by_compaction_id?: string | null;
+      /** Task Id */
+      task_id?: string | null;
+      /** Turn Id */
+      turn_id?: string | null;
+      /** Unresolved Question Count */
+      unresolved_question_count: number;
+    };
     /**
      * ContextCompactionScope
      * @description Scope of a durable context compaction artifact.
@@ -1584,6 +1714,25 @@ export interface components {
       event_transport: components["schemas"]["EventTransportObservability"];
       /** Status */
       status: string;
+    };
+    /** InvalidateContextCompactionRequest */
+    InvalidateContextCompactionRequest: {
+      /**
+       * Confirmed
+       * @default false
+       */
+      confirmed: boolean;
+      /** Reason */
+      reason: string;
+    };
+    /** InvalidateContextCompactionResponse */
+    InvalidateContextCompactionResponse: {
+      /** Compaction Id */
+      compaction_id: string;
+      /** Freshness */
+      freshness: string;
+      /** Freshness Reason */
+      freshness_reason: string;
     };
     /**
      * LongRunPhase
@@ -1866,6 +2015,28 @@ export interface components {
        */
       warning_count: number;
     };
+    /** RefreshContextCompactionRequest */
+    RefreshContextCompactionRequest: {
+      /**
+       * Confirmed
+       * @default false
+       */
+      confirmed: boolean;
+      /** Reason */
+      reason?: string | null;
+    };
+    /** RefreshContextCompactionResponse */
+    RefreshContextCompactionResponse: {
+      /** Previous Compaction Id */
+      previous_compaction_id: string;
+      /** Previous Freshness */
+      previous_freshness: string;
+      /** Previous Freshness Reason */
+      previous_freshness_reason: string;
+      refreshed_compaction: components["schemas"]["ContextCompactionResponse"];
+      /** Superseded By Compaction Id */
+      superseded_by_compaction_id: string;
+    };
     /**
      * RepositoryContextSnapshot
      * @description Deterministic top-level repository summary for prompt context.
@@ -2138,6 +2309,14 @@ export interface components {
     SessionCheckpointPageResponse: {
       /** Items */
       items: components["schemas"]["TaskCheckpointResponse"][];
+      page: components["schemas"]["PageInfoResponse"];
+      /** Session Id */
+      session_id: string;
+    };
+    /** SessionCompactionPageResponse */
+    SessionCompactionPageResponse: {
+      /** Items */
+      items: components["schemas"]["ContextCompactionResponse"][];
       page: components["schemas"]["PageInfoResponse"];
       /** Session Id */
       session_id: string;
@@ -4095,6 +4274,157 @@ export interface operations {
       };
       /** @description Not Found */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_session_compaction_page_sessions__session_id__compactions_get: {
+    parameters: {
+      query?: {
+        cursor?: number;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SessionCompactionPageResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  invalidate_session_compaction_sessions__session_id__compactions__compaction_id__invalidate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+        compaction_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["InvalidateContextCompactionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InvalidateContextCompactionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  refresh_session_compaction_sessions__session_id__compactions__compaction_id__refresh_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+        compaction_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RefreshContextCompactionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RefreshContextCompactionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Conflict */
+      409: {
         headers: {
           [name: string]: unknown;
         };

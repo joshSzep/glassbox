@@ -309,6 +309,7 @@ class ContextCompactionFreshness(StrEnum):
 
     FRESH = "fresh"
     STALE = "stale"
+    INVALIDATED = "invalidated"
     UNKNOWN = "unknown"
 
 

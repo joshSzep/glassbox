@@ -11,6 +11,8 @@ from fastapi import Query
 
 from glassbox.core.events import ReplayArtifactRecorded
 from glassbox.core.events import ToolArtifactRecorded
+from glassbox.runtime.context_compaction_service import invalidate_context_compaction
+from glassbox.runtime.context_compaction_service import refresh_context_compaction
 from glassbox.runtime.daemon import RuntimeOwnerStatus
 from glassbox.runtime.daemon import inspect_runtime_owner
 from glassbox.runtime.observability import build_background_job_observability
@@ -23,14 +25,20 @@ from glassbox.web.app import RuntimeContextDep
 from glassbox.web.session_api import ActionAcceptedResponse
 from glassbox.web.session_api import ArtifactDetailResponse
 from glassbox.web.session_api import CancelSessionTurnRequest
+from glassbox.web.session_api import ContextCompactionResponse
 from glassbox.web.session_api import ErrorDetailResponse
 from glassbox.web.session_api import EventLogEntryResponse
 from glassbox.web.session_api import ForkSessionRequest
 from glassbox.web.session_api import ForkSessionResponse
+from glassbox.web.session_api import InvalidateContextCompactionRequest
+from glassbox.web.session_api import InvalidateContextCompactionResponse
 from glassbox.web.session_api import PageInfoResponse
+from glassbox.web.session_api import RefreshContextCompactionRequest
+from glassbox.web.session_api import RefreshContextCompactionResponse
 from glassbox.web.session_api import SessionAggregateResponse
 from glassbox.web.session_api import SessionArtifactPageResponse
 from glassbox.web.session_api import SessionCheckpointPageResponse
+from glassbox.web.session_api import SessionCompactionPageResponse
 from glassbox.web.session_api import SessionEventLogPageResponse
 from glassbox.web.session_api import SessionSnapshotResponse
 from glassbox.web.session_api import SessionSummaryResponse
@@ -454,6 +462,136 @@ async def get_session_checkpoint_page(
             TaskCheckpointResponse.model_validate(item.model_dump(mode="json"))
             for item in items
         ],
+    )
+
+
+@router.get(
+    "/{session_id}/compactions",
+    response_model=SessionCompactionPageResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def get_session_compaction_page(
+    session_id: UUID,
+    context: RuntimeContextDep,
+    cursor: PageCursorParam = 0,
+    limit: PageLimitParam = 100,
+) -> SessionCompactionPageResponse:
+    """Return a bounded page of projected context compactions."""
+
+    _ensure_session_exists(session_id, context)
+    rows = context.repositories.sessions.list_context_compactions(
+        session_id,
+        limit=limit + 1,
+        offset=cursor,
+    )
+    items = rows[:limit]
+    next_cursor = cursor + len(items) if len(rows) > limit else None
+    return SessionCompactionPageResponse(
+        session_id=str(session_id),
+        page=_page_info(
+            cursor=cursor,
+            limit=limit,
+            returned_count=len(items),
+            next_cursor=next_cursor,
+        ),
+        items=[
+            ContextCompactionResponse.model_validate(item.model_dump(mode="json"))
+            for item in items
+        ],
+    )
+
+
+@router.post(
+    "/{session_id}/compactions/{compaction_id}/refresh",
+    response_model=RefreshContextCompactionResponse,
+    responses={
+        404: {"model": ErrorDetailResponse},
+        409: {"model": ErrorDetailResponse},
+    },
+)
+async def refresh_session_compaction(
+    session_id: UUID,
+    compaction_id: UUID,
+    body: RefreshContextCompactionRequest,
+    context: RuntimeContextDep,
+) -> RefreshContextCompactionResponse:
+    """Create a replacement compaction after explicit operator confirmation."""
+
+    _ensure_session_exists(session_id, context)
+    if not body.confirmed:
+        raise HTTPException(
+            status_code=409,
+            detail="refresh requires confirmed=true",
+        )
+    try:
+        refreshed, change = refresh_context_compaction(
+            context.repositories.sessions,
+            context.repositories.artifacts,
+            session_id,
+            compaction_id,
+            changed_by="api",
+            reason=body.reason,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    refreshed_record = context.repositories.sessions.get_context_compaction(
+        session_id,
+        refreshed.compaction_id,
+    )
+    if refreshed_record is None:
+        raise HTTPException(
+            status_code=409,
+            detail="refreshed compaction projection is unavailable",
+        )
+    return RefreshContextCompactionResponse(
+        refreshed_compaction=ContextCompactionResponse.model_validate(
+            refreshed_record.model_dump(mode="json")
+        ),
+        previous_compaction_id=str(change.compaction_id),
+        previous_freshness=change.freshness.value,
+        previous_freshness_reason=change.reason,
+        superseded_by_compaction_id=str(refreshed.compaction_id),
+    )
+
+
+@router.post(
+    "/{session_id}/compactions/{compaction_id}/invalidate",
+    response_model=InvalidateContextCompactionResponse,
+    responses={
+        404: {"model": ErrorDetailResponse},
+        409: {"model": ErrorDetailResponse},
+    },
+)
+async def invalidate_session_compaction(
+    session_id: UUID,
+    compaction_id: UUID,
+    body: InvalidateContextCompactionRequest,
+    context: RuntimeContextDep,
+) -> InvalidateContextCompactionResponse:
+    """Mark a compaction as invalidated after explicit confirmation."""
+
+    _ensure_session_exists(session_id, context)
+    if not body.confirmed:
+        raise HTTPException(
+            status_code=409,
+            detail="invalidation requires confirmed=true",
+        )
+    try:
+        change = invalidate_context_compaction(
+            context.repositories.sessions,
+            session_id,
+            compaction_id,
+            reason=body.reason,
+            changed_by="api",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    return InvalidateContextCompactionResponse(
+        compaction_id=str(change.compaction_id),
+        freshness=change.freshness.value,
+        freshness_reason=change.reason,
     )
 
 

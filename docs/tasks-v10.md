@@ -689,7 +689,7 @@ The intended v10 milestone order is:
 
 ### GBX-1033: Add Compaction Refresh And Invalidation Workflow
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1032`
 - Goal: make stale or superseded compactions visible and recoverable
 - Deliverables:
@@ -710,6 +710,15 @@ The intended v10 milestone order is:
 - Done when:
   - operators can understand and repair compaction freshness before it affects
     future turns
+- Completed:
+  - Added `ContextCompactionFreshnessChanged` events, projection freshness
+    reason fields, superseded-by links, and conservative runtime freshness
+    assessment for later checkpoints, verification, tool/artifact, and session
+    events.
+  - Added confirmation-gated CLI and API workflows to list, refresh, and
+    invalidate context compactions while retaining original artifacts for audit.
+  - Added dashboard runtime-pane stale compaction cues and refreshed generated
+    OpenAPI/frontend API types.
 
 ---
 

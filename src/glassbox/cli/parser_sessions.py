@@ -229,6 +229,48 @@ def _add_session_workflow_parsers(
     compactions_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(compactions_parser)
 
+    compaction_refresh_parser = session_subparsers.add_parser(
+        "compaction-refresh",
+        help="refresh a stale context compaction",
+        description=(
+            "Create a replacement context compaction covering current source "
+            "events and mark the original as stale."
+        ),
+    )
+    compaction_refresh_parser.add_argument("session_id", type=_parse_uuid)
+    compaction_refresh_parser.add_argument("compaction_id", type=_parse_uuid)
+    compaction_refresh_parser.add_argument("--reason", default=None)
+    compaction_refresh_parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="confirm the mutating refresh operation",
+    )
+    compaction_refresh_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(compaction_refresh_parser)
+
+    compaction_invalidate_parser = session_subparsers.add_parser(
+        "compaction-invalidate",
+        help="invalidate a context compaction",
+        description=(
+            "Record that a context compaction artifact remains audit evidence "
+            "but must not feed active prompt context."
+        ),
+    )
+    compaction_invalidate_parser.add_argument("session_id", type=_parse_uuid)
+    compaction_invalidate_parser.add_argument("compaction_id", type=_parse_uuid)
+    compaction_invalidate_parser.add_argument(
+        "--reason",
+        required=True,
+        help="operator-visible reason for invalidating the compaction",
+    )
+    compaction_invalidate_parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="confirm the mutating invalidation operation",
+    )
+    compaction_invalidate_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(compaction_invalidate_parser)
+
     fork_parser = session_subparsers.add_parser(
         "fork",
         help="create a child session from a historical turn",

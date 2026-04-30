@@ -233,6 +233,23 @@ class ContextCompactionContextItemSnapshot(BaseModel):
     decision_count: int = Field(default=0, ge=0)
     unresolved_question_count: int = Field(default=0, ge=0)
     accepted_risk_count: int = Field(default=0, ge=0)
+    freshness_reason: str | None = None
+    superseded_by_compaction_id: ContextCompactionId | None = None
+
+
+class ContextCompactionFreshnessCueSnapshot(BaseModel):
+    """Operator-facing cue for a stale or invalidated compaction."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    compaction_id: ContextCompactionId
+    scope: ContextCompactionScope
+    artifact_id: ArtifactId
+    source_start_sequence: int = Field(ge=0)
+    source_end_sequence: int = Field(ge=0)
+    freshness: ContextCompactionFreshness
+    reason: str
+    superseded_by_compaction_id: ContextCompactionId | None = None
 
 
 class ContextCompactionContextSnapshot(BaseModel):
@@ -241,6 +258,9 @@ class ContextCompactionContextSnapshot(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     items: list[ContextCompactionContextItemSnapshot] = Field(default_factory=list)
+    stale_items: list[ContextCompactionFreshnessCueSnapshot] = Field(
+        default_factory=list
+    )
     additional_item_count: int = Field(default=0, ge=0)
     stale_item_count: int = Field(default=0, ge=0)
 

@@ -10,6 +10,9 @@ import httpx
 from glassbox.core import AutonomyBudgetRemaining
 from glassbox.core import AutonomyBudgetUsage
 from glassbox.core import BudgetDecisionRecorded
+from glassbox.core import ContextCompactionCreated
+from glassbox.core import ContextCompactionFreshness
+from glassbox.core import ContextCompactionScope
 from glassbox.core import EventEnvelope
 from glassbox.core import MessagePart
 from glassbox.core import SessionConfig
@@ -29,6 +32,8 @@ from glassbox.core.events import TurnStarted
 from glassbox.core.events import UserMessageReceived
 from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import new_approval_id
+from glassbox.core.ids import new_artifact_id
+from glassbox.core.ids import new_context_compaction_id
 from glassbox.core.ids import new_message_id
 from glassbox.core.ids import new_question_id
 from glassbox.core.ids import new_task_checkpoint_id
@@ -253,6 +258,82 @@ def test_get_session_exposes_latest_checkpoint_and_checkpoint_page(
             assert page_body["page"]["returned_count"] == 1
             assert page_body["items"][0]["source_start_sequence"] == 1
             assert page_body["items"][0]["source_end_sequence"] == 2
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_session_compaction_api_lists_and_invalidates_with_confirmation(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app, runtime_context = _make_app(tmp_path, connection)
+            bus: EventBus[EventEnvelope] = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(runtime_context.repositories.sessions, bus)
+            state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+            compaction_id = new_context_compaction_id()
+            runtime_context.repositories.sessions.append_event(
+                EventEnvelope(
+                    session_id=state.session_id,
+                    sequence=0,
+                    payload=ContextCompactionCreated(
+                        compaction_id=compaction_id,
+                        scope=ContextCompactionScope.TRANSCRIPT,
+                        source_start_sequence=1,
+                        source_end_sequence=1,
+                        summary="Compacted early transcript context.",
+                        artifact_id=new_artifact_id(),
+                        freshness=ContextCompactionFreshness.FRESH,
+                    ),
+                )
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                page_response = await client.get(
+                    f"/sessions/{state.session_id}/compactions"
+                )
+                rejected_response = await client.post(
+                    f"/sessions/{state.session_id}/compactions/"
+                    f"{compaction_id}/invalidate",
+                    json={
+                        "reason": "operator rejected the summary",
+                        "confirmed": False,
+                    },
+                )
+                invalidate_response = await client.post(
+                    f"/sessions/{state.session_id}/compactions/"
+                    f"{compaction_id}/invalidate",
+                    json={
+                        "reason": "operator rejected the summary",
+                        "confirmed": True,
+                    },
+                )
+                page_after_response = await client.get(
+                    f"/sessions/{state.session_id}/compactions"
+                )
+
+            assert page_response.status_code == 200
+            assert page_response.json()["items"][0]["freshness"] == "fresh"
+            assert rejected_response.status_code == 409
+            assert invalidate_response.status_code == 200
+            assert invalidate_response.json()["freshness"] == "invalidated"
+            page_after_body = page_after_response.json()
+            assert page_after_body["items"][0]["freshness"] == "invalidated"
+            assert page_after_body["items"][0]["freshness_reason"] == (
+                "operator rejected the summary"
+            )
         finally:
             connection.close()
 

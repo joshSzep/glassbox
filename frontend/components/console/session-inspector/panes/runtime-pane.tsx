@@ -11,6 +11,8 @@ export function RuntimePane({ data }: { data: DashboardState }) {
   const notes = context?.runtime_notes ?? [];
   const artifacts = context?.artifact_context?.summaries ?? [];
   const memory = context?.workspace_memory ?? [];
+  const compactions = context?.context_compactions ?? null;
+  const staleCompactions = compactions?.stale_items ?? [];
   const repositoryIndex = context?.repository_index ?? null;
   const repositoryIndexItems = repositoryIndex?.items ?? [];
 
@@ -116,6 +118,57 @@ export function RuntimePane({ data }: { data: DashboardState }) {
             <p className="mt-2 text-xs text-muted-foreground">
               {repositoryIndex.status} · {repositoryIndex.entry_count} indexed entries ·{" "}
               {repositoryIndex.context_bytes} context bytes
+            </p>
+          ) : null}
+        </section>
+        <section>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+            Context compactions
+          </p>
+          {compactions === null ||
+          ((compactions.items?.length ?? 0) === 0 && staleCompactions.length === 0) ? (
+            <EmptyLine value="No context compactions influenced this runtime context." />
+          ) : (
+            <DataList density="compact">
+              {(compactions.items ?? []).map((item) => (
+                <DataListItem key={item.compaction_id}>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <DataListLabel>{item.summary}</DataListLabel>
+                      <DataListMeta>
+                        events {item.source_start_sequence}-{item.source_end_sequence} ·{" "}
+                        {item.artifact_id}
+                      </DataListMeta>
+                    </div>
+                    <Badge variant="success">{item.freshness}</Badge>
+                  </div>
+                </DataListItem>
+              ))}
+              {staleCompactions.map((item) => (
+                <DataListItem key={item.compaction_id}>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <DataListLabel>Stale compaction</DataListLabel>
+                      <DataListMeta>{item.reason}</DataListMeta>
+                    </div>
+                    <Badge variant="warning">{item.freshness}</Badge>
+                  </div>
+                  <p className="mt-2 break-all text-xs text-muted-foreground">
+                    events {item.source_start_sequence}-{item.source_end_sequence} ·{" "}
+                    {item.compaction_id}
+                    {item.superseded_by_compaction_id
+                      ? ` · superseded by ${item.superseded_by_compaction_id}`
+                      : ""}
+                  </p>
+                </DataListItem>
+              ))}
+            </DataList>
+          )}
+          {compactions !== null && compactions.stale_item_count > staleCompactions.length ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              {compactions.stale_item_count - staleCompactions.length} additional stale compaction
+              {compactions.stale_item_count - staleCompactions.length === 1 ? "" : "s"} omitted from
+              this snapshot.
             </p>
           ) : null}
         </section>

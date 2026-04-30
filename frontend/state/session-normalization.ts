@@ -171,6 +171,13 @@ function cloneRuntimeContext(runtimeContext: RuntimeContext): RuntimeContext {
           summaries: [...(runtimeContext.artifact_context.summaries ?? [])],
         }
       : undefined,
+    context_compactions: runtimeContext.context_compactions
+      ? {
+          ...runtimeContext.context_compactions,
+          items: [...(runtimeContext.context_compactions.items ?? [])],
+          stale_items: [...(runtimeContext.context_compactions.stale_items ?? [])],
+        }
+      : undefined,
     repository_context: {
       ...runtimeContext.repository_context,
       high_signal_paths: [...(runtimeContext.repository_context.high_signal_paths ?? [])],

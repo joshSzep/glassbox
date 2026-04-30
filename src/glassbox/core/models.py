@@ -292,6 +292,8 @@ class ContextCompactionRecord(BaseModel):
     artifact_id: ArtifactId
     artifact_schema_version: int = Field(ge=1)
     freshness: ContextCompactionFreshness
+    freshness_reason: str | None = Field(default=None, max_length=2000)
+    superseded_by_compaction_id: ContextCompactionId | None = None
     task_id: TaskId | None = None
     turn_id: TurnId | None = None
     checkpoint_id: TaskCheckpointId | None = None

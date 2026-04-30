@@ -612,6 +612,8 @@ def _ensure_context_compaction_projection_schema(
             source_end_sequence integer not null,
             summary text not null,
             freshness text not null,
+            freshness_reason text,
+            superseded_by_compaction_id text,
             limitations_json text not null,
             source_artifact_ids_json text not null,
             decision_count integer not null,
@@ -642,6 +644,16 @@ def _ensure_context_compaction_projection_schema(
             on context_compactions (session_id, checkpoint_id, last_sequence desc)
         """
     )
+    existing_columns = _column_names(connection, "context_compactions")
+    if "freshness_reason" not in existing_columns:
+        connection.execute(
+            "alter table context_compactions add column freshness_reason text"
+        )
+    if "superseded_by_compaction_id" not in existing_columns:
+        connection.execute(
+            "alter table context_compactions add column "
+            "superseded_by_compaction_id text"
+        )
 
 
 def _ensure_task_checkpoint_session_scoped_key(

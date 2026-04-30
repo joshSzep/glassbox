@@ -9,6 +9,7 @@ from glassbox.core import AutonomyMode
 from glassbox.core import BudgetDecisionRecorded
 from glassbox.core import ContextCompactionCreated
 from glassbox.core import ContextCompactionFreshness
+from glassbox.core import ContextCompactionFreshnessChanged
 from glassbox.core import ContextCompactionScope
 from glassbox.core import EventEnvelope
 from glassbox.core import LongRunPhase
@@ -390,6 +391,16 @@ def test_context_compaction_projection_keeps_history_and_rebuilds(
                         limitations=["omits raw command output"],
                     ),
                 ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ContextCompactionFreshnessChanged(
+                        compaction_id=compaction_id,
+                        freshness=ContextCompactionFreshness.STALE,
+                        reason="A newer checkpoint superseded this compaction.",
+                        superseded_by_compaction_id=new_context_compaction_id(),
+                    ),
+                ),
             ],
         )
 
@@ -409,7 +420,9 @@ def test_context_compaction_projection_keeps_history_and_rebuilds(
     assert history_before == history_after
     assert after is not None
     assert after.scope == ContextCompactionScope.TRANSCRIPT
-    assert after.freshness == ContextCompactionFreshness.FRESH
+    assert after.freshness == ContextCompactionFreshness.STALE
+    assert after.freshness_reason == "A newer checkpoint superseded this compaction."
+    assert after.superseded_by_compaction_id is not None
     assert after.source_artifact_ids == [source_artifact_id]
     assert after.decision_count == 2
     assert after.unresolved_question_count == 1

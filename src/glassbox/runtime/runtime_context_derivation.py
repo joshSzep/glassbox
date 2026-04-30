@@ -4,8 +4,12 @@ from pathlib import Path
 
 from glassbox.core.ids import SessionId
 from glassbox.runtime.checkpoints import build_checkpoint_resume_snapshot
+from glassbox.runtime.context_compaction_service import (
+    assessed_context_compaction_record,
+)
 from glassbox.runtime.context_models import ContextCompactionContextItemSnapshot
 from glassbox.runtime.context_models import ContextCompactionContextSnapshot
+from glassbox.runtime.context_models import ContextCompactionFreshnessCueSnapshot
 from glassbox.runtime.context_models import RuntimeContextSnapshot
 from glassbox.runtime.context_snapshots import build_artifact_backed_context_snapshot
 from glassbox.runtime.context_snapshots import build_repository_index_context_snapshot
@@ -79,8 +83,12 @@ def build_context_compaction_context_snapshot(
         session_id,
         limit=item_limit + 25,
     )
+    events = session_repository.read_session_events(session_id)
+    rows = [assessed_context_compaction_record(row, events) for row in rows]
     fresh_rows = [row for row in rows if row.freshness == "fresh"]
+    stale_rows = [row for row in rows if row.freshness != "fresh"]
     selected = fresh_rows[:item_limit]
+    stale_selected = stale_rows[:item_limit]
     return ContextCompactionContextSnapshot(
         items=[
             ContextCompactionContextItemSnapshot(
@@ -95,8 +103,24 @@ def build_context_compaction_context_snapshot(
                 decision_count=row.decision_count,
                 unresolved_question_count=row.unresolved_question_count,
                 accepted_risk_count=row.accepted_risk_count,
+                freshness_reason=row.freshness_reason,
+                superseded_by_compaction_id=row.superseded_by_compaction_id,
             )
             for row in selected
+        ],
+        stale_items=[
+            ContextCompactionFreshnessCueSnapshot(
+                compaction_id=row.compaction_id,
+                scope=row.scope,
+                artifact_id=row.artifact_id,
+                source_start_sequence=row.source_start_sequence,
+                source_end_sequence=row.source_end_sequence,
+                freshness=row.freshness,
+                reason=row.freshness_reason
+                or "Compaction is not fresh enough for active prompt context.",
+                superseded_by_compaction_id=row.superseded_by_compaction_id,
+            )
+            for row in stale_selected
         ],
         additional_item_count=max(len(fresh_rows) - len(selected), 0),
         stale_item_count=max(len(rows) - len(fresh_rows), 0),

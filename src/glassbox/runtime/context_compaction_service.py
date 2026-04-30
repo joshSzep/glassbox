@@ -7,9 +7,11 @@ from typing import Any
 
 from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import ContextCompactionCreated
+from glassbox.core.events import ContextCompactionFreshnessChanged
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import ModelToolCallRequested
 from glassbox.core.events import SessionFailed
+from glassbox.core.events import TaskCheckpointCreated
 from glassbox.core.events import TaskStepCompleted
 from glassbox.core.events import TaskStepFailed
 from glassbox.core.events import TaskVerificationCompleted
@@ -17,9 +19,11 @@ from glassbox.core.events import TaskVerificationFailed
 from glassbox.core.events import TaskVerificationResidualRiskAccepted
 from glassbox.core.events import TurnFailed
 from glassbox.core.events import UserQuestionAsked
+from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import TaskId
 from glassbox.core.ids import new_context_compaction_id
+from glassbox.core.models import ContextCompactionRecord
 from glassbox.core.types import ContextCompactionFreshness
 from glassbox.core.types import ContextCompactionScope
 from glassbox.runtime.context_compaction import CONTEXT_COMPACTION_ARTIFACT_KIND
@@ -29,6 +33,11 @@ from glassbox.runtime.context_compaction import ContextCompactionFailureItem
 from glassbox.runtime.context_compaction import ContextCompactionSourceReference
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
+
+_NON_MATERIAL_COMPACTION_EVENTS = {
+    "ContextCompactionCreated",
+    "ContextCompactionFreshnessChanged",
+}
 
 
 def create_deterministic_context_compaction(
@@ -98,6 +107,184 @@ def create_deterministic_context_compaction(
         EventEnvelope(session_id=session_id, sequence=0, payload=payload)
     )
     return payload
+
+
+def refresh_context_compaction(
+    session_repository: SessionRepository,
+    artifact_repository: ArtifactRepository,
+    session_id: SessionId,
+    compaction_id: ContextCompactionId,
+    *,
+    changed_by: str = "operator",
+    reason: str | None = None,
+) -> tuple[ContextCompactionCreated, ContextCompactionFreshnessChanged]:
+    """Create a replacement compaction and mark the previous one superseded."""
+
+    record = session_repository.get_context_compaction(session_id, compaction_id)
+    if record is None:
+        raise ValueError(f"unknown compaction_id: {compaction_id}")
+
+    source_end_sequence = latest_material_source_sequence(
+        session_repository.read_session_events(session_id),
+        default=record.source_end_sequence,
+    )
+    refreshed = create_deterministic_context_compaction(
+        session_repository,
+        artifact_repository,
+        session_id,
+        scope=record.scope,
+        task_id=record.task_id,
+        source_start_sequence=record.source_start_sequence,
+        source_end_sequence=source_end_sequence,
+    )
+    change = ContextCompactionFreshnessChanged(
+        compaction_id=record.compaction_id,
+        freshness=ContextCompactionFreshness.STALE,
+        reason=reason
+        or (
+            "Compaction was refreshed; the replacement covers source events "
+            f"{refreshed.source_start_sequence}-{refreshed.source_end_sequence}."
+        ),
+        changed_by=changed_by,
+        superseded_by_compaction_id=refreshed.compaction_id,
+    )
+    session_repository.append_event(
+        EventEnvelope(session_id=session_id, sequence=0, payload=change)
+    )
+    return refreshed, change
+
+
+def invalidate_context_compaction(
+    session_repository: SessionRepository,
+    session_id: SessionId,
+    compaction_id: ContextCompactionId,
+    *,
+    reason: str,
+    changed_by: str = "operator",
+) -> ContextCompactionFreshnessChanged:
+    """Record that a compaction must not be used for active context."""
+
+    record = session_repository.get_context_compaction(session_id, compaction_id)
+    if record is None:
+        raise ValueError(f"unknown compaction_id: {compaction_id}")
+    change = ContextCompactionFreshnessChanged(
+        compaction_id=record.compaction_id,
+        freshness=ContextCompactionFreshness.INVALIDATED,
+        reason=reason,
+        changed_by=changed_by,
+    )
+    session_repository.append_event(
+        EventEnvelope(session_id=session_id, sequence=0, payload=change)
+    )
+    return change
+
+
+def assessed_context_compaction_record(
+    record: ContextCompactionRecord,
+    events: list[EventEnvelope],
+) -> ContextCompactionRecord:
+    """Return a record with conservative freshness inferred from later events."""
+
+    if record.freshness != ContextCompactionFreshness.FRESH:
+        return record
+
+    reason = _fresh_compaction_staleness_reason(record, events)
+    if reason is None:
+        return record
+
+    return record.model_copy(
+        update={
+            "freshness": ContextCompactionFreshness.STALE,
+            "freshness_reason": reason,
+        }
+    )
+
+
+def latest_material_source_sequence(
+    events: list[EventEnvelope],
+    *,
+    default: int = 0,
+) -> int:
+    """Return the latest event sequence that should be included in compactions."""
+
+    latest_material = max(
+        (
+            event.sequence
+            for event in events
+            if event.event_type not in _NON_MATERIAL_COMPACTION_EVENTS
+        ),
+        default=default,
+    )
+    return max(default, latest_material)
+
+
+def _fresh_compaction_staleness_reason(
+    record: ContextCompactionRecord,
+    events: list[EventEnvelope],
+) -> str | None:
+    later_material_events = [
+        event
+        for event in events
+        if event.sequence > record.source_end_sequence
+        and event.event_type not in _NON_MATERIAL_COMPACTION_EVENTS
+    ]
+    if not later_material_events:
+        return None
+
+    latest_checkpoint = next(
+        (
+            event
+            for event in reversed(later_material_events)
+            if isinstance(event.payload, TaskCheckpointCreated)
+        ),
+        None,
+    )
+    if latest_checkpoint is not None:
+        return (
+            "A newer checkpoint exists after this compaction's source range "
+            f"(event {latest_checkpoint.sequence})."
+        )
+
+    verification_event = next(
+        (
+            event
+            for event in reversed(later_material_events)
+            if event.event_type.startswith("TaskVerification")
+        ),
+        None,
+    )
+    if verification_event is not None:
+        return (
+            "Verification evidence changed after this compaction's source range "
+            f"(event {verification_event.sequence})."
+        )
+
+    tool_or_artifact_event = next(
+        (
+            event
+            for event in reversed(later_material_events)
+            if event.event_type
+            in {
+                "ModelToolCallRequested",
+                "ToolExecutionStarted",
+                "ToolExecutionCompleted",
+                "ToolExecutionCancelled",
+                "ToolArtifactRecorded",
+            }
+        ),
+        None,
+    )
+    if tool_or_artifact_event is not None:
+        return (
+            "Workspace or tool evidence changed after this compaction's source "
+            f"range (event {tool_or_artifact_event.sequence})."
+        )
+
+    latest = later_material_events[-1]
+    return (
+        "Session events exist after this compaction's source range "
+        f"(latest event {latest.sequence})."
+    )
 
 
 def _build_artifact(
@@ -306,5 +493,9 @@ def _event_label(event: EventEnvelope) -> str:
 
 __all__ = [
     "CONTEXT_COMPACTION_ARTIFACT_KIND",
+    "assessed_context_compaction_record",
     "create_deterministic_context_compaction",
+    "invalidate_context_compaction",
+    "latest_material_source_sequence",
+    "refresh_context_compaction",
 ]

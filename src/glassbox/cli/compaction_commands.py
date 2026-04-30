@@ -10,6 +10,8 @@ from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.context_compaction_service import (
     create_deterministic_context_compaction,
 )
+from glassbox.runtime.context_compaction_service import invalidate_context_compaction
+from glassbox.runtime.context_compaction_service import refresh_context_compaction
 
 
 def _session_compact_command(args: argparse.Namespace) -> int:
@@ -73,8 +75,83 @@ def _session_compactions_command(args: argparse.Namespace) -> int:
             f"  Artifact: {_compaction_artifact_path(row.session_id, row.artifact_id)}"
         )
         print(f"  Summary: {row.summary}")
+        if row.freshness_reason:
+            print(f"  Freshness reason: {row.freshness_reason}")
+        if row.superseded_by_compaction_id:
+            print(f"  Superseded by: {row.superseded_by_compaction_id}")
         if row.limitations:
             print(f"  Limitations: {'; '.join(row.limitations)}")
+    return 0
+
+
+def _session_compaction_refresh_command(args: argparse.Namespace) -> int:
+    if not args.yes:
+        print(
+            "Refreshing a context compaction records a replacement artifact and "
+            "marks the original stale. Re-run with --yes to confirm."
+        )
+        return 2
+
+    cwd, db_path = resolve_runtime_location(
+        args,
+        require_daemon_unowned_for="refresh a context compaction locally",
+    )
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        refreshed, change = refresh_context_compaction(
+            runtime_context.repositories.sessions,
+            runtime_context.repositories.artifacts,
+            args.session_id,
+            args.compaction_id,
+            reason=args.reason,
+        )
+
+    if args.json:
+        print_json_output(
+            {
+                "refreshed_compaction": refreshed.model_dump(mode="json"),
+                "previous_compaction": change.model_dump(mode="json"),
+            }
+        )
+        return 0
+
+    print(
+        "Refreshed context compaction "
+        f"{args.compaction_id} with replacement {refreshed.compaction_id}"
+    )
+    print(
+        "Replacement source events: "
+        f"{refreshed.source_start_sequence}-{refreshed.source_end_sequence}"
+    )
+    print(f"Previous freshness reason: {change.reason}")
+    return 0
+
+
+def _session_compaction_invalidate_command(args: argparse.Namespace) -> int:
+    if not args.yes:
+        print(
+            "Invalidating a context compaction keeps the artifact for audit but "
+            "excludes it from active prompt context. Re-run with --yes to confirm."
+        )
+        return 2
+
+    cwd, db_path = resolve_runtime_location(
+        args,
+        require_daemon_unowned_for="invalidate a context compaction locally",
+    )
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        change = invalidate_context_compaction(
+            runtime_context.repositories.sessions,
+            args.session_id,
+            args.compaction_id,
+            reason=args.reason,
+        )
+
+    if args.json:
+        print_json_output(change.model_dump(mode="json"))
+        return 0
+
+    print(f"Invalidated context compaction {args.compaction_id}")
+    print(f"Freshness reason: {change.reason}")
     return 0
 
 
@@ -88,4 +165,9 @@ def _compaction_artifact_path(session_id, artifact_id) -> str:
     ).as_posix()
 
 
-__all__ = ["_session_compact_command", "_session_compactions_command"]
+__all__ = [
+    "_session_compact_command",
+    "_session_compaction_invalidate_command",
+    "_session_compaction_refresh_command",
+    "_session_compactions_command",
+]

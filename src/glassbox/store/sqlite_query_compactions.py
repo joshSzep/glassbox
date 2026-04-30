@@ -79,6 +79,8 @@ def _compaction_record_from_row(row: sqlite3.Row) -> ContextCompactionRecord:
         source_end_sequence=row["source_end_sequence"],
         summary=row["summary"],
         freshness=ContextCompactionFreshness(row["freshness"]),
+        freshness_reason=row["freshness_reason"],
+        superseded_by_compaction_id=row["superseded_by_compaction_id"],
         limitations=_json_list(row["limitations_json"]),
         source_artifact_ids=[
             UUID(value) for value in _json_list(row["source_artifact_ids_json"])

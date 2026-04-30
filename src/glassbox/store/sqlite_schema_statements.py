@@ -536,6 +536,8 @@ BOOTSTRAP_STATEMENTS = (
         source_end_sequence integer not null,
         summary text not null,
         freshness text not null,
+        freshness_reason text,
+        superseded_by_compaction_id text,
         limitations_json text not null,
         source_artifact_ids_json text not null,
         decision_count integer not null,

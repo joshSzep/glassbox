@@ -1191,6 +1191,121 @@ def test_cli_compact_creates_and_lists_context_compaction(
     assert persisted_events[-1].event_type == "ContextCompactionCreated"
 
 
+def test_cli_compaction_refresh_and_invalidate_are_confirmation_gated(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    _ = capsys.readouterr()
+
+    assert (
+        main(
+            [
+                "session",
+                "compact",
+                str(session_id),
+                "--cwd",
+                str(tmp_path),
+                "--db-path",
+                str(db_path),
+            ]
+        )
+        == 0
+    )
+    _ = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        original = repository.list_context_compactions(session_id)[0]
+    finally:
+        connection.close()
+
+    refresh_without_confirmation = main(
+        [
+            "session",
+            "compaction-refresh",
+            str(session_id),
+            str(original.compaction_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    refresh_warning = capsys.readouterr()
+
+    assert refresh_without_confirmation == 2
+    assert "Re-run with --yes" in refresh_warning.out
+
+    refresh_exit_code = main(
+        [
+            "session",
+            "compaction-refresh",
+            str(session_id),
+            str(original.compaction_id),
+            "--yes",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    refresh_output = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        compactions_after_refresh = repository.list_context_compactions(session_id)
+        refreshed = [
+            row
+            for row in compactions_after_refresh
+            if row.compaction_id != original.compaction_id
+        ][0]
+        previous = repository.get_context_compaction(session_id, original.compaction_id)
+    finally:
+        connection.close()
+
+    assert refresh_exit_code == 0
+    assert "replacement" in refresh_output.out
+    assert previous is not None
+    assert previous.freshness.value == "stale"
+    assert previous.superseded_by_compaction_id == refreshed.compaction_id
+
+    invalidate_exit_code = main(
+        [
+            "session",
+            "compaction-invalidate",
+            str(session_id),
+            str(refreshed.compaction_id),
+            "--reason",
+            "summary omitted an operator blocker",
+            "--yes",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    invalidate_output = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        invalidated = repository.get_context_compaction(
+            session_id,
+            refreshed.compaction_id,
+        )
+    finally:
+        connection.close()
+
+    assert invalidate_exit_code == 0
+    assert "Invalidated context compaction" in invalidate_output.out
+    assert invalidated is not None
+    assert invalidated.freshness.value == "invalidated"
+    assert invalidated.freshness_reason == "summary omitted an operator blocker"
+
+
 def test_cli_status_includes_session_failure_details(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

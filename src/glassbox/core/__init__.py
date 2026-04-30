@@ -37,6 +37,7 @@ from glassbox.core.events import CancellationAcknowledged
 from glassbox.core.events import CancellationFailed
 from glassbox.core.events import CancellationRequested
 from glassbox.core.events import ContextCompactionCreated
+from glassbox.core.events import ContextCompactionFreshnessChanged
 from glassbox.core.events import ErrorRecorded
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import EventPayload
@@ -275,6 +276,7 @@ __all__ = [
     "CancellationFailed",
     "CancellationRequested",
     "ContextCompactionCreated",
+    "ContextCompactionFreshnessChanged",
     "ContextCompactionFreshness",
     "ContextCompactionId",
     "ContextCompactionRecord",

@@ -18,6 +18,7 @@ from glassbox.runtime.context_models import ArtifactBackedContextSummarySnapshot
 from glassbox.runtime.context_models import CheckpointResumeSnapshot
 from glassbox.runtime.context_models import ContextCompactionContextItemSnapshot
 from glassbox.runtime.context_models import ContextCompactionContextSnapshot
+from glassbox.runtime.context_models import ContextCompactionFreshnessCueSnapshot
 from glassbox.runtime.context_models import PolicyContext
 from glassbox.runtime.context_models import PytestFailureDigestArtifact
 from glassbox.runtime.context_models import RepositoryContextSnapshot
@@ -159,6 +160,7 @@ __all__ = [
     "CheckpointResumeSnapshot",
     "ContextCompactionContextItemSnapshot",
     "ContextCompactionContextSnapshot",
+    "ContextCompactionFreshnessCueSnapshot",
     "build_artifact_backed_context_snapshot",
     "build_pytest_failure_digest_artifact",
     "build_repository_context_snapshot",

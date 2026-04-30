@@ -129,6 +129,7 @@ describe("session inspector", () => {
     expect(runtimeMarkup).toContain("Working set");
     expect(runtimeMarkup).toContain("Runtime notes");
     expect(runtimeMarkup).toContain("Artifact provenance");
+    expect(runtimeMarkup).toContain("Context compactions");
     expect(runtimeMarkup).toContain("frontend/app/page.tsx");
     expect(runtimeMarkup).not.toContain("Continue session");
     expect(runtimeMarkup).not.toContain("Inspect the console");
@@ -183,6 +184,40 @@ describe("session inspector", () => {
     expect(metricsMarkup).toContain("Tokens");
     expect(metricsMarkup).toContain("6.5s");
     expect(metricsMarkup).not.toContain("Continue session");
+  });
+
+  it("renders stale compaction cues in the runtime pane", () => {
+    const data = hydrateSelectedSession(
+      createDashboardState(),
+      makeSessionSnapshot("session-1", {
+        runtime_context: makeRuntimeContext({
+          context_compactions: {
+            additional_item_count: 0,
+            items: [],
+            stale_item_count: 1,
+            stale_items: [
+              {
+                artifact_id: "artifact-1",
+                compaction_id: "compaction-1",
+                freshness: "stale",
+                reason: "A newer checkpoint exists after this compaction's source range.",
+                scope: "transcript",
+                source_end_sequence: 4,
+                source_start_sequence: 1,
+                superseded_by_compaction_id: "compaction-2",
+              },
+            ],
+          },
+        }),
+      }),
+    );
+
+    const markup = renderInspectorTab(data, "runtime");
+
+    expect(markup).toContain("Context compactions");
+    expect(markup).toContain("Stale compaction");
+    expect(markup).toContain("newer checkpoint");
+    expect(markup).toContain("superseded by compaction-2");
   });
 
   it("preserves direct links for inspector tabs", () => {

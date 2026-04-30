@@ -34,6 +34,7 @@ from glassbox.core import CancellationFailed
 from glassbox.core import CancellationRequested
 from glassbox.core import ContextCompactionCreated
 from glassbox.core import ContextCompactionFreshness
+from glassbox.core import ContextCompactionFreshnessChanged
 from glassbox.core import ContextCompactionScope
 from glassbox.core import ErrorRecorded
 from glassbox.core import EventEnvelope
@@ -491,6 +492,15 @@ def test_long_run_payloads_round_trip_through_event_union() -> None:
             "checkpoint_id": checkpoint_id,
         }
     )
+    compaction_freshness = adapter.validate_python(
+        {
+            "event_type": "ContextCompactionFreshnessChanged",
+            "compaction_id": compaction_id,
+            "freshness": "invalidated",
+            "reason": "operator rejected the summary",
+            "changed_by": "operator",
+        }
+    )
     heartbeat = adapter.validate_python(
         {
             "event_type": "ToolAttemptHeartbeat",
@@ -539,6 +549,8 @@ def test_long_run_payloads_round_trip_through_event_union() -> None:
     assert isinstance(compaction, ContextCompactionCreated)
     assert compaction.scope == ContextCompactionScope.TRANSCRIPT
     assert compaction.freshness == ContextCompactionFreshness.FRESH
+    assert isinstance(compaction_freshness, ContextCompactionFreshnessChanged)
+    assert compaction_freshness.freshness == ContextCompactionFreshness.INVALIDATED
     assert isinstance(heartbeat, ToolAttemptHeartbeat)
     assert heartbeat.status == ToolAttemptStatus.RUNNING
     assert isinstance(decision, RecoveryDecisionRecorded)

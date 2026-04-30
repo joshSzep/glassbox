@@ -119,6 +119,30 @@ class TaskCheckpointResponse(BaseModel):
     last_sequence: int
 
 
+class ContextCompactionResponse(BaseModel):
+    compaction_id: str
+    session_id: str
+    scope: str
+    source_start_sequence: int
+    source_end_sequence: int
+    summary: str
+    artifact_id: str
+    artifact_schema_version: int
+    freshness: str
+    freshness_reason: str | None = None
+    superseded_by_compaction_id: str | None = None
+    task_id: str | None = None
+    turn_id: str | None = None
+    checkpoint_id: str | None = None
+    source_artifact_ids: list[str]
+    decision_count: int
+    unresolved_question_count: int
+    accepted_risk_count: int
+    limitations: list[str]
+    created_at: datetime
+    last_sequence: int
+
+
 class ProjectionHealthResponse(BaseModel):
     state: str
     canonical_last_sequence: int
@@ -239,6 +263,36 @@ class SessionCheckpointPageResponse(BaseModel):
     session_id: str
     page: PageInfoResponse
     items: list[TaskCheckpointResponse]
+
+
+class SessionCompactionPageResponse(BaseModel):
+    session_id: str
+    page: PageInfoResponse
+    items: list[ContextCompactionResponse]
+
+
+class RefreshContextCompactionRequest(BaseModel):
+    reason: str | None = None
+    confirmed: bool = False
+
+
+class RefreshContextCompactionResponse(BaseModel):
+    refreshed_compaction: ContextCompactionResponse
+    previous_compaction_id: str
+    previous_freshness: str
+    previous_freshness_reason: str
+    superseded_by_compaction_id: str
+
+
+class InvalidateContextCompactionRequest(BaseModel):
+    reason: str
+    confirmed: bool = False
+
+
+class InvalidateContextCompactionResponse(BaseModel):
+    compaction_id: str
+    freshness: str
+    freshness_reason: str
 
 
 class SessionArtifactPageResponse(BaseModel):

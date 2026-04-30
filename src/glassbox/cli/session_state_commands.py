@@ -57,6 +57,8 @@ def _status_command(args: argparse.Namespace) -> int:
 
 def _session_command(args: argparse.Namespace) -> int:
     from glassbox.cli.compaction_commands import _session_compact_command
+    from glassbox.cli.compaction_commands import _session_compaction_invalidate_command
+    from glassbox.cli.compaction_commands import _session_compaction_refresh_command
     from glassbox.cli.compaction_commands import _session_compactions_command
     from glassbox.cli.interactive_commands import _answer_command
     from glassbox.cli.interactive_commands import _attach_command
@@ -96,6 +98,10 @@ def _session_command(args: argparse.Namespace) -> int:
         return _session_compact_command(args)
     if args.session_command == "compactions":
         return _session_compactions_command(args)
+    if args.session_command == "compaction-refresh":
+        return _session_compaction_refresh_command(args)
+    if args.session_command == "compaction-invalidate":
+        return _session_compaction_invalidate_command(args)
     if args.session_command == "export":
         return _session_export_command(args)
     if args.session_command == "import":

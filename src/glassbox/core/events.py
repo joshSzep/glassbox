@@ -843,6 +843,17 @@ class ContextCompactionCreated(EventPayload):
         return self
 
 
+class ContextCompactionFreshnessChanged(EventPayload):
+    event_type: Literal["ContextCompactionFreshnessChanged"] = (
+        "ContextCompactionFreshnessChanged"
+    )
+    compaction_id: ContextCompactionId
+    freshness: ContextCompactionFreshness
+    reason: str = Field(min_length=1, max_length=2000)
+    changed_by: str = Field(default="runtime", min_length=1, max_length=200)
+    superseded_by_compaction_id: ContextCompactionId | None = None
+
+
 class ToolAttemptHeartbeat(EventPayload):
     event_type: Literal["ToolAttemptHeartbeat"] = "ToolAttemptHeartbeat"
     tool_attempt_id: ToolAttemptId
@@ -1053,6 +1064,7 @@ EventPayloadType = Annotated[
     | LongRunPhaseChanged
     | TaskCheckpointCreated
     | ContextCompactionCreated
+    | ContextCompactionFreshnessChanged
     | ToolAttemptHeartbeat
     | RecoveryDecisionRecorded
     | ResumeOutcomeRecorded

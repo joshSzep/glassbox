@@ -23,6 +23,12 @@ export function makeRuntimeContext(
     additional_runtime_note_count: 0,
     additional_workspace_memory_count: 0,
     artifact_context: { additional_summary_count: 0, summaries: [] },
+    context_compactions: {
+      additional_item_count: 0,
+      items: [],
+      stale_item_count: 0,
+      stale_items: [],
+    },
     repository_context: {
       additional_directory_count: 0,
       additional_file_count: 0,

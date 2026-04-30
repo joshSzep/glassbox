@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from glassbox.core import ApprovalStatus
 from glassbox.core import ContextCompactionFreshness
+from glassbox.core import ContextCompactionRecord
 from glassbox.core import ContextCompactionScope
 from glassbox.core import EventEnvelope
 from glassbox.core import LongRunPhase
@@ -24,6 +25,7 @@ from glassbox.core import RuntimeNoteRecorded
 from glassbox.core import SessionRecord
 from glassbox.core import SessionState
 from glassbox.core import SessionStatus
+from glassbox.core import TaskCheckpointCreated
 from glassbox.core import TaskCheckpointRecord
 from glassbox.core import ToolArtifactRecorded
 from glassbox.core import ToolCallRecord
@@ -95,6 +97,7 @@ class FakeSessionRepository:
         approvals=None,
         workspace_memory=None,
         latest_checkpoint=None,
+        context_compactions=None,
     ):
         self._session = session
         self._session_state = session_state
@@ -105,6 +108,7 @@ class FakeSessionRepository:
         self._approvals = list(approvals or [])
         self._workspace_memory = list(workspace_memory or [])
         self._latest_checkpoint = latest_checkpoint
+        self._context_compactions = list(context_compactions or [])
 
     def create_session(
         self,
@@ -255,7 +259,16 @@ class FakeSessionRepository:
         return []
 
     def get_context_compaction(self, session_id, compaction_id):
-        return None
+        if self._session.session_id != session_id:
+            return None
+        return next(
+            (
+                compaction
+                for compaction in self._context_compactions
+                if compaction.compaction_id == compaction_id
+            ),
+            None,
+        )
 
     def list_context_compactions(
         self,
@@ -265,8 +278,11 @@ class FakeSessionRepository:
         limit=None,
         offset=0,
     ):
-        del task_id, limit, offset
-        return []
+        del task_id
+        if self._session.session_id != session_id:
+            return []
+        compactions = self._context_compactions[offset:]
+        return compactions if limit is None else compactions[:limit]
 
     def enqueue_background_job(self, session_id, **kwargs):
         raise NotImplementedError
@@ -651,6 +667,74 @@ def test_turn_context_builder_includes_fresh_context_compactions() -> None:
         for note in context.memory_notes
     )
     assert any("stale compaction(s) excluded" in note for note in context.memory_notes)
+
+
+def test_runtime_context_derivation_marks_old_compactions_stale(
+    tmp_path: Path,
+) -> None:
+    session_id = new_session_id()
+    compaction_id = new_context_compaction_id()
+    artifact_id = new_artifact_id()
+    repository = FakeSessionRepository(
+        SessionRecord(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            created_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 4, 24, 12, 1, tzinfo=UTC),
+            cwd=tmp_path,
+            model_name="openai:gpt-5.4",
+            approval_mode="confirm",
+            last_sequence=3,
+        ),
+        SessionState(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            last_sequence=3,
+        ),
+        [],
+        context_compactions=[
+            ContextCompactionRecord(
+                compaction_id=compaction_id,
+                session_id=session_id,
+                scope=ContextCompactionScope.TRANSCRIPT,
+                source_start_sequence=1,
+                source_end_sequence=2,
+                summary="Compacted old context.",
+                artifact_id=artifact_id,
+                artifact_schema_version=1,
+                freshness=ContextCompactionFreshness.FRESH,
+                created_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+                last_sequence=2,
+            )
+        ],
+        events=[
+            EventEnvelope(
+                session_id=session_id,
+                sequence=3,
+                payload=TaskCheckpointCreated(
+                    checkpoint_id=new_task_checkpoint_id(),
+                    objective="continue safely",
+                    next_action="refresh stale compaction",
+                    recovery_guidance="inspect the latest checkpoint first",
+                    source_start_sequence=1,
+                    source_end_sequence=3,
+                ),
+            )
+        ],
+    )
+
+    runtime_context = derive_runtime_context_snapshot(
+        repository,
+        session_id,
+        tmp_path,
+    )
+
+    assert runtime_context.context_compactions.items == []
+    assert runtime_context.context_compactions.stale_item_count == 1
+    stale = runtime_context.context_compactions.stale_items[0]
+    assert stale.compaction_id == compaction_id
+    assert stale.freshness == ContextCompactionFreshness.STALE
+    assert "newer checkpoint" in stale.reason
 
 
 def test_turn_context_builder_includes_memory_and_repository_index_context() -> None:

@@ -1325,6 +1325,17 @@
           "freshness": {
             "$ref": "#/components/schemas/ContextCompactionFreshness"
           },
+          "freshness_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Freshness Reason"
+          },
           "limitations": {
             "items": {
               "type": "string"
@@ -1348,6 +1359,16 @@
           "summary": {
             "title": "Summary",
             "type": "string"
+          },
+          "superseded_by_compaction_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContextCompactionId"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "unresolved_question_count": {
             "default": 0,
@@ -1390,6 +1411,13 @@
             "minimum": 0.0,
             "title": "Stale Item Count",
             "type": "integer"
+          },
+          "stale_items": {
+            "items": {
+              "$ref": "#/components/schemas/ContextCompactionFreshnessCueSnapshot"
+            },
+            "title": "Stale Items",
+            "type": "array"
           }
         },
         "title": "ContextCompactionContextSnapshot",
@@ -1397,13 +1425,216 @@
       },
       "ContextCompactionFreshness": {
         "description": "Freshness posture for compaction artifacts.",
-        "enum": ["fresh", "stale", "unknown"],
+        "enum": ["fresh", "stale", "invalidated", "unknown"],
         "title": "ContextCompactionFreshness",
         "type": "string"
+      },
+      "ContextCompactionFreshnessCueSnapshot": {
+        "additionalProperties": false,
+        "description": "Operator-facing cue for a stale or invalidated compaction.",
+        "properties": {
+          "artifact_id": {
+            "$ref": "#/components/schemas/ArtifactId"
+          },
+          "compaction_id": {
+            "$ref": "#/components/schemas/ContextCompactionId"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/ContextCompactionFreshness"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ContextCompactionScope"
+          },
+          "source_end_sequence": {
+            "minimum": 0.0,
+            "title": "Source End Sequence",
+            "type": "integer"
+          },
+          "source_start_sequence": {
+            "minimum": 0.0,
+            "title": "Source Start Sequence",
+            "type": "integer"
+          },
+          "superseded_by_compaction_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContextCompactionId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "compaction_id",
+          "scope",
+          "artifact_id",
+          "source_start_sequence",
+          "source_end_sequence",
+          "freshness",
+          "reason"
+        ],
+        "title": "ContextCompactionFreshnessCueSnapshot",
+        "type": "object"
       },
       "ContextCompactionId": {
         "format": "uuid",
         "type": "string"
+      },
+      "ContextCompactionResponse": {
+        "properties": {
+          "accepted_risk_count": {
+            "title": "Accepted Risk Count",
+            "type": "integer"
+          },
+          "artifact_id": {
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "artifact_schema_version": {
+            "title": "Artifact Schema Version",
+            "type": "integer"
+          },
+          "checkpoint_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkpoint Id"
+          },
+          "compaction_id": {
+            "title": "Compaction Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decision_count": {
+            "title": "Decision Count",
+            "type": "integer"
+          },
+          "freshness": {
+            "title": "Freshness",
+            "type": "string"
+          },
+          "freshness_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Freshness Reason"
+          },
+          "last_sequence": {
+            "title": "Last Sequence",
+            "type": "integer"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "scope": {
+            "title": "Scope",
+            "type": "string"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "source_artifact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Artifact Ids",
+            "type": "array"
+          },
+          "source_end_sequence": {
+            "title": "Source End Sequence",
+            "type": "integer"
+          },
+          "source_start_sequence": {
+            "title": "Source Start Sequence",
+            "type": "integer"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "superseded_by_compaction_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded By Compaction Id"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "turn_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turn Id"
+          },
+          "unresolved_question_count": {
+            "title": "Unresolved Question Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "compaction_id",
+          "session_id",
+          "scope",
+          "source_start_sequence",
+          "source_end_sequence",
+          "summary",
+          "artifact_id",
+          "artifact_schema_version",
+          "freshness",
+          "source_artifact_ids",
+          "decision_count",
+          "unresolved_question_count",
+          "accepted_risk_count",
+          "limitations",
+          "created_at",
+          "last_sequence"
+        ],
+        "title": "ContextCompactionResponse",
+        "type": "object"
       },
       "ContextCompactionScope": {
         "description": "Scope of a durable context compaction artifact.",
@@ -1644,6 +1875,41 @@
         },
         "required": ["status", "event_transport"],
         "title": "HealthResponse",
+        "type": "object"
+      },
+      "InvalidateContextCompactionRequest": {
+        "properties": {
+          "confirmed": {
+            "default": false,
+            "title": "Confirmed",
+            "type": "boolean"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": ["reason"],
+        "title": "InvalidateContextCompactionRequest",
+        "type": "object"
+      },
+      "InvalidateContextCompactionResponse": {
+        "properties": {
+          "compaction_id": {
+            "title": "Compaction Id",
+            "type": "string"
+          },
+          "freshness": {
+            "title": "Freshness",
+            "type": "string"
+          },
+          "freshness_reason": {
+            "title": "Freshness Reason",
+            "type": "string"
+          }
+        },
+        "required": ["compaction_id", "freshness", "freshness_reason"],
+        "title": "InvalidateContextCompactionResponse",
         "type": "object"
       },
       "LongRunPhase": {
@@ -2416,6 +2682,60 @@
           }
         },
         "title": "ProviderEvidenceSummaryResponse",
+        "type": "object"
+      },
+      "RefreshContextCompactionRequest": {
+        "properties": {
+          "confirmed": {
+            "default": false,
+            "title": "Confirmed",
+            "type": "boolean"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "title": "RefreshContextCompactionRequest",
+        "type": "object"
+      },
+      "RefreshContextCompactionResponse": {
+        "properties": {
+          "previous_compaction_id": {
+            "title": "Previous Compaction Id",
+            "type": "string"
+          },
+          "previous_freshness": {
+            "title": "Previous Freshness",
+            "type": "string"
+          },
+          "previous_freshness_reason": {
+            "title": "Previous Freshness Reason",
+            "type": "string"
+          },
+          "refreshed_compaction": {
+            "$ref": "#/components/schemas/ContextCompactionResponse"
+          },
+          "superseded_by_compaction_id": {
+            "title": "Superseded By Compaction Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "refreshed_compaction",
+          "previous_compaction_id",
+          "previous_freshness",
+          "previous_freshness_reason",
+          "superseded_by_compaction_id"
+        ],
+        "title": "RefreshContextCompactionResponse",
         "type": "object"
       },
       "RepositoryContextSnapshot": {
@@ -3230,6 +3550,27 @@
         },
         "required": ["session_id", "page", "items"],
         "title": "SessionCheckpointPageResponse",
+        "type": "object"
+      },
+      "SessionCompactionPageResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ContextCompactionResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageInfoResponse"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": ["session_id", "page", "items"],
+        "title": "SessionCompactionPageResponse",
         "type": "object"
       },
       "SessionEventLogPageResponse": {
@@ -7554,6 +7895,242 @@
           }
         },
         "summary": "Get Session Checkpoint Page"
+      }
+    },
+    "/sessions/{session_id}/compactions": {
+      "get": {
+        "description": "Return a bounded page of projected context compactions.",
+        "operationId": "get_session_compaction_page_sessions__session_id__compactions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Cursor",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionCompactionPageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Session Compaction Page"
+      }
+    },
+    "/sessions/{session_id}/compactions/{compaction_id}/invalidate": {
+      "post": {
+        "description": "Mark a compaction as invalidated after explicit confirmation.",
+        "operationId": "invalidate_session_compaction_sessions__session_id__compactions__compaction_id__invalidate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "compaction_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Compaction Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvalidateContextCompactionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidateContextCompactionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Invalidate Session Compaction"
+      }
+    },
+    "/sessions/{session_id}/compactions/{compaction_id}/refresh": {
+      "post": {
+        "description": "Create a replacement compaction after explicit operator confirmation.",
+        "operationId": "refresh_session_compaction_sessions__session_id__compactions__compaction_id__refresh_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "compaction_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Compaction Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshContextCompactionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshContextCompactionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Refresh Session Compaction"
       }
     },
     "/sessions/{session_id}/event-log": {
