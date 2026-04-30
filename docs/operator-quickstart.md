@@ -60,7 +60,10 @@ uv run glassbox session chat "Inspect the repository and summarize the test layo
 
 The terminal session is the primary operator surface. It shows the active
 workspace, model posture, pending questions, pending approvals, cancellation
-state, and the paired dashboard URL when the dashboard is available.
+state, and the paired dashboard URL when the dashboard is available. On startup,
+`session chat` prints a compact summary with the model, approval behavior,
+autonomy budget, workspace, database path, dashboard posture, provider posture,
+and a couple of first-prompt ideas when you did not pass an initial prompt.
 
 ## 4. Inspect The Dashboard
 

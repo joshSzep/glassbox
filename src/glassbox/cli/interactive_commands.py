@@ -6,6 +6,7 @@ from pathlib import Path
 
 import httpx
 
+from glassbox.cli.chat_startup import print_chat_startup_summary
 from glassbox.cli.daemon_attach import attach_tui_via_daemon
 from glassbox.cli.daemon_attach import attach_via_daemon
 from glassbox.cli.daemon_status import build_runtime_owner_status_report
@@ -25,10 +26,14 @@ from glassbox.core import SessionConfig
 from glassbox.core.ids import SessionId
 from glassbox.core.types import ApprovalDecision
 from glassbox.runtime.bootstrap import open_runtime_context
+from glassbox.runtime.bootstrap_storage import resolve_runtime_storage_paths
 from glassbox.runtime.context import RuntimeContext
 from glassbox.runtime.daemon import clear_stale_runtime_owner
 from glassbox.runtime.daemon import inspect_runtime_owner
+from glassbox.runtime.provider_diagnostics import build_provider_diagnostics_report
 from glassbox.runtime.workspace_profile import resolve_session_start_defaults
+from glassbox.web.app import _STATIC_NEXT_DIR
+from glassbox.web.spa_static import validate_spa_static_assets
 
 
 def _run_command(args: argparse.Namespace) -> int:
@@ -98,7 +103,22 @@ async def _chat_command_async(args: argparse.Namespace) -> int:
                 await runtime_context.services.session_service.start_session(config)
             )
             await asyncio.sleep(0)
-            _print_autonomy_config_summary(config)
+            print_chat_startup_summary(
+                session_id=session_state.session_id,
+                config=config,
+                database_path=resolve_runtime_storage_paths(
+                    cwd,
+                    db_path=db_path,
+                ).database_path,
+                dashboard_url=dashboard_url,
+                dashboard_disabled=args.no_dashboard,
+                dashboard_asset_problems=validate_spa_static_assets(_STATIC_NEXT_DIR),
+                provider_report=build_provider_diagnostics_report(
+                    cwd,
+                    explicit_model_name=config.model_name,
+                ),
+                include_prompt_suggestions=args.prompt is None,
+            )
             await _submit_prompt_if_present(
                 runtime_context,
                 session_state.session_id,
@@ -145,7 +165,22 @@ async def _chat_tui_command_async(
             session_state = (
                 await runtime_context.services.session_service.start_session(config)
             )
-            _print_autonomy_config_summary(config)
+            print_chat_startup_summary(
+                session_id=session_state.session_id,
+                config=config,
+                database_path=resolve_runtime_storage_paths(
+                    cwd,
+                    db_path=db_path,
+                ).database_path,
+                dashboard_url=dashboard_url,
+                dashboard_disabled=args.no_dashboard,
+                dashboard_asset_problems=validate_spa_static_assets(_STATIC_NEXT_DIR),
+                provider_report=build_provider_diagnostics_report(
+                    cwd,
+                    explicit_model_name=config.model_name,
+                ),
+                include_prompt_suggestions=args.prompt is None,
+            )
             await _submit_prompt_if_present(
                 runtime_context,
                 session_state.session_id,

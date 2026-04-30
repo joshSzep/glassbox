@@ -48,6 +48,13 @@ def test_session_chat_implicit_non_tty_subprocess_falls_back_to_plain(
     )
 
     assert result.returncode == 0
+    assert "Glassbox chat ready" in result.stdout
+    assert "Model: openai:gpt-5.4" in result.stdout
+    assert "Approval: confirm:" in result.stdout
+    assert f"Workspace: {tmp_path}" in result.stdout
+    assert f"Database: {db_path}" in result.stdout
+    assert "Dashboard: disabled by --no-dashboard" in result.stdout
+    assert "Provider:" in result.stdout
     assert "Attached to session" in result.stdout
     assert "Interactive mode: type the next prompt" in result.stdout
     assert "Leaving interactive session" in result.stdout

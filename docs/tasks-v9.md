@@ -398,7 +398,7 @@ The intended v9 milestone order is:
 
 ### GBX-921: Improve First Chat Guidance And Dashboard Handoff
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-920`
 - Goal: make `glassbox session chat --cwd .` feel understandable on first use
 - Deliverables:
@@ -422,6 +422,12 @@ The intended v9 milestone order is:
 - Done when:
   - first chat startup gives enough context without turning the terminal into a
     long onboarding document
+  - Completed by adding compact `session chat` startup summaries for plain and
+    TUI launch paths. The summary names session, model, approval behavior,
+    autonomy budget, workspace, database path, dashboard posture and URL,
+    provider posture, and first-prompt ideas when no initial prompt was passed;
+    focused tests cover dashboard-enabled, dashboard-disabled, provider
+    fallback, and plain fallback output.
 
 ### GBX-922: Add Daily Workflow Quickstart Guide
 
