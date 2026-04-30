@@ -101,6 +101,12 @@ Version and release-candidate naming policy lives in
 Release-candidate validation and accepted residual risks are summarized in
 [docs/v9-release-candidate.md](docs/v9-release-candidate.md).
 
+The active v10 implementation track is long-running task reliability:
+checkpointed progress, artifact-backed compaction, resumable attempts,
+heartbeat and recovery surfaces, time-aware budgets, incremental verification,
+and provider failure recovery. Its contract is
+[docs/v10-long-running-task-contract.md](docs/v10-long-running-task-contract.md).
+
 ## Documentation
 
 The root README is the shortest path into the project. The detailed operator,
@@ -110,6 +116,7 @@ reference, release-evidence, and implementation-history docs live in
 Start here based on what you need:
 
 - [docs/v9-public-baseline.md](docs/v9-public-baseline.md)
+- [docs/v10-long-running-task-contract.md](docs/v10-long-running-task-contract.md)
 - [docs/v9-vocabulary.md](docs/v9-vocabulary.md)
 - [docs/operator-quickstart.md](docs/operator-quickstart.md)
 - [docs/daily-workflow-quickstart.md](docs/daily-workflow-quickstart.md)
@@ -134,6 +141,7 @@ Release evidence and milestone history remain available when you need them:
 - [docs/v7-release-candidate.md](docs/v7-release-candidate.md)
 - [docs/v6-release-candidate.md](docs/v6-release-candidate.md)
 - [docs/v2-release-candidate.md](docs/v2-release-candidate.md)
+- [docs/tasks-v10.md](docs/tasks-v10.md)
 - [docs/tasks-v9.md](docs/tasks-v9.md)
 - [docs/tasks-v8.md](docs/tasks-v8.md)
 - [docs/tasks-v7.md](docs/tasks-v7.md)

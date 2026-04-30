@@ -9,13 +9,18 @@ Glassbox has two documentation layers:
 
 Use this page by audience. Start with the current v9 baseline for the product
 story, then follow the daily workflow guides before diving into release
-evidence or milestone history.
+evidence or milestone history. The v10 long-running-task contract is the active
+implementation track after the v9 baseline.
 
 ## Start Here
 
 - [v9-public-baseline.md](./v9-public-baseline.md): current supported Glassbox
   product contract, core model, daily workflows, advisory posture,
   release-evidence split, residual-risk mapping, and pre-1.0 version posture
+- [v10-long-running-task-contract.md](./v10-long-running-task-contract.md):
+  active v10 contract for durable long-running work, checkpoints,
+  compactions, resumable attempts, heartbeats, verification, recovery, and
+  release evidence
 - [v9-vocabulary.md](./v9-vocabulary.md): shared v9 language for sessions,
   tasks, evidence, memory, branches, verification, providers, daemons, and
   projections, plus command/dashboard copy review and compatibility policy
@@ -85,6 +90,9 @@ evidence or milestone history.
 - [version-release-policy.md](./version-release-policy.md): align package
   version metadata, release-candidate names, evidence directories, installed
   smoke, and future v9 release notes
+- [v10-long-running-task-contract.md](./v10-long-running-task-contract.md):
+  contributor-facing contract for long-running task durability and release
+  evidence expectations
 - [v9-vocabulary.md](./v9-vocabulary.md): standardize operator-facing product
   terms and command/dashboard language for v9
 - [v9-command-surface-review.md](./v9-command-surface-review.md): classify the
@@ -229,6 +237,9 @@ but they are not the first-run operator path.
 - [tasks-v9.md](./tasks-v9.md): v9 public baseline, onboarding, cockpit,
   provider freshness, operational polish, dogfooding, package, and release
   task graph
+- [tasks-v10.md](./tasks-v10.md): v10 long-running task reliability,
+  checkpoint, compaction, resumable-tool, cockpit, budget, verification,
+  provider-recovery, eval, dogfooding, and release task graph
 - [tasks-v8.md](./tasks-v8.md): v8 auditable-autonomy task graph
 - [tasks-v7.md](./tasks-v7.md): v7 adoption, scale, eval, provider, policy,
   dashboard, accessibility, onboarding, and release-signoff task graph

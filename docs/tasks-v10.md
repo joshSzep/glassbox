@@ -334,7 +334,7 @@ The intended v10 milestone order is:
 
 ### GBX-1000: Define The v10 Long-Running-Task Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-993`
 - Goal: convert the v9 release-candidate decision and long-running-task theme
   into one concrete v10 product contract

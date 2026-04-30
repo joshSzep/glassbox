@@ -537,6 +537,50 @@ def test_v9_release_candidate_doc_covers_decision_and_evidence() -> None:
     assert "v9-release-candidate.md" in docs_readme
 
 
+def test_v10_long_running_task_contract_covers_product_model() -> None:
+    content = (REPO_ROOT / "docs" / "v10-long-running-task-contract.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "## Scope",
+        "## Non-Goals",
+        "## Product Model",
+        "## Supported Workflow Set",
+        "## Evidence Expectations",
+        "## v9 Residual-Risk And Dogfooding Mapping",
+        "## Pass And Fail Policy",
+        "Event",
+        "Checkpoint",
+        "Compaction",
+        "Attempt",
+        "Heartbeat",
+        "Verification",
+        "Recovery",
+        "uv run glassbox command tree",
+        "glassbox session resume SESSION_ID",
+        "glassbox eval audit",
+        "durable-event lifecycle evidence",
+        "checkpoint model, projection, API, CLI, export, and resume evidence",
+        "compaction artifact, provenance, freshness, and prompt-integration evidence",
+        "resumable-tool attempt, heartbeat, partial-output, retry, and recovery",
+        "provider failure, model-switch, fallback, and advisory-posture evidence",
+        "Provider evidence remains advisory.",
+        "tasks-v10.md",
+    ):
+        assert required_text in content
+
+
+def test_readmes_link_to_v10_long_running_task_contract() -> None:
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    assert "docs/v10-long-running-task-contract.md" in root_readme
+    assert "docs/tasks-v10.md" in root_readme
+    assert "v10-long-running-task-contract.md" in docs_readme
+    assert "tasks-v10.md" in docs_readme
+
+
 def test_provider_docs_define_v9_evidence_freshness_contract() -> None:
     content = (REPO_ROOT / "docs" / "providers.md").read_text(encoding="utf-8")
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
