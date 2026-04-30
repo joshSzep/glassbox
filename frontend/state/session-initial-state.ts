@@ -102,6 +102,7 @@ export function createEmptySessionFields(): SessionFields {
     budgetPosture: null,
     canFork: false,
     childSessions: [],
+    checkpointHistory: [],
     currentTurn: null,
     currentTurnPolicySummary: null,
     cwd: null,
@@ -110,6 +111,7 @@ export function createEmptySessionFields(): SessionFields {
     forkedFromSequence: null,
     forkedFromTurnId: null,
     lastSequence: 0,
+    latestCheckpoint: null,
     latestForkPointSequence: null,
     latestForkPointTurnId: null,
     longRunStatus: null,
@@ -129,6 +131,7 @@ export function createEmptySessionFields(): SessionFields {
     sessionPolicySummary: null,
     status: "unknown",
     transcript: [],
+    turnRecoveryPosture: null,
     turnMetrics: [],
   };
 }

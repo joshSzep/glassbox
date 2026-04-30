@@ -952,7 +952,7 @@ The intended v10 milestone order is:
 
 ### GBX-1052: Add Checkpoint And Compaction Timeline Views
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1051`, `GBX-1032`
 - Goal: make long-running history navigable without reading the entire
   transcript
@@ -974,6 +974,18 @@ The intended v10 milestone order is:
 - Done when:
   - long-running work has a readable progress history that points back to
     canonical evidence
+- Completed:
+  - Added a long-run evidence section to the dashboard Timeline pane that
+    combines checkpoint history, fresh and stale compactions, recent tool
+    attempts, pending approvals/questions, recovery posture, and loaded
+    verification/cancellation/recovery event markers.
+  - Timeline rows now preserve source event ranges, canonical event sequence
+    references, tool-attempt IDs, checkpoint IDs, compaction IDs, and artifact
+    IDs without duplicating the full raw event log.
+  - `glassbox session status` now summarizes recent compactions alongside the
+    latest checkpoint and long-run heartbeat state.
+  - Added component and CLI coverage for ordering, source links, empty state,
+    bounded large-session timelines, and compaction summaries.
 
 ### GBX-1053: Add Long-Run Recovery Action Guidance
 

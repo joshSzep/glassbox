@@ -32,6 +32,7 @@ def _print_session_status(status_view: SessionStatusView) -> None:
         print(_format_turn_recovery_line(snapshot.turn_recovery_posture))
     if snapshot.latest_checkpoint is not None:
         print(_format_latest_checkpoint_line(snapshot.latest_checkpoint))
+    print(_format_compaction_summary_line(snapshot.runtime_context))
     print(f"Workspace: {snapshot.cwd}")
     print(f"Model: {snapshot.model_name}")
     print(f"Approval mode: {snapshot.approval_mode}")
@@ -293,6 +294,32 @@ def _format_latest_checkpoint_line(checkpoint) -> str:
         f"source events {checkpoint.source_start_sequence}-"
         f"{checkpoint.source_end_sequence}{blockers}"
     )
+
+
+def _format_compaction_summary_line(runtime_context) -> str:
+    compactions = getattr(runtime_context, "context_compactions", None)
+    if compactions is None:
+        return "Recent compactions: none"
+    fresh_count = len(getattr(compactions, "items", []) or [])
+    stale_count = getattr(compactions, "stale_item_count", 0)
+    if fresh_count == 0 and stale_count == 0:
+        return "Recent compactions: none"
+    parts = [f"{fresh_count} fresh", f"{stale_count} stale"]
+    latest_items = list(getattr(compactions, "items", []) or [])
+    latest_stale = list(getattr(compactions, "stale_items", []) or [])
+    if latest_items:
+        item = latest_items[0]
+        parts.append(
+            f"latest {item.compaction_id} events "
+            f"{item.source_start_sequence}-{item.source_end_sequence}"
+        )
+    elif latest_stale:
+        item = latest_stale[0]
+        parts.append(
+            f"stale {item.compaction_id} events "
+            f"{item.source_start_sequence}-{item.source_end_sequence}"
+        )
+    return "Recent compactions: " + "; ".join(parts)
 
 
 def _format_projection_sequence(projection_health) -> str:

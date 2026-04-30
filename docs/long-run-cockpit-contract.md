@@ -41,6 +41,9 @@ Session inspector:
   actions available as drill-down views
 - shows recent tool attempts with status, heartbeat, retry posture, output
   artifact, and confirmed recovery controls when backend policy allows them
+- keeps the Timeline pane usable for long work by grouping checkpoints,
+  compactions, tool attempts, verification, approvals, questions,
+  cancellations, and recovery events with source ranges and artifact IDs
 - labels historical, imported, stale, or projection-lagged state as inspectable
   evidence rather than live authority
 
@@ -220,9 +223,10 @@ derived `long_run_status` read model. It uses this contract's priority rules
 and data-source map without introducing timeline navigation or broad recovery
 guidance.
 
-`GBX-1052` adds checkpoint, compaction, tool-attempt, verification, approval,
-question, cancellation, and recovery timeline views. It should point back to
-source event ranges and artifacts rather than duplicating the full event log.
+`GBX-1052` added checkpoint, compaction, tool-attempt, verification, approval,
+question, cancellation, and recovery timeline views. They point back to source
+event ranges, event sequences, and artifacts rather than duplicating the full
+event log.
 
 `GBX-1053` adds long-run recovery action guidance. It should keep inspection
 commands ahead of mutating commands and keep command text aligned with CLI help.

@@ -162,6 +162,25 @@ def test_print_session_status_preserves_status_output_contract(
                         "summaries": [],
                         "additional_summary_count": 0,
                     },
+                    "context_compactions": {
+                        "items": [
+                            {
+                                "compaction_id": (
+                                    "00000000-0000-0000-0000-000000000777"
+                                ),
+                                "scope": "transcript",
+                                "artifact_id": ("00000000-0000-0000-0000-000000000778"),
+                                "source_start_sequence": 2,
+                                "source_end_sequence": 7,
+                                "summary": "Question and approval context compacted.",
+                                "freshness": "fresh",
+                                "limitations": [],
+                            }
+                        ],
+                        "stale_items": [],
+                        "additional_item_count": 0,
+                        "stale_item_count": 0,
+                    },
                 },
                 "projection_health": {
                     "state": "ok",
@@ -239,6 +258,10 @@ def test_print_session_status_preserves_status_output_contract(
 
     assert "Status: awaiting_user_input" in captured.out
     assert "Long-run status: paused" in captured.out
+    assert (
+        "Recent compactions: 1 fresh; 0 stale; latest "
+        "00000000-0000-0000-0000-000000000777 events 2-7"
+    ) in captured.out
     assert "Runtime context:" in captured.out
     assert "High-signal paths: README.md, src/" in captured.out
     assert "Pending question: 00000000-0000-0000-0000-000000000333" in captured.out

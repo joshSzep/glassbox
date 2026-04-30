@@ -63,7 +63,8 @@ The dashboard shell exposes the operator surfaces backed by the snapshot and SSE
 - recent sessions
 - next action composer
 - current turn
-- turn timeline
+- turn timeline with long-run checkpoint, compaction, attempt, verification,
+  approval, question, cancellation, and recovery evidence
 - turn metrics
 - active tool calls
 - live command output
@@ -76,6 +77,10 @@ derived from persisted events, latest checkpoints, recent durable tool-attempt
 heartbeats, and session metadata. Use it as the dashboard's quick "is this
 alive or stuck?" signal, then inspect the timeline, event log, or tool-attempt
 evidence for detail.
+The Timeline tab keeps long-running history compact by showing checkpoint and
+compaction source ranges, recent tool-attempt artifacts, pending intervention
+evidence, and loaded verification/recovery event markers before the per-turn
+narrative.
 
 The v2 operator-console model builds on this shell rather than replacing it. See
 [operator-console.md](./operator-console.md) for the multi-session overview,

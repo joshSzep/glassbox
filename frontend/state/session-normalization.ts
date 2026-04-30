@@ -86,6 +86,7 @@ function normalizeSessionFields(snapshot: SessionSnapshot): SessionFields {
     budgetPosture: snapshot.budget_posture ?? null,
     canFork: snapshot.can_fork,
     childSessions: [...snapshot.child_sessions],
+    checkpointHistory: [...snapshot.checkpoint_history],
     currentTurn: inferCurrentTurn(snapshot),
     currentTurnPolicySummary: snapshot.current_turn_policy_summary,
     cwd: snapshot.cwd,
@@ -94,6 +95,7 @@ function normalizeSessionFields(snapshot: SessionSnapshot): SessionFields {
     forkedFromSequence: snapshot.forked_from_sequence,
     forkedFromTurnId: snapshot.forked_from_turn_id,
     lastSequence: snapshot.last_sequence,
+    latestCheckpoint: snapshot.latest_checkpoint ?? null,
     latestForkPointSequence: snapshot.latest_fork_point_sequence,
     latestForkPointTurnId: snapshot.latest_fork_point_turn_id,
     longRunStatus: snapshot.long_run_status ?? null,
@@ -121,6 +123,7 @@ function normalizeSessionFields(snapshot: SessionSnapshot): SessionFields {
     sessionPolicySummary: snapshot.session_policy_summary,
     status: snapshot.status,
     transcript: [...snapshot.transcript],
+    turnRecoveryPosture: snapshot.turn_recovery_posture ?? null,
     turnMetrics: [...snapshot.turn_metrics],
   };
 }

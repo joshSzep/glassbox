@@ -11,6 +11,7 @@ export type LongRunStatus = components["schemas"]["LongRunStatusResponse"];
 export type SessionAggregate = components["schemas"]["SessionAggregateResponse"];
 export type SessionSnapshot = components["schemas"]["SessionSnapshotResponse"];
 export type SessionSummary = components["schemas"]["OperatorSessionSummaryResponse"];
+export type TaskCheckpoint = components["schemas"]["TaskCheckpointResponse"];
 export type TranscriptMessage = components["schemas"]["TranscriptMessageResponse"];
 export type ActiveToolCall = components["schemas"]["ActiveToolCallResponse"];
 export type ToolAttempt = components["schemas"]["ToolAttemptResponse"];
@@ -77,6 +78,7 @@ export type SessionFields = {
   budgetPosture: components["schemas"]["AutonomyBudgetPostureRecord"] | null;
   canFork: boolean;
   childSessions: ChildSession[];
+  checkpointHistory: TaskCheckpoint[];
   currentTurn: CurrentTurn | null;
   currentTurnPolicySummary: PolicySummary | null;
   cwd: string | null;
@@ -85,6 +87,7 @@ export type SessionFields = {
   forkedFromSequence: number | null;
   forkedFromTurnId: string | null;
   lastSequence: number;
+  latestCheckpoint: TaskCheckpoint | null;
   latestForkPointSequence: number | null;
   latestForkPointTurnId: string | null;
   longRunStatus: LongRunStatus | null;
@@ -104,6 +107,7 @@ export type SessionFields = {
   sessionPolicySummary: PolicySummary | null;
   status: string;
   transcript: TranscriptMessage[];
+  turnRecoveryPosture: components["schemas"]["TurnRecoveryPostureResponse"] | null;
   turnMetrics: TurnMetrics[];
 };
 

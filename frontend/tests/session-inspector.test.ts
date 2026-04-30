@@ -274,6 +274,16 @@ describe("session inspector", () => {
     const markup = renderInspectorTab(data, "timeline");
 
     expect(markup).toContain("Timeline");
+    expect(markup).toContain("Long-run evidence");
+    expect(markup).toContain("checkpoint");
+    expect(markup).toContain("Ran focused frontend tests");
+    expect(markup).toContain("source events 4-10");
+    expect(markup).toContain("transcript compaction");
+    expect(markup).toContain("artifact artifact-compaction-1");
+    expect(markup).toContain("run_command failed");
+    expect(markup).toContain("artifact artifact-output-1");
+    expect(markup).toContain("TaskVerificationFailed");
+    expect(markup).toContain("RecoveryDecisionRecorded");
     expect(markup).toContain("Timeline jumps");
     expect(markup).toContain("Timeline turns");
     expect(markup).toContain("Active turn");
@@ -285,6 +295,37 @@ describe("session inspector", () => {
     expect(markup).toContain("1 live output");
     expect(markup).toContain("Open fork flow for Continue from tool result");
     expect(markup).not.toContain("Session narrative turns");
+  });
+
+  it("renders an empty long-run timeline without raw event duplication", () => {
+    const data = hydrateSelectedSession(
+      createDashboardState(),
+      makeSessionSnapshot("empty", { transcript: [] }),
+    );
+    const markup = renderInspectorTab(data, "timeline");
+
+    expect(markup).toContain("No checkpoint, compaction, attempt, or recovery timeline items");
+    expect(markup).toContain("No timeline events are available");
+  });
+
+  it("bounds large long-run timeline windows", () => {
+    const data = {
+      ...hydrateSelectedSession(
+        createDashboardState(),
+        makeSessionSnapshot("large-timeline", { transcript: [] }),
+      ),
+      eventLog: Array.from({ length: 60 }, (_, index) => ({
+        event_type: index % 2 === 0 ? "TaskVerificationCompleted" : "RecoveryDecisionRecorded",
+        sequence: index + 1,
+      })),
+    };
+
+    const markup = renderInspectorTab(data, "timeline");
+
+    expect(markup).toContain("Long-run evidence");
+    expect(markup).toContain("40 items");
+    expect(markup).toContain("TaskVerificationCompleted");
+    expect(markup).toContain("RecoveryDecisionRecorded");
   });
 
   it("renders transcript narrative states across fixture scenarios", () => {
@@ -377,7 +418,53 @@ describe("session inspector", () => {
             updated_at: "2026-04-23T00:00:04Z",
           },
         ],
+        checkpoint_history: [
+          {
+            artifact_id: null,
+            blockers: [],
+            budget_status: "within budget",
+            checkpoint_id: "checkpoint-1",
+            compaction_id: "compaction-1",
+            completed_step: "Ran focused frontend tests",
+            created_at: "2026-04-23T00:00:07Z",
+            current_phase: "verification",
+            last_sequence: 10,
+            next_action: "Inspect the failed pytest output",
+            objective: "Stabilize the console",
+            recovery_guidance: "Retry after reviewing the retained output.",
+            session_id: "session-1",
+            source_end_sequence: 10,
+            source_start_sequence: 4,
+            task_id: null,
+            tool_attempt_id: "attempt-1",
+            touched_files: ["frontend/app/page.tsx"],
+            turn_id: "turn-1",
+            verification_status: "failed",
+          },
+        ],
         current_turn_id: "turn-1",
+        latest_checkpoint: {
+          artifact_id: null,
+          blockers: [],
+          budget_status: "within budget",
+          checkpoint_id: "checkpoint-1",
+          compaction_id: "compaction-1",
+          completed_step: "Ran focused frontend tests",
+          created_at: "2026-04-23T00:00:07Z",
+          current_phase: "verification",
+          last_sequence: 10,
+          next_action: "Inspect the failed pytest output",
+          objective: "Stabilize the console",
+          recovery_guidance: "Retry after reviewing the retained output.",
+          session_id: "session-1",
+          source_end_sequence: 10,
+          source_start_sequence: 4,
+          task_id: null,
+          tool_attempt_id: "attempt-1",
+          touched_files: ["frontend/app/page.tsx"],
+          turn_id: "turn-1",
+          verification_status: "failed",
+        },
         parent_session_id: "parent-1",
         pending_approval_id: "approval-1",
         pending_approvals: [
@@ -421,6 +508,26 @@ describe("session inspector", () => {
           },
         ],
         runtime_context: makeRuntimeContext({
+          context_compactions: {
+            additional_item_count: 0,
+            items: [
+              {
+                accepted_risk_count: 0,
+                artifact_id: "artifact-compaction-1",
+                compaction_id: "compaction-1",
+                decision_count: 1,
+                freshness: "fresh",
+                limitations: [],
+                scope: "transcript",
+                source_end_sequence: 9,
+                source_start_sequence: 2,
+                summary: "Console work reached frontend verification.",
+                unresolved_question_count: 0,
+              },
+            ],
+            stale_item_count: 0,
+            stale_items: [],
+          },
           runtime_notes: [{ category: "policy", inherited: false, message: "Approval pending" }],
           working_set: {
             additional_item_count: 0,
@@ -518,7 +625,11 @@ describe("session inspector", () => {
           ],
         }),
       ),
-      eventLog: [{ event_type: "ToolExecutionStarted", sequence: 11 }],
+      eventLog: [
+        { event_type: "ToolExecutionStarted", sequence: 11 },
+        { event_type: "TaskVerificationFailed", sequence: 12 },
+        { event_type: "RecoveryDecisionRecorded", sequence: 13 },
+      ],
       liveOutput: [
         { chunk: "pytest passed", stream: "stdout", tool_call_id: "tool-1", turn_id: "turn-1" },
       ],
