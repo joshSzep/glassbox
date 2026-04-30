@@ -832,7 +832,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R351: Close Out V10 Refactor Guardrails And Focused Validation
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R350`
 - Goal: add final characterization and validation coverage proving the v10
   refactor preserved behavior across frontend, web, runtime, provider, policy,
@@ -859,3 +859,21 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - the v10 refactor roadmap can be marked complete with guardrails that protect
     the new module shape from immediate regression
+- Completed notes:
+  - `tests/unit/test_architecture_guardrails.py` now covers the v10 frontend,
+    web, runtime query, provider, tool-policy, SQLite schema, and core strategy
+    boundaries with size/import checks and doc guardrails where appropriate.
+  - `tests/unit/test_sqlite_schema_boundaries.py` characterizes the explicit
+    SQLite migration order and domain ownership added in the highest-risk final
+    code movement.
+  - `tests/unit/test_release_candidate_docs.py` now checks that the v10 final
+    module shape remains documented in the architecture and boundary docs.
+  - Accepted compatibility shims and intended owners are listed in
+    [refactor-boundaries.md](./refactor-boundaries.md).
+  - Final closeout validation for this task:
+    `uv run pytest tests/unit/test_architecture_guardrails.py`,
+    `uv run pytest tests/unit/test_release_candidate_docs.py`,
+    `uv run pytest tests/unit/test_sqlite_schema_boundaries.py`,
+    `uv run pytest tests/integration/test_sqlite_bootstrap.py tests/integration/test_sqlite_event_store.py tests/integration/test_sqlite_projections.py tests/integration/test_projection_rebuild.py tests/unit/test_sqlite_query_boundaries.py`,
+    `pnpm --dir frontend typecheck`, `pnpm --dir frontend lint`, and
+    `pnpm --dir frontend test`.

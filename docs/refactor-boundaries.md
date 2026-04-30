@@ -714,6 +714,46 @@ around stable public imports. New behavior should move into the owning domain
 module first, with the facade forwarding or re-exporting only when compatibility
 requires it.
 
+### V10 Accepted Compatibility Shims
+
+The completed v10 refactor accepts these compatibility surfaces and intended
+owners:
+
+- `task-autonomy-sections.tsx`: component compatibility facade; new queue,
+  inspector, action, evidence, and formatting behavior belongs under
+  `components/console/task-autonomy/`.
+- `verification-cues.tsx`: renderer compatibility surface; new cue derivation
+  belongs in `verification-cues-analysis.ts`.
+- `session-inspector/panes/compare-pane.tsx`: renderer compatibility surface;
+  new comparison derivation belongs in `compare-analysis.ts`.
+- `workspace-console.tsx`: console composition surface; new URL/state
+  synchronization belongs in `workspace-console/routing.ts`, and repeated
+  action binding belongs in `workspace-console/actions.ts`.
+- `web/routes/sessions.py` and `web/routes/tasks.py`: FastAPI declaration
+  surfaces; new HTTP-local reads and mutations belong in
+  `session_route_queries.py`, `session_route_actions.py`,
+  `task_route_queries.py`, `task_route_actions.py`, or shared route utilities.
+- `web/session_api.py`: response-model compatibility facade; new model families
+  and serializers belong in the relevant `session_api_*` module.
+- `runtime/task_queries.py`: `TaskQueryService` facade; new query contracts,
+  assembly, verification, and repair derivation belong in `task_query_*`
+  modules.
+- `runtime/provider_canary.py`: provider-canary public facade; new scenario,
+  execution, evidence, and report behavior belongs in `provider_canary_*`
+  modules.
+- `runtime/provider_recommendations.py`: provider recommendation public facade;
+  new scoring dimensions and next-action guidance belong in
+  `provider_recommendation_*` modules.
+- `tools/policy.py`: policy-engine public facade; new path, rule, autonomy,
+  message, command-risk, and shared policy behavior belongs in `policy_*`
+  modules.
+- `store/sqlite_schema.py`: bootstrap and explicit migration-registry surface;
+  new projection-family DDL and idempotent migration helpers belong in
+  `sqlite_schema_*` modules.
+- `core/events.py`, `core/models.py`, and `core/__init__.py`: stable core import
+  surfaces; future domain modules must keep explicit event registration and
+  compatibility re-exports.
+
 ## Patterns That Must Not Become Permanent
 
 The following patterns are not acceptable as stable endpoints:

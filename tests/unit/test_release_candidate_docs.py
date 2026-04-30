@@ -668,15 +668,25 @@ def test_v10_refactor_docs_describe_final_module_shape() -> None:
 
     for required_text in (
         "The v10 second-order boundary map is implemented through Phase 64",
+        "### V10 Accepted Compatibility Shims",
         "compatibility facade over queue, inspector, action, evidence",
         "FastAPI declaration surfaces over HTTP-local query/action helpers",
+        "`web/session_api.py`: response-model compatibility facade",
+        "`tools/policy.py`: policy-engine public facade",
+        "`core/events.py`, `core/models.py`, and `core/__init__.py`",
         "focused `task_query_*` modules",
         "focused `sqlite_schema_*` modules",
     ):
         assert required_text in boundaries
 
     assert "GBX-R350: Update Architecture Docs For The V10 Refactor Shape" in roadmap
-    assert "- Status: `DONE`" in roadmap
+    assert (
+        "GBX-R351: Close Out V10 Refactor Guardrails And Focused Validation" in roadmap
+    )
+    assert "Accepted compatibility shims and intended owners are listed" in roadmap
+    assert "pnpm --dir frontend typecheck" in roadmap
+    assert "pnpm --dir frontend lint" in roadmap
+    assert "pnpm --dir frontend test" in roadmap
 
 
 def test_provider_docs_define_v9_evidence_freshness_contract() -> None:
