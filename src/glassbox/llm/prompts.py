@@ -32,6 +32,13 @@ def build_system_prompt(turn_context: TurnContext) -> str:
         sections.append(
             build_checkpoint_resume_prompt_fragment(turn_context.checkpoint_context)
         )
+    if (
+        turn_context.context_compactions is not None
+        and turn_context.context_compactions.items
+    ):
+        sections.append(
+            build_context_compactions_prompt_fragment(turn_context.context_compactions)
+        )
     if turn_context.working_set is not None and turn_context.working_set.items:
         sections.append(build_working_set_prompt_fragment(turn_context.working_set))
     if (
@@ -186,6 +193,25 @@ def build_checkpoint_resume_prompt_fragment(checkpoint) -> str:
             "- Do not treat this checkpoint as an active continuation point until "
             "the reason above is resolved."
         )
+    return "\n".join(lines)
+
+
+def build_context_compactions_prompt_fragment(compactions) -> str:
+    """Return fresh compaction summaries with provenance and caveats."""
+
+    lines = ["Context compactions:"]
+    for item in compactions.items:
+        lines.append(
+            f"- [{item.scope.value}] {item.summary} "
+            f"(source events {item.source_start_sequence}-{item.source_end_sequence}; "
+            f"artifact {item.artifact_id})"
+        )
+        if item.limitations:
+            lines.append("  Limitations: " + "; ".join(item.limitations[:2]))
+    if compactions.additional_item_count:
+        lines.append(f"- +{compactions.additional_item_count} more fresh compaction(s)")
+    if compactions.stale_item_count:
+        lines.append(f"- {compactions.stale_item_count} stale compaction(s) excluded.")
     return "\n".join(lines)
 
 

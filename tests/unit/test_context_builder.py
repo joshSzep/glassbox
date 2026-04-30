@@ -10,6 +10,8 @@ import pytest
 from pydantic import BaseModel
 
 from glassbox.core import ApprovalStatus
+from glassbox.core import ContextCompactionFreshness
+from glassbox.core import ContextCompactionScope
 from glassbox.core import EventEnvelope
 from glassbox.core import LongRunPhase
 from glassbox.core import MessagePart
@@ -34,6 +36,7 @@ from glassbox.core import WorkspaceMemorySourceType
 from glassbox.core import WorkspaceMemoryState
 from glassbox.core import new_approval_id
 from glassbox.core import new_artifact_id
+from glassbox.core import new_context_compaction_id
 from glassbox.core import new_message_id
 from glassbox.core import new_session_id
 from glassbox.core import new_task_checkpoint_id
@@ -45,6 +48,8 @@ from glassbox.runtime.checkpoints import build_checkpoint_resume_snapshot
 from glassbox.runtime.context_builder import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
 from glassbox.runtime.context_builder import ArtifactBackedContextSnapshot
 from glassbox.runtime.context_builder import ArtifactBackedContextSummarySnapshot
+from glassbox.runtime.context_builder import ContextCompactionContextItemSnapshot
+from glassbox.runtime.context_builder import ContextCompactionContextSnapshot
 from glassbox.runtime.context_builder import PytestFailureDigestArtifact
 from glassbox.runtime.context_builder import RepositoryContextSnapshot
 from glassbox.runtime.context_builder import RepositoryIndexContextSnapshot
@@ -592,6 +597,60 @@ def test_turn_context_builder_includes_checkpoint_resume_context() -> None:
     assert any(
         "Finish checkpoint-guided resume" in note for note in context.memory_notes
     )
+
+
+def test_turn_context_builder_includes_fresh_context_compactions() -> None:
+    session_id = new_session_id()
+    repository = FakeSessionRepository(
+        SessionRecord(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            created_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 4, 24, 12, 1, tzinfo=UTC),
+            cwd=Path("/tmp/glassbox"),
+            model_name="openai:gpt-5.4",
+            approval_mode="confirm",
+            last_sequence=8,
+        ),
+        SessionState(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            last_sequence=8,
+        ),
+        [],
+    )
+    compactions = ContextCompactionContextSnapshot(
+        items=[
+            ContextCompactionContextItemSnapshot(
+                compaction_id=new_context_compaction_id(),
+                scope=ContextCompactionScope.TRANSCRIPT,
+                artifact_id=new_artifact_id(),
+                source_start_sequence=1,
+                source_end_sequence=8,
+                summary="Compacted decisions and verification posture.",
+                freshness=ContextCompactionFreshness.FRESH,
+                limitations=["Raw transcript omitted."],
+                decision_count=2,
+            )
+        ],
+        stale_item_count=1,
+    )
+    runtime_context = RuntimeContextSnapshot(
+        repository_context=RepositoryContextSnapshot(workspace_name="glassbox"),
+        context_compactions=compactions,
+    )
+
+    context = TurnContextBuilder(repository).build_from_runtime_context(
+        session_id,
+        runtime_context,
+    )
+
+    assert context.context_compactions == compactions
+    assert any(
+        "[context-compaction transcript events 1-8]" in note
+        for note in context.memory_notes
+    )
+    assert any("stale compaction(s) excluded" in note for note in context.memory_notes)
 
 
 def test_turn_context_builder_includes_memory_and_repository_index_context() -> None:

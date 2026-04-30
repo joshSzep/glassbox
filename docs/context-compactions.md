@@ -43,3 +43,12 @@ uv run glassbox replay bundle inspect PATH
 For release review, verify that a compaction names the source event range,
 contains at least one source reference, and stores its payload as a managed
 artifact. A compaction without source references is invalid.
+
+## Prompt Context
+
+`GBX-1032` feeds only fresh compaction summaries into turn context. Prompt text
+labels the compaction scope, source event range, artifact id, freshness, and
+limitations. Stale compactions remain inspectable through events and the
+projection, but they are counted as excluded instead of silently entering active
+model context. Recent transcript, checkpoint, workspace memory, repository
+context, and artifact-backed failure summaries remain separate context sources.

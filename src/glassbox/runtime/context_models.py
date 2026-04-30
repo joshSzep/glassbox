@@ -8,6 +8,7 @@ from pydantic import Field
 
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import ArtifactId
+from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import TaskCheckpointId
 from glassbox.core.ids import TaskId
@@ -15,6 +16,8 @@ from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.ids import WorkspaceMemoryId
 from glassbox.core.models import TranscriptMessage
+from glassbox.core.types import ContextCompactionFreshness
+from glassbox.core.types import ContextCompactionScope
 from glassbox.core.types import LongRunPhase
 from glassbox.core.types import SessionStatus
 from glassbox.tools import ToolSchema
@@ -214,6 +217,34 @@ class CheckpointResumeSnapshot(BaseModel):
     workspace_drift_paths: list[str] = Field(default_factory=list)
 
 
+class ContextCompactionContextItemSnapshot(BaseModel):
+    """Fresh compaction selected for prompt context."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    compaction_id: ContextCompactionId
+    scope: ContextCompactionScope
+    artifact_id: ArtifactId
+    source_start_sequence: int = Field(ge=0)
+    source_end_sequence: int = Field(ge=0)
+    summary: str
+    freshness: ContextCompactionFreshness
+    limitations: list[str] = Field(default_factory=list)
+    decision_count: int = Field(default=0, ge=0)
+    unresolved_question_count: int = Field(default=0, ge=0)
+    accepted_risk_count: int = Field(default=0, ge=0)
+
+
+class ContextCompactionContextSnapshot(BaseModel):
+    """Bounded fresh context compactions available to the turn."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[ContextCompactionContextItemSnapshot] = Field(default_factory=list)
+    additional_item_count: int = Field(default=0, ge=0)
+    stale_item_count: int = Field(default=0, ge=0)
+
+
 class RuntimeContextSnapshot(BaseModel):
     """Shared operator-facing runtime context summary."""
 
@@ -235,6 +266,9 @@ class RuntimeContextSnapshot(BaseModel):
     workspace_memory_context_bytes: int = Field(default=0, ge=0)
     repository_index: RepositoryIndexContextSnapshot | None = None
     checkpoint_resume: CheckpointResumeSnapshot | None = None
+    context_compactions: ContextCompactionContextSnapshot = Field(
+        default_factory=lambda: ContextCompactionContextSnapshot()
+    )
 
 
 class PolicyContext(BaseModel):
@@ -267,3 +301,4 @@ class TurnContext(BaseModel):
     )
     repository_index: RepositoryIndexContextSnapshot | None = None
     checkpoint_context: CheckpointResumeSnapshot | None = None
+    context_compactions: ContextCompactionContextSnapshot | None = None

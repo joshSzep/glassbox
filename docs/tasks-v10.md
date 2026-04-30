@@ -654,7 +654,7 @@ The intended v10 milestone order is:
 
 ### GBX-1032: Integrate Compactions Into Turn Context
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1031`, `GBX-1022`
 - Goal: let the model use compactions as bounded context while keeping source
   provenance and stale-state warnings visible
@@ -679,6 +679,13 @@ The intended v10 milestone order is:
 - Done when:
   - long sessions can keep working with compacted context that remains
     inspectable and replay-aware
+- Completed:
+  - Runtime context now selects bounded fresh compactions and excludes stale
+    compactions from active prompt context while reporting stale counts.
+  - Turn prompts label compaction scope, source event range, artifact id,
+    freshness, and limitations.
+  - Added context-builder and prompt tests for fresh compaction selection and
+    stale-compaction exclusion posture.
 
 ### GBX-1033: Add Compaction Refresh And Invalidation Workflow
 

@@ -17,6 +17,7 @@ from glassbox.runtime.context_models import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
 from glassbox.runtime.context_models import ArtifactBackedContextSnapshot
 from glassbox.runtime.context_models import ArtifactBackedContextSummarySnapshot
 from glassbox.runtime.context_models import CheckpointResumeSnapshot
+from glassbox.runtime.context_models import ContextCompactionContextSnapshot
 from glassbox.runtime.context_models import PytestFailureDigestArtifact
 from glassbox.runtime.context_models import RepositoryContextSnapshot
 from glassbox.runtime.context_models import RepositoryIndexContextItemSnapshot
@@ -113,6 +114,7 @@ def build_runtime_context_snapshot(
     workspace_memory_context_bytes: int = 0,
     repository_index: RepositoryIndexContextSnapshot | None = None,
     checkpoint_resume: CheckpointResumeSnapshot | None = None,
+    context_compactions: ContextCompactionContextSnapshot | None = None,
 ) -> RuntimeContextSnapshot:
     """Return a bounded operator-facing summary of the current runtime context."""
 
@@ -136,6 +138,7 @@ def build_runtime_context_snapshot(
         workspace_memory_context_bytes=workspace_memory_context_bytes,
         repository_index=repository_index,
         checkpoint_resume=checkpoint_resume,
+        context_compactions=context_compactions or ContextCompactionContextSnapshot(),
     )
 
 

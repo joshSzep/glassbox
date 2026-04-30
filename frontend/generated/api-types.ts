@@ -1425,6 +1425,76 @@ export interface components {
        */
       updated_at: string;
     };
+    /**
+     * ContextCompactionContextItemSnapshot
+     * @description Fresh compaction selected for prompt context.
+     */
+    ContextCompactionContextItemSnapshot: {
+      /**
+       * Accepted Risk Count
+       * @default 0
+       */
+      accepted_risk_count: number;
+      artifact_id: components["schemas"]["ArtifactId"];
+      compaction_id: components["schemas"]["ContextCompactionId"];
+      /**
+       * Decision Count
+       * @default 0
+       */
+      decision_count: number;
+      freshness: components["schemas"]["ContextCompactionFreshness"];
+      /** Limitations */
+      limitations?: string[];
+      scope: components["schemas"]["ContextCompactionScope"];
+      /** Source End Sequence */
+      source_end_sequence: number;
+      /** Source Start Sequence */
+      source_start_sequence: number;
+      /** Summary */
+      summary: string;
+      /**
+       * Unresolved Question Count
+       * @default 0
+       */
+      unresolved_question_count: number;
+    };
+    /**
+     * ContextCompactionContextSnapshot
+     * @description Bounded fresh context compactions available to the turn.
+     */
+    ContextCompactionContextSnapshot: {
+      /**
+       * Additional Item Count
+       * @default 0
+       */
+      additional_item_count: number;
+      /** Items */
+      items?: components["schemas"]["ContextCompactionContextItemSnapshot"][];
+      /**
+       * Stale Item Count
+       * @default 0
+       */
+      stale_item_count: number;
+    };
+    /**
+     * ContextCompactionFreshness
+     * @description Freshness posture for compaction artifacts.
+     * @enum {string}
+     */
+    ContextCompactionFreshness: "fresh" | "stale" | "unknown";
+    /** Format: uuid */
+    ContextCompactionId: string;
+    /**
+     * ContextCompactionScope
+     * @description Scope of a durable context compaction artifact.
+     * @enum {string}
+     */
+    ContextCompactionScope:
+      | "transcript"
+      | "task"
+      | "runtime_context"
+      | "verification"
+      | "tool_output";
     /** ErrorDetailResponse */
     ErrorDetailResponse: {
       /** Detail */
@@ -2025,6 +2095,7 @@ export interface components {
       additional_workspace_memory_count: number;
       artifact_context?: components["schemas"]["ArtifactBackedContextSnapshot"];
       checkpoint_resume?: components["schemas"]["CheckpointResumeSnapshot"] | null;
+      context_compactions?: components["schemas"]["ContextCompactionContextSnapshot"];
       repository_context: components["schemas"]["RepositoryContextSnapshot"];
       repository_index?: components["schemas"]["RepositoryIndexContextSnapshot"] | null;
       /** Runtime Notes */

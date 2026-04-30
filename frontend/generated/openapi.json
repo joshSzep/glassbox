@@ -1300,6 +1300,117 @@
         "title": "ChildSessionSummaryResponse",
         "type": "object"
       },
+      "ContextCompactionContextItemSnapshot": {
+        "additionalProperties": false,
+        "description": "Fresh compaction selected for prompt context.",
+        "properties": {
+          "accepted_risk_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Accepted Risk Count",
+            "type": "integer"
+          },
+          "artifact_id": {
+            "$ref": "#/components/schemas/ArtifactId"
+          },
+          "compaction_id": {
+            "$ref": "#/components/schemas/ContextCompactionId"
+          },
+          "decision_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Decision Count",
+            "type": "integer"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/ContextCompactionFreshness"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ContextCompactionScope"
+          },
+          "source_end_sequence": {
+            "minimum": 0.0,
+            "title": "Source End Sequence",
+            "type": "integer"
+          },
+          "source_start_sequence": {
+            "minimum": 0.0,
+            "title": "Source Start Sequence",
+            "type": "integer"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "unresolved_question_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Unresolved Question Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "compaction_id",
+          "scope",
+          "artifact_id",
+          "source_start_sequence",
+          "source_end_sequence",
+          "summary",
+          "freshness"
+        ],
+        "title": "ContextCompactionContextItemSnapshot",
+        "type": "object"
+      },
+      "ContextCompactionContextSnapshot": {
+        "additionalProperties": false,
+        "description": "Bounded fresh context compactions available to the turn.",
+        "properties": {
+          "additional_item_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Additional Item Count",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ContextCompactionContextItemSnapshot"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "stale_item_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Stale Item Count",
+            "type": "integer"
+          }
+        },
+        "title": "ContextCompactionContextSnapshot",
+        "type": "object"
+      },
+      "ContextCompactionFreshness": {
+        "description": "Freshness posture for compaction artifacts.",
+        "enum": ["fresh", "stale", "unknown"],
+        "title": "ContextCompactionFreshness",
+        "type": "string"
+      },
+      "ContextCompactionId": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "ContextCompactionScope": {
+        "description": "Scope of a durable context compaction artifact.",
+        "enum": ["transcript", "task", "runtime_context", "verification", "tool_output"],
+        "title": "ContextCompactionScope",
+        "type": "string"
+      },
       "ErrorDetailResponse": {
         "properties": {
           "detail": {
@@ -2962,6 +3073,9 @@
                 "type": "null"
               }
             ]
+          },
+          "context_compactions": {
+            "$ref": "#/components/schemas/ContextCompactionContextSnapshot"
           },
           "repository_context": {
             "$ref": "#/components/schemas/RepositoryContextSnapshot"

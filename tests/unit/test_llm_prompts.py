@@ -2,6 +2,8 @@
 
 from uuid import uuid4
 
+from glassbox.core.types import ContextCompactionFreshness
+from glassbox.core.types import ContextCompactionScope
 from glassbox.core.types import LongRunPhase
 from glassbox.core.types import SessionStatus
 from glassbox.llm import build_system_prompt
@@ -9,6 +11,8 @@ from glassbox.llm import build_tool_usage_prompt_fragment
 from glassbox.runtime.context_builder import ArtifactBackedContextSnapshot
 from glassbox.runtime.context_builder import ArtifactBackedContextSummarySnapshot
 from glassbox.runtime.context_builder import CheckpointResumeSnapshot
+from glassbox.runtime.context_builder import ContextCompactionContextItemSnapshot
+from glassbox.runtime.context_builder import ContextCompactionContextSnapshot
 from glassbox.runtime.context_builder import PolicyContext
 from glassbox.runtime.context_builder import ToolSchema
 from glassbox.runtime.context_builder import TurnContext
@@ -164,6 +168,41 @@ def test_build_system_prompt_includes_checkpoint_resume_caveats() -> None:
     assert "events were recorded after the latest checkpoint" in prompt
     assert "source events 1-4" in prompt
     assert "Do not treat this checkpoint as an active continuation point" in prompt
+
+
+def test_build_system_prompt_includes_fresh_context_compactions() -> None:
+    turn_context = TurnContext(
+        session_id=uuid4(),
+        session_status=SessionStatus.RUNNING,
+        current_turn_id=None,
+        last_sequence=8,
+        transcript=[],
+        available_tools=[],
+        policy=PolicyContext(approval_mode="confirm"),
+        context_compactions=ContextCompactionContextSnapshot(
+            items=[
+                ContextCompactionContextItemSnapshot(
+                    compaction_id=uuid4(),
+                    scope=ContextCompactionScope.TRANSCRIPT,
+                    artifact_id=uuid4(),
+                    source_start_sequence=1,
+                    source_end_sequence=8,
+                    summary="Compacted decisions and verification posture.",
+                    freshness=ContextCompactionFreshness.FRESH,
+                    limitations=["Raw transcript omitted."],
+                )
+            ],
+            stale_item_count=1,
+        ),
+    )
+
+    prompt = build_system_prompt(turn_context)
+
+    assert "Context compactions:" in prompt
+    assert "[transcript] Compacted decisions and verification posture." in prompt
+    assert "source events 1-8" in prompt
+    assert "Raw transcript omitted." in prompt
+    assert "1 stale compaction(s) excluded." in prompt
 
 
 def test_tool_usage_fragment_is_stable_and_includes_schema() -> None:

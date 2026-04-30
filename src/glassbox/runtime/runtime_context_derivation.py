@@ -4,6 +4,8 @@ from pathlib import Path
 
 from glassbox.core.ids import SessionId
 from glassbox.runtime.checkpoints import build_checkpoint_resume_snapshot
+from glassbox.runtime.context_models import ContextCompactionContextItemSnapshot
+from glassbox.runtime.context_models import ContextCompactionContextSnapshot
 from glassbox.runtime.context_models import RuntimeContextSnapshot
 from glassbox.runtime.context_snapshots import build_artifact_backed_context_snapshot
 from glassbox.runtime.context_snapshots import build_repository_index_context_snapshot
@@ -58,4 +60,44 @@ def derive_runtime_context_snapshot(
             latest_session_sequence=latest_session_sequence,
             workspace_root=workspace_root,
         ),
+        context_compactions=build_context_compaction_context_snapshot(
+            session_repository,
+            session_id,
+        ),
+    )
+
+
+def build_context_compaction_context_snapshot(
+    session_repository: SessionRepository,
+    session_id: SessionId,
+    *,
+    item_limit: int = 3,
+) -> ContextCompactionContextSnapshot:
+    """Return fresh compactions that are safe to place in turn context."""
+
+    rows = session_repository.list_context_compactions(
+        session_id,
+        limit=item_limit + 25,
+    )
+    fresh_rows = [row for row in rows if row.freshness == "fresh"]
+    selected = fresh_rows[:item_limit]
+    return ContextCompactionContextSnapshot(
+        items=[
+            ContextCompactionContextItemSnapshot(
+                compaction_id=row.compaction_id,
+                scope=row.scope,
+                artifact_id=row.artifact_id,
+                source_start_sequence=row.source_start_sequence,
+                source_end_sequence=row.source_end_sequence,
+                summary=row.summary,
+                freshness=row.freshness,
+                limitations=row.limitations,
+                decision_count=row.decision_count,
+                unresolved_question_count=row.unresolved_question_count,
+                accepted_risk_count=row.accepted_risk_count,
+            )
+            for row in selected
+        ],
+        additional_item_count=max(len(fresh_rows) - len(selected), 0),
+        stale_item_count=max(len(rows) - len(fresh_rows), 0),
     )

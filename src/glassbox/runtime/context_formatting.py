@@ -5,6 +5,7 @@ from collections.abc import Sequence
 
 from glassbox.core.models import TranscriptMessage
 from glassbox.runtime.context_models import CheckpointResumeSnapshot
+from glassbox.runtime.context_models import ContextCompactionContextSnapshot
 from glassbox.runtime.context_models import RepositoryContextSnapshot
 from glassbox.runtime.context_models import RepositoryIndexContextSnapshot
 from glassbox.runtime.context_models import RuntimeContextNoteSnapshot
@@ -169,6 +170,41 @@ def format_checkpoint_resume_for_prompt(
         notes.append(
             "[checkpoint caveat] Treat transcript, events, and current workspace "
             "state as authoritative until the checkpoint is refreshed or resolved."
+        )
+    return notes
+
+
+def format_context_compactions_for_prompt(
+    compactions: ContextCompactionContextSnapshot,
+) -> list[str]:
+    """Render fresh compaction summaries into stable prompt notes."""
+
+    notes: list[str] = []
+    for item in compactions.items:
+        notes.append(
+            "[context-compaction "
+            f"{item.scope.value} events {item.source_start_sequence}-"
+            f"{item.source_end_sequence}] {item.summary}"
+        )
+        notes.append(
+            "[context-compaction provenance] "
+            f"compaction {item.compaction_id}; artifact {item.artifact_id}; "
+            f"freshness {item.freshness.value}; decisions {item.decision_count}; "
+            f"questions {item.unresolved_question_count}; risks "
+            f"{item.accepted_risk_count}"
+        )
+        for limitation in item.limitations[:2]:
+            notes.append(f"[context-compaction limitation] {limitation}")
+    if compactions.additional_item_count:
+        notes.append(
+            "[context-compaction omitted] "
+            f"{compactions.additional_item_count} additional fresh compaction(s)"
+        )
+    if compactions.stale_item_count:
+        notes.append(
+            "[context-compaction stale] "
+            f"{compactions.stale_item_count} stale compaction(s) excluded from "
+            "active prompt context"
         )
     return notes
 
