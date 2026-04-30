@@ -480,6 +480,11 @@ the Next.js SPA contract in [architecture.md](./architecture.md) and
 - `workspace-console.tsx` should remain the surface composition owner while
   route synchronization, popstate handling, per-surface load/reset behavior, and
   repeated action binding move into focused hooks/helpers
+- the workspace-console split now keeps
+  `frontend/components/console/workspace-console.tsx` as the store/state
+  selection and surface composition owner, with URL synchronization and
+  per-surface load/reset behavior in `workspace-console/routing.ts` and repeated
+  action bindings in `workspace-console/actions.ts`
 - session-inspector diagnostic panes keep `diagnostics-panes.tsx` as a stable
   export facade while runtime context, metrics, event/projection evidence, and
   shared diagnostic pagination live in focused pane modules under

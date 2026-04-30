@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useStore } from "zustand";
 
 import { createGlassboxApiClient } from "@/api/client";
@@ -10,19 +10,13 @@ import { SessionInspector } from "@/components/console/session-inspector";
 import { TaskAutonomyConsole } from "@/components/console/task-autonomy-console";
 import { WorkspaceOverview } from "@/components/console/workspace-overview";
 import {
-  buildAppRoute,
-  createDefaultAppRoute,
-  openLineageTargetRoute,
-  parseAppRoute,
-  selectQueueRoute,
-  selectSessionRoute,
-  selectTaskQueueRoute,
-  selectTaskRoute,
-  setCompareRoute,
-  setInspectorTabRoute,
-  type AppQueue,
-  type AppRouteState,
-} from "@/routing/app-route";
+  branchSearchConsoleActions,
+  knowledgeConsoleActions,
+  sessionInspectorActions,
+  taskConsoleActions,
+  workspaceOverviewActions,
+} from "@/components/console/workspace-console/actions";
+import { useWorkspaceConsoleRouting } from "@/components/console/workspace-console/routing";
 import {
   createBranchSearchStore,
   createConsoleStore,
@@ -43,76 +37,13 @@ export function WorkspaceConsole() {
   const knowledgeState = useStore(knowledgeStore);
   const sessionState = useStore(sessionStore);
   const taskState = useStore(taskStore);
-  const [route, setRoute] = useState<AppRouteState>(createDefaultAppRoute);
-
-  useEffect(() => {
-    const syncFromLocation = () => {
-      const nextRoute = parseAppRoute(window.location.href);
-      setRoute(nextRoute);
-      void consoleStore.getState().loadAggregate({ queue: nextRoute.queue });
-      if (nextRoute.surface === "tasks") {
-        branchSearchStore.getState().reset();
-        knowledgeStore.getState().reset();
-        sessionStore.getState().resetForRoute(null);
-        void (async () => {
-          await taskStore.getState().loadTaskPage({ queue: nextRoute.taskQueue });
-          if (nextRoute.selectedTaskId !== null) {
-            await taskStore.getState().selectTask(nextRoute.selectedTaskId);
-          }
-        })();
-      } else if (nextRoute.surface === "memory") {
-        branchSearchStore.getState().reset();
-        sessionStore.getState().resetForRoute(null);
-        taskStore.getState().reset();
-        void knowledgeStore.getState().loadMemoryPage();
-      } else if (nextRoute.surface === "repository") {
-        branchSearchStore.getState().reset();
-        sessionStore.getState().resetForRoute(null);
-        taskStore.getState().reset();
-        void (async () => {
-          await knowledgeStore.getState().loadRepositoryStatus();
-          await knowledgeStore.getState().searchRepositoryIndex();
-        })();
-      } else if (nextRoute.surface === "branches") {
-        knowledgeStore.getState().reset();
-        sessionStore.getState().resetForRoute(null);
-        taskStore.getState().reset();
-        void branchSearchStore.getState().loadBranchSearchPage();
-      } else if (nextRoute.selectedSessionId !== null) {
-        branchSearchStore.getState().reset();
-        knowledgeStore.getState().reset();
-        taskStore.getState().reset();
-        void (async () => {
-          await sessionStore.getState().loadSession(nextRoute.selectedSessionId as string);
-          if (nextRoute.compareSessionId !== null) {
-            await sessionStore.getState().loadCompareSession(nextRoute.compareSessionId);
-          }
-        })();
-      } else {
-        branchSearchStore.getState().reset();
-        knowledgeStore.getState().reset();
-        taskStore.getState().reset();
-        sessionStore.getState().resetForRoute(null);
-      }
-    };
-
-    syncFromLocation();
-    window.addEventListener("popstate", syncFromLocation);
-    return () => window.removeEventListener("popstate", syncFromLocation);
-  }, [branchSearchStore, consoleStore, knowledgeStore, sessionStore, taskStore]);
-
-  const navigate = (nextRoute: AppRouteState) => {
-    setRoute(nextRoute);
-    window.history.pushState(null, "", buildAppRoute(nextRoute));
-  };
-
-  const refreshSelectedSession = async () => {
-    const sessionId = sessionStore.getState().data.sessionId;
-    if (sessionId !== null) {
-      await sessionStore.getState().loadSession(sessionId);
-    }
-    void consoleStore.getState().loadAggregate();
-  };
+  const { navigate, refreshSelectedSession, route } = useWorkspaceConsoleRouting({
+    branchSearchStore,
+    consoleStore,
+    knowledgeStore,
+    sessionStore,
+    taskStore,
+  });
 
   useEffect(() => {
     if (sessionState.loadState !== "loaded" || sessionState.data.sessionId === null) {
@@ -128,49 +59,7 @@ export function WorkspaceConsole() {
       <TaskAutonomyConsole
         action={taskState.action}
         detail={taskState.detail}
-        onAdjustBudget={(input) => {
-          void taskStore.getState().adjustTaskBudget(input);
-        }}
-        onApprovePlan={() => {
-          void taskStore.getState().approvePlan();
-        }}
-        onCancelBackgroundJob={(jobId) => {
-          void taskStore.getState().cancelBackgroundJob({ jobId, reason: "dashboard request" });
-        }}
-        onCancelTask={() => {
-          void taskStore.getState().cancelTask({ reason: "dashboard request" });
-        }}
-        onContinueTask={() => {
-          void taskStore.getState().continueTask({ reason: "dashboard bounded continuation" });
-        }}
-        onLoadMoreEvents={() => {
-          void taskStore.getState().loadMoreTaskEvents();
-        }}
-        onPauseTask={() => {
-          void taskStore.getState().pauseTask({ detail: "dashboard pause" });
-        }}
-        onRefresh={() => {
-          void taskStore.getState().applyTaskUpdate();
-        }}
-        onResumeTask={() => {
-          void taskStore.getState().resumeTask({ reason: "dashboard resume" });
-        }}
-        onSelectQueue={(queue) => {
-          const nextRoute = selectTaskQueueRoute(parseAppRoute(window.location.href), queue);
-          navigate(nextRoute);
-          void taskStore.getState().setQueueFilter(queue);
-        }}
-        onSelectSession={(sessionId) => {
-          const nextRoute = selectSessionRoute(route, sessionId);
-          navigate(nextRoute);
-          taskStore.getState().reset();
-          void sessionStore.getState().loadSession(sessionId);
-        }}
-        onSelectTask={(taskId) => {
-          const nextRoute = selectTaskRoute(route, taskId);
-          navigate(nextRoute);
-          void taskStore.getState().selectTask(taskId);
-        }}
+        {...taskConsoleActions({ navigate, route, sessionStore, taskStore })}
         queue={taskState.queue}
       />
     );
@@ -186,58 +75,9 @@ export function WorkspaceConsole() {
         action={knowledgeState.action}
         anchorSessionId={anchorSessionId}
         memory={knowledgeState.memory}
-        onConfirmMemory={(memoryId) => {
-          void knowledgeStore.getState().confirmMemory({ memoryId, reason: "dashboard confirm" });
-        }}
-        onInvalidateMemory={(memoryId) => {
-          if (!confirmAction("Invalidate this memory entry?")) {
-            return;
-          }
-          void knowledgeStore
-            .getState()
-            .invalidateMemory({ memoryId, reason: "dashboard invalidation" });
-        }}
-        onMemoryFilter={(filter) => {
-          void knowledgeStore.getState().setMemoryFilter(filter);
-        }}
-        onMemoryQuery={(query) => {
-          void knowledgeStore.getState().setMemoryQuery(query);
-        }}
-        onPreviewPruneMemory={(memoryId) => {
-          void knowledgeStore
-            .getState()
-            .previewPruneMemory({ memoryId, reason: "dashboard prune preview" });
-        }}
-        onPruneMemory={(memoryId) => {
-          if (!confirmAction("Prune this memory entry from active retrieval?")) {
-            return;
-          }
-          void knowledgeStore.getState().pruneMemory({ memoryId, reason: "dashboard prune" });
-        }}
-        onRebuildRepositoryIndex={(input) => {
-          void knowledgeStore.getState().rebuildRepositoryIndex(input);
-        }}
-        onRefresh={() => {
-          if (route.surface === "memory") {
-            void knowledgeStore.getState().loadMemoryPage();
-            return;
-          }
-          void (async () => {
-            await knowledgeStore.getState().loadRepositoryStatus();
-            await knowledgeStore.getState().searchRepositoryIndex();
-          })();
-        }}
-        onRepositoryQuery={(query) => {
-          void knowledgeStore.getState().setRepositoryQuery(query);
-        }}
-        onSelectMemory={(memoryId) => {
-          void knowledgeStore.getState().selectMemory(memoryId);
-        }}
-        onSelectRepositoryEntry={(entryId) => {
-          void knowledgeStore.getState().selectRepositoryEntry(entryId);
-        }}
         repository={knowledgeState.repository}
         surface={route.surface}
+        {...knowledgeConsoleActions({ knowledgeStore, route })}
       />
     );
   }
@@ -247,28 +87,8 @@ export function WorkspaceConsole() {
       <BranchSearchConsole
         action={branchSearchState.action}
         detail={branchSearchState.detail}
-        onMarkCandidate={(input) => {
-          if (!confirmAction(`Mark this candidate ${input.action}?`)) {
-            return;
-          }
-          void branchSearchStore.getState().markCandidate({
-            action: input.action,
-            candidateId: input.candidateId,
-            reason: `dashboard ${input.action}`,
-            searchId: input.searchId,
-          });
-        }}
-        onRefresh={() => {
-          void branchSearchStore.getState().loadBranchSearchPage();
-          const selected = branchSearchStore.getState().detail.selectedSearchId;
-          if (selected !== null) {
-            void branchSearchStore.getState().selectBranchSearch(selected);
-          }
-        }}
-        onSelectSearch={(searchId) => {
-          void branchSearchStore.getState().selectBranchSearch(searchId);
-        }}
         page={branchSearchState.page}
+        {...branchSearchConsoleActions({ branchSearchStore })}
       />
     );
   }
@@ -287,118 +107,23 @@ export function WorkspaceConsole() {
             drafts={sessionState.drafts}
             error={sessionState.error}
             loadState={sessionState.loadState}
-            onAnswerTextChange={(questionId, text) =>
-              sessionStore.getState().setAnswerText(questionId, text)
-            }
-            onAbandonToolAttempt={(toolAttemptId) => {
-              if (!confirmAction("Abandon this tool attempt?")) {
-                return;
-              }
-              void (async () => {
-                await sessionStore.getState().abandonToolAttempt({ toolAttemptId });
-                await refreshSelectedSession();
-              })();
-            }}
-            onClearCompare={() => {
-              const nextRoute = setCompareRoute(route, null);
-              navigate(nextRoute);
-              sessionStore.getState().clearCompareSession();
-            }}
-            onCompareSession={(sessionId) => {
-              const nextRoute = setCompareRoute(route, sessionId);
-              navigate(nextRoute);
-              void sessionStore.getState().loadCompareSession(sessionId);
-            }}
-            onFork={(input) => {
-              void (async () => {
-                const childSessionId = await sessionStore.getState().forkSession(input);
-                if (childSessionId !== null) {
-                  const nextRoute = openLineageTargetRoute(route, childSessionId);
-                  navigate(nextRoute);
-                  await sessionStore.getState().loadSession(childSessionId);
-                  void consoleStore.getState().loadAggregate();
-                }
-              })();
-            }}
-            onForkLabelChange={(text) => sessionStore.getState().setForkLabel(text)}
-            onLoadMoreEvents={() => {
-              void sessionStore.getState().loadMoreEvents();
-            }}
-            onLoadMoreMetrics={() => {
-              void sessionStore.getState().loadMoreMetrics();
-            }}
-            onLoadMoreTranscript={() => {
-              void sessionStore.getState().loadMoreTranscript();
-            }}
-            onOpenSession={(sessionId) => {
-              const nextRoute = openLineageTargetRoute(route, sessionId);
-              navigate(nextRoute);
-              sessionStore.getState().clearCompareSession();
-              void sessionStore.getState().loadSession(sessionId);
-            }}
-            onPromptChange={(text) => sessionStore.getState().setComposerText(text)}
-            onRequestCancellation={() => {
-              void (async () => {
-                await sessionStore.getState().requestCancellation();
-                await refreshSelectedSession();
-              })();
-            }}
-            onResolveApproval={(input) => {
-              void (async () => {
-                await sessionStore.getState().resolveApproval(input);
-                await refreshSelectedSession();
-              })();
-            }}
-            onRetryToolAttempt={(toolAttemptId) => {
-              if (!confirmAction("Retry this tool attempt using retained arguments?")) {
-                return;
-              }
-              void (async () => {
-                await sessionStore.getState().retryToolAttempt({ toolAttemptId });
-                await refreshSelectedSession();
-              })();
-            }}
-            onSelectTab={(tab) => navigate(setInspectorTabRoute(route, tab))}
-            onSubmitAnswer={(questionId) => {
-              void (async () => {
-                await sessionStore.getState().submitAnswer({ questionId });
-                await refreshSelectedSession();
-              })();
-            }}
-            onSubmitPrompt={() => {
-              void (async () => {
-                await sessionStore.getState().submitPrompt();
-                await refreshSelectedSession();
-              })();
-            }}
             queue={route.queue}
             stream={sessionState.stream}
+            {...sessionInspectorActions({
+              consoleStore,
+              navigate,
+              refreshSelectedSession,
+              route,
+              sessionStore,
+            })}
           />
         )
       }
       loadState={consoleState.loadState}
-      onRefresh={() => void consoleStore.getState().loadAggregate()}
-      onSelectQueue={(queue) => {
-        const nextRoute = selectQueueRoute(parseAppRoute(window.location.href), queue as AppQueue);
-        navigate(nextRoute);
-        sessionStore.getState().resetForRoute(null);
-        void consoleStore.getState().selectQueue(queue);
-      }}
-      onSelectSession={(sessionId) => {
-        const nextRoute = selectSessionRoute(route, sessionId);
-        navigate(nextRoute);
-        void sessionStore.getState().loadSession(sessionId);
-      }}
       selectedQueue={consoleState.filters.queue}
       selectedSessionId={route.selectedSessionId}
       stream={sessionState.stream}
+      {...workspaceOverviewActions({ consoleStore, navigate, route, sessionStore })}
     />
   );
-}
-
-function confirmAction(message: string): boolean {
-  if (typeof window === "undefined" || typeof window.confirm !== "function") {
-    return true;
-  }
-  return window.confirm(message);
 }

@@ -509,11 +509,21 @@ V10_FRONTEND_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
     (
         FRONTEND_ROOT / "components" / "console" / "workspace-console.tsx",
-        450,
+        180,
         (
-            "v10 workspace-console should move route synchronization and "
-            "action binding into focused hooks or helpers"
+            "v10 workspace-console should stay a thin composer over routing "
+            "and action binding helpers"
         ),
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "workspace-console" / "routing.ts",
+        160,
+        "v10 workspace-console routing should stay owned by routing.ts",
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "workspace-console" / "actions.ts",
+        360,
+        "v10 workspace-console action binding should stay owned by actions.ts",
     ),
 )
 
@@ -632,6 +642,14 @@ V10_FRONTEND_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
         ("@/api/sse", "next/", "src/glassbox"),
         (
             "v10 workspace-console routing should stay in the frontend store "
+            "and route layers without opening SSE, Next server, or backend seams"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "workspace-console",
+        ("@/api/sse", "next/", "src/glassbox"),
+        (
+            "v10 workspace-console helpers should stay in the frontend store "
             "and route layers without opening SSE, Next server, or backend seams"
         ),
     ),

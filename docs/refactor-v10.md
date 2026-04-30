@@ -394,7 +394,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R312: Extract Workspace Console Routing And Action Binding
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R310`, `GBX-R311`
 - Goal: reduce
   [workspace-console.tsx](../frontend/components/console/workspace-console.tsx)
@@ -422,6 +422,14 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - workspace-console route orchestration is explicit, testable, and no longer
     interleaved with JSX composition
+- Completed notes:
+  - Route parsing, popstate synchronization, surface load/reset orchestration,
+    navigation, and selected-session refresh now live in
+    `workspace-console/routing.ts`.
+  - Task, knowledge, branch-search, session-inspector, and overview action
+    callbacks now live in `workspace-console/actions.ts`.
+  - `workspace-console.tsx` now constructs stores, selects state, and composes
+    the active surface.
 
 ---
 
