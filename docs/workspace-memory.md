@@ -61,6 +61,14 @@ Confirmation is explicit evidence that an operator or trusted workflow reviewed 
 
 Operator-confirmed capture can happen from direct notes or generated candidates. Candidates are deterministic suggestions from explicit local signals such as runtime notes and task outcomes. They are not persisted as memory until an operator confirms them; explicit rejection is recorded as review evidence so the same candidate does not keep reappearing.
 
+Long-running tasks add more review-only candidate sources. Glassbox may propose
+memory from durable checkpoints, fresh compactions, last-known-good verification
+records, verified commands, repeated verification failures, and accepted
+residual risks. These candidates keep provenance back to the source event
+sequence and artifact link when one exists. Stale or invalidated compactions do
+not produce active candidates by default, and redaction runs before candidates
+appear in CLI/API/dashboard review surfaces.
+
 Invalidation is also explicit. Invalidated memory must record who invalidated it and why. Invalidated entries remain explainable for replay and audit, but later context builders must not include them silently.
 
 Updates should preserve lineage. If an update changes meaning substantially, implementations should prefer invalidating the old entry and creating a new one with linked provenance rather than mutating away history.

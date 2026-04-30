@@ -6,8 +6,14 @@ from typing import Protocol
 
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import ApprovalResolved
+from glassbox.core.events import ContextCompactionCreated
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import ModelToolCallRequested
+from glassbox.core.events import TaskCheckpointCreated
+from glassbox.core.events import TaskVerificationCompleted
+from glassbox.core.events import TaskVerificationFailed
+from glassbox.core.events import TaskVerificationPlanned
+from glassbox.core.events import TaskVerificationResidualRiskAccepted
 from glassbox.core.events import ToolExecutionCompleted
 from glassbox.core.events import WorkspaceMemoryCandidateRejected
 from glassbox.core.events import WorkspaceMemoryConfirmed
@@ -16,6 +22,7 @@ from glassbox.core.models import RuntimeNoteRecord
 from glassbox.core.models import TaskRecord
 from glassbox.core.models import WorkspaceMemoryProvenance
 from glassbox.core.types import TaskPlanStatus
+from glassbox.core.types import TaskVerificationStatus
 from glassbox.core.types import WorkspaceMemoryKind
 from glassbox.core.types import WorkspaceMemorySourceType
 from glassbox.runtime.workspace_memory_candidates import MemoryExtractionPolicy
@@ -269,6 +276,238 @@ def confirmed_fix_candidates(
     return candidates
 
 
+def long_run_checkpoint_candidates(
+    repository: WorkspaceMemoryExtractionRepository,
+    session_id: SessionId,
+) -> list[WorkspaceMemoryCandidate]:
+    candidates: list[WorkspaceMemoryCandidate] = []
+    for event in repository.read_session_events(session_id):
+        payload = event.payload
+        if not isinstance(payload, TaskCheckpointCreated):
+            continue
+        fragments = [
+            f"Long-run checkpoint objective: {payload.objective}.",
+            f"Next action: {payload.next_action}.",
+            f"Recovery guidance: {payload.recovery_guidance}.",
+        ]
+        if payload.completed_step:
+            fragments.append(f"Completed step: {payload.completed_step}.")
+        if payload.verification_status:
+            fragments.append(f"Verification: {payload.verification_status}.")
+        content, redacted = redact_sensitive_text(" ".join(fragments))
+        candidates.append(
+            build_candidate(
+                session_id=session_id,
+                kind=WorkspaceMemoryKind.TASK_OUTCOME,
+                content=content,
+                summary=summarize_candidate_content(content),
+                provenance=WorkspaceMemoryProvenance(
+                    source_type=WorkspaceMemorySourceType.SESSION_EVENT,
+                    session_id=session_id,
+                    source_sequence=event.sequence,
+                    task_id=payload.task_id,
+                    source_label="long-run checkpoint",
+                    note=_artifact_note(payload.artifact_id),
+                ),
+                tags=["long-run", "checkpoint"],
+                redacted=redacted,
+                source_label=f"checkpoint {payload.checkpoint_id}",
+                created_at=event.created_at,
+            )
+        )
+    return candidates
+
+
+def long_run_compaction_candidates(
+    repository: WorkspaceMemoryExtractionRepository,
+    session_id: SessionId,
+) -> list[WorkspaceMemoryCandidate]:
+    candidates: list[WorkspaceMemoryCandidate] = []
+    for event in repository.read_session_events(session_id):
+        payload = event.payload
+        if not isinstance(payload, ContextCompactionCreated):
+            continue
+        if payload.freshness.value != "fresh":
+            continue
+        limitations = (
+            " Limitations: " + "; ".join(payload.limitations)
+            if payload.limitations
+            else ""
+        )
+        content, redacted = redact_sensitive_text(
+            f"Fresh context compaction: {payload.summary}.{limitations}"
+        )
+        candidates.append(
+            build_candidate(
+                session_id=session_id,
+                kind=WorkspaceMemoryKind.ARCHITECTURE_NOTE,
+                content=content,
+                summary=summarize_candidate_content(content),
+                provenance=WorkspaceMemoryProvenance(
+                    source_type=WorkspaceMemorySourceType.SESSION_EVENT,
+                    session_id=session_id,
+                    source_sequence=event.sequence,
+                    task_id=payload.task_id,
+                    artifact_id=payload.artifact_id,
+                    source_label="context compaction",
+                    note=_artifact_note(payload.artifact_id),
+                ),
+                tags=["long-run", "compaction", payload.scope.value],
+                redacted=redacted,
+                source_label=f"compaction {payload.compaction_id}",
+                created_at=event.created_at,
+            )
+        )
+    return candidates
+
+
+def long_run_verification_candidates(
+    repository: WorkspaceMemoryExtractionRepository,
+    session_id: SessionId,
+) -> list[WorkspaceMemoryCandidate]:
+    events = repository.read_session_events(session_id)
+    planned = {
+        payload.verification.verification_id: payload.verification
+        for payload in (event.payload for event in events)
+        if isinstance(payload, TaskVerificationPlanned)
+    }
+    return [
+        *last_known_good_candidates(events, session_id, planned),
+        *verification_failure_pattern_candidates(events, session_id),
+        *accepted_residual_risk_candidates(events, session_id),
+    ]
+
+
+def last_known_good_candidates(
+    events: list[EventEnvelope],
+    session_id: SessionId,
+    planned: dict,
+) -> list[WorkspaceMemoryCandidate]:
+    candidates: list[WorkspaceMemoryCandidate] = []
+    for event in events:
+        payload = event.payload
+        if not isinstance(payload, TaskVerificationCompleted):
+            continue
+        if payload.status != TaskVerificationStatus.PASSED:
+            continue
+        plan = planned.get(payload.verification_id)
+        command = " ".join(plan.command) if plan is not None else None
+        check_label = plan.check_name if plan else str(payload.verification_id)
+        content_parts = [f"Last known good verification passed: {check_label}."]
+        if command:
+            content_parts.append(f"Verified command: {command}.")
+        if payload.summary:
+            content_parts.append(f"Summary: {payload.summary}.")
+        content, redacted = redact_sensitive_text(" ".join(content_parts))
+        candidates.append(
+            build_candidate(
+                session_id=session_id,
+                kind=(
+                    WorkspaceMemoryKind.COMMAND if command else WorkspaceMemoryKind.FACT
+                ),
+                content=content,
+                summary=summarize_candidate_content(content),
+                provenance=WorkspaceMemoryProvenance(
+                    source_type=WorkspaceMemorySourceType.SESSION_EVENT,
+                    session_id=session_id,
+                    source_sequence=event.sequence,
+                    task_id=payload.task_id,
+                    artifact_id=payload.artifact_id,
+                    source_label="last-known-good verification",
+                    note=_artifact_note(payload.artifact_id),
+                ),
+                tags=["long-run", "last-known-good", "verification"],
+                redacted=redacted,
+                source_label=f"verification {payload.verification_id}",
+                created_at=event.created_at,
+            )
+        )
+    return candidates
+
+
+def verification_failure_pattern_candidates(
+    events: list[EventEnvelope],
+    session_id: SessionId,
+) -> list[WorkspaceMemoryCandidate]:
+    buckets: dict[str, list[tuple[EventEnvelope, TaskVerificationFailed]]] = {}
+    for event in events:
+        payload = event.payload
+        if not isinstance(payload, TaskVerificationFailed):
+            continue
+        key = summarize_candidate_content(payload.failure.summary).casefold()
+        buckets.setdefault(key, []).append((event, payload))
+
+    candidates: list[WorkspaceMemoryCandidate] = []
+    for failures in buckets.values():
+        if len(failures) < 2:
+            continue
+        event, payload = failures[-1]
+        content, redacted = redact_sensitive_text(
+            "Repeated verification failure observed "
+            f"{len(failures)} times: {payload.failure.summary}"
+        )
+        candidates.append(
+            build_candidate(
+                session_id=session_id,
+                kind=WorkspaceMemoryKind.FAILURE_PATTERN,
+                content=content,
+                summary=(
+                    "Repeated verification failure: "
+                    f"{summarize_candidate_content(payload.failure.summary)}"
+                ),
+                provenance=WorkspaceMemoryProvenance(
+                    source_type=WorkspaceMemorySourceType.SESSION_EVENT,
+                    session_id=session_id,
+                    source_sequence=event.sequence,
+                    task_id=payload.task_id,
+                    artifact_id=payload.failure.artifact_id,
+                    source_label="repeated verification failure",
+                    note=_artifact_note(payload.failure.artifact_id),
+                ),
+                tags=["long-run", "failure-pattern", "verification"],
+                redacted=redacted,
+                source_label=f"verification {payload.verification_id}",
+                created_at=event.created_at,
+            )
+        )
+    return candidates
+
+
+def accepted_residual_risk_candidates(
+    events: list[EventEnvelope],
+    session_id: SessionId,
+) -> list[WorkspaceMemoryCandidate]:
+    candidates: list[WorkspaceMemoryCandidate] = []
+    for event in events:
+        payload = event.payload
+        if not isinstance(payload, TaskVerificationResidualRiskAccepted):
+            continue
+        risks = "; ".join(payload.residual_risks) or "unspecified residual risk"
+        content, redacted = redact_sensitive_text(
+            f"Accepted residual verification risk: {payload.reason}. Risks: {risks}."
+        )
+        candidates.append(
+            build_candidate(
+                session_id=session_id,
+                kind=WorkspaceMemoryKind.FAILURE_PATTERN,
+                content=content,
+                summary=summarize_candidate_content(content),
+                provenance=WorkspaceMemoryProvenance(
+                    source_type=WorkspaceMemorySourceType.SESSION_EVENT,
+                    session_id=session_id,
+                    source_sequence=event.sequence,
+                    task_id=payload.task_id,
+                    source_label="accepted residual risk",
+                ),
+                tags=["long-run", "accepted-risk", "verification"],
+                redacted=redacted,
+                source_label=f"verification {payload.verification_id}",
+                created_at=event.created_at,
+            )
+        )
+    return candidates
+
+
 def model_assisted_candidates(
     session_id: SessionId,
     suggestions: Sequence[ModelMemorySuggestion],
@@ -318,6 +557,10 @@ def excluded_candidate_ids(
             if payload.reason is not None and payload.reason.startswith(prefix):
                 excluded_ids.add(payload.reason.removeprefix(prefix))
     return excluded_ids
+
+
+def _artifact_note(artifact_id) -> str | None:
+    return f"artifact_id={artifact_id}" if artifact_id is not None else None
 
 
 def _tool_requests_by_id(

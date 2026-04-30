@@ -5,15 +5,35 @@ from datetime import datetime
 from datetime import timedelta
 from pathlib import Path
 
+from glassbox.core import ContextCompactionCreated
+from glassbox.core import ContextCompactionFreshness
+from glassbox.core import ContextCompactionScope
 from glassbox.core import EventEnvelope
+from glassbox.core import LongRunPhase
 from glassbox.core import ModelToolCallRequested
 from glassbox.core import RuntimeNoteRecord
 from glassbox.core import SessionRecord
 from glassbox.core import SessionState
 from glassbox.core import SessionStatus
+from glassbox.core import TaskCheckpointCreated
+from glassbox.core import TaskVerificationCompleted
+from glassbox.core import TaskVerificationFailed
+from glassbox.core import TaskVerificationPlanned
+from glassbox.core import TaskVerificationResidualRiskAccepted
+from glassbox.core import TaskVerificationStatus
 from glassbox.core import ToolExecutionCompleted
+from glassbox.core import VerificationCheckKind
+from glassbox.core import VerificationFailureCategory
+from glassbox.core import VerificationFailureDigest
+from glassbox.core import VerificationPlanEntry
+from glassbox.core import VerificationPlanSource
 from glassbox.core import WorkspaceMemoryKind
+from glassbox.core import new_artifact_id
+from glassbox.core import new_context_compaction_id
 from glassbox.core import new_session_id
+from glassbox.core import new_task_checkpoint_id
+from glassbox.core import new_task_id
+from glassbox.core import new_task_verification_id
 from glassbox.core import new_tool_call_id
 from glassbox.core import new_turn_id
 from glassbox.runtime.workspace_memory_capture import MemoryExtractionPolicy
@@ -128,6 +148,149 @@ def test_model_assisted_extraction_is_review_only_and_confidence_gated() -> None
     assert repository.appended_events == []
 
 
+def test_long_run_memory_candidates_preserve_review_gate_and_provenance() -> None:
+    session_id = new_session_id()
+    task_id = new_task_id()
+    artifact_id = new_artifact_id()
+    stale_artifact_id = new_artifact_id()
+    verification_id = new_task_verification_id()
+    failed_a = new_task_verification_id()
+    failed_b = new_task_verification_id()
+    risk_id = new_task_verification_id()
+    now = datetime(2026, 4, 29, 12, tzinfo=UTC)
+    repository = FakeMemoryCaptureRepository(
+        session_id,
+        events=[
+            EventEnvelope(
+                session_id=session_id,
+                sequence=10,
+                created_at=now,
+                payload=TaskCheckpointCreated(
+                    checkpoint_id=new_task_checkpoint_id(),
+                    task_id=task_id,
+                    objective="Finish provider recovery safely",
+                    current_phase=LongRunPhase.VERIFYING,
+                    completed_step="captured retry state",
+                    next_action="rerun focused tests",
+                    recovery_guidance="resume from checkpoint after approval",
+                    verification_status="pytest passed",
+                    source_start_sequence=1,
+                    source_end_sequence=9,
+                    artifact_id=artifact_id,
+                ),
+            ),
+            EventEnvelope(
+                session_id=session_id,
+                sequence=11,
+                created_at=now,
+                payload=ContextCompactionCreated(
+                    compaction_id=new_context_compaction_id(),
+                    scope=ContextCompactionScope.TASK,
+                    source_start_sequence=1,
+                    source_end_sequence=10,
+                    summary="Provider retry findings should be reviewed before resume.",
+                    artifact_id=artifact_id,
+                    freshness=ContextCompactionFreshness.FRESH,
+                    task_id=task_id,
+                    limitations=["network canary was skipped"],
+                ),
+            ),
+            EventEnvelope(
+                session_id=session_id,
+                sequence=12,
+                created_at=now,
+                payload=ContextCompactionCreated(
+                    compaction_id=new_context_compaction_id(),
+                    scope=ContextCompactionScope.TASK,
+                    source_start_sequence=1,
+                    source_end_sequence=10,
+                    summary="Stale compaction should not become active memory.",
+                    artifact_id=stale_artifact_id,
+                    freshness=ContextCompactionFreshness.STALE,
+                    task_id=task_id,
+                ),
+            ),
+            EventEnvelope(
+                session_id=session_id,
+                sequence=13,
+                created_at=now,
+                payload=TaskVerificationPlanned(
+                    task_id=task_id,
+                    verification=VerificationPlanEntry(
+                        verification_id=verification_id,
+                        check_name="pytest provider recovery",
+                        kind=VerificationCheckKind.TEST,
+                        command=["uv", "run", "pytest", "tests/unit"],
+                        source=VerificationPlanSource.OPERATOR,
+                        rationale="focused long-run recovery proof",
+                    ),
+                ),
+            ),
+            EventEnvelope(
+                session_id=session_id,
+                sequence=14,
+                created_at=now,
+                payload=TaskVerificationCompleted(
+                    task_id=task_id,
+                    verification_id=verification_id,
+                    status=TaskVerificationStatus.PASSED,
+                    summary="provider recovery tests passed",
+                    artifact_id=artifact_id,
+                ),
+            ),
+            _verification_failed(
+                session_id,
+                task_id,
+                failed_a,
+                "provider token=abcdefghijklmnopqrstuvwxyz123456 failed",
+                15,
+                now,
+                artifact_id,
+            ),
+            _verification_failed(
+                session_id,
+                task_id,
+                failed_b,
+                "provider token=abcdefghijklmnopqrstuvwxyz123456 failed",
+                16,
+                now,
+                artifact_id,
+            ),
+            EventEnvelope(
+                session_id=session_id,
+                sequence=17,
+                created_at=now,
+                payload=TaskVerificationResidualRiskAccepted(
+                    task_id=task_id,
+                    verification_id=risk_id,
+                    reason="live canary skipped until credentials are available",
+                    residual_risks=["provider behavior remains advisory"],
+                ),
+            ),
+        ],
+    )
+
+    service = WorkspaceMemoryCaptureService(repository)
+    candidates = service.list_candidates(session_id, now=now)
+
+    assert repository.appended_events == []
+    assert any("checkpoint" in candidate.tags for candidate in candidates)
+    assert any("compaction" in candidate.tags for candidate in candidates)
+    assert any("last-known-good" in candidate.tags for candidate in candidates)
+    assert any("accepted-risk" in candidate.tags for candidate in candidates)
+    assert all("Stale compaction" not in candidate.content for candidate in candidates)
+    repeated = next(
+        candidate
+        for candidate in candidates
+        if candidate.tags == ["long-run", "failure-pattern", "verification"]
+    )
+    assert repeated.redacted is True
+    assert "<redacted>" in repeated.content or "<redacted-token>" in repeated.content
+    assert repeated.provenance.session_id == session_id
+    assert repeated.provenance.source_sequence == 16
+    assert repeated.provenance.note == f"artifact_id={artifact_id}"
+
+
 def _runtime_note(
     session_id,
     sequence: int,
@@ -173,6 +336,32 @@ def _tool_completed(
             success=success,
             exit_code=0 if success else 1,
             summary=summary,
+        ),
+    )
+
+
+def _verification_failed(
+    session_id,
+    task_id,
+    verification_id,
+    summary: str,
+    sequence: int,
+    created_at: datetime,
+    artifact_id,
+) -> EventEnvelope:
+    return EventEnvelope(
+        session_id=session_id,
+        sequence=sequence,
+        created_at=created_at,
+        payload=TaskVerificationFailed(
+            task_id=task_id,
+            verification_id=verification_id,
+            failure=VerificationFailureDigest(
+                category=VerificationFailureCategory.INFRASTRUCTURE,
+                summary=summary,
+                exit_code=1,
+                artifact_id=artifact_id,
+            ),
         ),
     )
 

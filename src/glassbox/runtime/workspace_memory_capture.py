@@ -25,6 +25,11 @@ from glassbox.runtime.workspace_memory_commits import build_operator_memory_even
 from glassbox.runtime.workspace_memory_commits import build_reject_candidate_event
 from glassbox.runtime.workspace_memory_extraction import confirmed_fix_candidates
 from glassbox.runtime.workspace_memory_extraction import excluded_candidate_ids
+from glassbox.runtime.workspace_memory_extraction import long_run_checkpoint_candidates
+from glassbox.runtime.workspace_memory_extraction import long_run_compaction_candidates
+from glassbox.runtime.workspace_memory_extraction import (
+    long_run_verification_candidates,
+)
 from glassbox.runtime.workspace_memory_extraction import model_assisted_candidates
 from glassbox.runtime.workspace_memory_extraction import repeated_failure_candidates
 from glassbox.runtime.workspace_memory_extraction import runtime_note_candidates
@@ -95,6 +100,9 @@ class WorkspaceMemoryCaptureService:
                     *stable_command_candidates(self._repository, session_id),
                     *repeated_failure_candidates(self._repository, session_id),
                     *confirmed_fix_candidates(self._repository, session_id),
+                    *long_run_checkpoint_candidates(self._repository, session_id),
+                    *long_run_compaction_candidates(self._repository, session_id),
+                    *long_run_verification_candidates(self._repository, session_id),
                     *model_assisted_candidates(
                         session_id,
                         model_suggestions,

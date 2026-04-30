@@ -1291,7 +1291,7 @@ The intended v10 milestone order is:
 
 ### GBX-1080: Capture Long-Run Memory Candidates
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1032`, `GBX-1072`
 - Goal: turn durable findings from long tasks into reviewable workspace memory
   candidates without creating hidden memory
@@ -1314,6 +1314,16 @@ The intended v10 milestone order is:
 - Done when:
   - long-running work can produce durable local learning while preserving
     operator review and provenance
+- Completed:
+  - Added review-only memory candidates from long-run checkpoints, fresh
+    compactions, last-known-good verification records, verified commands,
+    repeated verification failures, and accepted residual risks.
+  - Preserved provenance back to canonical source event sequences and artifact
+    IDs where available, while keeping stale compactions inactive and running
+    redaction before review.
+  - Reused the existing CLI/API/dashboard candidate review flow and added
+    focused workspace-memory tests for usefulness, dedupe, redaction,
+    rejection/confirmation posture, provenance, and stale-compaction exclusion.
 
 ### GBX-1081: Add Provider Failure Recovery State
 
