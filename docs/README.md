@@ -36,6 +36,9 @@ implementation track after the v9 baseline.
 - [long-run-cockpit-contract.md](./long-run-cockpit-contract.md): v10 terminal
   and dashboard cockpit contract for long-running heartbeat, checkpoint,
   compaction, attempt, verification, budget, provider, and recovery cues
+- [v10-release-gate.md](./v10-release-gate.md): v10 automated release gate that
+  composes inherited v9 evidence with deterministic long-run recovery,
+  compaction, tool-attempt, provider, package, and cockpit evidence
 - [operator-quickstart.md](./operator-quickstart.md): short happy path for
   install, provider setup, terminal chat, dashboard inspection, approvals, and
   verification
@@ -109,6 +112,9 @@ implementation track after the v9 baseline.
 - [v10-durability-audit.md](./v10-durability-audit.md): implementation boundary
   map for turn engine, model loop, tools, suspensions, jobs, daemon ownership,
   SSE, context, projections, replay, and dashboard reducers
+- [v10-release-gate.md](./v10-release-gate.md): automated v10 release evidence
+  command, stage map, retained summary shape, advisory provider policy, and
+  pass/fail rules
 - [v9-vocabulary.md](./v9-vocabulary.md): standardize operator-facing product
   terms and command/dashboard language for v9
 - [v9-command-surface-review.md](./v9-command-surface-review.md): classify the
@@ -175,6 +181,8 @@ path.
 - [v9-release-gate.md](./v9-release-gate.md): v9 automated release gate,
   onboarding/package/provider/eval stage map, evidence summary shape, advisory
   provider-canary policy, and pass/fail rules
+- [v10-release-gate.md](./v10-release-gate.md): v10 automated release gate that
+  layers long-running-task release evidence on top of the inherited v9 gate
 - [manual-v9-release-validation.md](./manual-v9-release-validation.md): retained
   GBX-992 manual validation pass for first-run, dashboard cockpit, recovery,
   provider, package, accessibility, residual-risk, and go/no-go evidence

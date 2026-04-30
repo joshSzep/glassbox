@@ -1458,7 +1458,7 @@ The intended v10 milestone order is:
 
 ### GBX-1091: Add v10 Release Gate
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1090`, `GBX-1082`
 - Goal: compose inherited v9 release evidence with v10 long-running-task
   evidence
@@ -1485,6 +1485,23 @@ The intended v10 milestone order is:
 - Done when:
   - v10 readiness has one command that records deterministic, package,
     provider, long-run, and cockpit evidence clearly
+- Completed:
+  - Added `scripts/validate_v10_release_gate.py`, inheriting the v9 gate and
+    layering v10 deterministic eval report, release-candidate long-run profile,
+    checkpoint/compaction smoke, tool-attempt recovery smoke, long-run cockpit
+    smoke, provider recovery policy check, retained `summary.json`, dry-run,
+    and explicit evidence-directory support.
+  - Added `docs/v10-release-gate.md` and linked it from the docs hub so
+    release reviewers can inspect the stage map, summary shape, advisory
+    provider policy, and pass/fail rules.
+  - Extended package-content validation so the v10 gate script and referenced
+    v10 operator docs are retained in source distributions.
+  - Added unit coverage for stage composition, dry-run summary output,
+    provider-canary skip/planning behavior, failure reporting, and evidence
+    paths.
+  - Verified with focused formatting/lint/typecheck, focused unit tests, a
+    v10 gate dry run, and a real v10 gate run with retained evidence at
+    `/private/tmp/gbx1091-v10-gate-real/summary.json`.
 
 ### GBX-1092: Run Long-Running Dogfooding Passes
 

@@ -119,6 +119,16 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert "sdist missing required file: docs/v9-release-candidate.md" in problems
     assert "sdist missing required file: docs/v9-release-gate.md" in problems
     assert "sdist missing required file: docs/v9-vocabulary.md" in problems
+    assert "sdist missing required file: docs/context-compactions.md" in problems
+    assert "sdist missing required file: docs/long-run-cockpit-contract.md" in problems
+    assert "sdist missing required file: docs/tasks-v10.md" in problems
+    assert "sdist missing required file: docs/tool-attempts.md" in problems
+    assert "sdist missing required file: docs/v10-durability-audit.md" in problems
+    assert (
+        "sdist missing required file: docs/v10-long-running-task-contract.md"
+        in problems
+    )
+    assert "sdist missing required file: docs/v10-release-gate.md" in problems
     assert "sdist missing required file: docs/workspace-profiles.md" in problems
     assert "sdist missing required file: docs/manual-qa-evidence-v7.md" in problems
     assert (
@@ -138,6 +148,9 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     )
     assert (
         "sdist missing required file: scripts/validate_v9_release_gate.py" in problems
+    )
+    assert (
+        "sdist missing required file: scripts/validate_v10_release_gate.py" in problems
     )
     assert (
         "sdist missing required file: scripts/validate_frontend_release_assets.py"
@@ -266,8 +279,15 @@ def _write_sdist(
                 "docs/v9-release-candidate.md",
                 "docs/v9-release-gate.md",
                 "docs/tasks-v9.md",
+                "docs/context-compactions.md",
+                "docs/long-run-cockpit-contract.md",
+                "docs/tasks-v10.md",
+                "docs/tool-attempts.md",
+                "docs/v10-durability-audit.md",
+                "docs/v10-long-running-task-contract.md",
+                "docs/v10-release-gate.md",
             ):
-                _add_tar_text(sdist, f"glassbox-0.9.0/{doc_path}", "# v9\n")
+                _add_tar_text(sdist, f"glassbox-0.9.0/{doc_path}", "# docs\n")
             _add_tar_text(
                 sdist,
                 "glassbox-0.9.0/docs/release-packaging.md",
@@ -383,6 +403,7 @@ def _write_sdist(
                 "scripts/validate_package_contents.py",
                 "scripts/validate_v8_release_gate.py",
                 "scripts/validate_v9_release_gate.py",
+                "scripts/validate_v10_release_gate.py",
             ):
                 _add_tar_text(sdist, f"glassbox-0.9.0/{script_path}", "\n")
             for source_path in (
