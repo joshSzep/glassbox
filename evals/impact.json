@@ -250,6 +250,84 @@
             "notes": "Verification-loop or branch-search changes should run the v8 autonomy advisory replay profile plus focused tests for command outcomes, repair budgets, candidate limits, and cleanup behavior."
         },
         {
+            "rule_id": "v10-checkpoint-compaction-recovery",
+            "title": "v10 checkpoint and compaction recovery surfaces",
+            "path_globs": [
+                "src/glassbox/runtime/checkpoints.py",
+                "src/glassbox/runtime/context_compaction*.py",
+                "src/glassbox/store/*checkpoint*.py",
+                "src/glassbox/store/*compaction*.py",
+                "src/glassbox/cli/compaction_commands.py",
+                "docs/context-compactions.md",
+                "docs/v10-long-running-task-contract.md"
+            ],
+            "owners": ["runtime.context", "runtime.tasks"],
+            "capabilities": [
+                "artifact_backed_context",
+                "context_drift_detection",
+                "task_continuation_until_blocked"
+            ],
+            "case_ids": [
+                "context.artifact",
+                "context.branch-inherited",
+                "task.continuation-blocked"
+            ],
+            "profile_ids": ["commit-smoke", "v8-autonomy-advisory"],
+            "notes": "Checkpoint or compaction changes should review immediate proof, checkpoint freshness, and pre-resume recovery posture before release-candidate validation."
+        },
+        {
+            "rule_id": "v10-tool-attempt-recovery",
+            "title": "v10 tool attempt retry and partial-output recovery",
+            "path_globs": [
+                "src/glassbox/runtime/tool_attempt*.py",
+                "src/glassbox/store/*tool_attempt*.py",
+                "src/glassbox/cli/tool_attempt_commands.py",
+                "src/glassbox/tools/*.py",
+                "docs/tool-attempts.md"
+            ],
+            "owners": ["runtime.cancellation", "runtime.verification"],
+            "capabilities": [
+                "cancellation",
+                "verification_loop_failure",
+                "verification_loop_success"
+            ],
+            "case_ids": [
+                "cancellation.tool-execution",
+                "verification.failure",
+                "verification.success"
+            ],
+            "profile_ids": ["v8-autonomy-advisory"],
+            "notes": "Tool-attempt recovery changes should verify partial-output evidence, safe retry classification, cancellation posture, and focused repair-loop behavior."
+        },
+        {
+            "rule_id": "v10-long-run-cockpit",
+            "title": "v10 long-run cockpit and task evidence dashboard",
+            "path_globs": [
+                "frontend/components/console/long-run-cockpit/**",
+                "frontend/components/console/task-autonomy*.tsx",
+                "frontend/components/console/workspace-overview/**",
+                "frontend/stores/task-store.ts",
+                "src/glassbox/runtime/task_queries.py",
+                "src/glassbox/web/routes/tasks.py",
+                "docs/long-run-cockpit-contract.md",
+                "docs/dashboard-cockpit-contract.md"
+            ],
+            "owners": ["web.dashboard", "runtime.tasks"],
+            "capabilities": [
+                "dashboard_actions",
+                "task_plan_proposal_capture",
+                "task_continuation_until_blocked"
+            ],
+            "case_ids": [
+                "dashboard.action-approval",
+                "dashboard.action-answer",
+                "task-plan.proposal-capture",
+                "task.continuation-blocked"
+            ],
+            "profile_ids": ["v8-autonomy-advisory"],
+            "notes": "Long-run cockpit changes should pair dashboard component tests with replay-backed action, task-plan, and continuation evidence."
+        },
+        {
             "rule_id": "provider-readiness",
             "title": "Provider diagnostics and recommendation surfaces",
             "path_globs": [

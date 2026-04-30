@@ -1252,7 +1252,7 @@ The intended v10 milestone order is:
 
 ### GBX-1073: Improve Eval Recommendations For Long-Running Work
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1072`
 - Goal: make eval recommendation account for checkpoints, stale verification,
   compactions, and long-run risk
@@ -1274,6 +1274,16 @@ The intended v10 milestone order is:
 - Done when:
   - developers get an explainable verification plan for long-running-task
     infrastructure changes
+- Completed:
+  - Added `long_run_surfaces` recommendation output for immediate, checkpoint,
+    pre-resume, pre-merge, and release-candidate verification timing while
+    preserving existing case/profile/suggested-command JSON fields.
+  - Added v10 impact mappings for checkpoint/compaction recovery,
+    tool-attempt recovery, and long-run cockpit changes, with provider canary
+    recommendations still skipped from deterministic plans unless explicitly
+    selected.
+  - Updated CLI rendering, replay/eval docs, and focused unit/CLI coverage for
+    representative v10 paths and long-run execution-plan output.
 
 ---
 

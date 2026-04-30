@@ -5,6 +5,7 @@ from pathlib import Path
 
 from glassbox.runtime.eval_baselines import format_eval_baseline_update_report
 from glassbox.runtime.eval_coverage import build_eval_coverage_summary_lines
+from glassbox.runtime.eval_recommendations import EvalLongRunSurfaceRecommendation
 from glassbox.runtime.eval_recommendations import EvalRecommendationReport
 from glassbox.runtime.eval_recommendations import EvalReleaseSurfaceRecommendation
 from glassbox.runtime.eval_runner import EvalSuiteResult
@@ -281,6 +282,7 @@ def _print_eval_recommendations(result: EvalRecommendationReport) -> None:
         for warning in result.warnings:
             print(f"  - {warning}")
     _print_release_surface_recommendations(result.release_surfaces)
+    _print_long_run_surface_recommendations(result.long_run_surfaces)
     if result.cases:
         print("Recommended cases:")
         for case in result.cases:
@@ -339,6 +341,31 @@ def _print_release_surface_recommendations(
             print("    Budget notes:")
             for note in surface.profile_budget_notes:
                 print("      - " + note)
+
+
+def _print_long_run_surface_recommendations(
+    surfaces: list[EvalLongRunSurfaceRecommendation],
+) -> None:
+    if not surfaces:
+        return
+    print("Long-run surfaces:")
+    for surface in surfaces:
+        status = "impacted" if surface.impacted else "not impacted"
+        print(f"  - {surface.surface}: {status}")
+        _print_optional_joined_line(
+            "Profiles", surface.recommended_profile_ids, indent="    "
+        )
+        _print_optional_joined_line(
+            "Cases", surface.recommended_case_ids, indent="    "
+        )
+        if surface.suggested_commands:
+            print("    Commands:")
+            for command in surface.suggested_commands:
+                print("      - " + command)
+        if surface.reasons:
+            print("    Reasons:")
+            for reason in surface.reasons:
+                print("      - " + reason)
 
 
 def _print_optional_value(label: str, value: str | None, *, indent: str) -> None:

@@ -770,6 +770,18 @@ def test_cli_eval_recommend_reports_cases_profiles_and_reasons(
         "release-candidate",
         "advisory",
     ]
+    assert [surface["surface"] for surface in payload["long_run_surfaces"]] == [
+        "immediate",
+        "checkpoint",
+        "pre-resume",
+        "pre-merge",
+        "release-candidate",
+    ]
+    assert payload["long_run_surfaces"][0]["impacted"] is True
+    assert payload["long_run_surfaces"][3]["recommended_profile_ids"] == [
+        "commit-smoke",
+        "push-confirmation",
+    ]
     assert payload["release_surfaces"][0] == {
         "verification_stage": "commit-time",
         "impacted": True,
@@ -862,6 +874,14 @@ def test_cli_eval_recommend_reports_live_provider_canary_as_skipped_check(
     assert advisory_surface["verification_stage"] == "advisory"
     assert advisory_surface["impacted"] is True
     assert advisory_surface["recommended_profile_ids"] == ["live-provider-canary"]
+    pre_resume_surface = next(
+        surface
+        for surface in payload["long_run_surfaces"]
+        if surface["surface"] == "pre-resume"
+    )
+    assert pre_resume_surface["impacted"] is True
+    assert pre_resume_surface["recommended_profile_ids"] == []
+    assert pre_resume_surface["suggested_commands"] == []
 
 
 def test_cli_eval_recommend_reports_coverage_manifest_warning(

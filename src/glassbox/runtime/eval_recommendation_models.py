@@ -31,6 +31,22 @@ _DAILY_RELEASE_STAGES: tuple[EvalVerificationStage, ...] = (
     "release-candidate",
     "advisory",
 )
+type LongRunVerificationSurface = Literal[
+    "immediate",
+    "checkpoint",
+    "pre-resume",
+    "pre-merge",
+    "release-candidate",
+]
+
+
+_LONG_RUN_SURFACES: tuple[LongRunVerificationSurface, ...] = (
+    "immediate",
+    "checkpoint",
+    "pre-resume",
+    "pre-merge",
+    "release-candidate",
+)
 
 
 class EvalRecommendationReason(BaseModel):
@@ -90,6 +106,19 @@ class EvalReleaseSurfaceRecommendation(BaseModel):
     profile_budget_notes: list[str] = Field(default_factory=list)
 
 
+class EvalLongRunSurfaceRecommendation(BaseModel):
+    """Long-running-task view of when recommended verification should run."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    surface: LongRunVerificationSurface
+    impacted: bool = False
+    recommended_case_ids: list[str] = Field(default_factory=list)
+    recommended_profile_ids: list[str] = Field(default_factory=list)
+    suggested_commands: list[str] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list)
+
+
 class EvalRecommendationReport(BaseModel):
     """Structured replay/eval recommendation report for one change set."""
 
@@ -102,6 +131,9 @@ class EvalRecommendationReport(BaseModel):
     coverage_audit_recommended: bool = False
     warnings: list[str] = Field(default_factory=list)
     release_surfaces: list[EvalReleaseSurfaceRecommendation] = Field(
+        default_factory=list
+    )
+    long_run_surfaces: list[EvalLongRunSurfaceRecommendation] = Field(
         default_factory=list
     )
     cases: list[EvalCaseRecommendation] = Field(default_factory=list)

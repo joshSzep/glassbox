@@ -27,6 +27,9 @@ from glassbox.runtime.eval_recommendation_matching import match_rules
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReason
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReport
 from glassbox.runtime.eval_recommendation_output import build_case_recommendations
+from glassbox.runtime.eval_recommendation_output import (
+    build_long_run_surface_recommendations,
+)
 from glassbox.runtime.eval_recommendation_output import build_profile_recommendations
 from glassbox.runtime.eval_recommendation_output import (
     build_release_surface_recommendations,
@@ -149,6 +152,11 @@ def recommend_eval_change_impact(
         profile_recommendations=profile_recommendations,
         profiles_by_id=profiles_by_id,
     )
+    long_run_surfaces = build_long_run_surface_recommendations(
+        touched_paths=normalized_paths,
+        case_recommendations=case_recommendations,
+        profile_recommendations=profile_recommendations,
+    )
 
     return EvalRecommendationReport(
         workspace_root=resolved_workspace_root,
@@ -158,6 +166,7 @@ def recommend_eval_change_impact(
         coverage_audit_recommended=coverage_audit_recommended,
         warnings=dedupe_strings(warnings),
         release_surfaces=release_surfaces,
+        long_run_surfaces=long_run_surfaces,
         cases=case_recommendations,
         profiles=profile_recommendations,
         suggested_commands=suggested_commands,

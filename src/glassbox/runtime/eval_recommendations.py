@@ -8,11 +8,13 @@ from glassbox.runtime.eval_impact_rules import load_eval_impact_manifest
 from glassbox.runtime.eval_impact_rules import maybe_load_eval_impact_manifest
 from glassbox.runtime.eval_recommendation_engine import recommend_eval_change_impact
 from glassbox.runtime.eval_recommendation_models import EvalCaseRecommendation
+from glassbox.runtime.eval_recommendation_models import EvalLongRunSurfaceRecommendation
 from glassbox.runtime.eval_recommendation_models import EvalProfileRecommendation
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationConfidence
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReason
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReport
 from glassbox.runtime.eval_recommendation_models import EvalReleaseSurfaceRecommendation
+from glassbox.runtime.eval_recommendation_models import LongRunVerificationSurface
 
 __all__ = [
     "DEFAULT_EVAL_IMPACT_PATH",
@@ -20,11 +22,13 @@ __all__ = [
     "EvalCaseRecommendation",
     "EvalImpactManifest",
     "EvalImpactRule",
+    "EvalLongRunSurfaceRecommendation",
     "EvalProfileRecommendation",
     "EvalRecommendationConfidence",
     "EvalRecommendationReason",
     "EvalRecommendationReport",
     "EvalReleaseSurfaceRecommendation",
+    "LongRunVerificationSurface",
     "load_eval_impact_manifest",
     "maybe_load_eval_impact_manifest",
     "recommend_eval_change_impact",

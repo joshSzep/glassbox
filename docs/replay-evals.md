@@ -204,6 +204,14 @@ profiles or live-provider canary profiles, but live-provider checks are skipped
 from the executable verification plan unless the operator explicitly includes
 that canary surface.
 
+For long-running work, the same command also emits `long_run_surfaces` for
+`immediate`, `checkpoint`, `pre-resume`, `pre-merge`, and `release-candidate`
+verification. These rows do not execute anything by themselves; they tell an
+operator when the recommended cases and profiles should be considered. Changes
+to checkpoint, compaction, tool-attempt, provider-recovery, verification-drift,
+or long-run cockpit paths add explicit long-run risk reasons so resume and
+checkpoint decisions are not treated like ordinary short-turn commits.
+
 Recommendation confidence should be visible in output:
 
 - `direct`: the touched path matched a rule that named the case, capability, or profile explicitly

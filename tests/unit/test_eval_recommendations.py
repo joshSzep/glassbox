@@ -356,6 +356,87 @@ def test_recommend_eval_change_impact_narrows_advisory_profiles_by_case_ids(
     assert advisory_surface.recommended_profile_ids == ["v7-workflow-advisory"]
 
 
+def test_recommend_eval_change_impact_reports_long_run_surfaces(
+    tmp_path: Path,
+) -> None:
+    _write_case(
+        tmp_path,
+        case_id="checkpoint.resume",
+        title="Checkpoint resume",
+        owner="runtime.long-run",
+        capabilities=["durable_checkpoint_recovery"],
+        verification_stages=["commit-time", "release-candidate"],
+    )
+    _write_profiles(tmp_path)
+    coverage_path = tmp_path / "evals" / "coverage.json"
+    coverage_path.parent.mkdir(parents=True, exist_ok=True)
+    coverage_path.write_text(
+        json.dumps(
+            {
+                "manifest_version": 1,
+                "capabilities": [
+                    {
+                        "capability_id": "durable_checkpoint_recovery",
+                        "title": "Durable checkpoint recovery",
+                        "criticality": "release-critical",
+                        "verification_stages": ["commit-time", "release-candidate"],
+                        "expected_case_ids": ["checkpoint.resume"],
+                    }
+                ],
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    impact_path = tmp_path / "evals" / "impact.json"
+    impact_path.parent.mkdir(parents=True, exist_ok=True)
+    impact_path.write_text(
+        json.dumps(
+            {
+                "manifest_version": 1,
+                "rules": [
+                    {
+                        "rule_id": "v10-checkpoint-recovery",
+                        "title": "Checkpoint recovery",
+                        "path_globs": ["src/glassbox/runtime/checkpoints.py"],
+                        "capabilities": ["durable_checkpoint_recovery"],
+                    }
+                ],
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = recommend_eval_change_impact(
+        tmp_path,
+        touched_paths=["src/glassbox/runtime/checkpoints.py"],
+    )
+
+    surfaces = {surface.surface: surface for surface in report.long_run_surfaces}
+    assert list(surfaces) == [
+        "immediate",
+        "checkpoint",
+        "pre-resume",
+        "pre-merge",
+        "release-candidate",
+    ]
+    assert surfaces["immediate"].recommended_case_ids == ["checkpoint.resume"]
+    assert surfaces["immediate"].recommended_profile_ids == ["commit-smoke"]
+    assert surfaces["checkpoint"].impacted is True
+    assert any("checkpoint" in reason for reason in surfaces["checkpoint"].reasons)
+    assert surfaces["pre-resume"].impacted is True
+    assert surfaces["release-candidate"].recommended_profile_ids == [
+        "release-candidate"
+    ]
+    assert any(
+        "--profile release-candidate" in command
+        for command in surfaces["release-candidate"].suggested_commands
+    )
+
+
 def test_recommend_eval_change_impact_keeps_live_provider_canary_explicitly_skipped(
     tmp_path: Path,
 ) -> None:
@@ -404,3 +485,11 @@ def test_recommend_eval_change_impact_keeps_live_provider_canary_explicitly_skip
     assert len(plan.skipped_checks) == 1
     assert plan.skipped_checks[0].target_id == "live-provider-canary"
     assert "explicit selection" in plan.skipped_checks[0].reason
+    provider_surface = next(
+        surface
+        for surface in report.long_run_surfaces
+        if surface.surface == "pre-resume"
+    )
+    assert provider_surface.impacted is True
+    assert provider_surface.recommended_profile_ids == []
+    assert provider_surface.suggested_commands == []
