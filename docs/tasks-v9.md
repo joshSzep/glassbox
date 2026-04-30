@@ -557,7 +557,7 @@ The intended v9 milestone order is:
 
 ### GBX-940: Define The v9 Dashboard Cockpit Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-930`
 - Goal: turn the dashboard from a broad inspection console into an obvious
   operator cockpit for active work
@@ -578,6 +578,13 @@ The intended v9 milestone order is:
 - Done when:
   - frontend work has a clear operator-priority contract rather than ad hoc
     panel additions
+  - Completed by adding
+    [dashboard-cockpit-contract.md](./dashboard-cockpit-contract.md), which
+    defines the v9 workspace overview, active-session, task, evidence,
+    memory/index, branch, and recovery cockpit surfaces; priority rules for
+    competing operator attention states; responsive and keyboard expectations;
+    backend/frontend data-source mapping; and explicit follow-on boundaries for
+    `GBX-941`, `GBX-942`, and `GBX-943`.
 
 ### GBX-941: Add Workspace Attention Summary To Dashboard
 

@@ -22,6 +22,9 @@ evidence or milestone history.
 - [v9-command-surface-review.md](./v9-command-surface-review.md): v9 inventory
   and de-emphasis plan for daily, advanced, recovery, maintenance, and
   release-evidence command/dashboard surfaces
+- [dashboard-cockpit-contract.md](./dashboard-cockpit-contract.md): v9
+  dashboard cockpit information architecture, priority rules, responsive and
+  keyboard expectations, data-source map, and follow-on task boundaries
 - [operator-quickstart.md](./operator-quickstart.md): short happy path for
   install, provider setup, terminal chat, dashboard inspection, approvals, and
   verification
@@ -41,6 +44,9 @@ evidence or milestone history.
   cancellation, forking, verification, memory/index work, and recovery
 - [dashboard.md](./dashboard.md): use the co-hosted dashboard as the paired
   operator console for terminal chat or run the standalone dashboard server
+- [dashboard-cockpit-contract.md](./dashboard-cockpit-contract.md): understand
+  the v9 workspace-attention, active-session, task, evidence, memory/index,
+  branch, recovery, priority, responsive, and keyboard contract
 - [task-plans.md](./task-plans.md): inspect durable task plans, plan steps,
   state transitions, and task evidence
 - [verification-loops.md](./verification-loops.md): operate explicit,
@@ -87,6 +93,9 @@ evidence or milestone history.
 - [operator-console.md](./operator-console.md): understand the v2 multi-session
   console model, action queues, runtime-health semantics, and backend/frontend
   contracts
+- [dashboard-cockpit-contract.md](./dashboard-cockpit-contract.md): v9
+  dashboard cockpit contract that maps operator-priority surfaces to typed API
+  responses and frontend stores/components
 - [autonomy-console.md](./autonomy-console.md): inspect autonomy state,
   budgets, and dashboard controls
 - [frontend-development.md](./frontend-development.md): run the Next.js SPA

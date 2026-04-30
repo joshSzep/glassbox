@@ -372,6 +372,46 @@ def test_v9_command_surface_review_covers_deemphasis_plan() -> None:
         assert required_text in content
 
 
+def test_v9_dashboard_cockpit_contract_covers_operator_priority_model() -> None:
+    content = (REPO_ROOT / "docs" / "dashboard-cockpit-contract.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "## Cockpit Surfaces",
+        "Workspace overview",
+        "Active session",
+        "Task queue",
+        "Evidence",
+        "Memory and repository index",
+        "Branches",
+        "Recovery cues",
+        "## Priority Rules",
+        "Pending approval that blocks a live or resumable turn.",
+        "Stale repository index",
+        "Provider credential, compatibility, freshness, warning",
+        "evidence.",
+        "## Responsive Expectations",
+        "## Keyboard And Accessibility Expectations",
+        "## Data Source Map",
+        "`GET /sessions/aggregate`",
+        "`GET /sessions/{session_id}`",
+        "`GET /sessions/{session_id}/events`",
+        "`SessionAggregateView`",
+        "`WorkspaceRuntimeSummaryView`",
+        "`OperatorSessionSummaryView`",
+        "`WorkspaceOverview`",
+        "`SessionInspector`",
+        "`TaskAutonomyConsole`",
+        "`KnowledgeAutonomyConsole`",
+        "`BranchSearchConsole`",
+        "GBX-941",
+        "GBX-942",
+        "GBX-943",
+    ):
+        assert required_text in content
+
+
 def test_docs_hub_separates_operator_docs_from_release_evidence() -> None:
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
 
@@ -388,6 +428,7 @@ def test_docs_hub_separates_operator_docs_from_release_evidence() -> None:
         "## Release Evidence"
     )
     assert "operator-quickstart.md" in docs_readme
+    assert "dashboard-cockpit-contract.md" in docs_readme
     assert "v8-release-candidate.md" in docs_readme
     assert "tasks-v9.md" in docs_readme
 
@@ -429,6 +470,7 @@ def test_public_operator_doc_links_resolve() -> None:
         REPO_ROOT / "docs" / "v9-public-baseline.md",
         REPO_ROOT / "docs" / "v9-vocabulary.md",
         REPO_ROOT / "docs" / "v9-command-surface-review.md",
+        REPO_ROOT / "docs" / "dashboard-cockpit-contract.md",
         REPO_ROOT / "docs" / "operator-quickstart.md",
         REPO_ROOT / "docs" / "version-release-policy.md",
     )
