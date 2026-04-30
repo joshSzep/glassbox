@@ -322,6 +322,9 @@ class ToolAttemptStatus(StrEnum):
     SUCCEEDED = "succeeded"
     FAILED = "failed"
     CANCELLED = "cancelled"
+    STALE = "stale"
+    RETRIED = "retried"
+    ABANDONED = "abandoned"
 
 
 class RecoveryDecision(StrEnum):

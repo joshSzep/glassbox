@@ -243,6 +243,7 @@ class SessionQueryService:
         *,
         turn_metrics_limit: int = 5,
         recent_tool_call_limit: int = 3,
+        recent_tool_attempt_limit: int = 3,
     ) -> SessionStatusView:
         snapshot = self.get_session_snapshot(
             session_id,
@@ -250,6 +251,14 @@ class SessionQueryService:
         )
         all_tool_calls = (
             self._session_repository.list_tool_calls(session_id)
+            if snapshot.projection_health.state != "unavailable"
+            else []
+        )
+        recent_tool_attempts = (
+            self._session_repository.list_tool_attempts(
+                session_id,
+                limit=recent_tool_attempt_limit,
+            )
             if snapshot.projection_health.state != "unavailable"
             else []
         )
@@ -284,6 +293,7 @@ class SessionQueryService:
                 all_tool_calls,
                 limit=recent_tool_call_limit,
             ),
+            recent_tool_attempts=recent_tool_attempts,
             latest_message_summary=latest_message_summary(snapshot.transcript),
         )
 

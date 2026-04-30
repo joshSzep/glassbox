@@ -34,6 +34,7 @@ from glassbox.core.models import SessionConfig
 from glassbox.core.models import SessionRecord
 from glassbox.core.models import SessionState
 from glassbox.core.models import TaskCheckpointRecord
+from glassbox.core.models import ToolAttemptRecord
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TranscriptMessage
 from glassbox.core.models import TurnMetricsRecord
@@ -44,6 +45,7 @@ from glassbox.core.types import BackgroundJobFailureKind
 from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import BackgroundJobState
 from glassbox.core.types import SessionStatus
+from glassbox.core.types import ToolAttemptStatus
 from glassbox.core.types import ToolExecutionStatus
 from glassbox.core.types import WorkspaceMemoryKind
 from glassbox.core.types import WorkspaceMemoryState
@@ -226,6 +228,21 @@ class SessionRepository(Protocol):
         limit: int | None = None,
         offset: int = 0,
     ) -> list[ContextCompactionRecord]: ...
+
+    def get_tool_attempt(
+        self,
+        session_id: SessionId,
+        tool_attempt_id: ToolAttemptId,
+    ) -> ToolAttemptRecord | None: ...
+
+    def list_tool_attempts(
+        self,
+        session_id: SessionId,
+        *,
+        status: ToolAttemptStatus | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[ToolAttemptRecord]: ...
 
     def enqueue_background_job(
         self,

@@ -277,6 +277,9 @@ def normalize_long_run_events(
     events: Sequence[EventEnvelope],
 ) -> list[ReplayLongRunEventSnapshot]:
     normalized: list[ReplayLongRunEventSnapshot] = []
+    tool_attempt_ids: dict[str, str] = {}
+    tool_call_ids: dict[str, str] = {}
+    turn_ids: dict[str, str] = {}
     for event in events:
         payload = event.payload
         if not isinstance(
@@ -291,12 +294,28 @@ def normalize_long_run_events(
             ),
         ):
             continue
+        task_id = optional_identifier(event.task_id)
+        turn_id = optional_identifier(event.turn_id)
+        tool_call_id = optional_identifier(event.tool_call_id)
+        tool_attempt_id = optional_identifier(event.tool_attempt_id)
+        if isinstance(payload, ToolAttemptHeartbeat):
+            turn_id = _stable_replay_identifier(turn_ids, turn_id, prefix="turn")
+            tool_call_id = _stable_replay_identifier(
+                tool_call_ids,
+                tool_call_id,
+                prefix="tool_call",
+            )
+            tool_attempt_id = _stable_replay_identifier(
+                tool_attempt_ids,
+                tool_attempt_id,
+                prefix="tool_attempt",
+            )
         raw = {
             "event_type": event.event_type,
-            "task_id": optional_identifier(event.task_id),
-            "turn_id": optional_identifier(event.turn_id),
-            "tool_call_id": optional_identifier(event.tool_call_id),
-            "tool_attempt_id": optional_identifier(event.tool_attempt_id),
+            "task_id": task_id,
+            "turn_id": turn_id,
+            "tool_call_id": tool_call_id,
+            "tool_attempt_id": tool_attempt_id,
             "checkpoint_id": optional_identifier(event.checkpoint_id),
             "compaction_id": optional_identifier(event.compaction_id),
             "recovery_decision_id": optional_identifier(event.recovery_decision_id),
@@ -310,6 +329,21 @@ def normalize_long_run_events(
             )
         )
     return normalized
+
+
+def _stable_replay_identifier(
+    identifiers: dict[str, str],
+    value: str | None,
+    *,
+    prefix: str,
+) -> str | None:
+    if value is None:
+        return None
+    stable_value = identifiers.get(value)
+    if stable_value is None:
+        stable_value = f"{prefix}:{len(identifiers)}"
+        identifiers[value] = stable_value
+    return stable_value
 
 
 def collect_mismatches(

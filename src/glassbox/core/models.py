@@ -49,6 +49,7 @@ from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskStepStatus
 from glassbox.core.types import TaskVerificationStatus
+from glassbox.core.types import ToolAttemptStatus
 from glassbox.core.types import ToolExecutionStatus
 from glassbox.core.types import TurnRecoveryState
 from glassbox.core.types import VerificationCheckKind
@@ -625,6 +626,31 @@ class ToolCallRecord(BaseModel):
     policy_source_kind: PolicyDecisionSourceKind | None = None
     policy_source_label: str | None = None
     policy_reason: str | None = None
+
+
+class ToolAttemptRecord(BaseModel):
+    """Projected long-running tool-attempt state for recovery surfaces."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tool_attempt_id: ToolAttemptId
+    session_id: SessionId
+    turn_id: TurnId
+    tool_name: str
+    status: ToolAttemptStatus
+    tool_call_id: ToolCallId | None = None
+    task_id: TaskId | None = None
+    message: str | None = None
+    started_at: datetime | None = None
+    last_heartbeat_at: datetime | None = None
+    heartbeat_expires_at: datetime | None = None
+    completed_at: datetime | None = None
+    completed_units: int | None = Field(default=None, ge=0)
+    total_units: int | None = Field(default=None, ge=0)
+    output_artifact_id: ArtifactId | None = None
+    safe_to_retry: bool | None = None
+    retry_reason: str | None = None
+    last_sequence: int = Field(ge=0)
 
 
 class ApprovalRecord(BaseModel):

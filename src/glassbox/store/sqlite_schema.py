@@ -8,7 +8,7 @@ from pathlib import Path
 from glassbox.store.sqlite_schema_statements import BOOTSTRAP_STATEMENTS
 from glassbox.store.sqlite_schema_statements import V3_BASELINE_SCHEMA_STATEMENTS
 
-SCHEMA_VERSION = 16
+SCHEMA_VERSION = 17
 BASELINE_SCHEMA_VERSION = 3
 BASELINE_MIGRATION_NAME = "baseline event store and projections"
 
@@ -656,6 +656,53 @@ def _ensure_context_compaction_projection_schema(
         )
 
 
+def _ensure_tool_attempt_projection_schema(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        create table if not exists tool_attempts (
+            tool_attempt_id text not null,
+            session_id text not null,
+            turn_id text not null,
+            tool_call_id text,
+            task_id text,
+            tool_name text not null,
+            status text not null,
+            message text,
+            started_at text,
+            last_heartbeat_at text,
+            heartbeat_expires_at text,
+            completed_at text,
+            completed_units integer,
+            total_units integer,
+            output_artifact_id text,
+            safe_to_retry integer,
+            retry_reason text,
+            last_sequence integer not null,
+            primary key (session_id, tool_attempt_id),
+            foreign key (session_id) references sessions(session_id)
+        )
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_tool_attempts_session_status
+            on tool_attempts (session_id, status, last_sequence desc)
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_tool_attempts_turn
+            on tool_attempts (session_id, turn_id, last_sequence desc)
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_tool_attempts_tool_call
+            on tool_attempts (session_id, tool_call_id, last_sequence desc)
+        """
+    )
+
+
 def _ensure_task_checkpoint_session_scoped_key(
     connection: sqlite3.Connection,
 ) -> None:
@@ -839,6 +886,11 @@ MIGRATIONS = (
         version=16,
         name="add context compaction projection table",
         apply=_ensure_context_compaction_projection_schema,
+    ),
+    SchemaMigration(
+        version=17,
+        name="add tool attempt projection table",
+        apply=_ensure_tool_attempt_projection_schema,
     ),
 )
 

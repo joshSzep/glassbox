@@ -7,11 +7,14 @@ import glassbox.store.sqlite_queries as query_store
 from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import TaskId
+from glassbox.core.ids import ToolAttemptId
 from glassbox.core.models import ContextCompactionRecord
 from glassbox.core.models import TaskCheckpointRecord
 from glassbox.core.models import TaskRecord
 from glassbox.core.models import TaskStepRecord
 from glassbox.core.models import TaskVerificationRecord
+from glassbox.core.models import ToolAttemptRecord
+from glassbox.core.types import ToolAttemptStatus
 
 
 class _SQLiteTaskMethods:
@@ -107,6 +110,33 @@ class _SQLiteTaskMethods:
             self._connection,
             session_id,
             task_id=task_id,
+            limit=limit,
+            offset=offset,
+        )
+
+    def get_tool_attempt(
+        self,
+        session_id: SessionId,
+        tool_attempt_id: ToolAttemptId,
+    ) -> ToolAttemptRecord | None:
+        return query_store.get_tool_attempt(
+            self._connection,
+            session_id,
+            tool_attempt_id,
+        )
+
+    def list_tool_attempts(
+        self,
+        session_id: SessionId,
+        *,
+        status: ToolAttemptStatus | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[ToolAttemptRecord]:
+        return query_store.list_tool_attempts(
+            self._connection,
+            session_id,
+            status=status,
             limit=limit,
             offset=offset,
         )

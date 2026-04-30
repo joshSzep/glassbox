@@ -2,6 +2,9 @@
 
 import json
 from collections.abc import Sequence
+from datetime import UTC
+from datetime import datetime
+from datetime import timedelta
 from typing import Protocol
 from typing import cast
 
@@ -10,6 +13,7 @@ from pydantic_ai.messages import ModelMessage
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import ModelToolCallRequested
+from glassbox.core.events import ToolAttemptHeartbeat
 from glassbox.core.events import ToolExecutionCancelled
 from glassbox.core.events import ToolExecutionCompleted
 from glassbox.core.events import ToolExecutionStarted
@@ -21,7 +25,9 @@ from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import new_approval_id
 from glassbox.core.ids import new_question_id
+from glassbox.core.ids import new_tool_attempt_id
 from glassbox.core.models import PolicyDecisionTrace
+from glassbox.core.types import ToolAttemptStatus
 from glassbox.core.types import TurnStatus
 from glassbox.llm import ModelToolCall
 from glassbox.runtime.cancellation import TurnCancellationController
@@ -343,6 +349,7 @@ class TurnToolExecutor:
         policy_trace = PolicyDecisionTrace.from_decision(
             prepared_tool_call.policy_decision
         )
+        tool_attempt_id = new_tool_attempt_id()
         self._hooks._append_and_publish(
             session_id,
             [
@@ -360,6 +367,25 @@ class TurnToolExecutor:
                     policy_source_label=prepared_tool_call.policy_decision.source_label,
                     policy_reason=prepared_tool_call.policy_decision.reason,
                     policy_trace=policy_trace,
+                ),
+                ToolAttemptHeartbeat(
+                    tool_attempt_id=tool_attempt_id,
+                    status=ToolAttemptStatus.STARTED,
+                    turn_id=turn_id,
+                    tool_call_id=prepared_tool_call.event_tool_call_id,
+                    tool_name=prepared_tool_call.tool_name,
+                    message="Tool attempt started.",
+                ),
+                ToolAttemptHeartbeat(
+                    tool_attempt_id=tool_attempt_id,
+                    status=ToolAttemptStatus.RUNNING,
+                    turn_id=turn_id,
+                    tool_call_id=prepared_tool_call.event_tool_call_id,
+                    tool_name=prepared_tool_call.tool_name,
+                    message="Tool execution is running.",
+                    heartbeat_expires_at=_tool_attempt_heartbeat_expiry(
+                        prepared_tool_call
+                    ),
                 ),
             ],
         )
@@ -400,12 +426,20 @@ class TurnToolExecutor:
             self._hooks._append_and_publish(
                 session_id,
                 [
+                    ToolAttemptHeartbeat(
+                        tool_attempt_id=tool_attempt_id,
+                        status=ToolAttemptStatus.FAILED,
+                        turn_id=turn_id,
+                        tool_call_id=prepared_tool_call.event_tool_call_id,
+                        tool_name=prepared_tool_call.tool_name,
+                        message=str(exc),
+                    ),
                     ToolExecutionCompleted(
                         turn_id=turn_id,
                         tool_call_id=prepared_tool_call.event_tool_call_id,
                         success=False,
                         summary=str(exc),
-                    )
+                    ),
                 ],
             )
             logger.warning(
@@ -448,13 +482,34 @@ class TurnToolExecutor:
         self._hooks._append_and_publish(
             session_id,
             [
+                ToolAttemptHeartbeat(
+                    tool_attempt_id=tool_attempt_id,
+                    status=(
+                        ToolAttemptStatus.CANCELLED
+                        if cancellation_summary is not None
+                        else (
+                            ToolAttemptStatus.SUCCEEDED
+                            if execution_result.success
+                            else ToolAttemptStatus.FAILED
+                        )
+                    ),
+                    turn_id=turn_id,
+                    tool_call_id=execution_result.event_tool_call_id,
+                    tool_name=prepared_tool_call.tool_name,
+                    message=cancellation_summary or execution_result.summary,
+                    safe_to_retry=(
+                        False
+                        if execution_result.success or cancellation_summary is not None
+                        else None
+                    ),
+                ),
                 ToolExecutionCompleted(
                     turn_id=turn_id,
                     tool_call_id=execution_result.event_tool_call_id,
                     success=execution_result.success,
                     exit_code=execution_result.exit_code,
                     summary=execution_result.summary,
-                )
+                ),
             ],
         )
         self._hooks._record_context_artifacts_for_tool_execution(
@@ -492,3 +547,13 @@ def _tool_cancellation_summary(execution_result: ToolExecutionResult) -> str | N
     if failure_category == "cancelled":
         return execution_result.summary
     return None
+
+
+def _tool_attempt_heartbeat_expiry(
+    prepared_tool_call: PreparedToolExecution,
+) -> datetime | None:
+    arguments = prepared_tool_call.validated_arguments.model_dump()
+    timeout = arguments.get("timeout")
+    if not isinstance(timeout, int):
+        return None
+    return datetime.now(tz=UTC) + timedelta(seconds=timeout + 5)

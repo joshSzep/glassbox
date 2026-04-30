@@ -26,6 +26,9 @@ from glassbox.store.sqlite_projection_session_state import (
     _apply_session_state_projection,
 )
 from glassbox.store.sqlite_projection_tasks import _apply_task_projection
+from glassbox.store.sqlite_projection_tool_attempts import (
+    _apply_tool_attempt_projection,
+)
 from glassbox.store.sqlite_projection_tools import _apply_tool_call_projection
 from glassbox.store.sqlite_projection_transcript import _apply_transcript_projection
 from glassbox.store.sqlite_projection_turn_metrics import _apply_turn_metrics_projection
@@ -37,6 +40,7 @@ _PROJECTION_TABLES = (
     "session_state",
     "transcript_messages",
     "tool_calls",
+    "tool_attempts",
     "approvals",
     "runtime_notes",
     "turn_metrics",
@@ -61,6 +65,7 @@ def _apply_projection_event(
     _apply_session_state_projection(connection, event)
     _apply_transcript_projection(connection, event)
     _apply_tool_call_projection(connection, event)
+    _apply_tool_attempt_projection(connection, event)
     _apply_approval_projection(connection, event)
     _apply_runtime_note_projection(connection, event)
     _apply_turn_metrics_projection(connection, event)

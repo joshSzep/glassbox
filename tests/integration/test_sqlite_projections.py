@@ -1,5 +1,7 @@
 """Integration tests for SQLite projection handlers and rebuilds."""
 
+from datetime import UTC
+from datetime import datetime
 from pathlib import Path
 
 from glassbox.core import AutonomyBudget
@@ -27,6 +29,8 @@ from glassbox.core import TaskStepStarted
 from glassbox.core import TaskVerificationCompleted
 from glassbox.core import TaskVerificationStarted
 from glassbox.core import TaskVerificationStatus
+from glassbox.core import ToolAttemptHeartbeat
+from glassbox.core import ToolAttemptStatus
 from glassbox.core import WorkspaceMemoryConfirmed
 from glassbox.core import WorkspaceMemoryCreated
 from glassbox.core import WorkspaceMemoryImported
@@ -42,15 +46,18 @@ from glassbox.core import new_task_checkpoint_id
 from glassbox.core import new_task_id
 from glassbox.core import new_task_step_id
 from glassbox.core import new_task_verification_id
+from glassbox.core import new_tool_attempt_id
 from glassbox.core import new_turn_id
 from glassbox.core import new_workspace_memory_id
 from glassbox.store.sqlite import append_events
 from glassbox.store.sqlite import get_budget_posture
 from glassbox.store.sqlite import get_context_compaction
 from glassbox.store.sqlite import get_latest_task_checkpoint
+from glassbox.store.sqlite import get_tool_attempt
 from glassbox.store.sqlite import list_context_compactions
 from glassbox.store.sqlite import list_runtime_notes
 from glassbox.store.sqlite import list_task_checkpoints
+from glassbox.store.sqlite import list_tool_attempts
 from glassbox.store.sqlite import list_workspace_memory
 from glassbox.store.sqlite import rebuild_session_projections
 from tests.integration.fault_test_support import append_representative_completed_session
@@ -428,6 +435,78 @@ def test_context_compaction_projection_keeps_history_and_rebuilds(
     assert after.unresolved_question_count == 1
     assert after.accepted_risk_count == 1
     assert after.limitations == ["omits raw command output"]
+
+
+def test_tool_attempt_projection_rebuilds_from_heartbeats(tmp_path: Path) -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    tool_attempt_id = new_tool_attempt_id()
+    heartbeat_expires_at = datetime(2026, 4, 30, 12, 5, tzinfo=UTC)
+    connection = open_initialized_database(tmp_path)
+    try:
+        append_events(
+            connection,
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=SessionStarted(
+                        cwd=str(tmp_path),
+                        model_name="openai:gpt-5.4",
+                        approval_mode="confirm",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ToolAttemptHeartbeat(
+                        tool_attempt_id=tool_attempt_id,
+                        status=ToolAttemptStatus.STARTED,
+                        turn_id=turn_id,
+                        tool_name="run_command",
+                        message="started",
+                        heartbeat_expires_at=heartbeat_expires_at,
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ToolAttemptHeartbeat(
+                        tool_attempt_id=tool_attempt_id,
+                        status=ToolAttemptStatus.SUCCEEDED,
+                        turn_id=turn_id,
+                        tool_name="run_command",
+                        message="pytest passed",
+                        completed_units=1,
+                        total_units=1,
+                        safe_to_retry=False,
+                    ),
+                ),
+            ],
+        )
+
+        before = get_tool_attempt(connection, session_id, tool_attempt_id)
+        history_before = list_tool_attempts(connection, session_id)
+        connection.execute(
+            "delete from tool_attempts where session_id = ?",
+            (str(session_id),),
+        )
+        rebuild_session_projections(connection, session_id)
+        after = get_tool_attempt(connection, session_id, tool_attempt_id)
+        history_after = list_tool_attempts(connection, session_id)
+    finally:
+        connection.close()
+
+    assert before == after
+    assert history_before == history_after
+    assert after is not None
+    assert after.status == ToolAttemptStatus.SUCCEEDED
+    assert after.message == "pytest passed"
+    assert after.completed_units == 1
+    assert after.total_units == 1
+    assert after.safe_to_retry is False
+    assert after.completed_at is not None
+    assert after.heartbeat_expires_at == heartbeat_expires_at
 
 
 def test_task_projection_rebuilds_task_steps_and_verifications(tmp_path: Path) -> None:

@@ -141,6 +141,7 @@ The current migration sequence is:
 - `14`: task checkpoint projection table
 - `15`: session-scoped task checkpoint projection key for inspection imports
 - `16`: context compaction projection table
+- `17`: tool attempt projection table
 
 Glassbox refuses to open a database with a schema version newer than the running
 build supports. Schema upgrade is distinct from projection rebuild: migrations
@@ -159,6 +160,14 @@ derived from a canonical `ContextCompactionCreated` event and keeps the scope,
 source event range, managed artifact id, freshness, source artifact ids,
 limitations, and counts for decisions, unresolved questions, and accepted risks.
 The artifact payload remains the detailed provenance authority.
+
+The v10 tool-attempt read model lives in `tool_attempts`. Each row is derived
+from canonical `ToolAttemptHeartbeat` events and keeps attempt identity,
+tool-call correlation, status, heartbeat message and expiry, timing, progress,
+output artifact reference, retry posture, and last source sequence. It is
+intentionally separate from `tool_calls`: tool calls describe provider-requested
+tool use, while tool attempts describe the runtime execution evidence used for
+long-running inspection and recovery.
 
 ## Canonical Tables
 

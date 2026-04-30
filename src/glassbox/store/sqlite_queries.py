@@ -15,6 +15,8 @@ from glassbox.store.sqlite_query_tasks import list_open_blocked_tasks
 from glassbox.store.sqlite_query_tasks import list_task_steps
 from glassbox.store.sqlite_query_tasks import list_task_verifications
 from glassbox.store.sqlite_query_tasks import list_tasks
+from glassbox.store.sqlite_query_tool_attempts import get_tool_attempt
+from glassbox.store.sqlite_query_tool_attempts import list_tool_attempts
 from glassbox.store.sqlite_query_tools import list_approvals
 from glassbox.store.sqlite_query_tools import list_tool_calls
 from glassbox.store.sqlite_query_transcript import list_transcript_messages
@@ -25,6 +27,7 @@ __all__ = [
     "get_latest_task_checkpoint",
     "get_context_compaction",
     "get_task",
+    "get_tool_attempt",
     "list_approvals",
     "list_branch_candidates",
     "list_branch_searches",
@@ -36,6 +39,7 @@ __all__ = [
     "list_task_verifications",
     "list_tasks",
     "list_tool_calls",
+    "list_tool_attempts",
     "list_transcript_messages",
     "list_turn_metrics",
 ]

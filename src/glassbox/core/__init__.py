@@ -167,6 +167,7 @@ from glassbox.core.models import TaskRecord
 from glassbox.core.models import TaskStepProposal
 from glassbox.core.models import TaskStepRecord
 from glassbox.core.models import TaskVerificationRecord
+from glassbox.core.models import ToolAttemptRecord
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TranscriptMessage
 from glassbox.core.models import TurnRecoveryPosture
@@ -364,6 +365,7 @@ __all__ = [
     "ToolAttemptHeartbeat",
     "ToolAttemptId",
     "ToolAttemptStatus",
+    "ToolAttemptRecord",
     "ToolCallRecord",
     "ToolExecutionCompleted",
     "ToolExecutionCancelled",

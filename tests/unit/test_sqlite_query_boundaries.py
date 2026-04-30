@@ -10,6 +10,10 @@ DOMAIN_EXPORTS: Mapping[str, set[str]] = {
     "glassbox.store.sqlite_query_transcript": {"list_transcript_messages"},
     "glassbox.store.sqlite_query_runtime_notes": {"list_runtime_notes"},
     "glassbox.store.sqlite_query_tools": {"list_approvals", "list_tool_calls"},
+    "glassbox.store.sqlite_query_tool_attempts": {
+        "get_tool_attempt",
+        "list_tool_attempts",
+    },
     "glassbox.store.sqlite_query_metrics": {"list_turn_metrics"},
     "glassbox.store.sqlite_query_budgets": {"get_budget_posture"},
     "glassbox.store.sqlite_query_checkpoints": {
@@ -58,6 +62,7 @@ def test_sqlite_query_domains_are_split_by_projection_family() -> None:
     assert loaded_modules["glassbox.store.sqlite_query_transcript"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_runtime_notes"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_tools"].__doc__
+    assert loaded_modules["glassbox.store.sqlite_query_tool_attempts"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_metrics"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_budgets"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_checkpoints"].__doc__

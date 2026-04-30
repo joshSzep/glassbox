@@ -3,13 +3,20 @@
   "case_id": "dashboard.action-approval",
   "title": "Dashboard approval action preserves canonical approval events",
   "bundle_path": "../bundles/approval.approved-patch.json",
-  "tags": ["dashboard", "approval"],
+  "tags": [
+    "dashboard",
+    "approval"
+  ],
   "notes": "Reuses the approval.approved-patch replay bundle as dashboard action evidence because dashboard approval resolution writes the same canonical ApprovalResolved event and replay does not persist action-origin metadata.",
   "release_contract": {
     "owner": "web.dashboard",
-    "capabilities": ["dashboard_actions"],
+    "capabilities": [
+      "dashboard_actions"
+    ],
     "severity": "medium",
-    "verification_stages": ["advisory"],
+    "verification_stages": [
+      "advisory"
+    ],
     "baseline_refresh_policy": "review_required"
   },
   "expectation": {
@@ -21,6 +28,12 @@
       "recorded_at": "2026-04-28T00:00:00Z",
       "source_session_id": "4145190c-2ca3-4d83-a566-39bce0c7c463",
       "rationale": "Promoted for GBX-722 as the replay-representable dashboard approval action contract: canonical approval events and resumed tool execution, with live route behavior covered by web integration tests."
+    },
+    {
+      "operation": "refresh",
+      "recorded_at": "2026-04-30T10:10:02Z",
+      "source_session_id": "4145190c-2ca3-4d83-a566-39bce0c7c463",
+      "rationale": "Refreshed for GBX-1040 after adding durable ToolAttemptHeartbeat telemetry; the shared approval baseline now records canonicalized tool-attempt long-run evidence without depending on generated runtime UUIDs."
     }
   ]
 }

@@ -284,6 +284,13 @@ class FakeSessionRepository:
         compactions = self._context_compactions[offset:]
         return compactions if limit is None else compactions[:limit]
 
+    def get_tool_attempt(self, session_id, tool_attempt_id):
+        return None
+
+    def list_tool_attempts(self, session_id, *, status=None, limit=None, offset=0):
+        del status, limit, offset
+        return []
+
     def enqueue_background_job(self, session_id, **kwargs):
         raise NotImplementedError
 

@@ -69,6 +69,7 @@ def _session_command(args: argparse.Namespace) -> int:
     from glassbox.cli.interactive_commands import _resolve_approval_command
     from glassbox.cli.interactive_commands import _resume_command
     from glassbox.cli.interactive_commands import _run_command
+    from glassbox.cli.tool_attempt_commands import _session_tool_attempts_command
 
     if args.session_command == "run":
         return _run_command(args)
@@ -102,6 +103,8 @@ def _session_command(args: argparse.Namespace) -> int:
         return _session_compaction_refresh_command(args)
     if args.session_command == "compaction-invalidate":
         return _session_compaction_invalidate_command(args)
+    if args.session_command == "tool-attempts":
+        return _session_tool_attempts_command(args)
     if args.session_command == "export":
         return _session_export_command(args)
     if args.session_command == "import":

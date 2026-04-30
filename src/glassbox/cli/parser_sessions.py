@@ -271,6 +271,31 @@ def _add_session_workflow_parsers(
     compaction_invalidate_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(compaction_invalidate_parser)
 
+    tool_attempts_parser = session_subparsers.add_parser(
+        "tool-attempts",
+        help="list durable tool attempts",
+        description="List durable tool-attempt heartbeats for a persisted session.",
+    )
+    tool_attempts_parser.add_argument("session_id", type=_parse_uuid)
+    tool_attempts_parser.add_argument(
+        "--status",
+        choices=(
+            "started",
+            "running",
+            "waiting",
+            "succeeded",
+            "failed",
+            "cancelled",
+            "stale",
+            "retried",
+            "abandoned",
+        ),
+        default=None,
+    )
+    tool_attempts_parser.add_argument("--limit", type=int, default=20)
+    tool_attempts_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(tool_attempts_parser)
+
     fork_parser = session_subparsers.add_parser(
         "fork",
         help="create a child session from a historical turn",

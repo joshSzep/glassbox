@@ -62,6 +62,8 @@ implementation track after the v9 baseline.
 - [context-compactions.md](./context-compactions.md): understand v10
   artifact-backed context compaction schema, source references, projections,
   and inspection posture
+- [tool-attempts.md](./tool-attempts.md): inspect v10 durable tool-attempt
+  heartbeats, statuses, and retry posture beside existing tool-call records
 - [verification-loops.md](./verification-loops.md): operate explicit,
   budgeted verification checks and verify-repair loops
 - [branching.md](./branching.md): inspect historical sessions, create child

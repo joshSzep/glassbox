@@ -13,6 +13,7 @@ from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import PolicyActivitySummary
 from glassbox.core.models import ProjectionHealth
 from glassbox.core.models import TaskCheckpointRecord
+from glassbox.core.models import ToolAttemptRecord
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TranscriptMessage
 from glassbox.core.models import TurnMetricsRecord
@@ -222,4 +223,5 @@ class SessionStatusView(BaseModel):
     latest_turn_metrics: TurnMetricsRecord | None = None
     latest_turn_policy_summary: PolicyActivitySummary | None = None
     recent_tool_calls: list[ToolCallRecord] = Field(default_factory=list)
+    recent_tool_attempts: list[ToolAttemptRecord] = Field(default_factory=list)
     latest_message_summary: str | None = None

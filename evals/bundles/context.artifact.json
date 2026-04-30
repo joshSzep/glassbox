@@ -22,6 +22,8 @@
         "subject": "run_tests"
       }
     ],
+    "budget_posture": null,
+    "cancellations": [],
     "event_families": [
       "SessionStarted",
       "UserMessageReceived",
@@ -39,15 +41,9 @@
       "TurnStatusChanged",
       "TurnStatusChanged",
       "ToolExecutionStarted",
-      "ToolOutputChunk",
-      "ToolOutputChunk",
-      "ToolOutputChunk",
-      "ToolOutputChunk",
-      "ToolOutputChunk",
-      "ToolOutputChunk",
-      "ToolOutputChunk",
-      "ToolOutputChunk",
-      "ToolOutputChunk",
+      "ToolAttemptHeartbeat",
+      "ToolAttemptHeartbeat",
+      "ToolAttemptHeartbeat",
       "ToolExecutionCompleted",
       "ToolArtifactRecorded",
       "TurnStatusChanged",
@@ -76,6 +72,48 @@
       "status": "running"
     },
     "inherited_transcript": [],
+    "lineage": null,
+    "long_run_events": [
+      {
+        "checkpoint_id": null,
+        "compaction_id": null,
+        "event_type": "ToolAttemptHeartbeat",
+        "fingerprint": "459a8aa102a92ae15135b659dde4c8b8290a382dddd43ddb9661ee08299b3e2d",
+        "phase": null,
+        "recovery_decision_id": null,
+        "status": "started",
+        "task_id": null,
+        "tool_attempt_id": "tool_attempt:0",
+        "tool_call_id": "tool_call:0",
+        "turn_id": "turn:0"
+      },
+      {
+        "checkpoint_id": null,
+        "compaction_id": null,
+        "event_type": "ToolAttemptHeartbeat",
+        "fingerprint": "cb8bf4125e1503ffd639a54dc40830b479652b8f57afffa104775e008dba26e8",
+        "phase": null,
+        "recovery_decision_id": null,
+        "status": "running",
+        "task_id": null,
+        "tool_attempt_id": "tool_attempt:0",
+        "tool_call_id": "tool_call:0",
+        "turn_id": "turn:0"
+      },
+      {
+        "checkpoint_id": null,
+        "compaction_id": null,
+        "event_type": "ToolAttemptHeartbeat",
+        "fingerprint": "ddb6aad9db4b3e298f77f54e4c1e0f1eacc467328a29504e2ba382bbf3c48659",
+        "phase": null,
+        "recovery_decision_id": null,
+        "status": "succeeded",
+        "task_id": null,
+        "tool_attempt_id": "tool_attempt:0",
+        "tool_call_id": "tool_call:0",
+        "turn_id": "turn:0"
+      }
+    ],
     "post_fork_transcript": [
       {
         "parts": [
@@ -124,9 +162,11 @@
       }
     ],
     "questions": [],
+    "task_plans": [],
     "tool_calls": [
       {
         "status": "requested",
+        "summary": null,
         "tool_name": "run_tests"
       },
       {

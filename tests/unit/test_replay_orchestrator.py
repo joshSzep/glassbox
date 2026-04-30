@@ -10,9 +10,13 @@ from glassbox.core import LongRunPhaseChanged
 from glassbox.core import LongRunPhaseState
 from glassbox.core import SessionConfig
 from glassbox.core import TaskCheckpointCreated
+from glassbox.core import ToolAttemptHeartbeat
+from glassbox.core import ToolAttemptStatus
 from glassbox.core import new_session_id
 from glassbox.core import new_task_checkpoint_id
 from glassbox.core import new_task_id
+from glassbox.core import new_tool_attempt_id
+from glassbox.core import new_tool_call_id
 from glassbox.core import new_turn_id
 from glassbox.runtime.replay_compare import collect_mismatches
 from glassbox.runtime.replay_compare import normalize_long_run_events
@@ -130,6 +134,65 @@ def test_replay_normalizes_long_run_event_families() -> None:
     assert normalized[0].task_id == str(task_id)
     assert normalized[1].checkpoint_id == str(checkpoint_id)
     assert normalized[0].fingerprint != normalized[1].fingerprint
+
+
+def test_replay_canonicalizes_tool_attempt_identifiers() -> None:
+    first_attempt = new_tool_attempt_id()
+    second_attempt = new_tool_attempt_id()
+    first_turn = new_turn_id()
+    second_turn = new_turn_id()
+    first_tool_call = new_tool_call_id()
+    second_tool_call = new_tool_call_id()
+
+    normalized = normalize_long_run_events(
+        [
+            EventEnvelope(
+                session_id=new_session_id(),
+                sequence=1,
+                payload=ToolAttemptHeartbeat(
+                    tool_attempt_id=first_attempt,
+                    status=ToolAttemptStatus.STARTED,
+                    turn_id=first_turn,
+                    tool_call_id=first_tool_call,
+                    tool_name="read_file",
+                ),
+            ),
+            EventEnvelope(
+                session_id=new_session_id(),
+                sequence=2,
+                payload=ToolAttemptHeartbeat(
+                    tool_attempt_id=first_attempt,
+                    status=ToolAttemptStatus.SUCCEEDED,
+                    turn_id=first_turn,
+                    tool_call_id=first_tool_call,
+                    tool_name="read_file",
+                ),
+            ),
+            EventEnvelope(
+                session_id=new_session_id(),
+                sequence=3,
+                payload=ToolAttemptHeartbeat(
+                    tool_attempt_id=second_attempt,
+                    status=ToolAttemptStatus.STARTED,
+                    turn_id=second_turn,
+                    tool_call_id=second_tool_call,
+                    tool_name="write_file",
+                ),
+            ),
+        ]
+    )
+
+    assert [event.tool_attempt_id for event in normalized] == [
+        "tool_attempt:0",
+        "tool_attempt:0",
+        "tool_attempt:1",
+    ]
+    assert [event.tool_call_id for event in normalized] == [
+        "tool_call:0",
+        "tool_call:0",
+        "tool_call:1",
+    ]
+    assert [event.turn_id for event in normalized] == ["turn:0", "turn:0", "turn:1"]
 
 
 def test_replay_mismatch_detection_includes_long_run_events() -> None:

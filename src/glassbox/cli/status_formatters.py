@@ -10,6 +10,7 @@ from glassbox.core.events import SessionFailed
 from glassbox.core.events import SessionStarted
 from glassbox.core.events import UserQuestionAsked
 from glassbox.core.models import ApprovalRecord
+from glassbox.core.models import ToolAttemptRecord
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TurnMetricsRecord
 from glassbox.core.models import TurnRecoveryPosture
@@ -111,6 +112,13 @@ def _print_session_status(status_view: SessionStatusView) -> None:
             print(f"  - {_format_tool_call_summary(tool_call)}")
     else:
         print("Recent tool activity: none")
+
+    if status_view.recent_tool_attempts:
+        print("Recent tool attempts:")
+        for attempt in status_view.recent_tool_attempts:
+            print(f"  - {_format_tool_attempt_summary(attempt)}")
+    else:
+        print("Recent tool attempts: none")
 
 
 def _print_runtime_context_summary(runtime_context) -> None:
@@ -386,6 +394,17 @@ def _format_tool_call_summary(tool_call: ToolCallRecord) -> str:
         f"{tool_call.tool_name} {tool_call.status} "
         f"(turn {tool_call.turn_id}){policy_suffix}{summary_suffix}{exit_suffix}"
         f"{reason_suffix}"
+    )
+
+
+def _format_tool_attempt_summary(attempt: ToolAttemptRecord) -> str:
+    message_suffix = f": {attempt.message}" if attempt.message else ""
+    retry_suffix = ""
+    if attempt.safe_to_retry is not None:
+        retry_suffix = f" (safe_to_retry={str(attempt.safe_to_retry).lower()})"
+    return (
+        f"{attempt.tool_name} attempt {str(attempt.tool_attempt_id)[:8]} "
+        f"{attempt.status.value}{message_suffix}{retry_suffix}"
     )
 
 

@@ -105,6 +105,7 @@ def test_turn_engine_executes_read_only_tool_and_completes_response(
                     events.append(await subscription.get())
 
             persisted_events = repository.read_session_events(started_state.session_id)
+            tool_attempts = repository.list_tool_attempts(started_state.session_id)
             transcript = repository.list_transcript_messages(started_state.session_id)
         finally:
             connection.close()
@@ -120,6 +121,9 @@ def test_turn_engine_executes_read_only_tool_and_completes_response(
             "ModelToolCallRequested",
             "TurnStatusChanged",
             "ToolExecutionStarted",
+            "ToolAttemptHeartbeat",
+            "ToolAttemptHeartbeat",
+            "ToolAttemptHeartbeat",
             "ToolExecutionCompleted",
             "TurnStatusChanged",
             "ModelCallStarted",
@@ -132,6 +136,9 @@ def test_turn_engine_executes_read_only_tool_and_completes_response(
         assert any(
             event.event_type == "ToolExecutionCompleted" for event in persisted_events
         )
+        assert len(tool_attempts) == 1
+        assert tool_attempts[0].status.value == "succeeded"
+        assert tool_attempts[0].tool_name == "read_file"
         assert transcript[-1].role == "assistant"
         assert transcript[-1].parts[0].text == "README says: Glassbox tool loop"
 

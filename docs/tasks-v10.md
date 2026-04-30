@@ -726,7 +726,7 @@ The intended v10 milestone order is:
 
 ### GBX-1040: Add Durable Tool Attempt Records And Heartbeats
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1011`
 - Goal: make long-running tool execution durable enough to inspect after
   timeout, cancellation, daemon restart, or process death
@@ -748,6 +748,21 @@ The intended v10 milestone order is:
 - Done when:
   - a long-running tool attempt can be inspected as durable state independent
     of the live process that launched it
+- Completed:
+  - Added the `tool_attempts` SQLite projection rebuilt from
+    `ToolAttemptHeartbeat` events, including attempt identity, tool-call
+    correlation, status, heartbeat timing and expiry, progress, output artifact
+    reference, retry posture, and last source sequence.
+  - Tool execution now emits bounded attempt heartbeats for started/running and
+    terminal succeeded, failed, or cancelled states without changing the
+    existing `tool_calls` projection contract.
+  - Added `glassbox session tool-attempts`, recent attempt lines in
+    `glassbox session status`, operator docs, schema/query coverage, and turn
+    engine coverage.
+  - Replay eval normalization now canonicalizes generated tool-attempt, tool
+    call, and turn identifiers for `ToolAttemptHeartbeat` long-run evidence,
+    and the affected eval baselines were refreshed with explicit GBX-1040
+    history entries.
 
 ### GBX-1041: Preserve Partial Tool Output As Managed Artifacts
 

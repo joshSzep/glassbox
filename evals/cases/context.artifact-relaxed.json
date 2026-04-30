@@ -3,17 +3,37 @@
   "case_id": "context.artifact-relaxed",
   "title": "Artifact-backed context can ignore transcript-only drift",
   "bundle_path": "../bundles/context.artifact-relaxed.json",
-  "tags": ["context", "artifact"],
+  "tags": [
+    "context",
+    "artifact"
+  ],
   "notes": "Uses the same artifact-backed session as context.artifact but with an intentionally relaxed assistant transcript baseline.",
   "release_contract": {
     "owner": "runtime.context",
-    "capabilities": ["artifact_backed_context", "selected_invariant_contract"],
+    "capabilities": [
+      "artifact_backed_context",
+      "selected_invariant_contract"
+    ],
     "severity": "low",
-    "verification_stages": ["advisory"],
+    "verification_stages": [
+      "advisory"
+    ],
     "baseline_refresh_policy": "advisory"
   },
   "expectation": {
     "mode": "selected_invariants",
-    "invariants": ["tool_calls", "approvals", "final_state"]
-  }
+    "invariants": [
+      "tool_calls",
+      "approvals",
+      "final_state"
+    ]
+  },
+  "baseline_history": [
+    {
+      "operation": "refresh",
+      "recorded_at": "2026-04-30T10:09:34Z",
+      "source_session_id": "4d12a8ae-a8a0-4819-aa8d-f4aa5175a63f",
+      "rationale": "Refreshed for GBX-1040 after adding durable ToolAttemptHeartbeat telemetry; the baseline now records canonicalized tool-attempt long-run evidence without depending on generated runtime UUIDs."
+    }
+  ]
 }

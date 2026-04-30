@@ -152,6 +152,42 @@ BOOTSTRAP_STATEMENTS = (
         on tool_calls (session_id, turn_id)
     """,
     """
+    create table if not exists tool_attempts (
+        tool_attempt_id text not null,
+        session_id text not null,
+        turn_id text not null,
+        tool_call_id text,
+        task_id text,
+        tool_name text not null,
+        status text not null,
+        message text,
+        started_at text,
+        last_heartbeat_at text,
+        heartbeat_expires_at text,
+        completed_at text,
+        completed_units integer,
+        total_units integer,
+        output_artifact_id text,
+        safe_to_retry integer,
+        retry_reason text,
+        last_sequence integer not null,
+        primary key (session_id, tool_attempt_id),
+        foreign key (session_id) references sessions(session_id)
+    )
+    """,
+    """
+    create index if not exists idx_tool_attempts_session_status
+        on tool_attempts (session_id, status, last_sequence desc)
+    """,
+    """
+    create index if not exists idx_tool_attempts_turn
+        on tool_attempts (session_id, turn_id, last_sequence desc)
+    """,
+    """
+    create index if not exists idx_tool_attempts_tool_call
+        on tool_attempts (session_id, tool_call_id, last_sequence desc)
+    """,
+    """
     create table if not exists approvals (
         approval_id text primary key,
         session_id text not null,
@@ -673,6 +709,42 @@ V3_BASELINE_SCHEMA_STATEMENTS = (
     """
     create index if not exists idx_tool_calls_session_turn
         on tool_calls (session_id, turn_id)
+    """,
+    """
+    create table if not exists tool_attempts (
+        tool_attempt_id text not null,
+        session_id text not null,
+        turn_id text not null,
+        tool_call_id text,
+        task_id text,
+        tool_name text not null,
+        status text not null,
+        message text,
+        started_at text,
+        last_heartbeat_at text,
+        heartbeat_expires_at text,
+        completed_at text,
+        completed_units integer,
+        total_units integer,
+        output_artifact_id text,
+        safe_to_retry integer,
+        retry_reason text,
+        last_sequence integer not null,
+        primary key (session_id, tool_attempt_id),
+        foreign key (session_id) references sessions(session_id)
+    )
+    """,
+    """
+    create index if not exists idx_tool_attempts_session_status
+        on tool_attempts (session_id, status, last_sequence desc)
+    """,
+    """
+    create index if not exists idx_tool_attempts_turn
+        on tool_attempts (session_id, turn_id, last_sequence desc)
+    """,
+    """
+    create index if not exists idx_tool_attempts_tool_call
+        on tool_attempts (session_id, tool_call_id, last_sequence desc)
     """,
     """
     create table if not exists approvals (

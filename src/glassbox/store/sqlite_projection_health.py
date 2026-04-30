@@ -10,6 +10,7 @@ _PROJECTION_TABLES = (
     "session_state",
     "transcript_messages",
     "tool_calls",
+    "tool_attempts",
     "approvals",
     "runtime_notes",
     "turn_metrics",

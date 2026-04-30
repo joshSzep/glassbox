@@ -17,11 +17,14 @@ from glassbox.core.events import RuntimeNoteRecorded
 from glassbox.core.events import SessionCompleted
 from glassbox.core.events import SessionFailed
 from glassbox.core.events import TaskCheckpointCreated
+from glassbox.core.events import ToolAttemptHeartbeat
 from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import new_approval_id
 from glassbox.core.ids import new_task_checkpoint_id
+from glassbox.core.ids import new_tool_attempt_id
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import LongRunPhase
+from glassbox.core.types import ToolAttemptStatus
 from glassbox.runtime.context_builder import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
 from glassbox.runtime.context_builder import PytestFailureDigestArtifact
 from glassbox.store.repositories import FilesystemArtifactRepository
@@ -1358,6 +1361,25 @@ def test_cli_status_includes_turn_approvals_tool_activity_and_metrics(
     db_path, session_id, turn_id, approval_id = _seed_status_projection_details(
         tmp_path
     )
+    tool_attempt_id = new_tool_attempt_id()
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=ToolAttemptHeartbeat(
+                    tool_attempt_id=tool_attempt_id,
+                    status=ToolAttemptStatus.RUNNING,
+                    turn_id=turn_id,
+                    tool_name="run_command",
+                    message="pytest is still running",
+                ),
+            )
+        )
+    finally:
+        connection.close()
     _ = capsys.readouterr()
 
     exit_code = main(
@@ -1402,6 +1424,60 @@ def test_cli_status_includes_turn_approvals_tool_activity_and_metrics(
         in captured.out
     )
     assert "done" in captured.out
+    assert "Recent tool attempts:" in captured.out
+    assert f"run_command attempt {str(tool_attempt_id)[:8]} running" in captured.out
+    assert "pytest is still running" in captured.out
+
+
+def test_cli_tool_attempts_lists_durable_attempts(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id, turn_id, _approval_id = _seed_status_projection_details(
+        tmp_path
+    )
+    tool_attempt_id = new_tool_attempt_id()
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=ToolAttemptHeartbeat(
+                    tool_attempt_id=tool_attempt_id,
+                    status=ToolAttemptStatus.STALE,
+                    turn_id=turn_id,
+                    tool_name="run_command",
+                    message="heartbeat expired before completion",
+                    safe_to_retry=None,
+                ),
+            )
+        )
+    finally:
+        connection.close()
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "session",
+            "tool-attempts",
+            str(session_id),
+            "--status",
+            "stale",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Tool attempts: 1" in captured.out
+    assert str(tool_attempt_id) in captured.out
+    assert "run_command  stale" in captured.out
+    assert "heartbeat expired before completion" in captured.out
 
 
 def test_cli_status_includes_pending_question_and_answer_next_action(

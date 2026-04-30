@@ -43,7 +43,7 @@ def _migration_rows(connection: sqlite3.Connection) -> list[sqlite3.Row]:
 
 
 def _expected_migration_versions() -> list[int]:
-    return [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, SCHEMA_VERSION]
+    return [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, SCHEMA_VERSION]
 
 
 def _expected_migration_names() -> list[str]:
@@ -62,6 +62,7 @@ def _expected_migration_names() -> list[str]:
         "add task checkpoint projection table",
         "scope task checkpoint projection key by session",
         "add context compaction projection table",
+        "add tool attempt projection table",
     ]
 
 
@@ -108,6 +109,7 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         "long_run_events",
         "task_checkpoints",
         "context_compactions",
+        "tool_attempts",
     }.issubset(tables)
     assert {
         "idx_sessions_status_updated",
@@ -149,6 +151,9 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         "idx_context_compactions_session_sequence",
         "idx_context_compactions_task_sequence",
         "idx_context_compactions_checkpoint",
+        "idx_tool_attempts_session_status",
+        "idx_tool_attempts_turn",
+        "idx_tool_attempts_tool_call",
     }.issubset(indexes)
     assert [row[0] for row in migration_rows] == _expected_migration_versions()
     assert [row[1] for row in migration_rows] == _expected_migration_names()
@@ -485,5 +490,6 @@ def test_migrations_are_ordered_to_current_schema_version() -> None:
         13,
         14,
         15,
+        16,
         SCHEMA_VERSION,
     ]

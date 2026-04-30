@@ -13,6 +13,7 @@ from glassbox.store.sqlite_queries import get_branch_search
 from glassbox.store.sqlite_queries import get_budget_posture
 from glassbox.store.sqlite_queries import get_context_compaction
 from glassbox.store.sqlite_queries import get_latest_task_checkpoint
+from glassbox.store.sqlite_queries import get_tool_attempt
 from glassbox.store.sqlite_queries import list_approvals
 from glassbox.store.sqlite_queries import list_branch_candidates
 from glassbox.store.sqlite_queries import list_branch_searches
@@ -23,6 +24,7 @@ from glassbox.store.sqlite_queries import list_task_checkpoints
 from glassbox.store.sqlite_queries import list_task_steps
 from glassbox.store.sqlite_queries import list_task_verifications
 from glassbox.store.sqlite_queries import list_tasks
+from glassbox.store.sqlite_queries import list_tool_attempts
 from glassbox.store.sqlite_queries import list_tool_calls
 from glassbox.store.sqlite_queries import list_transcript_messages
 from glassbox.store.sqlite_queries import list_turn_metrics
@@ -57,6 +59,7 @@ __all__ = [
     "get_latest_task_checkpoint",
     "get_context_compaction",
     "get_session_state",
+    "get_tool_attempt",
     "get_workspace_memory",
     "initialize_database",
     "invalidate_workspace_memory",
@@ -72,6 +75,7 @@ __all__ = [
     "list_task_steps",
     "list_task_verifications",
     "list_tasks",
+    "list_tool_attempts",
     "list_tool_calls",
     "list_transcript_messages",
     "list_turn_metrics",

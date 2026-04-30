@@ -865,6 +865,7 @@ class ToolAttemptHeartbeat(EventPayload):
     message: str | None = Field(default=None, max_length=1000)
     completed_units: int | None = Field(default=None, ge=0)
     total_units: int | None = Field(default=None, ge=0)
+    heartbeat_expires_at: datetime | None = None
     output_artifact_id: ArtifactId | None = None
     safe_to_retry: bool | None = None
     retry_reason: str | None = Field(default=None, max_length=2000)
