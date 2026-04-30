@@ -947,7 +947,7 @@ The intended v9 milestone order is:
 
 ### GBX-972: Tighten Daemon And Background Job Recovery Guidance
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-943`
 - Goal: make daemon ownership and job recovery easier to understand during
   blocked work
@@ -969,6 +969,14 @@ The intended v9 milestone order is:
 - Done when:
   - background work failures tell the operator what happened and what command
     to run next
+  - Completed by adding explicit daemon status detail and ordered next actions
+    to human and JSON output; running, not-running, stale-owner, and
+    unreachable-health states now name the safe read-only status check before
+    recovery commands. Background job list/show output now explains queued,
+    running, stale, failed, retryable, cancelled, completed, and abandoned
+    states with state-specific next actions. Dashboard attention and recovery
+    cues now elevate stale runtime-owner metadata, and daemon/background-job
+    docs describe the safe inspection-first recovery flow.
 
 ---
 

@@ -74,19 +74,28 @@ function recoveryCues(data: DashboardState): RecoveryCue[] {
   const abandonedJobs = data.runtimeSummary.background_job_abandoned_count ?? 0;
   const runtimeUnhealthy =
     data.runtimeSummary.state === "degraded" || data.runtimeSummary.health === "degraded";
+  const runtimeStale = data.runtimeSummary.state === "stale";
   const runtimeOffline = data.runtimeSummary.state !== "running" && data.queueCounts.total > 0;
 
   return [
     {
       commands: ["uv run glassbox daemon status --cwd ."],
-      detail: runtimeUnhealthy
-        ? "Runtime owner health is degraded; inspect owner metadata and logs before acting on live state."
-        : runtimeOffline
-          ? "Sessions exist but no running runtime owner is reported; inspect before expecting live updates."
-          : "Inspect runtime ownership, dashboard URL, health URL, owner metadata, and logs.",
+      detail: runtimeStale
+        ? "Runtime owner metadata is stale; inspect first, then stop to clear stale metadata before starting a new owner."
+        : runtimeUnhealthy
+          ? "Runtime owner health is degraded; inspect owner metadata and logs before acting on live state."
+          : runtimeOffline
+            ? "Sessions exist but no running runtime owner is reported; inspect before expecting live updates."
+            : "Inspect runtime ownership, dashboard URL, health URL, owner metadata, and logs.",
       label: "Daemon state",
-      state: runtimeUnhealthy ? "degraded" : runtimeOffline ? "offline" : "check",
-      tone: runtimeUnhealthy || runtimeOffline ? "warning" : "info",
+      state: runtimeStale
+        ? "stale owner"
+        : runtimeUnhealthy
+          ? "degraded"
+          : runtimeOffline
+            ? "offline"
+            : "check",
+      tone: runtimeStale || runtimeUnhealthy || runtimeOffline ? "warning" : "info",
     },
     {
       commands: ["uv run glassbox projection check --all --cwd ."],

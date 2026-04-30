@@ -334,6 +334,84 @@ def test_job_cli_lists_shows_and_cancels_json(
     assert cancel_payload["cancellation_reason"] == "operator stop"
 
 
+def test_job_cli_human_output_names_recovery_next_actions(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    failed_id = _seed_failed_background_job(db_path, tmp_path, session_id)
+
+    list_exit = main(
+        [
+            "job",
+            "list",
+            "--state",
+            "failed",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    list_output = capsys.readouterr().out
+
+    show_exit = main(
+        [
+            "job",
+            "show",
+            str(failed_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    show_output = capsys.readouterr().out
+
+    assert list_exit == 0
+    assert "failed" in list_output
+    assert "State detail: Failed but retryable" in list_output
+    assert f"Next: glassbox job show {failed_id}" in list_output
+    assert show_exit == 0
+    assert "Retryable: yes" in show_output
+    assert "Next actions:" in show_output
+    assert f"glassbox job retry {failed_id} --reason 'failure reviewed'" in show_output
+    assert (
+        f"glassbox job abandon {failed_id} --reason 'failure reviewed'" in show_output
+    )
+
+
+def test_job_cli_stale_output_names_retry_and_abandon(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    stale_id = _seed_stale_background_job(db_path, tmp_path, session_id)
+
+    exit_code = main(
+        [
+            "job",
+            "show",
+            str(stale_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "State: stale" in output
+    assert "State detail: Worker lease expired" in output
+    assert f"glassbox job retry {stale_id} --reason 'stale lease reviewed'" in output
+    assert (
+        f"glassbox job abandon {stale_id} --reason 'stale lease not needed'" in output
+    )
+
+
 def test_job_cli_retries_and_abandons_json(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -427,6 +505,39 @@ def _seed_failed_background_job(
             message="tool exited",
             retryable=True,
             attempt=1,
+        )
+        return job.job_id
+    finally:
+        connection.close()
+
+
+def _seed_stale_background_job(
+    db_path: Path,
+    workspace_root: Path,
+    session_id,
+) -> object:
+    connection = open_database(db_path)
+    try:
+        initialize_database(connection)
+        repository = SQLiteSessionRepository(connection)
+        _start_session(repository, session_id, workspace_root)
+        job = repository.enqueue_background_job(
+            session_id,
+            kind=BackgroundJobKind.READ_ONLY_MAINTENANCE,
+            job_type="scan-workspace",
+            title="Scan workspace",
+        )
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=BackgroundJobRecoveryRecorded(
+                    job_id=job.job_id,
+                    reason=BackgroundJobRecoveryReason.STALE_CLAIM,
+                    previous_state=BackgroundJobState.RUNNING,
+                    detail="lease expired",
+                ),
+            )
         )
         return job.job_id
     finally:

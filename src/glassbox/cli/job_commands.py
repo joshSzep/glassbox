@@ -110,6 +110,9 @@ def _print_job_list(jobs: list[BackgroundJobRecord]) -> None:
         return
     for job in jobs:
         print(f"{job.job_id}  {job.state.value:<22}  {job.kind.value:<22}  {job.title}")
+        print(f"  State detail: {_job_state_detail(job)}")
+        next_action = _job_next_actions(job)[0]
+        print(f"  Next: {next_action}")
 
 
 def _print_job_detail(job: BackgroundJobRecord) -> None:
@@ -121,6 +124,7 @@ def _print_job_detail(job: BackgroundJobRecord) -> None:
     print(f"Title: {job.title}")
     print(f"Requested by: {job.requested_by}")
     print(f"Priority: {job.priority}")
+    print(f"State detail: {_job_state_detail(job)}")
     if job.worker_id is not None:
         print(f"Worker: {job.worker_id}")
     if job.lease_expires_at is not None:
@@ -146,6 +150,73 @@ def _print_job_detail(job: BackgroundJobRecord) -> None:
     if job.abandoned_reason is not None:
         print(f"Abandon reason: {job.abandoned_reason}")
     print(f"Updated: {job.updated_at.isoformat()}")
+    next_actions = _job_next_actions(job)
+    if next_actions:
+        print("Next actions:")
+        for action in next_actions:
+            print(f"- {action}")
+
+
+def _job_state_detail(job: BackgroundJobRecord) -> str:
+    state = job.state
+    if state == BackgroundJobState.QUEUED:
+        return "Queued for daemon pickup; inspect daemon status if it does not start."
+    if state == BackgroundJobState.CLAIMED:
+        return "Claimed by a daemon worker; inspect lease and heartbeat before acting."
+    if state == BackgroundJobState.RUNNING:
+        return "Running under the daemon owner; inspect progress before cancelling."
+    if state == BackgroundJobState.PAUSED:
+        return "Paused background work; inspect before retrying or abandoning."
+    if state == BackgroundJobState.CANCELLATION_REQUESTED:
+        return "Cancellation requested; wait for daemon acknowledgement or inspect."
+    if state == BackgroundJobState.CANCELLED:
+        return "Cancelled terminal state; queue a new job if work is still needed."
+    if state == BackgroundJobState.STALE:
+        return "Worker lease expired; inspect before retrying or abandoning."
+    if state == BackgroundJobState.FAILED:
+        if job.retryable:
+            return "Failed but retryable; inspect failure evidence before retrying."
+        return "Failed and not retryable; inspect failure evidence before abandoning."
+    if state == BackgroundJobState.ABANDONED:
+        return "Abandoned terminal state; retained for history only."
+    if state == BackgroundJobState.COMPLETED:
+        return "Completed successfully; retained as background work evidence."
+    return "Background job state is retained for inspection."
+
+
+def _job_next_actions(job: BackgroundJobRecord) -> list[str]:
+    show = f"glassbox job show {job.job_id}"
+    if job.state == BackgroundJobState.QUEUED:
+        return [show, "glassbox daemon status"]
+    if job.state in {
+        BackgroundJobState.CLAIMED,
+        BackgroundJobState.PAUSED,
+        BackgroundJobState.RUNNING,
+    }:
+        return [show, f"glassbox job cancel {job.job_id} --reason 'operator stop'"]
+    if job.state == BackgroundJobState.CANCELLATION_REQUESTED:
+        return [show, "glassbox daemon status"]
+    if job.state == BackgroundJobState.STALE:
+        return [
+            show,
+            f"glassbox job retry {job.job_id} --reason 'stale lease reviewed'",
+            f"glassbox job abandon {job.job_id} --reason 'stale lease not needed'",
+        ]
+    if job.state == BackgroundJobState.FAILED:
+        actions = [show]
+        if job.retryable:
+            actions.append(
+                f"glassbox job retry {job.job_id} --reason 'failure reviewed'"
+            )
+        actions.append(f"glassbox job abandon {job.job_id} --reason 'failure reviewed'")
+        return actions
+    if job.state in {
+        BackgroundJobState.CANCELLED,
+        BackgroundJobState.ABANDONED,
+        BackgroundJobState.COMPLETED,
+    }:
+        return [show]
+    return [show]
 
 
 __all__ = ["_job_command"]

@@ -44,6 +44,8 @@ class RuntimeOwnerStatusReport:
     health_url: str | None
     session_index_url: str | None
     started_at: str | None
+    detail: str
+    next_actions: list[str]
     commands: RuntimeOwnerCommands
 
     def as_json(self) -> dict[str, object]:
@@ -62,6 +64,8 @@ class RuntimeOwnerStatusReport:
             "health_url": self.health_url,
             "session_index_url": self.session_index_url,
             "started_at": self.started_at,
+            "detail": self.detail,
+            "next_actions": self.next_actions,
             "commands": self.commands.as_json(),
         }
 
@@ -74,6 +78,7 @@ def build_runtime_owner_status_report(
     paths = resolve_runtime_owner_paths(cwd, db_path=db_path)
     record = status.record
     dashboard_url = record.dashboard_url if record is not None else None
+    commands = _runtime_owner_commands(paths.workspace_root, db_path)
     return RuntimeOwnerStatusReport(
         state=status.state,
         health=status.health,
@@ -89,7 +94,9 @@ def build_runtime_owner_status_report(
         health_url=_health_url(dashboard_url),
         session_index_url=dashboard_url,
         started_at=record.started_at.isoformat() if record is not None else None,
-        commands=_runtime_owner_commands(paths.workspace_root, db_path),
+        detail=_runtime_owner_detail(status),
+        next_actions=_runtime_owner_next_actions(status, commands),
+        commands=commands,
     )
 
 
@@ -100,6 +107,8 @@ def render_runtime_owner_status(report: RuntimeOwnerStatusReport) -> list[str]:
         f"Database: {report.database_path}",
         f"Owner metadata: {report.metadata_path}",
         f"Logs: {report.stdout_log_path} / {report.stderr_log_path}",
+        f"Detail: {report.detail}",
+        f"Safe check: {report.commands.status_json}",
     ]
 
     if report.state == "not_running":
@@ -107,9 +116,9 @@ def render_runtime_owner_status(report: RuntimeOwnerStatusReport) -> list[str]:
             [
                 "Runtime owner: none",
                 f"Start: {report.commands.start}",
-                f"Next: {report.commands.start}",
             ]
         )
+        _append_next_actions(lines, report.next_actions)
         return lines
 
     lines.extend(
@@ -125,6 +134,8 @@ def render_runtime_owner_status(report: RuntimeOwnerStatusReport) -> list[str]:
         lines.extend(
             [
                 f"Health: {report.health}",
+                "Ownership: active daemon owner; attach, cancel, or stop before "
+                "local mutation commands",
                 f"Attach: {report.commands.attach}",
                 f"Cancel active turn: {report.commands.cancel}",
                 f"Stop: {report.commands.stop}",
@@ -134,23 +145,20 @@ def render_runtime_owner_status(report: RuntimeOwnerStatusReport) -> list[str]:
             lines.extend(
                 [
                     f"Inspect health: {report.health_url}",
-                    f"Recover: {report.commands.stop} && {report.commands.start}",
-                    "Next: inspect "
-                    f"{report.health_url}; if unreachable persists, run "
-                    f"{report.commands.stop} && {report.commands.start}",
+                    f"Recover: {report.commands.stop}; then {report.commands.start}",
                 ]
             )
         else:
-            lines.append(f"Next: {report.commands.attach}")
+            lines.append(f"Attach next: {report.commands.attach}")
     elif report.state == "stale":
         lines.extend(
             [
                 "Health: unavailable (owner process is not running)",
-                f"Recover: {report.commands.start}",
                 f"Clear stale owner: {report.commands.stop}",
-                f"Next: {report.commands.stop}; then {report.commands.start}",
+                f"Recover: {report.commands.stop}; then {report.commands.start}",
             ]
         )
+    _append_next_actions(lines, report.next_actions)
     return lines
 
 
@@ -177,3 +185,34 @@ def _health_url(dashboard_url: str | None) -> str | None:
 
 def _human_state(state: str) -> str:
     return state.replace("_", " ")
+
+
+def _runtime_owner_detail(status: RuntimeOwnerStatus) -> str:
+    if status.state == "not_running":
+        return "No runtime owner metadata is present for this workspace."
+    if status.state == "stale":
+        return "Runtime owner metadata exists, but the recorded process is not running."
+    if status.health == "ok":
+        return "Daemon owns live workspace mutations and is healthy."
+    return "Daemon owner metadata exists, but the health check is unreachable."
+
+
+def _runtime_owner_next_actions(
+    status: RuntimeOwnerStatus,
+    commands: RuntimeOwnerCommands,
+) -> list[str]:
+    if status.state == "not_running":
+        return [commands.start]
+    if status.state == "stale":
+        return [commands.status_json, commands.stop, commands.start]
+    if status.health != "ok":
+        return [commands.status_json, commands.stop, commands.start]
+    return [commands.attach]
+
+
+def _append_next_actions(lines: list[str], actions: list[str]) -> None:
+    if not actions:
+        return
+    lines.append("Next actions:")
+    for action in actions:
+        lines.append(f"- {action}")

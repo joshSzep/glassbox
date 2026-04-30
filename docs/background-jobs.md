@@ -140,12 +140,17 @@ Troubleshooting commands:
 
 - `glassbox observability status --json` shows pending, running, stale, failed,
 	retryable, abandoned, and latest failed background job state.
+- `glassbox daemon status --cwd . --json` is the first safe check when queued,
+	running, or stale jobs do not move; it reports not-running, running,
+	stale-owner, and unreachable-health recovery guidance without mutating owner
+	metadata.
 - `glassbox job retry JOB_ID --reason ...` requeues a failed or stale job until
 	the retry budget is exhausted.
 - `glassbox job abandon JOB_ID --reason ...` records terminal operator triage.
 - `glassbox job list --state stale` shows jobs recovered from expired claims.
 - `glassbox job show JOB_ID` shows worker claim, heartbeat, failure, and recovery
-	details.
+	details plus state-specific next actions for retry, abandon, cancel, or daemon
+	inspection.
 - `glassbox daemon stop` cleanly stops the worker together with the runtime owner.
 
 ## Task Continuation Jobs

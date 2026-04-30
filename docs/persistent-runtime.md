@@ -105,10 +105,17 @@ uv run glassbox daemon stop --cwd .
 
 - If `daemon status` shows `running` with health `unreachable`, the owner
   metadata exists but the dashboard health check failed. Inspect the stdout and
-  stderr log paths shown by `daemon status`, then stop and restart the daemon.
+  stderr log paths shown by `daemon status`, then follow the printed next
+  actions: read the JSON status, stop the owner, and start it again only if the
+  health check remains unreachable.
 - If `daemon status` shows `stale`, run `glassbox daemon start --cwd .` to
   recover by replacing stale metadata, or `glassbox daemon stop --cwd .` to clear
-  it without starting a new owner.
+  it without starting a new owner. Use `glassbox daemon status --cwd . --json`
+  first when you are not sure which workspace or database the stale metadata
+  belongs to.
+- If `job list` or `job show` reports `stale`, `failed`, or `retryable`, inspect
+  the job detail first. The command output names the safe retry or abandon
+  command after the retained failure, lease, and artifact evidence.
 - If `attach` reports that a session is historical-only, use the dashboard
   session index or `glassbox session status SESSION_ID --cwd .` for inspection.
 - If a handoff recipient cannot mutate a session, confirm whether they imported

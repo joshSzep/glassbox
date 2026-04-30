@@ -131,6 +131,18 @@ export function buildWorkspaceAttentionSummary(data: DashboardState): WorkspaceA
     };
   }
 
+  if (data.runtimeSummary.state === "stale") {
+    return {
+      actionLabel: "Check daemon",
+      detail:
+        "Runtime owner metadata is stale; inspect daemon status before starting or clearing owner metadata.",
+      kind: "runtime",
+      level: "warning",
+      target: { command: "uv run glassbox daemon status --cwd .", kind: "command" },
+      title: "Runtime owner stale",
+    };
+  }
+
   if (providerNeedsAttention(data.providerEvidence.freshness_status)) {
     return {
       actionLabel: "Inspect provider",

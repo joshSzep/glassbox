@@ -215,6 +215,12 @@ def test_daemon_status_json_reports_discovery_and_health(
         assert payload["workspace_root"] == str(tmp_path.resolve())
         assert payload["dashboard_url"] == f"http://127.0.0.1:{port}/"
         assert payload["health_url"] == f"http://127.0.0.1:{port}/healthz"
+        assert payload["detail"] == (
+            "Daemon owns live workspace mutations and is healthy."
+        )
+        assert payload["next_actions"][0].startswith(
+            "glassbox session attach SESSION_ID --cwd "
+        )
         assert payload["metadata_path"].endswith(".glassbox/runtime-owner.json")
         assert payload["stdout_log_path"].endswith(".glassbox/runtime-owner.stdout.log")
         assert payload["stderr_log_path"].endswith(".glassbox/runtime-owner.stderr.log")
@@ -291,7 +297,10 @@ def test_daemon_status_reports_not_running_discovery(
     assert exit_code == 0
     assert "Status: not running" in captured.out
     assert "Runtime owner: none" in captured.out
+    assert "Detail: No runtime owner metadata is present" in captured.out
+    assert "Safe check: glassbox daemon status" in captured.out
     assert "Start: glassbox daemon start" in captured.out
+    assert "Next actions:" in captured.out
     assert "Owner metadata:" in captured.out
 
 
@@ -354,10 +363,13 @@ def test_daemon_status_reports_stale_recovery_commands(
 
     assert exit_code == 0
     assert "Status: stale" in captured.out
+    assert "Detail: Runtime owner metadata exists" in captured.out
+    assert "Safe check: glassbox daemon status" in captured.out
     assert "Health: unavailable (owner process is not running)" in captured.out
-    assert "Recover: glassbox daemon start" in captured.out
     assert "Clear stale owner: glassbox daemon stop" in captured.out
-    assert "Next: glassbox daemon stop" in captured.out
+    assert "Next actions:" in captured.out
+    assert "- glassbox daemon status" in captured.out
+    assert "- glassbox daemon stop" in captured.out
     assert "then glassbox daemon start" in captured.out
 
 
@@ -438,9 +450,11 @@ def test_daemon_status_reports_unreachable_health_recovery(
     assert exit_code == 0
     assert "Status: running" in captured.out
     assert "Health: unreachable" in captured.out
+    assert "Detail: Daemon owner metadata exists" in captured.out
     assert "Inspect health: http://127.0.0.1:9999/healthz" in captured.out
     assert "Recover: glassbox daemon stop" in captured.out
-    assert "Next: inspect http://127.0.0.1:9999/healthz" in captured.out
+    assert "Next actions:" in captured.out
+    assert "- glassbox daemon status" in captured.out
 
 
 def test_daemon_stop_timeout_reports_pid_and_keeps_metadata(

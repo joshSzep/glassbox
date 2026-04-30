@@ -182,6 +182,27 @@ describe("workspace overview console", () => {
       "uv run glassbox daemon status --cwd .",
     );
 
+    const staleRuntime = hydrateSessionAggregate(
+      createDashboardState(),
+      makeSessionAggregate([], {
+        runtime: {
+          background_job_abandoned_count: 0,
+          background_job_failed_count: 0,
+          background_job_retryable_count: 0,
+          dashboard_url: null,
+          health: null,
+          health_url: null,
+          pid: 1234,
+          session_index_url: null,
+          started_at: "2026-04-23T00:00:00Z",
+          state: "stale",
+          workspace_root: "/tmp/glassbox",
+        },
+      }),
+    );
+    expect(renderOverview(staleRuntime, "loaded", null, "all")).toContain("Runtime owner stale");
+    expect(renderOverview(staleRuntime, "loaded", null, "all")).toContain("stale owner");
+
     const missingProjection = hydrateSessionAggregate(
       createDashboardState(),
       makeSessionAggregate([], {
