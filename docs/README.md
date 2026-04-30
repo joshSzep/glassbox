@@ -16,6 +16,9 @@ evidence or milestone history.
 - [v9-public-baseline.md](./v9-public-baseline.md): current supported Glassbox
   product contract, core model, daily workflows, advisory posture,
   release-evidence split, residual-risk mapping, and pre-1.0 version posture
+- [v9-vocabulary.md](./v9-vocabulary.md): shared v9 language for sessions,
+  tasks, evidence, memory, branches, verification, providers, daemons, and
+  projections, plus command/dashboard copy review and compatibility policy
 - [operator-quickstart.md](./operator-quickstart.md): short happy path for
   install, provider setup, terminal chat, dashboard inspection, approvals, and
   verification
@@ -71,6 +74,8 @@ evidence or milestone history.
 - [version-release-policy.md](./version-release-policy.md): align package
   version metadata, release-candidate names, evidence directories, installed
   smoke, and future v9 release notes
+- [v9-vocabulary.md](./v9-vocabulary.md): standardize operator-facing product
+  terms and command/dashboard language for v9
 - [persistent-runtime.md](./persistent-runtime.md): operate the daemon-backed
   workspace runtime and troubleshoot attach or health states
 - [operator-console.md](./operator-console.md): understand the v2 multi-session

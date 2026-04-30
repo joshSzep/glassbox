@@ -15,7 +15,9 @@ mutation outside explicit local policy and budgets.
 ## Product Model
 
 Glassbox uses a small set of concepts across CLI, dashboard, docs, and release
-evidence:
+evidence. The concise model is below; the shared terminology, command-help
+review, dashboard copy review, and rename compatibility policy live in
+[v9-vocabulary.md](./v9-vocabulary.md).
 
 - **Session**: the durable conversation and action history for one operator
   workflow. Sessions are stored as canonical events and can be resumed,

@@ -317,6 +317,32 @@ def test_docs_hub_links_to_v9_public_baseline() -> None:
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
 
     assert "v9-public-baseline.md" in docs_readme
+    assert "v9-vocabulary.md" in docs_readme
+
+
+def test_v9_vocabulary_covers_command_and_dashboard_language() -> None:
+    content = (REPO_ROOT / "docs" / "v9-vocabulary.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Core Terms",
+        "## Preferred Language",
+        "## Command Help Review",
+        "## Dashboard Copy Review",
+        "## Compatibility Policy",
+        "Session",
+        "Task",
+        "Evidence",
+        "Memory",
+        "Branch",
+        "Verify",
+        "Provider",
+        "Daemon",
+        "Projection",
+        "`uv run glassbox command tree`",
+        "No command rename is recommended for `GBX-930`",
+        "provider evidence is advisory",
+    ):
+        assert required_text in content
 
 
 def test_docs_hub_separates_operator_docs_from_release_evidence() -> None:
@@ -374,6 +400,7 @@ def test_public_operator_doc_links_resolve() -> None:
         REPO_ROOT / "README.md",
         REPO_ROOT / "docs" / "README.md",
         REPO_ROOT / "docs" / "v9-public-baseline.md",
+        REPO_ROOT / "docs" / "v9-vocabulary.md",
         REPO_ROOT / "docs" / "operator-quickstart.md",
         REPO_ROOT / "docs" / "version-release-policy.md",
     )

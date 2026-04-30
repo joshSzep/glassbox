@@ -464,7 +464,7 @@ The intended v9 milestone order is:
 
 ### GBX-930: Define The v9 Mental Model And Vocabulary
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-910`, `GBX-922`
 - Goal: reduce cognitive load by standardizing product language around a small
   set of concepts
@@ -485,6 +485,12 @@ The intended v9 milestone order is:
   - frontend text/component tests where labels change
 - Done when:
   - the same core concepts are used consistently in CLI, dashboard, and docs
+  - Completed by adding [v9-vocabulary.md](./v9-vocabulary.md) with the shared
+    session, task, evidence, memory, branch, verify, provider, daemon, and
+    projection language; command tree and dashboard copy reviews; and a
+    compatibility policy that favors help/docs/guide improvements before
+    renames. The docs hub, root README, public baseline, and docs guardrail
+    tests now link and verify the vocabulary guide.
 
 ### GBX-931: Add Command Discovery For Daily Workflows
 

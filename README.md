@@ -108,6 +108,7 @@ reference, release-evidence, and implementation-history docs live in
 Start here based on what you need:
 
 - [docs/v9-public-baseline.md](docs/v9-public-baseline.md)
+- [docs/v9-vocabulary.md](docs/v9-vocabulary.md)
 - [docs/operator-quickstart.md](docs/operator-quickstart.md)
 - [docs/daily-workflow-quickstart.md](docs/daily-workflow-quickstart.md)
 - [docs/getting-started.md](docs/getting-started.md)
