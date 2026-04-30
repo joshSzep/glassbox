@@ -1086,6 +1086,172 @@
         "title": "CancelSessionTurnRequest",
         "type": "object"
       },
+      "CheckpointResumeSnapshot": {
+        "additionalProperties": false,
+        "description": "Checkpoint-derived resume context with explicit trust posture.",
+        "properties": {
+          "blockers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "budget_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Status"
+          },
+          "checkpoint_id": {
+            "$ref": "#/components/schemas/TaskCheckpointId"
+          },
+          "checkpoint_sequence": {
+            "minimum": 0.0,
+            "title": "Checkpoint Sequence",
+            "type": "integer"
+          },
+          "completed_step": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed Step"
+          },
+          "context_source": {
+            "enum": ["checkpoint", "replay"],
+            "title": "Context Source",
+            "type": "string"
+          },
+          "current_phase": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LongRunPhase"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest_session_sequence": {
+            "minimum": 0.0,
+            "title": "Latest Session Sequence",
+            "type": "integer"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "next_action": {
+            "title": "Next Action",
+            "type": "string"
+          },
+          "objective": {
+            "title": "Objective",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "recovery_guidance": {
+            "title": "Recovery Guidance",
+            "type": "string"
+          },
+          "safe_to_use": {
+            "title": "Safe To Use",
+            "type": "boolean"
+          },
+          "source_end_sequence": {
+            "minimum": 0.0,
+            "title": "Source End Sequence",
+            "type": "integer"
+          },
+          "source_start_sequence": {
+            "minimum": 0.0,
+            "title": "Source Start Sequence",
+            "type": "integer"
+          },
+          "status": {
+            "enum": ["usable", "stale", "blocked", "workspace_drift", "non_resumable"],
+            "title": "Status",
+            "type": "string"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "touched_files": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Touched Files",
+            "type": "array"
+          },
+          "turn_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TurnId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "verification_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verification Status"
+          },
+          "workspace_drift_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Workspace Drift Paths",
+            "type": "array"
+          }
+        },
+        "required": [
+          "checkpoint_id",
+          "objective",
+          "next_action",
+          "recovery_guidance",
+          "source_start_sequence",
+          "source_end_sequence",
+          "checkpoint_sequence",
+          "latest_session_sequence",
+          "status",
+          "safe_to_use",
+          "context_source",
+          "reason"
+        ],
+        "title": "CheckpointResumeSnapshot",
+        "type": "object"
+      },
       "ChildSessionSummaryResponse": {
         "properties": {
           "branch_label": {
@@ -1368,6 +1534,23 @@
         "required": ["status", "event_transport"],
         "title": "HealthResponse",
         "type": "object"
+      },
+      "LongRunPhase": {
+        "description": "Operator-visible phases for long-running local work.",
+        "enum": [
+          "preparing",
+          "model_call",
+          "tool_execution",
+          "checkpointing",
+          "compacting_context",
+          "verifying",
+          "recovering",
+          "paused",
+          "completed",
+          "failed"
+        ],
+        "title": "LongRunPhase",
+        "type": "string"
       },
       "MessagePartResponse": {
         "properties": {
@@ -2770,6 +2953,16 @@
           "artifact_context": {
             "$ref": "#/components/schemas/ArtifactBackedContextSnapshot"
           },
+          "checkpoint_resume": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckpointResumeSnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "repository_context": {
             "$ref": "#/components/schemas/RepositoryContextSnapshot"
           },
@@ -3772,6 +3965,10 @@
         "title": "TaskBudgetAdjustmentRequest",
         "type": "object"
       },
+      "TaskCheckpointId": {
+        "format": "uuid",
+        "type": "string"
+      },
       "TaskCheckpointResponse": {
         "properties": {
           "artifact_id": {
@@ -4484,6 +4681,10 @@
         "required": ["message_id", "role", "parts", "created_at"],
         "title": "TranscriptMessageResponse",
         "type": "object"
+      },
+      "TurnId": {
+        "format": "uuid",
+        "type": "string"
       },
       "TurnMetricsResponse": {
         "properties": {

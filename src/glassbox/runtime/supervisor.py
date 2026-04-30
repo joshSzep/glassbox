@@ -27,6 +27,7 @@ from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import RecoveryDecision
 from glassbox.core.types import ResumeOutcomeStatus
 from glassbox.core.types import SessionStatus
+from glassbox.runtime.checkpoints import build_checkpoint_resume_snapshot
 from glassbox.runtime.logging import get_runtime_logger
 from glassbox.runtime.logging import runtime_log_extra
 from glassbox.runtime.transport import RuntimeEventTransport
@@ -223,6 +224,70 @@ class SessionSupervisor(SessionService):
                 f"{current_state.current_turn_id}; active turn execution cannot be "
                 "resumed after restart. Retry with a new prompt, fork from a "
                 "completed turn, or abandon the incomplete turn"
+            )
+
+        session = self._session_repository.get_session(session_id)
+        if session is None:
+            raise ValueError(f"unknown session_id: {session_id}")
+
+        checkpoint_resume = build_checkpoint_resume_snapshot(
+            self._session_repository.get_latest_task_checkpoint(session_id),
+            latest_session_sequence=current_state.last_sequence,
+            workspace_root=session.cwd,
+        )
+        if checkpoint_resume is not None and not checkpoint_resume.safe_to_use:
+            recovery_decision_id = new_recovery_decision_id()
+            outcome = (
+                ResumeOutcomeStatus.REJECTED_NON_RESUMABLE
+                if checkpoint_resume.status == "non_resumable"
+                else ResumeOutcomeStatus.REJECTED_STALE
+            )
+            decision = (
+                RecoveryDecision.NON_RESUMABLE
+                if checkpoint_resume.status == "non_resumable"
+                else RecoveryDecision.WAIT_FOR_OPERATOR
+            )
+            for event in self._session_repository.append_events(
+                [
+                    EventEnvelope(
+                        session_id=session_id,
+                        sequence=0,
+                        payload=RecoveryDecisionRecorded(
+                            recovery_decision_id=recovery_decision_id,
+                            decision=decision,
+                            reason=checkpoint_resume.reason,
+                            safe_to_resume=False,
+                            next_action=checkpoint_resume.recovery_guidance,
+                            task_id=checkpoint_resume.task_id,
+                            turn_id=checkpoint_resume.turn_id,
+                            checkpoint_id=checkpoint_resume.checkpoint_id,
+                            decided_by="runtime",
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=session_id,
+                        sequence=0,
+                        payload=ResumeOutcomeRecorded(
+                            outcome=outcome,
+                            summary=(
+                                "local resume rejected checkpoint "
+                                f"{checkpoint_resume.checkpoint_id}: "
+                                f"{checkpoint_resume.reason}"
+                            ),
+                            task_id=checkpoint_resume.task_id,
+                            turn_id=checkpoint_resume.turn_id,
+                            checkpoint_id=checkpoint_resume.checkpoint_id,
+                            recovery_decision_id=recovery_decision_id,
+                            resumed_by="runtime",
+                        ),
+                    ),
+                ]
+            ):
+                self._event_bus.publish(event)
+            raise ValueError(
+                f"cannot resume session {session_id} from checkpoint "
+                f"{checkpoint_resume.checkpoint_id}: {checkpoint_resume.reason}. "
+                f"Next action: {checkpoint_resume.recovery_guidance}"
             )
 
         event = self._session_repository.append_event(

@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from glassbox.core import ApprovalStatus
 from glassbox.core import EventEnvelope
+from glassbox.core import LongRunPhase
 from glassbox.core import MessagePart
 from glassbox.core import ModelToolCallRequested
 from glassbox.core import ProjectionHealth
@@ -21,6 +22,7 @@ from glassbox.core import RuntimeNoteRecorded
 from glassbox.core import SessionRecord
 from glassbox.core import SessionState
 from glassbox.core import SessionStatus
+from glassbox.core import TaskCheckpointRecord
 from glassbox.core import ToolArtifactRecorded
 from glassbox.core import ToolCallRecord
 from glassbox.core import ToolExecutionStatus
@@ -34,10 +36,12 @@ from glassbox.core import new_approval_id
 from glassbox.core import new_artifact_id
 from glassbox.core import new_message_id
 from glassbox.core import new_session_id
+from glassbox.core import new_task_checkpoint_id
 from glassbox.core import new_tool_call_id
 from glassbox.core import new_turn_id
 from glassbox.core import new_workspace_memory_id
 from glassbox.core.models import ApprovalRecord
+from glassbox.runtime.checkpoints import build_checkpoint_resume_snapshot
 from glassbox.runtime.context_builder import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
 from glassbox.runtime.context_builder import ArtifactBackedContextSnapshot
 from glassbox.runtime.context_builder import ArtifactBackedContextSummarySnapshot
@@ -85,6 +89,7 @@ class FakeSessionRepository:
         tool_calls=None,
         approvals=None,
         workspace_memory=None,
+        latest_checkpoint=None,
     ):
         self._session = session
         self._session_state = session_state
@@ -94,6 +99,7 @@ class FakeSessionRepository:
         self._tool_calls = list(tool_calls or [])
         self._approvals = list(approvals or [])
         self._workspace_memory = list(workspace_memory or [])
+        self._latest_checkpoint = latest_checkpoint
 
     def create_session(
         self,
@@ -227,7 +233,10 @@ class FakeSessionRepository:
         return None
 
     def get_latest_task_checkpoint(self, session_id, *, task_id=None):
-        return None
+        del task_id
+        if self._session.session_id != session_id:
+            return None
+        return self._latest_checkpoint
 
     def list_task_checkpoints(
         self,
@@ -510,6 +519,65 @@ def test_turn_context_builder_builds_prompt_fields_from_runtime_context() -> Non
     )
     assert context.working_set == runtime_context.working_set
     assert context.artifact_context == runtime_context.artifact_context
+
+
+def test_turn_context_builder_includes_checkpoint_resume_context() -> None:
+    session_id = new_session_id()
+    checkpoint = TaskCheckpointRecord(
+        checkpoint_id=new_task_checkpoint_id(),
+        session_id=session_id,
+        objective="Finish checkpoint-guided resume",
+        current_phase=LongRunPhase.CHECKPOINTING,
+        completed_step="Stored checkpoint projection",
+        next_action="Prepare the next turn from checkpoint context",
+        recovery_guidance="Resume with checkpoint provenance in the prompt",
+        source_start_sequence=1,
+        source_end_sequence=4,
+        created_at=datetime(2026, 4, 24, 12, 1, tzinfo=UTC),
+        last_sequence=5,
+    )
+    repository = FakeSessionRepository(
+        SessionRecord(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            created_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 4, 24, 12, 1, tzinfo=UTC),
+            cwd=Path("/tmp/glassbox"),
+            model_name="openai:gpt-5.4",
+            approval_mode="confirm",
+            last_sequence=5,
+        ),
+        SessionState(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            last_sequence=5,
+        ),
+        [],
+        latest_checkpoint=checkpoint,
+    )
+    runtime_context = RuntimeContextSnapshot(
+        repository_context=RepositoryContextSnapshot(workspace_name="glassbox"),
+        checkpoint_resume=build_checkpoint_resume_snapshot(
+            checkpoint,
+            latest_session_sequence=5,
+            workspace_root=Path("/tmp/glassbox"),
+        ),
+    )
+
+    context = TurnContextBuilder(repository).build_from_runtime_context(
+        session_id,
+        runtime_context,
+    )
+
+    assert context.checkpoint_context is not None
+    assert context.checkpoint_context.status == "usable"
+    assert context.checkpoint_context.context_source == "checkpoint"
+    assert any(
+        "[checkpoint-resume usable events 1-4]" in note for note in context.memory_notes
+    )
+    assert any(
+        "Finish checkpoint-guided resume" in note for note in context.memory_notes
+    )
 
 
 def test_turn_context_builder_includes_memory_and_repository_index_context() -> None:

@@ -105,6 +105,12 @@ Checkpoint inspection is available through `glassbox session status`, the
 session snapshot API, the paginated `/sessions/{session_id}/checkpoints` API,
 and session export/import packages. Exported checkpoint text is redacted with
 the same workspace-path and secret filters as transcript and task handoff data.
+Live turn preparation also exposes a `checkpoint_resume` runtime-context
+snapshot. It labels whether the latest checkpoint is safe checkpoint-derived
+context or whether Glassbox is falling back to replay-derived context because
+the checkpoint is stale, blocked, failed, or no longer matches the workspace.
+Rejected checkpoint resumes emit recovery-decision and resume-outcome events
+with the checkpoint id and next operator action.
 
 ## Incomplete-Turn Recovery Semantics
 

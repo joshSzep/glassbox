@@ -2,11 +2,13 @@
 
 from uuid import uuid4
 
+from glassbox.core.types import LongRunPhase
 from glassbox.core.types import SessionStatus
 from glassbox.llm import build_system_prompt
 from glassbox.llm import build_tool_usage_prompt_fragment
 from glassbox.runtime.context_builder import ArtifactBackedContextSnapshot
 from glassbox.runtime.context_builder import ArtifactBackedContextSummarySnapshot
+from glassbox.runtime.context_builder import CheckpointResumeSnapshot
 from glassbox.runtime.context_builder import PolicyContext
 from glassbox.runtime.context_builder import ToolSchema
 from glassbox.runtime.context_builder import TurnContext
@@ -124,6 +126,44 @@ def test_build_system_prompt_handles_missing_optional_context() -> None:
     assert "Memory notes:" not in prompt
     assert "Working set:" not in prompt
     assert "Artifact-backed context:" not in prompt
+
+
+def test_build_system_prompt_includes_checkpoint_resume_caveats() -> None:
+    turn_context = TurnContext(
+        session_id=uuid4(),
+        session_status=SessionStatus.RUNNING,
+        current_turn_id=None,
+        last_sequence=8,
+        transcript=[],
+        available_tools=[],
+        policy=PolicyContext(approval_mode="confirm"),
+        checkpoint_context=CheckpointResumeSnapshot(
+            checkpoint_id=uuid4(),
+            objective="Finish the long task",
+            current_phase=LongRunPhase.CHECKPOINTING,
+            completed_step="Stored checkpoint projection",
+            next_action="Refresh checkpoint before continuing",
+            recovery_guidance="Inspect events after checkpoint",
+            source_start_sequence=1,
+            source_end_sequence=4,
+            checkpoint_sequence=5,
+            latest_session_sequence=8,
+            status="stale",
+            safe_to_use=False,
+            context_source="replay",
+            reason="events were recorded after the latest checkpoint",
+            limitations=["checkpoint source range is stale"],
+        ),
+    )
+
+    prompt = build_system_prompt(turn_context)
+
+    assert "Checkpoint resume context:" in prompt
+    assert "Status: stale." in prompt
+    assert "Context source: replay." in prompt
+    assert "events were recorded after the latest checkpoint" in prompt
+    assert "source events 1-4" in prompt
+    assert "Do not treat this checkpoint as an active continuation point" in prompt
 
 
 def test_tool_usage_fragment_is_stable_and_includes_schema() -> None:

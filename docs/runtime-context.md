@@ -72,7 +72,8 @@ prefer context-sensitive replay/eval coverage before accepting drift.
 
 ## Resume, Replay, Eval, And Branch Behavior
 
-- `resume` recomputes repository context, reloads runtime notes, rebuilds the working set, and reloads artifact-backed summaries when available
+- `resume` recomputes repository context, reloads runtime notes, rebuilds the working set, reloads artifact-backed summaries when available, and classifies the latest checkpoint as checkpoint-derived or replay-derived context with source-event provenance
+- checkpoint-derived context is used only when the latest checkpoint covers the current session tail and has no known blockers; stale, blocked, failed, or workspace-drifted checkpoints remain visible but are marked unsafe to trust
 - `fork` imports active parent runtime notes as inherited notes and rebuilds replay-safe working-set context for the child session
 - `replay` records per-source enriched-context metadata and can report source-level drift
 - `replay bundle export` and `eval` preserve inherited notes, lineage, and artifact-backed dependencies in portable form

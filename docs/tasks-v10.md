@@ -546,7 +546,7 @@ The intended v10 milestone order is:
 
 ### GBX-1022: Resume Work From Checkpoints Safely
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1021`
 - Goal: let session resume and background continuation use checkpoints as
   explicit context while preserving operator control
@@ -571,6 +571,14 @@ The intended v10 milestone order is:
 - Done when:
   - resuming a long task starts from an explicit checkpoint and explains when
     the checkpoint is unsafe to trust
+- Completed:
+  - Added checkpoint resume classification for usable, stale, blocked,
+    workspace-drifted, and non-resumable checkpoints.
+  - Runtime context and prompts now include checkpoint source provenance,
+    limitations, blockers, workspace drift, and replay-vs-checkpoint source
+    posture.
+  - `glassbox session resume` rejects unsafe checkpoint resumes with durable
+    `RecoveryDecisionRecorded` and `ResumeOutcomeRecorded` evidence.
 
 ---
 

@@ -1,0 +1,46 @@
+{
+  "fixture_version": 1,
+  "fixture_id": "checkpoint.resume-recovery",
+  "title": "Checkpoint resume recovery posture",
+  "owner": "runtime.context",
+  "capabilities": ["checkpoint_resume_recovery"],
+  "notes": "GBX-1022 fixture for deterministic tests that need checkpoint-derived versus replay-derived resume posture without live provider execution.",
+  "usable_checkpoint": {
+    "status": "usable",
+    "context_source": "checkpoint",
+    "safe_to_use": true,
+    "source_start_sequence": 1,
+    "source_end_sequence": 4,
+    "checkpoint_sequence": 5,
+    "latest_session_sequence": 5
+  },
+  "blocked_checkpoint": {
+    "status": "blocked",
+    "context_source": "replay",
+    "safe_to_use": false,
+    "blockers": ["operator approval required"],
+    "expected_recovery_events": [
+      "RecoveryDecisionRecorded",
+      "ResumeOutcomeRecorded"
+    ]
+  },
+  "stale_checkpoint": {
+    "status": "stale",
+    "context_source": "replay",
+    "safe_to_use": false,
+    "checkpoint_sequence": 5,
+    "latest_session_sequence": 8
+  },
+  "workspace_drift_checkpoint": {
+    "status": "workspace_drift",
+    "context_source": "replay",
+    "safe_to_use": false,
+    "workspace_drift_paths": ["missing.py"]
+  },
+  "non_resumable_checkpoint": {
+    "status": "non_resumable",
+    "context_source": "replay",
+    "safe_to_use": false,
+    "current_phase": "failed"
+  }
+}

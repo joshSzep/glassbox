@@ -3,6 +3,7 @@
 from collections.abc import Sequence
 
 from glassbox.core.ids import SessionId
+from glassbox.runtime.context_formatting import format_checkpoint_resume_for_prompt
 from glassbox.runtime.context_formatting import format_repository_context_for_prompt
 from glassbox.runtime.context_formatting import format_repository_index_for_prompt
 from glassbox.runtime.context_formatting import format_runtime_notes_for_prompt
@@ -13,6 +14,7 @@ from glassbox.runtime.context_formatting import normalize_tool_schemas
 from glassbox.runtime.context_models import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
 from glassbox.runtime.context_models import ArtifactBackedContextSnapshot
 from glassbox.runtime.context_models import ArtifactBackedContextSummarySnapshot
+from glassbox.runtime.context_models import CheckpointResumeSnapshot
 from glassbox.runtime.context_models import PolicyContext
 from glassbox.runtime.context_models import PytestFailureDigestArtifact
 from glassbox.runtime.context_models import RepositoryContextSnapshot
@@ -55,6 +57,7 @@ class TurnContextBuilder:
         artifact_context: ArtifactBackedContextSnapshot | None = None,
         workspace_memory: Sequence[WorkspaceMemoryContextItemSnapshot] = (),
         repository_index: RepositoryIndexContextSnapshot | None = None,
+        checkpoint_context: CheckpointResumeSnapshot | None = None,
     ) -> TurnContext:
         session = self._session_repository.get_session(session_id)
         session_state = self._session_repository.get_session_state(session_id)
@@ -89,6 +92,7 @@ class TurnContextBuilder:
             artifact_context=artifact_context,
             workspace_memory=list(workspace_memory),
             repository_index=repository_index,
+            checkpoint_context=checkpoint_context,
         )
 
     def build_from_runtime_context(
@@ -124,17 +128,26 @@ class TurnContextBuilder:
             memory_notes=[
                 *format_runtime_notes_for_prompt(runtime_context.runtime_notes),
                 *format_workspace_memory_for_prompt(runtime_context.workspace_memory),
+                *(
+                    format_checkpoint_resume_for_prompt(
+                        runtime_context.checkpoint_resume
+                    )
+                    if runtime_context.checkpoint_resume is not None
+                    else []
+                ),
             ],
             working_set=runtime_context.working_set,
             artifact_context=runtime_context.artifact_context,
             workspace_memory=runtime_context.workspace_memory,
             repository_index=turn_repository_index,
+            checkpoint_context=runtime_context.checkpoint_resume,
         )
 
 
 __all__ = [
     "ArtifactBackedContextSnapshot",
     "ArtifactBackedContextSummarySnapshot",
+    "CheckpointResumeSnapshot",
     "build_artifact_backed_context_snapshot",
     "build_pytest_failure_digest_artifact",
     "build_repository_context_snapshot",
@@ -145,6 +158,7 @@ __all__ = [
     "format_repository_index_for_prompt",
     "format_repository_context_for_prompt",
     "format_runtime_notes_for_prompt",
+    "format_checkpoint_resume_for_prompt",
     "format_tool_schemas_for_prompt",
     "format_transcript_for_prompt",
     "format_workspace_memory_for_prompt",

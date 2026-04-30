@@ -11,6 +11,8 @@ import pytest
 from glassbox.cli import main
 from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import EventEnvelope
+from glassbox.core.events import RecoveryDecisionRecorded
+from glassbox.core.events import ResumeOutcomeRecorded
 from glassbox.core.events import RuntimeNoteRecorded
 from glassbox.core.events import SessionCompleted
 from glassbox.core.events import SessionFailed
@@ -730,6 +732,72 @@ def test_cli_resume_preserves_mid_transcript_running_session(
     assert state.status == "running"
     assert len(transcript_messages) == 2
     assert persisted_events[-1].event_type == "SessionResumed"
+
+
+def test_cli_resume_rejects_blocked_checkpoint_with_recovery_evidence(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    checkpoint_id = new_task_checkpoint_id()
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=TaskCheckpointCreated(
+                    checkpoint_id=checkpoint_id,
+                    objective="Finish checkpoint resume safety",
+                    current_phase=LongRunPhase.CHECKPOINTING,
+                    completed_step="Prepared checkpoint projection",
+                    next_action="Resolve checkpoint blocker",
+                    recovery_guidance="Clear the checkpoint blocker or refresh it",
+                    blockers=["operator approval required"],
+                    source_start_sequence=1,
+                    source_end_sequence=3,
+                ),
+            )
+        )
+    finally:
+        connection.close()
+
+    _ = capsys.readouterr()
+    exit_code = main(
+        [
+            "session",
+            "resume",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        persisted_events = repository.read_session_events(session_id)
+    finally:
+        connection.close()
+
+    assert exit_code == 1
+    assert f"cannot resume session {session_id} from checkpoint" in captured.err
+    assert "unresolved blockers" in captured.err
+    assert "Clear the checkpoint blocker or refresh it" in captured.err
+    assert [event.event_type for event in persisted_events[-2:]] == [
+        "RecoveryDecisionRecorded",
+        "ResumeOutcomeRecorded",
+    ]
+    recovery_payload = persisted_events[-2].payload
+    outcome_payload = persisted_events[-1].payload
+    assert isinstance(recovery_payload, RecoveryDecisionRecorded)
+    assert isinstance(outcome_payload, ResumeOutcomeRecorded)
+    assert recovery_payload.checkpoint_id == checkpoint_id
+    assert outcome_payload.checkpoint_id == checkpoint_id
 
 
 def test_cli_resume_rejects_completed_session(

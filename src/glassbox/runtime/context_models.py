@@ -9,11 +9,13 @@ from pydantic import Field
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import ArtifactId
 from glassbox.core.ids import SessionId
+from glassbox.core.ids import TaskCheckpointId
 from glassbox.core.ids import TaskId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.ids import WorkspaceMemoryId
 from glassbox.core.models import TranscriptMessage
+from glassbox.core.types import LongRunPhase
 from glassbox.core.types import SessionStatus
 from glassbox.tools import ToolSchema
 
@@ -177,6 +179,41 @@ class RepositoryIndexContextSnapshot(BaseModel):
     detail: str | None = None
 
 
+class CheckpointResumeSnapshot(BaseModel):
+    """Checkpoint-derived resume context with explicit trust posture."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    checkpoint_id: TaskCheckpointId
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    objective: str
+    current_phase: LongRunPhase | None = None
+    completed_step: str | None = None
+    next_action: str
+    blockers: list[str] = Field(default_factory=list)
+    touched_files: list[str] = Field(default_factory=list)
+    verification_status: str | None = None
+    budget_status: str | None = None
+    recovery_guidance: str
+    source_start_sequence: int = Field(ge=0)
+    source_end_sequence: int = Field(ge=0)
+    checkpoint_sequence: int = Field(ge=0)
+    latest_session_sequence: int = Field(ge=0)
+    status: Literal[
+        "usable",
+        "stale",
+        "blocked",
+        "workspace_drift",
+        "non_resumable",
+    ]
+    safe_to_use: bool
+    context_source: Literal["checkpoint", "replay"]
+    reason: str
+    limitations: list[str] = Field(default_factory=list)
+    workspace_drift_paths: list[str] = Field(default_factory=list)
+
+
 class RuntimeContextSnapshot(BaseModel):
     """Shared operator-facing runtime context summary."""
 
@@ -197,6 +234,7 @@ class RuntimeContextSnapshot(BaseModel):
     additional_workspace_memory_count: int = Field(default=0, ge=0)
     workspace_memory_context_bytes: int = Field(default=0, ge=0)
     repository_index: RepositoryIndexContextSnapshot | None = None
+    checkpoint_resume: CheckpointResumeSnapshot | None = None
 
 
 class PolicyContext(BaseModel):
@@ -228,3 +266,4 @@ class TurnContext(BaseModel):
         default_factory=list
     )
     repository_index: RepositoryIndexContextSnapshot | None = None
+    checkpoint_context: CheckpointResumeSnapshot | None = None

@@ -71,6 +71,16 @@ GET /sessions/SESSION_ID
 GET /sessions/SESSION_ID/checkpoints?cursor=0&limit=100
 ```
 
+Resume preparation classifies the latest checkpoint before it is allowed to
+guide a model turn. A current checkpoint with no blockers becomes explicit
+checkpoint-derived context with source-event provenance. A stale checkpoint,
+failed checkpoint, blocked checkpoint, or checkpoint whose touched files no
+longer exist falls back to replay-derived context and carries the rejection
+reason as runtime context. `glassbox session resume` records
+`RecoveryDecisionRecorded` and `ResumeOutcomeRecorded` before rejecting unsafe
+checkpoint resumes, so the operator can inspect why Glassbox chose replay
+evidence instead of checkpoint evidence.
+
 Session exports include a redacted latest checkpoint in the handoff block,
 checkpoint-history projection summaries, and canonical checkpoint event
 references. Inspect-mode imports replay those checkpoint events into the local

@@ -28,6 +28,10 @@ def build_system_prompt(turn_context: TurnContext) -> str:
         sections.append(build_repo_context_prompt_fragment(turn_context.repo_context))
     if turn_context.memory_notes:
         sections.append(build_memory_notes_prompt_fragment(turn_context.memory_notes))
+    if turn_context.checkpoint_context is not None:
+        sections.append(
+            build_checkpoint_resume_prompt_fragment(turn_context.checkpoint_context)
+        )
     if turn_context.working_set is not None and turn_context.working_set.items:
         sections.append(build_working_set_prompt_fragment(turn_context.working_set))
     if (
@@ -138,6 +142,50 @@ def build_memory_notes_prompt_fragment(memory_notes: Sequence[str]) -> str:
     lines = ["Memory notes:"]
     for note in memory_notes:
         lines.append(f"- {note}")
+    return "\n".join(lines)
+
+
+def build_checkpoint_resume_prompt_fragment(checkpoint) -> str:
+    """Return checkpoint-derived resume context with explicit caveats."""
+
+    lines = [
+        "Checkpoint resume context:",
+        f"- Status: {checkpoint.status}.",
+        f"- Context source: {checkpoint.context_source}.",
+        f"- Reason: {checkpoint.reason}",
+        (
+            "- Provenance: source events "
+            f"{checkpoint.source_start_sequence}-{checkpoint.source_end_sequence}; "
+            f"checkpoint event {checkpoint.checkpoint_sequence}; latest session "
+            f"event {checkpoint.latest_session_sequence}."
+        ),
+        f"- Objective: {checkpoint.objective}",
+        f"- Next action: {checkpoint.next_action}",
+        f"- Recovery guidance: {checkpoint.recovery_guidance}",
+    ]
+    if checkpoint.current_phase is not None:
+        lines.append(f"- Current phase: {checkpoint.current_phase.value}.")
+    if checkpoint.completed_step:
+        lines.append(f"- Last completed step: {checkpoint.completed_step}")
+    if checkpoint.blockers:
+        lines.append("- Blockers: " + "; ".join(checkpoint.blockers[:5]))
+    if checkpoint.touched_files:
+        lines.append("- Touched files: " + ", ".join(checkpoint.touched_files[:8]))
+    if checkpoint.workspace_drift_paths:
+        lines.append(
+            "- Workspace drift: " + ", ".join(checkpoint.workspace_drift_paths[:8])
+        )
+    if checkpoint.verification_status:
+        lines.append(f"- Verification posture: {checkpoint.verification_status}")
+    if checkpoint.budget_status:
+        lines.append(f"- Budget posture: {checkpoint.budget_status}")
+    for limitation in checkpoint.limitations[:3]:
+        lines.append(f"- Limitation: {limitation}")
+    if not checkpoint.safe_to_use:
+        lines.append(
+            "- Do not treat this checkpoint as an active continuation point until "
+            "the reason above is resolved."
+        )
     return "\n".join(lines)
 
 

@@ -4,6 +4,7 @@ from collections.abc import Iterable
 from collections.abc import Sequence
 
 from glassbox.core.models import TranscriptMessage
+from glassbox.runtime.context_models import CheckpointResumeSnapshot
 from glassbox.runtime.context_models import RepositoryContextSnapshot
 from glassbox.runtime.context_models import RepositoryIndexContextSnapshot
 from glassbox.runtime.context_models import RuntimeContextNoteSnapshot
@@ -119,6 +120,57 @@ def format_workspace_memory_for_prompt(
             f"[workspace-memory {entry.kind} {source}] {entry.summary}: {text}"
         )
     return formatted
+
+
+def format_checkpoint_resume_for_prompt(
+    checkpoint: CheckpointResumeSnapshot,
+) -> list[str]:
+    """Render checkpoint resume posture into stable prompt notes."""
+
+    source_range = (
+        f"events {checkpoint.source_start_sequence}-{checkpoint.source_end_sequence}"
+    )
+    freshness = (
+        f"checkpoint event {checkpoint.checkpoint_sequence}; "
+        f"latest session event {checkpoint.latest_session_sequence}"
+    )
+    notes = [
+        (
+            f"[checkpoint-resume {checkpoint.status} {source_range}] "
+            f"context source: {checkpoint.context_source}; {checkpoint.reason}"
+        ),
+        f"[checkpoint objective] {checkpoint.objective}",
+    ]
+    if checkpoint.current_phase is not None:
+        notes.append(f"[checkpoint phase] {checkpoint.current_phase.value}")
+    if checkpoint.completed_step:
+        notes.append(f"[checkpoint completed] {checkpoint.completed_step}")
+    notes.append(f"[checkpoint next action] {checkpoint.next_action}")
+    notes.append(f"[checkpoint recovery] {checkpoint.recovery_guidance}")
+    notes.append(f"[checkpoint provenance] {freshness}")
+    if checkpoint.blockers:
+        notes.append("[checkpoint blockers] " + "; ".join(checkpoint.blockers[:5]))
+    if checkpoint.touched_files:
+        notes.append(
+            "[checkpoint touched files] " + ", ".join(checkpoint.touched_files[:8])
+        )
+    if checkpoint.workspace_drift_paths:
+        notes.append(
+            "[checkpoint workspace drift] "
+            + ", ".join(checkpoint.workspace_drift_paths[:8])
+        )
+    if checkpoint.verification_status:
+        notes.append(f"[checkpoint verification] {checkpoint.verification_status}")
+    if checkpoint.budget_status:
+        notes.append(f"[checkpoint budget] {checkpoint.budget_status}")
+    for limitation in checkpoint.limitations[:3]:
+        notes.append(f"[checkpoint limitation] {limitation}")
+    if not checkpoint.safe_to_use:
+        notes.append(
+            "[checkpoint caveat] Treat transcript, events, and current workspace "
+            "state as authoritative until the checkpoint is refreshed or resolved."
+        )
+    return notes
 
 
 def format_runtime_context_budget_summary(

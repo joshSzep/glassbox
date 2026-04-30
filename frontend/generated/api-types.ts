@@ -1357,6 +1357,58 @@ export interface components {
       /** Turn Id */
       turn_id?: string | null;
     };
+    /**
+     * CheckpointResumeSnapshot
+     * @description Checkpoint-derived resume context with explicit trust posture.
+     */
+    CheckpointResumeSnapshot: {
+      /** Blockers */
+      blockers?: string[];
+      /** Budget Status */
+      budget_status?: string | null;
+      checkpoint_id: components["schemas"]["TaskCheckpointId"];
+      /** Checkpoint Sequence */
+      checkpoint_sequence: number;
+      /** Completed Step */
+      completed_step?: string | null;
+      /**
+       * Context Source
+       * @enum {string}
+       */
+      context_source: "checkpoint" | "replay";
+      current_phase?: components["schemas"]["LongRunPhase"] | null;
+      /** Latest Session Sequence */
+      latest_session_sequence: number;
+      /** Limitations */
+      limitations?: string[];
+      /** Next Action */
+      next_action: string;
+      /** Objective */
+      objective: string;
+      /** Reason */
+      reason: string;
+      /** Recovery Guidance */
+      recovery_guidance: string;
+      /** Safe To Use */
+      safe_to_use: boolean;
+      /** Source End Sequence */
+      source_end_sequence: number;
+      /** Source Start Sequence */
+      source_start_sequence: number;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "usable" | "stale" | "blocked" | "workspace_drift" | "non_resumable";
+      task_id?: components["schemas"]["TaskId"] | null;
+      /** Touched Files */
+      touched_files?: string[];
+      turn_id?: components["schemas"]["TurnId"] | null;
+      /** Verification Status */
+      verification_status?: string | null;
+      /** Workspace Drift Paths */
+      workspace_drift_paths?: string[];
+    };
     /** ChildSessionSummaryResponse */
     ChildSessionSummaryResponse: {
       /** Branch Label */
@@ -1463,6 +1515,22 @@ export interface components {
       /** Status */
       status: string;
     };
+    /**
+     * LongRunPhase
+     * @description Operator-visible phases for long-running local work.
+     * @enum {string}
+     */
+    LongRunPhase:
+      | "preparing"
+      | "model_call"
+      | "tool_execution"
+      | "checkpointing"
+      | "compacting_context"
+      | "verifying"
+      | "recovering"
+      | "paused"
+      | "completed"
+      | "failed";
     /** MessagePartResponse */
     MessagePartResponse: {
       /** Kind */
@@ -1956,6 +2024,7 @@ export interface components {
        */
       additional_workspace_memory_count: number;
       artifact_context?: components["schemas"]["ArtifactBackedContextSnapshot"];
+      checkpoint_resume?: components["schemas"]["CheckpointResumeSnapshot"] | null;
       repository_context: components["schemas"]["RepositoryContextSnapshot"];
       repository_index?: components["schemas"]["RepositoryIndexContextSnapshot"] | null;
       /** Runtime Notes */
@@ -2255,6 +2324,8 @@ export interface components {
       /** Reason */
       reason?: string | null;
     };
+    /** Format: uuid */
+    TaskCheckpointId: string;
     /** TaskCheckpointResponse */
     TaskCheckpointResponse: {
       /** Artifact Id */
@@ -2497,6 +2568,8 @@ export interface components {
       /** Role */
       role: string;
     };
+    /** Format: uuid */
+    TurnId: string;
     /** TurnMetricsResponse */
     TurnMetricsResponse: {
       /** Completed At */
