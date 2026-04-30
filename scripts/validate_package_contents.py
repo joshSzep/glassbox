@@ -70,6 +70,7 @@ SDIST_REQUIRED_SUFFIXES = (
     "docs/tasks-v10.md",
     "docs/tool-attempts.md",
     "docs/v10-durability-audit.md",
+    "docs/v10-dogfooding-summary.md",
     "docs/v10-long-running-task-contract.md",
     "docs/v10-release-gate.md",
     "docs/v7-release-candidate.md",

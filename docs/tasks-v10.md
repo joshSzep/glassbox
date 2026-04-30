@@ -1505,7 +1505,7 @@ The intended v10 milestone order is:
 
 ### GBX-1092: Run Long-Running Dogfooding Passes
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1091`
 - Goal: validate v10 against real longer local tasks and record product
   friction before release signoff
@@ -1528,6 +1528,24 @@ The intended v10 milestone order is:
 - Done when:
   - v10 priorities are informed by real long-running operator use rather than
     only synthetic fixtures
+- Completed:
+  - Ran three focused dogfooding passes covering a long historical repository
+    inspection with compaction/checkpoint review, the GBX-1091 multi-step
+    release-gate code edit with incremental validation and recovery, and a
+    background continuation recovery smoke with cancellation, stale-owner,
+    retry/abandon, and budget-pause evidence.
+  - Added `docs/v10-dogfooding-summary.md` with sanitized pass summaries,
+    friction findings grouped by checkpoint, compaction, tool attempt,
+    dashboard cockpit, provider recovery, verification, memory, and release
+    evidence, plus candidate follow-ups.
+  - Recorded real product friction: full-session compaction currently exposes
+    a raw source-reference cap validation error, release-gate paths do not yet
+    receive confident eval recommendations, and live dashboard monitoring was
+    not exercised by these passes.
+  - Linked the summary from the docs hub and required it in source
+    distributions through package-content validation.
+  - Verified with focused ruff checks, package and release-doc tests, a fresh
+    package build, and `validate_package_contents.py`.
 
 ### GBX-1093: Publish v10 Release-Candidate Guide
 

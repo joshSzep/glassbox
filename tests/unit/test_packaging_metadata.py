@@ -124,6 +124,7 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert "sdist missing required file: docs/tasks-v10.md" in problems
     assert "sdist missing required file: docs/tool-attempts.md" in problems
     assert "sdist missing required file: docs/v10-durability-audit.md" in problems
+    assert "sdist missing required file: docs/v10-dogfooding-summary.md" in problems
     assert (
         "sdist missing required file: docs/v10-long-running-task-contract.md"
         in problems
@@ -284,6 +285,7 @@ def _write_sdist(
                 "docs/tasks-v10.md",
                 "docs/tool-attempts.md",
                 "docs/v10-durability-audit.md",
+                "docs/v10-dogfooding-summary.md",
                 "docs/v10-long-running-task-contract.md",
                 "docs/v10-release-gate.md",
             ):

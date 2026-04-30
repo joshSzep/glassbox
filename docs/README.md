@@ -39,6 +39,9 @@ implementation track after the v9 baseline.
 - [v10-release-gate.md](./v10-release-gate.md): v10 automated release gate that
   composes inherited v9 evidence with deterministic long-run recovery,
   compaction, tool-attempt, provider, package, and cockpit evidence
+- [v10-dogfooding-summary.md](./v10-dogfooding-summary.md): sanitized v10
+  dogfooding findings for long-session compaction, release-gate editing,
+  background continuation recovery, and candidate follow-ups
 - [operator-quickstart.md](./operator-quickstart.md): short happy path for
   install, provider setup, terminal chat, dashboard inspection, approvals, and
   verification
@@ -115,6 +118,9 @@ implementation track after the v9 baseline.
 - [v10-release-gate.md](./v10-release-gate.md): automated v10 release evidence
   command, stage map, retained summary shape, advisory provider policy, and
   pass/fail rules
+- [v10-dogfooding-summary.md](./v10-dogfooding-summary.md): sanitized
+  long-running-task dogfooding pass summaries, friction findings, and candidate
+  test/eval follow-ups
 - [v9-vocabulary.md](./v9-vocabulary.md): standardize operator-facing product
   terms and command/dashboard language for v9
 - [v9-command-surface-review.md](./v9-command-surface-review.md): classify the
@@ -183,6 +189,8 @@ path.
   provider-canary policy, and pass/fail rules
 - [v10-release-gate.md](./v10-release-gate.md): v10 automated release gate that
   layers long-running-task release evidence on top of the inherited v9 gate
+- [v10-dogfooding-summary.md](./v10-dogfooding-summary.md): sanitized GBX-1092
+  dogfooding summaries and finding dispositions for v10 release review
 - [manual-v9-release-validation.md](./manual-v9-release-validation.md): retained
   GBX-992 manual validation pass for first-run, dashboard cockpit, recovery,
   provider, package, accessibility, residual-risk, and go/no-go evidence
