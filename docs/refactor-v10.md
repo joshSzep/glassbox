@@ -437,7 +437,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R320: Split Session And Task Route Files Into Query, Action, And Serialization Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R300`
 - Goal: reduce
   [web/routes/sessions.py](../src/glassbox/web/routes/sessions.py) and
@@ -472,6 +472,17 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - route modules are thin HTTP surfaces over owned query/action helpers with no
     payload or behavior drift
+- Completed notes:
+  - `web/routes/sessions.py` and `web/routes/tasks.py` now remain FastAPI
+    declaration surfaces over HTTP-local helper modules.
+  - Session aggregate, snapshot, transcript, event-log, tool-call, metrics,
+    checkpoint, compaction, artifact, and runtime-summary reads now live in
+    `session_route_queries.py`; session mutations live in
+    `session_route_actions.py`.
+  - Task list/detail/step/event reads now live in `task_route_queries.py`;
+    task plan approval, continuation, continuation-window, pause-window,
+    pause/resume/cancel, and budget mutations live in `task_route_actions.py`.
+  - Shared route pagination response construction lives in `pagination.py`.
 
 ### GBX-R321: Split Runtime Task Query Models, Verification, And Repair-History Derivation
 
