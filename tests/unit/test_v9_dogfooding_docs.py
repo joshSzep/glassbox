@@ -29,3 +29,20 @@ def test_docs_hub_links_v9_dogfooding_protocol() -> None:
     docs_readme = _read_doc("docs/README.md")
 
     assert "[dogfooding.md](./dogfooding.md)" in docs_readme
+    assert "[v9-dogfooding-summary.md](./v9-dogfooding-summary.md)" in docs_readme
+
+
+def test_v9_dogfooding_summary_records_passes_and_findings() -> None:
+    doc = _read_doc("docs/v9-dogfooding-summary.md")
+
+    for phrase in (
+        "20260429-0930-repository-inspection",
+        "20260429-1100-small-edit-verification",
+        "20260429-1400-branch-search-plan",
+        "credentialed streaming canary passed",
+        "Friction Findings",
+        "provider canary summary consistency",
+        "Branch-search decision copy",
+        "GBX-982 should triage every finding",
+    ):
+        assert phrase in doc

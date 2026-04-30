@@ -1015,7 +1015,7 @@ The intended v9 milestone order is:
 
 ### GBX-981: Run Focused Dogfooding Passes
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-980`
 - Goal: validate Glassbox against real coding tasks and record product friction
 - Deliverables:
@@ -1036,6 +1036,14 @@ The intended v9 milestone order is:
 - Done when:
   - v9 priorities are informed by real operator use rather than only release
     gates
+  - Completed by running and summarizing three real-repository passes in
+    [v9-dogfooding-summary.md](./v9-dogfooding-summary.md): repository
+    inspection/index readiness, a small docs/test edit with focused
+    verification and a credentialed advisory streaming provider canary, and a
+    deterministic branch-search planning workflow. Raw local evidence remains
+    under `.glassbox/dogfooding/v9/`; the committed summary groups friction by
+    onboarding, terminal, dashboard, provider, verification, memory/index, and
+    recovery, and lists candidate GBX-982 tests or contracts.
 
 ### GBX-982: Convert Dogfooding Findings Into Fixes Or Contracts
 

@@ -143,6 +143,9 @@ path.
 - [v9-eval-promotion-plan.md](./v9-eval-promotion-plan.md): v9 review of the
   v8 autonomy advisory eval suite, case-by-case promotion decisions, retained
   local evidence path, and release-candidate follow-up plan
+- [v9-dogfooding-summary.md](./v9-dogfooding-summary.md): sanitized GBX-981
+  real-repository dogfooding pass summaries, friction findings, and candidate
+  GBX-982 fixes/contracts
 - [recovery-maintenance-review-v8.md](./recovery-maintenance-review-v8.md): v8
   observability and recovery review for tasks, jobs, memory, repository index,
   branch search, and projection rebuilds
