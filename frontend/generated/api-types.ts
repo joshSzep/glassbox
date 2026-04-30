@@ -1180,22 +1180,39 @@ export interface components {
     AutonomyBudget: {
       /** Allowed Risk Buckets */
       allowed_risk_buckets: ("read_only" | "workspace_write" | "command")[];
+      /**
+       * Checkpoint Approval Required
+       * @default false
+       */
+      checkpoint_approval_required: boolean;
+      /** Checkpoint Interval Seconds */
+      checkpoint_interval_seconds?: number | null;
       /** Max Artifact Bytes */
       max_artifact_bytes: number;
       /** Max Branch Attempts */
       max_branch_attempts: number;
       /** Max Command Operations */
       max_command_operations: number;
+      /** Max Retry Delay Seconds */
+      max_retry_delay_seconds?: number | null;
       /** Max Steps */
       max_steps: number;
       /** Max Tool Calls */
       max_tool_calls: number;
+      /** Max Unattended Seconds */
+      max_unattended_seconds?: number | null;
       /** Max Verification Attempts */
       max_verification_attempts: number;
       /** Max Wall Clock Seconds */
       max_wall_clock_seconds: number;
       /** Max Write Operations */
       max_write_operations: number;
+      /**
+       * Quiet Window Policy
+       * @default allow
+       * @enum {string}
+       */
+      quiet_window_policy: "allow" | "checkpoint_before_quiet_window" | "pause_during_quiet_window";
     };
     /**
      * AutonomyBudgetPostureRecord
@@ -1203,6 +1220,11 @@ export interface components {
      */
     AutonomyBudgetPostureRecord: {
       budget?: components["schemas"]["AutonomyBudget"] | null;
+      /**
+       * Checkpoint Approval Required
+       * @default false
+       */
+      checkpoint_approval_required: boolean;
       /** Last Decision */
       last_decision: string;
       /** Last Detail */
@@ -1213,9 +1235,21 @@ export interface components {
       /** Last Sequence */
       last_sequence: number;
       mode?: components["schemas"]["AutonomyMode"] | null;
+      /** Next Checkpoint Due In Seconds */
+      next_checkpoint_due_in_seconds?: number | null;
+      /**
+       * Quiet Window Policy
+       * @default allow
+       * @enum {string}
+       */
+      quiet_window_policy: "allow" | "checkpoint_before_quiet_window" | "pause_during_quiet_window";
       remaining?: components["schemas"]["AutonomyBudgetRemaining"] | null;
+      /** Retry Delay Remaining Seconds */
+      retry_delay_remaining_seconds?: number | null;
       session_id: components["schemas"]["SessionId"];
       task_id?: components["schemas"]["TaskId"] | null;
+      /** Unattended Remaining Seconds */
+      unattended_remaining_seconds?: number | null;
       /**
        * Updated At
        * Format: date-time
@@ -1234,10 +1268,16 @@ export interface components {
       branch_attempts: number;
       /** Command Operations */
       command_operations: number;
+      /** Retry Delay Seconds */
+      retry_delay_seconds?: number | null;
+      /** Seconds Since Checkpoint */
+      seconds_since_checkpoint?: number | null;
       /** Steps */
       steps: number;
       /** Tool Calls */
       tool_calls: number;
+      /** Unattended Seconds */
+      unattended_seconds?: number | null;
       /** Verification Attempts */
       verification_attempts: number;
       /** Wall Clock Seconds */
@@ -1266,6 +1306,16 @@ export interface components {
        */
       command_operations: number;
       /**
+       * Retry Delay Seconds
+       * @default 0
+       */
+      retry_delay_seconds: number;
+      /**
+       * Seconds Since Checkpoint
+       * @default 0
+       */
+      seconds_since_checkpoint: number;
+      /**
        * Steps
        * @default 0
        */
@@ -1275,6 +1325,11 @@ export interface components {
        * @default 0
        */
       tool_calls: number;
+      /**
+       * Unattended Seconds
+       * @default 0
+       */
+      unattended_seconds: number;
       /**
        * Verification Attempts
        * @default 0

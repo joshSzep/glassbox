@@ -761,6 +761,11 @@ def test_budget_projection_records_latest_session_posture(tmp_path: Path) -> Non
         max_write_operations=0,
         max_command_operations=0,
         max_wall_clock_seconds=60,
+        max_unattended_seconds=45,
+        checkpoint_interval_seconds=30,
+        quiet_window_policy="checkpoint_before_quiet_window",
+        max_retry_delay_seconds=10,
+        checkpoint_approval_required=True,
         max_verification_attempts=2,
         max_branch_attempts=1,
         max_artifact_bytes=1024,
@@ -773,6 +778,9 @@ def test_budget_projection_records_latest_session_posture(tmp_path: Path) -> Non
         write_operations=budget.max_write_operations,
         command_operations=budget.max_command_operations,
         wall_clock_seconds=budget.max_wall_clock_seconds,
+        unattended_seconds=35,
+        seconds_since_checkpoint=20,
+        retry_delay_seconds=5,
         verification_attempts=budget.max_verification_attempts,
         branch_attempts=budget.max_branch_attempts,
         artifact_bytes=budget.max_artifact_bytes,
@@ -816,3 +824,8 @@ def test_budget_projection_records_latest_session_posture(tmp_path: Path) -> Non
     assert posture.usage.steps == 2
     assert posture.remaining is not None
     assert posture.remaining.tool_calls == 3
+    assert posture.unattended_remaining_seconds == 35
+    assert posture.next_checkpoint_due_in_seconds == 20
+    assert posture.retry_delay_remaining_seconds == 5
+    assert posture.quiet_window_policy == "checkpoint_before_quiet_window"
+    assert posture.checkpoint_approval_required is True

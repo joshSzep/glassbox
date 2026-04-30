@@ -1031,7 +1031,7 @@ The intended v10 milestone order is:
 
 ### GBX-1060: Add Time-Window Fields To Autonomy Budgets
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1020`
 - Goal: make long-running autonomy budgets account for unattended duration,
   checkpoint cadence, and wall-clock windows
@@ -1052,6 +1052,17 @@ The intended v10 milestone order is:
 - Done when:
   - long-running autonomy has explicit time limits instead of only tool and
     operation counts
+- Completed:
+  - Added typed budget fields for max unattended duration, checkpoint interval,
+    quiet-window policy, max retry delay, and checkpoint approval requirement,
+    with conservative defaults for older budget JSON.
+  - Extended budget usage, remaining counters, evaluation, and exhausted
+    decisions to enforce configured unattended, checkpoint, and retry-delay
+    windows deterministically.
+  - Surfaced remaining unattended time, next checkpoint due time, retry-delay
+    budget, quiet-window policy, and checkpoint-approval requirement through
+    the budget posture read model, session API responses, and CLI status.
+  - Updated v10/database/cockpit documentation and refreshed API schema/types.
 
 ### GBX-1061: Add Continue-For-N-Minutes Approval Workflow
 

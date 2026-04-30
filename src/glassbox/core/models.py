@@ -65,6 +65,11 @@ MessageRole = Literal["user", "assistant", "system"]
 PolicyDecisionOutcome = Literal["allow", "approve", "deny", "blocked"]
 PolicyRiskLevel = Literal["read_only", "workspace_write", "command"]
 PolicyDecisionSourceKind = Literal["default", "rule", "invariant"]
+QuietWindowPolicy = Literal[
+    "allow",
+    "checkpoint_before_quiet_window",
+    "pause_during_quiet_window",
+]
 
 
 class AutonomyBudget(BaseModel):
@@ -77,6 +82,11 @@ class AutonomyBudget(BaseModel):
     max_write_operations: int = Field(ge=0)
     max_command_operations: int = Field(ge=0)
     max_wall_clock_seconds: int = Field(ge=1)
+    max_unattended_seconds: int | None = Field(default=None, ge=1)
+    checkpoint_interval_seconds: int | None = Field(default=None, ge=1)
+    quiet_window_policy: QuietWindowPolicy = "allow"
+    max_retry_delay_seconds: int | None = Field(default=None, ge=0)
+    checkpoint_approval_required: bool = False
     max_verification_attempts: int = Field(ge=0)
     max_branch_attempts: int = Field(ge=0)
     max_artifact_bytes: int = Field(ge=0)
@@ -112,6 +122,13 @@ class AutonomyBudget(BaseModel):
             raise ValueError(
                 "command risk requires a positive max_command_operations budget"
             )
+        if (
+            self.checkpoint_approval_required
+            and self.checkpoint_interval_seconds is None
+        ):
+            raise ValueError(
+                "checkpoint_approval_required requires checkpoint_interval_seconds"
+            )
         return self
 
 
@@ -145,6 +162,9 @@ class AutonomyBudgetUsage(BaseModel):
     write_operations: int = Field(default=0, ge=0)
     command_operations: int = Field(default=0, ge=0)
     wall_clock_seconds: int = Field(default=0, ge=0)
+    unattended_seconds: int = Field(default=0, ge=0)
+    seconds_since_checkpoint: int = Field(default=0, ge=0)
+    retry_delay_seconds: int = Field(default=0, ge=0)
     verification_attempts: int = Field(default=0, ge=0)
     branch_attempts: int = Field(default=0, ge=0)
     artifact_bytes: int = Field(default=0, ge=0)
@@ -160,6 +180,9 @@ class AutonomyBudgetRemaining(BaseModel):
     write_operations: int = Field(ge=0)
     command_operations: int = Field(ge=0)
     wall_clock_seconds: int = Field(ge=0)
+    unattended_seconds: int | None = Field(default=None, ge=0)
+    seconds_since_checkpoint: int | None = Field(default=None, ge=0)
+    retry_delay_seconds: int | None = Field(default=None, ge=0)
     verification_attempts: int = Field(ge=0)
     branch_attempts: int = Field(ge=0)
     artifact_bytes: int = Field(ge=0)
@@ -180,6 +203,11 @@ class AutonomyBudgetPostureRecord(BaseModel):
     last_reason: AutonomyEscalationReason | None = None
     last_limit_name: str | None = None
     last_detail: str | None = None
+    unattended_remaining_seconds: int | None = Field(default=None, ge=0)
+    next_checkpoint_due_in_seconds: int | None = Field(default=None, ge=0)
+    retry_delay_remaining_seconds: int | None = Field(default=None, ge=0)
+    quiet_window_policy: QuietWindowPolicy = "allow"
+    checkpoint_approval_required: bool = False
     last_sequence: int = Field(ge=0)
     updated_at: datetime
 

@@ -155,6 +155,15 @@ and budget posture, recovery guidance, and source event range. Latest checkpoint
 and checkpoint-history queries are read models only; the canonical event log
 remains the authority and projection rebuild must reproduce the table.
 
+Autonomy budget posture still lives in `autonomy_budget_posture` and remains a
+JSON-backed projection rather than a schema-per-limit table. v10 time-window
+fields for maximum unattended duration, checkpoint interval, quiet-window
+policy, maximum retry delay, and checkpoint approval requirement are stored in
+the canonical budget JSON and remaining-counter JSON emitted by
+`BudgetDecisionRecorded`. Query helpers derive the API/CLI fields for remaining
+unattended time, next checkpoint due time, retry-delay budget, quiet-window
+policy, and checkpoint-approval requirement from those JSON values.
+
 The v10 compaction read model lives in `context_compactions`. Each row is
 derived from a canonical `ContextCompactionCreated` event and keeps the scope,
 source event range, managed artifact id, freshness, source artifact ids,

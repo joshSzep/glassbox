@@ -135,7 +135,9 @@ Long-run cockpit cues must be derived from explicit local data sources:
   verification-loop summaries, replay/eval reports, and future long-run
   verification-ledger projections.
 - Budgets: autonomy budget events and projections, task continuation jobs,
-  future time-window budget fields, and background job state.
+  time-window budget fields for unattended duration, checkpoint cadence,
+  quiet-window policy, retry delay, checkpoint approval requirement, and
+  background job state.
 - Provider posture: provider diagnostics, provider canary evidence, capability
   matrix summaries, and future provider recovery events.
 - Terminal UI: TUI reducer state, session status formatter output, command

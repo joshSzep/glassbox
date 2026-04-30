@@ -383,6 +383,9 @@ def test_get_session_snapshot_exposes_autonomy_budget_posture(
                             write_operations=2,
                             command_operations=1,
                             wall_clock_seconds=15,
+                            unattended_seconds=120,
+                            seconds_since_checkpoint=90,
+                            retry_delay_seconds=20,
                             verification_attempts=1,
                             branch_attempts=0,
                             artifact_bytes=128,
@@ -393,6 +396,9 @@ def test_get_session_snapshot_exposes_autonomy_budget_posture(
                             write_operations=1,
                             command_operations=0,
                             wall_clock_seconds=45,
+                            unattended_seconds=780,
+                            seconds_since_checkpoint=210,
+                            retry_delay_seconds=100,
                             verification_attempts=1,
                             branch_attempts=0,
                             artifact_bytes=1024,
@@ -418,6 +424,11 @@ def test_get_session_snapshot_exposes_autonomy_budget_posture(
             assert body["budget_posture"]["last_reason"] == "budget_exhausted"
             assert body["budget_posture"]["last_limit_name"] == "steps"
             assert body["budget_posture"]["remaining"]["steps"] == 0
+            assert body["budget_posture"]["unattended_remaining_seconds"] == 780
+            assert body["budget_posture"]["next_checkpoint_due_in_seconds"] == 210
+            assert body["budget_posture"]["retry_delay_remaining_seconds"] == 100
+            assert body["budget_posture"]["quiet_window_policy"] == "allow"
+            assert body["budget_posture"]["checkpoint_approval_required"] is False
             assert "on-request" in body["approval_behavior"]
         finally:
             connection.close()

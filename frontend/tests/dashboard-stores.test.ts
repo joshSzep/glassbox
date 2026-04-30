@@ -600,14 +600,19 @@ describe("task store", () => {
     await store.getState().adjustTaskBudget({
       budget: {
         allowed_risk_buckets: ["read_only"],
+        checkpoint_approval_required: false,
+        checkpoint_interval_seconds: 60,
         max_artifact_bytes: 1000,
         max_branch_attempts: 0,
         max_command_operations: 0,
+        max_retry_delay_seconds: 30,
         max_steps: 1,
         max_tool_calls: 1,
+        max_unattended_seconds: 60,
         max_verification_attempts: 1,
         max_wall_clock_seconds: 60,
         max_write_operations: 0,
+        quiet_window_policy: "allow",
       },
       mode: "inspect",
     });

@@ -209,6 +209,26 @@ Future v10 command, API, and dashboard additions should extend this workflow
 only when an existing surface cannot make the long-run state or recovery action
 clear.
 
+## Time-Aware Budget Posture
+
+`GBX-1060` extends autonomy budgets beyond operation counters. Budget payloads
+now carry optional local time-window fields for maximum unattended duration,
+checkpoint interval, quiet-window policy, maximum retry delay, and whether a
+checkpoint requires explicit approval before continuation. Older budget events
+remain valid because unset time-window fields are treated as not configured.
+
+Budget decisions enforce configured time windows through the same
+`BudgetDecisionRecorded` and `BudgetExhausted` evidence used for existing
+limits. The budget posture projection keeps the canonical budget and remaining
+JSON, and the API/CLI derive operator-facing fields such as unattended time
+remaining, next checkpoint due time, retry-delay budget remaining,
+quiet-window policy, and checkpoint-approval requirement.
+
+The built-in long-run presets remain conservative: manual mode has no
+continuation authority, guided and inspect modes use short unattended and
+checkpoint windows, and the larger local automation presets require explicit
+checkpoint approval where unattended work can continue longer.
+
 ## Evidence Expectations
 
 v10 release evidence is split into blocking deterministic evidence and advisory

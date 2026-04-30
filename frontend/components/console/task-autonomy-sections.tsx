@@ -1090,14 +1090,19 @@ function budgetFromMode(mode: AutonomyMode, maxSteps: number): AutonomyBudget {
   const canWrite = mode === "edit-safe" || mode === "test-driven";
   return {
     allowed_risk_buckets: canWrite ? ["read_only", "workspace_write"] : ["read_only"],
+    checkpoint_approval_required: false,
+    checkpoint_interval_seconds: Math.max(60, normalizedSteps * 60),
     max_artifact_bytes: 1_000_000,
     max_branch_attempts: 0,
     max_command_operations: 0,
+    max_retry_delay_seconds: 60,
     max_steps: normalizedSteps,
     max_tool_calls: Math.max(1, normalizedSteps * 3),
+    max_unattended_seconds: Math.max(60, normalizedSteps * 90),
     max_verification_attempts: mode === "test-driven" ? 2 : 1,
     max_wall_clock_seconds: Math.max(60, normalizedSteps * 120),
     max_write_operations: canWrite ? Math.max(1, normalizedSteps) : 0,
+    quiet_window_policy: "allow",
   };
 }
 

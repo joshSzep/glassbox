@@ -280,6 +280,25 @@ def _format_budget_posture_line(budget_posture) -> str:
             f"writes {remaining.write_operations}, "
             f"commands {remaining.command_operations}"
         )
+        time_parts: list[str] = []
+        if budget_posture.unattended_remaining_seconds is not None:
+            time_parts.append(
+                f"unattended {budget_posture.unattended_remaining_seconds}s"
+            )
+        if budget_posture.next_checkpoint_due_in_seconds is not None:
+            time_parts.append(
+                f"checkpoint due in {budget_posture.next_checkpoint_due_in_seconds}s"
+            )
+        if budget_posture.retry_delay_remaining_seconds is not None:
+            time_parts.append(
+                f"retry delay {budget_posture.retry_delay_remaining_seconds}s"
+            )
+        if time_parts:
+            detail += f"; remaining time {', '.join(time_parts)}"
+    if budget_posture.checkpoint_approval_required:
+        detail += "; checkpoint approval required"
+    if budget_posture.quiet_window_policy != "allow":
+        detail += f"; quiet window {budget_posture.quiet_window_policy}"
     return f"Autonomy budget: {mode}; {detail}"
 
 

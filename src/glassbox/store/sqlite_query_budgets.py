@@ -44,21 +44,23 @@ def get_budget_posture(
     ).fetchone()
     if row is None:
         return None
+    budget = (
+        AutonomyBudget.model_validate_json(row["budget_json"])
+        if row["budget_json"] is not None
+        else None
+    )
+    remaining = (
+        AutonomyBudgetRemaining.model_validate_json(row["remaining_json"])
+        if row["remaining_json"] is not None
+        else None
+    )
     return AutonomyBudgetPostureRecord(
         session_id=UUID(row["session_id"]),
         task_id=UUID(row["task_id"]) if row["task_id"] else None,
         mode=AutonomyMode(row["mode"]) if row["mode"] is not None else None,
-        budget=(
-            AutonomyBudget.model_validate_json(row["budget_json"])
-            if row["budget_json"] is not None
-            else None
-        ),
+        budget=budget,
         usage=AutonomyBudgetUsage.model_validate_json(row["usage_json"]),
-        remaining=(
-            AutonomyBudgetRemaining.model_validate_json(row["remaining_json"])
-            if row["remaining_json"] is not None
-            else None
-        ),
+        remaining=remaining,
         last_decision=row["last_decision"],
         last_reason=(
             AutonomyEscalationReason(row["last_reason"])
@@ -67,6 +69,25 @@ def get_budget_posture(
         ),
         last_limit_name=row["last_limit_name"],
         last_detail=row["last_detail"],
+        unattended_remaining_seconds=(
+            remaining.unattended_seconds if remaining is not None else None
+        ),
+        next_checkpoint_due_in_seconds=(
+            remaining.seconds_since_checkpoint
+            if remaining is not None
+            and budget is not None
+            and budget.checkpoint_interval_seconds is not None
+            else None
+        ),
+        retry_delay_remaining_seconds=(
+            remaining.retry_delay_seconds if remaining is not None else None
+        ),
+        quiet_window_policy=(
+            budget.quiet_window_policy if budget is not None else "allow"
+        ),
+        checkpoint_approval_required=(
+            budget.checkpoint_approval_required if budget is not None else False
+        ),
         updated_at=datetime.fromisoformat(row["updated_at"]),
         last_sequence=row["last_sequence"],
     )

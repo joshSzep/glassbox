@@ -344,6 +344,23 @@
             "title": "Allowed Risk Buckets",
             "type": "array"
           },
+          "checkpoint_approval_required": {
+            "default": false,
+            "title": "Checkpoint Approval Required",
+            "type": "boolean"
+          },
+          "checkpoint_interval_seconds": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkpoint Interval Seconds"
+          },
           "max_artifact_bytes": {
             "minimum": 0.0,
             "title": "Max Artifact Bytes",
@@ -359,6 +376,18 @@
             "title": "Max Command Operations",
             "type": "integer"
           },
+          "max_retry_delay_seconds": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Retry Delay Seconds"
+          },
           "max_steps": {
             "minimum": 0.0,
             "title": "Max Steps",
@@ -368,6 +397,18 @@
             "minimum": 0.0,
             "title": "Max Tool Calls",
             "type": "integer"
+          },
+          "max_unattended_seconds": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Unattended Seconds"
           },
           "max_verification_attempts": {
             "minimum": 0.0,
@@ -383,6 +424,12 @@
             "minimum": 0.0,
             "title": "Max Write Operations",
             "type": "integer"
+          },
+          "quiet_window_policy": {
+            "default": "allow",
+            "enum": ["allow", "checkpoint_before_quiet_window", "pause_during_quiet_window"],
+            "title": "Quiet Window Policy",
+            "type": "string"
           }
         },
         "required": [
@@ -412,6 +459,11 @@
                 "type": "null"
               }
             ]
+          },
+          "checkpoint_approval_required": {
+            "default": false,
+            "title": "Checkpoint Approval Required",
+            "type": "boolean"
           },
           "last_decision": {
             "title": "Last Decision",
@@ -464,6 +516,24 @@
               }
             ]
           },
+          "next_checkpoint_due_in_seconds": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Checkpoint Due In Seconds"
+          },
+          "quiet_window_policy": {
+            "default": "allow",
+            "enum": ["allow", "checkpoint_before_quiet_window", "pause_during_quiet_window"],
+            "title": "Quiet Window Policy",
+            "type": "string"
+          },
           "remaining": {
             "anyOf": [
               {
@@ -473,6 +543,18 @@
                 "type": "null"
               }
             ]
+          },
+          "retry_delay_remaining_seconds": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retry Delay Remaining Seconds"
           },
           "session_id": {
             "$ref": "#/components/schemas/SessionId"
@@ -486,6 +568,18 @@
                 "type": "null"
               }
             ]
+          },
+          "unattended_remaining_seconds": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unattended Remaining Seconds"
           },
           "updated_at": {
             "format": "date-time",
@@ -519,6 +613,30 @@
             "title": "Command Operations",
             "type": "integer"
           },
+          "retry_delay_seconds": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retry Delay Seconds"
+          },
+          "seconds_since_checkpoint": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seconds Since Checkpoint"
+          },
           "steps": {
             "minimum": 0.0,
             "title": "Steps",
@@ -528,6 +646,18 @@
             "minimum": 0.0,
             "title": "Tool Calls",
             "type": "integer"
+          },
+          "unattended_seconds": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unattended Seconds"
           },
           "verification_attempts": {
             "minimum": 0.0,
@@ -580,6 +710,18 @@
             "title": "Command Operations",
             "type": "integer"
           },
+          "retry_delay_seconds": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Retry Delay Seconds",
+            "type": "integer"
+          },
+          "seconds_since_checkpoint": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Seconds Since Checkpoint",
+            "type": "integer"
+          },
           "steps": {
             "default": 0,
             "minimum": 0.0,
@@ -590,6 +732,12 @@
             "default": 0,
             "minimum": 0.0,
             "title": "Tool Calls",
+            "type": "integer"
+          },
+          "unattended_seconds": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Unattended Seconds",
             "type": "integer"
           },
           "verification_attempts": {

@@ -154,6 +154,7 @@ from glassbox.core.models import MessagePart
 from glassbox.core.models import PolicyDecision
 from glassbox.core.models import PolicyDecisionTrace
 from glassbox.core.models import ProjectionHealth
+from glassbox.core.models import QuietWindowPolicy
 from glassbox.core.models import RepositoryIndexEntry
 from glassbox.core.models import RepositoryIndexProvenance
 from glassbox.core.models import RepositoryIndexSnapshot
@@ -303,6 +304,7 @@ __all__ = [
     "PolicyDecision",
     "PolicyDecisionTrace",
     "ProjectionHealth",
+    "QuietWindowPolicy",
     "QuestionId",
     "RecoveryDecision",
     "RecoveryDecisionId",

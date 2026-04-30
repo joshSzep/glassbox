@@ -21,6 +21,9 @@ _LIMIT_FIELDS = {
     "write_operations": "max_write_operations",
     "command_operations": "max_command_operations",
     "wall_clock_seconds": "max_wall_clock_seconds",
+    "unattended_seconds": "max_unattended_seconds",
+    "seconds_since_checkpoint": "checkpoint_interval_seconds",
+    "retry_delay_seconds": "max_retry_delay_seconds",
     "verification_attempts": "max_verification_attempts",
     "branch_attempts": "max_branch_attempts",
     "artifact_bytes": "max_artifact_bytes",
@@ -97,6 +100,8 @@ def evaluate_budget(
     for usage_field, limit_field in _LIMIT_FIELDS.items():
         used = getattr(projected, usage_field)
         limit = getattr(budget, limit_field)
+        if limit is None:
+            continue
         if used > limit:
             return BudgetEvaluation(
                 allowed=False,
@@ -127,14 +132,47 @@ def _remaining_budget(
     budget: AutonomyBudget,
     usage: AutonomyBudgetUsage,
 ) -> AutonomyBudgetRemaining:
+    def optional_remaining(limit: int | None, used: int) -> int | None:
+        if limit is None:
+            return None
+        return max(0, limit - used)
+
     return AutonomyBudgetRemaining(
-        **{
-            usage_field: max(
-                0,
-                getattr(budget, limit_field) - getattr(usage, usage_field),
-            )
-            for usage_field, limit_field in _LIMIT_FIELDS.items()
-        }
+        steps=max(0, budget.max_steps - usage.steps),
+        tool_calls=max(0, budget.max_tool_calls - usage.tool_calls),
+        write_operations=max(
+            0,
+            budget.max_write_operations - usage.write_operations,
+        ),
+        command_operations=max(
+            0,
+            budget.max_command_operations - usage.command_operations,
+        ),
+        wall_clock_seconds=max(
+            0,
+            budget.max_wall_clock_seconds - usage.wall_clock_seconds,
+        ),
+        unattended_seconds=optional_remaining(
+            budget.max_unattended_seconds,
+            usage.unattended_seconds,
+        ),
+        seconds_since_checkpoint=optional_remaining(
+            budget.checkpoint_interval_seconds,
+            usage.seconds_since_checkpoint,
+        ),
+        retry_delay_seconds=optional_remaining(
+            budget.max_retry_delay_seconds,
+            usage.retry_delay_seconds,
+        ),
+        verification_attempts=max(
+            0,
+            budget.max_verification_attempts - usage.verification_attempts,
+        ),
+        branch_attempts=max(
+            0,
+            budget.max_branch_attempts - usage.branch_attempts,
+        ),
+        artifact_bytes=max(0, budget.max_artifact_bytes - usage.artifact_bytes),
     )
 
 

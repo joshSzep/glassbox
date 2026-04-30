@@ -377,6 +377,50 @@ def test_status_budget_lines_explain_budget_exhaustion_next_action() -> None:
     )
 
 
+def test_status_budget_line_includes_time_window_posture() -> None:
+    budget = default_budget_for_autonomy_mode(AutonomyMode.RELEASE_CANDIDATE)
+    posture = AutonomyBudgetPostureRecord(
+        session_id=UUID("00000000-0000-0000-0000-000000000111"),
+        task_id=None,
+        mode=AutonomyMode.RELEASE_CANDIDATE,
+        budget=budget,
+        usage=AutonomyBudgetUsage(
+            wall_clock_seconds=120,
+            unattended_seconds=300,
+            seconds_since_checkpoint=200,
+            retry_delay_seconds=10,
+        ),
+        remaining=AutonomyBudgetRemaining(
+            steps=1,
+            tool_calls=2,
+            write_operations=0,
+            command_operations=1,
+            wall_clock_seconds=60,
+            unattended_seconds=600,
+            seconds_since_checkpoint=100,
+            retry_delay_seconds=110,
+            verification_attempts=2,
+            branch_attempts=0,
+            artifact_bytes=512,
+        ),
+        last_decision="allowed",
+        unattended_remaining_seconds=600,
+        next_checkpoint_due_in_seconds=100,
+        retry_delay_remaining_seconds=110,
+        quiet_window_policy="checkpoint_before_quiet_window",
+        checkpoint_approval_required=True,
+        last_sequence=8,
+        updated_at=datetime(2026, 4, 24, 0, 0, 1, tzinfo=UTC),
+    )
+
+    assert _format_budget_posture_line(posture) == (
+        "Autonomy budget: release-candidate; allowed; remaining steps 1, "
+        "tools 2, writes 0, commands 1; remaining time unattended 600s, "
+        "checkpoint due in 100s, retry delay 110s; checkpoint approval "
+        "required; quiet window checkpoint_before_quiet_window"
+    )
+
+
 def test_status_next_action_prefers_non_resumable_turn_recovery() -> None:
     turn_id = UUID("00000000-0000-0000-0000-000000000222")
 
