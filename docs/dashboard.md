@@ -81,6 +81,10 @@ The Timeline tab keeps long-running history compact by showing checkpoint and
 compaction source ranges, recent tool-attempt artifacts, pending intervention
 evidence, and loaded verification/recovery event markers before the per-turn
 narrative.
+The Actions tab includes Recovery guidance when retained state points to stale
+attempts, stale compactions, incomplete turns, failed verification, provider
+degradation, or daemon/stream interruption. Guidance lists inspection commands
+first; mutating recovery still requires explicit controls or confirmation flags.
 
 The v2 operator-console model builds on this shell rather than replacing it. See
 [operator-console.md](./operator-console.md) for the multi-session overview,

@@ -74,6 +74,8 @@ def _print_session_status(status_view: SessionStatusView) -> None:
             snapshot.turn_recovery_posture,
         )
     )
+    for line in _format_recovery_guidance_lines(status_view):
+        print(line)
 
     if status_view.latest_turn_metrics is not None:
         label = (
@@ -320,6 +322,55 @@ def _format_compaction_summary_line(runtime_context) -> str:
             f"{item.source_start_sequence}-{item.source_end_sequence}"
         )
     return "Recent compactions: " + "; ".join(parts)
+
+
+def _format_recovery_guidance_lines(status_view: SessionStatusView) -> list[str]:
+    snapshot = status_view.snapshot
+    lines: list[str] = []
+    for attempt in status_view.recent_tool_attempts:
+        if attempt.status.value not in {"failed", "stale", "cancelled"}:
+            continue
+        lines.append(
+            "Recovery guidance: inspect tool attempt "
+            f"{attempt.tool_attempt_id} with "
+            f"'glassbox session tool-attempt inspect {snapshot.session_id} "
+            f"{attempt.tool_attempt_id}' and output with "
+            f"'glassbox session tool-attempt output {snapshot.session_id} "
+            f"{attempt.tool_attempt_id}' before retry or abandon"
+        )
+        break
+
+    compactions = getattr(snapshot.runtime_context, "context_compactions", None)
+    stale_items = list(getattr(compactions, "stale_items", []) or [])
+    if stale_items:
+        compaction = stale_items[0]
+        lines.append(
+            "Recovery guidance: inspect stale compactions with "
+            f"'glassbox session compactions {snapshot.session_id}' before "
+            "running confirmation-gated refresh or invalidation"
+        )
+        lines.append(
+            "Recovery guidance: refresh command requires confirmation: "
+            f"'glassbox session compaction-refresh {snapshot.session_id} "
+            f"{compaction.compaction_id} --yes'"
+        )
+
+    if (
+        snapshot.turn_recovery_posture is not None
+        and snapshot.turn_recovery_posture.state
+        in {
+            TurnRecoveryState.INCOMPLETE,
+            TurnRecoveryState.RECOVERABLE,
+            TurnRecoveryState.ABANDONED,
+            TurnRecoveryState.NON_RESUMABLE,
+        }
+    ):
+        lines.append(
+            "Recovery guidance: inspect session status before resume; "
+            f"resume with 'glassbox session resume {snapshot.session_id}' only "
+            "after reviewing checkpoint and recovery posture"
+        )
+    return lines
 
 
 def _format_projection_sequence(projection_health) -> str:

@@ -188,6 +188,15 @@ describe("session inspector", () => {
     expect(metricsMarkup).not.toContain("Continue session");
 
     const actionsMarkup = renderInspectorTab(data, "actions");
+    expect(actionsMarkup).toContain("Recovery guidance");
+    expect(actionsMarkup).toContain(
+      "uv run glassbox session tool-attempt inspect session-1 attempt-1 --cwd .",
+    );
+    expect(actionsMarkup).toContain("uv run glassbox session compactions session-1 --cwd .");
+    expect(actionsMarkup).toContain(
+      "uv run glassbox session compaction-refresh session-1 compaction-stale --yes --cwd .",
+    );
+    expect(actionsMarkup).toContain("uv run glassbox provider diagnostics --cwd .");
     expect(actionsMarkup).toContain("run_command attempt");
     expect(actionsMarkup).toContain("idempotent");
     expect(actionsMarkup).toContain("approval required");
@@ -525,8 +534,19 @@ describe("session inspector", () => {
                 unresolved_question_count: 0,
               },
             ],
-            stale_item_count: 0,
-            stale_items: [],
+            stale_item_count: 1,
+            stale_items: [
+              {
+                artifact_id: "artifact-compaction-stale",
+                compaction_id: "compaction-stale",
+                freshness: "stale",
+                reason: "New tool output exists after this compaction.",
+                scope: "transcript",
+                source_end_sequence: 3,
+                source_start_sequence: 1,
+                superseded_by_compaction_id: null,
+              },
+            ],
           },
           runtime_notes: [{ category: "policy", inherited: false, message: "Approval pending" }],
           working_set: {

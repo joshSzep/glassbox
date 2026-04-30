@@ -156,6 +156,8 @@ Cockpit guidance should prefer safe inspection before mutation:
   `glassbox session tool-attempt output SESSION_ID TOOL_ATTEMPT_ID` before
   retry or abandon
 - show `glassbox session compactions SESSION_ID` before refresh or invalidation
+- show selected-session dashboard Recovery guidance before retry, abandon,
+  resume, compaction refresh, provider model switch, or daemon recovery
 - show projection checks before relying on dashboard-only summaries when
   projection health is stale or unavailable
 - show provider diagnostics or retained canary evidence before recommending a
@@ -228,5 +230,6 @@ question, cancellation, and recovery timeline views. They point back to source
 event ranges, event sequences, and artifacts rather than duplicating the full
 event log.
 
-`GBX-1053` adds long-run recovery action guidance. It should keep inspection
-commands ahead of mutating commands and keep command text aligned with CLI help.
+`GBX-1053` added long-run recovery action guidance. It keeps inspection
+commands ahead of mutating commands and keeps command text aligned with CLI
+help.

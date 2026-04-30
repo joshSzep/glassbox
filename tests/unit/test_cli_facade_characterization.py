@@ -177,9 +177,21 @@ def test_print_session_status_preserves_status_output_contract(
                                 "limitations": [],
                             }
                         ],
-                        "stale_items": [],
+                        "stale_items": [
+                            {
+                                "compaction_id": (
+                                    "00000000-0000-0000-0000-000000000779"
+                                ),
+                                "scope": "transcript",
+                                "artifact_id": ("00000000-0000-0000-0000-000000000780"),
+                                "source_start_sequence": 1,
+                                "source_end_sequence": 3,
+                                "freshness": "stale",
+                                "reason": "A newer checkpoint exists.",
+                            }
+                        ],
                         "additional_item_count": 0,
-                        "stale_item_count": 0,
+                        "stale_item_count": 1,
                     },
                 },
                 "projection_health": {
@@ -249,6 +261,31 @@ def test_print_session_status_preserves_status_output_contract(
                     "policy_reason": "allowed: read-only tool within workspace scope",
                 }
             ],
+            "recent_tool_attempts": [
+                {
+                    "tool_attempt_id": "00000000-0000-0000-0000-000000000666",
+                    "session_id": "00000000-0000-0000-0000-000000000111",
+                    "turn_id": "00000000-0000-0000-0000-000000000222",
+                    "tool_name": "run_command",
+                    "status": "failed",
+                    "tool_call_id": "00000000-0000-0000-0000-000000000555",
+                    "task_id": None,
+                    "message": "pytest failed",
+                    "started_at": "2026-04-24T00:00:00Z",
+                    "last_heartbeat_at": "2026-04-24T00:00:01Z",
+                    "heartbeat_expires_at": None,
+                    "completed_at": "2026-04-24T00:00:01Z",
+                    "completed_units": None,
+                    "total_units": None,
+                    "output_artifact_id": None,
+                    "safe_to_retry": True,
+                    "retry_classification": "idempotent",
+                    "retry_requires_approval": True,
+                    "retry_reason": "verification command failed",
+                    "retry_policy_reason": "approval required",
+                    "last_sequence": 9,
+                }
+            ],
             "latest_message_summary": "assistant: Waiting for your answer.",
         }
     )
@@ -259,9 +296,13 @@ def test_print_session_status_preserves_status_output_contract(
     assert "Status: awaiting_user_input" in captured.out
     assert "Long-run status: paused" in captured.out
     assert (
-        "Recent compactions: 1 fresh; 0 stale; latest "
+        "Recent compactions: 1 fresh; 1 stale; latest "
         "00000000-0000-0000-0000-000000000777 events 2-7"
     ) in captured.out
+    assert "Recovery guidance: inspect tool attempt" in captured.out
+    assert "glassbox session tool-attempt inspect" in captured.out
+    assert "Recovery guidance: inspect stale compactions" in captured.out
+    assert "glassbox session compaction-refresh" in captured.out
     assert "Runtime context:" in captured.out
     assert "High-signal paths: README.md, src/" in captured.out
     assert "Pending question: 00000000-0000-0000-0000-000000000333" in captured.out

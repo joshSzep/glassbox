@@ -989,7 +989,7 @@ The intended v10 milestone order is:
 
 ### GBX-1053: Add Long-Run Recovery Action Guidance
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1052`, `GBX-1043`
 - Goal: make common long-run recovery actions discoverable and safe
 - Deliverables:
@@ -1012,6 +1012,18 @@ The intended v10 milestone order is:
 - Done when:
   - long-run failure states tell the operator exactly how to inspect and
     recover them
+- Completed:
+  - Added selected-session Recovery guidance in the dashboard Actions pane for
+    stale/failed tool attempts, stale compactions, incomplete turn recovery,
+    stale verification evidence, provider posture, and daemon or stream
+    interruption.
+  - Kept guidance inspection-first with copyable read-only commands, while
+    retry, abandon, compaction refresh, and resume paths remain explicit
+    operator actions or confirmation-gated CLI commands.
+  - Added terminal status recovery guidance for stale/failed tool attempts,
+    stale compactions, and incomplete-turn resume posture.
+  - Added component and CLI tests for competing recovery states and command
+    text.
 
 ---
 

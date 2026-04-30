@@ -79,6 +79,7 @@ export function OperatorActionPane({
     <Pane icon={ListChecks} title="Operator actions">
       <div className="space-y-4">
         <ActionStatusLine action={action} />
+        <RecoveryGuidance data={data} stream={stream} />
 
         {data.pendingApprovals.length > 0 ? (
           <section className="space-y-3 rounded-md border border-warning bg-card p-3">
@@ -317,6 +318,140 @@ export function OperatorActionPane({
       </div>
     </Pane>
   );
+}
+
+type RecoveryGuidanceCue = {
+  commands: string[];
+  detail: string;
+  label: string;
+  tone: "info" | "warning";
+};
+
+function RecoveryGuidance({ data, stream }: { data: DashboardState; stream: SessionStreamState }) {
+  const cues = buildRecoveryGuidance(data, stream);
+  if (cues.length === 0) {
+    return null;
+  }
+  return (
+    <section className="space-y-3 rounded-md border bg-card p-3">
+      <SectionHeader
+        detail="Inspect retained evidence before running mutating recovery commands."
+        icon={<ListChecks className="h-4 w-4" aria-hidden="true" />}
+        title="Recovery guidance"
+      />
+      {cues.map((cue) => (
+        <article className="grid gap-2 border-t pt-3 first:border-t-0 first:pt-0" key={cue.label}>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="break-words text-sm font-medium">{cue.label}</p>
+            <Badge variant={cue.tone}>{cue.tone === "warning" ? "attention" : "inspect"}</Badge>
+          </div>
+          <p className="text-sm text-muted-foreground">{cue.detail}</p>
+          {cue.commands.map((command) => (
+            <code
+              className="block overflow-x-auto rounded-md border border-border/70 bg-surface-raised px-2 py-1 text-xs text-muted-foreground"
+              key={command}
+            >
+              {command}
+            </code>
+          ))}
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function buildRecoveryGuidance(
+  data: DashboardState,
+  stream: SessionStreamState,
+): RecoveryGuidanceCue[] {
+  const cues: RecoveryGuidanceCue[] = [];
+  const sessionId = data.sessionId ?? "SESSION_ID";
+  const attempts = data.recentToolAttempts.filter((attempt) =>
+    ["failed", "stale", "cancelled"].includes(attempt.status),
+  );
+  for (const attempt of attempts.slice(0, 2)) {
+    cues.push({
+      commands: [
+        `uv run glassbox session tool-attempt inspect ${sessionId} ${attempt.tool_attempt_id} --cwd .`,
+        `uv run glassbox session tool-attempt output ${sessionId} ${attempt.tool_attempt_id} --cwd .`,
+      ],
+      detail: `Review ${attempt.tool_name} ${attempt.status} output before retry or abandon. Retry and abandon controls require explicit confirmation.`,
+      label: "Tool attempt recovery",
+      tone: "warning",
+    });
+  }
+
+  const staleCompactions = data.runtimeContext?.context_compactions?.stale_items ?? [];
+  if (staleCompactions.length > 0) {
+    const compaction = staleCompactions[0];
+    cues.push({
+      commands: [
+        `uv run glassbox session compactions ${sessionId} --cwd .`,
+        `uv run glassbox session compaction-refresh ${sessionId} ${compaction.compaction_id} --yes --cwd .`,
+      ],
+      detail:
+        "Inspect compaction freshness before refresh or invalidation; mutating CLI commands require an explicit confirmation flag.",
+      label: "Compaction recovery",
+      tone: "warning",
+    });
+  }
+
+  if (
+    data.turnRecoveryPosture != null &&
+    ["incomplete", "recoverable", "abandoned", "non_resumable"].includes(
+      data.turnRecoveryPosture.state,
+    )
+  ) {
+    cues.push({
+      commands: [
+        `uv run glassbox session status ${sessionId} --cwd .`,
+        `uv run glassbox session resume ${sessionId} --cwd .`,
+      ],
+      detail: data.turnRecoveryPosture.next_action,
+      label: "Turn recovery",
+      tone: "warning",
+    });
+  }
+
+  const failedVerificationCount = data.turnMetrics.reduce(
+    (total, metric) => total + metric.failed_tool_call_count,
+    0,
+  );
+  if (failedVerificationCount > 0) {
+    cues.push({
+      commands: [
+        `uv run glassbox replay run ${sessionId} --json --cwd .`,
+        "uv run glassbox eval recommend --cwd .",
+      ],
+      detail:
+        "Failed verification evidence is loaded; inspect replay/eval or retained artifacts before marking work repaired.",
+      label: "Verification recovery",
+      tone: "warning",
+    });
+  }
+
+  if (data.providerEvidence.freshness_status !== "fresh") {
+    cues.push({
+      commands: [
+        "uv run glassbox provider diagnostics --cwd .",
+        "uv run glassbox provider canary evidence --cwd .",
+      ],
+      detail: `Provider evidence is ${data.providerEvidence.freshness_status}; inspect advisory posture before switching models.`,
+      label: "Provider recovery",
+      tone: "info",
+    });
+  }
+
+  if (stream.status !== "live") {
+    cues.push({
+      commands: ["uv run glassbox daemon status --cwd ."],
+      detail: `Browser stream is ${stream.status}; inspect daemon ownership before trusting live-state controls.`,
+      label: "Daemon recovery",
+      tone: "warning",
+    });
+  }
+
+  return cues;
 }
 
 function ActionStatusLine({ action }: { action: ActionStatus }) {
