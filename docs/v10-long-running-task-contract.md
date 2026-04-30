@@ -241,6 +241,14 @@ If the job reaches the worker after the approved deadline, Glassbox records
 Overlapping active windows for the same task are rejected before a new job is
 queued.
 
+`GBX-1062` adds local pause windows for "pause before time", "pause after
+checkpoint", and "pause before risky action" boundaries. Pause windows are
+canonical `PauseWindowScheduled` events and can be manually overridden with
+`PauseWindowCancelled`. The daemon-side continuation worker reconstructs active
+windows from events before mutating task work; triggered windows emit
+`PauseWindowTriggered`, pause the task with `scheduled_pause`, and retain the
+stop reason in the completed background job summary.
+
 ## Evidence Expectations
 
 v10 release evidence is split into blocking deterministic evidence and advisory

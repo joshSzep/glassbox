@@ -15,6 +15,8 @@ from glassbox.core import BackgroundJobKind
 from glassbox.core import BackgroundJobState
 from glassbox.core import ContinuationWindowExpired
 from glassbox.core import EventEnvelope
+from glassbox.core import PauseWindowPolicy
+from glassbox.core import PauseWindowTriggered
 from glassbox.core import RuntimeNoteRecorded
 from glassbox.core import SessionStarted
 from glassbox.core import TaskCreated
@@ -31,6 +33,7 @@ from glassbox.runtime.background_jobs import run_background_job_worker_loop
 from glassbox.runtime.background_jobs import run_background_job_worker_once
 from glassbox.runtime.background_jobs import run_background_job_worker_once_async
 from glassbox.runtime.bootstrap import open_runtime_context
+from glassbox.runtime.pause_windows import schedule_pause_window
 from glassbox.runtime.repository_index import load_repository_index
 from glassbox.runtime.repository_index import repository_index_path
 from glassbox.runtime.task_queries import TaskPlanRepository
@@ -421,6 +424,69 @@ def test_async_worker_stops_expired_continuation_window(
         )
         assert expiry.approval_id == approval_id
         assert expiry.job_id == job.job_id
+
+    asyncio.run(run_once())
+
+
+def test_async_worker_honors_scheduled_pause_before_risky_action(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    task_id = new_task_id()
+    step_id = new_task_step_id()
+    _seed_task(
+        db_path,
+        tmp_path,
+        session_id,
+        task_id,
+        step_id,
+        autonomy_mode=AutonomyMode.TEST_DRIVEN,
+    )
+    pause_event = schedule_pause_window(
+        scope="task",
+        task_id=task_id,
+        policy=PauseWindowPolicy.BEFORE_RISKY_ACTION,
+        reason="operator wants review before mutation",
+    )
+    connection = open_database(db_path)
+    try:
+        SQLiteSessionRepository(connection).append_event(
+            EventEnvelope(session_id=session_id, sequence=0, payload=pause_event)
+        )
+    finally:
+        connection.close()
+
+    async def run_once() -> None:
+        with open_runtime_context(tmp_path, db_path=db_path) as runtime_context:
+            repository = runtime_context.repositories.sessions
+            job = repository.enqueue_background_job(
+                session_id,
+                kind=BackgroundJobKind.MUTATING_CONTINUATION,
+                job_type="task-continuation-step",
+                title="Continue task",
+                task_id=task_id,
+            )
+            await run_background_job_worker_once_async(
+                runtime_context,
+                worker_id="test-worker",
+            )
+            updated_job = repository.get_background_job(job.job_id)
+            task = cast(TaskPlanRepository, repository).get_task(task_id)
+            events = repository.read_session_events(session_id)
+
+        assert updated_job is not None
+        assert updated_job.state == BackgroundJobState.COMPLETED
+        assert task is not None
+        assert task.blocked_reason is not None
+        assert task.blocked_reason.value == "scheduled_pause"
+        triggered = next(
+            event.payload
+            for event in events
+            if isinstance(event.payload, PauseWindowTriggered)
+        )
+        assert triggered.pause_window_id == pause_event.pause_window_id
+        assert triggered.job_id == job.job_id
 
     asyncio.run(run_once())
 

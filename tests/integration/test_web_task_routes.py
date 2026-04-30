@@ -9,6 +9,8 @@ import httpx
 from glassbox.core import ContinuationWindowRequested
 from glassbox.core import ContinuationWindowResolved
 from glassbox.core import EventEnvelope
+from glassbox.core import PauseWindowCancelled
+from glassbox.core import PauseWindowScheduled
 from glassbox.core import SessionStarted
 from glassbox.core import TaskCreated
 from glassbox.core import TaskPlanProposed
@@ -384,6 +386,57 @@ def test_task_continuation_window_approval_denial_and_overlap(
                 ApprovalDecision.DENIED,
                 ApprovalDecision.APPROVED,
             ]
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_task_pause_window_schedule_and_manual_override(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app = _make_app(tmp_path, connection)
+            session_id = new_session_id()
+            task_id = new_task_id()
+            repo = SQLiteSessionRepository(connection)
+            _seed_task(
+                repo,
+                tmp_path,
+                session_id,
+                task_id,
+                [new_task_step_id()],
+                new_task_verification_id(),
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                scheduled = await client.post(
+                    f"/tasks/{task_id}/pause-window",
+                    json={
+                        "policy": "before_risky_action",
+                        "reason": "review before mutation",
+                    },
+                )
+                pause_window_id = scheduled.json()["pause_window_id"]
+                cancelled = await client.post(
+                    f"/tasks/{task_id}/pause-window/{pause_window_id}/cancel",
+                    json={"reason": "manual override"},
+                )
+
+            assert scheduled.status_code == 200
+            assert scheduled.json()["policy"] == "before_risky_action"
+            assert cancelled.status_code == 200
+            assert cancelled.json()["status"] == "cancelled"
+            events = repo.read_session_events(session_id)
+            assert any(
+                isinstance(event.payload, PauseWindowScheduled) for event in events
+            )
+            assert any(
+                isinstance(event.payload, PauseWindowCancelled) for event in events
+            )
         finally:
             connection.close()
 

@@ -1102,7 +1102,7 @@ The intended v10 milestone order is:
 
 ### GBX-1062: Add Pause Windows And Scheduled Stop Reasons
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1061`
 - Goal: support predictable pauses for long work without creating a general
   scheduler or hosted automation system
@@ -1124,6 +1124,18 @@ The intended v10 milestone order is:
 - Done when:
   - long-running work can pause at predictable local boundaries with durable
     reasons
+- Completed:
+  - Added canonical `PauseWindowScheduled`, `PauseWindowTriggered`, and
+    `PauseWindowCancelled` events plus a local pause-window helper that rebuilds
+    active task windows from canonical events.
+  - Added CLI and API/dashboard actions to schedule pause-before-time,
+    pause-after-checkpoint, and pause-before-risky-action windows, plus manual
+    cancellation/override.
+  - Made background task continuation stop at active pause windows before
+    mutating work, recording `PauseWindowTriggered`, pausing the task with
+    `scheduled_pause`, and retaining the stop reason in job state.
+  - Added runtime, background job, CLI, API, frontend API-client, generated
+    schema/type, and docs coverage for scheduled pause and override behavior.
 
 ---
 

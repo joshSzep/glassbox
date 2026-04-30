@@ -18,6 +18,7 @@ export type TaskEventPageResponse = components["schemas"]["TaskEventPageResponse
 export type BackgroundJobDetailResponse = components["schemas"]["BackgroundJobDetailResponse"];
 export type TaskContinuationWindowActionResponse =
   components["schemas"]["TaskContinuationWindowActionResponse"];
+export type TaskPauseWindowResponse = components["schemas"]["TaskPauseWindowResponse"];
 export type ActionAcceptedResponse = components["schemas"]["ActionAcceptedResponse"];
 export type BranchCandidateActionResponse = components["schemas"]["BranchCandidateActionResponse"];
 export type BranchSearchDetailResponse = components["schemas"]["BranchSearchDetailResponse"];
@@ -329,6 +330,53 @@ export function createGlassboxApiClient(options: GlassboxApiClientOptions = {}) 
             requested_by: input.requestedBy ?? "operator",
             requested_minutes: input.requestedMinutes,
             verify_repair: input.verifyRepair ?? true,
+          },
+        },
+      ),
+
+    scheduleTaskPauseWindow: (
+      input: {
+        checkpointId?: string | null;
+        pauseBefore?: string | null;
+        policy: components["schemas"]["PauseWindowPolicy"];
+        reason?: string | null;
+        taskId: string;
+      },
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<TaskPauseWindowResponse>(
+        "POST",
+        `/tasks/${encodeURIComponent(input.taskId)}/pause-window`,
+        {
+          ...requestOptions,
+          body: {
+            actor: "operator",
+            checkpoint_id: input.checkpointId ?? null,
+            pause_before: input.pauseBefore ?? null,
+            policy: input.policy,
+            reason: input.reason ?? null,
+          },
+        },
+      ),
+
+    cancelTaskPauseWindow: (
+      input: {
+        pauseWindowId: string;
+        reason?: string | null;
+        taskId: string;
+      },
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<TaskPauseWindowResponse>(
+        "POST",
+        `/tasks/${encodeURIComponent(input.taskId)}/pause-window/${encodeURIComponent(
+          input.pauseWindowId,
+        )}/cancel`,
+        {
+          ...requestOptions,
+          body: {
+            actor: "operator",
+            reason: input.reason ?? "operator override",
           },
         },
       ),

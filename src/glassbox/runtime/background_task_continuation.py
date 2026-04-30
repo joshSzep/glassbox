@@ -24,6 +24,9 @@ from glassbox.runtime.background_job_records import record_background_job_progre
 from glassbox.runtime.context import RuntimeContext
 from glassbox.runtime.continuation_windows import continuation_window_expired_event
 from glassbox.runtime.continuation_windows import continuation_window_from_job
+from glassbox.runtime.pause_windows import active_pause_windows
+from glassbox.runtime.pause_windows import pause_window_triggered_event
+from glassbox.runtime.pause_windows import triggered_pause_window
 from glassbox.runtime.task_queries import TaskPlanRepository
 
 
@@ -47,6 +50,46 @@ async def run_task_continuation_background_job(
         raise ValueError(f"unknown task_id for continuation job: {task_id}")
     if task.session_id != job.session_id:
         raise ValueError("task continuation job session_id does not match task")
+
+    session_events = repository.read_session_events(task.session_id)
+    checkpoint_ids = {
+        event.checkpoint_id
+        for event in session_events
+        if event.checkpoint_id is not None
+    }
+    active_windows = active_pause_windows(session_events, task_id=task.task_id)
+    scheduled_pause = triggered_pause_window(
+        active_windows,
+        before_risky_action=True,
+    )
+    if scheduled_pause is None:
+        for checkpoint_id in checkpoint_ids:
+            scheduled_pause = triggered_pause_window(
+                active_windows,
+                completed_checkpoint_id=checkpoint_id,
+            )
+            if scheduled_pause is not None:
+                break
+    if scheduled_pause is not None:
+        pause_event = pause_window_triggered_event(
+            scheduled_pause,
+            job_id=job.job_id,
+        )
+        repository.append_event(
+            EventEnvelope(
+                session_id=task.session_id,
+                sequence=0,
+                payload=pause_event,
+            )
+        )
+        _pause_task(
+            runtime_context,
+            task,
+            TaskBlockedReason.SCHEDULED_PAUSE,
+            detail=pause_event.stop_reason,
+        )
+        repository.complete_background_job(job.job_id, summary=pause_event.stop_reason)
+        return
 
     window = continuation_window_from_job(job)
     if window is not None and window.approved_until <= datetime.now(UTC):

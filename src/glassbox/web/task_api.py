@@ -11,6 +11,7 @@ from glassbox.core.models import BackgroundJobRecord
 from glassbox.core.models import ProjectionHealth
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import AutonomyMode
+from glassbox.core.types import PauseWindowPolicy
 from glassbox.core.types import TaskBlockedReason
 from glassbox.runtime.task_queries import TaskDetailView
 from glassbox.runtime.task_queries import TaskEventView
@@ -99,6 +100,25 @@ class TaskActionRequest(BaseModel):
 class TaskPauseRequest(TaskActionRequest):
     detail: str | None = None
     reason: TaskBlockedReason = TaskBlockedReason.MANUAL_PAUSE
+
+
+class TaskPauseWindowRequest(TaskActionRequest):
+    policy: PauseWindowPolicy
+    pause_before: datetime | None = None
+    checkpoint_id: str | None = None
+
+
+class TaskPauseWindowCancelRequest(TaskActionRequest):
+    reason: str = "operator override"
+
+
+class TaskPauseWindowResponse(BaseModel):
+    pause_window_id: str
+    policy: str | None = None
+    reason: str
+    pause_before: datetime | None = None
+    checkpoint_id: str | None = None
+    status: str = "scheduled"
 
 
 class TaskContinueRequest(TaskActionRequest):

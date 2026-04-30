@@ -2625,6 +2625,12 @@
         "title": "PageInfoResponse",
         "type": "object"
       },
+      "PauseWindowPolicy": {
+        "description": "Local pause-window boundaries for long-running task work.",
+        "enum": ["before_time", "after_checkpoint", "before_risky_action"],
+        "title": "PauseWindowPolicy",
+        "type": "string"
+      },
       "PendingApprovalResponse": {
         "properties": {
           "approval_id": {
@@ -4728,6 +4734,7 @@
           "cancelled",
           "manual_pause",
           "continuation_window_expired",
+          "scheduled_pause",
           "unknown"
         ],
         "title": "TaskBlockedReason",
@@ -5258,6 +5265,125 @@
           }
         },
         "title": "TaskPauseRequest",
+        "type": "object"
+      },
+      "TaskPauseWindowCancelRequest": {
+        "properties": {
+          "actor": {
+            "default": "operator",
+            "title": "Actor",
+            "type": "string"
+          },
+          "reason": {
+            "default": "operator override",
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "title": "TaskPauseWindowCancelRequest",
+        "type": "object"
+      },
+      "TaskPauseWindowRequest": {
+        "properties": {
+          "actor": {
+            "default": "operator",
+            "title": "Actor",
+            "type": "string"
+          },
+          "checkpoint_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkpoint Id"
+          },
+          "pause_before": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pause Before"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/PauseWindowPolicy"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": ["policy"],
+        "title": "TaskPauseWindowRequest",
+        "type": "object"
+      },
+      "TaskPauseWindowResponse": {
+        "properties": {
+          "checkpoint_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkpoint Id"
+          },
+          "pause_before": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pause Before"
+          },
+          "pause_window_id": {
+            "title": "Pause Window Id",
+            "type": "string"
+          },
+          "policy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "status": {
+            "default": "scheduled",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": ["pause_window_id", "reason"],
+        "title": "TaskPauseWindowResponse",
         "type": "object"
       },
       "TaskStepPageResponse": {
@@ -10397,6 +10523,158 @@
           }
         },
         "summary": "Pause Task"
+      }
+    },
+    "/tasks/{task_id}/pause-window": {
+      "post": {
+        "description": "Schedule a local pause boundary for one task.",
+        "operationId": "schedule_task_pause_window_tasks__task_id__pause_window_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskPauseWindowRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskPauseWindowResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Schedule Task Pause Window"
+      }
+    },
+    "/tasks/{task_id}/pause-window/{pause_window_id}/cancel": {
+      "post": {
+        "description": "Cancel a local pause window for one task.",
+        "operationId": "cancel_task_pause_window_tasks__task_id__pause_window__pause_window_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "pause_window_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pause Window Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskPauseWindowCancelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskPauseWindowResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Task Pause Window"
       }
     },
     "/tasks/{task_id}/resume": {

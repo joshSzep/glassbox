@@ -23,6 +23,7 @@ type TaskCheckpointId = UUID
 type ContextCompactionId = UUID
 type ToolAttemptId = UUID
 type RecoveryDecisionId = UUID
+type PauseWindowId = UUID
 
 
 def new_session_id() -> SessionId:
@@ -122,4 +123,9 @@ def new_tool_attempt_id() -> ToolAttemptId:
 
 def new_recovery_decision_id() -> RecoveryDecisionId:
     """Create a new recovery decision identifier."""
+    return uuid4()
+
+
+def new_pause_window_id() -> PauseWindowId:
+    """Create a new pause-window identifier."""
     return uuid4()

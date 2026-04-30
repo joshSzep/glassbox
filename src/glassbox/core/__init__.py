@@ -49,6 +49,9 @@ from glassbox.core.events import LongRunPhaseChanged
 from glassbox.core.events import ModelCallCompleted
 from glassbox.core.events import ModelCallStarted
 from glassbox.core.events import ModelToolCallRequested
+from glassbox.core.events import PauseWindowCancelled
+from glassbox.core.events import PauseWindowScheduled
+from glassbox.core.events import PauseWindowTriggered
 from glassbox.core.events import RecoveryDecisionRecorded
 from glassbox.core.events import ReplayArtifactRecorded
 from glassbox.core.events import ResumeOutcomeRecorded
@@ -110,6 +113,7 @@ from glassbox.core.ids import BudgetOverrideId
 from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import EventId
 from glassbox.core.ids import MessageId
+from glassbox.core.ids import PauseWindowId
 from glassbox.core.ids import QuestionId
 from glassbox.core.ids import RecoveryDecisionId
 from glassbox.core.ids import SessionId
@@ -130,6 +134,7 @@ from glassbox.core.ids import new_budget_override_id
 from glassbox.core.ids import new_context_compaction_id
 from glassbox.core.ids import new_event_id
 from glassbox.core.ids import new_message_id
+from glassbox.core.ids import new_pause_window_id
 from glassbox.core.ids import new_question_id
 from glassbox.core.ids import new_recovery_decision_id
 from glassbox.core.ids import new_session_id
@@ -197,6 +202,7 @@ from glassbox.core.types import ContextCompactionFreshness
 from glassbox.core.types import ContextCompactionScope
 from glassbox.core.types import LongRunPhase
 from glassbox.core.types import LongRunPhaseState
+from glassbox.core.types import PauseWindowPolicy
 from glassbox.core.types import RecoveryDecision
 from glassbox.core.types import RepositoryIndexEntityKind
 from glassbox.core.types import RepositoryIndexFreshness
@@ -307,6 +313,11 @@ __all__ = [
     "ModelCallCompleted",
     "ModelCallStarted",
     "ModelToolCallRequested",
+    "PauseWindowCancelled",
+    "PauseWindowId",
+    "PauseWindowPolicy",
+    "PauseWindowScheduled",
+    "PauseWindowTriggered",
     "PolicyDecision",
     "PolicyDecisionTrace",
     "ProjectionHealth",
@@ -427,6 +438,7 @@ __all__ = [
     "new_context_compaction_id",
     "new_event_id",
     "new_message_id",
+    "new_pause_window_id",
     "new_question_id",
     "new_recovery_decision_id",
     "new_session_id",

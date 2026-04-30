@@ -117,6 +117,30 @@ deadline, it records `ContinuationWindowExpired`, pauses the task with
 `continuation_window_expired`, and completes the job with that stop reason.
 Glassbox rejects overlapping active continuation windows for the same task.
 
+## Local Pause Windows
+
+v10 also supports local pause windows for predictable stop boundaries without a
+hosted scheduler:
+
+```bash
+uv run glassbox task pause-window TASK_ID --cwd . --before-risky-action
+uv run glassbox task pause-window TASK_ID --cwd . --before-time 2026-04-30T17:00:00-07:00
+uv run glassbox task pause-window TASK_ID --cwd . --after-checkpoint CHECKPOINT_ID
+```
+
+Pause windows create `PauseWindowScheduled` events. Operators can cancel one
+with:
+
+```bash
+uv run glassbox task pause-window-cancel TASK_ID PAUSE_WINDOW_ID --cwd .
+```
+
+The background continuation worker rebuilds active pause windows from canonical
+events before mutating task work. When a window triggers, Glassbox records
+`PauseWindowTriggered`, pauses the task with `scheduled_pause`, and completes
+the job with the same stop reason. Cancelled and already-triggered windows stay
+in history but no longer stop future work.
+
 ## Handoff And Replay
 
 Session exports include redacted task summaries, step summaries, verification summaries, and canonical task-event references. The references retain enough validated payload data to import task-plan history into a new local session while preserving the import session as completed, inspection-only handoff state.

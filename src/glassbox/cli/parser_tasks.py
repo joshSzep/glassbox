@@ -120,5 +120,73 @@ def _add_task_parsers(
     )
     _add_runtime_location_arguments(continue_parser)
 
+    pause_window_parser = task_subparsers.add_parser(
+        "pause-window",
+        help="schedule a local task pause window",
+        description="Schedule a local pause boundary for one durable task.",
+    )
+    pause_window_parser.add_argument("task_id", type=_parse_uuid)
+    pause_window_group = pause_window_parser.add_mutually_exclusive_group(
+        required=True,
+    )
+    pause_window_group.add_argument(
+        "--before-time",
+        dest="pause_before",
+        default=None,
+        help="pause before continuing after this ISO timestamp",
+    )
+    pause_window_group.add_argument(
+        "--after-checkpoint",
+        dest="checkpoint_id",
+        type=_parse_uuid,
+        default=None,
+        help="pause after this checkpoint boundary",
+    )
+    pause_window_group.add_argument(
+        "--before-risky-action",
+        action="store_true",
+        help="pause before the next mutating continuation action",
+    )
+    pause_window_parser.add_argument(
+        "--reason",
+        default="operator scheduled pause",
+        help="operator-visible reason for the pause window",
+    )
+    pause_window_parser.add_argument(
+        "--scheduled-by",
+        default="operator",
+        help="actor scheduling the pause window",
+    )
+    pause_window_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the scheduled pause-window event as JSON",
+    )
+    _add_runtime_location_arguments(pause_window_parser)
+
+    pause_window_cancel_parser = task_subparsers.add_parser(
+        "pause-window-cancel",
+        help="cancel a local task pause window",
+        description="Cancel a scheduled local pause window for one durable task.",
+    )
+    pause_window_cancel_parser.add_argument("task_id", type=_parse_uuid)
+    pause_window_cancel_parser.add_argument("pause_window_id", type=_parse_uuid)
+    pause_window_cancel_parser.add_argument(
+        "--reason",
+        default="operator override",
+        help="operator-visible reason for cancelling the pause window",
+    )
+    pause_window_cancel_parser.add_argument(
+        "--cancelled-by",
+        default="operator",
+        help="actor cancelling the pause window",
+    )
+    pause_window_cancel_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print the cancellation event as JSON",
+    )
+    _add_runtime_location_arguments(pause_window_cancel_parser)
+
 
 __all__ = ["_add_task_parsers"]

@@ -214,6 +214,8 @@ describe("createGlassboxApiClient", () => {
       jsonResponse({ status: "ok" }),
       jsonResponse({ job: { job_id: "job/1" } }),
       jsonResponse({ status: "approved", continuation_window: {}, job: { job_id: "job/2" } }),
+      jsonResponse({ pause_window_id: "pause/1", status: "scheduled" }),
+      jsonResponse({ pause_window_id: "pause/1", status: "cancelled" }),
       jsonResponse({ status: "ok" }),
       jsonResponse({ status: "ok" }),
       jsonResponse({ status: "ok" }),
@@ -245,6 +247,16 @@ describe("createGlassboxApiClient", () => {
       requestedMinutes: 15,
       taskId: "task/1",
     });
+    await client.scheduleTaskPauseWindow({
+      policy: "before_risky_action",
+      reason: "pause",
+      taskId: "task/1",
+    });
+    await client.cancelTaskPauseWindow({
+      pauseWindowId: "pause/1",
+      reason: "override",
+      taskId: "task/1",
+    });
     await client.pauseTask({ detail: "hold", taskId: "task/1" });
     await client.resumeTask({ reason: "ready", taskId: "task/1" });
     await client.cancelTask({ reason: "stop", taskId: "task/1" });
@@ -255,6 +267,8 @@ describe("createGlassboxApiClient", () => {
       "/tasks/task%2F1/approve-plan",
       "/tasks/task%2F1/continue",
       "/tasks/task%2F1/continuation-window",
+      "/tasks/task%2F1/pause-window",
+      "/tasks/task%2F1/pause-window/pause%2F1/cancel",
       "/tasks/task%2F1/pause",
       "/tasks/task%2F1/resume",
       "/tasks/task%2F1/cancel",
@@ -281,7 +295,22 @@ describe("createGlassboxApiClient", () => {
         verify_repair: true,
       }),
     );
-    expect(calls[6].init?.body).toBe(
+    expect(calls[3].init?.body).toBe(
+      JSON.stringify({
+        actor: "operator",
+        checkpoint_id: null,
+        pause_before: null,
+        policy: "before_risky_action",
+        reason: "pause",
+      }),
+    );
+    expect(calls[4].init?.body).toBe(
+      JSON.stringify({
+        actor: "operator",
+        reason: "override",
+      }),
+    );
+    expect(calls[8].init?.body).toBe(
       JSON.stringify({
         actor: "operator",
         budget,
@@ -290,7 +319,7 @@ describe("createGlassboxApiClient", () => {
         reason: null,
       }),
     );
-    expect(calls[7].init?.body).toBe(JSON.stringify({ actor: "operator", reason: "stop job" }));
+    expect(calls[9].init?.body).toBe(JSON.stringify({ actor: "operator", reason: "stop job" }));
   });
 
   it("shapes memory and repository index requests", async () => {

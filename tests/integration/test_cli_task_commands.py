@@ -159,6 +159,53 @@ def test_task_continue_can_approve_bounded_window(tmp_path: Path, capsys) -> Non
     assert "continuation_window_approved_until" in payload["payload"]
 
 
+def test_task_pause_window_schedule_and_cancel(tmp_path: Path, capsys) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    task_id = new_task_id()
+    step_id = new_task_step_id()
+    _seed_task(db_path, tmp_path, session_id, task_id, step_id)
+
+    schedule_exit = main(
+        [
+            "task",
+            "pause-window",
+            str(task_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--before-risky-action",
+            "--reason",
+            "review before mutation",
+            "--json",
+        ]
+    )
+    scheduled = json.loads(capsys.readouterr().out)
+    cancel_exit = main(
+        [
+            "task",
+            "pause-window-cancel",
+            str(task_id),
+            scheduled["pause_window_id"],
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--reason",
+            "manual override",
+            "--json",
+        ]
+    )
+    cancelled = json.loads(capsys.readouterr().out)
+
+    assert schedule_exit == 0
+    assert scheduled["event_type"] == "PauseWindowScheduled"
+    assert scheduled["policy"] == "before_risky_action"
+    assert cancel_exit == 0
+    assert cancelled["event_type"] == "PauseWindowCancelled"
+
+
 def _seed_task(
     db_path: Path,
     tmp_path: Path,

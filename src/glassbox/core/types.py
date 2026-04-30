@@ -222,7 +222,16 @@ class TaskBlockedReason(StrEnum):
     CANCELLED = "cancelled"
     MANUAL_PAUSE = "manual_pause"
     CONTINUATION_WINDOW_EXPIRED = "continuation_window_expired"
+    SCHEDULED_PAUSE = "scheduled_pause"
     UNKNOWN = "unknown"
+
+
+class PauseWindowPolicy(StrEnum):
+    """Local pause-window boundaries for long-running task work."""
+
+    BEFORE_TIME = "before_time"
+    AFTER_CHECKPOINT = "after_checkpoint"
+    BEFORE_RISKY_ACTION = "before_risky_action"
 
 
 class BackgroundJobKind(StrEnum):

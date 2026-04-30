@@ -21,6 +21,7 @@ from glassbox.core.ids import BudgetOverrideId
 from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import EventId
 from glassbox.core.ids import MessageId
+from glassbox.core.ids import PauseWindowId
 from glassbox.core.ids import QuestionId
 from glassbox.core.ids import RecoveryDecisionId
 from glassbox.core.ids import SessionId
@@ -58,6 +59,7 @@ from glassbox.core.types import ContextCompactionFreshness
 from glassbox.core.types import ContextCompactionScope
 from glassbox.core.types import LongRunPhase
 from glassbox.core.types import LongRunPhaseState
+from glassbox.core.types import PauseWindowPolicy
 from glassbox.core.types import RecoveryDecision
 from glassbox.core.types import ResumeOutcomeStatus
 from glassbox.core.types import TaskBlockedReason
@@ -434,6 +436,38 @@ class ContinuationWindowExpired(EventPayload):
     task_id: TaskId | None = None
     job_id: BackgroundJobId | None = None
     checkpoint_id: TaskCheckpointId | None = None
+
+
+class PauseWindowScheduled(EventPayload):
+    event_type: Literal["PauseWindowScheduled"] = "PauseWindowScheduled"
+    pause_window_id: PauseWindowId
+    scope: Literal["session", "task"]
+    policy: PauseWindowPolicy
+    scheduled_by: str = Field(default="operator", min_length=1, max_length=200)
+    task_id: TaskId | None = None
+    checkpoint_id: TaskCheckpointId | None = None
+    pause_before: datetime | None = None
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class PauseWindowTriggered(EventPayload):
+    event_type: Literal["PauseWindowTriggered"] = "PauseWindowTriggered"
+    pause_window_id: PauseWindowId
+    scope: Literal["session", "task"]
+    policy: PauseWindowPolicy
+    triggered_at: datetime
+    stop_reason: str = Field(min_length=1, max_length=2000)
+    task_id: TaskId | None = None
+    job_id: BackgroundJobId | None = None
+    checkpoint_id: TaskCheckpointId | None = None
+
+
+class PauseWindowCancelled(EventPayload):
+    event_type: Literal["PauseWindowCancelled"] = "PauseWindowCancelled"
+    pause_window_id: PauseWindowId
+    cancelled_by: str = Field(default="operator", min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+    task_id: TaskId | None = None
 
 
 class TaskCreated(EventPayload):
@@ -1059,6 +1093,9 @@ EventPayloadType = Annotated[
     | ContinuationWindowRequested
     | ContinuationWindowResolved
     | ContinuationWindowExpired
+    | PauseWindowScheduled
+    | PauseWindowTriggered
+    | PauseWindowCancelled
     | TaskCreated
     | TaskPlanProposed
     | TaskPlanRevised
@@ -1218,3 +1255,7 @@ class EventEnvelope(BaseModel):
     @property
     def recovery_decision_id(self) -> RecoveryDecisionId | None:
         return getattr(self.payload, "recovery_decision_id", None)
+
+    @property
+    def pause_window_id(self) -> PauseWindowId | None:
+        return getattr(self.payload, "pause_window_id", None)

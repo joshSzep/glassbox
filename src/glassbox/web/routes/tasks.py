@@ -24,6 +24,8 @@ from glassbox.runtime.budgeting import evaluate_budget
 from glassbox.runtime.continuation_windows import active_continuation_window_job
 from glassbox.runtime.continuation_windows import approve_continuation_window
 from glassbox.runtime.continuation_windows import deny_continuation_window
+from glassbox.runtime.pause_windows import cancel_pause_window
+from glassbox.runtime.pause_windows import schedule_pause_window
 from glassbox.runtime.task_queries import TaskPlanRepository
 from glassbox.runtime.task_queries import TaskQueryService
 from glassbox.web.app import RuntimeContextDep
@@ -41,6 +43,9 @@ from glassbox.web.task_api import TaskDetailResponse
 from glassbox.web.task_api import TaskEventPageResponse
 from glassbox.web.task_api import TaskListPageResponse
 from glassbox.web.task_api import TaskPauseRequest
+from glassbox.web.task_api import TaskPauseWindowCancelRequest
+from glassbox.web.task_api import TaskPauseWindowRequest
+from glassbox.web.task_api import TaskPauseWindowResponse
 from glassbox.web.task_api import TaskStepPageResponse
 from glassbox.web.task_api import build_background_job_response
 from glassbox.web.task_api import build_projection_health_response
@@ -496,6 +501,81 @@ async def resolve_task_continuation_window(
             checkpoint_id=request.checkpoint_id,
         ),
         job=build_background_job_response(job),
+    )
+
+
+@router.post(
+    "/{task_id}/pause-window",
+    response_model=TaskPauseWindowResponse,
+    responses={
+        404: {"model": ErrorDetailResponse},
+        409: {"model": ErrorDetailResponse},
+    },
+)
+async def schedule_task_pause_window(
+    task_id: UUID,
+    request: TaskPauseWindowRequest,
+    context: RuntimeContextDep,
+) -> TaskPauseWindowResponse:
+    """Schedule a local pause boundary for one task."""
+
+    task = _ensure_mutable_task(task_id, context)
+    checkpoint_id = _parse_optional_uuid(
+        request.checkpoint_id,
+        field_name="checkpoint_id",
+    )
+    try:
+        event = schedule_pause_window(
+            scope="task",
+            task_id=task.task_id,
+            policy=request.policy,
+            scheduled_by=request.actor,
+            reason=request.reason or f"pause window scheduled by {request.actor}",
+            checkpoint_id=checkpoint_id,
+            pause_before=request.pause_before,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    _append_task_event(context, task.session_id, event)
+    return TaskPauseWindowResponse(
+        pause_window_id=str(event.pause_window_id),
+        policy=event.policy.value,
+        reason=event.reason,
+        pause_before=event.pause_before,
+        checkpoint_id=(
+            str(event.checkpoint_id) if event.checkpoint_id is not None else None
+        ),
+    )
+
+
+@router.post(
+    "/{task_id}/pause-window/{pause_window_id}/cancel",
+    response_model=TaskPauseWindowResponse,
+    responses={
+        404: {"model": ErrorDetailResponse},
+        409: {"model": ErrorDetailResponse},
+    },
+)
+async def cancel_task_pause_window(
+    task_id: UUID,
+    pause_window_id: UUID,
+    request: TaskPauseWindowCancelRequest,
+    context: RuntimeContextDep,
+) -> TaskPauseWindowResponse:
+    """Cancel a local pause window for one task."""
+
+    task = _ensure_mutable_task(task_id, context)
+    event = cancel_pause_window(
+        pause_window_id=pause_window_id,
+        task_id=task.task_id,
+        cancelled_by=request.actor,
+        reason=request.reason,
+    )
+    _append_task_event(context, task.session_id, event)
+    return TaskPauseWindowResponse(
+        pause_window_id=str(event.pause_window_id),
+        reason=event.reason,
+        status="cancelled",
     )
 
 

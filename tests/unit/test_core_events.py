@@ -46,6 +46,10 @@ from glassbox.core import LongRunPhase
 from glassbox.core import LongRunPhaseChanged
 from glassbox.core import LongRunPhaseState
 from glassbox.core import MessagePart
+from glassbox.core import PauseWindowCancelled
+from glassbox.core import PauseWindowPolicy
+from glassbox.core import PauseWindowScheduled
+from glassbox.core import PauseWindowTriggered
 from glassbox.core import RecoveryDecision
 from glassbox.core import RecoveryDecisionRecorded
 from glassbox.core import ResumeOutcomeRecorded
@@ -87,6 +91,7 @@ from glassbox.core import new_artifact_id
 from glassbox.core import new_background_job_id
 from glassbox.core import new_context_compaction_id
 from glassbox.core import new_message_id
+from glassbox.core import new_pause_window_id
 from glassbox.core import new_recovery_decision_id
 from glassbox.core import new_session_id
 from glassbox.core import new_task_checkpoint_id
@@ -239,6 +244,50 @@ def test_continuation_window_payloads_round_trip_through_event_union() -> None:
     assert isinstance(resolved, ContinuationWindowResolved)
     assert isinstance(expired, ContinuationWindowExpired)
     assert resolved.decision == ApprovalDecision.APPROVED
+
+
+def test_pause_window_payloads_round_trip_through_event_union() -> None:
+    adapter = TypeAdapter(EventPayloadType)
+    task_id = new_task_id()
+    pause_window_id = new_pause_window_id()
+    pause_before = datetime(2026, 4, 30, 12, tzinfo=UTC)
+
+    scheduled = adapter.validate_python(
+        {
+            "event_type": "PauseWindowScheduled",
+            "pause_window_id": pause_window_id,
+            "scope": "task",
+            "policy": "before_time",
+            "task_id": task_id,
+            "pause_before": pause_before,
+            "reason": "pause before local stop window",
+        }
+    )
+    triggered = adapter.validate_python(
+        {
+            "event_type": "PauseWindowTriggered",
+            "pause_window_id": pause_window_id,
+            "scope": "task",
+            "policy": "before_time",
+            "task_id": task_id,
+            "triggered_at": pause_before,
+            "stop_reason": "pause window triggered",
+        }
+    )
+    cancelled = adapter.validate_python(
+        {
+            "event_type": "PauseWindowCancelled",
+            "pause_window_id": pause_window_id,
+            "task_id": task_id,
+            "cancelled_by": "operator",
+            "reason": "manual override",
+        }
+    )
+
+    assert isinstance(scheduled, PauseWindowScheduled)
+    assert isinstance(triggered, PauseWindowTriggered)
+    assert isinstance(cancelled, PauseWindowCancelled)
+    assert scheduled.policy == PauseWindowPolicy.BEFORE_TIME
 
 
 def test_event_payload_union_rejects_unknown_event_type() -> None:

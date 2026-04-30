@@ -9,9 +9,12 @@ from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.core.events import EventEnvelope
 from glassbox.core.types import BackgroundJobKind
+from glassbox.core.types import PauseWindowPolicy
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.continuation_windows import active_continuation_window_job
 from glassbox.runtime.continuation_windows import approve_continuation_window
+from glassbox.runtime.pause_windows import cancel_pause_window
+from glassbox.runtime.pause_windows import schedule_pause_window
 from glassbox.runtime.task_queries import TaskDetailView
 from glassbox.runtime.task_queries import TaskEventView
 from glassbox.runtime.task_queries import TaskPlanRepository
@@ -29,6 +32,10 @@ def _task_command(args: argparse.Namespace) -> int:
         return _task_events_command(args)
     if task_command == "continue":
         return _task_continue_command(args)
+    if task_command == "pause-window":
+        return _task_pause_window_command(args)
+    if task_command == "pause-window-cancel":
+        return _task_pause_window_cancel_command(args)
     raise ValueError("specify a task subcommand")
 
 
@@ -156,6 +163,69 @@ def _task_continue_command(args: argparse.Namespace) -> int:
             message += f" for {args.continue_for_minutes} minutes"
         print(message)
     return 0
+
+
+def _task_pause_window_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    policy = _pause_window_policy(args)
+    pause_before = None
+    if args.pause_before is not None:
+        pause_before = datetime.fromisoformat(args.pause_before)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        repository = cast(TaskPlanRepository, runtime_context.repositories.sessions)
+        task = repository.get_task(args.task_id)
+        if task is None:
+            raise ValueError(f"unknown task_id: {args.task_id}")
+        event = schedule_pause_window(
+            scope="task",
+            task_id=task.task_id,
+            policy=policy,
+            scheduled_by=args.scheduled_by,
+            reason=args.reason,
+            checkpoint_id=args.checkpoint_id,
+            pause_before=pause_before,
+        )
+        runtime_context.repositories.sessions.append_event(
+            EventEnvelope(session_id=task.session_id, sequence=0, payload=event)
+        )
+
+    if args.json:
+        print_json_output(event.model_dump(mode="json"))
+    else:
+        print(f"Scheduled pause window {event.pause_window_id} for task {args.task_id}")
+    return 0
+
+
+def _task_pause_window_cancel_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        repository = cast(TaskPlanRepository, runtime_context.repositories.sessions)
+        task = repository.get_task(args.task_id)
+        if task is None:
+            raise ValueError(f"unknown task_id: {args.task_id}")
+        event = cancel_pause_window(
+            pause_window_id=args.pause_window_id,
+            task_id=task.task_id,
+            cancelled_by=args.cancelled_by,
+            reason=args.reason,
+        )
+        runtime_context.repositories.sessions.append_event(
+            EventEnvelope(session_id=task.session_id, sequence=0, payload=event)
+        )
+
+    if args.json:
+        print_json_output(event.model_dump(mode="json"))
+    else:
+        print(f"Cancelled pause window {event.pause_window_id} for task {args.task_id}")
+    return 0
+
+
+def _pause_window_policy(args: argparse.Namespace) -> PauseWindowPolicy:
+    if args.pause_before is not None:
+        return PauseWindowPolicy.BEFORE_TIME
+    if args.checkpoint_id is not None:
+        return PauseWindowPolicy.AFTER_CHECKPOINT
+    return PauseWindowPolicy.BEFORE_RISKY_ACTION
 
 
 def _print_task_summaries(summaries: list[TaskSummaryView]) -> None:

@@ -189,6 +189,12 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
       },
     }),
     cancelTask: async () => ({ status: "ok" }),
+    cancelTaskPauseWindow: async () => ({
+      pause_window_id: "pause-window-1",
+      policy: null,
+      reason: "operator override",
+      status: "cancelled",
+    }),
     markBranchCandidate: async (input) => ({
       candidate: makeBranchCandidate(input.candidateId, { selection_state: input.action }),
       status: input.action,
@@ -226,6 +232,12 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
         title: "Continue task",
       },
       status: "approved",
+    }),
+    scheduleTaskPauseWindow: async () => ({
+      pause_window_id: "pause-window-1",
+      policy: "before_risky_action",
+      reason: "review before mutation",
+      status: "scheduled",
     }),
     pauseTask: async () => ({ status: "ok" }),
     previewWorkspaceMemoryPrune: async (input) => ({

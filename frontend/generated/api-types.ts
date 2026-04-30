@@ -1020,6 +1020,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/tasks/{task_id}/pause-window": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Schedule Task Pause Window
+     * @description Schedule a local pause boundary for one task.
+     */
+    post: operations["schedule_task_pause_window_tasks__task_id__pause_window_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/tasks/{task_id}/pause-window/{pause_window_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Cancel Task Pause Window
+     * @description Cancel a local pause window for one task.
+     */
+    post: operations["cancel_task_pause_window_tasks__task_id__pause_window__pause_window_id__cancel_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/tasks/{task_id}/resume": {
     parameters: {
       query?: never;
@@ -2032,6 +2072,12 @@ export interface components {
       /** Returned Count */
       returned_count: number;
     };
+    /**
+     * PauseWindowPolicy
+     * @description Local pause-window boundaries for long-running task work.
+     * @enum {string}
+     */
+    PauseWindowPolicy: "before_time" | "after_checkpoint" | "before_risky_action";
     /** PendingApprovalResponse */
     PendingApprovalResponse: {
       /** Approval Id */
@@ -2744,6 +2790,7 @@ export interface components {
       | "cancelled"
       | "manual_pause"
       | "continuation_window_expired"
+      | "scheduled_pause"
       | "unknown";
     /** TaskBudgetAdjustmentRequest */
     TaskBudgetAdjustmentRequest: {
@@ -2933,6 +2980,52 @@ export interface components {
       detail?: string | null;
       /** @default manual_pause */
       reason: components["schemas"]["TaskBlockedReason"];
+    };
+    /** TaskPauseWindowCancelRequest */
+    TaskPauseWindowCancelRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /**
+       * Reason
+       * @default operator override
+       */
+      reason: string;
+    };
+    /** TaskPauseWindowRequest */
+    TaskPauseWindowRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /** Checkpoint Id */
+      checkpoint_id?: string | null;
+      /** Pause Before */
+      pause_before?: string | null;
+      policy: components["schemas"]["PauseWindowPolicy"];
+      /** Reason */
+      reason?: string | null;
+    };
+    /** TaskPauseWindowResponse */
+    TaskPauseWindowResponse: {
+      /** Checkpoint Id */
+      checkpoint_id?: string | null;
+      /** Pause Before */
+      pause_before?: string | null;
+      /** Pause Window Id */
+      pause_window_id: string;
+      /** Policy */
+      policy?: string | null;
+      /** Reason */
+      reason: string;
+      /**
+       * Status
+       * @default scheduled
+       */
+      status: string;
     };
     /** TaskStepPageResponse */
     TaskStepPageResponse: {
@@ -5698,6 +5791,113 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ActionAcceptedResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  schedule_task_pause_window_tasks__task_id__pause_window_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskPauseWindowRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaskPauseWindowResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  cancel_task_pause_window_tasks__task_id__pause_window__pause_window_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        task_id: string;
+        pause_window_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskPauseWindowCancelRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaskPauseWindowResponse"];
         };
       };
       /** @description Not Found */
