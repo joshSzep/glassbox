@@ -228,7 +228,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R300: Define V10 Second-Order Refactor Boundary Map
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R251`
 - Goal: update the refactor boundary map for the current post-v8 shape before
   moving code again
@@ -257,6 +257,14 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - the repo has a code-aligned v10 boundary map that later tasks can follow
     without reopening architectural scope repeatedly
+- Completed notes:
+  - [refactor-boundaries.md](./refactor-boundaries.md) now includes v10 target
+    ownership for frontend task autonomy, verification cues, compare analysis,
+    workspace-console routing, session/task route helpers, runtime task query
+    helpers, provider canary/recommendation boundaries, tool-policy helpers,
+    SQLite schema domains, and core event/model expansion strategy.
+  - The map distinguishes model-heavy core files from mixed coordinator modules
+    and keeps v10 work explicitly behavior-preserving.
 
 ### GBX-R301: Extend Architecture Guardrails For V10 Pressure Points
 

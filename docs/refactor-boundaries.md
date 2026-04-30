@@ -1,6 +1,6 @@
 # Glassbox Refactor Boundaries
 
-For the docs hub and operator guides, start at [README.md](./README.md). This note defines the target architectural boundaries for the v1 refactor roadmap in [refactor-v1.md](./refactor-v1.md) and the post-v8 follow-on roadmap in [refactor-v8.md](./refactor-v8.md).
+For the docs hub and operator guides, start at [README.md](./README.md). This note defines the target architectural boundaries for the v1 refactor roadmap in [refactor-v1.md](./refactor-v1.md), the post-v8 follow-on roadmap in [refactor-v8.md](./refactor-v8.md), and the second-order v10 roadmap in [refactor-v10.md](./refactor-v10.md).
 
 ## Purpose
 
@@ -10,7 +10,7 @@ It exists to answer one question before code moves begin:
 
 What are the intended module boundaries for the current Glassbox implementation, and what kinds of changes are explicitly out of scope for the first refactor pass?
 
-This note is intentionally code-aligned. It describes the current implementation shape and the target decomposition boundaries for refactor work already captured in [refactor-v1.md](./refactor-v1.md) and [refactor-v8.md](./refactor-v8.md). It does not define a new product architecture.
+This note is intentionally code-aligned. It describes the current implementation shape and the target decomposition boundaries for refactor work already captured in [refactor-v1.md](./refactor-v1.md), [refactor-v8.md](./refactor-v8.md), and [refactor-v10.md](./refactor-v10.md). It does not define a new product architecture.
 
 ## Implementation Status
 
@@ -24,6 +24,11 @@ The remaining compatibility modules named in this document are stable import
 facades. They preserve public call sites while delegating to owned
 implementation modules; they are not license for new behavior to accumulate in
 the facade.
+
+The v10 boundary refresh is the active next step. It does not reopen the v1 or
+v8 decomposition decisions; it identifies the second-order modules that grew
+after those splits and defines the target owners for the next behavior-preserving
+extractions.
 
 ## Scope
 
@@ -46,6 +51,9 @@ The non-goals are:
 - add new autonomy behaviors, background job kinds, provider checks, repository
   indexing semantics, workspace-memory capture rules, TUI workflows, or
   dashboard workflows while performing post-v8 refactor-only tasks
+- change task-autonomy, verification, compare, provider, tool-policy, HTTP,
+  projection, or core event/model behavior while performing v10 refactor-only
+  movement
 
 ## Behavior-Preservation Contract
 
@@ -109,6 +117,42 @@ The post-v8 pressure points are concentrated in newer autonomy-era surfaces:
   `knowledge-autonomy-console.tsx`, and `branch-search-console.tsx` are mixed
   responsibility components that combine data presentation, local view state,
   filtering, evidence summaries, action controls, and formatting helpers
+
+The v10 pressure points are the second-order modules underneath those improved
+facades:
+
+- `frontend/components/console/task-autonomy-sections.tsx` mixes task queue
+  rendering, plan inspection, action controls, verification posture, evidence
+  summaries, event analysis, and formatting helpers
+- `frontend/components/console/verification-cues.tsx` mixes cue derivation for
+  policies, evals, replay drift, provider evidence, release evidence,
+  artifacts, and path overlap with visual rendering
+- `frontend/components/console/session-inspector/panes/compare-pane.tsx` mixes
+  session comparison derivation with pane rendering
+- `frontend/components/console/workspace-console.tsx` mixes route
+  synchronization, surface selection, load/reset orchestration, action binding,
+  and surface composition
+- `src/glassbox/web/routes/sessions.py` and `src/glassbox/web/routes/tasks.py`
+  mix FastAPI declarations with HTTP-local query composition, action
+  orchestration, pagination, and serialization helpers
+- `src/glassbox/runtime/task_queries.py` mixes transport-agnostic query models,
+  summary/detail shaping, verification ledger interpretation, repair-history
+  wording, and event conversion
+- `src/glassbox/runtime/provider_canary.py` mixes scenario selection, live
+  canary execution, evidence path loading, freshness checks, report writing, and
+  evidence status derivation
+- `src/glassbox/runtime/provider_recommendations.py` mixes recommendation
+  models with capability, risk, credential, failure, budget, and next-action
+  scoring dimensions
+- `src/glassbox/tools/policy.py` mixes path-scope evaluation, rule matching,
+  autonomy budget permits, approval message construction, and command-risk
+  heuristics
+- `src/glassbox/store/sqlite_schema.py` mixes baseline schema/migration running
+  with domain-specific projection table and migration definitions
+- `src/glassbox/core/events.py` and `src/glassbox/core/models.py` are large
+  model-heavy core modules. They are acceptable as broad public import surfaces
+  until a domain expansion would otherwise make event registration, review, or
+  ownership unsafe.
 
 Large files that are primarily model-heavy and should not be split just for
 line count include core event/model/type modules, generated frontend API types,
@@ -208,6 +252,26 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   canary execution may use runtime bootstrap, but stored evidence loading and
   report aggregation should remain separable from observability formatting
 
+#### V10 Runtime Query And Provider Sub-Boundaries
+
+- `task_queries.py` should keep `TaskQueryService` as the repository-backed,
+  read-only orchestration facade. Query view models, task summary/detail
+  assembly, verification ledger interpretation, and repair-history derivation
+  should live in focused transport-agnostic runtime helpers.
+- Task query helpers may depend on core events/models and service repository
+  contracts. They should not import FastAPI, web response models, frontend
+  types, CLI formatting, or concrete store implementations.
+- Provider canary code should separate deterministic scenario definitions,
+  opt-in live execution, stored evidence loading/freshness checks, report
+  persistence, and evidence status derivation. Observability and CLI callers
+  should continue to use stable public canary functions.
+- Provider recommendations should keep output models and wording stable while
+  capability fit, risk posture, credential readiness, failure posture, budget
+  impact, and next-step guidance move into owned scoring helpers that accept
+  diagnostics/canary evidence as inputs.
+- Provider modules should not hide global evidence reads inside scoring helpers
+  or let observability formatting leak into canary execution.
+
 ### Store
 
 The `store` package should own canonical persistence and projection application.
@@ -255,6 +319,20 @@ The `store` package should not own runtime orchestration, CLI formatting, or web
 - repository adapters may import store implementation modules and core/service
   contracts. They should not import runtime orchestration modules, web routes,
   CLI modules, or frontend code
+
+#### V10 SQLite Schema Sub-Boundaries
+
+- `sqlite_schema.py` should keep the public bootstrap and migration runner
+  surface: `SCHEMA_VERSION`, `MIGRATIONS`, `BOOTSTRAP_STATEMENTS`,
+  `open_database`, and `initialize_database`.
+- Domain-specific table statements and migration helpers should move behind an
+  explicit, ordered registry grouped by projection family: tasks, verification
+  ledger, checkpoints, compactions, tool attempts, background jobs, branch
+  search, workspace memory, provider recovery, and long-run state.
+- Schema helpers must remain idempotent and deterministic. They should not
+  import runtime services, route serializers, CLI formatters, or frontend
+  state, and they must not change table names, column names, indexes, or schema
+  version during pure movement.
 
 ### Services
 
@@ -332,6 +410,19 @@ The `web` package should not own the canonical logic for deriving session summar
 - shared runtime query code should provide session snapshot composition
 - transport-specific response models may wrap query-domain models, but should not redefine the business logic that produces them
 - the session route transport split now keeps HTTP request/response models and view serializers in `src/glassbox/web/session_api.py`, leaving `web/routes/sessions.py` focused on parameter validation, service calls, and HTTP error mapping
+- v10 session-route helpers should own HTTP-local query composition for
+  aggregate, snapshot, transcript, event log, tool calls, metrics,
+  checkpoints, compactions, artifacts, and runtime summary reads while route
+  modules remain the FastAPI declaration and dependency boundary
+- v10 session-route action helpers should own message submission, answer
+  submission, cancellation, forks, tool-attempt retry/abandon, and compaction
+  refresh/invalidation orchestration while preserving current status codes and
+  validation behavior
+- v10 task-route helpers should own HTTP-local list/detail/steps/events and
+  background-job adjacency queries plus plan approval, continuation, continuation
+  windows, pause windows, pause/resume/cancel, and budget-adjustment actions
+- web response models and Pydantic serializers belong in web API modules, not
+  in runtime query services
 
 #### Historical Web Frontend Sub-Boundaries
 
@@ -365,6 +456,21 @@ the Next.js SPA contract in [architecture.md](./architecture.md) and
   focused `*-sections.tsx` modules. These section modules own list/detail,
   evidence, action-control, and formatting UI while preserving current routes,
   API calls, and workflow behavior
+- the v10 task-autonomy section split should move queue filtering/navigation and
+  table rendering into task-queue-owned modules, plan inspection/detail layout
+  into task-inspector modules, pause/resume/continue/cancel/approval/background
+  job/budget controls into task-actions modules, verification posture and
+  evidence drilldown into task-evidence modules, and event/format helpers into
+  pure non-React modules
+- verification cue rendering should consume typed pure derivation results for
+  policy, eval coverage, replay drift, provider evidence, release evidence,
+  artifact grouping, and path overlap rather than recomputing cue facts inline
+- session compare panes should consume pure comparison analysis for branch
+  metadata, transcript divergence, tool activity, policy outcomes, runtime
+  projection facts, and string-set comparisons
+- `workspace-console.tsx` should remain the surface composition owner while
+  route synchronization, popstate handling, per-surface load/reset behavior, and
+  repeated action binding move into focused hooks/helpers
 - session-inspector diagnostic panes keep `diagnostics-panes.tsx` as a stable
   export facade while runtime context, metrics, event/projection evidence, and
   shared diagnostic pagination live in focused pane modules under
@@ -396,6 +502,60 @@ Its internal ownership should stay explicit:
 
 The replay and eval stack should not maintain a bespoke copy of live model-loop behavior when a shared execution boundary can serve both paths.
 
+### Tools
+
+The `tools` package should own tool implementations and policy decisions at the
+command/tool boundary.
+
+Its stable responsibilities are:
+
+- tool registration and execution wrappers
+- command/read/patch/workflow tool behavior
+- policy decisions for approval, denial, and autonomy permits
+- traceable policy reasons and approval messages
+
+The `tools` package should not own runtime task orchestration, route
+serialization, or CLI presentation.
+
+#### V10 Tool Policy Sub-Boundaries
+
+- `tools/policy.py` should keep `ToolPolicyEngine`, `ToolPolicyContext`, and
+  public decision ergonomics stable while delegating specialized behavior.
+- Path-scope behavior belongs in path-policy helpers: path normalization,
+  workspace containment, extension matching, and path argument extraction.
+- Manifest rule matching and outcome resolution belong in policy-rule helpers.
+- Autonomy budget/risk permit logic belongs in autonomy-policy helpers.
+- Default and autonomy approval message construction belongs in message helpers.
+- Destructive-command and command-text heuristics belong in command-risk
+  helpers.
+- Policy helpers may depend on policy config/models and standard-library path
+  or shell parsing. They should not import runtime services, web routes, CLI
+  formatters, store implementations, or frontend code.
+
+### Core Events And Models
+
+The `core` package owns shared domain identifiers, event payloads, models, and
+cross-subsystem types.
+
+Large core event and model files are model-heavy public infrastructure. They
+should not be split for cosmetic line-count reasons. A future split is
+appropriate only when a domain expansion would make event registration,
+discriminated-union maintenance, or review ownership error-prone.
+
+#### V10 Core Domain Strategy
+
+- `glassbox.core.events` and `glassbox.core.models` should remain stable public
+  import surfaces even if domain modules are introduced underneath them.
+- Candidate future event/model domains are sessions, turns, tools, tasks,
+  branch search, background jobs, workspace memory, repository index, provider
+  recovery, verification, and compaction.
+- Event payload registration must stay explicit and deterministic. If payloads
+  move into domain modules, the discriminated union and serialization tests
+  should continue to prove that canonical event names and payload shapes are
+  unchanged.
+- Core modules should not import runtime, store, CLI, web, frontend, or provider
+  execution code. They may define shared models consumed by those layers.
+
 ## Dependency Direction Rules
 
 The intended dependency direction for this refactor pass is:
@@ -426,6 +586,17 @@ The practical rules are:
   CLI-local state only
 - frontend stores must not import React components, Next.js server modules, or
   backend source files. Components should not become store-factory modules
+- v10 frontend derivation helpers should be pure and browser-state free; store
+  modules own transport, components own presentation and local interaction
+  state
+- web route helpers may own HTTP-local orchestration and serialization, but
+  runtime task/session query services must remain transport-agnostic
+- runtime provider scoring and canary evidence helpers must not import CLI,
+  web, store implementations, or frontend modules
+- tool-policy helper modules must not import runtime orchestration, web routes,
+  CLI formatters, store implementations, or frontend modules
+- SQLite schema domain helpers must stay below runtime and transport layers and
+  must not perform dynamic discovery that hides migration order
 
 ## Boundary Guardrails
 
@@ -450,6 +621,11 @@ The guardrails are intentionally narrow:
 - the largest frontend console entrypoints are kept reviewable as facades over
   domain section modules, including task autonomy, knowledge autonomy, branch
   search, and session-inspector diagnostics
+- v10 guardrails should be added before broad movement to keep
+  task-autonomy sections, verification cue derivation, compare analysis,
+  workspace-console routing, session/task route helpers, task query helpers,
+  provider canary/recommendation helpers, tool-policy helpers, and SQLite schema
+  helpers from becoming new hidden monoliths
 
 If a guardrail fails, the default repair should be to move new behavior into the owning split module or add one focused neighbor module, not to widen a facade or cross a subsystem boundary.
 
@@ -469,6 +645,12 @@ shape:
 - runtime autonomy facade modules preserving public worker, memory-capture,
   observability, repository-index, and provider evidence entry points while
   implementation details move into owned neighbors
+- `task-autonomy-sections.tsx`, `verification-cues.tsx`, `compare-pane.tsx`,
+  `workspace-console.tsx`, `web/routes/sessions.py`, `web/routes/tasks.py`,
+  `runtime/task_queries.py`, `runtime/provider_canary.py`,
+  `runtime/provider_recommendations.py`, `tools/policy.py`, and
+  `store/sqlite_schema.py` may keep compatibility exports or thin wrappers only
+  when existing imports or route declarations require a stable transition path
 
 These facades are acceptable only while they stay thin, reviewable, and oriented
 around stable public imports. New behavior should move into the owning domain
@@ -493,6 +675,14 @@ The following patterns are not acceptable as stable endpoints:
 - repository-index helpers that depend on runtime session orchestration or
   non-local external data sources for refactor-only work
 - frontend store modules that import React components or backend Python source
+- React components that duplicate API/store transport behavior instead of
+  consuming store state
+- runtime query helpers that import web response models or frontend concepts
+- provider scoring helpers that read hidden global diagnostics/evidence
+- SQLite schema helpers that discover migrations dynamically or change ordered
+  migration semantics during refactor-only movement
+- core event/model splits that destabilize public import surfaces without a
+  domain expansion and serialization coverage
 
 ## Task Mapping
 
@@ -508,6 +698,12 @@ The intended mapping is:
   dashboard surfaces
 - `GBX-R201`: guardrails for post-v8 dependency direction, facade thinness,
   and frontend store/component boundaries
+- `GBX-R300`: v10 second-order boundary map for task autonomy, verification,
+  compare analysis, workspace-console routing, web route helpers, runtime task
+  queries, provider evidence/recommendations, tool policy, SQLite schema
+  domains, and core event/model expansion
+- `GBX-R301`: v10 guardrails for the second-order pressure points before bulk
+  movement begins
 
 Later tasks should follow this boundary map rather than redefining subsystem ownership case by case.
 
