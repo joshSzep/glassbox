@@ -30,6 +30,9 @@ evidence or milestone history.
 - [interactive-workflows.md](./interactive-workflows.md): use
   `glassbox session chat`, `attach`, `message`, `answer`, `approve`, `deny`,
   `resume`, and `status`
+- [daily-workflow-quickstart.md](./daily-workflow-quickstart.md): run the
+  ordinary daily loop for readiness, chat, dashboard inspection, actions,
+  cancellation, forking, verification, memory/index work, and recovery
 - [dashboard.md](./dashboard.md): use the co-hosted dashboard as the paired
   operator console for terminal chat or run the standalone dashboard server
 - [task-plans.md](./task-plans.md): inspect durable task plans, plan steps,

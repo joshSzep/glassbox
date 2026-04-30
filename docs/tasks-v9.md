@@ -431,7 +431,7 @@ The intended v9 milestone order is:
 
 ### GBX-922: Add Daily Workflow Quickstart Guide
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-921`
 - Goal: document the ordinary loop operators should use after install
 - Deliverables:
@@ -453,6 +453,10 @@ The intended v9 milestone order is:
 - Done when:
   - a new operator has a single daily workflow document that is shorter than
     the release-candidate docs
+  - Completed by adding [daily-workflow-quickstart.md](./daily-workflow-quickstart.md)
+    with the ordinary readiness, chat, dashboard, action, cancellation,
+    continuation, fork, verification, memory/index, autonomy-mode, and recovery
+    loops, plus docs hub and root README discovery links.
 
 ---
 
