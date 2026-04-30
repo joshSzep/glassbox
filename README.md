@@ -79,65 +79,31 @@ Persistence is local to the selected workspace by default. Glassbox stores runti
 
 Glassbox team workflows remain local-first. A foreground `session chat` process or workspace daemon owns live mutation for one workspace, while session custody and handoff metadata are operator guidance rather than cloud authority or multi-user access control.
 
-## V6 Release Candidate
+## Current Baseline
 
-The v6 release candidate hardens the local-first operating model around the
-full-screen terminal client, packaged dashboard, real cancellation, daemon
-ownership, deterministic replay/eval evidence, advisory provider canaries,
-installed-package smoke, and retained release evidence.
+The current public baseline is v9. It carries forward the v8 release-candidate
+decision as a concise product contract for sessions, tasks, evidence, memory,
+branches, and verification while keeping provider canaries advisory and
+deterministic replay/eval evidence authoritative.
 
-Start with [docs/v6-release-candidate.md](docs/v6-release-candidate.md) when you
-need the supported v6 operating model, validation path, known residual risks,
-and release-candidate evidence expectations in one place.
-
-## V7 Release Candidate
-
-The v7 release-candidate track expands the v6 operating model with stronger
-eval coverage, advisory provider evidence, larger-session scale checks,
-daemon/live-transport reliability, dashboard evidence cues, accessibility
-pairing reviews, and first-run/package onboarding.
-
-Start with [docs/v7-release-candidate.md](docs/v7-release-candidate.md) when you
-need the supported v7 operating model, release gate, retained manual evidence,
-known residual risks, and current go/no-go decision in one place.
-
-## V8 Release Candidate
-
-The v8 release-candidate track expands the v7 operating model with durable task
-plans, autonomy budgets, background jobs, workspace memory, repository
-intelligence, verify-repair loops, branch-search comparison, provider
-recommendations, and dashboard autonomy controls.
-
-Start with [docs/v8-release-candidate.md](docs/v8-release-candidate.md) when you
-need the supported v8 operating model, release gate, retained manual evidence,
-known residual risks, and current go/no-go decision in one place.
-
-## V2 Release Candidate
-
-The v2 release candidate packages the current local-first operating model as one
-coherent workflow set: persistent runtime ownership, an operator-console
-dashboard, rebuildable projections, workspace backup, richer policy outcomes,
-replay/eval release evidence, local session handoff, observability summaries,
-and larger-session performance budgets.
-
-Start with [docs/v2-release-candidate.md](docs/v2-release-candidate.md) when you
-need the supported v2 operating model, release-readiness checklist, and explicit
-non-goals in one place.
+Start with [docs/v9-public-baseline.md](docs/v9-public-baseline.md) for the
+supported product model, then use
+[docs/operator-quickstart.md](docs/operator-quickstart.md) for the short daily
+path from install to chat, dashboard inspection, approvals, and verification.
 
 ## Documentation
 
-The root README is the shortest path into the project. The detailed operator and reference docs live in [docs/README.md](docs/README.md).
+The root README is the shortest path into the project. The detailed operator,
+reference, release-evidence, and implementation-history docs live in
+[docs/README.md](docs/README.md).
 
 Start here based on what you need:
 
+- [docs/v9-public-baseline.md](docs/v9-public-baseline.md)
+- [docs/operator-quickstart.md](docs/operator-quickstart.md)
 - [docs/getting-started.md](docs/getting-started.md)
-- [docs/v8-release-candidate.md](docs/v8-release-candidate.md)
-- [docs/v7-release-candidate.md](docs/v7-release-candidate.md)
-- [docs/v6-release-candidate.md](docs/v6-release-candidate.md)
-- [docs/v2-release-candidate.md](docs/v2-release-candidate.md)
 - [docs/interactive-workflows.md](docs/interactive-workflows.md)
 - [docs/dashboard.md](docs/dashboard.md)
-- [docs/frontend-development.md](docs/frontend-development.md)
 - [docs/branching.md](docs/branching.md)
 - [docs/replay-evals.md](docs/replay-evals.md)
 - [docs/runtime-context.md](docs/runtime-context.md)
@@ -148,9 +114,17 @@ Start here based on what you need:
 - [docs/architecture.md](docs/architecture.md)
 - [docs/database.md](docs/database.md)
 - [docs/refactor-boundaries.md](docs/refactor-boundaries.md)
-- [docs/refactor-v1.md](docs/refactor-v1.md)
-- [docs/tasks-v1.md](docs/tasks-v1.md)
-- [docs/tasks-v2.md](docs/tasks-v2.md)
+
+Release evidence and milestone history remain available when you need them:
+
+- [docs/v8-release-candidate.md](docs/v8-release-candidate.md)
+- [docs/v7-release-candidate.md](docs/v7-release-candidate.md)
+- [docs/v6-release-candidate.md](docs/v6-release-candidate.md)
+- [docs/v2-release-candidate.md](docs/v2-release-candidate.md)
+- [docs/tasks-v9.md](docs/tasks-v9.md)
+- [docs/tasks-v8.md](docs/tasks-v8.md)
+- [docs/tasks-v7.md](docs/tasks-v7.md)
+- [docs/tasks-v6.md](docs/tasks-v6.md)
 
 ## Local Validation
 

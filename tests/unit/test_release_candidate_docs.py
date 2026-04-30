@@ -1,8 +1,10 @@
 """Release-candidate documentation guardrails."""
 
+import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+\.md)(?:#[^)]+)?\)")
 
 
 def test_v2_release_candidate_doc_covers_supported_operating_model() -> None:
@@ -315,3 +317,68 @@ def test_docs_hub_links_to_v9_public_baseline() -> None:
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
 
     assert "v9-public-baseline.md" in docs_readme
+
+
+def test_docs_hub_separates_operator_docs_from_release_evidence() -> None:
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for heading in (
+        "## Start Here",
+        "## Daily Workflows",
+        "## Reference",
+        "## Release Evidence",
+        "## Implementation History",
+    ):
+        assert heading in docs_readme
+
+    assert docs_readme.index("## Daily Workflows") < docs_readme.index(
+        "## Release Evidence"
+    )
+    assert "operator-quickstart.md" in docs_readme
+    assert "v8-release-candidate.md" in docs_readme
+    assert "tasks-v9.md" in docs_readme
+
+
+def test_operator_quickstart_covers_daily_happy_path() -> None:
+    content = (REPO_ROOT / "docs" / "operator-quickstart.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "## 1. Install",
+        "## 2. Configure An Optional Provider",
+        "## 3. Start Chat",
+        "## 4. Inspect The Dashboard",
+        "## 5. Approve, Deny, Or Answer",
+        "## 6. Verify Work",
+        "uv run glassbox session chat --cwd .",
+        "uv run glassbox provider diagnostics --cwd .",
+        "uv run glassbox session approve SESSION_ID APPROVAL_ID",
+        "uv run glassbox eval recommend PATH",
+    ):
+        assert required_text in content
+
+
+def test_root_readme_prioritizes_v9_product_path_before_release_archive() -> None:
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+
+    assert "docs/v9-public-baseline.md" in root_readme
+    assert "docs/operator-quickstart.md" in root_readme
+    assert root_readme.index("docs/v9-public-baseline.md") < root_readme.index(
+        "docs/v8-release-candidate.md"
+    )
+
+
+def test_public_operator_doc_links_resolve() -> None:
+    doc_paths = (
+        REPO_ROOT / "README.md",
+        REPO_ROOT / "docs" / "README.md",
+        REPO_ROOT / "docs" / "v9-public-baseline.md",
+        REPO_ROOT / "docs" / "operator-quickstart.md",
+    )
+
+    for doc_path in doc_paths:
+        content = doc_path.read_text(encoding="utf-8")
+        for link in MARKDOWN_LINK.findall(content):
+            target = (doc_path.parent / link).resolve()
+            assert target.exists(), f"{doc_path.relative_to(REPO_ROOT)} links to {link}"

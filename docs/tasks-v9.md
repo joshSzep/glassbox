@@ -310,7 +310,7 @@ The intended v9 milestone order is:
 
 ### GBX-911: Split Public Operator Docs From Release Evidence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-910`
 - Goal: make day-to-day docs easy to read while retaining release evidence for
   reviewers
