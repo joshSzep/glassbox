@@ -25,6 +25,22 @@ export function createDevRewrites(origin: string | undefined): DevRewrite[] {
 
   return [
     {
+      source: "/tasks/:path*",
+      destination: "/",
+    },
+    {
+      source: "/memory",
+      destination: "/",
+    },
+    {
+      source: "/repository-index",
+      destination: "/",
+    },
+    {
+      source: "/branch-search",
+      destination: "/",
+    },
+    {
       source: "/queues/:path*",
       destination: "/",
     },

@@ -11,6 +11,22 @@ describe("Next.js development proxy configuration", () => {
   it("proxies FastAPI HTTP and SSE routes from the dev server root", () => {
     expect(createDevRewrites("http://127.0.0.1:9000/")).toEqual([
       {
+        source: "/tasks/:path*",
+        destination: "/",
+      },
+      {
+        source: "/memory",
+        destination: "/",
+      },
+      {
+        source: "/repository-index",
+        destination: "/",
+      },
+      {
+        source: "/branch-search",
+        destination: "/",
+      },
+      {
         source: "/queues/:path*",
         destination: "/",
       },

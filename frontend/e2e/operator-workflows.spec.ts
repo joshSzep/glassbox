@@ -192,6 +192,7 @@ test("operator can use task controls and budget review from the keyboard", async
   await page.getByRole("button", { name: "Continue" }).press("Enter");
   await expect.poll(() => fixture.actions.length).toBe(1);
 
+  await expect(page.getByRole("button", { name: "Pause" })).toBeEnabled();
   await page.getByRole("button", { name: "Pause" }).press("Enter");
   await expect.poll(() => fixture.actions.length).toBe(2);
 
@@ -469,11 +470,10 @@ async function expectNoHorizontalOverflow(page: Page) {
 }
 
 async function openClientRoute(page: Page, route: string) {
-  await page.goto("/app");
-  await expect(page.getByRole("heading", { name: "Operator Console" })).toBeVisible();
-  await page.evaluate((nextRoute) => {
-    window.history.pushState(null, "", nextRoute);
-    window.dispatchEvent(new PopStateEvent("popstate"));
-  }, route);
-  expect(page.url()).toContain(route);
+  await page.goto(route);
+  await expect(page).toHaveURL(new RegExp(`${escapeRegExp(route)}$`));
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
