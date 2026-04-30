@@ -128,6 +128,8 @@ def test_task_routes_return_pages_and_detail(tmp_path: Path) -> None:
                 detail_body["verification_ledger"][0]["last_success_sequence"]
                 is not None
             )
+            assert detail_body["verification_drift"]["posture"] == "unknown"
+            assert detail_body["verification_drift"]["error"] is not None
 
             assert steps_response.status_code == 200
             steps_body = steps_response.json()

@@ -2922,6 +2922,7 @@ export interface components {
       /** Steps */
       steps: components["schemas"]["TaskStepResponse"][];
       task: components["schemas"]["TaskSummaryResponse"];
+      verification_drift: components["schemas"]["TaskVerificationDriftResponse"];
       /** Verification Ledger */
       verification_ledger: components["schemas"]["TaskVerificationLedgerResponse"][];
       verification_summary: components["schemas"]["TaskVerificationLedgerSummaryResponse"];
@@ -3081,6 +3082,35 @@ export interface components {
        * Format: date-time
        */
       updated_at: string;
+    };
+    /** TaskVerificationDriftResponse */
+    TaskVerificationDriftResponse: {
+      /** Changed Path Digest */
+      changed_path_digest?: string | null;
+      /** Changed Paths */
+      changed_paths: string[];
+      /** Diff Summary Command */
+      diff_summary_command?: string | null;
+      /** Docs Only Changed Paths */
+      docs_only_changed_paths: string[];
+      /** Error */
+      error?: string | null;
+      /** Generated Changed Paths */
+      generated_changed_paths: string[];
+      /** Material Changed Paths */
+      material_changed_paths: string[];
+      /** Posture */
+      posture: string;
+      /** Reason */
+      reason: string;
+      /** Stale Changed Paths */
+      stale_changed_paths: string[];
+      /** Stale Verification Ids */
+      stale_verification_ids: string[];
+      /** Task Id */
+      task_id: string;
+      /** Workspace Clean */
+      workspace_clean: boolean;
     };
     /** TaskVerificationLedgerResponse */
     TaskVerificationLedgerResponse: {

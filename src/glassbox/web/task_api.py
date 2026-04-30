@@ -103,6 +103,22 @@ class TaskVerificationLedgerSummaryResponse(BaseModel):
     current_posture: str
 
 
+class TaskVerificationDriftResponse(BaseModel):
+    task_id: str
+    posture: str
+    workspace_clean: bool
+    changed_paths: list[str]
+    material_changed_paths: list[str]
+    docs_only_changed_paths: list[str]
+    generated_changed_paths: list[str]
+    stale_verification_ids: list[str]
+    stale_changed_paths: list[str]
+    changed_path_digest: str | None = None
+    diff_summary_command: str | None = None
+    reason: str
+    error: str | None = None
+
+
 class TaskEventResponse(BaseModel):
     event_id: str
     session_id: str
@@ -127,6 +143,7 @@ class TaskDetailResponse(BaseModel):
     verifications: list[TaskVerificationResponse]
     verification_ledger: list[TaskVerificationLedgerResponse]
     verification_summary: TaskVerificationLedgerSummaryResponse
+    verification_drift: TaskVerificationDriftResponse
     projection_health: ProjectionHealthResponse
 
 
@@ -315,6 +332,9 @@ def build_task_detail_response(
         ],
         verification_summary=build_task_verification_summary_response(
             detail.verification_summary
+        ),
+        verification_drift=TaskVerificationDriftResponse.model_validate(
+            detail.verification_drift.model_dump(mode="json")
         ),
         projection_health=ProjectionHealthResponse.model_validate(
             projection_health.model_dump(mode="json")

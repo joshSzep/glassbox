@@ -46,7 +46,8 @@ def _task_list_command(args: argparse.Namespace) -> int:
 
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
         query_service = TaskQueryService(
-            cast(TaskPlanRepository, runtime_context.repositories.sessions)
+            cast(TaskPlanRepository, runtime_context.repositories.sessions),
+            workspace_root=cwd,
         )
         summaries = query_service.list_task_summaries(
             session_id=args.session_id,
@@ -64,7 +65,8 @@ def _task_show_command(args: argparse.Namespace) -> int:
     cwd, db_path = resolve_runtime_location(args)
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
         query_service = TaskQueryService(
-            cast(TaskPlanRepository, runtime_context.repositories.sessions)
+            cast(TaskPlanRepository, runtime_context.repositories.sessions),
+            workspace_root=cwd,
         )
         detail = query_service.get_task_detail(args.task_id)
 
@@ -83,7 +85,8 @@ def _task_events_command(args: argparse.Namespace) -> int:
     cwd, db_path = resolve_runtime_location(args)
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
         query_service = TaskQueryService(
-            cast(TaskPlanRepository, runtime_context.repositories.sessions)
+            cast(TaskPlanRepository, runtime_context.repositories.sessions),
+            workspace_root=cwd,
         )
         events = query_service.list_task_events(
             args.task_id,
@@ -288,6 +291,13 @@ def _print_task_detail(detail: TaskDetailView) -> None:
             f"{summary.latest_failed_check_name} "
             f"(sequence {summary.latest_failed_sequence})"
         )
+    drift = detail.verification_drift
+    print(f"Verification drift: {drift.posture}")
+    print(f"  {drift.reason}")
+    if drift.changed_paths:
+        print(f"  Changed paths: {', '.join(drift.changed_paths[:5])}")
+    if drift.stale_changed_paths:
+        print(f"  Stale paths: {', '.join(drift.stale_changed_paths[:5])}")
 
 
 def _print_task_events(events: list[TaskEventView]) -> None:

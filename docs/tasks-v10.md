@@ -1179,7 +1179,7 @@ The intended v10 milestone order is:
 
 ### GBX-1071: Detect Stale Verification After Workspace Drift
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1070`
 - Goal: warn when previous verification no longer covers the current workspace
   state
@@ -1202,6 +1202,18 @@ The intended v10 milestone order is:
 - Done when:
   - long-running work does not claim old verification as current after the
     workspace has changed materially
+- Completed:
+  - Added read-time verification drift assessment that compares the
+    `task_verification_ledger` changed-path coverage with the current local git
+    diff and records changed-path digests, material paths, docs-only drift,
+    generated-file drift, stale verification IDs, stale paths, and explicit
+    unknown/not-assessed posture.
+  - Surfaced drift posture through task detail API responses,
+    `glassbox task show`, generated frontend API types, and dashboard task
+    verification cues.
+  - Added tests for clean workspaces, edit-after-test stale verification,
+    docs-only drift, generated-file drift, API exposure, CLI JSON shape, and
+    dashboard rendering.
 
 ### GBX-1072: Add Last-Known-Good And Repair History
 

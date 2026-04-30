@@ -5107,6 +5107,9 @@
           "task": {
             "$ref": "#/components/schemas/TaskSummaryResponse"
           },
+          "verification_drift": {
+            "$ref": "#/components/schemas/TaskVerificationDriftResponse"
+          },
           "verification_ledger": {
             "items": {
               "$ref": "#/components/schemas/TaskVerificationLedgerResponse"
@@ -5131,6 +5134,7 @@
           "verifications",
           "verification_ledger",
           "verification_summary",
+          "verification_drift",
           "projection_health"
         ],
         "title": "TaskDetailResponse",
@@ -5552,6 +5556,115 @@
           "next_action_summary"
         ],
         "title": "TaskSummaryResponse",
+        "type": "object"
+      },
+      "TaskVerificationDriftResponse": {
+        "properties": {
+          "changed_path_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changed Path Digest"
+          },
+          "changed_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Changed Paths",
+            "type": "array"
+          },
+          "diff_summary_command": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diff Summary Command"
+          },
+          "docs_only_changed_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Docs Only Changed Paths",
+            "type": "array"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "generated_changed_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Generated Changed Paths",
+            "type": "array"
+          },
+          "material_changed_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Material Changed Paths",
+            "type": "array"
+          },
+          "posture": {
+            "title": "Posture",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "stale_changed_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Stale Changed Paths",
+            "type": "array"
+          },
+          "stale_verification_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Stale Verification Ids",
+            "type": "array"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "workspace_clean": {
+            "title": "Workspace Clean",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "task_id",
+          "posture",
+          "workspace_clean",
+          "changed_paths",
+          "material_changed_paths",
+          "docs_only_changed_paths",
+          "generated_changed_paths",
+          "stale_verification_ids",
+          "stale_changed_paths",
+          "reason"
+        ],
+        "title": "TaskVerificationDriftResponse",
         "type": "object"
       },
       "TaskVerificationLedgerResponse": {

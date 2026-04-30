@@ -67,7 +67,10 @@ TERMINAL_TASK_STATUSES = {
 
 
 def _query_service(context: RuntimeContextDep) -> TaskQueryService:
-    return TaskQueryService(cast(TaskPlanRepository, context.repositories.sessions))
+    return TaskQueryService(
+        cast(TaskPlanRepository, context.repositories.sessions),
+        workspace_root=context.infrastructure.artifacts_root,
+    )
 
 
 def _page_info(

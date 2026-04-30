@@ -258,6 +258,8 @@ export function TaskPlanInspector({
   const currentStep = selectedDetail.steps.find(
     (step) => step.step_id === selectedDetail.task.current_step_id,
   );
+  const verificationDrift =
+    selectedDetail.verification_drift ?? defaultVerificationDrift(selectedDetail.task.task_id);
   const budgetEvidence = latestBudgetEvidence(detail.events);
   const jobIds = backgroundJobIds(detail.events);
 
@@ -305,7 +307,9 @@ export function TaskPlanInspector({
           </DataListItem>
           <DataListItem>
             <DataListLabel>Verification</DataListLabel>
-            <DataListMeta>{verificationSummary(selectedDetail.verifications)}</DataListMeta>
+            <DataListMeta>
+              {verificationSummary(selectedDetail.verifications, verificationDrift)}
+            </DataListMeta>
           </DataListItem>
           <DataListItem>
             <DataListLabel>Budget</DataListLabel>
@@ -333,12 +337,13 @@ export function TaskPlanInspector({
           budgetEvidence={budgetEvidence}
           currentStepTitle={currentStep?.title ?? null}
           events={detail.events}
-          verificationText={verificationSummary(selectedDetail.verifications)}
+          verificationText={verificationSummary(selectedDetail.verifications, verificationDrift)}
         />
         <TaskEvidenceDrillDown
           events={detail.events}
           steps={selectedDetail.steps}
           task={selectedDetail.task}
+          verificationDrift={verificationDrift}
           verifications={selectedDetail.verifications}
         />
 
@@ -720,13 +725,43 @@ export function taskQueueSummary(queue: TaskQueuePageState, visibleCount: number
 
 function verificationSummary(
   verifications: NonNullable<TaskDetailState["detail"]>["verifications"],
+  drift?: NonNullable<TaskDetailState["detail"]>["verification_drift"],
 ) {
+  if (drift?.posture === "stale") {
+    return `Verification stale: ${drift.reason}.`;
+  }
+  if (drift?.posture === "missing_coverage") {
+    return `Verification coverage missing: ${drift.reason}.`;
+  }
+  if (drift?.posture === "docs_only_drift" || drift?.posture === "generated_drift") {
+    return `${drift.reason}.`;
+  }
   if (verifications.length === 0) {
     return "No verification checks retained.";
   }
   const failed = verifications.filter((verification) => verification.status === "failed").length;
   const passed = verifications.filter((verification) => verification.status === "passed").length;
   return `${passed} passed, ${failed} failed, ${verifications.length} total.`;
+}
+
+function defaultVerificationDrift(
+  taskId: string,
+): NonNullable<TaskDetailState["detail"]>["verification_drift"] {
+  return {
+    changed_path_digest: null,
+    changed_paths: [],
+    diff_summary_command: null,
+    docs_only_changed_paths: [],
+    error: null,
+    generated_changed_paths: [],
+    material_changed_paths: [],
+    posture: "not_assessed",
+    reason: "workspace drift was not assessed for this read",
+    stale_changed_paths: [],
+    stale_verification_ids: [],
+    task_id: taskId,
+    workspace_clean: true,
+  };
 }
 
 function TaskWhyThisActionEvidence({
@@ -804,14 +839,16 @@ function TaskEvidenceDrillDown({
   events,
   steps,
   task,
+  verificationDrift,
   verifications,
 }: {
   events: TaskDetailState["events"];
   steps: TaskDetail["steps"];
   task: TaskDetail["task"];
+  verificationDrift: TaskDetail["verification_drift"];
   verifications: TaskDetail["verifications"];
 }) {
-  const rows = taskEvidenceRows({ events, steps, task, verifications });
+  const rows = taskEvidenceRows({ events, steps, task, verificationDrift, verifications });
   return (
     <section
       aria-label="Task evidence drill-down"
@@ -855,11 +892,13 @@ function taskEvidenceRows({
   events,
   steps,
   task,
+  verificationDrift,
   verifications,
 }: {
   events: TaskDetailState["events"];
   steps: TaskDetail["steps"];
   task: TaskDetail["task"];
+  verificationDrift: TaskDetail["verification_drift"];
   verifications: TaskDetail["verifications"];
 }): TaskEvidenceRow[] {
   const failedVerification = verifications.find((verification) => verification.status === "failed");
@@ -924,13 +963,25 @@ function taskEvidenceRows({
     },
     {
       detail:
-        failedVerification === undefined
-          ? verificationSummary(verifications)
-          : `${failedVerification.check_name}: ${failedVerification.summary ?? "verification failed"}`,
+        verificationDrift.posture === "stale"
+          ? `${verificationDrift.reason}; stale paths: ${verificationDrift.stale_changed_paths.join(", ")}`
+          : failedVerification === undefined
+            ? verificationSummary(verifications, verificationDrift)
+            : `${failedVerification.check_name}: ${failedVerification.summary ?? "verification failed"}`,
       event: verificationEvent,
-      label: "Verification failure",
-      state: failedVerification === undefined ? "not failing" : "failed",
-      tone: failedVerification === undefined ? "success" : "destructive",
+      label: verificationDrift.posture === "stale" ? "Stale verification" : "Verification failure",
+      state:
+        verificationDrift.posture === "stale"
+          ? "stale"
+          : failedVerification === undefined
+            ? "not failing"
+            : "failed",
+      tone:
+        verificationDrift.posture === "stale"
+          ? "warning"
+          : failedVerification === undefined
+            ? "success"
+            : "destructive",
     },
     {
       detail:

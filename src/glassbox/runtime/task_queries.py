@@ -1,6 +1,7 @@
 """Read-only query models and service for durable task plans."""
 
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 from typing import Protocol
 
@@ -27,6 +28,9 @@ from glassbox.core.types import TaskVerificationStatus
 from glassbox.core.types import VerificationCheckKind
 from glassbox.core.types import VerificationFailureCategory
 from glassbox.core.types import VerificationPlanSource
+from glassbox.runtime.verification_drift import VerificationDriftAssessment
+from glassbox.runtime.verification_drift import assess_verification_drift
+from glassbox.runtime.verification_drift import not_assessed_verification_drift
 
 
 class TaskPlanRepository(Protocol):
@@ -199,13 +203,20 @@ class TaskDetailView(BaseModel):
     verifications: list[TaskVerificationView]
     verification_ledger: list[TaskVerificationLedgerView]
     verification_summary: TaskVerificationLedgerSummaryView
+    verification_drift: VerificationDriftAssessment
 
 
 class TaskQueryService:
     """Read-only task-plan query service."""
 
-    def __init__(self, repository: TaskPlanRepository) -> None:
+    def __init__(
+        self,
+        repository: TaskPlanRepository,
+        *,
+        workspace_root: Path | None = None,
+    ) -> None:
         self._repository = repository
+        self._workspace_root = workspace_root
 
     def list_task_summaries(
         self,
@@ -227,6 +238,10 @@ class TaskQueryService:
         record = self._repository.get_task(task_id)
         if record is None:
             raise ValueError(f"unknown task_id: {task_id}")
+        ledger_records = self._repository.list_task_verification_ledger(
+            record.session_id,
+            record.task_id,
+        )
         return TaskDetailView(
             task=_summary_from_record(record),
             steps=[
@@ -244,17 +259,22 @@ class TaskQueryService:
                 )
             ],
             verification_ledger=[
-                _verification_ledger_view_from_record(entry)
-                for entry in self._repository.list_task_verification_ledger(
-                    record.session_id,
-                    record.task_id,
-                )
+                _verification_ledger_view_from_record(entry) for entry in ledger_records
             ],
             verification_summary=_verification_summary_view_from_record(
                 self._repository.get_task_verification_ledger_summary(
                     record.session_id,
                     record.task_id,
                 )
+            ),
+            verification_drift=(
+                assess_verification_drift(
+                    self._workspace_root,
+                    task_id=record.task_id,
+                    ledger=ledger_records,
+                )
+                if self._workspace_root is not None
+                else not_assessed_verification_drift(record.task_id)
             ),
         )
 

@@ -93,7 +93,7 @@ describe("task autonomy console", () => {
     expect(markup).toContain("Blocked");
     expect(markup).toContain("Selected Task");
     expect(markup).toContain("Write tests");
-    expect(markup).toContain("1 passed, 1 failed, 2 total.");
+    expect(markup).toContain("Verification stale");
     expect(markup).toContain("allowed: one step remains");
     expect(markup).toContain("#3 BudgetDecisionRecorded");
     expect(markup).toContain("Load More Events");
@@ -102,8 +102,8 @@ describe("task autonomy console", () => {
     expect(markup).toContain("BackgroundJobCreated at sequence 4");
     expect(markup).toContain("No memory/index or branch-search event is loaded");
     expect(markup).toContain("Task Evidence");
-    expect(markup).toContain("Verification failure");
-    expect(markup).toContain("typecheck: type gap");
+    expect(markup).toContain("Stale verification");
+    expect(markup).toContain("stale paths: src/app.py");
     expect(markup).toContain("Artifact or output");
     expect(markup).toContain("artifact_id: artifact-1");
     expect(markup).toContain("#task-event-5");
@@ -277,6 +277,21 @@ function makeTaskDetail(task: TaskSummary): TaskDetail {
     ],
     task,
     verification_ledger: [],
+    verification_drift: {
+      changed_path_digest: "digest",
+      changed_paths: ["src/app.py"],
+      diff_summary_command: "glassbox task show task-1 --json",
+      docs_only_changed_paths: [],
+      error: null,
+      generated_changed_paths: [],
+      material_changed_paths: ["src/app.py"],
+      posture: "stale",
+      reason: "material workspace changes overlap previously passed checks",
+      stale_changed_paths: ["src/app.py"],
+      stale_verification_ids: ["verification-1"],
+      task_id: task.task_id,
+      workspace_clean: false,
+    },
     verification_summary: {
       accepted_risk_count: 0,
       current_posture: "failing",

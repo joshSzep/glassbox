@@ -58,6 +58,22 @@ resume decisions: inspect the last successful check, compare it with any later
 failures or accepted risks, then run the focused commands needed to prove the
 current workspace state.
 
+## Stale Verification Drift
+
+Task detail reads now compare the verification ledger with the current local git
+diff. The `verification_drift` posture reports whether proof is `fresh`,
+`stale`, missing material coverage, docs-only drift, generated-file drift,
+unknown, or not assessed. Stale verification means material workspace changes
+overlap paths that a previously passed check claimed to cover.
+
+The drift assessment includes the changed paths, material paths, docs-only
+paths, generated paths, stale verification IDs, stale paths, and a SHA-256
+digest of the current changed-path list. Dashboard and `glassbox task show`
+surfaces use this cue to warn before an operator treats old verification as
+current proof. Documentation-only and generated-only drift are still visible,
+but they are separated from material code drift so operators can choose a
+focused follow-up instead of rerunning broad suites reflexively.
+
 ## Failure Categories
 
 Verification failure digests classify output as assertion, lint, typecheck,

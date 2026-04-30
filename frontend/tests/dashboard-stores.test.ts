@@ -131,6 +131,7 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
         updated_at: "2025-01-01T00:00:00Z",
       },
       verification_ledger: [],
+      verification_drift: makeVerificationDrift(taskId),
       verification_summary: makeVerificationSummary(taskId),
       verifications: [],
     }),
@@ -451,6 +452,7 @@ describe("task store", () => {
             ],
             task: makeTaskSummary(taskId),
             verification_ledger: [],
+            verification_drift: makeVerificationDrift(taskId),
             verification_summary: makeVerificationSummary(taskId),
             verifications: [],
           };
@@ -504,6 +506,7 @@ describe("task store", () => {
           steps: [],
           task: makeTaskSummary(taskId, { status: "active" }),
           verification_ledger: [],
+          verification_drift: makeVerificationDrift(taskId),
           verification_summary: makeVerificationSummary(taskId),
           verifications: [],
         }),
@@ -606,6 +609,7 @@ describe("task store", () => {
           steps: [],
           task: makeTaskSummary(taskId),
           verification_ledger: [],
+          verification_drift: makeVerificationDrift(taskId),
           verification_summary: makeVerificationSummary(taskId),
           verifications: [],
         }),
@@ -1265,6 +1269,28 @@ function makeVerificationSummary(
     skipped_count: 0,
     task_id: taskId,
     total_count: 0,
+    ...overrides,
+  };
+}
+
+function makeVerificationDrift(
+  taskId: string,
+  overrides: Partial<TaskDetail["verification_drift"]> = {},
+): TaskDetail["verification_drift"] {
+  return {
+    changed_path_digest: null,
+    changed_paths: [],
+    diff_summary_command: null,
+    docs_only_changed_paths: [],
+    error: null,
+    generated_changed_paths: [],
+    material_changed_paths: [],
+    posture: "fresh",
+    reason: "workspace has no local drift from HEAD",
+    stale_changed_paths: [],
+    stale_verification_ids: [],
+    task_id: taskId,
+    workspace_clean: true,
     ...overrides,
   };
 }

@@ -22,6 +22,7 @@ type ActionRequest = {
 type BranchCandidate = components["schemas"]["BranchCandidateResponse"];
 type BranchSearchSummary = components["schemas"]["BranchSearchSummaryResponse"];
 type RepositoryEntry = components["schemas"]["RepositoryIndexEntryResponse"];
+type TaskDetail = components["schemas"]["TaskDetailResponse"];
 type TaskEvent = components["schemas"]["TaskEventResponse"];
 type TaskSummary = components["schemas"]["TaskSummaryResponse"];
 type WorkspaceMemoryEntry = components["schemas"]["WorkspaceMemoryEntryResponse"];
@@ -375,7 +376,7 @@ function makeTask(taskId: string): TaskSummary {
   };
 }
 
-function makeTaskDetail(task: TaskSummary) {
+function makeTaskDetail(task: TaskSummary): TaskDetail {
   return {
     projection_health: makeProjectionHealth(),
     steps: [
@@ -397,6 +398,39 @@ function makeTaskDetail(task: TaskSummary) {
       },
     ],
     task,
+    verification_ledger: [],
+    verification_drift: {
+      changed_path_digest: null,
+      changed_paths: [],
+      diff_summary_command: null,
+      docs_only_changed_paths: [],
+      error: null,
+      generated_changed_paths: [],
+      material_changed_paths: [],
+      posture: "fresh",
+      reason: "workspace has no local drift from HEAD",
+      stale_changed_paths: [],
+      stale_verification_ids: [],
+      task_id: task.task_id,
+      workspace_clean: true,
+    },
+    verification_summary: {
+      accepted_risk_count: 0,
+      current_posture: "partial",
+      failed_count: 1,
+      latest_failed_check_name: "typecheck",
+      latest_failed_sequence: 5,
+      latest_failed_summary: "type gap",
+      latest_failed_verification_id: "verification-2",
+      latest_success_check_name: "frontend tests",
+      latest_success_sequence: 4,
+      latest_success_verification_id: "verification-1",
+      passed_count: 1,
+      running_count: 0,
+      skipped_count: 0,
+      task_id: task.task_id,
+      total_count: 2,
+    },
     verifications: [
       {
         check_name: "frontend tests",
