@@ -1079,7 +1079,7 @@ The intended v9 milestone order is:
 
 ### GBX-990: Update Package Contents For v9 Public Baseline
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-912`, `GBX-922`, `GBX-951`
 - Goal: ensure installed artifacts include the v9 public docs, dashboard assets,
   eval profiles, and runtime surfaces needed for the supported baseline
@@ -1102,6 +1102,14 @@ The intended v9 milestone order is:
   - frontend build
 - Done when:
   - v9 supported workflows are runnable from installed artifacts
+  - Completed by expanding package content validation to require the v9
+    public-baseline docs, daily workflow guide, vocabulary, cockpit contract,
+    command-surface review, eval-promotion plan, dogfooding docs, generated API
+    contracts, release-asset validation script, and v9 onboarding/provider/eval
+    runtime modules. Installed-wheel smoke now covers `readiness check`,
+    workflow-oriented `command guide --json`, provider diagnostics, dashboard
+    static routes, and promoted `release-candidate` eval profile inspection
+    without requiring live provider credentials.
 
 ### GBX-991: Add v9 Release Gate
 

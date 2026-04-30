@@ -33,19 +33,23 @@ def test_installed_wheel_smoke_dry_run_lists_v8_surfaces(tmp_path: Path) -> None
     assert result.returncode == 0
     assert "Installed wheel smoke dry run" in result.stdout
     assert "installed terminal: version" in result.stdout
+    assert "installed terminal: command guide" in result.stdout
     assert "installed autonomy: profile list" in result.stdout
     assert "installed task: list" in result.stdout
+    assert "installed first-run: readiness check" in result.stdout
+    assert "installed first-run: provider diagnostics" in result.stdout
     assert "installed memory: list" in result.stdout
     assert "installed repository index: status" in result.stdout
     assert "installed background jobs: list" in result.stdout
     assert "installed branch-search: list" in result.stdout
     assert "installed dashboard: static routes" in result.stdout
+    assert "installed eval: release profile show" in result.stdout
 
     summary = json.loads((evidence_dir / "summary.json").read_text(encoding="utf-8"))
     assert summary["gate"] == "installed-wheel-smoke"
     assert summary["status"] == "dry_run"
     assert summary["artifacts"]["wheel_path"] == str(wheel_path.resolve())
     assert any(
-        stage["label"] == "installed autonomy: profile list"
+        stage["label"] == "installed first-run: readiness check"
         for stage in summary["stages"]
     )

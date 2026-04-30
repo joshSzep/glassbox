@@ -18,6 +18,12 @@ The frontend build exports the Next.js app and copies `frontend/out/` into `src/
 
 The source distribution also carries repository-owned eval fixtures and generated frontend API contracts: `evals/**`, `frontend/generated/openapi.json`, and `frontend/generated/api-types.ts`. Refresh the generated API files before building whenever FastAPI routes or response schemas change.
 
+For the v9 public baseline, package validation also checks the operator-facing
+v9 docs, dogfooding summary, cockpit contract, eval promotion plan, generated
+API files, release validation scripts, and the installed-command surfaces used
+by first-run readiness, workflow command discovery, provider diagnostics,
+provider recommendations, promoted eval profiles, and the packaged dashboard.
+
 ## Installed Users Versus Source Builders
 
 Installed-package users should only need Python and the packaged wheel. They can
@@ -25,6 +31,8 @@ run these commands without Node.js or pnpm:
 
 ```sh
 glassbox --help
+glassbox readiness check --cwd .
+glassbox command guide --json
 glassbox provider diagnostics --cwd .
 glassbox session chat --plain --no-dashboard --cwd .
 glassbox dashboard serve --cwd .
@@ -36,6 +44,7 @@ glassbox repo index status --cwd .
 glassbox job list --cwd .
 glassbox branch-search list --cwd .
 glassbox eval profile list --cwd .
+glassbox eval profile show release-candidate --cwd .
 ```
 
 Source builders need Python 3.14, `uv`, Node.js 24 through Corepack, pnpm, and a
@@ -95,6 +104,8 @@ uv run python scripts/validate_installed_wheel_smoke.py --wheel dist/glassbox-*.
 ```sh
 glassbox --help
 glassbox command tree
+glassbox command guide --json
+glassbox readiness check --json --cwd .
 glassbox autonomy profile list --json --cwd .
 glassbox provider diagnostics --cwd . --model-name openai:gpt-5.4
 glassbox provider diagnostics --cwd <profile-workspace>
@@ -111,12 +122,19 @@ glassbox daemon status --json --cwd .
 glassbox daemon start --cwd . --host 127.0.0.1 --port 8766
 glassbox daemon stop --cwd .
 glassbox eval profile list --cwd .
+glassbox eval profile show release-candidate --json --cwd .
 glassbox eval run smoke.hello --cwd .
 ```
 
 `glassbox --help`, `command tree`, `session chat --help`, and `session attach --help` prove the installed console script can import the command inventory and TUI dependency stack. The explicit `--plain` smoke protects fallback behavior in clean environments where a full-screen TUI is not practical. The v6 gate starts the dashboard from the installed wheel and requests `/`, `/app`, and one referenced `/app/_next/...` asset without a Node process. It also runs daemon status/start/stop in a temporary workspace and executes the deterministic `smoke.hello` eval against copied eval fixtures.
 
 The installed smoke matrix now also covers the v8 local-autonomy surfaces from a wheel: autonomy profile listing, task inspection, workspace-memory listing, repository-index status, background-job listing, and branch-search listing. These checks run against empty temporary workspaces, so they remain credential-free and do not require provider access.
+
+The v9 smoke matrix adds first-run readiness, workflow-oriented command
+discovery, and promoted `release-candidate` profile inspection. These checks
+prove a clean installed package can guide a new operator, expose the practical
+command surface, and inspect the deterministic v9 eval ladder without live
+provider credentials.
 
 The v7 smoke matrix also runs provider diagnostics with an explicit model,
 provider diagnostics against an example `glassbox.profile.json`, and eval profile
@@ -137,14 +155,14 @@ Known terminal limitations for this release candidate:
 - `pnpm --dir frontend api:generate` left no diff in `frontend/generated/openapi.json` or `frontend/generated/api-types.ts`.
 - `src/glassbox/web/static_next/index.html` references only assets that exist under `src/glassbox/web/static_next/`.
 - `uv run pre-commit run --all-files` passed.
-- `uv build --wheel --sdist` produced distributions containing `glassbox/web/static_next/`, runtime package modules, source docs, v8 eval fixtures, generated frontend API contracts, TUI dependency metadata, and the `glassbox` console script.
+- `uv build --wheel --sdist` produced distributions containing `glassbox/web/static_next/`, runtime package modules, source docs, v8 and v9 eval fixtures, generated frontend API contracts, TUI dependency metadata, and the `glassbox` console script.
 - `uv run python scripts/validate_package_contents.py` passed against the built wheel and sdist.
 - Package metadata includes `textual>=6,<7` and the `glassbox` console script.
-- Installed-package terminal smoke passed for root help, `command tree`, `session chat --help`, `session attach --help`, explicit plain fallback, provider diagnostics, and profile-example diagnostics.
+- Installed-package terminal and onboarding smoke passed for root help, `command tree`, `command guide --json`, `readiness check --json`, `session chat --help`, `session attach --help`, explicit plain fallback, provider diagnostics, and profile-example diagnostics.
 - Installed-package v8 autonomy smoke passed for autonomy profile listing, task inspection, memory listing, repository-index status, background-job listing, and branch-search listing.
 - Installed-package dashboard smoke passed for `/`, `/app`, and a representative static asset without Node.js running.
 - Installed-package daemon smoke passed for status/start/stop in a temporary workspace.
-- Installed-package eval smoke passed for profile listing and `smoke.hello` in a temporary workspace with copied eval fixtures.
+- Installed-package eval smoke passed for profile listing, `release-candidate` profile inspection, and `smoke.hello` in a temporary workspace with copied eval fixtures.
 
 ## v6 Release Hardening
 

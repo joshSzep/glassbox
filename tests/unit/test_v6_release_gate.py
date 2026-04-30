@@ -34,8 +34,10 @@ def test_v6_release_gate_script_runs_expected_checks() -> None:
         "installed wheel smoke",
         "installed terminal: root help",
         "installed terminal: version",
+        "installed terminal: command guide",
         "installed autonomy: profile list",
         "installed task: list",
+        "installed first-run: readiness check",
         "installed first-run: provider diagnostics",
         "installed first-run: profile example",
         "installed memory: list",
@@ -45,6 +47,7 @@ def test_v6_release_gate_script_runs_expected_checks() -> None:
         "installed daemon: start",
         "installed dashboard: static routes",
         "installed eval: profile list",
+        "installed eval: release profile show",
         "installed eval: deterministic smoke",
         "--evidence-dir",
         "summary.json",
@@ -144,11 +147,13 @@ def test_v6_release_gate_builds_installed_smoke_matrix(tmp_path: Path) -> None:
         "installed terminal: root help",
         "installed terminal: version",
         "installed terminal: command tree",
+        "installed terminal: command guide",
         "installed terminal: chat help",
         "installed terminal: attach help",
         "installed terminal: plain fallback",
         "installed autonomy: profile list",
         "installed task: list",
+        "installed first-run: readiness check",
         "installed first-run: provider diagnostics",
         "installed first-run: profile example",
         "installed memory: list",
@@ -160,6 +165,7 @@ def test_v6_release_gate_builds_installed_smoke_matrix(tmp_path: Path) -> None:
         "installed daemon: status after start",
         "installed daemon: stop",
         "installed eval: profile list",
+        "installed eval: release profile show",
         "installed eval: deterministic smoke",
     ]
     expected_prefix = (
@@ -172,41 +178,46 @@ def test_v6_release_gate_builds_installed_smoke_matrix(tmp_path: Path) -> None:
         str(wheel_path),
     )
     assert all(check.command[:7] == expected_prefix for check in checks)
-    assert checks[5].input_text == "/exit\n"
-    assert checks[6].command[-3:] == (
+    assert checks[6].input_text == "/exit\n"
+    assert checks[7].command[-3:] == (
         "--json",
         "--cwd",
         str(tmp_path / "autonomy"),
     )
-    assert checks[7].command[-3:] == (
+    assert checks[8].command[-3:] == (
         "--json",
         "--cwd",
         str(tmp_path / "task"),
     )
-    assert checks[8].command[-4:] == (
+    assert checks[9].command[-3:] == (
+        "--json",
+        "--cwd",
+        str(tmp_path / "readiness"),
+    )
+    assert checks[10].command[-4:] == (
         "--cwd",
         str(tmp_path / "provider"),
         "--model-name",
         "openai:gpt-5.4",
     )
-    assert checks[9].command[-2:] == ("--cwd", str(tmp_path / "profile"))
-    assert checks[10].command[-3:] == (
+    assert checks[11].command[-2:] == ("--cwd", str(tmp_path / "profile"))
+    assert checks[12].command[-3:] == (
         "--json",
         "--cwd",
         str(tmp_path / "memory"),
     )
-    assert checks[11].command[-3:] == (
+    assert checks[13].command[-3:] == (
         "--json",
         "--cwd",
         str(tmp_path / "index"),
     )
-    assert checks[12].command[-3:] == ("--json", "--cwd", str(tmp_path / "job"))
-    assert checks[13].command[-3:] == (
+    assert checks[14].command[-3:] == ("--json", "--cwd", str(tmp_path / "job"))
+    assert checks[15].command[-3:] == (
         "--json",
         "--cwd",
         str(tmp_path / "branch-search"),
     )
-    assert "9876" in checks[15].command
+    assert "9876" in checks[17].command
 
 
 def test_v6_release_gate_builds_dashboard_smoke_command(tmp_path: Path) -> None:
@@ -247,11 +258,13 @@ def test_v6_release_gate_doc_maps_script_stages() -> None:
         "installed terminal: root help",
         "installed terminal: version",
         "installed terminal: command tree",
+        "installed terminal: command guide",
         "installed terminal: chat help",
         "installed terminal: attach help",
         "installed terminal: plain fallback",
         "installed autonomy: profile list",
         "installed task: list",
+        "installed first-run: readiness check",
         "installed first-run: provider diagnostics",
         "installed first-run: profile example",
         "installed memory: list",
@@ -261,6 +274,7 @@ def test_v6_release_gate_doc_maps_script_stages() -> None:
         "installed daemon: start",
         "installed dashboard: static routes",
         "installed eval: profile list",
+        "installed eval: release profile show",
         "installed eval: deterministic smoke",
     ]:
         assert f"`{smoke_label}`" in doc

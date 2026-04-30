@@ -287,6 +287,7 @@ def _run_installed_wheel_smoke(summary: dict[str, Any], wheel_path: Path) -> int
         smoke_root = Path(temp_dir)
         _prepare_eval_smoke_workspace(smoke_root / "eval")
         _prepare_profile_smoke_workspace(smoke_root / "profile")
+        _prepare_empty_smoke_workspace(smoke_root / "readiness")
 
         smoke_checks = build_installed_wheel_smoke_checks(wheel_path, smoke_root)
         daemon_stop_check = next(
@@ -326,6 +327,7 @@ def build_installed_wheel_smoke_checks(
     terminal_workspace = smoke_root / "terminal"
     autonomy_workspace = smoke_root / "autonomy"
     task_workspace = smoke_root / "task"
+    readiness_workspace = smoke_root / "readiness"
     provider_workspace = smoke_root / "provider"
     profile_workspace = smoke_root / "profile"
     memory_workspace = smoke_root / "memory"
@@ -348,6 +350,10 @@ def build_installed_wheel_smoke_checks(
         InstalledSmokeCheck(
             "installed terminal: command tree",
             _installed_glassbox_command(wheel_path, "command", "tree"),
+        ),
+        InstalledSmokeCheck(
+            "installed terminal: command guide",
+            _installed_glassbox_command(wheel_path, "command", "guide", "--json"),
         ),
         InstalledSmokeCheck(
             "installed terminal: chat help",
@@ -391,6 +397,17 @@ def build_installed_wheel_smoke_checks(
                 "--json",
                 "--cwd",
                 str(task_workspace),
+            ),
+        ),
+        InstalledSmokeCheck(
+            "installed first-run: readiness check",
+            _installed_glassbox_command(
+                wheel_path,
+                "readiness",
+                "check",
+                "--json",
+                "--cwd",
+                str(readiness_workspace),
             ),
         ),
         InstalledSmokeCheck(
@@ -513,6 +530,19 @@ def build_installed_wheel_smoke_checks(
                 "eval",
                 "profile",
                 "list",
+                "--cwd",
+                str(eval_workspace),
+            ),
+        ),
+        InstalledSmokeCheck(
+            "installed eval: release profile show",
+            _installed_glassbox_command(
+                wheel_path,
+                "eval",
+                "profile",
+                "show",
+                "release-candidate",
+                "--json",
                 "--cwd",
                 str(eval_workspace),
             ),
@@ -653,6 +683,10 @@ def _prepare_profile_smoke_workspace(workspace: Path) -> None:
         + "\n",
         encoding="utf-8",
     )
+
+
+def _prepare_empty_smoke_workspace(workspace: Path) -> None:
+    workspace.mkdir(parents=True, exist_ok=True)
 
 
 def _allocate_local_port() -> int:

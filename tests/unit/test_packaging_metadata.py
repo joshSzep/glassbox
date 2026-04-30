@@ -107,9 +107,16 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert "sdist missing required file: docs/release-packaging.md" in problems
     assert "sdist missing required file: docs/getting-started.md" in problems
     assert "sdist missing required file: docs/operator-quickstart.md" in problems
+    assert "sdist missing required file: docs/daily-workflow-quickstart.md" in problems
     assert "sdist missing required file: docs/providers.md" in problems
     assert "sdist missing required file: docs/version-release-policy.md" in problems
+    assert "sdist missing required file: docs/dashboard-cockpit-contract.md" in problems
+    assert "sdist missing required file: docs/dogfooding.md" in problems
+    assert "sdist missing required file: docs/v9-command-surface-review.md" in problems
+    assert "sdist missing required file: docs/v9-dogfooding-summary.md" in problems
+    assert "sdist missing required file: docs/v9-eval-promotion-plan.md" in problems
     assert "sdist missing required file: docs/v9-public-baseline.md" in problems
+    assert "sdist missing required file: docs/v9-vocabulary.md" in problems
     assert "sdist missing required file: docs/workspace-profiles.md" in problems
     assert "sdist missing required file: docs/manual-qa-evidence-v7.md" in problems
     assert (
@@ -122,6 +129,10 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert "sdist missing required file: frontend/generated/openapi.json" in problems
     assert (
         "sdist missing required file: scripts/validate_v8_release_gate.py" in problems
+    )
+    assert (
+        "sdist missing required file: scripts/validate_frontend_release_assets.py"
+        in problems
     )
     assert (
         "sdist missing required file: docs/manual-v7-release-validation.md" in problems
@@ -148,15 +159,27 @@ def _write_wheel(path: Path) -> None:
         wheel.writestr("glassbox/cli/__init__.py", "")
         wheel.writestr("glassbox/cli/autonomy_commands.py", "")
         wheel.writestr("glassbox/cli/branch_search_commands.py", "")
+        wheel.writestr("glassbox/cli/chat_startup.py", "")
+        wheel.writestr("glassbox/cli/command_guide.py", "")
         wheel.writestr("glassbox/cli/job_commands.py", "")
         wheel.writestr("glassbox/cli/memory_commands.py", "")
         wheel.writestr("glassbox/cli/observability_commands.py", "")
+        wheel.writestr("glassbox/cli/provider_commands.py", "")
+        wheel.writestr("glassbox/cli/readiness_commands.py", "")
         wheel.writestr("glassbox/cli/repository_commands.py", "")
+        wheel.writestr("glassbox/cli/replay_eval_commands.py", "")
         wheel.writestr("glassbox/cli/task_commands.py", "")
         wheel.writestr("glassbox/runtime/autonomy.py", "")
         wheel.writestr("glassbox/runtime/background_jobs.py", "")
         wheel.writestr("glassbox/runtime/branch_search.py", "")
+        wheel.writestr("glassbox/runtime/eval_profile_models.py", "")
+        wheel.writestr("glassbox/runtime/eval_recommendations.py", "")
+        wheel.writestr("glassbox/runtime/evals.py", "")
         wheel.writestr("glassbox/runtime/observability.py", "")
+        wheel.writestr("glassbox/runtime/provider_canary.py", "")
+        wheel.writestr("glassbox/runtime/provider_diagnostics.py", "")
+        wheel.writestr("glassbox/runtime/provider_recommendations.py", "")
+        wheel.writestr("glassbox/runtime/readiness.py", "")
         wheel.writestr("glassbox/runtime/repository_index.py", "")
         wheel.writestr("glassbox/runtime/task_plan_capture.py", "")
         wheel.writestr("glassbox/runtime/task_queries.py", "")
@@ -198,6 +221,11 @@ def _write_sdist(
             )
             _add_tar_text(
                 sdist,
+                "glassbox-0.9.0/docs/daily-workflow-quickstart.md",
+                "# Daily Workflow Quickstart\n",
+            )
+            _add_tar_text(
+                sdist,
                 "glassbox-0.9.0/docs/providers.md",
                 "# Provider Setup\n",
             )
@@ -211,6 +239,20 @@ def _write_sdist(
                 "glassbox-0.9.0/docs/v9-public-baseline.md",
                 "# Glassbox v9 Public Baseline\n",
             )
+            _add_tar_text(
+                sdist,
+                "glassbox-0.9.0/docs/v9-vocabulary.md",
+                "# Glassbox v9 Vocabulary\n",
+            )
+            for doc_path in (
+                "docs/dashboard-cockpit-contract.md",
+                "docs/dogfooding.md",
+                "docs/v9-command-surface-review.md",
+                "docs/v9-dogfooding-summary.md",
+                "docs/v9-eval-promotion-plan.md",
+                "docs/tasks-v9.md",
+            ):
+                _add_tar_text(sdist, f"glassbox-0.9.0/{doc_path}", "# v9\n")
             _add_tar_text(
                 sdist,
                 "glassbox-0.9.0/docs/release-packaging.md",
@@ -301,6 +343,7 @@ def _write_sdist(
             )
             for script_path in (
                 "scripts/background_autonomy_smoke.py",
+                "scripts/validate_frontend_release_assets.py",
                 "scripts/validate_installed_wheel_smoke.py",
                 "scripts/validate_package_contents.py",
                 "scripts/validate_v8_release_gate.py",
@@ -309,15 +352,27 @@ def _write_sdist(
             for source_path in (
                 "src/glassbox/cli/autonomy_commands.py",
                 "src/glassbox/cli/branch_search_commands.py",
+                "src/glassbox/cli/chat_startup.py",
+                "src/glassbox/cli/command_guide.py",
                 "src/glassbox/cli/job_commands.py",
                 "src/glassbox/cli/memory_commands.py",
                 "src/glassbox/cli/observability_commands.py",
+                "src/glassbox/cli/provider_commands.py",
+                "src/glassbox/cli/readiness_commands.py",
                 "src/glassbox/cli/repository_commands.py",
+                "src/glassbox/cli/replay_eval_commands.py",
                 "src/glassbox/cli/task_commands.py",
                 "src/glassbox/runtime/autonomy.py",
                 "src/glassbox/runtime/background_jobs.py",
                 "src/glassbox/runtime/branch_search.py",
+                "src/glassbox/runtime/eval_profile_models.py",
+                "src/glassbox/runtime/eval_recommendations.py",
+                "src/glassbox/runtime/evals.py",
                 "src/glassbox/runtime/observability.py",
+                "src/glassbox/runtime/provider_canary.py",
+                "src/glassbox/runtime/provider_diagnostics.py",
+                "src/glassbox/runtime/provider_recommendations.py",
+                "src/glassbox/runtime/readiness.py",
                 "src/glassbox/runtime/repository_index.py",
                 "src/glassbox/runtime/task_plan_capture.py",
                 "src/glassbox/runtime/task_queries.py",
