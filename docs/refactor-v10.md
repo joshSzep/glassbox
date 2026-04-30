@@ -793,7 +793,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R350: Update Architecture Docs For The V10 Refactor Shape
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R310`, `GBX-R311`, `GBX-R312`, `GBX-R320`, `GBX-R321`,
   `GBX-R322`, `GBX-R330`, `GBX-R331`, `GBX-R332`, `GBX-R340`, `GBX-R341`
 - Goal: align architecture and boundary docs with the final v10 refactor module
@@ -820,6 +820,15 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - docs and code describe the same v10 refactor shape and remaining
     compatibility shims are either justified or tracked
+- Completed notes:
+  - Updated the architecture module map and added a v10 second-order ownership
+    summary for frontend console helpers, route helpers, runtime task query
+    helpers, provider helpers, tool-policy helpers, SQLite schema helpers, and
+    core event/model strategy.
+  - Updated the boundary map to describe the implemented v10 module shape and
+    compatibility facades rather than the pre-split pressure-point state.
+  - Confirmed database docs already describe the split schema registry and
+    projection-family schema helper ownership.
 
 ### GBX-R351: Close Out V10 Refactor Guardrails And Focused Validation
 

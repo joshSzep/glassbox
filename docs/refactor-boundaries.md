@@ -25,10 +25,11 @@ facades. They preserve public call sites while delegating to owned
 implementation modules; they are not license for new behavior to accumulate in
 the facade.
 
-The v10 boundary refresh is the active next step. It does not reopen the v1 or
-v8 decomposition decisions; it identifies the second-order modules that grew
-after those splits and defines the target owners for the next behavior-preserving
-extractions.
+The v10 second-order boundary map is implemented through Phase 64 of
+[refactor-v10.md](./refactor-v10.md). It did not reopen the v1 or v8
+decomposition decisions; it identified the modules that grew after those splits
+and moved behavior-preserving ownership into focused frontend, web, runtime,
+provider, tool-policy, SQLite schema, and core-domain strategy boundaries.
 
 ## Scope
 
@@ -121,23 +122,23 @@ The post-v8 pressure points are concentrated in newer autonomy-era surfaces:
 The v10 pressure points are the second-order modules underneath those improved
 facades:
 
-- `frontend/components/console/task-autonomy-sections.tsx` mixes task queue
-  rendering, plan inspection, action controls, verification posture, evidence
-  summaries, event analysis, and formatting helpers
-- `frontend/components/console/verification-cues.tsx` mixes cue derivation for
-  policies, evals, replay drift, provider evidence, release evidence,
-  artifacts, and path overlap with visual rendering
-- `frontend/components/console/session-inspector/panes/compare-pane.tsx` mixes
-  session comparison derivation with pane rendering
-- `frontend/components/console/workspace-console.tsx` mixes route
-  synchronization, surface selection, load/reset orchestration, action binding,
-  and surface composition
+- `frontend/components/console/task-autonomy-sections.tsx` is now a
+  compatibility facade over queue, inspector, action, evidence, formatting, and
+  type modules under `frontend/components/console/task-autonomy/`
+- `frontend/components/console/verification-cues.tsx` now renders typed facts
+  from `verification-cues-analysis.ts`
+- `frontend/components/console/session-inspector/panes/compare-pane.tsx` now
+  renders typed facts from `compare-analysis.ts`
+- `frontend/components/console/workspace-console.tsx` now composes stores,
+  selected state, and surfaces while route synchronization and repeated action
+  bindings live in `workspace-console/routing.ts` and
+  `workspace-console/actions.ts`
 - `src/glassbox/web/routes/sessions.py` and `src/glassbox/web/routes/tasks.py`
-  mix FastAPI declarations with HTTP-local query composition, action
-  orchestration, pagination, and serialization helpers
-- `src/glassbox/runtime/task_queries.py` mixes transport-agnostic query models,
-  summary/detail shaping, verification ledger interpretation, repair-history
-  wording, and event conversion
+  now stay FastAPI declaration surfaces over HTTP-local query/action helpers and
+  shared pagination utilities
+- `src/glassbox/runtime/task_queries.py` now keeps `TaskQueryService` as the
+  repository-backed read facade while models, assembly, verification, and repair
+  derivation live in focused `task_query_*` modules
 - `src/glassbox/runtime/provider_canary.py` is now a thin compatibility facade;
   provider-canary scenarios, live execution, retained evidence reads,
   freshness checks, report writing, and outcome counting live in focused

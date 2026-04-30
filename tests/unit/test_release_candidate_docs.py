@@ -643,6 +643,42 @@ def test_v10_durability_audit_maps_runtime_recovery_boundaries() -> None:
     assert "v10-durability-audit.md" in docs_readme
 
 
+def test_v10_refactor_docs_describe_final_module_shape() -> None:
+    architecture = (REPO_ROOT / "docs" / "architecture.md").read_text(encoding="utf-8")
+    boundaries = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
+        encoding="utf-8"
+    )
+    roadmap = (REPO_ROOT / "docs" / "refactor-v10.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "### V10 Second-Order Ownership",
+        "provider_canary_*.py",
+        "provider_recommendation_*.py",
+        "task_query_*.py",
+        "policy_*.py",
+        "sqlite_schema_*.py",
+        "session_route_*.py",
+        "task_route_*.py",
+        "session_api_*.py",
+        "task-autonomy/",
+        "workspace-console/",
+        "*-analysis.ts",
+    ):
+        assert required_text in architecture
+
+    for required_text in (
+        "The v10 second-order boundary map is implemented through Phase 64",
+        "compatibility facade over queue, inspector, action, evidence",
+        "FastAPI declaration surfaces over HTTP-local query/action helpers",
+        "focused `task_query_*` modules",
+        "focused `sqlite_schema_*` modules",
+    ):
+        assert required_text in boundaries
+
+    assert "GBX-R350: Update Architecture Docs For The V10 Refactor Shape" in roadmap
+    assert "- Status: `DONE`" in roadmap
+
+
 def test_provider_docs_define_v9_evidence_freshness_contract() -> None:
     content = (REPO_ROOT / "docs" / "providers.md").read_text(encoding="utf-8")
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")

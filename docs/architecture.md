@@ -2317,7 +2317,10 @@ Guidelines:
 ## Module Boundaries
 
 The current package layout reflects the post-v8 ownership boundaries rather
-than a small set of large mixed-responsibility modules.
+than a small set of large mixed-responsibility modules. The v10 refactor also
+keeps second-order facades thin by moving derivation, HTTP-local helpers,
+provider evidence/scoring, tool-policy rules, and schema DDL into focused
+neighbor modules.
 
 ```text
 src/glassbox/
@@ -2384,6 +2387,10 @@ src/glassbox/
         model_loop.py
         observability.py
         observability_*.py
+        provider_canary.py
+        provider_canary_*.py
+        provider_recommendations.py
+        provider_recommendation_*.py
         repository_index.py
         repository_index_*.py
         replay.py
@@ -2398,6 +2405,8 @@ src/glassbox/
         replay_triage.py
         session_queries.py
         supervisor.py
+        task_queries.py
+        task_query_*.py
         turn_engine.py
         turn_preparation.py
         turn_resumption.py
@@ -2415,6 +2424,7 @@ src/glassbox/
         command.py
         patch.py
         policy.py
+        policy_*.py
         read_only.py
         registry.py
         runtime.py
@@ -2427,6 +2437,7 @@ src/glassbox/
         sqlite_queries.py
         sqlite_query_*.py
         sqlite_schema.py
+        sqlite_schema_*.py
         sqlite_sessions.py
         artifacts.py
         repositories.py
@@ -2444,8 +2455,11 @@ src/glassbox/
             memory.py
             sessions.py
             tasks.py
+            session_route_*.py
+            task_route_*.py
         server.py
         session_api.py
+        session_api_*.py
         static_next/
             # built Next.js static export, when present
     frontend/
@@ -2453,8 +2467,11 @@ src/glassbox/
         components/
             console/
                 *-sections.tsx
+                task-autonomy/
+                workspace-console/
                 session-inspector/
                     panes/
+                        *-analysis.ts
         lib/
         stores/
             dashboard-stores.ts
@@ -2469,6 +2486,41 @@ src/glassbox/
         integration/
         e2e/
 ```
+
+### V10 Second-Order Ownership
+
+The v10 refactor preserved public routes, imports, generated API contracts, and
+operator-visible behavior while moving accumulated derivation and helper logic
+behind explicit local owners.
+
+- Frontend task autonomy keeps `task-autonomy-sections.tsx` as a compatibility
+  surface while queue, inspector, action controls, evidence rendering, and pure
+  formatting live under `frontend/components/console/task-autonomy/`.
+- Verification cues and session comparison panes render typed results from pure
+  helpers in `verification-cues-analysis.ts` and
+  `session-inspector/panes/compare-analysis.ts`.
+- `workspace-console.tsx` owns store construction, state selection, and surface
+  composition; URL synchronization and repeated action binding live in
+  `workspace-console/routing.ts` and `workspace-console/actions.ts`.
+- Session and task route files remain FastAPI declaration surfaces. HTTP-local
+  query composition, mutation orchestration, pagination, and serialization live
+  in `session_route_*`, `task_route_*`, and `pagination.py` helpers.
+- `runtime/task_queries.py` remains the repository-backed read facade while
+  task query models, assembly, verification-ledger derivation, and
+  repair-history derivation live in `task_query_*` modules.
+- Provider canary and recommendation facades keep public CLI/runtime callers
+  stable while scenario selection, execution, evidence loading, reporting,
+  capability fit, risk, credentials, failure posture, budget impact, and action
+  guidance live in `provider_canary_*` and `provider_recommendation_*` modules.
+- `tools/policy.py` remains the policy-engine facade while path scope, manifest
+  rule matching, autonomy permits, approval messages, command-risk heuristics,
+  and shared policy models live in `policy_*` modules.
+- `store/sqlite_schema.py` owns connection setup, baseline bootstrap, migration
+  table maintenance, and the explicit ordered migration registry; domain DDL and
+  idempotent migration helpers live in `sqlite_schema_*` modules.
+- `core/events.py` and `core/models.py` remain broad, stable public import
+  surfaces. Future domain modules should be introduced only for real expansion,
+  with explicit event registration and compatibility re-exports.
 
 The public entry modules are intentionally thinner than their neighbors:
 
