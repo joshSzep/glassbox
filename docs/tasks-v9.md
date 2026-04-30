@@ -822,7 +822,7 @@ The intended v9 milestone order is:
 
 ### GBX-961: Refresh Provider Recommendation Logic For Workflow Fit
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-960`
 - Goal: make provider recommendations reflect task kind, autonomy mode, current
   evidence, and missing evidence more clearly
@@ -844,6 +844,13 @@ The intended v9 milestone order is:
   - CLI JSON output tests
 - Done when:
   - provider recommendation is useful operational guidance with visible limits
+  - Completed by adding structured recommendation fields for `capability_fit`,
+    `risk_posture`, `evidence_freshness`, `credential_readiness`, and
+    `unknowns`; making workflow scenario selection explicit for inspect,
+    edit-safe, test-driven, release-candidate, and background-continuation
+    work; degrading recommendations for stale evidence, incompatible or missing
+    evidence, missing credentials, unsupported models, and provider/model
+    mismatches; and updating CLI output, JSON tests, and provider docs.
 
 ### GBX-962: Surface Provider Evidence In The Dashboard Cockpit
 

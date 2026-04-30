@@ -313,12 +313,30 @@ uv run glassbox provider recommend --cwd . --task-kind verification --autonomy-m
 
 Recommendations consider local diagnostics, the selected model, autonomy mode,
 workflow needs, and retained advisory canary evidence. They report posture
-(`recommended`, `usable`, `risky`, or `local_fallback`), confidence, required
-capabilities, reasons, warnings, relevant scenarios, and next actions.
+(`recommended`, `usable`, `risky`, or `local_fallback`), confidence,
+`capability_fit`, `risk_posture`, `evidence_freshness`,
+`credential_readiness`, required capabilities, reasons, warnings, unknowns,
+relevant scenarios, and next actions.
+
+Workflow scenario mapping is deliberately explicit:
+
+- inspect workflows look for `streaming-text` and `long-context-continuity`
+  evidence.
+- edit-safe workflows look for `streaming-text`, `tool-call`,
+  `tool-call-streaming`, and `multi-step-plan-following` evidence.
+- test-driven workflows look for `streaming-text`, `tool-call`,
+  `verification-loop-interaction`, and `retry-behavior` evidence.
+- release-candidate workflows look for `streaming-text`, `tool-call`,
+  `verification-loop-interaction`, `rate-limit-handling`, and `retry-behavior`
+  evidence.
+- background-continuation workflows look for `streaming-text`,
+  `retry-behavior`, `cancellation-during-retry`, and
+  `multi-step-plan-following` evidence.
 
 Recommendations are advisory. Glassbox does not silently switch the model or
 provider for a session based on recommendation output. Missing credentials,
-missing canary evidence, skipped scenarios, and stale evidence lower confidence
+unknown model families, missing canary evidence, skipped scenarios, stale
+evidence, incompatible evidence, and provider/model mismatches lower confidence
 instead of pretending the provider is ready for autonomous local work.
 
 See [provider-canary-policy-v6.md](./provider-canary-policy-v6.md) and

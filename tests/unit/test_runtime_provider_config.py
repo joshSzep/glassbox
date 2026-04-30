@@ -357,12 +357,108 @@ def test_provider_recommendation_uses_retained_canary_evidence(
         model_name="openai:gpt-5.4",
     )
 
-    assert recommendation.posture == "recommended"
-    assert recommendation.confidence == "high"
-    assert recommendation.evidence.relevant_passed == ["tool-call"]
+    assert recommendation.posture == "usable"
+    assert recommendation.confidence == "medium"
+    assert recommendation.capability_fit == "partial"
+    assert recommendation.risk_posture == "medium"
+    assert recommendation.evidence_freshness == "fresh"
+    assert recommendation.credential_readiness == "ready"
+    assert recommendation.evidence.relevant_passed == ["streaming-text", "tool-call"]
     assert "verification-loop-interaction" in (
         recommendation.evidence.relevant_preflight
     )
+    assert any("preflight-only" in unknown for unknown in recommendation.unknowns)
+
+
+def test_provider_recommendation_reports_missing_credentials(
+    tmp_path: Path,
+) -> None:
+    recommendation = recommend_provider(
+        tmp_path,
+        task_kind=ProviderTaskKind.CODING,
+        autonomy_mode=AutonomyMode.EDIT_SAFE,
+        model_name="openai:gpt-5.4",
+    )
+
+    assert recommendation.posture == "risky"
+    assert recommendation.confidence == "low"
+    assert recommendation.capability_fit == "insufficient"
+    assert recommendation.risk_posture == "high"
+    assert recommendation.credential_readiness == "missing"
+    assert recommendation.evidence_freshness == "missing"
+    assert any("local_fallback" in unknown for unknown in recommendation.unknowns)
+
+
+def test_provider_recommendation_reports_unknown_model(
+    tmp_path: Path,
+) -> None:
+    recommendation = recommend_provider(
+        tmp_path,
+        task_kind=ProviderTaskKind.INSPECTION,
+        autonomy_mode=AutonomyMode.INSPECT,
+        model_name="other:model",
+    )
+
+    assert recommendation.posture == "risky"
+    assert recommendation.confidence == "low"
+    assert recommendation.capability_fit == "insufficient"
+    assert recommendation.risk_posture == "high"
+    assert recommendation.credential_readiness == "unsupported"
+    assert any("unsupported_model" in unknown for unknown in recommendation.unknowns)
+
+
+def test_provider_recommendation_degrades_stale_evidence(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / ".env").write_text("OPENAI_API_KEY=secret-openai\n")
+    summary_path = _write_provider_canary_summary(
+        tmp_path,
+        model_name="openai:gpt-5.4",
+        environ={"OPENAI_API_KEY": "secret-openai"},
+        results={scenario_id: "passed" for scenario_id in AGENTIC_CANARY_SCENARIOS},
+    )
+    old_mtime = 1_700_000_000
+    os.utime(summary_path, (old_mtime, old_mtime))
+
+    recommendation = recommend_provider(
+        tmp_path,
+        task_kind=ProviderTaskKind.CODING,
+        autonomy_mode=AutonomyMode.EDIT_SAFE,
+        model_name="openai:gpt-5.4",
+    )
+
+    assert recommendation.posture == "risky"
+    assert recommendation.confidence == "low"
+    assert recommendation.risk_posture == "high"
+    assert recommendation.evidence_freshness == "stale"
+    assert any("freshness is stale" in warning for warning in recommendation.warnings)
+
+
+def test_provider_recommendation_degrades_provider_mismatch(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / ".env").write_text("ANTHROPIC_API_KEY=secret-anthropic\n")
+    _write_provider_canary_summary(
+        tmp_path,
+        model_name="openai:gpt-5.4",
+        environ={"OPENAI_API_KEY": "secret-openai"},
+        results={scenario_id: "passed" for scenario_id in AGENTIC_CANARY_SCENARIOS},
+    )
+
+    recommendation = recommend_provider(
+        tmp_path,
+        task_kind=ProviderTaskKind.CODING,
+        autonomy_mode=AutonomyMode.EDIT_SAFE,
+        model_name="anthropic:claude-sonnet-4",
+    )
+
+    assert recommendation.posture == "risky"
+    assert recommendation.confidence == "low"
+    assert recommendation.capability_fit == "unknown"
+    assert recommendation.risk_posture == "high"
+    assert recommendation.credential_readiness == "ready"
+    assert recommendation.evidence.model_identity_matches_config is False
+    assert any("different model" in warning for warning in recommendation.warnings)
 
 
 def test_provider_canary_evidence_reports_stale_retained_summary(
@@ -461,3 +557,53 @@ def test_provider_canary_evidence_reports_incompatible_retained_summary(
     assert evidence.matrix_entry_count == 1
     assert evidence.missing_scenarios == AGENTIC_CANARY_SCENARIOS
     assert any("stale or incompatible" in action for action in evidence.next_actions)
+
+
+def _write_provider_canary_summary(
+    workspace_root: Path,
+    *,
+    model_name: str,
+    environ: dict[str, str],
+    results: dict[str, ProviderCapabilityResult],
+) -> Path:
+    output_dir = workspace_root / ".glassbox" / "provider-canary"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    summary_path = output_dir / "provider-canary-summary.json"
+    report = build_provider_diagnostics_report(
+        workspace_root,
+        explicit_model_name=model_name,
+        environ=environ,
+    )
+    matrix = build_provider_capability_matrix(
+        report,
+        scenario_ids=AGENTIC_CANARY_SCENARIOS,
+        results=results,
+    )
+    summary_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "provider-canary-summary.v1",
+                "generated_at": "2026-04-29T00:00:00+00:00",
+                "advisory": True,
+                "provider": report.selected_provider,
+                "model_name": model_name,
+                "diagnostics_state": report.state,
+                "output_path": str(summary_path),
+                "scenario_definitions": [],
+                "scenarios": [
+                    {
+                        "scenario_id": scenario_id,
+                        "outcome": result,
+                        "detail": "test evidence",
+                        "automation_status": "automated",
+                    }
+                    for scenario_id, result in results.items()
+                ],
+                "capability_matrix": matrix.model_dump(mode="json"),
+                "skipped_reason": None,
+                "next_actions": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    return summary_path

@@ -304,6 +304,10 @@ def test_provider_recommend_cli_reports_advisory_posture(
     assert payload["autonomy_mode"] == "test-driven"
     assert payload["posture"] == "local_fallback"
     assert payload["confidence"] == "low"
+    assert payload["capability_fit"] == "unknown"
+    assert payload["risk_posture"] == "medium"
+    assert payload["evidence_freshness"] == "missing"
+    assert payload["credential_readiness"] == "not_required"
     assert "secret" not in captured.out
 
 

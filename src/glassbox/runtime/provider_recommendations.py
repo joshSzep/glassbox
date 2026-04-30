@@ -45,6 +45,35 @@ class ProviderRecommendationPosture(StrEnum):
     LOCAL_FALLBACK = "local_fallback"
 
 
+class ProviderCapabilityFit(StrEnum):
+    """How well retained evidence covers the workflow capabilities."""
+
+    SUPPORTED = "supported"
+    PARTIAL = "partial"
+    INSUFFICIENT = "insufficient"
+    UNKNOWN = "unknown"
+
+
+class ProviderRiskPosture(StrEnum):
+    """Risk posture for using the selected provider in the workflow."""
+
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    UNKNOWN = "unknown"
+
+
+class ProviderCredentialReadiness(StrEnum):
+    """Credential readiness for provider-backed work."""
+
+    READY = "ready"
+    MISSING = "missing"
+    NOT_REQUIRED = "not_required"
+    UNSUPPORTED = "unsupported"
+    INVALID = "invalid"
+    UNKNOWN = "unknown"
+
+
 class ProviderRecommendationEvidence(BaseModel):
     """Evidence inputs used for one recommendation."""
 
@@ -53,7 +82,9 @@ class ProviderRecommendationEvidence(BaseModel):
     diagnostics_state: str
     runtime_mode: str
     canary_status: str
+    freshness_status: str
     canary_stale: bool = False
+    model_identity_matches_config: bool | None = None
     scenario_count: int = 0
     matrix_entry_count: int = 0
     relevant_scenarios: list[str] = Field(default_factory=list)
@@ -75,9 +106,14 @@ class ProviderRecommendation(BaseModel):
     provider: str
     posture: ProviderRecommendationPosture
     confidence: ProviderRecommendationConfidence
+    capability_fit: ProviderCapabilityFit
+    risk_posture: ProviderRiskPosture
+    evidence_freshness: str
+    credential_readiness: ProviderCredentialReadiness
     required_capabilities: list[str]
     reasons: list[str]
     warnings: list[str] = Field(default_factory=list)
+    unknowns: list[str] = Field(default_factory=list)
     evidence: ProviderRecommendationEvidence
     next_actions: list[str] = Field(default_factory=list)
 
@@ -132,7 +168,7 @@ def recommend_provider(
         expected_model_name=model_name,
     )
     summary = _load_latest_summary(evidence)
-    relevant_scenarios = _TASK_SCENARIOS[task_kind]
+    relevant_scenarios = _workflow_scenarios(task_kind, autonomy_mode)
     recommendation_evidence = _recommendation_evidence(
         diagnostics,
         evidence,
@@ -152,6 +188,15 @@ def recommend_provider(
         task_kind=task_kind,
         autonomy_mode=autonomy_mode,
     )
+    capability_fit = _capability_fit(diagnostics, recommendation_evidence)
+    risk_posture = _risk_posture(diagnostics, recommendation_evidence)
+    credential_readiness = _credential_readiness(diagnostics)
+    unknowns = _recommendation_unknowns(
+        diagnostics,
+        recommendation_evidence,
+        task_kind=task_kind,
+        autonomy_mode=autonomy_mode,
+    )
     selected_model = diagnostics.selected_model_name or model_name or DEFAULT_MODEL_NAME
     return ProviderRecommendation(
         task_kind=task_kind,
@@ -160,9 +205,14 @@ def recommend_provider(
         provider=diagnostics.selected_provider,
         posture=posture,
         confidence=confidence,
+        capability_fit=capability_fit,
+        risk_posture=risk_posture,
+        evidence_freshness=evidence.freshness_status,
+        credential_readiness=credential_readiness,
         required_capabilities=required_capabilities,
         reasons=reasons,
         warnings=warnings,
+        unknowns=unknowns,
         evidence=recommendation_evidence,
         next_actions=[*diagnostics.next_actions, *evidence.next_actions],
     )
@@ -191,7 +241,7 @@ def _recommendation_evidence(
     passed: list[str] = []
     preflight: list[str] = []
     skipped_or_missing = list(relevant_scenarios)
-    if summary is not None:
+    if summary is not None and evidence.identity_matches_current_config is not False:
         rows = {entry.scenario_id: entry for entry in summary.capability_matrix.entries}
         skipped_or_missing = []
         for scenario_id in relevant_scenarios:
@@ -209,7 +259,9 @@ def _recommendation_evidence(
         diagnostics_state=diagnostics.state,
         runtime_mode=diagnostics.runtime_mode,
         canary_status=evidence.latest_status,
+        freshness_status=evidence.freshness_status,
         canary_stale=evidence.stale,
+        model_identity_matches_config=evidence.identity_matches_current_config,
         scenario_count=evidence.scenario_count,
         matrix_entry_count=evidence.matrix_entry_count,
         relevant_scenarios=list(relevant_scenarios),
@@ -244,6 +296,53 @@ def _required_capabilities(
     return capabilities
 
 
+def _workflow_scenarios(
+    task_kind: ProviderTaskKind,
+    autonomy_mode: AutonomyMode,
+) -> list[str]:
+    if (
+        autonomy_mode == AutonomyMode.INSPECT
+        or task_kind == ProviderTaskKind.INSPECTION
+    ):
+        return ["streaming-text", "long-context-continuity"]
+    if autonomy_mode == AutonomyMode.EDIT_SAFE:
+        return [
+            "streaming-text",
+            "tool-call",
+            "tool-call-streaming",
+            "multi-step-plan-following",
+        ]
+    if autonomy_mode == AutonomyMode.TEST_DRIVEN:
+        return [
+            "streaming-text",
+            "tool-call",
+            "verification-loop-interaction",
+            "retry-behavior",
+        ]
+    if (
+        autonomy_mode == AutonomyMode.RELEASE_CANDIDATE
+        or task_kind == ProviderTaskKind.RELEASE
+    ):
+        return [
+            "streaming-text",
+            "tool-call",
+            "verification-loop-interaction",
+            "rate-limit-handling",
+            "retry-behavior",
+        ]
+    if (
+        autonomy_mode == AutonomyMode.AUTONOMOUS_LOCAL
+        or task_kind == ProviderTaskKind.BACKGROUND
+    ):
+        return [
+            "streaming-text",
+            "retry-behavior",
+            "cancellation-during-retry",
+            "multi-step-plan-following",
+        ]
+    return _TASK_SCENARIOS[task_kind]
+
+
 def _recommendation_reasons(
     diagnostics: ProviderDiagnosticsReport,
     evidence: ProviderRecommendationEvidence,
@@ -270,8 +369,10 @@ def _recommendation_reasons(
         warnings.append(f"provider diagnostics state is {diagnostics.state}")
     if evidence.canary_status in {"missing", "skipped"}:
         warnings.append("provider canary evidence is missing or skipped")
-    if evidence.canary_stale:
-        warnings.append("provider canary evidence is stale")
+    if evidence.freshness_status != "fresh":
+        warnings.append(f"provider evidence freshness is {evidence.freshness_status}")
+    if evidence.model_identity_matches_config is False:
+        warnings.append("retained provider evidence was captured for a different model")
     if evidence.relevant_skipped_or_missing:
         warnings.append(
             "missing relevant scenario evidence: "
@@ -308,7 +409,22 @@ def _posture_and_confidence(
             ProviderRecommendationPosture.RISKY,
             ProviderRecommendationConfidence.LOW,
         )
-    if evidence.canary_status == "passed" and not evidence.canary_stale:
+    if evidence.model_identity_matches_config is False:
+        return (
+            ProviderRecommendationPosture.RISKY,
+            ProviderRecommendationConfidence.LOW,
+        )
+    if evidence.freshness_status in {"stale", "incompatible", "failed"}:
+        return (
+            ProviderRecommendationPosture.RISKY,
+            ProviderRecommendationConfidence.LOW,
+        )
+    if (
+        evidence.canary_status == "passed"
+        and not evidence.canary_stale
+        and not evidence.relevant_skipped_or_missing
+        and len(evidence.relevant_passed) == len(evidence.relevant_scenarios)
+    ):
         return (
             ProviderRecommendationPosture.RECOMMENDED,
             ProviderRecommendationConfidence.HIGH,
@@ -324,3 +440,100 @@ def _posture_and_confidence(
             ProviderRecommendationConfidence.MEDIUM,
         )
     return ProviderRecommendationPosture.RISKY, ProviderRecommendationConfidence.LOW
+
+
+def _capability_fit(
+    diagnostics: ProviderDiagnosticsReport,
+    evidence: ProviderRecommendationEvidence,
+) -> ProviderCapabilityFit:
+    if diagnostics.state != "ready":
+        return ProviderCapabilityFit.INSUFFICIENT
+    if evidence.model_identity_matches_config is False:
+        return ProviderCapabilityFit.UNKNOWN
+    if evidence.freshness_status in {"missing", "stale", "incompatible", "failed"}:
+        return ProviderCapabilityFit.UNKNOWN
+    if not evidence.relevant_skipped_or_missing and evidence.relevant_scenarios:
+        if len(evidence.relevant_passed) == len(evidence.relevant_scenarios):
+            return ProviderCapabilityFit.SUPPORTED
+        if len(evidence.relevant_passed) + len(evidence.relevant_preflight) == len(
+            evidence.relevant_scenarios
+        ):
+            return ProviderCapabilityFit.PARTIAL
+    if evidence.relevant_passed or evidence.relevant_preflight:
+        return ProviderCapabilityFit.PARTIAL
+    return ProviderCapabilityFit.UNKNOWN
+
+
+def _risk_posture(
+    diagnostics: ProviderDiagnosticsReport,
+    evidence: ProviderRecommendationEvidence,
+) -> ProviderRiskPosture:
+    if diagnostics.state in {
+        "local_fallback",
+        "missing_credentials",
+        "unsupported_model",
+        "invalid_workspace_profile",
+        "invalid_provider_config",
+    }:
+        return ProviderRiskPosture.HIGH
+    if diagnostics.runtime_mode == "local":
+        return ProviderRiskPosture.MEDIUM
+    if evidence.model_identity_matches_config is False:
+        return ProviderRiskPosture.HIGH
+    if evidence.freshness_status in {"stale", "incompatible", "failed"}:
+        return ProviderRiskPosture.HIGH
+    if evidence.freshness_status in {"missing", "credentialless", "warning"}:
+        return ProviderRiskPosture.MEDIUM
+    if evidence.relevant_preflight:
+        return ProviderRiskPosture.MEDIUM
+    if evidence.relevant_skipped_or_missing:
+        return ProviderRiskPosture.MEDIUM
+    return ProviderRiskPosture.LOW
+
+
+def _credential_readiness(
+    diagnostics: ProviderDiagnosticsReport,
+) -> ProviderCredentialReadiness:
+    if diagnostics.runtime_mode == "local":
+        return ProviderCredentialReadiness.NOT_REQUIRED
+    if diagnostics.state == "ready":
+        return ProviderCredentialReadiness.READY
+    if diagnostics.state in {"missing_credentials", "local_fallback"}:
+        return ProviderCredentialReadiness.MISSING
+    if diagnostics.state == "unsupported_model":
+        return ProviderCredentialReadiness.UNSUPPORTED
+    if diagnostics.state in {"invalid_workspace_profile", "invalid_provider_config"}:
+        return ProviderCredentialReadiness.INVALID
+    return ProviderCredentialReadiness.UNKNOWN
+
+
+def _recommendation_unknowns(
+    diagnostics: ProviderDiagnosticsReport,
+    evidence: ProviderRecommendationEvidence,
+    *,
+    task_kind: ProviderTaskKind,
+    autonomy_mode: AutonomyMode,
+) -> list[str]:
+    unknowns: list[str] = []
+    if diagnostics.state != "ready":
+        unknowns.append(f"provider diagnostics state is {diagnostics.state}")
+    if evidence.freshness_status in {"missing", "stale", "incompatible"}:
+        unknowns.append(f"provider evidence freshness is {evidence.freshness_status}")
+    if evidence.model_identity_matches_config is False:
+        unknowns.append("retained canary evidence does not match the selected model")
+    if evidence.relevant_skipped_or_missing:
+        unknowns.append(
+            "scenario coverage is missing for "
+            + ", ".join(evidence.relevant_skipped_or_missing)
+        )
+    if evidence.relevant_preflight:
+        unknowns.append(
+            "scenario coverage is preflight-only for "
+            + ", ".join(evidence.relevant_preflight)
+        )
+    if task_kind == ProviderTaskKind.BACKGROUND or autonomy_mode in {
+        AutonomyMode.AUTONOMOUS_LOCAL,
+        AutonomyMode.RELEASE_CANDIDATE,
+    }:
+        unknowns.append("live provider behavior remains advisory for long-running work")
+    return unknowns

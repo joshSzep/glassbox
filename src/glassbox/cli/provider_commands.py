@@ -105,6 +105,10 @@ def _print_provider_recommendation(recommendation: ProviderRecommendation) -> No
     print(f"Provider: {recommendation.provider}")
     print(f"Posture: {recommendation.posture.value}")
     print(f"Confidence: {recommendation.confidence.value}")
+    print(f"Capability fit: {recommendation.capability_fit.value}")
+    print(f"Risk posture: {recommendation.risk_posture.value}")
+    print(f"Evidence freshness: {recommendation.evidence_freshness}")
+    print(f"Credential readiness: {recommendation.credential_readiness.value}")
     print("Required capabilities:")
     for capability in recommendation.required_capabilities:
         print(f"  - {capability}")
@@ -115,6 +119,10 @@ def _print_provider_recommendation(recommendation: ProviderRecommendation) -> No
         print("Warnings:")
         for warning in recommendation.warnings:
             print(f"  - {warning}")
+    if recommendation.unknowns:
+        print("Unknowns:")
+        for unknown in recommendation.unknowns:
+            print(f"  - {unknown}")
     if recommendation.next_actions:
         print("Next:")
         for action in recommendation.next_actions:

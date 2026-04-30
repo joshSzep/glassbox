@@ -463,6 +463,25 @@ def test_provider_docs_define_v9_evidence_freshness_contract() -> None:
     assert "freshness states" in docs_readme
 
 
+def test_provider_docs_define_v9_recommendation_contract() -> None:
+    content = (REPO_ROOT / "docs" / "providers.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "`capability_fit`",
+        "`risk_posture`",
+        "`evidence_freshness`",
+        "`credential_readiness`",
+        "Workflow scenario mapping is deliberately explicit",
+        "inspect workflows look for `streaming-text` and `long-context-continuity`",
+        "edit-safe workflows look for `streaming-text`, `tool-call`,",
+        "test-driven workflows look for `streaming-text`, `tool-call`,",
+        "release-candidate workflows look for `streaming-text`, `tool-call`,",
+        "background-continuation workflows look for `streaming-text`,",
+        "provider/model mismatches lower confidence",
+    ):
+        assert required_text in content
+
+
 def test_docs_hub_separates_operator_docs_from_release_evidence() -> None:
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
 
