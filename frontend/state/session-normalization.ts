@@ -1,4 +1,4 @@
-import { createDashboardState } from "@/state/session-initial-state";
+import { createDashboardState, createEmptyProviderEvidence } from "@/state/session-initial-state";
 import type {
   BranchableTurn,
   ComparableSession,
@@ -18,6 +18,12 @@ export function hydrateSessionAggregate(
   const nextState = {
     ...state,
     projectionHealthCounts: { ...aggregate.projection_health_counts },
+    providerEvidence: {
+      ...createEmptyProviderEvidence(),
+      ...(aggregate.provider_evidence ?? {}),
+      missing_scenarios: [...(aggregate.provider_evidence?.missing_scenarios ?? [])],
+      next_actions: [...(aggregate.provider_evidence?.next_actions ?? [])],
+    },
     queueCounts: { ...aggregate.queue_counts },
     runtimeSummary: { ...aggregate.runtime },
     selectedQueue: aggregate.queue ?? state.selectedQueue,

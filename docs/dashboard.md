@@ -108,10 +108,10 @@ The dashboard lets the operator:
 ## Policy, Replay, Eval, Provider, And Verification Cues
 
 The dashboard surfaces policy, replay, eval, provider canary, and release
-evidence only when the persisted session snapshot already includes that state or
-artifact summaries in its runtime context. The browser does not run replay,
-eval, provider canary, or release workflows, does not reinterpret their results,
-and does not replace the CLI as the authoritative execution path.
+evidence only when the persisted session snapshot or workspace aggregate already
+includes that state. The browser does not run replay, eval, provider canary, or
+release workflows, does not reinterpret their results, and does not replace the
+CLI as the authoritative execution path.
 
 Verification cues are promoted into the overview only when they can affect the
 next operator decision: blocking replay/eval evidence appears before actions,
@@ -127,6 +127,12 @@ Read cue labels this way:
 - advisory evidence is stale, inherited, timed out, or provider-canary evidence that needs judgment
 - provider canary evidence is advisory compatibility evidence, not deterministic release signoff
 - missing evidence is neutral; it means the snapshot does not retain that proof, not that verification passed
+
+The workspace overview also includes a read-only provider evidence cue. It names
+the configured provider/model when known, shows the retained canary
+`freshness_status` and `latest_status`, labels the cue as advisory, and points
+back to `glassbox provider diagnostics --cwd .` and
+`glassbox provider canary evidence --cwd .` for inspection.
 
 Use displayed artifact paths as copyable local references, then run the
 appropriate CLI command when reproduction, coverage, provider, or audit output is

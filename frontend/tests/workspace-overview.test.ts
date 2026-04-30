@@ -6,6 +6,7 @@ import { WorkspaceOverview } from "../components/console/workspace-overview";
 import { createDashboardState, hydrateSessionAggregate } from "../state/session-state";
 import {
   makeProjectionHealth,
+  makeProviderEvidence,
   makeSessionAggregate,
   makeSessionSummary,
   makeV4ScenarioAggregate,
@@ -83,7 +84,7 @@ describe("workspace overview console", () => {
     expect(renderOverview(emptyState, "idle", null, "all")).toContain("runtime offline");
     expect(renderOverview(emptyState, "idle", null, "all")).toContain("No workspace action needed");
     expect(renderOverview(emptyState, "idle", null, "all")).toContain(
-      "No approvals, questions, failures, degraded projections, or recovery cues need attention.",
+      "No approvals, questions, failures, degraded projections, or provider cues need attention.",
     );
     expect(renderOverview(emptyState, "idle", null, "all")).toContain("not loaded");
     expect(renderOverview(emptyState, "loading", null, "all")).toContain(
@@ -187,6 +188,71 @@ describe("workspace overview console", () => {
     expect(renderOverview(missingProjection, "loaded", null, "all")).toContain(
       "1 projection missing",
     );
+  });
+
+  it("renders provider evidence cues for fresh, stale, missing, and warning states", () => {
+    const freshState = hydrateSessionAggregate(
+      createDashboardState(),
+      makeSessionAggregate([], {
+        provider_evidence: makeProviderEvidence({
+          freshness_status: "fresh",
+          latest_status: "passed",
+          model_name: "openai:gpt-5.4",
+          next_actions: ["inspect provider canary evidence /tmp/provider-canary-summary.json"],
+          provider: "openai",
+          summary_count: 1,
+        }),
+      }),
+    );
+    const freshMarkup = renderOverview(freshState, "loaded", null, "all");
+    expect(freshMarkup).toContain("Provider evidence");
+    expect(freshMarkup).toContain("openai openai:gpt-5.4");
+    expect(freshMarkup).toContain("advisory fresh evidence");
+    expect(freshMarkup).toContain("uv run glassbox provider diagnostics --cwd .");
+    expect(freshMarkup).toContain("uv run glassbox provider canary evidence --cwd .");
+
+    const staleState = hydrateSessionAggregate(
+      createDashboardState(),
+      makeSessionAggregate([], {
+        provider_evidence: makeProviderEvidence({
+          freshness_status: "stale",
+          latest_status: "passed",
+          model_name: "openai:gpt-5.4",
+          provider: "openai",
+        }),
+      }),
+    );
+    expect(renderOverview(staleState, "loaded", null, "all")).toContain(
+      "Provider evidence is stale for openai:gpt-5.4; advisory only.",
+    );
+
+    const missingMarkup = renderOverview(
+      hydrateSessionAggregate(createDashboardState(), makeSessionAggregate([])),
+      "loaded",
+      null,
+      "all",
+    );
+    expect(missingMarkup).toContain("provider not configured");
+    expect(missingMarkup).toContain("advisory missing evidence");
+
+    const warningMarkup = renderOverview(
+      hydrateSessionAggregate(
+        createDashboardState(),
+        makeSessionAggregate([], {
+          provider_evidence: makeProviderEvidence({
+            freshness_status: "warning",
+            latest_status: "warning",
+            model_name: "anthropic:claude-sonnet-4",
+            provider: "anthropic",
+          }),
+        }),
+      ),
+      "loaded",
+      null,
+      "all",
+    );
+    expect(warningMarkup).toContain("Provider evidence advisory");
+    expect(warningMarkup).toContain("advisory warning evidence");
   });
 
   it("renders dense attention rows for urgent, degraded, active, and historical sessions", () => {

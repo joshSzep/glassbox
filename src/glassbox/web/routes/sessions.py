@@ -14,6 +14,7 @@ from glassbox.core.events import ToolArtifactRecorded
 from glassbox.runtime.daemon import RuntimeOwnerStatus
 from glassbox.runtime.daemon import inspect_runtime_owner
 from glassbox.runtime.observability import build_background_job_observability
+from glassbox.runtime.provider_canary import load_provider_canary_evidence
 from glassbox.runtime.session_queries import OPERATOR_SORT_PRIORITY
 from glassbox.runtime.session_queries import SessionQueryService
 from glassbox.runtime.session_queries import WorkspaceRuntimeSummaryView
@@ -41,6 +42,7 @@ from glassbox.web.session_api import ToolCallResponse
 from glassbox.web.session_api import TranscriptMessageResponse
 from glassbox.web.session_api import TurnMetricsResponse
 from glassbox.web.session_api import build_fork_session_response
+from glassbox.web.session_api import build_provider_evidence_summary_response
 from glassbox.web.session_api import build_session_aggregate_response
 from glassbox.web.session_api import build_session_snapshot_response
 from glassbox.web.session_api import build_session_summary_responses
@@ -129,7 +131,11 @@ async def get_session_aggregate(
         sort=sort,
         limit=limit,
     )
-    return build_session_aggregate_response(aggregate)
+    response = build_session_aggregate_response(aggregate)
+    response.provider_evidence = build_provider_evidence_summary_response(
+        load_provider_canary_evidence(workspace_root)
+    )
+    return response
 
 
 @router.post(

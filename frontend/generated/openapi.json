@@ -1931,6 +1931,179 @@
         "title": "ProjectionHealthResponse",
         "type": "object"
       },
+      "ProviderEvidenceSummaryResponse": {
+        "properties": {
+          "advisory": {
+            "default": true,
+            "title": "Advisory",
+            "type": "boolean"
+          },
+          "configured_model_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Configured Model Name"
+          },
+          "diagnostics_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diagnostics State"
+          },
+          "failed_count": {
+            "default": 0,
+            "title": "Failed Count",
+            "type": "integer"
+          },
+          "freshness_policy_version": {
+            "default": "provider-evidence-freshness.v1",
+            "title": "Freshness Policy Version",
+            "type": "string"
+          },
+          "freshness_status": {
+            "default": "missing",
+            "title": "Freshness Status",
+            "type": "string"
+          },
+          "identity_matches_current_config": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identity Matches Current Config"
+          },
+          "latest_generated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Generated At"
+          },
+          "latest_status": {
+            "default": "missing",
+            "title": "Latest Status",
+            "type": "string"
+          },
+          "latest_summary_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Summary Path"
+          },
+          "matrix_entry_count": {
+            "default": 0,
+            "title": "Matrix Entry Count",
+            "type": "integer"
+          },
+          "missing_scenarios": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Scenarios",
+            "type": "array"
+          },
+          "model_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Name"
+          },
+          "next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Next Actions",
+            "type": "array"
+          },
+          "passed_count": {
+            "default": 0,
+            "title": "Passed Count",
+            "type": "integer"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "scenario_count": {
+            "default": 0,
+            "title": "Scenario Count",
+            "type": "integer"
+          },
+          "schema_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schema Version"
+          },
+          "skipped_count": {
+            "default": 0,
+            "title": "Skipped Count",
+            "type": "integer"
+          },
+          "stale": {
+            "default": false,
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "stale_after_seconds": {
+            "default": 604800,
+            "title": "Stale After Seconds",
+            "type": "integer"
+          },
+          "summary_count": {
+            "default": 0,
+            "title": "Summary Count",
+            "type": "integer"
+          },
+          "warning_count": {
+            "default": 0,
+            "title": "Warning Count",
+            "type": "integer"
+          }
+        },
+        "title": "ProviderEvidenceSummaryResponse",
+        "type": "object"
+      },
       "RepositoryContextSnapshot": {
         "additionalProperties": false,
         "description": "Deterministic top-level repository summary for prompt context.",
@@ -2633,6 +2806,9 @@
           },
           "projection_health_counts": {
             "$ref": "#/components/schemas/ProjectionHealthCountsAggregateResponse"
+          },
+          "provider_evidence": {
+            "$ref": "#/components/schemas/ProviderEvidenceSummaryResponse"
           },
           "queue": {
             "anyOf": [

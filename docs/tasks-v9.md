@@ -854,7 +854,7 @@ The intended v9 milestone order is:
 
 ### GBX-962: Surface Provider Evidence In The Dashboard Cockpit
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-941`, `GBX-961`
 - Goal: make provider posture visible where operators decide whether to proceed
   with autonomous work
@@ -875,6 +875,13 @@ The intended v9 milestone order is:
 - Done when:
   - operators can see provider readiness before asking Glassbox to do longer
     autonomous work
+  - Completed by adding redacted provider evidence to the session aggregate API
+    and generated frontend types, rendering a read-only dashboard provider cue
+    with provider/model identity, advisory freshness, latest canary status, and
+    diagnostics/evidence command guidance, keeping provider attention below
+    approvals, questions, failures, projections, and runtime health, and adding
+    backend, OpenAPI, frontend component, typecheck, lint, and build coverage
+    for fresh, stale, missing, and warning provider states.
 
 ---
 

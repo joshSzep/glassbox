@@ -311,6 +311,14 @@ def test_get_sessions_aggregate_returns_priority_counts_and_runtime_summary(
                 "background_job_retryable_count": 0,
                 "background_job_abandoned_count": 0,
             }
+            assert body["provider_evidence"]["advisory"] is True
+            assert body["provider_evidence"]["latest_status"] == "missing"
+            assert body["provider_evidence"]["freshness_status"] == "missing"
+            assert body["provider_evidence"]["provider"] is None
+            assert body["provider_evidence"]["model_name"] is None
+            assert body["provider_evidence"]["next_actions"] == [
+                f"glassbox provider canary run --cwd {tmp_path}"
+            ]
             assert [item["session_id"] for item in body["sessions"]] == [
                 str(approval_state.session_id),
                 str(question_state.session_id),

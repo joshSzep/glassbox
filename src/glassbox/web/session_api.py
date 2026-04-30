@@ -5,10 +5,12 @@ from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel
+from pydantic import Field
 
 from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import ForkedSession
 from glassbox.runtime.context_builder import RuntimeContextSnapshot
+from glassbox.runtime.provider_canary import ProviderCanaryEvidenceSummary
 from glassbox.runtime.session_queries import SessionAggregateView
 from glassbox.runtime.session_queries import SessionSnapshotView
 from glassbox.runtime.session_queries import SessionSummaryView
@@ -279,6 +281,32 @@ class WorkspaceRuntimeSummaryResponse(BaseModel):
     background_job_abandoned_count: int = 0
 
 
+class ProviderEvidenceSummaryResponse(BaseModel):
+    advisory: bool = True
+    summary_count: int = 0
+    latest_summary_path: str | None = None
+    latest_generated_at: str | None = None
+    latest_status: str = "missing"
+    freshness_status: str = "missing"
+    freshness_policy_version: str = "provider-evidence-freshness.v1"
+    stale_after_seconds: int = 604800
+    schema_version: str | None = None
+    provider: str | None = None
+    model_name: str | None = None
+    configured_model_name: str | None = None
+    identity_matches_current_config: bool | None = None
+    diagnostics_state: str | None = None
+    scenario_count: int = 0
+    matrix_entry_count: int = 0
+    missing_scenarios: list[str] = Field(default_factory=list)
+    passed_count: int = 0
+    skipped_count: int = 0
+    warning_count: int = 0
+    failed_count: int = 0
+    stale: bool = False
+    next_actions: list[str] = Field(default_factory=list)
+
+
 class SessionAggregateResponse(BaseModel):
     queue: str | None
     status: str | None
@@ -287,6 +315,9 @@ class SessionAggregateResponse(BaseModel):
     queue_counts: SessionQueueCountsResponse
     projection_health_counts: ProjectionHealthCountsAggregateResponse
     runtime: WorkspaceRuntimeSummaryResponse
+    provider_evidence: ProviderEvidenceSummaryResponse = Field(
+        default_factory=ProviderEvidenceSummaryResponse
+    )
     sessions: list[OperatorSessionSummaryResponse]
 
 
@@ -366,6 +397,16 @@ def build_session_aggregate_response(
     """Serialize the operator-console aggregate response into HTTP payloads."""
 
     return SessionAggregateResponse.model_validate(aggregate.model_dump(mode="json"))
+
+
+def build_provider_evidence_summary_response(
+    evidence: ProviderCanaryEvidenceSummary,
+) -> ProviderEvidenceSummaryResponse:
+    """Serialize retained provider evidence for dashboard aggregate payloads."""
+
+    return ProviderEvidenceSummaryResponse.model_validate(
+        {"advisory": True, **evidence.model_dump(mode="json")}
+    )
 
 
 def build_session_snapshot_response(

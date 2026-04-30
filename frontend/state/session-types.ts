@@ -1,6 +1,7 @@
 import type { components } from "@/generated/api-types";
 
 export type ProjectionHealth = components["schemas"]["ProjectionHealthResponse"];
+export type ProviderEvidence = components["schemas"]["ProviderEvidenceSummaryResponse"];
 export type QueueCounts = components["schemas"]["SessionQueueCountsResponse"];
 export type ProjectionHealthCounts =
   components["schemas"]["ProjectionHealthCountsAggregateResponse"];
@@ -52,7 +53,15 @@ export type WorkspaceAttentionTarget =
 export type WorkspaceAttentionSummary = {
   actionLabel: string;
   detail: string;
-  kind: "approval" | "failure" | "healthy" | "job" | "projection" | "question" | "runtime";
+  kind:
+    | "approval"
+    | "failure"
+    | "healthy"
+    | "job"
+    | "projection"
+    | "provider"
+    | "question"
+    | "runtime";
   level: WorkspaceAttentionLevel;
   target: WorkspaceAttentionTarget;
   title: string;
@@ -106,6 +115,7 @@ export type DashboardState = SessionFields & {
   eventLog: EventLogEntry[];
   liveOutput: LiveOutputEntry[];
   projectionHealthCounts: ProjectionHealthCounts;
+  providerEvidence: ProviderEvidence;
   queueCounts: QueueCounts;
   runtimeSummary: RuntimeSummary;
   selectedQueue: string;

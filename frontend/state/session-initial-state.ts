@@ -1,6 +1,7 @@
 import type {
   DashboardState,
   ProjectionHealthCounts,
+  ProviderEvidence,
   QueueCounts,
   RuntimeSummary,
   SessionFields,
@@ -15,6 +16,7 @@ export function createDashboardState(): DashboardState {
     eventLog: [],
     liveOutput: [],
     projectionHealthCounts: createEmptyProjectionHealthCounts(),
+    providerEvidence: createEmptyProviderEvidence(),
     queueCounts: createEmptyQueueCounts(),
     runtimeSummary: createEmptyRuntimeSummary(),
     selectedQueue: "all",
@@ -44,6 +46,34 @@ export function createEmptyProjectionHealthCounts(): ProjectionHealthCounts {
     ok: 0,
     stale: 0,
     unavailable: 0,
+  };
+}
+
+export function createEmptyProviderEvidence(): ProviderEvidence {
+  return {
+    advisory: true,
+    configured_model_name: null,
+    diagnostics_state: null,
+    failed_count: 0,
+    freshness_policy_version: "provider-evidence-freshness.v1",
+    freshness_status: "missing",
+    identity_matches_current_config: null,
+    latest_generated_at: null,
+    latest_status: "missing",
+    latest_summary_path: null,
+    matrix_entry_count: 0,
+    missing_scenarios: [],
+    model_name: null,
+    next_actions: [],
+    passed_count: 0,
+    provider: null,
+    scenario_count: 0,
+    schema_version: null,
+    skipped_count: 0,
+    stale: false,
+    stale_after_seconds: 604800,
+    summary_count: 0,
+    warning_count: 0,
   };
 }
 

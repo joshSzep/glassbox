@@ -8,7 +8,7 @@ export function createHealthyWorkspaceAttentionSummary(): WorkspaceAttentionSumm
   return {
     actionLabel: "View workspace",
     detail:
-      "No approvals, questions, failures, degraded projections, or recovery cues need attention.",
+      "No approvals, questions, failures, degraded projections, or provider cues need attention.",
     kind: "healthy",
     level: "healthy",
     target: { kind: "none" },
@@ -131,7 +131,31 @@ export function buildWorkspaceAttentionSummary(data: DashboardState): WorkspaceA
     };
   }
 
+  if (providerNeedsAttention(data.providerEvidence.freshness_status)) {
+    return {
+      actionLabel: "Inspect provider",
+      detail: providerAttentionDetail(data.providerEvidence),
+      kind: "provider",
+      level: providerAttentionLevel(data.providerEvidence.freshness_status),
+      target: { command: "uv run glassbox provider canary evidence --cwd .", kind: "command" },
+      title: "Provider evidence advisory",
+    };
+  }
+
   return createHealthyWorkspaceAttentionSummary();
+}
+
+function providerNeedsAttention(freshnessStatus: string): boolean {
+  return freshnessStatus !== "fresh" && freshnessStatus !== "missing";
+}
+
+function providerAttentionLevel(freshnessStatus: string): "info" | "warning" {
+  return freshnessStatus === "credentialless" ? "info" : "warning";
+}
+
+function providerAttentionDetail(data: DashboardState["providerEvidence"]): string {
+  const model = data.model_name ?? data.configured_model_name ?? "current model";
+  return `Provider evidence is ${data.freshness_status} for ${model}; advisory only.`;
 }
 
 function findSession(

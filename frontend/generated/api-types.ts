@@ -1618,6 +1618,94 @@ export interface components {
       /** State */
       state: string;
     };
+    /** ProviderEvidenceSummaryResponse */
+    ProviderEvidenceSummaryResponse: {
+      /**
+       * Advisory
+       * @default true
+       */
+      advisory: boolean;
+      /** Configured Model Name */
+      configured_model_name?: string | null;
+      /** Diagnostics State */
+      diagnostics_state?: string | null;
+      /**
+       * Failed Count
+       * @default 0
+       */
+      failed_count: number;
+      /**
+       * Freshness Policy Version
+       * @default provider-evidence-freshness.v1
+       */
+      freshness_policy_version: string;
+      /**
+       * Freshness Status
+       * @default missing
+       */
+      freshness_status: string;
+      /** Identity Matches Current Config */
+      identity_matches_current_config?: boolean | null;
+      /** Latest Generated At */
+      latest_generated_at?: string | null;
+      /**
+       * Latest Status
+       * @default missing
+       */
+      latest_status: string;
+      /** Latest Summary Path */
+      latest_summary_path?: string | null;
+      /**
+       * Matrix Entry Count
+       * @default 0
+       */
+      matrix_entry_count: number;
+      /** Missing Scenarios */
+      missing_scenarios?: string[];
+      /** Model Name */
+      model_name?: string | null;
+      /** Next Actions */
+      next_actions?: string[];
+      /**
+       * Passed Count
+       * @default 0
+       */
+      passed_count: number;
+      /** Provider */
+      provider?: string | null;
+      /**
+       * Scenario Count
+       * @default 0
+       */
+      scenario_count: number;
+      /** Schema Version */
+      schema_version?: string | null;
+      /**
+       * Skipped Count
+       * @default 0
+       */
+      skipped_count: number;
+      /**
+       * Stale
+       * @default false
+       */
+      stale: boolean;
+      /**
+       * Stale After Seconds
+       * @default 604800
+       */
+      stale_after_seconds: number;
+      /**
+       * Summary Count
+       * @default 0
+       */
+      summary_count: number;
+      /**
+       * Warning Count
+       * @default 0
+       */
+      warning_count: number;
+    };
     /**
      * RepositoryContextSnapshot
      * @description Deterministic top-level repository summary for prompt context.
@@ -1864,6 +1952,7 @@ export interface components {
       /** Limit */
       limit: number | null;
       projection_health_counts: components["schemas"]["ProjectionHealthCountsAggregateResponse"];
+      provider_evidence?: components["schemas"]["ProviderEvidenceSummaryResponse"];
       /** Queue */
       queue: string | null;
       queue_counts: components["schemas"]["SessionQueueCountsResponse"];

@@ -41,6 +41,37 @@ export function makeRuntimeContext(
   };
 }
 
+export function makeProviderEvidence(
+  overrides: Partial<components["schemas"]["ProviderEvidenceSummaryResponse"]> = {},
+): components["schemas"]["ProviderEvidenceSummaryResponse"] {
+  return {
+    advisory: true,
+    configured_model_name: null,
+    diagnostics_state: null,
+    failed_count: 0,
+    freshness_policy_version: "provider-evidence-freshness.v1",
+    freshness_status: "missing",
+    identity_matches_current_config: null,
+    latest_generated_at: null,
+    latest_status: "missing",
+    latest_summary_path: null,
+    matrix_entry_count: 0,
+    missing_scenarios: [],
+    model_name: null,
+    next_actions: [],
+    passed_count: 0,
+    provider: null,
+    scenario_count: 0,
+    schema_version: null,
+    skipped_count: 0,
+    stale: false,
+    stale_after_seconds: 604800,
+    summary_count: 0,
+    warning_count: 0,
+    ...overrides,
+  };
+}
+
 export function makeSessionSummary(
   sessionId: string,
   overrides: Partial<components["schemas"]["OperatorSessionSummaryResponse"]> = {},
@@ -92,6 +123,7 @@ export function makeSessionAggregate(
   return {
     limit: null,
     projection_health_counts: { degraded: 0, ok: sessions.length, stale: 0, unavailable: 0 },
+    provider_evidence: makeProviderEvidence(),
     queue: "all",
     queue_counts: {
       action_needed: sessions.filter((session) => session.action_needed).length,
