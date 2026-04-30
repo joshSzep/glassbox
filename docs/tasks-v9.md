@@ -367,7 +367,7 @@ The intended v9 milestone order is:
 
 ### GBX-920: Add A First-Run Readiness Check
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-911`
 - Goal: give new operators one command that explains whether the local workspace
   can run a useful Glassbox session
@@ -391,6 +391,10 @@ The intended v9 milestone order is:
   - static asset validation tests
 - Done when:
   - an operator can run one readiness command and know what to do next
+  - Completed by adding `glassbox readiness check --cwd .` with human and JSON
+    output, reusable runtime readiness checks, focused tests for healthy,
+    missing-provider, missing-dashboard-assets, stale-index, failed-index, and
+    unwritable-state scenarios, and README/operator quickstart guidance.
 
 ### GBX-921: Improve First Chat Guidance And Dashboard Handoff
 

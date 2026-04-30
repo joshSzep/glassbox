@@ -11,6 +11,39 @@ from glassbox.cli.parser_common import _parse_uuid
 def _add_operations_parsers(
     subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
 ) -> None:
+    readiness_parser = subparsers.add_parser(
+        "readiness",
+        help="check first-run workspace readiness",
+        description=(
+            "Check whether a local workspace can run a useful first Glassbox "
+            "session and show next actions for warnings or failures."
+        ),
+    )
+    readiness_subparsers = readiness_parser.add_subparsers(
+        dest="readiness_command",
+        required=True,
+    )
+    readiness_check_parser = readiness_subparsers.add_parser(
+        "check",
+        help="run first-run readiness checks",
+        description=(
+            "Run redacted first-run checks for runtime dependencies, workspace "
+            "state, database bootstrap, provider posture, dashboard assets, "
+            "repository index posture, and tool policy."
+        ),
+    )
+    readiness_check_parser.add_argument(
+        "--model-name",
+        default=None,
+        help="model identifier to diagnose; overrides glassbox.profile.json",
+    )
+    readiness_check_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print first-run readiness as JSON",
+    )
+    _add_runtime_location_arguments(readiness_check_parser)
+
     job_parser = subparsers.add_parser(
         "job",
         help="inspect daemon background jobs",

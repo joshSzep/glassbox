@@ -1,5 +1,6 @@
 """Smoke tests for the minimal Glassbox CLI entrypoint."""
 
+import json
 import runpy
 import sys
 from pathlib import Path
@@ -53,6 +54,8 @@ def test_cli_command_tree_prints_command_tree(
     assert "inspect the Glassbox command surface" in captured.out
     assert "|   `-- tree  print the command tree" in captured.out
     assert "|-- observability" in captured.out
+    assert "|-- readiness" in captured.out
+    assert "check first-run workspace readiness" in captured.out
     assert "|-- autonomy" in captured.out
     assert "summarize runtime, projection, and verification health" in captured.out
     assert "|-- performance" in captured.out
@@ -216,6 +219,33 @@ def test_cli_provider_diagnostics_prints_first_run_checklist(
     assert "glassbox.profile.json" in captured.out
     assert "dashboard URL" in captured.out
     assert "commit-smoke" in captured.out
+
+
+def test_cli_readiness_check_prints_json_report(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = main(
+        [
+            "readiness",
+            "check",
+            "--cwd",
+            str(tmp_path),
+            "--model-name",
+            "local-test-model",
+            "--json",
+        ]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] in {"ready", "needs_attention"}
+    assert payload["workspace_root"] == str(tmp_path)
+    assert any(check["check_id"] == "database-bootstrap" for check in payload["checks"])
+    assert any(
+        check["check_id"] == "dashboard-static-assets" for check in payload["checks"]
+    )
 
 
 def test_python_module_entrypoint_prints_help(

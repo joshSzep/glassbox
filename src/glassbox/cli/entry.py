@@ -57,6 +57,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
     from glassbox.cli.memory_commands import _memory_command
     from glassbox.cli.observability_commands import _observability_command
     from glassbox.cli.provider_commands import _provider_command
+    from glassbox.cli.readiness_commands import _readiness_command
     from glassbox.cli.replay_eval_commands import _eval_command
     from glassbox.cli.replay_eval_commands import _replay_command
     from glassbox.cli.repository_commands import _repo_command
@@ -67,6 +68,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
 
     command_handlers: dict[str, CommandHandler] = {
         "command": _command_command,
+        "readiness": _readiness_command,
         "autonomy": _autonomy_command,
         "session": _session_command,
         "task": _task_command,

@@ -39,6 +39,12 @@ uv run glassbox --help
 python -m glassbox --help
 ```
 
+Check whether the workspace is ready for a useful first session:
+
+```bash
+uv run glassbox readiness check --cwd .
+```
+
 Start the default interactive workflow:
 
 ```bash

@@ -19,6 +19,18 @@ uv run glassbox --help
 uv run glassbox command tree
 ```
 
+Run the first-run readiness check before starting a session:
+
+```bash
+uv run glassbox readiness check --cwd .
+```
+
+The readiness report checks runtime imports, workspace and `.glassbox/`
+writability, SQLite bootstrap, provider posture, packaged dashboard assets,
+repository index freshness, and tool policy. Warnings include a concrete next
+command, and missing provider credentials do not block deterministic local
+smoke.
+
 ## 2. Configure An Optional Provider
 
 Glassbox can run deterministic local checks without live provider credentials.
