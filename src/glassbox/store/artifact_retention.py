@@ -44,6 +44,7 @@ class ArtifactGcEntry:
     content_sha256: str
     modified_at: datetime
     age_days: int
+    artifact_kind: str | None = None
 
     def with_action(self, action: str) -> ArtifactGcEntry:
         return ArtifactGcEntry(
@@ -55,6 +56,7 @@ class ArtifactGcEntry:
             content_sha256=self.content_sha256,
             modified_at=self.modified_at,
             age_days=self.age_days,
+            artifact_kind=self.artifact_kind,
         )
 
     def to_json_payload(self) -> dict[str, object]:
@@ -68,6 +70,7 @@ class ArtifactGcEntry:
             "content_sha256": self.content_sha256,
             "modified_at": self.modified_at.isoformat(),
             "age_days": self.age_days,
+            "artifact_kind": self.artifact_kind,
         }
 
     @property
@@ -283,13 +286,18 @@ def inspect_artifact_state(
 def _referenced_artifact_paths(
     root_dir: Path,
     repository: SessionRepository,
-) -> set[Path]:
-    referenced_paths: set[Path] = set()
+) -> dict[Path, str | None]:
+    referenced_paths: dict[Path, str | None] = {}
     for session in repository.list_sessions():
         for event in repository.read_session_events(session.session_id):
             payload = event.payload
-            if isinstance(payload, ToolArtifactRecorded | ReplayArtifactRecorded):
+            artifact_kind: str | None = None
+            if isinstance(payload, ToolArtifactRecorded):
                 artifact_path = payload.path
+                artifact_kind = payload.artifact_kind
+            elif isinstance(payload, ReplayArtifactRecorded):
+                artifact_path = payload.path
+                artifact_kind = payload.artifact_kind
             elif isinstance(payload, BackgroundJobFailed):
                 artifact_path = payload.artifact_path
             else:
@@ -298,19 +306,19 @@ def _referenced_artifact_paths(
                 continue
             relative_path = _normalize_artifact_path(root_dir, artifact_path)
             if relative_path is not None:
-                referenced_paths.add(relative_path)
+                referenced_paths[relative_path] = artifact_kind
     return referenced_paths
 
 
 def _protected_entries(
     root_dir: Path,
-    referenced_paths: Iterable[Path],
+    referenced_paths: dict[Path, str | None],
     *,
     now: datetime,
 ) -> tuple[list[ArtifactGcEntry], list[Path]]:
     protected: list[ArtifactGcEntry] = []
     missing_references: list[Path] = []
-    for relative_path in sorted(referenced_paths):
+    for relative_path, artifact_kind in sorted(referenced_paths.items()):
         absolute_path = root_dir / relative_path
         if not absolute_path.is_file():
             missing_references.append(relative_path)
@@ -323,6 +331,7 @@ def _protected_entries(
                 action=_KEEP_ACTION,
                 reason="referenced by canonical event log",
                 now=now,
+                artifact_kind=artifact_kind,
             )
         )
     return protected, missing_references
@@ -330,7 +339,7 @@ def _protected_entries(
 
 def _candidate_entries(
     root_dir: Path,
-    referenced_paths: set[Path],
+    referenced_paths: dict[Path, str | None],
     *,
     policy: ArtifactRetentionPolicy,
     now: datetime,
@@ -404,6 +413,7 @@ def _build_entry(
     action: str,
     reason: str,
     now: datetime,
+    artifact_kind: str | None = None,
 ) -> ArtifactGcEntry:
     content = absolute_path.read_bytes()
     modified_at = datetime.fromtimestamp(absolute_path.stat().st_mtime, UTC)
@@ -416,6 +426,7 @@ def _build_entry(
         content_sha256=hashlib.sha256(content).hexdigest(),
         modified_at=modified_at,
         age_days=max((now - modified_at).days, 0),
+        artifact_kind=artifact_kind,
     )
 
 

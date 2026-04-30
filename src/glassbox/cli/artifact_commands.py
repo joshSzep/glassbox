@@ -5,6 +5,7 @@ import argparse
 from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.runtime.bootstrap import open_runtime_context
+from glassbox.store.artifact_retention import ArtifactGcEntry
 from glassbox.store.artifact_retention import ArtifactGcReport
 from glassbox.store.artifact_retention import ArtifactRetentionPolicy
 from glassbox.store.artifact_retention import inspect_artifact_state
@@ -87,7 +88,7 @@ def _print_artifact_prune_report(
     for entry in entries:
         print(
             f"{action_label}: {entry.relative_path.as_posix()} "
-            f"[{entry.category}, {entry.size_bytes} bytes, "
+            f"[{_format_artifact_entry_tags(entry)}, {entry.size_bytes} bytes, "
             f"age {entry.age_days} day(s), sha256 {entry.content_sha256}]"
         )
         print(f"  Reason: {entry.reason}")
@@ -112,7 +113,7 @@ def _print_artifact_inspection_report(report: ArtifactGcReport) -> None:
     for entry in report.protected:
         print(
             f"Protected event-referenced: {entry.relative_path.as_posix()} "
-            f"[{entry.category}, {entry.size_bytes} bytes, "
+            f"[{_format_artifact_entry_tags(entry)}, {entry.size_bytes} bytes, "
             f"age {entry.age_days} day(s), sha256 {entry.content_sha256}]"
         )
         print(f"  Reason: {entry.reason}")
@@ -125,7 +126,7 @@ def _print_artifact_inspection_report(report: ArtifactGcReport) -> None:
         )
         print(
             f"{label}: {entry.relative_path.as_posix()} "
-            f"[{entry.category}, {entry.size_bytes} bytes, "
+            f"[{_format_artifact_entry_tags(entry)}, {entry.size_bytes} bytes, "
             f"age {entry.age_days} day(s), sha256 {entry.content_sha256}]"
         )
         print(f"  Reason: {entry.reason}")
@@ -170,3 +171,11 @@ def _format_category_counts(category_counts: dict[str, int]) -> str:
     return ", ".join(
         f"{category}={count}" for category, count in sorted(category_counts.items())
     )
+
+
+def _format_artifact_entry_tags(entry: ArtifactGcEntry) -> str:
+    category = entry.category
+    artifact_kind = entry.artifact_kind
+    if not artifact_kind:
+        return category
+    return f"{category}, kind {artifact_kind}"

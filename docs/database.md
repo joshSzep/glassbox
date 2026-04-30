@@ -461,6 +461,10 @@ operators can compare persisted metadata with local filesystem state during
 retention and recovery workflows. Replay manifests and bundles should remain
 redacted, versioned, and portable enough that deterministic replay can run
 offline without live provider credentials or ad hoc filesystem reconstruction.
+Command and test tool output artifacts use `tool_output_*` artifact kinds that
+encode whether the retained output is `partial` or `final`, `truncated` or
+`complete`, and `redacted` or `unredacted`; the JSON payload carries the same
+fields with stdout/stderr and execution-envelope metadata.
 
 Recommended layout:
 

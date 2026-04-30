@@ -1455,6 +1455,17 @@ def test_working_set_snapshot_prefers_explicit_signals_and_deduplicates_paths() 
             EventEnvelope(
                 session_id=session_id,
                 sequence=12,
+                payload=ToolArtifactRecorded(
+                    turn_id=turn_id,
+                    tool_call_id=new_tool_call_id(),
+                    artifact_id=new_artifact_id(),
+                    artifact_kind="tool_output_partial_truncated_unredacted",
+                    path=(f".glassbox/sessions/{session_id}/artifacts/output.json"),
+                ),
+            ),
+            EventEnvelope(
+                session_id=session_id,
+                sequence=13,
                 payload=ReplayArtifactRecorded(
                     turn_id=turn_id,
                     artifact_id=new_artifact_id(),
@@ -1527,6 +1538,7 @@ def test_working_set_snapshot_prefers_explicit_signals_and_deduplicates_paths() 
         ).summary
         == "recent test artifact"
     )
+    assert all("output.json" not in item.subject for item in working_set.items)
     assert (
         next(
             item for item in working_set.items if item.subject_kind == "branch"

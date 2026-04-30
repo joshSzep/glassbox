@@ -22,6 +22,7 @@ from glassbox.core.events import TurnCompleted
 from glassbox.core.events import TurnFailed
 from glassbox.core.events import TurnStarted
 from glassbox.core.events import TurnStatusChanged
+from glassbox.core.ids import ArtifactId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import new_recovery_decision_id
 from glassbox.core.models import MessagePart
@@ -47,6 +48,9 @@ from glassbox.tools.workflow import DIFF_SUMMARY_ARTIFACT_KIND
 from glassbox.tools.workflow import diff_summary_artifact_content
 
 logger = get_runtime_logger("turn_engine")
+
+TOOL_OUTPUT_ARTIFACT_KIND_PREFIX = "tool_output"
+TOOL_OUTPUT_ARTIFACT_SCHEMA_VERSION = 1
 
 
 class TurnEventRecorder:
@@ -527,6 +531,34 @@ class TurnEventRecorder:
         )
         self._event_bus.publish(stored_event)
 
+    def _record_tool_output_artifact_for_tool_execution(
+        self,
+        session_id,
+        *,
+        turn_id,
+        prepared_tool_call,
+        execution_result,
+    ) -> ArtifactId | None:
+        if self._artifact_repository is None:
+            return None
+        artifact_content = _tool_output_artifact_content(
+            prepared_tool_call.tool_name,
+            execution_result.output_payload,
+        )
+        if artifact_content is None:
+            return None
+        artifact_kind = _tool_output_artifact_kind(artifact_content)
+        stored_artifact, stored_event = self._artifact_repository.record_text_artifact(
+            session_id,
+            turn_id,
+            execution_result.event_tool_call_id,
+            artifact_kind,
+            json.dumps(artifact_content, indent=2, sort_keys=True) + "\n",
+            suffix="log.json",
+        )
+        self._event_bus.publish(stored_event)
+        return stored_artifact.artifact_id
+
     def _record_replay_turn_output(
         self,
         session_id,
@@ -545,3 +577,54 @@ class TurnEventRecorder:
             assistant_text=assistant_text,
             details=details,
         )
+
+
+def _tool_output_artifact_content(
+    tool_name: str,
+    output_payload: dict[str, object],
+) -> dict[str, object] | None:
+    if tool_name not in {"run_command", "run_tests"}:
+        return None
+    stdout = output_payload.get("stdout")
+    stderr = output_payload.get("stderr")
+    if not isinstance(stdout, str) and not isinstance(stderr, str):
+        return None
+
+    truncated = output_payload.get("truncated") is True
+    timed_out = output_payload.get("timed_out") is True
+    cancelled = output_payload.get("cancelled") is True
+    output_status = "partial" if timed_out or cancelled or truncated else "final"
+    payload: dict[str, object] = {
+        "artifact_kind": TOOL_OUTPUT_ARTIFACT_KIND_PREFIX,
+        "schema_version": TOOL_OUTPUT_ARTIFACT_SCHEMA_VERSION,
+        "tool_name": tool_name,
+        "output_status": output_status,
+        "truncated": truncated,
+        "redacted": False,
+        "stdout": stdout if isinstance(stdout, str) else "",
+        "stderr": stderr if isinstance(stderr, str) else "",
+    }
+    for key in (
+        "exit_code",
+        "timed_out",
+        "cancelled",
+        "failure_category",
+        "termination_signal",
+        "execution_envelope",
+    ):
+        if key in output_payload:
+            payload[key] = output_payload[key]
+    return payload
+
+
+def _tool_output_artifact_kind(artifact_content: dict[str, object]) -> str:
+    output_status = artifact_content.get("output_status")
+    truncated = artifact_content.get("truncated") is True
+    redacted = artifact_content.get("redacted") is True
+    status_suffix = output_status if isinstance(output_status, str) else "unknown"
+    truncation_suffix = "truncated" if truncated else "complete"
+    redaction_suffix = "redacted" if redacted else "unredacted"
+    return (
+        f"{TOOL_OUTPUT_ARTIFACT_KIND_PREFIX}_{status_suffix}_"
+        f"{truncation_suffix}_{redaction_suffix}"
+    )

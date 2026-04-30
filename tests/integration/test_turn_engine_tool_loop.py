@@ -513,6 +513,19 @@ def test_turn_engine_records_failed_command_result_for_replay(tmp_path: Path) ->
                 if isinstance(event.payload, ReplayArtifactRecorded)
                 and event.payload.path is not None
             ]
+            output_artifact_events = [
+                event.payload
+                for event in repository.read_session_events(state.session_id)
+                if isinstance(event.payload, ToolArtifactRecorded)
+                and event.payload.artifact_kind.startswith("tool_output_")
+            ]
+            output_artifacts = [
+                json.loads(
+                    artifact_repository.read_text_artifact(Path(event.path or ""))
+                )
+                for event in output_artifact_events
+            ]
+            tool_attempts = repository.list_tool_attempts(state.session_id)
         finally:
             connection.close()
 
@@ -540,6 +553,19 @@ def test_turn_engine_records_failed_command_result_for_replay(tmp_path: Path) ->
             == "execution_error"
         )
         assert tool_result_manifests[0]["output_payload"]["exit_code"] == 7
+        assert len(output_artifact_events) == 1
+        assert (
+            output_artifact_events[0].artifact_kind
+            == "tool_output_final_complete_unredacted"
+        )
+        assert output_artifacts[0]["output_status"] == "final"
+        assert output_artifacts[0]["truncated"] is False
+        assert output_artifacts[0]["redacted"] is False
+        assert output_artifacts[0]["exit_code"] == 7
+        assert len(tool_attempts) == 1
+        assert (
+            tool_attempts[0].output_artifact_id == output_artifact_events[0].artifact_id
+        )
 
     asyncio.run(scenario())
 

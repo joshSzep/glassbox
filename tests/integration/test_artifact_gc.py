@@ -101,6 +101,7 @@ def test_artifact_inspect_reports_without_deleting_files(
         f"Protected event-referenced: {protected_path.relative_to(tmp_path).as_posix()}"
         in captured.out
     )
+    assert "kind tool_log" in captured.out
     assert (
         f"Orphaned reclaimable: {orphan_path.relative_to(tmp_path).as_posix()}"
         in captured.out
@@ -160,6 +161,7 @@ def test_artifact_inspect_json_reports_hashes_and_missing_references(
         "orphaned": 1,
         "reclaimable": 1,
     }
+    assert payload["protected"] == []
     assert payload["next_actions"][0].startswith(
         "inspect missing event-referenced artifacts"
     )

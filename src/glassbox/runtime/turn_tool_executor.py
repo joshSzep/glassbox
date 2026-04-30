@@ -22,6 +22,7 @@ from glassbox.core.events import ToolOutputStream
 from glassbox.core.events import TurnCompleted
 from glassbox.core.events import TurnStatusChanged
 from glassbox.core.events import UserQuestionAsked
+from glassbox.core.ids import ArtifactId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import new_approval_id
 from glassbox.core.ids import new_question_id
@@ -98,6 +99,15 @@ class TurnToolExecutorHooks(Protocol):
         prepared_tool_call,
         execution_result,
     ) -> None: ...
+
+    def _record_tool_output_artifact_for_tool_execution(
+        self,
+        session_id,
+        *,
+        turn_id,
+        prepared_tool_call,
+        execution_result,
+    ) -> ArtifactId | None: ...
 
 
 class TurnToolExecutor:
@@ -479,6 +489,14 @@ class TurnToolExecutor:
                 ],
             )
 
+        output_artifact_id = (
+            self._hooks._record_tool_output_artifact_for_tool_execution(
+                session_id,
+                turn_id=turn_id,
+                prepared_tool_call=prepared_tool_call,
+                execution_result=execution_result,
+            )
+        )
         self._hooks._append_and_publish(
             session_id,
             [
@@ -497,6 +515,7 @@ class TurnToolExecutor:
                     tool_call_id=execution_result.event_tool_call_id,
                     tool_name=prepared_tool_call.tool_name,
                     message=cancellation_summary or execution_result.summary,
+                    output_artifact_id=output_artifact_id,
                     safe_to_retry=(
                         False
                         if execution_result.success or cancellation_summary is not None

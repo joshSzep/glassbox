@@ -766,7 +766,7 @@ The intended v10 milestone order is:
 
 ### GBX-1041: Preserve Partial Tool Output As Managed Artifacts
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1040`
 - Goal: ensure long command and test runs leave useful partial evidence even
   when interrupted or truncated
@@ -788,6 +788,16 @@ The intended v10 milestone order is:
   - artifact retention tests
 - Done when:
   - interrupted long tools leave enough evidence to diagnose or retry safely
+- Completed:
+  - Command and test tool executions now persist managed `tool_output_*`
+    artifacts containing stdout/stderr, execution-envelope metadata, integrity
+    metadata, and final/partial, complete/truncated, redacted/unredacted
+    posture.
+  - Terminal `ToolAttemptHeartbeat` events reference the output artifact ID so
+    the `tool_attempts` projection links attempts to retained evidence.
+  - `glassbox artifacts inspect` and JSON output include referenced artifact
+    kind metadata, making partial/final/truncated/redaction posture visible in
+    artifact inspection and retention workflows.
 
 ### GBX-1042: Add Safe-To-Retry And Resume Classification
 

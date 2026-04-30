@@ -25,8 +25,12 @@ uv run glassbox session status SESSION_ID --cwd .
 
 `session status` prints recent attempts after recent tool activity so operators
 can see whether a long tool is active, failed, cancelled, stale, or already
-completed. GBX-1041 adds partial-output artifacts, and GBX-1042/GBX-1043 add
-safe-to-retry classification and recovery actions.
+completed. Command and test attempts also retain managed `tool_output_*`
+artifacts with stdout/stderr evidence. The artifact kind and payload distinguish
+`partial` versus `final`, `truncated` versus `complete`, and `redacted` versus
+`unredacted` output; terminal attempt heartbeats point at the output artifact ID
+when one is recorded. GBX-1042/GBX-1043 add safe-to-retry classification and
+recovery actions.
 
 Replay evals include `ToolAttemptHeartbeat` in long-run evidence, but generated
 tool-attempt, tool-call, and turn UUIDs are canonicalized before comparison.

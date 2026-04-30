@@ -99,7 +99,11 @@ def build_working_set_snapshot(
                 recency_offset=recency_offset,
             )
             continue
-        if isinstance(payload, ToolArtifactRecorded) and payload.path:
+        if (
+            isinstance(payload, ToolArtifactRecorded)
+            and payload.path
+            and _include_artifact_in_working_set(payload.artifact_kind)
+        ):
             register_candidate(
                 subject_kind="artifact",
                 subject=payload.path,
@@ -268,6 +272,10 @@ def _artifact_summary(artifact_kind: str) -> str:
     if "test" in artifact_kind.casefold() or "pytest" in artifact_kind.casefold():
         return "recent test artifact"
     return "recent artifact"
+
+
+def _include_artifact_in_working_set(artifact_kind: str) -> bool:
+    return not artifact_kind.startswith("tool_output_")
 
 
 def _approval_reason(approval: ApprovalRecord) -> str:
