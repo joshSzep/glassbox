@@ -146,6 +146,12 @@ path.
 - [v9-release-gate.md](./v9-release-gate.md): v9 automated release gate,
   onboarding/package/provider/eval stage map, evidence summary shape, advisory
   provider-canary policy, and pass/fail rules
+- [manual-v9-release-validation.md](./manual-v9-release-validation.md): retained
+  GBX-992 manual validation pass for first-run, dashboard cockpit, recovery,
+  provider, package, accessibility, residual-risk, and go/no-go evidence
+- [manual-qa-evidence-v9.md](./manual-qa-evidence-v9.md): v9 manual evidence
+  directory convention, checklist template, accessibility pairing rules,
+  retention policy, and redaction rules
 - [v9-dogfooding-summary.md](./v9-dogfooding-summary.md): sanitized GBX-981
   real-repository dogfooding pass summaries, friction findings, and candidate
   GBX-982 fixes/contracts

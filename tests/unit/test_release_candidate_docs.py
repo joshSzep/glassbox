@@ -464,6 +464,46 @@ def test_v9_release_gate_doc_covers_automated_evidence_contract() -> None:
     assert "v9-release-gate.md" in docs_readme
 
 
+def test_v9_manual_validation_docs_cover_accessibility_and_residual_risks() -> None:
+    manual = (REPO_ROOT / "docs" / "manual-v9-release-validation.md").read_text(
+        encoding="utf-8"
+    )
+    archive = (REPO_ROOT / "docs" / "manual-qa-evidence-v9.md").read_text(
+        encoding="utf-8"
+    )
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        ".glassbox/releases/gbx-992-manual-evidence/",
+        "First-run readiness",
+        "Chat startup summary",
+        "Dashboard cockpit",
+        "Task evidence drill-down",
+        "Recovery cues",
+        "Provider evidence cues",
+        "Package smoke",
+        "Named Accessibility Pairings",
+        "Non-claims",
+        "Browser-rendered dashboard keyboard and mobile evidence is blocked",
+        "Provisional go",
+    ):
+        assert required_text in manual
+
+    for required_text in (
+        "## Directory Convention",
+        "## Manual Validation Manifest",
+        "First-run readiness",
+        "Dashboard Cockpit Checklist",
+        "Named Accessibility Pairings",
+        "## Redaction Rules",
+        "## Accessibility Claims Rule",
+    ):
+        assert required_text in archive
+
+    assert "manual-v9-release-validation.md" in docs_readme
+    assert "manual-qa-evidence-v9.md" in docs_readme
+
+
 def test_provider_docs_define_v9_evidence_freshness_contract() -> None:
     content = (REPO_ROOT / "docs" / "providers.md").read_text(encoding="utf-8")
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")

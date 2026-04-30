@@ -1153,7 +1153,7 @@ The intended v9 milestone order is:
 
 ### GBX-992: Complete v9 Manual Validation And Accessibility Evidence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-941`, `GBX-943`, `GBX-991`
 - Goal: retain human evidence for first-run, dashboard cockpit, recovery, and
   real-use workflows that automated tests cannot fully prove
@@ -1179,6 +1179,15 @@ The intended v9 milestone order is:
 - Done when:
   - v9 has human evidence for the workflows where onboarding, UI priority, and
     recovery need actual operator judgment
+  - Completed by adding
+    [manual-v9-release-validation.md](./manual-v9-release-validation.md) and
+    [manual-qa-evidence-v9.md](./manual-qa-evidence-v9.md). The retained local
+    evidence path is `.glassbox/releases/gbx-992-manual-evidence/`; the
+    committed summary records first-run readiness, plain chat startup,
+    dashboard cockpit component evidence, provider freshness/recommendation
+    posture, recovery checks, package smoke inheritance, named accessibility
+    pairings, explicit browser/screen-reader non-claims, residual risks, and a
+    provisional go recommendation for `GBX-993`.
 
 ### GBX-993: Publish v9 Release-Candidate Guide
 
