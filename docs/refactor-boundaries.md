@@ -409,7 +409,10 @@ The `web` package should not own the canonical logic for deriving session summar
 - routes should focus on HTTP concerns
 - shared runtime query code should provide session snapshot composition
 - transport-specific response models may wrap query-domain models, but should not redefine the business logic that produces them
-- the session route transport split now keeps HTTP request/response models and view serializers in `src/glassbox/web/session_api.py`, leaving `web/routes/sessions.py` focused on parameter validation, service calls, and HTTP error mapping
+- the session route transport split keeps `src/glassbox/web/session_api.py` as
+  the stable compatibility import surface while request/response model families
+  and serializers live in focused `session_api_*` modules for common detail
+  pages, actions, selected-session snapshots, operator aggregates, and builders
 - v10 session-route helpers should own HTTP-local query composition for
   aggregate, snapshot, transcript, event log, tool calls, metrics,
   checkpoints, compactions, artifacts, and runtime summary reads while route

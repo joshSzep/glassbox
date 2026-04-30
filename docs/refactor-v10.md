@@ -529,7 +529,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R322: Split Session API Response Models By Surface
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R320`
 - Goal: reduce [session_api.py](../src/glassbox/web/session_api.py) by grouping
   response models and builders by selected-session snapshot, session aggregate,
@@ -553,6 +553,16 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - session API response models are easier to navigate without changing the
     contract consumed by the frontend
+- Completed notes:
+  - `session_api.py` now remains a compatibility facade that re-exports the
+    stable response models and builder functions used by routes and tests.
+  - Shared detail-page and diagnostic models live in `session_api_common.py`;
+    action request/response models live in `session_api_actions.py`;
+    selected-session snapshot and summary models live in
+    `session_api_snapshot.py`; operator aggregate models live in
+    `session_api_aggregate.py`; serializers live in `session_api_builders.py`.
+  - Regenerated API artifacts were unchanged, preserving the frontend OpenAPI
+    contract.
 
 ---
 
