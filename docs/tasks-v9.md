@@ -651,7 +651,7 @@ The intended v9 milestone order is:
 
 ### GBX-943: Add Dashboard Recovery And Maintenance Cues
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-941`
 - Goal: bring common recovery guidance into the dashboard without making it a
   dangerous maintenance console
@@ -674,6 +674,12 @@ The intended v9 milestone order is:
 - Done when:
   - the dashboard helps operators recover local state without hiding the
     underlying command authority
+  - Completed by adding read-only dashboard recovery cues to the workspace
+    overview. The cues surface daemon/runtime posture, projection health,
+    failed or retryable background jobs, repository index freshness checks,
+    artifact pressure inspection, invalid-memory review, and provider canary
+    evidence freshness using safe CLI command text only; no mutating recovery
+    action is exposed from the panel.
 
 ---
 

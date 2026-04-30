@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { DataList, DataListItem, DataListLabel, DataListMeta } from "@/components/ui/data-list";
 import { QueueNavigation } from "@/components/console/workspace-overview/queue-navigation";
 import { queueDescriptor } from "@/components/console/workspace-overview/queue-descriptors";
+import { RecoveryCues } from "@/components/console/workspace-overview/recovery-cues";
 import { SessionAttentionRows } from "@/components/console/workspace-overview/session-attention-rows";
 import { StatePanel } from "@/components/console/workspace-overview/state-panel";
 import { WorkspaceAttentionSummary } from "@/components/console/workspace-overview/workspace-attention-summary";
@@ -69,6 +70,7 @@ export function WorkspaceOverview({
               selectedQueue={selectedQueue}
             />
             <WorkspaceMetricsSnapshot data={data} selectedQueue={selectedQueue} />
+            <RecoveryCues data={data} />
           </aside>
 
           <section className="flex min-w-0 flex-col gap-4">

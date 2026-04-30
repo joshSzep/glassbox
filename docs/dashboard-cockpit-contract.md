@@ -219,5 +219,9 @@ cancellation, and artifact or command-output references, then links each loaded
 cue back to the retained task event row instead of duplicating the full event
 log.
 
-`GBX-943` should add read-only recovery and maintenance cues first, with
-mutating actions remaining explicit, confirmed, and backend-policy checked.
+`GBX-943` adds read-only recovery and maintenance cues to the workspace
+overview. The first panel surfaces daemon/runtime posture, projection health,
+failed or retryable background jobs, repository index freshness checks,
+artifact pressure inspection, invalid-memory review, and provider canary
+evidence freshness using safe CLI command text only. It deliberately exposes no
+mutating recovery action.

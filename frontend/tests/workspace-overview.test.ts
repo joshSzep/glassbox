@@ -64,6 +64,13 @@ describe("workspace overview console", () => {
     expect(markup).toContain("Queue timing");
     expect(markup).toContain("Action waits");
     expect(markup).toContain("Projection pressure");
+    expect(markup).toContain("Recovery Cues");
+    expect(markup).toContain("Background jobs");
+    expect(markup).toContain("uv run glassbox job list --state failed --cwd .");
+    expect(markup).toContain("Repository index");
+    expect(markup).toContain("uv run glassbox repo index status --cwd .");
+    expect(markup).toContain("Artifact pressure");
+    expect(markup).toContain("Provider evidence");
     expect(markup).toContain("/tmp/glassbox");
     expect(markup).toContain("approval-session");
     expect(markup).toContain("Approve command execution");
@@ -113,6 +120,9 @@ describe("workspace overview console", () => {
       "2 projection alerts",
     );
     expect(renderOverview(degradedState, "loaded", null, "degraded")).toContain("stale");
+    expect(renderOverview(degradedState, "loaded", null, "degraded")).toContain(
+      "uv run glassbox projection check --all --cwd .",
+    );
   });
 
   it("renders route-aware status rail context and stream states", () => {
@@ -164,6 +174,9 @@ describe("workspace overview console", () => {
       }),
     );
     expect(renderOverview(degradedRuntime, "loaded", null, "all")).toContain("runtime degraded");
+    expect(renderOverview(degradedRuntime, "loaded", null, "all")).toContain(
+      "uv run glassbox daemon status --cwd .",
+    );
 
     const missingProjection = hydrateSessionAggregate(
       createDashboardState(),
