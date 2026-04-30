@@ -31,6 +31,11 @@ def _column_names(connection: sqlite3.Connection, table_name: str) -> set[str]:
     return {row[1] for row in rows}
 
 
+def _primary_key_columns(connection: sqlite3.Connection, table_name: str) -> list[str]:
+    rows = connection.execute(f"pragma table_info({table_name})").fetchall()
+    return [row[1] for row in sorted(rows, key=lambda row: row[5]) if row[5]]
+
+
 def _migration_rows(connection: sqlite3.Connection) -> list[sqlite3.Row]:
     return connection.execute(
         "select version, name from schema_migrations order by version"
@@ -38,7 +43,7 @@ def _migration_rows(connection: sqlite3.Connection) -> list[sqlite3.Row]:
 
 
 def _expected_migration_versions() -> list[int]:
-    return [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, SCHEMA_VERSION]
+    return [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, SCHEMA_VERSION]
 
 
 def _expected_migration_names() -> list[str]:
@@ -55,6 +60,7 @@ def _expected_migration_names() -> list[str]:
         "add branch search projection tables",
         "add long-run event correlations and projection",
         "add task checkpoint projection table",
+        "scope task checkpoint projection key by session",
     ]
 
 
@@ -384,6 +390,52 @@ def test_initialize_database_normalizes_legacy_current_version_stamp(
     assert "checkpoint_id" in event_columns
 
 
+def test_initialize_database_migrates_checkpoint_projection_key(
+    tmp_path: Path,
+) -> None:
+    connection = open_database(tmp_path / "glassbox.sqlite3")
+    try:
+        with connection:
+            connection.execute(
+                """
+                create table task_checkpoints (
+                    checkpoint_id text primary key,
+                    session_id text not null,
+                    task_id text,
+                    turn_id text,
+                    tool_attempt_id text,
+                    compaction_id text,
+                    artifact_id text,
+                    objective text not null,
+                    current_phase text,
+                    completed_step text,
+                    next_action text not null,
+                    blockers_json text not null,
+                    touched_files_json text not null,
+                    verification_status text,
+                    budget_status text,
+                    recovery_guidance text not null,
+                    source_start_sequence integer not null,
+                    source_end_sequence integer not null,
+                    created_at text not null,
+                    last_sequence integer not null
+                )
+                """
+            )
+
+        initialize_database(connection)
+        primary_key_columns = _primary_key_columns(connection, "task_checkpoints")
+        indexes = _index_names(connection)
+        migration_rows = _migration_rows(connection)
+    finally:
+        connection.close()
+
+    assert primary_key_columns == ["session_id", "checkpoint_id"]
+    assert "idx_task_checkpoints_session_sequence" in indexes
+    assert "idx_task_checkpoints_task_sequence" in indexes
+    assert [row[0] for row in migration_rows] == _expected_migration_versions()
+
+
 def test_initialize_database_rejects_newer_schema_version(tmp_path: Path) -> None:
     connection = open_database(tmp_path / "glassbox.sqlite3")
     try:
@@ -426,5 +478,6 @@ def test_migrations_are_ordered_to_current_schema_version() -> None:
         11,
         12,
         13,
+        14,
         SCHEMA_VERSION,
     ]

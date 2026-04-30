@@ -30,6 +30,7 @@ from glassbox.web.session_api import ForkSessionResponse
 from glassbox.web.session_api import PageInfoResponse
 from glassbox.web.session_api import SessionAggregateResponse
 from glassbox.web.session_api import SessionArtifactPageResponse
+from glassbox.web.session_api import SessionCheckpointPageResponse
 from glassbox.web.session_api import SessionEventLogPageResponse
 from glassbox.web.session_api import SessionSnapshotResponse
 from glassbox.web.session_api import SessionSummaryResponse
@@ -38,6 +39,7 @@ from glassbox.web.session_api import SessionTranscriptPageResponse
 from glassbox.web.session_api import SessionTurnMetricsPageResponse
 from glassbox.web.session_api import SubmitSessionAnswerRequest
 from glassbox.web.session_api import SubmitSessionMessageRequest
+from glassbox.web.session_api import TaskCheckpointResponse
 from glassbox.web.session_api import ToolCallResponse
 from glassbox.web.session_api import TranscriptMessageResponse
 from glassbox.web.session_api import TurnMetricsResponse
@@ -414,6 +416,42 @@ async def get_session_turn_metrics_page(
         ),
         items=[
             TurnMetricsResponse.model_validate(item.model_dump(mode="json"))
+            for item in items
+        ],
+    )
+
+
+@router.get(
+    "/{session_id}/checkpoints",
+    response_model=SessionCheckpointPageResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def get_session_checkpoint_page(
+    session_id: UUID,
+    context: RuntimeContextDep,
+    cursor: PageCursorParam = 0,
+    limit: PageLimitParam = 100,
+) -> SessionCheckpointPageResponse:
+    """Return a bounded page of projected task/session checkpoints."""
+
+    _ensure_session_exists(session_id, context)
+    rows = context.repositories.sessions.list_task_checkpoints(
+        session_id,
+        limit=limit + 1,
+        offset=cursor,
+    )
+    items = rows[:limit]
+    next_cursor = cursor + len(items) if len(rows) > limit else None
+    return SessionCheckpointPageResponse(
+        session_id=str(session_id),
+        page=_page_info(
+            cursor=cursor,
+            limit=limit,
+            returned_count=len(items),
+            next_cursor=next_cursor,
+        ),
+        items=[
+            TaskCheckpointResponse.model_validate(item.model_dump(mode="json"))
             for item in items
         ],
     )

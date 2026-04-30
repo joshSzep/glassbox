@@ -50,6 +50,34 @@ GET /tasks/TASK_ID/events?cursor=0&limit=100
 
 Scoped task list pages and task detail pages include projection health so stale or degraded projections remain visible to operators. These routes are read-only and intentionally do not expose continuation, approval, resume, or cancellation controls.
 
+## Checkpoint Handoff
+
+v10 checkpoints are durable task or session progress records. They are not a
+replacement for canonical events, but they give operators the concise "where we
+are and what comes next" state needed before reopening a long task.
+
+Use session status for the fastest terminal read:
+
+```bash
+uv run glassbox session status SESSION_ID --cwd .
+```
+
+When a checkpoint exists, status prints the objective, current phase, last
+completed step, next action, blockers, and source event range. The dashboard and
+API read the same projection through the session snapshot and checkpoint page:
+
+```bash
+GET /sessions/SESSION_ID
+GET /sessions/SESSION_ID/checkpoints?cursor=0&limit=100
+```
+
+Session exports include a redacted latest checkpoint in the handoff block,
+checkpoint-history projection summaries, and canonical checkpoint event
+references. Inspect-mode imports replay those checkpoint events into the local
+imported session so `task_checkpoints` can rebuild, but the imported session
+remains completed and non-resumable until a later v10 task defines custody
+transfer.
+
 ## Proposal Capture
 
 During a turn, the model may propose durable task state by including one fenced JSON block in its assistant response:

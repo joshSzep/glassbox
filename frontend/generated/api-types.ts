@@ -535,6 +535,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/sessions/{session_id}/checkpoints": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Session Checkpoint Page
+     * @description Return a bounded page of projected task/session checkpoints.
+     */
+    get: operations["get_session_checkpoint_page_sessions__session_id__checkpoints_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/sessions/{session_id}/event-log": {
     parameters: {
       query?: never;
@@ -1489,6 +1509,7 @@ export interface components {
       historical_only: boolean;
       /** Last Sequence */
       last_sequence: number;
+      latest_checkpoint?: components["schemas"]["TaskCheckpointResponse"] | null;
       /** Latest Fork Point Sequence */
       latest_fork_point_sequence: number | null;
       /** Latest Fork Point Turn Id */
@@ -1973,6 +1994,14 @@ export interface components {
       /** Session Id */
       session_id: string;
     };
+    /** SessionCheckpointPageResponse */
+    SessionCheckpointPageResponse: {
+      /** Items */
+      items: components["schemas"]["TaskCheckpointResponse"][];
+      page: components["schemas"]["PageInfoResponse"];
+      /** Session Id */
+      session_id: string;
+    };
     /** SessionEventLogPageResponse */
     SessionEventLogPageResponse: {
       /** Items */
@@ -2020,6 +2049,8 @@ export interface components {
       budget_posture?: components["schemas"]["AutonomyBudgetPostureRecord"] | null;
       /** Can Fork */
       can_fork: boolean;
+      /** Checkpoint History */
+      checkpoint_history: components["schemas"]["TaskCheckpointResponse"][];
       /** Child Sessions */
       child_sessions: components["schemas"]["ChildSessionSummaryResponse"][];
       /**
@@ -2042,6 +2073,7 @@ export interface components {
       forked_from_turn_id: string | null;
       /** Last Sequence */
       last_sequence: number;
+      latest_checkpoint?: components["schemas"]["TaskCheckpointResponse"] | null;
       /** Latest Fork Point Sequence */
       latest_fork_point_sequence: number | null;
       /** Latest Fork Point Turn Id */
@@ -2113,6 +2145,7 @@ export interface components {
       forked_from_turn_id: string | null;
       /** Last Sequence */
       last_sequence: number;
+      latest_checkpoint?: components["schemas"]["TaskCheckpointResponse"] | null;
       /** Latest Fork Point Sequence */
       latest_fork_point_sequence: number | null;
       /** Latest Fork Point Turn Id */
@@ -2221,6 +2254,52 @@ export interface components {
       mode: components["schemas"]["AutonomyMode"];
       /** Reason */
       reason?: string | null;
+    };
+    /** TaskCheckpointResponse */
+    TaskCheckpointResponse: {
+      /** Artifact Id */
+      artifact_id?: string | null;
+      /** Blockers */
+      blockers: string[];
+      /** Budget Status */
+      budget_status?: string | null;
+      /** Checkpoint Id */
+      checkpoint_id: string;
+      /** Compaction Id */
+      compaction_id?: string | null;
+      /** Completed Step */
+      completed_step?: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Current Phase */
+      current_phase?: string | null;
+      /** Last Sequence */
+      last_sequence: number;
+      /** Next Action */
+      next_action: string;
+      /** Objective */
+      objective: string;
+      /** Recovery Guidance */
+      recovery_guidance: string;
+      /** Session Id */
+      session_id: string;
+      /** Source End Sequence */
+      source_end_sequence: number;
+      /** Source Start Sequence */
+      source_start_sequence: number;
+      /** Task Id */
+      task_id?: string | null;
+      /** Tool Attempt Id */
+      tool_attempt_id?: string | null;
+      /** Touched Files */
+      touched_files: string[];
+      /** Turn Id */
+      turn_id?: string | null;
+      /** Verification Status */
+      verification_status?: string | null;
     };
     /** TaskContinueRequest */
     TaskContinueRequest: {
@@ -3829,6 +3908,49 @@ export interface operations {
       };
       /** @description Conflict */
       409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_session_checkpoint_page_sessions__session_id__checkpoints_get: {
+    parameters: {
+      query?: {
+        cursor?: number;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SessionCheckpointPageResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
         headers: {
           [name: string]: unknown;
         };

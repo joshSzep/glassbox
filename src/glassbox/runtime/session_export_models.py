@@ -8,6 +8,7 @@ from pydantic import ConfigDict
 from pydantic import Field
 
 from glassbox.core.ids import SessionId
+from glassbox.core.ids import TaskCheckpointId
 from glassbox.core.ids import TaskId
 from glassbox.core.ids import TaskStepId
 from glassbox.core.ids import TaskVerificationId
@@ -18,6 +19,7 @@ from glassbox.core.models import BranchSearchRecord
 from glassbox.core.models import MessagePart
 from glassbox.core.models import MessageRole
 from glassbox.core.models import PolicyDecisionTrace
+from glassbox.core.models import TaskCheckpointRecord
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TurnMetricsRecord
 from glassbox.runtime.session_queries import BranchableTurnView
@@ -82,6 +84,7 @@ class SessionExportHandoff(BaseModel):
     pending_question_text: str | None = None
     session_failure_message: str | None = None
     session_failure_retryable: bool | None = None
+    latest_checkpoint: TaskCheckpointRecord | None = None
     historical_only: bool
     live_actionable: bool
 
@@ -176,6 +179,19 @@ class SessionExportTaskEventReference(BaseModel):
     payload: dict[str, object]
 
 
+class SessionExportCheckpointEventReference(BaseModel):
+    """Canonical checkpoint event reference retained for checkpoint rebuild."""
+
+    model_config = ConfigDict(extra="forbid")
+    sequence: int = Field(ge=0)
+    event_type: str
+    created_at: datetime
+    checkpoint_id: TaskCheckpointId
+    task_id: TaskId | None = None
+    turn_id: str | None = None
+    payload: dict[str, object]
+
+
 class SessionExportBranchSearchSummary(BaseModel):
     """Portable branch-search summary for operator handoff."""
 
@@ -225,6 +241,10 @@ class SessionExportPayload(BaseModel):
         default_factory=list
     )
     task_event_references: list[SessionExportTaskEventReference] = Field(
+        default_factory=list
+    )
+    checkpoint_history: list[TaskCheckpointRecord] = Field(default_factory=list)
+    checkpoint_event_references: list[SessionExportCheckpointEventReference] = Field(
         default_factory=list
     )
     branch_search_summaries: list[SessionExportBranchSearchSummary] = Field(

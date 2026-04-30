@@ -101,6 +101,11 @@ Replay normalization includes these long-run event families so future
 deterministic cases can compare the durable lifecycle record without treating
 projections as authority.
 
+Checkpoint inspection is available through `glassbox session status`, the
+session snapshot API, the paginated `/sessions/{session_id}/checkpoints` API,
+and session export/import packages. Exported checkpoint text is redacted with
+the same workspace-path and secret filters as transcript and task handoff data.
+
 ## Incomplete-Turn Recovery Semantics
 
 Turns that have started but lack a terminal event are no longer treated as

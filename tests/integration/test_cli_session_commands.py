@@ -14,9 +14,12 @@ from glassbox.core.events import EventEnvelope
 from glassbox.core.events import RuntimeNoteRecorded
 from glassbox.core.events import SessionCompleted
 from glassbox.core.events import SessionFailed
+from glassbox.core.events import TaskCheckpointCreated
 from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import new_approval_id
+from glassbox.core.ids import new_task_checkpoint_id
 from glassbox.core.types import ApprovalDecision
+from glassbox.core.types import LongRunPhase
 from glassbox.runtime.context_builder import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
 from glassbox.runtime.context_builder import PytestFailureDigestArtifact
 from glassbox.store.repositories import FilesystemArtifactRepository
@@ -1006,6 +1009,57 @@ def test_cli_status_prints_human_session_summary(
         "Latest message: assistant: I received your request: Inspect the repository"
         in captured.out
     )
+
+
+def test_cli_status_includes_latest_checkpoint(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=TaskCheckpointCreated(
+                    checkpoint_id=new_task_checkpoint_id(),
+                    objective="Finish checkpoint handoff",
+                    current_phase=LongRunPhase.CHECKPOINTING,
+                    completed_step="Added checkpoint read model",
+                    next_action="Expose checkpoint in session status",
+                    recovery_guidance="Resume from the latest checkpoint",
+                    blockers=["awaiting operator review"],
+                    source_start_sequence=1,
+                    source_end_sequence=3,
+                ),
+            )
+        )
+    finally:
+        connection.close()
+
+    _ = capsys.readouterr()
+    exit_code = main(
+        [
+            "session",
+            "status",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert (
+        "Latest checkpoint: Finish checkpoint handoff; phase checkpointing; "
+        "last step: Added checkpoint read model; "
+        "next: Expose checkpoint in session status; source events 1-3; "
+        "blockers: awaiting operator review"
+    ) in captured.out
 
 
 def test_cli_status_includes_session_failure_details(

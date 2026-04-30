@@ -17,18 +17,21 @@ from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import ModelToolCallRequested
 from glassbox.core.events import ReplayArtifactRecorded
+from glassbox.core.events import TaskCheckpointCreated
 from glassbox.core.events import ToolArtifactRecorded
 from glassbox.core.events import ToolExecutionStarted
 from glassbox.core.ids import SessionId
 from glassbox.core.models import ApprovalRecord
 from glassbox.core.models import MessagePart
 from glassbox.core.models import PolicyDecisionTrace
+from glassbox.core.models import TaskCheckpointRecord
 from glassbox.core.models import TranscriptMessage
 from glassbox.runtime import session_export_models
 from glassbox.runtime.branch_search import BranchSearchQueryService
 from glassbox.runtime.branch_search import BranchSearchRepository
 from glassbox.runtime.session_export_models import SessionExportArtifactReference
 from glassbox.runtime.session_export_models import SessionExportBranchSearchSummary
+from glassbox.runtime.session_export_models import SessionExportCheckpointEventReference
 from glassbox.runtime.session_export_models import SessionExportEventSummary
 from glassbox.runtime.session_export_models import SessionExportHandoff
 from glassbox.runtime.session_export_models import SessionExportLineage
@@ -131,11 +134,15 @@ def build_session_export_payload(
     )
     snapshot = query_service.get_session_snapshot(session_id, turn_metrics_limit=25)
     events = session_repository.read_session_events(session_id)
+    redaction_context = _RedactionContext(workspace_root=workspace_root.resolve())
+    checkpoint_history = _redact_checkpoints(
+        session_repository.list_task_checkpoints(session_id),
+        redaction_context,
+    )
     task_details = [
         task_query_service.get_task_detail(task.task_id)
         for task in task_query_service.list_task_summaries(session_id=session_id)
     ]
-    redaction_context = _RedactionContext(workspace_root=workspace_root.resolve())
 
     return SessionExportPayload(
         exported_at=datetime.now(UTC),
@@ -149,6 +156,7 @@ def build_session_export_payload(
             snapshot,
             events,
             redaction_context,
+            latest_checkpoint=checkpoint_history[0] if checkpoint_history else None,
             exported_by=exported_by,
             expected_custodian=expected_custodian,
             note=note,
@@ -170,6 +178,11 @@ def build_session_export_payload(
             redaction_context,
         ),
         task_event_references=_task_event_references(events, redaction_context),
+        checkpoint_history=checkpoint_history,
+        checkpoint_event_references=_checkpoint_event_references(
+            events,
+            redaction_context,
+        ),
         branch_search_summaries=_branch_search_summaries(
             branch_search_service,
             session_id,
@@ -237,6 +250,7 @@ def _build_export_handoff(
     events: Sequence[EventEnvelope],
     redaction_context: _RedactionContext,
     *,
+    latest_checkpoint: TaskCheckpointRecord | None,
     exported_by: str | None,
     expected_custodian: str | None,
     note: str | None,
@@ -261,6 +275,7 @@ def _build_export_handoff(
             redaction_context,
         ),
         session_failure_retryable=snapshot.session_failure_retryable,
+        latest_checkpoint=latest_checkpoint,
         historical_only=snapshot.status in {"completed", "failed", "cancelled"},
         live_actionable=snapshot.status
         in {"running", "awaiting_approval", "awaiting_user_input"},
@@ -521,6 +536,40 @@ def _task_verification_summaries(
     return summaries
 
 
+def _redact_checkpoints(
+    checkpoints: Sequence[TaskCheckpointRecord],
+    redaction_context: _RedactionContext,
+) -> list[TaskCheckpointRecord]:
+    return [
+        checkpoint.model_copy(
+            update={
+                "objective": _redact_text(checkpoint.objective, redaction_context),
+                "completed_step": _redact_optional_text(
+                    checkpoint.completed_step,
+                    redaction_context,
+                ),
+                "next_action": _redact_text(
+                    checkpoint.next_action,
+                    redaction_context,
+                ),
+                "blockers": [
+                    _redact_text(blocker, redaction_context)
+                    for blocker in checkpoint.blockers
+                ],
+                "touched_files": [
+                    _redact_text(path, redaction_context)
+                    for path in checkpoint.touched_files
+                ],
+                "recovery_guidance": _redact_text(
+                    checkpoint.recovery_guidance,
+                    redaction_context,
+                ),
+            }
+        )
+        for checkpoint in checkpoints
+    ]
+
+
 def _task_event_references(
     events: Sequence[EventEnvelope],
     redaction_context: _RedactionContext,
@@ -528,6 +577,8 @@ def _task_event_references(
     references: list[SessionExportTaskEventReference] = []
     for event in events:
         if event.task_id is None:
+            continue
+        if isinstance(event.payload, TaskCheckpointCreated):
             continue
         references.append(
             SessionExportTaskEventReference(
@@ -540,6 +591,35 @@ def _task_event_references(
                     dict[str, object],
                     _redact_json_value(
                         event.payload.model_dump(mode="json"),
+                        redaction_context,
+                    ),
+                ),
+            )
+        )
+    return references
+
+
+def _checkpoint_event_references(
+    events: Sequence[EventEnvelope],
+    redaction_context: _RedactionContext,
+) -> list[SessionExportCheckpointEventReference]:
+    references: list[SessionExportCheckpointEventReference] = []
+    for event in events:
+        payload = event.payload
+        if not isinstance(payload, TaskCheckpointCreated):
+            continue
+        references.append(
+            SessionExportCheckpointEventReference(
+                sequence=event.sequence,
+                event_type=event.event_type,
+                created_at=event.created_at,
+                checkpoint_id=payload.checkpoint_id,
+                task_id=payload.task_id,
+                turn_id=_stringify_optional(payload.turn_id),
+                payload=cast(
+                    dict[str, object],
+                    _redact_json_value(
+                        payload.model_dump(mode="json"),
                         redaction_context,
                     ),
                 ),

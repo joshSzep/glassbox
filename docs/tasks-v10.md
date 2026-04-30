@@ -512,7 +512,7 @@ The intended v10 milestone order is:
 
 ### GBX-1021: Surface Checkpoints In CLI, API, And Session Export
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1020`
 - Goal: make checkpoints inspectable and portable through existing operator
   surfaces
@@ -536,6 +536,13 @@ The intended v10 milestone order is:
 - Done when:
   - an operator can hand off or reopen a long task and see the current
     checkpoint before reading the full transcript
+- Completed:
+  - Session snapshots, session summaries, CLI status, and
+    `/sessions/{session_id}/checkpoints` now expose checkpoint state.
+  - Session export/import carries redacted checkpoint projection summaries and
+    canonical checkpoint event references for inspection-only handoff rebuilds.
+  - Frontend OpenAPI schema and generated API types were refreshed for the new
+    checkpoint response fields and page route.
 
 ### GBX-1022: Resume Work From Checkpoints Safely
 

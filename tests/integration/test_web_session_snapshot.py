@@ -23,6 +23,7 @@ from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import AssistantMessageCompleted
 from glassbox.core.events import ModelCallCompleted
 from glassbox.core.events import SessionFailed
+from glassbox.core.events import TaskCheckpointCreated
 from glassbox.core.events import TurnCompleted
 from glassbox.core.events import TurnStarted
 from glassbox.core.events import UserMessageReceived
@@ -30,10 +31,12 @@ from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import new_approval_id
 from glassbox.core.ids import new_message_id
 from glassbox.core.ids import new_question_id
+from glassbox.core.ids import new_task_checkpoint_id
 from glassbox.core.ids import new_tool_call_id
 from glassbox.core.ids import new_turn_id
 from glassbox.core.types import AutonomyEscalationReason
 from glassbox.core.types import AutonomyMode
+from glassbox.core.types import LongRunPhase
 from glassbox.runtime.autonomy import default_budget_for_autonomy_mode
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.runtime.bus import EventBus
@@ -182,6 +185,74 @@ def test_get_session_returns_snapshot_after_session_started(tmp_path: Path) -> N
                 "items": [],
                 "additional_item_count": 0,
             }
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_get_session_exposes_latest_checkpoint_and_checkpoint_page(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app, runtime_context = _make_app(tmp_path, connection)
+            bus: EventBus[EventEnvelope] = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(runtime_context.repositories.sessions, bus)
+            state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+            checkpoint_id = new_task_checkpoint_id()
+            runtime_context.repositories.sessions.append_event(
+                EventEnvelope(
+                    session_id=state.session_id,
+                    sequence=0,
+                    payload=TaskCheckpointCreated(
+                        checkpoint_id=checkpoint_id,
+                        objective="Expose checkpoint over API",
+                        current_phase=LongRunPhase.CHECKPOINTING,
+                        completed_step="Projected checkpoint row",
+                        next_action="Fetch checkpoint page",
+                        recovery_guidance="Resume from the API checkpoint",
+                        touched_files=["src/glassbox/web/session_api.py"],
+                        verification_status="pending",
+                        budget_status="within budget",
+                        source_start_sequence=1,
+                        source_end_sequence=2,
+                    ),
+                )
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                snapshot_response = await client.get(f"/sessions/{state.session_id}")
+                page_response = await client.get(
+                    f"/sessions/{state.session_id}/checkpoints"
+                )
+
+            assert snapshot_response.status_code == 200
+            assert page_response.status_code == 200
+            snapshot_body = snapshot_response.json()
+            page_body = page_response.json()
+            assert snapshot_body["latest_checkpoint"]["checkpoint_id"] == str(
+                checkpoint_id
+            )
+            assert snapshot_body["latest_checkpoint"]["current_phase"] == (
+                "checkpointing"
+            )
+            assert snapshot_body["checkpoint_history"][0]["next_action"] == (
+                "Fetch checkpoint page"
+            )
+            assert page_body["page"]["returned_count"] == 1
+            assert page_body["items"][0]["source_start_sequence"] == 1
+            assert page_body["items"][0]["source_end_sequence"] == 2
         finally:
             connection.close()
 

@@ -12,6 +12,7 @@ from glassbox.core.models import ApprovalRecord
 from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import PolicyActivitySummary
 from glassbox.core.models import ProjectionHealth
+from glassbox.core.models import TaskCheckpointRecord
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TranscriptMessage
 from glassbox.core.models import TurnMetricsRecord
@@ -90,6 +91,7 @@ class SessionSummaryView(BaseModel):
     session_failure_message: str | None = None
     session_failure_retryable: bool | None = None
     turn_recovery_posture: TurnRecoveryPosture | None = None
+    latest_checkpoint: TaskCheckpointRecord | None = None
     latest_message_summary: str | None = None
     projection_health: ProjectionHealth
     next_action_summary: str
@@ -197,6 +199,8 @@ class SessionSnapshotView(BaseModel):
     session_failure_retryable: bool | None = None
     transcript: list[TranscriptMessage] = Field(default_factory=list)
     turn_recovery_posture: TurnRecoveryPosture | None = None
+    latest_checkpoint: TaskCheckpointRecord | None = None
+    checkpoint_history: list[TaskCheckpointRecord] = Field(default_factory=list)
     active_tool_calls: list[ToolCallRecord] = Field(default_factory=list)
     pending_approvals: list[ApprovalRecord] = Field(default_factory=list)
     session_policy_summary: PolicyActivitySummary = Field(

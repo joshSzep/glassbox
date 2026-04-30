@@ -131,6 +131,12 @@ class SessionQueryService:
         budget_posture = (
             self._get_budget_posture(session_id) if projections_available else None
         )
+        checkpoint_history = (
+            self._session_repository.list_task_checkpoints(session_id, limit=5)
+            if projections_available
+            else []
+        )
+        latest_checkpoint = checkpoint_history[0] if checkpoint_history else None
         dashboard_url = dashboard_url_from_events(session_events)
         latest_failure = latest_session_failure(session_events)
         pending_question_id = state.pending_question_id if state is not None else None
@@ -213,6 +219,8 @@ class SessionQueryService:
             ),
             transcript=transcript,
             turn_recovery_posture=turn_recovery_posture,
+            latest_checkpoint=latest_checkpoint,
+            checkpoint_history=checkpoint_history,
             active_tool_calls=active_tool_calls,
             pending_approvals=pending_approvals,
             session_policy_summary=summarize_policy_activity(all_tool_calls),
@@ -358,6 +366,11 @@ class SessionQueryService:
             if projections_available
             else None
         )
+        latest_checkpoint = (
+            self._session_repository.get_latest_task_checkpoint(record.session_id)
+            if projections_available
+            else None
+        )
         status = session_status(record, state)
         turn_recovery_posture = turn_recovery_posture_from_events(
             session_events,
@@ -406,6 +419,7 @@ class SessionQueryService:
                 latest_failure.retryable if latest_failure is not None else None
             ),
             turn_recovery_posture=turn_recovery_posture,
+            latest_checkpoint=latest_checkpoint,
             latest_message_summary=latest_message_summary(transcript),
             projection_health=projection_health,
             next_action_summary=next_action_summary(

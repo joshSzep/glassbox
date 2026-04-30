@@ -1493,6 +1493,16 @@
             "title": "Last Sequence",
             "type": "integer"
           },
+          "latest_checkpoint": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskCheckpointResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "latest_fork_point_sequence": {
             "anyOf": [
               {
@@ -2894,6 +2904,27 @@
         "title": "SessionArtifactPageResponse",
         "type": "object"
       },
+      "SessionCheckpointPageResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TaskCheckpointResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageInfoResponse"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": ["session_id", "page", "items"],
+        "title": "SessionCheckpointPageResponse",
+        "type": "object"
+      },
       "SessionEventLogPageResponse": {
         "properties": {
           "items": {
@@ -3017,6 +3048,13 @@
             "title": "Can Fork",
             "type": "boolean"
           },
+          "checkpoint_history": {
+            "items": {
+              "$ref": "#/components/schemas/TaskCheckpointResponse"
+            },
+            "title": "Checkpoint History",
+            "type": "array"
+          },
           "child_sessions": {
             "items": {
               "$ref": "#/components/schemas/ChildSessionSummaryResponse"
@@ -3101,6 +3139,16 @@
           "last_sequence": {
             "title": "Last Sequence",
             "type": "integer"
+          },
+          "latest_checkpoint": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskCheckpointResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "latest_fork_point_sequence": {
             "anyOf": [
@@ -3275,6 +3323,7 @@
           "session_failure_message",
           "session_failure_retryable",
           "transcript",
+          "checkpoint_history",
           "active_tool_calls",
           "pending_approvals",
           "session_policy_summary",
@@ -3382,6 +3431,16 @@
           "last_sequence": {
             "title": "Last Sequence",
             "type": "integer"
+          },
+          "latest_checkpoint": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskCheckpointResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "latest_fork_point_sequence": {
             "anyOf": [
@@ -3711,6 +3770,175 @@
         },
         "required": ["mode", "budget"],
         "title": "TaskBudgetAdjustmentRequest",
+        "type": "object"
+      },
+      "TaskCheckpointResponse": {
+        "properties": {
+          "artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifact Id"
+          },
+          "blockers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "budget_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Status"
+          },
+          "checkpoint_id": {
+            "title": "Checkpoint Id",
+            "type": "string"
+          },
+          "compaction_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compaction Id"
+          },
+          "completed_step": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed Step"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "current_phase": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Phase"
+          },
+          "last_sequence": {
+            "title": "Last Sequence",
+            "type": "integer"
+          },
+          "next_action": {
+            "title": "Next Action",
+            "type": "string"
+          },
+          "objective": {
+            "title": "Objective",
+            "type": "string"
+          },
+          "recovery_guidance": {
+            "title": "Recovery Guidance",
+            "type": "string"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "source_end_sequence": {
+            "title": "Source End Sequence",
+            "type": "integer"
+          },
+          "source_start_sequence": {
+            "title": "Source Start Sequence",
+            "type": "integer"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "tool_attempt_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool Attempt Id"
+          },
+          "touched_files": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Touched Files",
+            "type": "array"
+          },
+          "turn_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turn Id"
+          },
+          "verification_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verification Status"
+          }
+        },
+        "required": [
+          "checkpoint_id",
+          "session_id",
+          "objective",
+          "next_action",
+          "blockers",
+          "touched_files",
+          "recovery_guidance",
+          "source_start_sequence",
+          "source_end_sequence",
+          "created_at",
+          "last_sequence"
+        ],
+        "title": "TaskCheckpointResponse",
         "type": "object"
       },
       "TaskContinueRequest": {
@@ -6937,6 +7165,80 @@
           }
         },
         "summary": "Cancel Session Turn"
+      }
+    },
+    "/sessions/{session_id}/checkpoints": {
+      "get": {
+        "description": "Return a bounded page of projected task/session checkpoints.",
+        "operationId": "get_session_checkpoint_page_sessions__session_id__checkpoints_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Cursor",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionCheckpointPageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Session Checkpoint Page"
       }
     },
     "/sessions/{session_id}/event-log": {

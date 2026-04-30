@@ -271,11 +271,13 @@ def test_get_sessions_summary_response_includes_expected_top_level_keys(
                 "session_failure_message",
                 "session_failure_retryable",
                 "turn_recovery_posture",
+                "latest_checkpoint",
                 "latest_message_summary",
                 "projection_health",
                 "next_action_summary",
             }
             assert body[0]["turn_recovery_posture"] is None
+            assert body[0]["latest_checkpoint"] is None
             assert body[0]["projection_health"]["state"] == "ok"
         finally:
             connection.close()

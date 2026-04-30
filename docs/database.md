@@ -139,6 +139,7 @@ The current migration sequence is:
 - `12`: branch search projection tables
 - `13`: long-run event correlations and projection
 - `14`: task checkpoint projection table
+- `15`: session-scoped task checkpoint projection key for inspection imports
 
 Glassbox refuses to open a database with a schema version newer than the running
 build supports. Schema upgrade is distinct from projection rebuild: migrations

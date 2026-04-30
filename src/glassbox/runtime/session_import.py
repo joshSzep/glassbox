@@ -53,6 +53,7 @@ class SessionImportResult(BaseModel):
     transcript_message_count: int
     task_event_count: int = 0
     task_count: int = 0
+    checkpoint_event_count: int = 0
 
 
 def import_session_package(
@@ -86,6 +87,7 @@ def import_session_package(
         transcript_message_count=len(package.transcript),
         task_event_count=len(package.task_event_references),
         task_count=len(package.task_summaries),
+        checkpoint_event_count=len(package.checkpoint_event_references),
     )
 
 
@@ -161,6 +163,7 @@ def _build_inspection_import_events(
         )
     )
     events.extend(_build_imported_task_events(package, imported_session_id))
+    events.extend(_build_imported_checkpoint_events(package, imported_session_id))
     events.append(
         EventEnvelope(
             session_id=imported_session_id,
@@ -189,6 +192,21 @@ def _build_imported_task_events(
             payload=event_payload_adapter.validate_python(reference.payload),
         )
         for reference in package.task_event_references
+    ]
+
+
+def _build_imported_checkpoint_events(
+    package: SessionExportPayload,
+    imported_session_id: SessionId,
+) -> list[EventEnvelope]:
+    return [
+        EventEnvelope(
+            session_id=imported_session_id,
+            sequence=0,
+            created_at=reference.created_at,
+            payload=event_payload_adapter.validate_python(reference.payload),
+        )
+        for reference in package.checkpoint_event_references
     ]
 
 
@@ -229,6 +247,8 @@ def _import_note(package: SessionExportPayload) -> str:
     ]
     if package.task_summaries:
         fragments.append(f"imported task plans: {len(package.task_summaries)}")
+    if package.checkpoint_history:
+        fragments.append(f"imported checkpoints: {len(package.checkpoint_history)}")
     if package.handoff.expected_custodian is not None:
         fragments.append(f"expected custodian: {package.handoff.expected_custodian}")
     if package.handoff.note is not None:

@@ -490,7 +490,7 @@ BOOTSTRAP_STATEMENTS = (
     """,
     """
     create table if not exists task_checkpoints (
-        checkpoint_id text primary key,
+        checkpoint_id text not null,
         session_id text not null,
         task_id text,
         turn_id text,
@@ -510,6 +510,7 @@ BOOTSTRAP_STATEMENTS = (
         source_end_sequence integer not null,
         created_at text not null,
         last_sequence integer not null,
+        primary key (session_id, checkpoint_id),
         foreign key (session_id) references sessions(session_id)
     )
     """,

@@ -96,6 +96,29 @@ class TurnRecoveryPostureResponse(BaseModel):
     recovery_decision_id: str | None = None
 
 
+class TaskCheckpointResponse(BaseModel):
+    checkpoint_id: str
+    session_id: str
+    task_id: str | None = None
+    turn_id: str | None = None
+    tool_attempt_id: str | None = None
+    compaction_id: str | None = None
+    artifact_id: str | None = None
+    objective: str
+    current_phase: str | None = None
+    completed_step: str | None = None
+    next_action: str
+    blockers: list[str]
+    touched_files: list[str]
+    verification_status: str | None = None
+    budget_status: str | None = None
+    recovery_guidance: str
+    source_start_sequence: int
+    source_end_sequence: int
+    created_at: datetime
+    last_sequence: int
+
+
 class ProjectionHealthResponse(BaseModel):
     state: str
     canonical_last_sequence: int
@@ -212,6 +235,12 @@ class SessionTurnMetricsPageResponse(BaseModel):
     items: list[TurnMetricsResponse]
 
 
+class SessionCheckpointPageResponse(BaseModel):
+    session_id: str
+    page: PageInfoResponse
+    items: list[TaskCheckpointResponse]
+
+
 class SessionArtifactPageResponse(BaseModel):
     session_id: str
     page: PageInfoResponse
@@ -245,6 +274,7 @@ class SessionSummaryResponse(BaseModel):
     session_failure_message: str | None
     session_failure_retryable: bool | None
     turn_recovery_posture: TurnRecoveryPostureResponse | None = None
+    latest_checkpoint: TaskCheckpointResponse | None = None
     latest_message_summary: str | None
     projection_health: ProjectionHealthResponse
     next_action_summary: str
@@ -362,6 +392,8 @@ class SessionSnapshotResponse(BaseModel):
     session_failure_retryable: bool | None
     transcript: list[TranscriptMessageResponse]
     turn_recovery_posture: TurnRecoveryPostureResponse | None = None
+    latest_checkpoint: TaskCheckpointResponse | None = None
+    checkpoint_history: list[TaskCheckpointResponse]
     active_tool_calls: list[ActiveToolCallResponse]
     pending_approvals: list[PendingApprovalResponse]
     session_policy_summary: PolicyActivitySummaryResponse

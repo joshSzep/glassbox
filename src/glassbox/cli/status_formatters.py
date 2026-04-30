@@ -28,6 +28,8 @@ def _print_session_status(status_view: SessionStatusView) -> None:
     print(_format_current_turn_line(current_turn_id, snapshot.status))
     if snapshot.turn_recovery_posture is not None:
         print(_format_turn_recovery_line(snapshot.turn_recovery_posture))
+    if snapshot.latest_checkpoint is not None:
+        print(_format_latest_checkpoint_line(snapshot.latest_checkpoint))
     print(f"Workspace: {snapshot.cwd}")
     print(f"Model: {snapshot.model_name}")
     print(f"Approval mode: {snapshot.approval_mode}")
@@ -267,6 +269,21 @@ def _format_budget_posture_line(budget_posture) -> str:
             f"commands {remaining.command_operations}"
         )
     return f"Autonomy budget: {mode}; {detail}"
+
+
+def _format_latest_checkpoint_line(checkpoint) -> str:
+    phase = checkpoint.current_phase.value if checkpoint.current_phase else "unknown"
+    blockers = ""
+    if checkpoint.blockers:
+        blockers = f"; blockers: {', '.join(checkpoint.blockers[:2])}"
+    return (
+        "Latest checkpoint: "
+        f"{checkpoint.objective}; phase {phase}; "
+        f"last step: {checkpoint.completed_step or 'none'}; "
+        f"next: {checkpoint.next_action}; "
+        f"source events {checkpoint.source_start_sequence}-"
+        f"{checkpoint.source_end_sequence}{blockers}"
+    )
 
 
 def _format_projection_sequence(projection_health) -> str:

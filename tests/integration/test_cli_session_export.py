@@ -13,8 +13,11 @@ from glassbox.core import BranchCandidatePlanned
 from glassbox.core import BranchCandidateSelected
 from glassbox.core import BranchSearchStarted
 from glassbox.core import BudgetDecisionRecorded
+from glassbox.core import LongRunPhase
+from glassbox.core import TaskCheckpointCreated
 from glassbox.core import new_branch_candidate_id
 from glassbox.core import new_branch_search_id
+from glassbox.core import new_task_checkpoint_id
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import new_turn_id
 from glassbox.core.types import AutonomyEscalationReason
@@ -403,6 +406,91 @@ def test_cli_session_export_import_preserves_task_plans_for_inspection(
     ]
 
 
+def test_cli_session_export_import_preserves_checkpoints_for_inspection(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    checkpoint_id = new_task_checkpoint_id()
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=TaskCheckpointCreated(
+                    checkpoint_id=checkpoint_id,
+                    objective=f"Finish handoff for {tmp_path}",
+                    current_phase=LongRunPhase.CHECKPOINTING,
+                    completed_step="Captured checkpoint projection",
+                    next_action="Import checkpoint package",
+                    recovery_guidance=f"Resume after reviewing {tmp_path}",
+                    touched_files=[str(tmp_path / "src" / "app.py")],
+                    verification_status="pending",
+                    budget_status="within budget",
+                    source_start_sequence=1,
+                    source_end_sequence=3,
+                ),
+            )
+        )
+    finally:
+        connection.close()
+
+    output_path = tmp_path / "checkpoint-session.json"
+    _ = capsys.readouterr()
+    export_exit_code = main(
+        [
+            "session",
+            "export",
+            str(session_id),
+            str(output_path),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    raw_package = output_path.read_text(encoding="utf-8")
+    payload = SessionExportPayload.model_validate_json(raw_package)
+    _ = capsys.readouterr()
+
+    import_exit_code = main(
+        [
+            "session",
+            "import",
+            str(output_path),
+            "--json",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    import_payload = json.loads(capsys.readouterr().out)
+    imported_session_id = UUID(import_payload["imported_session_id"])
+    imported_checkpoints = _checkpoints_for_session(db_path, imported_session_id)
+
+    assert export_exit_code == 0
+    assert import_exit_code == 0
+    assert payload.handoff.latest_checkpoint is not None
+    assert payload.handoff.latest_checkpoint.checkpoint_id == checkpoint_id
+    assert payload.checkpoint_history[0].objective == (
+        "Finish handoff for <workspace-root>"
+    )
+    assert payload.checkpoint_history[0].touched_files == [
+        "<workspace-root>/src/app.py"
+    ]
+    assert [event.event_type for event in payload.checkpoint_event_references] == [
+        "TaskCheckpointCreated"
+    ]
+    assert str(tmp_path) not in raw_package
+    assert import_payload["checkpoint_event_count"] == 1
+    assert len(imported_checkpoints) == 1
+    assert imported_checkpoints[0].checkpoint_id == checkpoint_id
+    assert imported_checkpoints[0].objective == "Finish handoff for <workspace-root>"
+
+
 def _single_child_session_id(db_path: Path, parent_session_id: UUID) -> UUID:
     connection = open_database(db_path)
     try:
@@ -464,6 +552,15 @@ def _tasks_for_session(db_path: Path, session_id: UUID):
     try:
         repository = SQLiteSessionRepository(connection)
         return repository.list_tasks(session_id=session_id)
+    finally:
+        connection.close()
+
+
+def _checkpoints_for_session(db_path: Path, session_id: UUID):
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        return repository.list_task_checkpoints(session_id)
     finally:
         connection.close()
 

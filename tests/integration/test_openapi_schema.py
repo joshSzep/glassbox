@@ -21,6 +21,7 @@ def test_openapi_schema_includes_browser_transport_contracts() -> None:
     assert "/sessions" in paths
     assert "/sessions/aggregate" in paths
     assert "/sessions/{session_id}" in paths
+    assert "/sessions/{session_id}/checkpoints" in paths
     assert "/sessions/{session_id}/events" in paths
     assert "/sessions/{session_id}/messages" in paths
     assert "/sessions/{session_id}/questions/{question_id}" in paths
@@ -41,7 +42,9 @@ def test_openapi_schema_includes_browser_transport_contracts() -> None:
 
     assert "HealthResponse" in components
     assert "SessionAggregateResponse" in components
+    assert "SessionCheckpointPageResponse" in components
     assert "SessionSnapshotResponse" in components
+    assert "TaskCheckpointResponse" in components
     assert "ActionAcceptedResponse" in components
     assert "ResolveApprovalRequest" in components
     assert "SubmitSessionMessageRequest" in components
