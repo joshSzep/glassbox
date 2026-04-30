@@ -570,7 +570,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R330: Split Provider Canary Execution From Evidence Loading And Freshness
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R300`
 - Goal: reduce
   [provider_canary.py](../src/glassbox/runtime/provider_canary.py) by separating
@@ -598,6 +598,18 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - provider canary execution and provider evidence reads can evolve without
     sharing one broad module body
+- Completed notes:
+  - `runtime/provider_canary.py` now stays a stable compatibility facade for
+    CLI, observability, and provider recommendation callers.
+  - Retained canary models/constants live in `provider_canary_models.py`;
+    scenario selection/metadata lives in `provider_canary_scenarios.py`; live
+    opt-in execution lives in `provider_canary_execution.py`; retained evidence
+    loading, legacy fallback, identity checks, and freshness derivation live in
+    `provider_canary_evidence.py`; summary persistence and outcome counting
+    live in `provider_canary_reporting.py`.
+  - V10 architecture guardrails now cap the facade and helper modules
+    separately and keep provider-canary helpers away from CLI, raw-store, and
+    web-layer imports.
 
 ### GBX-R331: Split Provider Recommendation Scoring Into Capability, Risk, Credential, And Action Modules
 

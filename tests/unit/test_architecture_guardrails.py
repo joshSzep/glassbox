@@ -402,10 +402,41 @@ V10_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
     (
         SRC_ROOT / "runtime" / "provider_canary.py",
-        840,
+        80,
         (
-            "v10 provider_canary should move scenarios, execution, evidence "
-            "loading, freshness, and reporting into provider-canary helpers"
+            "v10 provider_canary should stay a thin compatibility facade over "
+            "provider-canary helper modules"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_canary_models.py",
+        140,
+        "v10 provider canary retained models should stay owned by models.py",
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_canary_scenarios.py",
+        190,
+        ("v10 provider canary scenario definitions should stay owned by scenarios.py"),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_canary_execution.py",
+        240,
+        ("v10 provider canary live execution should stay owned by execution.py"),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_canary_evidence.py",
+        260,
+        (
+            "v10 provider canary evidence loading and freshness should stay "
+            "owned by evidence.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_canary_reporting.py",
+        140,
+        (
+            "v10 provider canary summary persistence and outcome counting "
+            "should stay owned by reporting.py"
         ),
     ),
     (
@@ -540,8 +571,48 @@ V10_PYTHON_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
         SRC_ROOT / "runtime" / "provider_canary.py",
         ("glassbox.cli", "glassbox.store", "glassbox.web"),
         (
-            "v10 provider canary helpers must keep execution/evidence logic "
+            "v10 provider canary facade must keep execution/evidence logic "
             "separate from CLI, raw store, and web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_canary_models.py",
+        ("glassbox.cli", "glassbox.store", "glassbox.web"),
+        (
+            "v10 provider canary models must stay independent from CLI, raw "
+            "store, and web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_canary_scenarios.py",
+        ("glassbox.cli", "glassbox.store", "glassbox.web"),
+        (
+            "v10 provider canary scenarios must stay independent from CLI, raw "
+            "store, and web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_canary_execution.py",
+        ("glassbox.cli", "glassbox.store", "glassbox.web"),
+        (
+            "v10 provider canary execution must stay separate from CLI, raw "
+            "store, and web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_canary_evidence.py",
+        ("glassbox.cli", "glassbox.store", "glassbox.web"),
+        (
+            "v10 provider canary evidence loading must stay separate from "
+            "CLI, raw store, and web layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "provider_canary_reporting.py",
+        ("glassbox.cli", "glassbox.store", "glassbox.web"),
+        (
+            "v10 provider canary reporting must stay separate from CLI, raw "
+            "store, and web layers"
         ),
     ),
     (

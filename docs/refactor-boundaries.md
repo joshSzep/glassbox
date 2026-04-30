@@ -138,9 +138,10 @@ facades:
 - `src/glassbox/runtime/task_queries.py` mixes transport-agnostic query models,
   summary/detail shaping, verification ledger interpretation, repair-history
   wording, and event conversion
-- `src/glassbox/runtime/provider_canary.py` mixes scenario selection, live
-  canary execution, evidence path loading, freshness checks, report writing, and
-  evidence status derivation
+- `src/glassbox/runtime/provider_canary.py` is now a thin compatibility facade;
+  provider-canary scenarios, live execution, retained evidence reads,
+  freshness checks, report writing, and outcome counting live in focused
+  `provider_canary_*` helper modules
 - `src/glassbox/runtime/provider_recommendations.py` mixes recommendation
   models with capability, risk, credential, failure, budget, and next-action
   scoring dimensions
@@ -261,10 +262,13 @@ The `runtime` package should not become a catch-all for transport formatting, ra
 - Task query helpers may depend on core events/models and service repository
   contracts. They should not import FastAPI, web response models, frontend
   types, CLI formatting, or concrete store implementations.
-- Provider canary code should separate deterministic scenario definitions,
-  opt-in live execution, stored evidence loading/freshness checks, report
-  persistence, and evidence status derivation. Observability and CLI callers
-  should continue to use stable public canary functions.
+- Provider canary code now keeps `runtime/provider_canary.py` as the stable
+  public facade while `provider_canary_scenarios.py`,
+  `provider_canary_execution.py`, `provider_canary_evidence.py`,
+  `provider_canary_reporting.py`, and `provider_canary_models.py` own
+  deterministic scenario definitions, opt-in live execution, stored evidence
+  loading/freshness checks, report persistence/outcome counting, and retained
+  evidence models.
 - Provider recommendations should keep output models and wording stable while
   capability fit, risk posture, credential readiness, failure posture, budget
   impact, and next-step guidance move into owned scoring helpers that accept
@@ -639,8 +643,8 @@ The guardrails are intentionally narrow:
   domain section modules, including task autonomy, knowledge autonomy, branch
   search, and session-inspector diagnostics
 - v10 guardrails in `tests/unit/test_architecture_guardrails.py` now keep the
-  second-order pressure-point files from growing before their splits and block
-  transport/raw-store/backend imports across task-autonomy sections,
+  second-order pressure-point files and completed split helpers reviewable and
+  block transport/raw-store/backend imports across task-autonomy sections,
   verification cue derivation, compare analysis, workspace-console routing,
   runtime task query helpers, provider canary/recommendation helpers,
   tool-policy helpers, and SQLite schema helpers
