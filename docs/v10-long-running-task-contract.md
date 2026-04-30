@@ -82,9 +82,9 @@ behavior yet:
 - `LongRunPhaseChanged`: records phase entry, heartbeat, exit, or blocked state
   for preparing, model call, tool execution, checkpointing, compaction,
   verification, recovery, pause, completion, or failure.
-- `TaskCheckpointCreated`: records objective, completed step, next action,
-  blockers, verification posture, budget posture, artifact link, and recovery
-  guidance.
+- `TaskCheckpointCreated`: records objective, current phase, completed step,
+  next action, blockers, touched files, verification posture, budget posture,
+  source event range, artifact link, and recovery guidance.
 - `ContextCompactionCreated`: records compaction scope, source event range,
   artifact, freshness, limitations, and related checkpoint/task/turn.
 - `ToolAttemptHeartbeat`: records tool-attempt progress, status, output
@@ -95,10 +95,11 @@ behavior yet:
   or was rejected because the checkpoint was stale or non-resumable.
 
 SQLite stores task, checkpoint, compaction, tool-attempt, and recovery-decision
-correlation columns on canonical events and rebuilds a `long_run_events`
-projection from those events. Replay normalization includes these long-run event
-families so future deterministic cases can compare the durable lifecycle record
-without treating projections as authority.
+correlation columns on canonical events and rebuilds `long_run_events` plus the
+task-aware `task_checkpoints` latest/history projection from those events.
+Replay normalization includes these long-run event families so future
+deterministic cases can compare the durable lifecycle record without treating
+projections as authority.
 
 ## Incomplete-Turn Recovery Semantics
 

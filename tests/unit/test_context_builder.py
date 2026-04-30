@@ -226,6 +226,20 @@ class FakeSessionRepository:
     def get_budget_posture(self, session_id, *, task_id=None):
         return None
 
+    def get_latest_task_checkpoint(self, session_id, *, task_id=None):
+        return None
+
+    def list_task_checkpoints(
+        self,
+        session_id,
+        *,
+        task_id=None,
+        limit=None,
+        offset=0,
+    ):
+        del task_id, limit, offset
+        return []
+
     def enqueue_background_job(self, session_id, **kwargs):
         raise NotImplementedError
 

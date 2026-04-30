@@ -32,6 +32,7 @@ from glassbox.core.models import RuntimeNoteRecord
 from glassbox.core.models import SessionConfig
 from glassbox.core.models import SessionRecord
 from glassbox.core.models import SessionState
+from glassbox.core.models import TaskCheckpointRecord
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TranscriptMessage
 from glassbox.core.models import TurnMetricsRecord
@@ -193,6 +194,22 @@ class SessionRepository(Protocol):
         *,
         task_id: TaskId | None = None,
     ) -> AutonomyBudgetPostureRecord | None: ...
+
+    def get_latest_task_checkpoint(
+        self,
+        session_id: SessionId,
+        *,
+        task_id: TaskId | None = None,
+    ) -> TaskCheckpointRecord | None: ...
+
+    def list_task_checkpoints(
+        self,
+        session_id: SessionId,
+        *,
+        task_id: TaskId | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[TaskCheckpointRecord]: ...
 
     def enqueue_background_job(
         self,

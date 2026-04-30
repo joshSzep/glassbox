@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import glassbox.store.sqlite_queries as query_store
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import TaskId
+from glassbox.core.models import TaskCheckpointRecord
 from glassbox.core.models import TaskRecord
 from glassbox.core.models import TaskStepRecord
 from glassbox.core.models import TaskVerificationRecord
@@ -51,6 +52,34 @@ class _SQLiteTaskMethods:
             self._connection,
             session_id,
             task_id,
+        )
+
+    def get_latest_task_checkpoint(
+        self,
+        session_id: SessionId,
+        *,
+        task_id: TaskId | None = None,
+    ) -> TaskCheckpointRecord | None:
+        return query_store.get_latest_task_checkpoint(
+            self._connection,
+            session_id,
+            task_id=task_id,
+        )
+
+    def list_task_checkpoints(
+        self,
+        session_id: SessionId,
+        *,
+        task_id: TaskId | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[TaskCheckpointRecord]:
+        return query_store.list_task_checkpoints(
+            self._connection,
+            session_id,
+            task_id=task_id,
+            limit=limit,
+            offset=offset,
         )
 
     def list_open_blocked_tasks(

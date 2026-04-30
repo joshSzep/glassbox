@@ -788,6 +788,7 @@ class TaskCheckpointCreated(EventPayload):
     event_type: Literal["TaskCheckpointCreated"] = "TaskCheckpointCreated"
     checkpoint_id: TaskCheckpointId
     objective: str = Field(min_length=1, max_length=4000)
+    current_phase: LongRunPhase | None = None
     completed_step: str | None = Field(default=None, max_length=2000)
     next_action: str = Field(min_length=1, max_length=2000)
     recovery_guidance: str = Field(min_length=1, max_length=4000)
@@ -796,9 +797,21 @@ class TaskCheckpointCreated(EventPayload):
     tool_attempt_id: ToolAttemptId | None = None
     compaction_id: ContextCompactionId | None = None
     blockers: list[str] = Field(default_factory=list, max_length=20)
+    touched_files: list[str] = Field(default_factory=list, max_length=100)
     verification_status: str | None = Field(default=None, max_length=200)
     budget_status: str | None = Field(default=None, max_length=200)
+    source_start_sequence: int = Field(default=0, ge=0)
+    source_end_sequence: int = Field(default=0, ge=0)
     artifact_id: ArtifactId | None = None
+
+    @model_validator(mode="after")
+    def ensure_source_range_is_ordered(self) -> TaskCheckpointCreated:
+        if self.source_end_sequence < self.source_start_sequence:
+            raise ValueError(
+                "source_end_sequence must be greater than or equal to "
+                "source_start_sequence"
+            )
+        return self
 
 
 class ContextCompactionCreated(EventPayload):

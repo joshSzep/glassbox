@@ -8,9 +8,11 @@ from glassbox.core import AutonomyBudgetUsage
 from glassbox.core import AutonomyMode
 from glassbox.core import BudgetDecisionRecorded
 from glassbox.core import EventEnvelope
+from glassbox.core import LongRunPhase
 from glassbox.core import RuntimeNoteRecorded
 from glassbox.core import SessionStarted
 from glassbox.core import TaskBlockedReason
+from glassbox.core import TaskCheckpointCreated
 from glassbox.core import TaskCreated
 from glassbox.core import TaskPaused
 from glassbox.core import TaskPlanProposed
@@ -30,6 +32,7 @@ from glassbox.core import WorkspaceMemoryProvenance
 from glassbox.core import WorkspaceMemorySourceType
 from glassbox.core import WorkspaceMemoryUsedInContext
 from glassbox.core import new_session_id
+from glassbox.core import new_task_checkpoint_id
 from glassbox.core import new_task_id
 from glassbox.core import new_task_step_id
 from glassbox.core import new_task_verification_id
@@ -37,7 +40,9 @@ from glassbox.core import new_turn_id
 from glassbox.core import new_workspace_memory_id
 from glassbox.store.sqlite import append_events
 from glassbox.store.sqlite import get_budget_posture
+from glassbox.store.sqlite import get_latest_task_checkpoint
 from glassbox.store.sqlite import list_runtime_notes
+from glassbox.store.sqlite import list_task_checkpoints
 from glassbox.store.sqlite import list_workspace_memory
 from glassbox.store.sqlite import rebuild_session_projections
 from tests.integration.fault_test_support import append_representative_completed_session
@@ -234,6 +239,108 @@ def test_runtime_note_projection_keeps_history_and_bounded_active_set(
         (4, "runtime", "Repo indexing is warm", False),
     ]
     assert active_notes_after == active_notes_before
+
+
+def test_task_checkpoint_projection_keeps_latest_history_and_rebuilds(
+    tmp_path: Path,
+) -> None:
+    session_id = new_session_id()
+    task_id = new_task_id()
+    first_checkpoint_id = new_task_checkpoint_id()
+    latest_checkpoint_id = new_task_checkpoint_id()
+    connection = open_initialized_database(tmp_path)
+    try:
+        append_events(
+            connection,
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=SessionStarted(
+                        cwd=str(tmp_path),
+                        model_name="openai:gpt-5.4",
+                        approval_mode="confirm",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskCheckpointCreated(
+                        checkpoint_id=first_checkpoint_id,
+                        task_id=task_id,
+                        objective="Finish GBX-1020",
+                        current_phase=LongRunPhase.CHECKPOINTING,
+                        completed_step="Added checkpoint projection schema",
+                        next_action="Add checkpoint query helpers",
+                        recovery_guidance="Resume from the projection test",
+                        touched_files=["src/glassbox/store/sqlite_schema.py"],
+                        verification_status="pending",
+                        budget_status="within budget",
+                        source_start_sequence=1,
+                        source_end_sequence=2,
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskCheckpointCreated(
+                        checkpoint_id=latest_checkpoint_id,
+                        task_id=task_id,
+                        objective="Finish GBX-1020",
+                        current_phase=LongRunPhase.VERIFYING,
+                        completed_step="Added checkpoint query helpers",
+                        next_action="Run focused projection tests",
+                        recovery_guidance="Rerun pytest for checkpoint projections",
+                        blockers=["waiting for test result"],
+                        touched_files=[
+                            "src/glassbox/store/sqlite_query_checkpoints.py",
+                            "tests/integration/test_sqlite_projections.py",
+                        ],
+                        verification_status="running",
+                        budget_status="within budget",
+                        source_start_sequence=1,
+                        source_end_sequence=3,
+                    ),
+                ),
+            ],
+        )
+
+        latest_before = get_latest_task_checkpoint(
+            connection,
+            session_id,
+            task_id=task_id,
+        )
+        history_before = list_task_checkpoints(connection, session_id, task_id=task_id)
+        connection.execute(
+            "delete from task_checkpoints where session_id = ?",
+            (str(session_id),),
+        )
+        rebuild_session_projections(connection, session_id)
+        latest_after = get_latest_task_checkpoint(
+            connection,
+            session_id,
+            task_id=task_id,
+        )
+        history_after = list_task_checkpoints(connection, session_id, task_id=task_id)
+    finally:
+        connection.close()
+
+    assert latest_before == latest_after
+    assert history_before == history_after
+    assert latest_after is not None
+    assert latest_after.checkpoint_id == latest_checkpoint_id
+    assert latest_after.current_phase == LongRunPhase.VERIFYING
+    assert latest_after.blockers == ["waiting for test result"]
+    assert latest_after.touched_files == [
+        "src/glassbox/store/sqlite_query_checkpoints.py",
+        "tests/integration/test_sqlite_projections.py",
+    ]
+    assert latest_after.source_start_sequence == 1
+    assert latest_after.source_end_sequence == 3
+    assert [record.checkpoint_id for record in history_after] == [
+        latest_checkpoint_id,
+        first_checkpoint_id,
+    ]
 
 
 def test_task_projection_rebuilds_task_steps_and_verifications(tmp_path: Path) -> None:

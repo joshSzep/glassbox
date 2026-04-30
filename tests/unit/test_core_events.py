@@ -466,11 +466,16 @@ def test_long_run_payloads_round_trip_through_event_union() -> None:
             "task_id": task_id,
             "turn_id": turn_id,
             "objective": "finish the release task",
+            "current_phase": "checkpointing",
             "completed_step": "updated docs",
             "next_action": "run focused tests",
             "recovery_guidance": "resume from the next test command",
             "blockers": ["provider unavailable"],
+            "touched_files": ["docs/tasks-v10.md"],
             "verification_status": "pending",
+            "budget_status": "within budget",
+            "source_start_sequence": 10,
+            "source_end_sequence": 14,
         }
     )
     compaction = adapter.validate_python(
@@ -527,6 +532,10 @@ def test_long_run_payloads_round_trip_through_event_union() -> None:
     assert phase.state == LongRunPhaseState.ENTERED
     assert isinstance(checkpoint, TaskCheckpointCreated)
     assert checkpoint.checkpoint_id == checkpoint_id
+    assert checkpoint.current_phase == LongRunPhase.CHECKPOINTING
+    assert checkpoint.touched_files == ["docs/tasks-v10.md"]
+    assert checkpoint.source_start_sequence == 10
+    assert checkpoint.source_end_sequence == 14
     assert isinstance(compaction, ContextCompactionCreated)
     assert compaction.scope == ContextCompactionScope.TRANSCRIPT
     assert compaction.freshness == ContextCompactionFreshness.FRESH
@@ -564,6 +573,18 @@ def test_context_compaction_rejects_inverted_source_range() -> None:
             source_end_sequence=3,
             summary="bad source range",
             artifact_id=new_artifact_id(),
+        )
+
+
+def test_task_checkpoint_rejects_inverted_source_range() -> None:
+    with pytest.raises(ValidationError):
+        TaskCheckpointCreated(
+            checkpoint_id=new_task_checkpoint_id(),
+            objective="bad checkpoint",
+            next_action="fix source range",
+            recovery_guidance="create a checkpoint with an ordered event range",
+            source_start_sequence=12,
+            source_end_sequence=3,
         )
 
 

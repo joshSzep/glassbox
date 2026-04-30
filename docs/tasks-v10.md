@@ -480,7 +480,7 @@ The intended v10 milestone order is:
 
 ### GBX-1020: Add Durable Task Checkpoint Model And Projection
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1011`
 - Goal: make "where the agent is in the work" a typed durable object rather
   than a summary inferred from transcript text
@@ -503,6 +503,12 @@ The intended v10 milestone order is:
 - Done when:
   - every long-running task can expose a durable latest checkpoint and a
     checkpoint timeline
+- Completed:
+  - Added typed checkpoint fields for current phase, touched files, verification
+    posture, budget posture, recovery guidance, and source event range.
+  - Added the rebuildable `task_checkpoints` SQLite projection, latest/history
+    query helpers, repository methods, projection-health table coverage, and
+    focused event/projection/schema tests.
 
 ### GBX-1021: Surface Checkpoints In CLI, API, And Session Export
 

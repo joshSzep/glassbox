@@ -488,6 +488,39 @@ BOOTSTRAP_STATEMENTS = (
     create index if not exists idx_long_run_events_checkpoint
         on long_run_events (session_id, checkpoint_id, sequence)
     """,
+    """
+    create table if not exists task_checkpoints (
+        checkpoint_id text primary key,
+        session_id text not null,
+        task_id text,
+        turn_id text,
+        tool_attempt_id text,
+        compaction_id text,
+        artifact_id text,
+        objective text not null,
+        current_phase text,
+        completed_step text,
+        next_action text not null,
+        blockers_json text not null,
+        touched_files_json text not null,
+        verification_status text,
+        budget_status text,
+        recovery_guidance text not null,
+        source_start_sequence integer not null,
+        source_end_sequence integer not null,
+        created_at text not null,
+        last_sequence integer not null,
+        foreign key (session_id) references sessions(session_id)
+    )
+    """,
+    """
+    create index if not exists idx_task_checkpoints_session_sequence
+        on task_checkpoints (session_id, last_sequence desc)
+    """,
+    """
+    create index if not exists idx_task_checkpoints_task_sequence
+        on task_checkpoints (session_id, task_id, last_sequence desc)
+    """,
 )
 
 V3_BASELINE_SCHEMA_STATEMENTS = (

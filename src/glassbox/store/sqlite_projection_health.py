@@ -17,6 +17,8 @@ _PROJECTION_TABLES = (
     "task_steps",
     "task_verifications",
     "workspace_memory",
+    "long_run_events",
+    "task_checkpoints",
 )
 
 

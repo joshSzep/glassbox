@@ -15,12 +15,15 @@ from glassbox.core.ids import ArtifactId
 from glassbox.core.ids import BackgroundJobId
 from glassbox.core.ids import BranchCandidateId
 from glassbox.core.ids import BranchSearchId
+from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import QuestionId
 from glassbox.core.ids import SessionId
+from glassbox.core.ids import TaskCheckpointId
 from glassbox.core.ids import TaskId
 from glassbox.core.ids import TaskStepId
 from glassbox.core.ids import TaskVerificationId
+from glassbox.core.ids import ToolAttemptId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.ids import WorkspaceMemoryId
@@ -35,6 +38,7 @@ from glassbox.core.types import BackgroundJobState
 from glassbox.core.types import BranchCandidateStatus
 from glassbox.core.types import BranchCandidateVerificationStatus
 from glassbox.core.types import BranchSearchStatus
+from glassbox.core.types import LongRunPhase
 from glassbox.core.types import RepositoryIndexEntityKind
 from glassbox.core.types import RepositoryIndexFreshness
 from glassbox.core.types import RepositoryIndexSourceType
@@ -243,6 +247,33 @@ class TurnRecoveryPosture(BaseModel):
     next_action: str = Field(min_length=1, max_length=2000)
     source_event_type: str | None = None
     recovery_decision_id: str | None = None
+
+
+class TaskCheckpointRecord(BaseModel):
+    """Projected durable checkpoint for task or session handoff."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    checkpoint_id: TaskCheckpointId
+    session_id: SessionId
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    tool_attempt_id: ToolAttemptId | None = None
+    compaction_id: ContextCompactionId | None = None
+    artifact_id: ArtifactId | None = None
+    objective: str = Field(min_length=1, max_length=4000)
+    current_phase: LongRunPhase | None = None
+    completed_step: str | None = Field(default=None, max_length=2000)
+    next_action: str = Field(min_length=1, max_length=2000)
+    blockers: list[str] = Field(default_factory=list)
+    touched_files: list[str] = Field(default_factory=list)
+    verification_status: str | None = Field(default=None, max_length=200)
+    budget_status: str | None = Field(default=None, max_length=200)
+    recovery_guidance: str = Field(min_length=1, max_length=4000)
+    source_start_sequence: int = Field(ge=0)
+    source_end_sequence: int = Field(ge=0)
+    created_at: datetime
+    last_sequence: int = Field(ge=0)
 
 
 class BackgroundJobRecord(BaseModel):

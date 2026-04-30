@@ -159,6 +159,7 @@ from glassbox.core.models import RuntimeNoteRecord
 from glassbox.core.models import SessionConfig
 from glassbox.core.models import SessionRecord
 from glassbox.core.models import SessionState
+from glassbox.core.models import TaskCheckpointRecord
 from glassbox.core.models import TaskPlanSnapshot
 from glassbox.core.models import TaskRecord
 from glassbox.core.models import TaskStepProposal
@@ -324,6 +325,7 @@ __all__ = [
     "TaskCancelled",
     "TaskCheckpointCreated",
     "TaskCheckpointId",
+    "TaskCheckpointRecord",
     "TaskCreated",
     "TaskId",
     "TaskPaused",

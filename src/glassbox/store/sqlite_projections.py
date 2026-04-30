@@ -12,6 +12,9 @@ from glassbox.store.sqlite_projection_branch_search import (
     _apply_branch_search_projection,
 )
 from glassbox.store.sqlite_projection_budgets import _apply_budget_projection
+from glassbox.store.sqlite_projection_checkpoints import (
+    _apply_task_checkpoint_projection,
+)
 from glassbox.store.sqlite_projection_long_run import _apply_long_run_projection
 from glassbox.store.sqlite_projection_runtime_notes import (
     _apply_runtime_note_projection,
@@ -43,6 +46,7 @@ _PROJECTION_TABLES = (
     "background_jobs",
     "workspace_memory",
     "long_run_events",
+    "task_checkpoints",
 )
 
 
@@ -62,6 +66,7 @@ def _apply_projection_event(
     _apply_background_job_projection(connection, event)
     _apply_workspace_memory_projection(connection, event)
     _apply_long_run_projection(connection, event)
+    _apply_task_checkpoint_projection(connection, event)
 
 
 def _clear_session_projections(

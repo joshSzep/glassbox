@@ -94,12 +94,12 @@ now decomposed internally.
 - `src/glassbox/store/sqlite_schema.py`, `sqlite_sessions.py`, `sqlite_events.py`, `sqlite_projections.py`, `sqlite_queries.py`, and `sqlite_fork.py` own the broad internal storage concerns separately
 - `src/glassbox/store/sqlite_queries.py` remains a thin read-model facade over
     focused `sqlite_query_*` modules for transcript, runtime notes, tools and
-    approvals, turn metrics, autonomy budgets, task projections, and
-    branch-search projections
+    approvals, turn metrics, autonomy budgets, task projections, checkpoint
+    projections, and branch-search projections
 - `src/glassbox/store/repositories.py` owns the concrete repository adapter
     surface while session, event/fork, projection-read, background-job,
-    workspace-memory, task, branch-search, and artifact behavior live in
-    focused `repository_*` delegates
+    workspace-memory, task, checkpoint history, branch-search, and artifact
+    behavior live in focused `repository_*` delegates
 - `src/glassbox/store/artifacts.py` owns filesystem artifact writes and reads while returning the shared `StoredArtifact` contract type from `services/contracts.py`
 
 This refactor changed internal ownership, not the operator-visible storage model.
@@ -130,11 +130,27 @@ The current migration sequence is:
 - `3`: baseline event store and projection tables
 - `4`: session lineage columns and parent-session index
 - `5`: runtime-note source columns and provenance backfill
+- `6`: policy metadata projection columns
+- `7`: task plan projection tables
+- `8`: autonomy budget projection table
+- `9`: background job projection table
+- `10`: background job retry triage columns
+- `11`: workspace memory projection table
+- `12`: branch search projection tables
+- `13`: long-run event correlations and projection
+- `14`: task checkpoint projection table
 
 Glassbox refuses to open a database with a schema version newer than the running
 build supports. Schema upgrade is distinct from projection rebuild: migrations
 change table shape and metadata, while rebuild commands repopulate derived state
 from canonical events.
+
+The v10 checkpoint read model lives in `task_checkpoints`. Each row is derived
+from a canonical `TaskCheckpointCreated` event and keeps the objective, current
+phase, last completed step, next action, blockers, touched files, verification
+and budget posture, recovery guidance, and source event range. Latest checkpoint
+and checkpoint-history queries are read models only; the canonical event log
+remains the authority and projection rebuild must reproduce the table.
 
 ## Canonical Tables
 

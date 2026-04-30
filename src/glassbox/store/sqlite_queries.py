@@ -4,6 +4,8 @@ from glassbox.store.sqlite_query_branch_search import get_branch_search
 from glassbox.store.sqlite_query_branch_search import list_branch_candidates
 from glassbox.store.sqlite_query_branch_search import list_branch_searches
 from glassbox.store.sqlite_query_budgets import get_budget_posture
+from glassbox.store.sqlite_query_checkpoints import get_latest_task_checkpoint
+from glassbox.store.sqlite_query_checkpoints import list_task_checkpoints
 from glassbox.store.sqlite_query_metrics import list_turn_metrics
 from glassbox.store.sqlite_query_runtime_notes import list_runtime_notes
 from glassbox.store.sqlite_query_tasks import get_task
@@ -18,12 +20,14 @@ from glassbox.store.sqlite_query_transcript import list_transcript_messages
 __all__ = [
     "get_branch_search",
     "get_budget_posture",
+    "get_latest_task_checkpoint",
     "get_task",
     "list_approvals",
     "list_branch_candidates",
     "list_branch_searches",
     "list_runtime_notes",
     "list_open_blocked_tasks",
+    "list_task_checkpoints",
     "list_task_steps",
     "list_task_verifications",
     "list_tasks",
