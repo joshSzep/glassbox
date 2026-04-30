@@ -318,6 +318,7 @@ def test_docs_hub_links_to_v9_public_baseline() -> None:
 
     assert "v9-public-baseline.md" in docs_readme
     assert "v9-vocabulary.md" in docs_readme
+    assert "v9-command-surface-review.md" in docs_readme
 
 
 def test_v9_vocabulary_covers_command_and_dashboard_language() -> None:
@@ -341,6 +342,32 @@ def test_v9_vocabulary_covers_command_and_dashboard_language() -> None:
         "`uv run glassbox command tree`",
         "No command rename is recommended for `GBX-930`",
         "provider evidence is advisory",
+    ):
+        assert required_text in content
+
+
+def test_v9_command_surface_review_covers_deemphasis_plan() -> None:
+    content = (REPO_ROOT / "docs" / "v9-command-surface-review.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "## Classification",
+        "### Daily Commands",
+        "### Advanced Commands",
+        "### Recovery And Internal-Maintenance Commands",
+        "### Release-Evidence Commands",
+        "## Dashboard Surface Inventory",
+        "## Recommendations",
+        "## Compatibility Plan",
+        "glassbox command guide",
+        "glassbox command tree",
+        "No command, route, JSON field, event type, or dashboard panel is deprecated",
+        "WorkspaceOverview",
+        "SessionInspector",
+        "TaskAutonomyConsole",
+        "KnowledgeAutonomyConsole",
+        "BranchSearchConsole",
     ):
         assert required_text in content
 
@@ -401,6 +428,7 @@ def test_public_operator_doc_links_resolve() -> None:
         REPO_ROOT / "docs" / "README.md",
         REPO_ROOT / "docs" / "v9-public-baseline.md",
         REPO_ROOT / "docs" / "v9-vocabulary.md",
+        REPO_ROOT / "docs" / "v9-command-surface-review.md",
         REPO_ROOT / "docs" / "operator-quickstart.md",
         REPO_ROOT / "docs" / "version-release-policy.md",
     )

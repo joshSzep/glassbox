@@ -19,6 +19,9 @@ evidence or milestone history.
 - [v9-vocabulary.md](./v9-vocabulary.md): shared v9 language for sessions,
   tasks, evidence, memory, branches, verification, providers, daemons, and
   projections, plus command/dashboard copy review and compatibility policy
+- [v9-command-surface-review.md](./v9-command-surface-review.md): v9 inventory
+  and de-emphasis plan for daily, advanced, recovery, maintenance, and
+  release-evidence command/dashboard surfaces
 - [operator-quickstart.md](./operator-quickstart.md): short happy path for
   install, provider setup, terminal chat, dashboard inspection, approvals, and
   verification
@@ -76,6 +79,9 @@ evidence or milestone history.
   smoke, and future v9 release notes
 - [v9-vocabulary.md](./v9-vocabulary.md): standardize operator-facing product
   terms and command/dashboard language for v9
+- [v9-command-surface-review.md](./v9-command-surface-review.md): classify the
+  command tree and dashboard panels by daily, advanced, recovery, maintenance,
+  and release-evidence use
 - [persistent-runtime.md](./persistent-runtime.md): operate the daemon-backed
   workspace runtime and troubleshoot attach or health states
 - [operator-console.md](./operator-console.md): understand the v2 multi-session

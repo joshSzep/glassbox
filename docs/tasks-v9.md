@@ -522,7 +522,7 @@ The intended v9 milestone order is:
 
 ### GBX-932: Review Low-Value Or Release-Only Surfaces For De-Emphasis
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-931`
 - Goal: keep the public surface approachable without deleting useful advanced
   functionality
@@ -543,6 +543,13 @@ The intended v9 milestone order is:
 - Done when:
   - Glassbox remains powerful without presenting every release and recovery
     surface as equally central to first use
+  - Completed by adding
+    [v9-command-surface-review.md](./v9-command-surface-review.md), which
+    classifies commands and dashboard surfaces as daily, advanced, recovery or
+    maintenance, and release-evidence oriented; recommends docs/help/dashboard
+    grouping without removals; and records a compatibility plan for any future
+    de-emphasis or alias work. Docs hub discovery and guardrail tests now cover
+    the review.
 
 ---
 

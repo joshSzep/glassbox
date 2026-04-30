@@ -84,6 +84,9 @@ structural tree instead of replacing or reshaping the command hierarchy.
 `glassbox command guide --json` when docs tests or generated references need a
 stable workflow map.
 
+The command and dashboard de-emphasis inventory lives in
+[v9-command-surface-review.md](./v9-command-surface-review.md).
+
 ## Dashboard Copy Review
 
 Dashboard copy should keep the same nouns and priority model:
