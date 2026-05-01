@@ -24,6 +24,7 @@ def test_v10_release_gate_stage_composition_inherits_v9_and_adds_long_run(
     assert "v9 deterministic eval release report" in labels
     assert "package build" in labels
     assert "installed wheel smoke" not in labels
+    assert "v10 marked process-boundary pytest suite" in labels
     assert "v10 deterministic eval release report" in labels
     assert "v10 long-run release profile" in labels
     assert "v10 checkpoint/compaction smoke" in labels
@@ -48,6 +49,20 @@ def test_v10_release_gate_stage_composition_inherits_v9_and_adds_long_run(
         stage = next(stage for stage in stages if stage.label == label)
         assert evidence_path in stage.command
 
+    marker_stage = next(
+        stage
+        for stage in stages
+        if stage.label == "v10 marked process-boundary pytest suite"
+    )
+    assert marker_stage.command == (
+        "uv",
+        "run",
+        "pytest",
+        "-m",
+        "daemon or subprocess or timeout or tui",
+        "-q",
+    )
+
 
 def test_v10_release_gate_dry_run_lists_stages_and_writes_summary(
     tmp_path: Path,
@@ -69,6 +84,7 @@ def test_v10_release_gate_dry_run_lists_stages_and_writes_summary(
 
     assert result.returncode == 0
     assert "V10 release gate dry run" in result.stdout
+    assert "v10 marked process-boundary pytest suite" in result.stdout
     assert "v10 checkpoint/compaction smoke" in result.stdout
     assert "v10 provider recovery policy check" in result.stdout
     assert "advisory provider canaries: skipped by default" in result.stdout
@@ -92,8 +108,16 @@ def test_v10_release_gate_dry_run_lists_stages_and_writes_summary(
     ]
     assert any(stage["label"] == "installed wheel smoke" for stage in summary["stages"])
     assert (
+        "v10 marked process-boundary pytest suite"
+        in summary["long_run_readiness"]["blocking_evidence"]
+    )
+    assert (
         "v10 checkpoint/compaction smoke"
         in summary["long_run_readiness"]["blocking_evidence"]
+    )
+    assert (
+        "v10 marked process-boundary pytest suite"
+        in summary["release_authority"]["blocking_evidence"]
     )
     assert (
         "v10 deterministic eval release report"

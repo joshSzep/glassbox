@@ -161,6 +161,12 @@ Use the dedicated guides for workflow detail:
 
 ## Local Validation
 
+For quick backend iteration, use the marker-filtered fast local pytest loop:
+
+```bash
+uv run pytest -m "not daemon and not subprocess and not timeout and not tui and not slow"
+```
+
 Baseline validation:
 
 ```bash
@@ -170,6 +176,11 @@ uv run ty check
 uv run pytest
 uv run pre-commit run --all-files
 ```
+
+The unfiltered `uv run pytest` command is the full-confidence pytest check. It
+intentionally includes daemon, subprocess, timeout, TUI, slow, and release-gate
+coverage. The marker-filtered command is for local speed, not release
+sign-off.
 
 Frontend-only validation:
 
@@ -196,10 +207,11 @@ uv run glassbox eval run --tag smoke --cwd .
 
 Release-candidate validation adds packaged-dashboard, installed-wheel,
 deterministic eval, dependency/toolchain, provider-canary, and manual QA
-evidence. Use the v6 release gate and evidence guides when preparing a release:
+evidence. Use the v10 release gate and evidence guides when preparing the
+current release line:
 
 ```bash
-uv run python scripts/validate_v6_release_gate.py
+uv run python scripts/validate_v10_release_gate.py
 ```
 
 Manual release notes and screenshots belong under `.glassbox/releases/...` using

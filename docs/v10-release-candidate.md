@@ -40,6 +40,16 @@ The v10 automated release-candidate gate is:
 uv run python scripts/validate_v10_release_gate.py
 ```
 
+For focused local iteration, contributors may use the fast pytest slice:
+
+```bash
+uv run pytest -m "not daemon and not subprocess and not timeout and not tui and not slow"
+```
+
+That fast slice is not release authority. The v10 release gate keeps the
+unfiltered full pytest stage and adds a focused process-boundary marker stage
+for daemon, subprocess, timeout, and TUI coverage.
+
 The retained evidence directory used for the current release-candidate pass is:
 
 ```text

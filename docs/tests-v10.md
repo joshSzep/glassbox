@@ -797,7 +797,7 @@ Validation evidence:
 
 ### GBX-T960: Align Release Gates With Test Marker Taxonomy
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-T900`, `GBX-T950`
 - Goal: make release scripts intentionally include the expensive tests that
   prove process and timeout boundaries
@@ -817,6 +817,32 @@ Validation evidence:
   - `uv run pytest`
 - Done when:
   - local speed improvements and release confidence are both documented
+
+Validation evidence:
+
+- Added a v10 release-gate stage named
+  `v10 marked process-boundary pytest suite` that runs
+  `uv run pytest -m "daemon or subprocess or timeout or tui" -q` before the
+  v10 long-run eval stages.
+- Kept the inherited unfiltered `uv run pytest` full Python test stage as the
+  release-confidence pytest authority; the marker-filtered fast loop is
+  documented for local iteration only.
+- Updated the root README, getting-started guide, v10 release gate, and v10
+  release-candidate guide to distinguish the fast local slice from release
+  sign-off.
+- `uv run pytest tests/unit/test_v10_release_gate.py -q`:
+  5 passed in 0.20s
+- `uv run python scripts/validate_v10_release_gate.py --dry-run --evidence-dir /private/tmp/glassbox-v10-gate-dry-run`:
+  dry run passed; 47 planned stages; summary includes the process-boundary
+  marker stage in long-run readiness and release authority.
+- `uv run pytest -m "daemon or subprocess or timeout or tui" -q`:
+  43 passed, 1078 deselected in 19.45s
+- `uv run ruff format --check scripts/validate_v10_release_gate.py tests/unit/test_v10_release_gate.py`:
+  2 files already formatted
+- `uv run ruff check scripts/validate_v10_release_gate.py tests/unit/test_v10_release_gate.py`:
+  all checks passed
+- `uv run ty check`: all checks passed
+- `uv run pytest -q`: 1121 passed in 44.37s
 
 ### GBX-T961: Add A Suite-Speed Regression Watch
 

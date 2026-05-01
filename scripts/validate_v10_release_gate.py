@@ -35,6 +35,17 @@ def build_gate_stages(evidence_dir: Path | None = None) -> list[GateStage]:
     return [
         *build_v9_gate_stages(resolved_evidence_dir),
         GateStage(
+            "v10 marked process-boundary pytest suite",
+            (
+                "uv",
+                "run",
+                "pytest",
+                "-m",
+                "daemon or subprocess or timeout or tui",
+                "-q",
+            ),
+        ),
+        GateStage(
             "v10 deterministic eval release report",
             (
                 "uv",
@@ -445,6 +456,7 @@ def _new_evidence_summary(
         },
         "long_run_readiness": {
             "blocking_evidence": [
+                "v10 marked process-boundary pytest suite",
                 "v10 long-run release profile",
                 "v10 checkpoint/compaction smoke",
                 "v10 tool-attempt recovery smoke",
@@ -460,6 +472,7 @@ def _new_evidence_summary(
         "release_authority": {
             "blocking_evidence": [
                 "v9 deterministic eval release report",
+                "v10 marked process-boundary pytest suite",
                 "v10 deterministic eval release report",
                 "v10 long-run release profile",
                 "v8 eval coverage audit",

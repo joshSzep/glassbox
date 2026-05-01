@@ -150,6 +150,13 @@ Release evidence and milestone history remain available when you need them:
 
 ## Local Validation
 
+For the fastest local pytest loop during focused backend work, skip the
+process-heavy smoke boundaries by marker:
+
+```bash
+uv run pytest -m "not daemon and not subprocess and not timeout and not tui and not slow"
+```
+
 Run the baseline local validation sequence with:
 
 ```bash
@@ -159,5 +166,9 @@ uv run ty check
 uv run pytest
 uv run pre-commit run --all-files
 ```
+
+The unfiltered `uv run pytest` command is the full-confidence pytest check. It
+intentionally includes daemon, subprocess, timeout, TUI, slow, and release-gate
+coverage.
 
 For replay-backed regression checks, use the focused eval guide in [docs/replay-evals.md](docs/replay-evals.md).

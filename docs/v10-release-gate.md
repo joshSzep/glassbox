@@ -28,15 +28,25 @@ ordinary local eval runs.
 
 The v10 gate starts with every deterministic stage from
 [v9-release-gate.md](./v9-release-gate.md), including Python
-format/lint/typecheck, Python tests, frontend lint/typecheck/tests/API
+format/lint/typecheck, unfiltered Python tests, frontend lint/typecheck/tests/API
 generation/build, package build, package contents validation, onboarding,
 provider policy command health, promoted release-candidate eval evidence, and
 installed-wheel smoke.
+
+The inherited full Python test stage runs `uv run pytest` without marker
+exclusions, so it includes daemon, subprocess, timeout, TUI, slow, and
+release-gate coverage. The v10 gate also runs the focused marker slice
+`uv run pytest -m "daemon or subprocess or timeout or tui" -q` as a visible
+process-boundary check before the v10 long-run eval stages. Contributor fast
+local loops may use the inverse marker filter documented in
+[tests-v10.md](./tests-v10.md), but release validation must not use that
+filtered command as release authority.
 
 The v10-specific blocking stages are:
 
 | Stage | Evidence |
 | --- | --- |
+| `v10 marked process-boundary pytest suite` | daemon, subprocess, timeout, and TUI smoke boundaries are selected intentionally by marker |
 | `v10 deterministic eval release report` | commit, push, and release-candidate profiles produce retained v10 sign-off evidence |
 | `v10 long-run release profile` | the release-candidate profile runs with v10 long-run fixtures enabled |
 | `v10 checkpoint/compaction smoke` | checkpoint recovery and context-compaction provenance fixtures replay together |
