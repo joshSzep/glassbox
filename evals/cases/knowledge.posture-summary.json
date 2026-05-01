@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "knowledge.posture-summary",
+  "title": "Workspace knowledge posture stays auditable",
+  "bundle_path": "../bundles/knowledge.posture-summary.json",
+  "tags": ["v11-confidence", "knowledge", "observability"],
+  "notes": "Deterministic v11 fixture evidence for unified knowledge posture and provenance next actions.",
+  "release_contract": {
+    "owner": "runtime.observability",
+    "capabilities": ["knowledge_posture_summary"],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-01T12:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000119004",
+      "rationale": "Promoted for GBX-1190 to retain deterministic evidence for knowledge posture release-candidate review."
+    }
+  ]
+}

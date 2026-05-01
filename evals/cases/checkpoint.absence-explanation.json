@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "checkpoint.absence-explanation",
+  "title": "Checkpoint absence explanation stays explicit",
+  "bundle_path": "../bundles/checkpoint.absence-explanation.json",
+  "tags": ["v11-confidence", "checkpoint", "recovery"],
+  "notes": "Deterministic v11 fixture evidence for distinguishing expected historical checkpoint absence from active recovery gaps.",
+  "release_contract": {
+    "owner": "runtime.tasks",
+    "capabilities": ["checkpoint_absence_explanation"],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-01T12:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000119003",
+      "rationale": "Promoted for GBX-1190 to retain deterministic evidence for checkpoint absence guidance."
+    }
+  ]
+}

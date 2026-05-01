@@ -291,6 +291,28 @@ These cases are deterministic release-candidate evidence. They intentionally do
 not run live providers, daemon timing, or provider-side recovery; provider
 recovery remains advisory unless a case is explicitly fixture-backed.
 
+Current v11 confidence release-candidate cases:
+
+- `recommendation.release-path`: fixture-backed replay evidence that
+  release-path recommendation guidance remains a release-candidate contract.
+  The full path-matching variants stay in the focused recommendation fixture
+  tests.
+- `context.compaction-cap-guidance`: fixture-backed replay evidence that
+  over-cap compaction requests retain bounded range guidance before artifact
+  validation.
+- `checkpoint.absence-explanation`: fixture-backed replay evidence that
+  historical or imported checkpoint absence is labeled differently from an
+  active recovery gap.
+- `knowledge.posture-summary`: fixture-backed replay evidence for the unified
+  knowledge posture, provenance, and safe next-action summary.
+- `branch-search.decision-support`: fixture-backed replay evidence for
+  branch-search risk, cost, accepted-risk, follow-up, and verification
+  recommendation posture without automatic merge behavior.
+
+These v11 cases are deterministic release-candidate evidence. They do not make
+live dashboard, screen-reader, or live-provider claims; those remain retained
+manual, browser, or advisory evidence with their own freshness labels.
+
 Each run writes one JSON artifact per case plus `summary.json` into the selected
 output directory. If `--output-dir` is omitted, Glassbox creates a timestamped
 directory under `.glassbox/evals/`.

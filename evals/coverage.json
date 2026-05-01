@@ -291,9 +291,49 @@
       "kind": "operator_workflow",
       "criticality": "important",
       "verification_stages": ["release-candidate"],
-      "expected_case_ids": [],
+      "expected_case_ids": ["recommendation.release-path"],
       "coverage_mode": "single_case",
-      "notes": "GBX-1122 protects the stable v11 recommendation behavior through focused deterministic fixtures in evals/fixtures/recommendation_cases.json and tests/unit/test_eval_recommendations.py. These fixtures cover release-path, frontend-path, provider-path, and no-confident-match fallback recommendations until compact replay cases are promoted."
+      "notes": "GBX-1122 protects full recommendation semantics through focused deterministic fixtures in evals/fixtures/recommendation_cases.json and tests/unit/test_eval_recommendations.py. GBX-1190 promotes the release-path recommendation surface into release-candidate replay evidence while frontend, provider, and fallback recommendation variants remain focused fixture evidence."
+    },
+    {
+      "capability_id": "compaction_range_guardrail",
+      "title": "Compaction source-range guardrails",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["context.compaction-cap-guidance"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1190 retains deterministic release-candidate evidence that over-cap compaction requests produce bounded range guidance before artifact schema validation."
+    },
+    {
+      "capability_id": "checkpoint_absence_explanation",
+      "title": "Checkpoint absence explanation",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["checkpoint.absence-explanation"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1190 retains deterministic release-candidate evidence that expected historical or imported checkpoint absence is distinct from active recovery gaps."
+    },
+    {
+      "capability_id": "knowledge_posture_summary",
+      "title": "Workspace knowledge posture summary",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["knowledge.posture-summary"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1190 retains deterministic release-candidate evidence for the unified knowledge posture, provenance, and safe next-action contract."
+    },
+    {
+      "capability_id": "branch_search_decision_support",
+      "title": "Branch-search decision support",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["branch-search.decision-support"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1190 retains deterministic release-candidate evidence for candidate evidence, risk, cost, accepted-risk, follow-up, and verification recommendation posture without automatic merge behavior."
     }
   ]
 }

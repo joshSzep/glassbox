@@ -422,7 +422,7 @@ def test_repository_eval_profiles_align_with_v6_gate_stages() -> None:
     assert profiles["release-candidate"].verification_stage == "release-candidate"
     assert profiles["release-candidate"].blocking is True
     assert profiles["release-candidate"].budget is not None
-    assert profiles["release-candidate"].budget.max_selected_case_count == 13
+    assert profiles["release-candidate"].budget.max_selected_case_count == 18
     assert profiles["release-candidate"].budget.allow_advisory_cases is False
     assert provider_profiles["live-provider-canary"].blocking is False
     assert provider_profiles["live-provider-canary"].track == "live-provider-canary"
@@ -481,7 +481,33 @@ def test_repository_release_candidate_profile_includes_v10_long_run_cases() -> N
         "stale_verification_warning",
         "long_run_cockpit_summary",
     }.issubset(capabilities)
-    assert len(cases) == 13
+    assert len(cases) >= 13
+
+
+def test_repository_release_candidate_profile_includes_v11_confidence_cases() -> None:
+    cases = load_eval_suite(REPO_ROOT, profile_id="release-candidate")
+    case_ids = {case.case_id for case in cases}
+    capabilities = {
+        capability
+        for case in cases
+        for capability in case.release_contract.capabilities
+    }
+
+    assert {
+        "recommendation.release-path",
+        "context.compaction-cap-guidance",
+        "checkpoint.absence-explanation",
+        "knowledge.posture-summary",
+        "branch-search.decision-support",
+    }.issubset(case_ids)
+    assert {
+        "verification_recommendation_explainability",
+        "compaction_range_guardrail",
+        "checkpoint_absence_explanation",
+        "knowledge_posture_summary",
+        "branch_search_decision_support",
+    }.issubset(capabilities)
+    assert len(cases) == 18
 
 
 def test_resolve_eval_suite_selection_applies_profile_before_extra_tag_filter(

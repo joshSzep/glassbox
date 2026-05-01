@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "recommendation.release-path",
+  "title": "Release path recommendation keeps eval and gate guidance visible",
+  "bundle_path": "../bundles/recommendation.release-path.json",
+  "tags": ["v11-confidence", "recommendation", "release"],
+  "notes": "Deterministic v11 fixture evidence for release-path recommendation explainability. Focused recommendation fixtures still validate full path matching semantics.",
+  "release_contract": {
+    "owner": "runtime.replay",
+    "capabilities": ["verification_recommendation_explainability"],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-01T12:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000119001",
+      "rationale": "Promoted for GBX-1190 to retain deterministic evidence that release-path recommendation guidance is part of v11 release-candidate review."
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Compact the full historical session range with friendly cap guidance"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "budget_posture": null,
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves compaction cap guidance",
+        "turn_id": "00000000-0000-0000-0000-000000119102"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves compaction cap guidance",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000119102"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TaskCreated",
+      "TaskStepStarted",
+      "TaskStepBlocked",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "lineage": null,
+    "long_run_events": [],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Compact the full historical session range with friendly cap guidance"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "questions": [],
+    "task_plans": [
+      {
+        "blocked_detail": "Selected source range contains 251 events, exceeding the artifact source-reference cap of 200. Retry with --start-sequence 52 --end-sequence 251 or split the compaction into smaller ranges.",
+        "blocked_reason": "source_reference_cap",
+        "current_step_order": 0,
+        "goal": "Return bounded range guidance before artifact schema validation.",
+        "status": "paused",
+        "steps": [
+          {
+            "blocked_reason": "source_reference_cap",
+            "description": "Name selected count, supported cap, and a safe bounded retry range.",
+            "order": 0,
+            "status": "blocked",
+            "title": "Guide over-cap compaction"
+          }
+        ],
+        "title": "Compaction source-range guardrail",
+        "verifications": [
+          {
+            "check_name": "compaction cap guidance",
+            "status": "passed",
+            "step_order": 0,
+            "summary": "friendly bounded-range guidance is retained"
+          }
+        ]
+      }
+    ],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Compact the full historical session range with friendly cap guidance"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000119002",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "context.compaction-cap-guidance"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

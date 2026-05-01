@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "context.compaction-cap-guidance",
+  "title": "Compaction range guardrails stay operator-readable",
+  "bundle_path": "../bundles/context.compaction-cap-guidance.json",
+  "tags": ["v11-confidence", "context", "compaction"],
+  "notes": "Deterministic v11 fixture evidence for friendly source-range guidance when compaction would exceed the artifact source-reference cap.",
+  "release_contract": {
+    "owner": "runtime.context",
+    "capabilities": ["compaction_range_guardrail"],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-01T12:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000119002",
+      "rationale": "Promoted for GBX-1190 to retain deterministic evidence for compaction over-range guidance."
+    }
+  ]
+}

@@ -1071,7 +1071,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1190: Add Deterministic v11 Replay And Eval Cases
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1122`, `GBX-1162`, `GBX-1172`
 - Goal: protect the stable v11 confidence contracts with deterministic release
   evidence
@@ -1093,6 +1093,15 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - v11 confidence behavior has deterministic evidence where it can be made
     deterministic
+- Completed:
+  - promoted compact fixture-backed release-candidate replay cases for
+    release-path recommendation, compaction cap guidance, checkpoint absence
+    explanation, knowledge posture, and branch-search decision support
+  - mapped the promoted v11 capabilities in `evals/coverage.json` and raised
+    the release-candidate profile budget to match the expanded deterministic
+    case set
+  - documented the v11 confidence fixtures in the replay/eval guides while
+    keeping live browser, screen-reader, and provider evidence separate
 
 ### GBX-1191: Add v11 Release Gate
 
