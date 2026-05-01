@@ -585,7 +585,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R431: Split Session Import Handoff Note Handling From Package Validation
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R430`
 - Goal: keep
   [session_import.py](../src/glassbox/runtime/session_import.py) focused by
@@ -607,6 +607,20 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - handoff import behavior is stable and package validation is independently
     testable
+- Completed notes:
+  - `session_import.py` is now a compatibility facade/coordinator over
+    `session_import_validation.py`, `session_import_events.py`, and
+    `session_import_handoff.py`.
+  - Package validation, inspection-only event construction, transcript/task/
+    checkpoint import, and handoff runtime-note construction now have separate
+    owners without changing inspection-only import semantics.
+  - Validation: `uv run pytest tests/unit/test_session_import_validation.py`,
+    `uv run pytest tests/unit/test_architecture_guardrails.py`,
+    `uv run pytest tests/integration/test_cli_session_import.py`,
+    `uv run pytest tests/integration/test_cli_session_export.py`,
+    `uv run ruff format --check src/glassbox/runtime/session_import*.py tests/unit/test_session_import_validation.py tests/unit/test_architecture_guardrails.py`,
+    `uv run ruff check src/glassbox/runtime/session_import*.py tests/unit/test_session_import_validation.py tests/unit/test_architecture_guardrails.py`,
+    and `uv run ty check src/glassbox/runtime/session_import.py src/glassbox/runtime/session_import_validation.py src/glassbox/runtime/session_import_events.py src/glassbox/runtime/session_import_handoff.py`.
 
 ### GBX-R432: Split Service Contract Models By Domain Without Breaking Public Imports
 

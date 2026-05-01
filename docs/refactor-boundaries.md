@@ -38,10 +38,11 @@ decision support, handoff, CLI guidance, frontend evidence, recovery, and
 projection modules that accumulated richer derivation and formatting behavior
 during the confidence-and-adoption milestone.
 
-The v11 map is now implemented through Phase 73 task `GBX-R430`.
+The v11 map is now implemented through Phase 73 task `GBX-R431`.
 Recommendation output, recommendation matching, release-gate summaries,
 knowledge posture, branch-search decision support, frontend knowledge/branch
-sections, and session export follow the helper boundaries described below.
+sections, session export, and session import follow the helper boundaries
+described below.
 
 ## Scope
 
@@ -430,6 +431,11 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   session creation, transcript/runtime-note import, and handoff-note
   construction. Older packages remain readable, and imported sessions remain
   inspection state rather than invented live evidence.
+- The v11 session-import split now keeps `runtime/session_import.py` as the
+  compatibility facade while `session_import_validation.py`,
+  `session_import_events.py`, and `session_import_handoff.py` own package
+  validation, inspection-only event construction, transcript/task/checkpoint
+  import event shaping, and handoff runtime-note text.
 - Tool-attempt recovery should separate inspection posture, retry eligibility,
   abandon eligibility/event construction, artifact lookup/read, and CLI/API
   result models. It should never rerun a tool without explicit operator

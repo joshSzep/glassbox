@@ -1322,10 +1322,34 @@ V11_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
     (
         SRC_ROOT / "runtime" / "session_import.py",
-        320,
+        100,
         (
-            "v11 session import should move new validation, inspection-only "
-            "creation, transcript, runtime-note, and handoff behavior into helpers"
+            "v11 session_import should stay a thin compatibility facade over "
+            "validation, inspection-event, and handoff-note helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_import_validation.py",
+        80,
+        (
+            "v11 session import package validation should stay owned by "
+            "session_import_validation.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_import_events.py",
+        180,
+        (
+            "v11 session import inspection-only event construction should stay "
+            "owned by session_import_events.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_import_handoff.py",
+        60,
+        (
+            "v11 session import handoff-note construction should stay owned "
+            "by session_import_handoff.py"
         ),
     ),
     (
@@ -1669,6 +1693,30 @@ V11_PYTHON_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
         (
             "v11 session import helpers must keep validation and handoff-note "
             "assembly independent from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_import_validation.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 session import validation helpers must stay independent from "
+            "CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_import_events.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 session import inspection-event helpers must stay independent "
+            "from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_import_handoff.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 session import handoff helpers must stay independent from CLI "
+            "and web presentation layers"
         ),
     ),
     (
