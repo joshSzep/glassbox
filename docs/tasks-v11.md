@@ -736,7 +736,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1151: Add Readiness Remediation Recipes
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1150`
 - Goal: make first-run and stale-workspace readiness output more actionable
 - Deliverables:

@@ -27,7 +27,13 @@ uv run pre-commit install
 ```bash
 uv run glassbox --help
 python -m glassbox --help
+uv run glassbox readiness check --cwd .
 ```
+
+The readiness check prints concrete remediation commands for provider setup,
+packaged dashboard assets, repository index freshness, writable `.glassbox`
+state, eval profile availability, and package/build posture. It is safe to run
+before the first session and after fixing any warning.
 
 ## First-Run Provider And Profile Setup
 

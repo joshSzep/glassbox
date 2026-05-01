@@ -4,6 +4,7 @@ import importlib.util
 import sqlite3
 import sys
 from collections.abc import Mapping
+from importlib import metadata as importlib_metadata
 from pathlib import Path
 from typing import Literal
 
@@ -14,6 +15,7 @@ from pydantic import computed_field
 from glassbox.runtime.bootstrap_storage import RuntimeStoragePaths
 from glassbox.runtime.bootstrap_storage import open_initialized_runtime_database
 from glassbox.runtime.bootstrap_storage import resolve_runtime_storage_paths
+from glassbox.runtime.eval_discovery import load_eval_profiles
 from glassbox.runtime.provider_diagnostics import build_provider_diagnostics_report
 from glassbox.runtime.repository_index import RepositoryIndexNotFoundError
 from glassbox.runtime.repository_index import load_repository_index
@@ -83,6 +85,8 @@ def build_first_run_readiness_report(
         ),
         _dashboard_static_assets_check(static_root or _STATIC_NEXT_DIR),
         _repository_index_check(storage_paths.workspace_root),
+        _eval_profile_availability_check(storage_paths.workspace_root),
+        _package_build_posture_check(storage_paths.workspace_root),
         _tool_policy_manifest_check(storage_paths.workspace_root),
     ]
     return FirstRunReadinessReport(
@@ -109,7 +113,10 @@ def _runtime_dependencies_check() -> FirstRunReadinessCheck:
                 "Glassbox requires Python >=3.14,<3.15; "
                 f"current runtime is {sys.version.split()[0]}."
             ),
-            next_actions=["run Glassbox through `uv run` from the repository root"],
+            next_actions=[
+                "install Python 3.14",
+                "`uv run glassbox readiness check --cwd .`",
+            ],
         )
     if missing_modules:
         return FirstRunReadinessCheck(
@@ -117,7 +124,10 @@ def _runtime_dependencies_check() -> FirstRunReadinessCheck:
             title="Python runtime dependencies",
             status="fail",
             detail=f"Missing importable runtime modules: {', '.join(missing_modules)}.",
-            next_actions=["run `uv sync` from the repository root"],
+            next_actions=[
+                "`uv sync`",
+                "`uv run glassbox readiness check --cwd .`",
+            ],
         )
     return FirstRunReadinessCheck(
         check_id="runtime-dependencies",
@@ -134,7 +144,9 @@ def _workspace_path_check(workspace_root: Path) -> FirstRunReadinessCheck:
             title="Workspace path",
             status="fail",
             detail=f"Workspace path does not exist: {workspace_root}",
-            next_actions=["rerun with `--cwd PATH` pointing at a local checkout"],
+            next_actions=[
+                "`glassbox readiness check --cwd PATH` with an existing local checkout"
+            ],
             path=str(workspace_root),
         )
     if not workspace_root.is_dir():
@@ -143,7 +155,9 @@ def _workspace_path_check(workspace_root: Path) -> FirstRunReadinessCheck:
             title="Workspace path",
             status="fail",
             detail=f"Workspace path is not a directory: {workspace_root}",
-            next_actions=["rerun with `--cwd PATH` pointing at a local checkout"],
+            next_actions=[
+                "`glassbox readiness check --cwd PATH` with a local directory"
+            ],
             path=str(workspace_root),
         )
     return FirstRunReadinessCheck(
@@ -166,7 +180,9 @@ def _writable_state_check(workspace_root: Path) -> FirstRunReadinessCheck:
                 "Workspace is not a directory, so state cannot be written: "
                 f"{workspace_root}"
             ),
-            next_actions=["rerun with `--cwd PATH` pointing at a local checkout"],
+            next_actions=[
+                "`glassbox readiness check --cwd PATH` with a writable local checkout"
+            ],
             path=str(state_dir),
         )
     try:
@@ -181,8 +197,9 @@ def _writable_state_check(workspace_root: Path) -> FirstRunReadinessCheck:
             status="fail",
             detail=f"Unable to write Glassbox state at {state_dir}: {exc}",
             next_actions=[
-                "fix workspace permissions or choose a writable `--cwd` before "
-                "starting chat"
+                f"`mkdir -p {state_dir}`",
+                f"`chmod u+rwx {state_dir}`",
+                "`glassbox readiness check --cwd .` after fixing permissions",
             ],
             path=str(state_dir),
         )
@@ -207,7 +224,9 @@ def _database_bootstrap_check(
                 "Workspace is not a directory, so the Glassbox SQLite database "
                 "cannot be initialized."
             ),
-            next_actions=["rerun with `--cwd PATH` pointing at a local checkout"],
+            next_actions=[
+                "`glassbox readiness check --cwd PATH` with a writable local checkout"
+            ],
             path=str(storage_paths.database_path),
         )
     try:
@@ -219,8 +238,8 @@ def _database_bootstrap_check(
             status="fail",
             detail=f"Unable to initialize the Glassbox SQLite database: {exc}",
             next_actions=[
-                "fix `.glassbox/` permissions or pass `--db-path` to a writable "
-                "SQLite database path"
+                "`glassbox readiness check --cwd . --db-path PATH`",
+                "`glassbox daemon status --cwd .` before moving runtime state",
             ],
             path=str(storage_paths.database_path),
         )
@@ -267,7 +286,13 @@ def _provider_configuration_check(
                 f"{report.selected_model_name}; deterministic local fallback remains "
                 "available."
             ),
-            next_actions=report.next_actions or report.onboarding_steps[:2],
+            next_actions=[
+                (
+                    "`glassbox provider diagnostics --cwd . --model-name "
+                    f"{report.selected_model_name}`"
+                ),
+                *(report.next_actions or report.onboarding_steps[:2]),
+            ],
         )
     return FirstRunReadinessCheck(
         check_id="provider-configuration",
@@ -277,7 +302,13 @@ def _provider_configuration_check(
             f"Provider diagnostics state is {report.state}: "
             f"{'; '.join(report.problems) or 'configuration is not usable'}"
         ),
-        next_actions=report.next_actions,
+        next_actions=[
+            (
+                "`glassbox provider diagnostics --cwd . --model-name "
+                f"{report.selected_model_name}`"
+            ),
+            *report.next_actions,
+        ],
     )
 
 
@@ -291,7 +322,7 @@ def _dashboard_static_assets_check(static_root: Path) -> FirstRunReadinessCheck:
             detail=problems[0],
             next_actions=[
                 "`pnpm --dir frontend build`",
-                "rerun `glassbox readiness check --cwd .`",
+                "`glassbox readiness check --cwd .`",
             ],
             path=str(static_root),
         )
@@ -314,7 +345,11 @@ def _repository_index_check(workspace_root: Path) -> FirstRunReadinessCheck:
             title="Repository index posture",
             status="warning",
             detail=f"Repository index has not been built at {path}.",
-            next_actions=["`glassbox repo index build --cwd .`"],
+            next_actions=[
+                "`glassbox repo index status --cwd .`",
+                "`glassbox repo index build --cwd .`",
+                "`glassbox readiness check --cwd .`",
+            ],
             path=str(path),
         )
     if snapshot.status == "fresh":
@@ -326,9 +361,13 @@ def _repository_index_check(workspace_root: Path) -> FirstRunReadinessCheck:
             path=str(path),
         )
     status = "fail" if snapshot.status == "failed" else "warning"
-    next_actions = ["`glassbox repo index build --cwd .`"]
+    next_actions = [
+        "`glassbox repo index status --cwd .`",
+        "`glassbox repo index build --cwd .`",
+        "`glassbox readiness check --cwd .`",
+    ]
     if snapshot.status == "failed":
-        next_actions.insert(0, "`glassbox repo index status --cwd . --json`")
+        next_actions.insert(1, "`glassbox repo index status --cwd . --json`")
     return FirstRunReadinessCheck(
         check_id="repository-index",
         title="Repository index posture",
@@ -339,6 +378,97 @@ def _repository_index_check(workspace_root: Path) -> FirstRunReadinessCheck:
         ),
         next_actions=next_actions,
         path=str(path),
+    )
+
+
+def _eval_profile_availability_check(workspace_root: Path) -> FirstRunReadinessCheck:
+    profiles_path = workspace_root / "evals" / "profiles.json"
+    try:
+        profiles = load_eval_profiles(workspace_root)
+    except ValueError as exc:
+        status: ReadinessCheckStatus = "warning"
+        if profiles_path.exists():
+            status = "fail"
+        return FirstRunReadinessCheck(
+            check_id="eval-profile-availability",
+            title="Eval profile availability",
+            status=status,
+            detail=f"Eval profile manifest is not ready: {exc}",
+            next_actions=[
+                "`glassbox eval profile list --cwd .` after adding evals/profiles.json",
+                "`glassbox eval recommend PATH --cwd .` after profiles are available",
+            ],
+            path=str(profiles_path),
+        )
+    profile_ids = {profile.profile_id for profile in profiles}
+    if "commit-smoke" not in profile_ids:
+        return FirstRunReadinessCheck(
+            check_id="eval-profile-availability",
+            title="Eval profile availability",
+            status="warning",
+            detail=(
+                "Eval profiles are present, but the commit-smoke profile is missing."
+            ),
+            next_actions=[
+                "`glassbox eval profile list --cwd .`",
+                "add a `commit-smoke` profile before relying on default verification",
+            ],
+            path=str(profiles_path),
+        )
+    return FirstRunReadinessCheck(
+        check_id="eval-profile-availability",
+        title="Eval profile availability",
+        status="pass",
+        detail=f"Eval profiles are available: {', '.join(sorted(profile_ids))}.",
+        path=str(profiles_path),
+    )
+
+
+def _package_build_posture_check(workspace_root: Path) -> FirstRunReadinessCheck:
+    pyproject_path = workspace_root / "pyproject.toml"
+    try:
+        package_version = importlib_metadata.version("glassbox")
+    except importlib_metadata.PackageNotFoundError:
+        return FirstRunReadinessCheck(
+            check_id="package-build-posture",
+            title="Package/build posture",
+            status="fail",
+            detail="The glassbox package is not importable as installed metadata.",
+            next_actions=[
+                "`uv sync`",
+                "`uv run glassbox --version`",
+                "`uv run glassbox readiness check --cwd .`",
+            ],
+        )
+    if not pyproject_path.exists():
+        return FirstRunReadinessCheck(
+            check_id="package-build-posture",
+            title="Package/build posture",
+            status="warning",
+            detail=(
+                f"Glassbox {package_version} is importable, but no pyproject.toml "
+                "was found at the workspace root."
+            ),
+            next_actions=[
+                "`glassbox readiness check --cwd PATH` from a repository root",
+                "`glassbox command guide` for installed-package workflows",
+            ],
+            path=str(pyproject_path),
+        )
+    next_actions = ["`uv build`"]
+    package_validator = workspace_root / "scripts" / "validate_package_contents.py"
+    if package_validator.exists():
+        next_actions.append("`uv run python scripts/validate_package_contents.py`")
+    return FirstRunReadinessCheck(
+        check_id="package-build-posture",
+        title="Package/build posture",
+        status="pass",
+        detail=(
+            f"Glassbox {package_version} is importable and project metadata exists "
+            f"at {pyproject_path}."
+        ),
+        next_actions=next_actions,
+        path=str(pyproject_path),
     )
 
 
@@ -353,8 +483,8 @@ def _tool_policy_manifest_check(workspace_root: Path) -> FirstRunReadinessCheck:
             status="fail",
             detail=str(exc),
             next_actions=[
-                "fix `glassbox-policy.json` or remove it to use the default "
-                "review policy"
+                "fix `glassbox-policy.json` or remove it",
+                "`glassbox readiness check --cwd .`",
             ],
             path=str(policy_path),
         )

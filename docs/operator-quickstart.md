@@ -28,9 +28,9 @@ uv run glassbox readiness check --cwd .
 
 The readiness report checks runtime imports, workspace and `.glassbox/`
 writability, SQLite bootstrap, provider posture, packaged dashboard assets,
-repository index freshness, and tool policy. Warnings include a concrete next
-command, and missing provider credentials do not block deterministic local
-smoke.
+repository index freshness, eval profile availability, package/build posture,
+and tool policy. Warnings include concrete remediation commands, and missing
+provider credentials do not block deterministic local smoke.
 
 ## 2. Configure An Optional Provider
 

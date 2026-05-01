@@ -14,6 +14,7 @@ from glassbox.runtime.repository_index import write_repository_index
 def test_first_run_readiness_reports_healthy_workspace(tmp_path: Path) -> None:
     static_root = _write_spa_build(tmp_path / "static_next")
     _seed_repository(tmp_path)
+    _seed_eval_profiles(tmp_path)
     build_and_write_repository_index(tmp_path)
 
     report = build_first_run_readiness_report(
@@ -29,6 +30,8 @@ def test_first_run_readiness_reports_healthy_workspace(tmp_path: Path) -> None:
     assert _check_status(report, "provider-configuration") == "pass"
     assert _check_status(report, "dashboard-static-assets") == "pass"
     assert _check_status(report, "repository-index") == "pass"
+    assert _check_status(report, "eval-profile-availability") == "pass"
+    assert _check_status(report, "package-build-posture") == "pass"
 
 
 def test_first_run_readiness_warns_for_missing_live_provider(
@@ -36,6 +39,7 @@ def test_first_run_readiness_warns_for_missing_live_provider(
 ) -> None:
     static_root = _write_spa_build(tmp_path / "static_next")
     _seed_repository(tmp_path)
+    _seed_eval_profiles(tmp_path)
     build_and_write_repository_index(tmp_path)
 
     report = build_first_run_readiness_report(
@@ -49,13 +53,18 @@ def test_first_run_readiness_warns_for_missing_live_provider(
     assert report.status == "needs_attention"
     assert provider_check.status == "warning"
     assert "local fallback remains available" in provider_check.detail
-    assert "OPENAI_API_KEY" in provider_check.next_actions[0]
+    assert (
+        "`glassbox provider diagnostics --cwd . --model-name openai:gpt-5.4`"
+        in provider_check.next_actions
+    )
+    assert any("OPENAI_API_KEY" in action for action in provider_check.next_actions)
 
 
 def test_first_run_readiness_warns_for_missing_dashboard_assets(
     tmp_path: Path,
 ) -> None:
     _seed_repository(tmp_path)
+    _seed_eval_profiles(tmp_path)
     build_and_write_repository_index(tmp_path)
 
     report = build_first_run_readiness_report(
@@ -70,6 +79,7 @@ def test_first_run_readiness_warns_for_missing_dashboard_assets(
     assert dashboard_check.status == "warning"
     assert "missing SPA shell" in dashboard_check.detail
     assert "`pnpm --dir frontend build`" in dashboard_check.next_actions
+    assert "`glassbox readiness check --cwd .`" in dashboard_check.next_actions
 
 
 def test_first_run_readiness_warns_for_stale_repository_index(
@@ -77,6 +87,7 @@ def test_first_run_readiness_warns_for_stale_repository_index(
 ) -> None:
     static_root = _write_spa_build(tmp_path / "static_next")
     _seed_repository(tmp_path)
+    _seed_eval_profiles(tmp_path)
     build_and_write_repository_index(tmp_path)
     (tmp_path / "src" / "sample.py").write_text(
         "class UsefulThing:\n    pass\n\ndef changed() -> None:\n    pass\n",
@@ -94,12 +105,15 @@ def test_first_run_readiness_warns_for_stale_repository_index(
     assert report.status == "needs_attention"
     assert index_check.status == "warning"
     assert "Repository index is stale" in index_check.detail
+    assert "`glassbox repo index status --cwd .`" in index_check.next_actions
     assert "`glassbox repo index build --cwd .`" in index_check.next_actions
+    assert "`glassbox readiness check --cwd .`" in index_check.next_actions
 
 
 def test_first_run_readiness_blocks_unwritable_state(tmp_path: Path) -> None:
     static_root = _write_spa_build(tmp_path / "static_next")
     _seed_repository(tmp_path)
+    _seed_eval_profiles(tmp_path)
     (tmp_path / ".glassbox").write_text("not a directory\n", encoding="utf-8")
 
     report = build_first_run_readiness_report(
@@ -139,6 +153,7 @@ def test_first_run_readiness_blocks_failed_repository_index(
 ) -> None:
     static_root = _write_spa_build(tmp_path / "static_next")
     _seed_repository(tmp_path)
+    _seed_eval_profiles(tmp_path)
     write_repository_index(
         tmp_path,
         RepositoryIndexSnapshot(
@@ -161,6 +176,56 @@ def test_first_run_readiness_blocks_failed_repository_index(
     assert index_check.status == "fail"
     assert "parser crash" in index_check.detail
     assert "`glassbox repo index status --cwd . --json`" in index_check.next_actions
+    assert "`glassbox repo index build --cwd .`" in index_check.next_actions
+
+
+def test_first_run_readiness_warns_for_missing_eval_profiles(
+    tmp_path: Path,
+) -> None:
+    static_root = _write_spa_build(tmp_path / "static_next")
+    _seed_repository(tmp_path)
+    build_and_write_repository_index(tmp_path)
+
+    report = build_first_run_readiness_report(
+        tmp_path,
+        model_name="local-test-model",
+        environ={},
+        static_root=static_root,
+    )
+    eval_check = _check(report, "eval-profile-availability")
+
+    assert report.status == "needs_attention"
+    assert eval_check.status == "warning"
+    assert "Eval profile manifest is not ready" in eval_check.detail
+    assert (
+        "`glassbox eval profile list --cwd .` after adding evals/profiles.json"
+        in eval_check.next_actions
+    )
+
+
+def test_first_run_readiness_warns_for_missing_project_metadata(
+    tmp_path: Path,
+) -> None:
+    static_root = _write_spa_build(tmp_path / "static_next")
+    (tmp_path / "README.md").write_text("# Fixture\n", encoding="utf-8")
+    _seed_eval_profiles(tmp_path)
+    build_and_write_repository_index(tmp_path)
+
+    report = build_first_run_readiness_report(
+        tmp_path,
+        model_name="local-test-model",
+        environ={},
+        static_root=static_root,
+    )
+    package_check = _check(report, "package-build-posture")
+
+    assert report.status == "needs_attention"
+    assert package_check.status == "warning"
+    assert "no pyproject.toml was found" in package_check.detail
+    assert (
+        "`glassbox readiness check --cwd PATH` from a repository root"
+        in package_check.next_actions
+    )
 
 
 def _check(report, check_id: str):
@@ -193,5 +258,24 @@ def _seed_repository(root: Path) -> None:
     )
     (root / "src" / "sample.py").write_text(
         "class UsefulThing:\n    pass\n",
+        encoding="utf-8",
+    )
+
+
+def _seed_eval_profiles(root: Path) -> None:
+    evals_dir = root / "evals"
+    evals_dir.mkdir()
+    (evals_dir / "profiles.json").write_text(
+        """{
+  "manifest_version": 1,
+  "profiles": [
+    {
+      "profile_id": "commit-smoke",
+      "title": "Commit smoke",
+      "verification_stage": "commit-time"
+    }
+  ]
+}
+""",
         encoding="utf-8",
     )

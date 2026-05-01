@@ -335,6 +335,36 @@ def test_cli_readiness_check_prints_json_report(
     assert any(
         check["check_id"] == "dashboard-static-assets" for check in payload["checks"]
     )
+    assert any(
+        check["check_id"] == "eval-profile-availability" for check in payload["checks"]
+    )
+    assert any(
+        check["check_id"] == "package-build-posture" for check in payload["checks"]
+    )
+
+
+def test_cli_readiness_check_prints_remediation_commands(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = main(
+        [
+            "readiness",
+            "check",
+            "--cwd",
+            str(tmp_path),
+            "--model-name",
+            "local-test-model",
+        ]
+    )
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Eval profile availability" in captured.out
+    assert "Package/build posture" in captured.out
+    assert "glassbox eval profile list --cwd ." in captured.out
+    assert "glassbox readiness check --cwd PATH" in captured.out
 
 
 def test_python_module_entrypoint_prints_help(
