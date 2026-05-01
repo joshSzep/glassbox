@@ -27,9 +27,10 @@ Glassbox v11 focuses on confidence, evidence, and operator flow polish:
 - strengthen branch-search decision support without automatic merging
 - align the public package line and release policy on version `0.10.0`
 
-The v11 package target is `0.10.0`. Until the dedicated version-alignment task
-updates metadata and installed smoke, historical v9 and v10 documents keep the
-version strings and evidence paths that were true for those milestones.
+The v11 package target is `0.10.0`. `GBX-1102` aligns package metadata,
+`glassbox.__version__`, installed smoke expectations, and version policy with
+that target. Historical v9 and v10 documents keep the version strings and
+evidence paths that were true for those milestones.
 
 ## Non-Goals
 

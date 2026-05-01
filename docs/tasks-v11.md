@@ -354,7 +354,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1102: Align Package And Release Policy With `0.10.0`
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1100`
 - Goal: make package metadata, public docs, installed smoke, and release naming
   agree that this milestone becomes `0.10.0`

@@ -9,8 +9,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SMOKE_SCRIPT = REPO_ROOT / "scripts" / "validate_installed_wheel_smoke.py"
 
 
-def test_installed_wheel_smoke_dry_run_lists_v8_surfaces(tmp_path: Path) -> None:
-    wheel_path = tmp_path / "glassbox-0.9.0-py3-none-any.whl"
+def test_installed_wheel_smoke_dry_run_lists_v11_version_surface(
+    tmp_path: Path,
+) -> None:
+    wheel_path = tmp_path / "glassbox-0.10.0-py3-none-any.whl"
     wheel_path.write_bytes(b"placeholder")
     evidence_dir = tmp_path / "evidence"
 

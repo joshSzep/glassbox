@@ -838,14 +838,15 @@ def test_operator_quickstart_covers_daily_happy_path() -> None:
         assert required_text in content
 
 
-def test_root_readme_prioritizes_v9_product_path_before_release_archive() -> None:
+def test_root_readme_prioritizes_current_product_path_before_release_archive() -> None:
     root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
 
-    assert "docs/v9-public-baseline.md" in root_readme
+    assert "docs/v10-long-running-task-contract.md" in root_readme
+    assert "docs/v11-confidence-adoption-contract.md" in root_readme
     assert "docs/operator-quickstart.md" in root_readme
-    assert root_readme.index("docs/v9-public-baseline.md") < root_readme.index(
-        "docs/v8-release-candidate.md"
-    )
+    assert root_readme.index(
+        "docs/v10-long-running-task-contract.md"
+    ) < root_readme.index("docs/v8-release-candidate.md")
 
 
 def test_public_operator_doc_links_resolve() -> None:
@@ -873,11 +874,13 @@ def test_version_release_policy_covers_metadata_and_release_notes() -> None:
     )
 
     for required_text in (
-        "Glassbox v9 uses package version `0.9.0`",
+        "Glassbox v11 uses package version `0.10.0`",
+        "v10 names the supported product capability",
+        "v11 names the confidence, adoption, and release-evidence milestone",
         "`pyproject.toml` is the packaging source",
         "`glassbox.__version__`",
         "glassbox --version",
-        "v9.0.0-rc.N",
+        "v11-0.10.0-rc.N",
         "## Release Note Template",
         "Provider evidence: advisory",
     ):

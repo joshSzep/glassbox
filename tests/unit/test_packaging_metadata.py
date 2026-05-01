@@ -14,7 +14,7 @@ import glassbox
 
 PYPROJECT = Path(__file__).resolve().parents[2] / "pyproject.toml"
 REPO_ROOT = PYPROJECT.parent
-PACKAGE_VERSION = "0.9.0"
+PACKAGE_VERSION = "0.10.0"
 
 
 def _pyproject() -> dict:
@@ -34,18 +34,18 @@ def test_project_metadata_includes_terminal_runtime_dependencies() -> None:
     )
 
 
-def test_project_version_matches_package_and_v9_policy() -> None:
+def test_project_version_matches_package_and_v11_policy() -> None:
     project = _pyproject()["project"]
     version_policy = (REPO_ROOT / "docs" / "version-release-policy.md").read_text(
         encoding="utf-8"
     )
-    public_baseline = (REPO_ROOT / "docs" / "v9-public-baseline.md").read_text(
-        encoding="utf-8"
-    )
+    v11_contract = (
+        REPO_ROOT / "docs" / "v11-confidence-adoption-contract.md"
+    ).read_text(encoding="utf-8")
 
     assert project["version"] == PACKAGE_VERSION
     assert glassbox.__version__ == PACKAGE_VERSION
-    assert f"package version to `{PACKAGE_VERSION}`" in public_baseline
+    assert f"package target is `{PACKAGE_VERSION}`" in v11_contract
     assert f"package version `{PACKAGE_VERSION}`" in version_policy
 
 
@@ -65,8 +65,8 @@ def test_distribution_content_validator_accepts_complete_wheel_and_sdist(
 ) -> None:
     dist_dir = tmp_path / "dist"
     dist_dir.mkdir()
-    wheel_path = dist_dir / "glassbox-0.9.0-py3-none-any.whl"
-    sdist_path = dist_dir / "glassbox-0.9.0.tar.gz"
+    wheel_path = dist_dir / "glassbox-0.10.0-py3-none-any.whl"
+    sdist_path = dist_dir / "glassbox-0.10.0.tar.gz"
     _write_wheel(wheel_path)
     _write_sdist(sdist_path)
 
@@ -76,7 +76,7 @@ def test_distribution_content_validator_accepts_complete_wheel_and_sdist(
 def test_wheel_content_validator_reports_missing_metadata_and_assets(
     tmp_path: Path,
 ) -> None:
-    wheel_path = tmp_path / "glassbox-0.9.0-py3-none-any.whl"
+    wheel_path = tmp_path / "glassbox-0.10.0-py3-none-any.whl"
     with zipfile.ZipFile(wheel_path, mode="w") as wheel:
         wheel.writestr("glassbox/__init__.py", "")
         wheel.writestr("glassbox/cli/__init__.py", "")
@@ -99,7 +99,7 @@ def test_wheel_content_validator_reports_missing_metadata_and_assets(
 def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     tmp_path: Path,
 ) -> None:
-    sdist_path = tmp_path / "glassbox-0.9.0.tar.gz"
+    sdist_path = tmp_path / "glassbox-0.10.0.tar.gz"
     _write_sdist(sdist_path, include_static_assets=False, include_docs=False)
 
     problems = validate_sdist_contents(sdist_path)
@@ -131,6 +131,12 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     )
     assert "sdist missing required file: docs/v10-release-candidate.md" in problems
     assert "sdist missing required file: docs/v10-release-gate.md" in problems
+    assert (
+        "sdist missing required file: docs/v11-confidence-adoption-contract.md"
+        in problems
+    )
+    assert "sdist missing required file: docs/v11-residual-risk-audit.md" in problems
+    assert "sdist missing required file: docs/tasks-v11.md" in problems
     assert "sdist missing required file: docs/workspace-profiles.md" in problems
     assert "sdist missing required file: docs/manual-qa-evidence-v7.md" in problems
     assert (
@@ -217,11 +223,11 @@ def _write_wheel(path: Path) -> None:
         wheel.writestr("glassbox/web/static_next/index.html", "<html></html>")
         wheel.writestr("glassbox/web/static_next/_next/static/chunks/app.js", "")
         wheel.writestr(
-            "glassbox-0.9.0.dist-info/METADATA",
+            "glassbox-0.10.0.dist-info/METADATA",
             "Name: glassbox\nRequires-Dist: textual<7,>=6\n",
         )
         wheel.writestr(
-            "glassbox-0.9.0.dist-info/entry_points.txt",
+            "glassbox-0.10.0.dist-info/entry_points.txt",
             "[console_scripts]\nglassbox = glassbox.cli:main\n",
         )
 
@@ -233,43 +239,43 @@ def _write_sdist(
     include_docs: bool = True,
 ) -> None:
     with tarfile.open(path, mode="w:gz") as sdist:
-        _add_tar_text(sdist, "glassbox-0.9.0/README.md", "# Glassbox\n")
-        _add_tar_text(sdist, "glassbox-0.9.0/LICENSE", "license\n")
-        _add_tar_text(sdist, "glassbox-0.9.0/pyproject.toml", "[project]\n")
+        _add_tar_text(sdist, "glassbox-0.10.0/README.md", "# Glassbox\n")
+        _add_tar_text(sdist, "glassbox-0.10.0/LICENSE", "license\n")
+        _add_tar_text(sdist, "glassbox-0.10.0/pyproject.toml", "[project]\n")
         if include_docs:
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/docs/getting-started.md",
+                "glassbox-0.10.0/docs/getting-started.md",
                 "# Getting Started\n",
             )
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/docs/operator-quickstart.md",
+                "glassbox-0.10.0/docs/operator-quickstart.md",
                 "# Operator Quickstart\n",
             )
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/docs/daily-workflow-quickstart.md",
+                "glassbox-0.10.0/docs/daily-workflow-quickstart.md",
                 "# Daily Workflow Quickstart\n",
             )
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/docs/providers.md",
+                "glassbox-0.10.0/docs/providers.md",
                 "# Provider Setup\n",
             )
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/docs/version-release-policy.md",
+                "glassbox-0.10.0/docs/version-release-policy.md",
                 "# Version And Release Naming Policy\n",
             )
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/docs/v9-public-baseline.md",
+                "glassbox-0.10.0/docs/v9-public-baseline.md",
                 "# Glassbox v9 Public Baseline\n",
             )
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/docs/v9-vocabulary.md",
+                "glassbox-0.10.0/docs/v9-vocabulary.md",
                 "# Glassbox v9 Vocabulary\n",
             )
             for doc_path in (
@@ -290,56 +296,59 @@ def _write_sdist(
                 "docs/v10-long-running-task-contract.md",
                 "docs/v10-release-candidate.md",
                 "docs/v10-release-gate.md",
+                "docs/v11-confidence-adoption-contract.md",
+                "docs/v11-residual-risk-audit.md",
+                "docs/tasks-v11.md",
             ):
-                _add_tar_text(sdist, f"glassbox-0.9.0/{doc_path}", "# docs\n")
+                _add_tar_text(sdist, f"glassbox-0.10.0/{doc_path}", "# docs\n")
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/docs/release-packaging.md",
+                "glassbox-0.10.0/docs/release-packaging.md",
                 "# Release Packaging\n",
             )
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/docs/v7-release-candidate.md",
+                "glassbox-0.10.0/docs/v7-release-candidate.md",
                 "# v7 Release Candidate\n",
             )
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/docs/v7-release-gate.md",
+                "glassbox-0.10.0/docs/v7-release-gate.md",
                 "# v7 Release Gate\n",
             )
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/docs/manual-v7-release-validation.md",
+                "glassbox-0.10.0/docs/manual-v7-release-validation.md",
                 "# v7 Manual Release Validation\n",
             )
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/docs/manual-v8-release-validation.md",
+                "glassbox-0.10.0/docs/manual-v8-release-validation.md",
                 "# v8 Manual Release Validation\n",
             )
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/docs/manual-v9-release-validation.md",
+                "glassbox-0.10.0/docs/manual-v9-release-validation.md",
                 "# v9 Manual Release Validation\n",
             )
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/docs/workspace-profiles.md",
+                "glassbox-0.10.0/docs/workspace-profiles.md",
                 "# Workspace Profiles\n",
             )
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/docs/manual-qa-evidence-v7.md",
+                "glassbox-0.10.0/docs/manual-qa-evidence-v7.md",
                 "# v7 Manual QA Evidence Archive\n",
             )
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/docs/manual-qa-evidence-v8.md",
+                "glassbox-0.10.0/docs/manual-qa-evidence-v8.md",
                 "# v8 Manual QA Evidence Archive\n",
             )
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/docs/manual-qa-evidence-v9.md",
+                "glassbox-0.10.0/docs/manual-qa-evidence-v9.md",
                 "# v9 Manual QA Evidence Archive\n",
             )
             for doc_path in (
@@ -357,7 +366,7 @@ def _write_sdist(
                 "docs/verification-loops.md",
                 "docs/workspace-memory.md",
             ):
-                _add_tar_text(sdist, f"glassbox-0.9.0/{doc_path}", "# v8\n")
+                _add_tar_text(sdist, f"glassbox-0.10.0/{doc_path}", "# v8\n")
             for eval_path in (
                 "evals/profiles.json",
                 "evals/coverage.json",
@@ -389,15 +398,15 @@ def _write_sdist(
                 "evals/bundles/verification.stale-cockpit.json",
                 "evals/bundles/verification.success.json",
             ):
-                _add_tar_text(sdist, f"glassbox-0.9.0/{eval_path}", "{}\n")
+                _add_tar_text(sdist, f"glassbox-0.10.0/{eval_path}", "{}\n")
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/frontend/generated/openapi.json",
+                "glassbox-0.10.0/frontend/generated/openapi.json",
                 "{}\n",
             )
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/frontend/generated/api-types.ts",
+                "glassbox-0.10.0/frontend/generated/api-types.ts",
                 "export type Api = unknown;\n",
             )
             for script_path in (
@@ -409,7 +418,7 @@ def _write_sdist(
                 "scripts/validate_v9_release_gate.py",
                 "scripts/validate_v10_release_gate.py",
             ):
-                _add_tar_text(sdist, f"glassbox-0.9.0/{script_path}", "\n")
+                _add_tar_text(sdist, f"glassbox-0.10.0/{script_path}", "\n")
             for source_path in (
                 "src/glassbox/cli/autonomy_commands.py",
                 "src/glassbox/cli/branch_search_commands.py",
@@ -440,16 +449,16 @@ def _write_sdist(
                 "src/glassbox/runtime/verification.py",
                 "src/glassbox/runtime/workspace_memory_capture.py",
             ):
-                _add_tar_text(sdist, f"glassbox-0.9.0/{source_path}", "\n")
+                _add_tar_text(sdist, f"glassbox-0.10.0/{source_path}", "\n")
         if include_static_assets:
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/src/glassbox/web/static_next/index.html",
+                "glassbox-0.10.0/src/glassbox/web/static_next/index.html",
                 "<html></html>",
             )
             _add_tar_text(
                 sdist,
-                "glassbox-0.9.0/src/glassbox/web/static_next/_next/static/chunks/app.js",
+                "glassbox-0.10.0/src/glassbox/web/static_next/_next/static/chunks/app.js",
                 "console.log('glassbox');\n",
             )
 

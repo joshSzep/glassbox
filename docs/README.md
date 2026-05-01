@@ -7,20 +7,17 @@ Glassbox has two documentation layers:
 - the files in `docs/` carry operator guides, reference material, release
   evidence, and implementation history
 
-Use this page by audience. Start with the current v9 baseline for the product
-story, then follow the daily workflow guides before diving into release
-evidence or milestone history. The v10 long-running-task contract is the
-completed release-candidate track after the v9 baseline, and the v11 confidence
-and adoption contract is the active implementation track for the `0.10.0`
-milestone.
+Use this page by audience. Start with the current `0.10.0` package line and
+v10 long-running-task model for the product story, then follow the daily
+workflow guides before diving into release evidence or milestone history. The
+v11 confidence and adoption contract is the active implementation track for the
+`0.10.0` milestone.
 
 ## Start Here
 
-- [v9-public-baseline.md](./v9-public-baseline.md): current supported Glassbox
-  product contract, core model, daily workflows, advisory posture,
-  release-evidence split, residual-risk mapping, and pre-1.0 version posture
 - [v10-long-running-task-contract.md](./v10-long-running-task-contract.md):
-  active v10 contract for durable long-running work, checkpoints,
+  current `0.10.0` package-line contract for durable long-running work,
+  checkpoints,
   compactions, resumable attempts, heartbeats, verification, recovery, and
   release evidence
 - [v11-confidence-adoption-contract.md](./v11-confidence-adoption-contract.md):
@@ -30,6 +27,9 @@ milestone.
 - [v11-residual-risk-audit.md](./v11-residual-risk-audit.md): source-linked
   audit of inherited v10 residual risks, current evidence, missing coverage,
   and v11 dispositions
+- [v9-public-baseline.md](./v9-public-baseline.md): retained v9 product
+  contract, core model, daily workflows, advisory posture, release-evidence
+  split, residual-risk mapping, and pre-1.0 version posture
 - [v10-durability-audit.md](./v10-durability-audit.md): source-linked audit of
   process-local, durable, rebuildable, and weakly surfaced state boundaries for
   long-running work

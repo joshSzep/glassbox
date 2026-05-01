@@ -38,7 +38,7 @@ def test_cli_version_prints_package_version(capsys: pytest.CaptureFixture[str]) 
     captured = capsys.readouterr()
 
     assert exc_info.value.code == 0
-    assert captured.out == "glassbox 0.9.0\n"
+    assert captured.out == "glassbox 0.10.0\n"
 
 
 def test_cli_command_tree_prints_command_tree(

@@ -87,33 +87,22 @@ Glassbox team workflows remain local-first. A foreground `session chat` process 
 
 ## Current Baseline
 
-The current public baseline is v9. It carries forward the v8 release-candidate
-decision as a concise product contract for sessions, tasks, evidence, memory,
-branches, and verification while keeping provider canaries advisory and
-deterministic replay/eval evidence authoritative.
+The current package line is `0.10.0`. It publishes the v10 long-running-task
+operating model while v11 is the active confidence-and-adoption milestone for
+residual-risk closure, verification recommendations, live cockpit evidence,
+provider maturity, knowledge posture, branch-search decision support, and
+handoff polish.
 
-Start with [docs/v9-public-baseline.md](docs/v9-public-baseline.md) for the
-supported product model, then use
+Start with
+[docs/v10-long-running-task-contract.md](docs/v10-long-running-task-contract.md)
+for the supported long-running-task model, then use
 [docs/operator-quickstart.md](docs/operator-quickstart.md) for the short daily
 path from install to chat, dashboard inspection, approvals, and verification.
 Version and release-candidate naming policy lives in
 [docs/version-release-policy.md](docs/version-release-policy.md).
-Release-candidate validation and accepted residual risks are summarized in
-[docs/v9-release-candidate.md](docs/v9-release-candidate.md).
-
-The active v10 implementation track is long-running task reliability:
-checkpointed progress, artifact-backed compaction, resumable attempts,
-heartbeat and recovery surfaces, time-aware budgets, incremental verification,
-and provider failure recovery. Its contract is
-[docs/v10-long-running-task-contract.md](docs/v10-long-running-task-contract.md),
-with release-candidate evidence summarized in
-[docs/v10-release-candidate.md](docs/v10-release-candidate.md).
-
-The active v11 implementation track turns the v10 release candidate into the
-`0.10.0` confidence and adoption milestone: residual-risk closure, explainable
-verification recommendations, retained live cockpit evidence, provider recovery
-maturity, unified knowledge posture, branch-search decision support, and local
-handoff polish. Its scope is defined in
+The inherited v10 release-candidate evidence is summarized in
+[docs/v10-release-candidate.md](docs/v10-release-candidate.md), and active v11
+scope is defined in
 [docs/v11-confidence-adoption-contract.md](docs/v11-confidence-adoption-contract.md).
 
 ## Documentation

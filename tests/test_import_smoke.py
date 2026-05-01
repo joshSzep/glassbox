@@ -14,7 +14,7 @@ import glassbox.web
 
 
 def test_package_imports() -> None:
-    assert glassbox.__version__ == "0.9.0"
+    assert glassbox.__version__ == "0.10.0"
 
 
 def test_top_level_packages_import() -> None:
