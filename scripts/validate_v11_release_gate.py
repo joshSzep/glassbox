@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 import argparse
-import json
 import subprocess
 import sys
 from collections.abc import Sequence
-from datetime import UTC
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -16,8 +13,7 @@ SCRIPT_REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(SCRIPT_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPT_REPO_ROOT))
 
-from scripts.validate_v6_release_gate import DEFAULT_EVIDENCE_ROOT  # noqa: E402
-from scripts.validate_v6_release_gate import DIST_DIR  # noqa: E402
+from scripts import v11_release_gate_helpers as gate_helpers  # noqa: E402
 from scripts.validate_v6_release_gate import REPO_ROOT  # noqa: E402
 from scripts.validate_v6_release_gate import GateStage  # noqa: E402
 from scripts.validate_v6_release_gate import _latest_glassbox_wheel  # noqa: E402
@@ -227,79 +223,17 @@ def _record_v11_provider_evidence(
     include: bool,
     dry_run: bool,
 ) -> None:
-    output_dir = evidence_dir / "provider-canary"
-    summary_path = output_dir / "provider-canary-summary.json"
-    command = (
-        "uv",
-        "run",
-        "glassbox",
-        "provider",
-        "canary",
-        "run",
-        "--cwd",
-        ".",
-        "--output-dir",
-        str(output_dir),
-        "--json",
-    )
-    if not include:
-        summary["advisory"].append(
-            {
-                "label": "v11 advisory provider evidence",
-                "status": "skipped",
-                "reason": (
-                    "pass --include-provider-canaries to collect advisory evidence"
-                ),
-                "blocking": False,
-                "freshness_status": "not_collected",
-                "latest_status": "not_collected",
-                "missing_scenarios": [],
-                "evidence_dir": str(output_dir),
-            }
-        )
-        return
-
-    if dry_run:
-        summary["advisory"].append(
-            {
-                "label": "v11 advisory provider evidence",
-                "command": list(command),
-                "status": "planned",
-                "reason": "dry run requested",
-                "blocking": False,
-                "freshness_status": "planned",
-                "latest_status": "planned",
-                "missing_scenarios": [],
-                "evidence_dir": str(output_dir),
-                "summary_path": str(summary_path),
-            }
-        )
-        return
-
-    started_at = _now_iso()
-    print("\n==> v11 advisory provider evidence")
-    result = subprocess.run(command, cwd=REPO_ROOT, check=False)
-    evidence = _provider_evidence_summary(summary_path)
-    summary["advisory"].append(
-        {
-            "label": "v11 advisory provider evidence",
-            "command": list(command),
-            "status": "passed" if result.returncode == 0 else "failed",
-            "exit_code": result.returncode,
-            "started_at": started_at,
-            "ended_at": _now_iso(),
-            "blocking": False,
-            "evidence_dir": str(output_dir),
-            "summary_path": str(summary_path),
-            "latest_status": evidence.latest_status,
-            "freshness_status": evidence.freshness_status,
-            "missing_scenarios": evidence.missing_scenarios,
-            "provider": evidence.provider,
-            "model_name": evidence.model_name,
-            "scenario_count": evidence.scenario_count,
-            "matrix_entry_count": evidence.matrix_entry_count,
-            "next_actions": evidence.next_actions,
-        }
+    gate_helpers.record_v11_provider_evidence(
+        summary,
+        evidence_dir,
+        include=include,
+        dry_run=dry_run,
+        run_command=lambda command: subprocess.run(
+            command,
+            cwd=REPO_ROOT,
+            check=False,
+        ),
+        load_evidence=_provider_evidence_summary,
     )
 
 
@@ -331,46 +265,21 @@ def _print_dry_run(
     *,
     include_provider_canaries: bool,
 ) -> None:
-    print("V11 release gate dry run")
-    for stage in stages:
-        print(f"- {stage.label}: {_format_command(stage.command)}")
-    if include_provider_canaries:
-        print(
-            "- v11 advisory provider evidence: "
-            "uv run glassbox provider canary run --cwd . "
-            "--output-dir <evidence>/provider-canary --json"
-        )
-    else:
-        print("- v11 advisory provider evidence: skipped by default")
-    print("- installed wheel smoke: latest dist/glassbox-*.whl")
+    gate_helpers.print_dry_run(
+        stages,
+        include_provider_canaries=include_provider_canaries,
+    )
 
 
 def _record_planned_stages(
     summary: dict[str, Any],
     stages: Sequence[GateStage],
 ) -> None:
-    for stage in stages:
-        _record_stage_result(
-            summary,
-            label=stage.label,
-            command=stage.command,
-            status="planned",
-            exit_code=None,
-            started_at=None,
-            ended_at=None,
-        )
+    gate_helpers.record_planned_stages(summary, stages)
 
 
 def _record_installed_wheel_plan(summary: dict[str, Any]) -> None:
-    _record_stage_result(
-        summary,
-        label="installed wheel smoke",
-        command=("latest", "dist/glassbox-*.whl"),
-        status="planned",
-        exit_code=None,
-        started_at=None,
-        ended_at=None,
-    )
+    gate_helpers.record_installed_wheel_plan(summary)
 
 
 def _record_stage_result(
@@ -383,27 +292,23 @@ def _record_stage_result(
     started_at: str | None,
     ended_at: str | None,
 ) -> None:
-    stage_result = {
-        "label": label,
-        "command": list(command),
-        "status": status,
-        "exit_code": exit_code,
-        "started_at": started_at,
-        "ended_at": ended_at,
-    }
-    summary["stages"].append(stage_result)
-    summary["blocking"].append(stage_result)
+    gate_helpers.record_stage_result(
+        summary,
+        label=label,
+        command=command,
+        status=status,
+        exit_code=exit_code,
+        started_at=started_at,
+        ended_at=ended_at,
+    )
 
 
 def _resolve_evidence_dir(requested: Path | None) -> Path:
-    if requested is not None:
-        return requested
-    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-    return DEFAULT_EVIDENCE_ROOT / f"{timestamp}-v11-gate"
+    return gate_helpers.resolve_evidence_dir(requested)
 
 
 def _eval_evidence_dir(evidence_dir: Path) -> Path:
-    return Path(".glassbox/evals") / evidence_dir.name
+    return gate_helpers.eval_evidence_dir(evidence_dir)
 
 
 def _new_evidence_summary(
@@ -412,130 +317,35 @@ def _new_evidence_summary(
     include_provider_canaries: bool,
     dry_run: bool,
 ) -> dict[str, Any]:
-    return {
-        "schema_version": 1,
-        "gate": "v11-release",
-        "status": "dry_run" if dry_run else "running",
-        "started_at": _now_iso(),
-        "ended_at": None,
-        "evidence_dir": str(evidence_dir),
-        "command": list(sys.argv),
-        "environment": {
-            "cwd": str(REPO_ROOT),
-            "python_version": sys.version.split()[0],
-            "platform": sys.platform,
-        },
-        "options": {
-            "include_provider_canaries": include_provider_canaries,
-            "dry_run": dry_run,
-        },
-        "stages": [],
-        "blocking": [],
-        "advisory": [],
-        "artifacts": {
-            "dist_dir": str(DIST_DIR.relative_to(REPO_ROOT)),
-            "eval_evidence_root": str(_eval_evidence_dir(evidence_dir)),
-            "provider_canary_evidence": str(evidence_dir / "provider-canary"),
-            "packaging_docs": "docs/release-packaging.md",
-            "providers_docs": "docs/providers.md",
-            "v10_release_gate": "docs/v10-release-gate.md",
-            "v11_task_graph": "docs/tasks-v11.md",
-            "v11_confidence_contract": "docs/v11-confidence-adoption-contract.md",
-            "v11_release_gate": "docs/v11-release-gate.md",
-            "v11_eval_cases": "evals/README.md",
-            "v11_replay_evals": "docs/replay-evals.md",
-            "v11_live_cockpit_evidence": "docs/live-cockpit-evidence-v11.md",
-            "v11_accessibility_review": "docs/accessibility-review-v11.md",
-            "v11_reviewer_evidence": "docs/reviewer-evidence-bundles.md",
-        },
-        "provider_evidence": {
-            "blocking": False,
-            "opt_in": True,
-            "freshness_aligned_with_recommendations": True,
-            "required_for_release": False,
-        },
-        "release_authority": {
-            "blocking_evidence": [
-                "inherited v10 deterministic release stages",
-                "v11 package version metadata",
-                "v11 deterministic eval release report",
-                "v11 confidence release profile",
-                "v11 recommendation and recovery guidance smoke",
-                "v11 knowledge and branch-search smoke",
-                "v11 eval coverage audit",
-                "package contents validation",
-                "installed wheel smoke",
-            ],
-            "provider_evidence_authoritative": False,
-        },
-        "next_actions": [],
-    }
+    return gate_helpers.new_evidence_summary(
+        evidence_dir,
+        include_provider_canaries=include_provider_canaries,
+        dry_run=dry_run,
+    )
 
 
 def _finish_summary(summary: dict[str, Any], status: str) -> None:
-    summary["status"] = status
-    summary["ended_at"] = _now_iso()
-    if status == "failed":
-        summary["next_actions"].append("inspect failed stage output above")
-    elif status == "dry_run":
-        summary["next_actions"].append("rerun without --dry-run to execute the gate")
-    elif status == "passed":
-        summary["next_actions"].append(
-            "attach v11 dogfooding, live cockpit, accessibility, and residual-risk "
-            "evidence before RC signoff"
-        )
+    gate_helpers.finish_summary(summary, status)
 
 
 def _write_evidence_summary(evidence_dir: Path, summary: dict[str, Any]) -> Path:
-    evidence_dir.mkdir(parents=True, exist_ok=True)
-    summary_path = evidence_dir / "summary.json"
-    summary_path.write_text(
-        json.dumps(summary, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-    print(f"\nV11 release evidence written to {summary_path}")
-    return summary_path
+    return gate_helpers.write_evidence_summary(evidence_dir, summary)
 
 
 def _print_summary(summary: dict[str, Any]) -> None:
-    stage_counts = _count_statuses(summary["stages"])
-    advisory_counts = _count_statuses(summary["advisory"])
-    print("\nV11 release gate summary")
-    print(f"Status: {summary['status']}")
-    print(f"Evidence: {summary['evidence_dir']}")
-    print(
-        "Stages: "
-        + ", ".join(f"{status}={count}" for status, count in stage_counts.items())
-    )
-    if advisory_counts:
-        print(
-            "Advisory: "
-            + ", ".join(
-                f"{status}={count}" for status, count in advisory_counts.items()
-            )
-        )
-    print(
-        "Release authority: "
-        + ", ".join(summary["release_authority"]["blocking_evidence"])
-    )
-    for action in summary["next_actions"]:
-        print(f"Next: {action}")
+    gate_helpers.print_summary(summary)
 
 
 def _count_statuses(items: Sequence[dict[str, Any]]) -> dict[str, int]:
-    counts: dict[str, int] = {}
-    for item in items:
-        status = str(item.get("status", "unknown"))
-        counts[status] = counts.get(status, 0) + 1
-    return counts
+    return gate_helpers.count_statuses(items)
 
 
 def _format_command(command: Sequence[str]) -> str:
-    return " ".join(command)
+    return gate_helpers.format_command(command)
 
 
 def _now_iso() -> str:
-    return datetime.now(UTC).isoformat()
+    return gate_helpers.now_iso()
 
 
 if __name__ == "__main__":

@@ -722,6 +722,11 @@ Its internal ownership should stay explicit:
   as the standalone operator command while making stage summaries, advisory
   provider evidence, retained evidence rendering, and dry-run planning testable
   without executing the full gate
+- The v11 release-gate split now keeps
+  `scripts/validate_v11_release_gate.py` as the operator entrypoint while
+  `scripts/v11_release_gate_helpers.py` owns stage summary rows, dry-run
+  planning, retained evidence summary writing, advisory provider evidence rows,
+  and terminal summary rendering.
 
 The replay and eval stack should not maintain a bespoke copy of live model-loop behavior when a shared execution boundary can serve both paths.
 

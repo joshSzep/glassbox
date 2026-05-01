@@ -385,7 +385,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R412: Split Release Gate Summary Helpers From Validation Script Orchestration
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R410`
 - Goal: keep
   [validate_v11_release_gate.py](../scripts/validate_v11_release_gate.py)
