@@ -17,6 +17,7 @@ Check that the CLI is available:
 ```bash
 uv run glassbox --help
 uv run glassbox command tree
+uv run glassbox command guide
 ```
 
 Run the first-run readiness check before starting a session:
@@ -125,6 +126,18 @@ uv run glassbox projection check --all --cwd .
 
 If state looks stale or degraded, start with read-only status commands before
 running mutating recovery commands.
+
+When the surface area feels broad, use the workflow guide instead of guessing:
+
+```bash
+uv run glassbox command guide
+uv run glassbox command guide --json
+```
+
+The guide groups the daily inspection and recovery paths for long-run recovery,
+compaction, tool attempts, checkpoint inspection, verification recommendations,
+provider posture, knowledge freshness, branch-search review, workspace
+recovery, and release evidence.
 
 ## Next Guides
 

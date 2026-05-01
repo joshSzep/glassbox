@@ -120,14 +120,31 @@ def test_cli_command_guide_prints_workflow_sections(
         "Start Work",
         "Inspect State",
         "Unblock Work",
-        "Verify Work",
+        "Long-Run Recovery",
+        "Compaction",
+        "Tool Attempts",
+        "Checkpoint Inspection",
+        "Verification Recommendations",
+        "Provider Posture",
+        "Knowledge Freshness",
+        "Branch-Search Review",
         "Recover Workspace",
         "Release Evidence",
     ):
         assert section in captured.out
     assert "glassbox readiness check --cwd ." in captured.out
     assert "glassbox session approve SESSION_ID APPROVAL_ID --cwd ." in captured.out
+    assert "glassbox session compactions SESSION_ID --cwd ." in captured.out
+    assert (
+        "glassbox session tool-attempt inspect SESSION_ID TOOL_ATTEMPT_ID --cwd ."
+        in captured.out
+    )
     assert "glassbox eval recommend PATH --cwd ." in captured.out
+    assert (
+        "glassbox provider recommend --task-kind coding --autonomy-mode test-driven"
+        in captured.out
+    )
+    assert "glassbox branch-search show BRANCH_SEARCH_ID --cwd ." in captured.out
     assert "glassbox command tree" in captured.out
 
 
@@ -144,7 +161,14 @@ def test_cli_command_guide_prints_json_payload(
         "start-work",
         "inspect-state",
         "unblock-work",
+        "long-run-recovery",
+        "compaction",
+        "tool-attempts",
+        "checkpoint-inspection",
         "verify-work",
+        "provider-posture",
+        "knowledge-freshness",
+        "branch-search-review",
         "recover-workspace",
         "release-evidence",
     ]
@@ -152,6 +176,22 @@ def test_cli_command_guide_prints_json_payload(
         "command": "glassbox readiness check --cwd .",
         "purpose": "Check first-run workspace readiness and get next actions.",
     }
+    command_by_section = {
+        section["key"]: [entry["command"] for entry in section["commands"]]
+        for section in payload["sections"]
+    }
+    assert (
+        "glassbox session tool-attempt output SESSION_ID TOOL_ATTEMPT_ID "
+        "--tail 80 --cwd ."
+    ) in command_by_section["tool-attempts"]
+    assert (
+        "glassbox repo index status --cwd ."
+        in command_by_section["knowledge-freshness"]
+    )
+    assert (
+        "glassbox branch-search needs-review BRANCH_SEARCH_ID CANDIDATE_ID "
+        "--reason REASON --cwd ."
+    ) in command_by_section["branch-search-review"]
 
 
 def test_cli_performance_budgets_prints_guidance(

@@ -714,7 +714,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1150: Improve Command Guide Around Recovery And Verification
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1112`
 - Goal: make the broad command surface easier to use during ordinary
   inspection, recovery, and release validation

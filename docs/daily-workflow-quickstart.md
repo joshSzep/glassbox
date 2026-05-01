@@ -20,6 +20,13 @@ uv run glassbox command guide
 uv run glassbox command guide --json
 ```
 
+The guide is organized around daily paths: long-run recovery, compaction, tool
+attempts, checkpoint inspection, verification recommendations, provider
+posture, knowledge freshness, branch-search review, workspace recovery, and
+release evidence. It is intentionally workflow-oriented; use
+`uv run glassbox command tree` when you need the exhaustive structural command
+surface.
+
 For a focused first request:
 
 ```bash
@@ -177,6 +184,20 @@ uv run glassbox job list --cwd .
 uv run glassbox artifacts inspect --cwd .
 uv run glassbox projection check --all --cwd .
 ```
+
+For long-running work, inspect the latest checkpoint and any resumable tool
+attempts before mutating recovery state:
+
+```bash
+uv run glassbox session status SESSION_ID --cwd .
+uv run glassbox task show TASK_ID --cwd .
+uv run glassbox session compactions SESSION_ID --cwd .
+uv run glassbox session tool-attempts SESSION_ID --cwd .
+```
+
+When a compaction, tool attempt, or branch-search candidate needs an action,
+the workflow guide names the safe inspection command first and the mutating
+command second.
 
 Then choose the narrowest recovery action:
 
