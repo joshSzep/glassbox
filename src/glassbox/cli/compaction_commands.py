@@ -7,6 +7,7 @@ from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.core.types import ContextCompactionScope
 from glassbox.runtime.bootstrap import open_runtime_context
+from glassbox.runtime.context_compaction_service import ContextCompactionRangeError
 from glassbox.runtime.context_compaction_service import (
     create_deterministic_context_compaction,
 )
@@ -20,15 +21,21 @@ def _session_compact_command(args: argparse.Namespace) -> int:
         require_daemon_unowned_for="create a context compaction locally",
     )
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
-        payload = create_deterministic_context_compaction(
-            runtime_context.repositories.sessions,
-            runtime_context.repositories.artifacts,
-            args.session_id,
-            scope=ContextCompactionScope(args.scope),
-            task_id=args.task_id,
-            source_start_sequence=args.source_start_sequence,
-            source_end_sequence=args.source_end_sequence,
-        )
+        try:
+            payload = create_deterministic_context_compaction(
+                runtime_context.repositories.sessions,
+                runtime_context.repositories.artifacts,
+                args.session_id,
+                scope=ContextCompactionScope(args.scope),
+                task_id=args.task_id,
+                source_start_sequence=args.source_start_sequence,
+                source_end_sequence=args.source_end_sequence,
+            )
+        except ContextCompactionRangeError as exc:
+            if args.json:
+                print_json_output(exc.to_json_payload())
+                return 1
+            raise
 
     if args.json:
         print_json_output(payload.model_dump(mode="json"))

@@ -1816,7 +1816,11 @@ export interface components {
     /** ErrorDetailResponse */
     ErrorDetailResponse: {
       /** Detail */
-      detail: string;
+      detail:
+        | string
+        | {
+            [key: string]: unknown;
+          };
     };
     /** EventLogEntryResponse */
     EventLogEntryResponse: {

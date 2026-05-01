@@ -1835,8 +1835,16 @@
       "ErrorDetailResponse": {
         "properties": {
           "detail": {
-            "title": "Detail",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ],
+            "title": "Detail"
           }
         },
         "required": ["detail"],

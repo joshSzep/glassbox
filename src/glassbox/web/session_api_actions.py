@@ -69,7 +69,7 @@ class ActionAcceptedResponse(BaseModel):
 
 
 class ErrorDetailResponse(BaseModel):
-    detail: str
+    detail: str | dict[str, object]
 
 
 class RefreshContextCompactionRequest(BaseModel):

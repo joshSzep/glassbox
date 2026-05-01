@@ -18,6 +18,7 @@ from glassbox.core.types import ContextCompactionScope
 
 CONTEXT_COMPACTION_ARTIFACT_KIND = "context_compaction_v1"
 CONTEXT_COMPACTION_ARTIFACT_SCHEMA_VERSION = 1
+CONTEXT_COMPACTION_SOURCE_REFERENCE_CAP = 200
 
 
 class ContextCompactionSourceReference(BaseModel):
@@ -82,7 +83,7 @@ class ContextCompactionArtifact(BaseModel):
     task_end_sequence: int | None = Field(default=None, ge=0)
     source_references: list[ContextCompactionSourceReference] = Field(
         min_length=1,
-        max_length=200,
+        max_length=CONTEXT_COMPACTION_SOURCE_REFERENCE_CAP,
     )
     source_artifact_ids: list[ArtifactId] = Field(default_factory=list, max_length=50)
     decisions: list[ContextCompactionEvidenceItem] = Field(
@@ -167,6 +168,7 @@ def _validate_ordered_range(start: int, end: int, label: str) -> None:
 __all__ = [
     "CONTEXT_COMPACTION_ARTIFACT_KIND",
     "CONTEXT_COMPACTION_ARTIFACT_SCHEMA_VERSION",
+    "CONTEXT_COMPACTION_SOURCE_REFERENCE_CAP",
     "ContextCompactionArtifact",
     "ContextCompactionEvidenceItem",
     "ContextCompactionFailureItem",

@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import HTTPException
 
 from glassbox.runtime.context import RuntimeContext
+from glassbox.runtime.context_compaction_service import ContextCompactionRangeError
 from glassbox.runtime.context_compaction_service import invalidate_context_compaction
 from glassbox.runtime.context_compaction_service import refresh_context_compaction
 from glassbox.runtime.tool_attempt_recovery import ToolAttemptRecoveryError
@@ -202,6 +203,8 @@ def refresh_session_compaction_response(
             changed_by="api",
             reason=reason,
         )
+    except ContextCompactionRangeError as exc:
+        raise HTTPException(status_code=409, detail=exc.to_json_payload()) from exc
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

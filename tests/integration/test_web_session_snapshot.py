@@ -15,6 +15,7 @@ from glassbox.core import ContextCompactionFreshness
 from glassbox.core import ContextCompactionScope
 from glassbox.core import EventEnvelope
 from glassbox.core import MessagePart
+from glassbox.core import RuntimeNoteRecorded
 from glassbox.core import SessionConfig
 from glassbox.core import WorkspaceMemoryConfirmed
 from glassbox.core import WorkspaceMemoryCreated
@@ -52,6 +53,7 @@ from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.runtime.bus import EventBus
 from glassbox.runtime.context_builder import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
 from glassbox.runtime.context_builder import PytestFailureDigestArtifact
+from glassbox.runtime.context_compaction import CONTEXT_COMPACTION_SOURCE_REFERENCE_CAP
 from glassbox.runtime.repository_index import build_and_write_repository_index
 from glassbox.runtime.supervisor import SessionSupervisor
 from glassbox.store.repositories import SQLiteSessionRepository
@@ -123,6 +125,25 @@ def _append_completed_turn(
         )
     )
     return turn_id
+
+
+def _append_runtime_notes(
+    repo: SQLiteSessionRepository,
+    session_id,
+    *,
+    count: int,
+) -> None:
+    for index in range(count):
+        repo.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=RuntimeNoteRecorded(
+                    category="test",
+                    message=f"large compaction source event {index}",
+                ),
+            )
+        )
 
 
 def test_get_session_returns_404_for_unknown_session(tmp_path: Path) -> None:
@@ -341,6 +362,83 @@ def test_session_compaction_api_lists_and_invalidates_with_confirmation(
             assert page_after_body["items"][0]["freshness"] == "invalidated"
             assert page_after_body["items"][0]["freshness_reason"] == (
                 "operator rejected the summary"
+            )
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
+def test_session_compaction_refresh_rejects_over_cap_range_with_json_guidance(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app, runtime_context = _make_app(tmp_path, connection)
+            bus: EventBus[EventEnvelope] = runtime_context.infrastructure.event_bus
+            supervisor = SessionSupervisor(runtime_context.repositories.sessions, bus)
+            state = await supervisor.start_session(
+                SessionConfig(
+                    model_name="openai:gpt-5.4",
+                    cwd=tmp_path,
+                    approval_mode="confirm",
+                )
+            )
+            compaction_id = new_context_compaction_id()
+            runtime_context.repositories.sessions.append_event(
+                EventEnvelope(
+                    session_id=state.session_id,
+                    sequence=0,
+                    payload=ContextCompactionCreated(
+                        compaction_id=compaction_id,
+                        scope=ContextCompactionScope.TRANSCRIPT,
+                        source_start_sequence=1,
+                        source_end_sequence=1,
+                        summary="Compacted early transcript context.",
+                        artifact_id=new_artifact_id(),
+                        freshness=ContextCompactionFreshness.FRESH,
+                    ),
+                )
+            )
+            _append_runtime_notes(
+                runtime_context.repositories.sessions,
+                state.session_id,
+                count=CONTEXT_COMPACTION_SOURCE_REFERENCE_CAP + 5,
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                refresh_response = await client.post(
+                    f"/sessions/{state.session_id}/compactions/{compaction_id}/refresh",
+                    json={
+                        "reason": "refresh with newer transcript context",
+                        "confirmed": True,
+                    },
+                )
+
+            assert refresh_response.status_code == 409
+            detail = refresh_response.json()["detail"]
+            assert detail["error"] == "source_range_exceeds_cap"
+            assert (
+                detail["source_reference_cap"]
+                == CONTEXT_COMPACTION_SOURCE_REFERENCE_CAP
+            )
+            assert detail["selected_event_count"] > (
+                CONTEXT_COMPACTION_SOURCE_REFERENCE_CAP
+            )
+            assert "Retry with a bounded range" in detail["message"]
+            assert detail["suggested_ranges"][0]["label"] == "first"
+            assert (
+                detail["suggested_ranges"][0]["selected_event_count"]
+                == CONTEXT_COMPACTION_SOURCE_REFERENCE_CAP
+            )
+            assert detail["suggested_ranges"][1]["label"] == "latest"
+            assert (
+                detail["suggested_ranges"][1]["selected_event_count"]
+                == CONTEXT_COMPACTION_SOURCE_REFERENCE_CAP
             )
         finally:
             connection.close()

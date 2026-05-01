@@ -63,6 +63,25 @@ def _write_running_owner_metadata(workspace_root: Path, db_path: Path) -> None:
     )
 
 
+def _append_runtime_notes(db_path: Path, session_id: UUID, *, count: int) -> None:
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        for index in range(count):
+            repository.append_event(
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=RuntimeNoteRecorded(
+                        category="test",
+                        message=f"large compaction source event {index}",
+                    ),
+                )
+            )
+    finally:
+        connection.close()
+
+
 def test_cli_help_lists_session_oriented_commands(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -1195,6 +1214,54 @@ def test_cli_compact_creates_and_lists_context_compaction(
     assert artifact_payload["artifact_kind"] == "context_compaction_v1"
     assert artifact_payload["source_references"]
     assert persisted_events[-1].event_type == "ContextCompactionCreated"
+
+
+def test_cli_compact_rejects_over_cap_range_with_bounded_json_guidance(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path)
+    _append_runtime_notes(db_path, session_id, count=205)
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "session",
+            "compact",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    json_output = capsys.readouterr()
+    payload = json.loads(json_output.out)
+
+    assert exit_code == 1
+    assert payload["error"] == "source_range_exceeds_cap"
+    assert payload["selected_event_count"] > 200
+    assert payload["source_reference_cap"] == 200
+    assert payload["suggested_ranges"][0]["selected_event_count"] == 200
+    assert payload["suggested_ranges"][-1]["label"] == "latest"
+
+    text_exit_code = main(
+        [
+            "session",
+            "compact",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    text_output = capsys.readouterr()
+
+    assert text_exit_code == 1
+    assert "Selected source range contains" in text_output.err
+    assert "Retry with a bounded range" in text_output.err
 
 
 def test_cli_compaction_refresh_and_invalidate_are_confirmation_gated(

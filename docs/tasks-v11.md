@@ -385,7 +385,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1110: Add Friendly Compaction Range Guardrails
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1101`
 - Goal: replace raw source-reference cap validation failures with bounded-range
   guidance before compaction artifact validation is reached

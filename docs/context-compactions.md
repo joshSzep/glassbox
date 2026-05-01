@@ -49,6 +49,22 @@ For release review, verify that a compaction names the source event range,
 contains at least one source reference, and stores its payload as a managed
 artifact. A compaction without source references is invalid.
 
+The v1 artifact schema keeps at most 200 source references. Because the
+deterministic compaction path records one source reference per selected event,
+requests over that cap are rejected before artifact validation. The CLI names
+the selected event count, the supported cap, and bounded first/latest ranges to
+retry:
+
+```bash
+uv run glassbox session compact SESSION_ID \
+  --source-start-sequence START \
+  --source-end-sequence END \
+  --cwd .
+```
+
+Use `--json` when scripting the guardrail; the error payload uses
+`source_range_exceeds_cap` and includes `suggested_ranges`.
+
 Refresh is the repair path for superseded summaries. It creates a replacement
 artifact over the current material source range and marks the previous
 compaction stale with a pointer to the replacement. Invalidation is the repair

@@ -1,18 +1,32 @@
 """Tests for the v10 context compaction artifact contract."""
 
+from collections.abc import Sequence
 from datetime import UTC
 from datetime import datetime
+from pathlib import Path
+from typing import cast
 
 import pytest
 from pydantic import ValidationError
 
 from glassbox.core import ContextCompactionScope
+from glassbox.core import EventEnvelope
+from glassbox.core import RuntimeNoteRecorded
+from glassbox.core import SessionRecord
+from glassbox.core import SessionStatus
 from glassbox.core import new_context_compaction_id
 from glassbox.core import new_session_id
 from glassbox.runtime.context_compaction import CONTEXT_COMPACTION_ARTIFACT_KIND
+from glassbox.runtime.context_compaction import CONTEXT_COMPACTION_SOURCE_REFERENCE_CAP
 from glassbox.runtime.context_compaction import ContextCompactionArtifact
 from glassbox.runtime.context_compaction import ContextCompactionEvidenceItem
 from glassbox.runtime.context_compaction import ContextCompactionSourceReference
+from glassbox.runtime.context_compaction_service import ContextCompactionRangeError
+from glassbox.runtime.context_compaction_service import (
+    create_deterministic_context_compaction,
+)
+from glassbox.services import ArtifactRepository
+from glassbox.services import SessionRepository
 
 
 def test_context_compaction_artifact_preserves_provenance_contract() -> None:
@@ -98,3 +112,79 @@ def test_context_compaction_artifact_rejects_unresolved_source_refs() -> None:
                 )
             ],
         )
+
+
+def test_deterministic_compaction_rejects_source_ranges_over_reference_cap() -> None:
+    session_id = new_session_id()
+    source_events = [
+        EventEnvelope(
+            session_id=session_id,
+            sequence=sequence,
+            payload=RuntimeNoteRecorded(
+                category="audit",
+                message=f"source event {sequence}",
+            ),
+        )
+        for sequence in range(1, CONTEXT_COMPACTION_SOURCE_REFERENCE_CAP + 6)
+    ]
+    session_repository = _CompactionSessionRepository(session_id, source_events)
+
+    with pytest.raises(ContextCompactionRangeError) as exc_info:
+        create_deterministic_context_compaction(
+            cast(SessionRepository, session_repository),
+            cast(ArtifactRepository, object()),
+            session_id,
+            scope=ContextCompactionScope.TRANSCRIPT,
+        )
+
+    error = exc_info.value
+    payload = error.to_json_payload()
+
+    assert error.selected_event_count == CONTEXT_COMPACTION_SOURCE_REFERENCE_CAP + 5
+    assert error.source_reference_cap == CONTEXT_COMPACTION_SOURCE_REFERENCE_CAP
+    assert "source_range_exceeds_cap" == payload["error"]
+    assert payload["suggested_ranges"] == [
+        {
+            "label": "first",
+            "source_start_sequence": 1,
+            "source_end_sequence": CONTEXT_COMPACTION_SOURCE_REFERENCE_CAP,
+            "selected_event_count": CONTEXT_COMPACTION_SOURCE_REFERENCE_CAP,
+        },
+        {
+            "label": "latest",
+            "source_start_sequence": 6,
+            "source_end_sequence": CONTEXT_COMPACTION_SOURCE_REFERENCE_CAP + 5,
+            "selected_event_count": CONTEXT_COMPACTION_SOURCE_REFERENCE_CAP,
+        },
+    ]
+    assert "Retry with a bounded range" in str(error)
+
+
+class _CompactionSessionRepository:
+    def __init__(
+        self,
+        session_id,
+        source_events: Sequence[EventEnvelope],
+    ) -> None:
+        self._session_id = session_id
+        self._source_events = list(source_events)
+
+    def get_session(self, session_id):
+        if session_id != self._session_id:
+            return None
+        timestamp = datetime(2026, 4, 30, 12, 0, tzinfo=UTC)
+        return SessionRecord(
+            session_id=session_id,
+            status=SessionStatus.COMPLETED,
+            created_at=timestamp,
+            updated_at=timestamp,
+            cwd=Path("."),
+            model_name="local-test-model",
+            approval_mode="review",
+            last_sequence=len(self._source_events),
+        )
+
+    def read_session_events(self, session_id):
+        if session_id != self._session_id:
+            return []
+        return list(self._source_events)
