@@ -757,7 +757,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1152: Add Safe Workflow Summaries For Status Commands
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1151`
 - Goal: let status commands summarize related safe inspection steps without
   requiring operators to remember every command family

@@ -80,6 +80,8 @@ def _print_session_status(status_view: SessionStatusView) -> None:
     )
     for line in _format_recovery_guidance_lines(status_view):
         print(line)
+    for line in _format_session_safe_workflow_lines(status_view):
+        print(line)
 
     if status_view.latest_turn_metrics is not None:
         label = (
@@ -403,6 +405,40 @@ def _format_recovery_guidance_lines(status_view: SessionStatusView) -> list[str]
             "Recovery guidance: inspect session status before resume; "
             f"resume with 'glassbox session resume {snapshot.session_id}' only "
             "after reviewing checkpoint and recovery posture"
+        )
+    return lines
+
+
+def _format_session_safe_workflow_lines(status_view: SessionStatusView) -> list[str]:
+    snapshot = status_view.snapshot
+    session_id = snapshot.session_id
+    status = (
+        snapshot.status.value if hasattr(snapshot.status, "value") else snapshot.status
+    )
+    lines = [
+        "Safe workflow summary:",
+        f"  - Checkpoints: glassbox session status {session_id} --cwd .",
+        f"  - Compactions: glassbox session compactions {session_id} --cwd .",
+        f"  - Tool attempts: glassbox session tool-attempts {session_id} --cwd .",
+        "  - Verification: glassbox eval recommend PATH --cwd .",
+        "  - Provider: glassbox provider diagnostics --cwd .",
+        "  - Provider evidence: glassbox provider canary evidence --cwd .",
+        "  - Projections: glassbox projection check --all --cwd .",
+    ]
+    if snapshot.dashboard_url is not None:
+        lines.append(f"  - Dashboard: open {snapshot.dashboard_url}")
+    else:
+        lines.append("  - Dashboard: glassbox dashboard serve --cwd .")
+    if status in {
+        "running",
+        "awaiting_user_input",
+        "awaiting_approval",
+        "failed",
+        "cancelled",
+    }:
+        lines.append(
+            f"  - Mutating recovery after inspection: "
+            f"glassbox session resume {session_id} --cwd ."
         )
     return lines
 

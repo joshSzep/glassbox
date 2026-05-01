@@ -303,6 +303,18 @@ def test_print_session_status_preserves_status_output_contract(
     assert "glassbox session tool-attempt inspect" in captured.out
     assert "Recovery guidance: inspect stale compactions" in captured.out
     assert "glassbox session compaction-refresh" in captured.out
+    assert "Safe workflow summary:" in captured.out
+    assert (
+        "Checkpoints: glassbox session status "
+        "00000000-0000-0000-0000-000000000111 --cwd ."
+    ) in captured.out
+    assert (
+        "Compactions: glassbox session compactions "
+        "00000000-0000-0000-0000-000000000111 --cwd ."
+    ) in captured.out
+    assert "Verification: glassbox eval recommend PATH --cwd ." in captured.out
+    assert "Provider: glassbox provider diagnostics --cwd ." in captured.out
+    assert "Projections: glassbox projection check --all --cwd ." in captured.out
     assert "Runtime context:" in captured.out
     assert "High-signal paths: README.md, src/" in captured.out
     assert "Pending question: 00000000-0000-0000-0000-000000000333" in captured.out

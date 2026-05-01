@@ -325,6 +325,40 @@ def _print_task_detail(detail: TaskDetailView) -> None:
         print(f"  Changed paths: {', '.join(drift.changed_paths[:5])}")
     if drift.stale_changed_paths:
         print(f"  Stale paths: {', '.join(drift.stale_changed_paths[:5])}")
+    for line in _format_task_safe_workflow_lines(detail):
+        print(line)
+
+
+def _format_task_safe_workflow_lines(detail: TaskDetailView) -> list[str]:
+    task = detail.task
+    task_id = task.task_id
+    session_id = task.session_id
+    lines = [
+        "Safe workflow summary:",
+        f"  - Session posture: glassbox session status {session_id} --cwd .",
+        f"  - Task detail: glassbox task show {task_id} --cwd .",
+        "  - Verification plan: glassbox eval recommend PATH --cwd .",
+        "  - Verification audit: glassbox eval audit --cwd .",
+        "  - Budget and recovery jobs: glassbox job list --cwd .",
+        (
+            "  - Mutating continuation after inspection: "
+            f"glassbox task continue {task_id} --cwd ."
+        ),
+        (
+            "  - Mutating pause before risky work: "
+            f"glassbox task pause-window {task_id} --before-risky-action "
+            "--reason REASON --cwd ."
+        ),
+    ]
+    if detail.last_known_good is not None and detail.last_known_good.checkpoint_id:
+        lines.append(
+            f"  - Checkpoint source: glassbox session status {session_id} --cwd ."
+        )
+    if detail.verification_summary.failed_count:
+        lines.append(
+            f"  - Failed verification detail: glassbox task events {task_id} --cwd ."
+        )
+    return lines
 
 
 def _print_task_events(events: list[TaskEventView]) -> None:

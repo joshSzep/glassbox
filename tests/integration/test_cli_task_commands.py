@@ -47,6 +47,19 @@ def test_task_list_show_and_events_commands(tmp_path: Path, capsys) -> None:
             str(tmp_path),
             "--db-path",
             str(db_path),
+        ]
+    )
+    show_text = capsys.readouterr().out
+
+    show_json_exit = main(
+        [
+            "task",
+            "show",
+            str(task_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
             "--json",
         ]
     )
@@ -72,6 +85,15 @@ def test_task_list_show_and_events_commands(tmp_path: Path, capsys) -> None:
     assert "Tasks: 1" in list_output
     assert "Add task CLI" in list_output
     assert show_exit == 0
+    assert "Safe workflow summary:" in show_text
+    assert f"Session posture: glassbox session status {session_id}" in show_text
+    assert f"Task detail: glassbox task show {task_id}" in show_text
+    assert "Verification plan: glassbox eval recommend PATH --cwd ." in show_text
+    assert (
+        f"Mutating continuation after inspection: glassbox task continue {task_id}"
+        in show_text
+    )
+    assert show_json_exit == 0
     assert show_payload["task"]["task_id"] == str(task_id)
     assert show_payload["steps"][0]["step_id"] == str(step_id)
     assert show_payload["verification_summary"]["current_posture"] == "missing"

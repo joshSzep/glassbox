@@ -185,6 +185,12 @@ uv run glassbox artifacts inspect --cwd .
 uv run glassbox projection check --all --cwd .
 ```
 
+`session status`, `task show`, and `observability status` print a safe workflow
+summary for related inspection commands. Treat those summaries as launch pads:
+read checkpoint, compaction, tool-attempt, verification, provider, projection,
+artifact, index, and backup posture first, then run any mutating recovery
+command deliberately.
+
 For long-running work, inspect the latest checkpoint and any resumable tool
 attempts before mutating recovery state:
 

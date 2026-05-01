@@ -151,6 +151,13 @@ def test_observability_status_text_reports_next_actions(
     assert "Branch searches:" in captured.out
     assert "Artifacts:" in captured.out
     assert "Verification: not run" in captured.out
+    assert "Safe workflow summary:" in captured.out
+    assert "Daemon: glassbox daemon status --cwd ." in captured.out
+    assert "Projections: glassbox projection check --all --cwd ." in captured.out
+    assert "Artifacts: glassbox artifacts inspect --cwd ." in captured.out
+    assert "Provider: glassbox provider diagnostics --cwd ." in captured.out
+    assert "Repository index: glassbox repo index status --cwd ." in captured.out
+    assert "Backup before maintenance: glassbox backup create --cwd ." in captured.out
     assert "glassbox eval run" in captured.out
 
 

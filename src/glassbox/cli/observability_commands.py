@@ -126,9 +126,49 @@ def _print_observability_report(report: WorkspaceObservabilityReport) -> None:
     )
     if report.provider_canary.latest_summary_path is not None:
         print(f"Latest provider canary: {report.provider_canary.latest_summary_path}")
+    for line in _format_observability_safe_workflow_lines(report):
+        print(line)
     if not report.next_actions:
         print("Next: no immediate action")
         return
     print("Next:")
     for action in report.next_actions:
         print(f"  - {action}")
+
+
+def _format_observability_safe_workflow_lines(
+    report: WorkspaceObservabilityReport,
+) -> list[str]:
+    lines = [
+        "Safe workflow summary:",
+        "  - Daemon: glassbox daemon status --cwd .",
+        "  - Projections: glassbox projection check --all --cwd .",
+        "  - Artifacts: glassbox artifacts inspect --cwd .",
+        "  - Provider: glassbox provider diagnostics --cwd .",
+        "  - Provider evidence: glassbox provider canary evidence --cwd .",
+        "  - Repository index: glassbox repo index status --cwd .",
+        "  - Backup before maintenance: glassbox backup create --cwd .",
+    ]
+    if report.repository_index.status in {"missing", "stale", "failed"}:
+        lines.append(
+            "  - Refresh index after status review: glassbox repo index build --cwd ."
+        )
+    if report.background_jobs.pending_count or report.background_jobs.failed_count:
+        lines.append("  - Jobs: glassbox job list --cwd .")
+    if report.tasks.latest_failed_task_id is not None:
+        lines.append(
+            "  - Failed task: "
+            f"glassbox task show {report.tasks.latest_failed_task_id} --cwd ."
+        )
+    elif report.tasks.latest_blocked_task_id is not None:
+        lines.append(
+            "  - Blocked task: "
+            f"glassbox task show {report.tasks.latest_blocked_task_id} --cwd ."
+        )
+    if report.branch_searches.latest_needs_review_search_id is not None:
+        lines.append(
+            "  - Branch-search review: "
+            "glassbox branch-search show "
+            f"{report.branch_searches.latest_needs_review_search_id} --cwd ."
+        )
+    return lines
