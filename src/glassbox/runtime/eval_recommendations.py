@@ -12,6 +12,10 @@ from glassbox.runtime.eval_recommendation_models import EvalLongRunSurfaceRecomm
 from glassbox.runtime.eval_recommendation_models import EvalProfileRecommendation
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationConfidence
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReason
+from glassbox.runtime.eval_recommendation_models import EvalRecommendationReasonGroup
+from glassbox.runtime.eval_recommendation_models import (
+    EvalRecommendationReasonGroupKind,
+)
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReport
 from glassbox.runtime.eval_recommendation_models import EvalReleaseSurfaceRecommendation
 from glassbox.runtime.eval_recommendation_models import LongRunVerificationSurface
@@ -26,6 +30,8 @@ __all__ = [
     "EvalProfileRecommendation",
     "EvalRecommendationConfidence",
     "EvalRecommendationReason",
+    "EvalRecommendationReasonGroup",
+    "EvalRecommendationReasonGroupKind",
     "EvalRecommendationReport",
     "EvalReleaseSurfaceRecommendation",
     "LongRunVerificationSurface",

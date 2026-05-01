@@ -281,6 +281,29 @@ def _print_eval_recommendations(result: EvalRecommendationReport) -> None:
         print("Warnings:")
         for warning in result.warnings:
             print(f"  - {warning}")
+    if result.cheapest_next_command:
+        print("Cheapest next command:")
+        print(f"  - {result.cheapest_next_command}")
+    if result.reason_groups:
+        print("Reason groups:")
+        for group in result.reason_groups:
+            print(f"  - {group.title}")
+            _print_optional_joined_line(
+                "Cases", group.recommended_case_ids, indent="    "
+            )
+            _print_optional_joined_line(
+                "Profiles", group.recommended_profile_ids, indent="    "
+            )
+            _print_optional_joined_line("Rules", group.rule_ids, indent="    ")
+            _print_optional_joined_line("Paths", group.matched_paths, indent="    ")
+            if group.summaries:
+                print("    Reasons:")
+                for summary in group.summaries:
+                    print("      - " + summary)
+            if group.release_gate_commands:
+                print("    Full gates:")
+                for command in group.release_gate_commands:
+                    print("      - " + command)
     _print_release_surface_recommendations(result.release_surfaces)
     _print_long_run_surface_recommendations(result.long_run_surfaces)
     if result.cases:
@@ -306,6 +329,10 @@ def _print_eval_recommendations(result: EvalRecommendationReport) -> None:
     if result.suggested_commands:
         print("Suggested commands:")
         for command in result.suggested_commands:
+            print(f"  - {command}")
+    if result.fallback_policy_commands:
+        print("Fallback policy commands:")
+        for command in result.fallback_policy_commands:
             print(f"  - {command}")
 
 

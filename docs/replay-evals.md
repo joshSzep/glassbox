@@ -195,6 +195,12 @@ The recommendation steps are:
   - `evals/profiles.json` contributes stage-specific profile recommendations, deterministic-versus-canary track, and budget expectations
 4. Rank and explain recommendations by confidence rather than flattening them into one opaque list.
 
+`eval recommend` first names the cheapest visible next command, then prints a
+grouped explanation of why each row was selected. The JSON report keeps the same
+shape with `cheapest_next_command`, `reason_groups`, and
+`fallback_policy_commands` so downstream tools can distinguish inferred
+evidence from manual policy fallback guidance.
+
 `eval recommend` also prints a compact daily-development release-surface view for
 `commit-time`, `push-time`, `release-candidate`, and `advisory`. Each row shows
 whether that surface is impacted, which profiles and cases are recommended,
@@ -222,6 +228,15 @@ Recommendation confidence should be visible in output:
 - `capability-derived`: the touched path mapped to one capability and the case came from coverage expectations or case capability metadata
 - `stage-derived`: the profile was recommended because impacted capabilities or cases participate in that verification stage
 - `fallback`: no stronger deterministic mapping was available
+
+Reason groups make the same signal easier to scan:
+
+- `direct-path`: touched eval metadata or an impact rule directly named a case or profile
+- `owner-derived-rule`: a path rule mapped to an owner and matching cases came from release-contract owner metadata
+- `capability-derived-rule`: a path rule mapped to a capability and matching cases came from coverage or case capability metadata
+- `stage-derived-profile`: deterministic profiles were selected because matched cases or capabilities affected their verification stage
+- `release-gate-recommendation`: full release-gate commands were named separately from eval profiles
+- `fallback-policy`: no confident mapping existed, so any suggested command is manual policy guidance rather than inferred evidence
 
 Practical operator expectations:
 

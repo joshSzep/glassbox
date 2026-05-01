@@ -244,6 +244,14 @@ def test_recommend_eval_change_impact_routes_context_changes_to_context_cases(
     assert [case.case_id for case in report.cases] == ["context.artifact"]
     assert [profile.profile_id for profile in report.profiles] == ["release-candidate"]
     assert any("context.artifact" in command for command in report.suggested_commands)
+    assert report.cheapest_next_command == (
+        "uv run glassbox eval run context.artifact --cwd ."
+    )
+    assert [group.group for group in report.reason_groups] == [
+        "owner-derived-rule",
+        "capability-derived-rule",
+        "stage-derived-profile",
+    ]
 
 
 def test_recommend_eval_change_impact_distinguishes_release_profiles_from_gates(
@@ -305,6 +313,18 @@ def test_recommend_eval_change_impact_distinguishes_release_profiles_from_gates(
     assert any(
         "do not replace the gate" in note for note in release_surface.release_gate_notes
     )
+    assert report.cheapest_next_command == (
+        "uv run glassbox eval run --profile release-candidate --cwd ."
+    )
+    release_gate_group = next(
+        group
+        for group in report.reason_groups
+        if group.group == "release-gate-recommendation"
+    )
+    assert release_gate_group.release_gate_commands == [
+        "uv run python scripts/validate_v10_release_gate.py --cwd .",
+        "uv run python scripts/validate_package_contents.py",
+    ]
 
 
 def test_recommend_eval_change_impact_routes_policy_changes_to_approval_case(
@@ -554,3 +574,31 @@ def test_recommend_eval_change_impact_keeps_live_provider_canary_explicitly_skip
     assert provider_surface.impacted is True
     assert provider_surface.recommended_profile_ids == []
     assert provider_surface.suggested_commands == []
+
+
+def test_recommend_eval_change_impact_marks_fallback_as_manual_policy(
+    tmp_path: Path,
+) -> None:
+    _write_profiles(tmp_path)
+    _write_coverage(tmp_path)
+    _write_impact(tmp_path)
+
+    report = recommend_eval_change_impact(
+        tmp_path,
+        touched_paths=["src/glassbox/runtime/unmapped.py"],
+    )
+
+    assert [profile.profile_id for profile in report.profiles] == ["commit-smoke"]
+    assert report.profiles[0].confidence == "fallback"
+    assert report.profiles[0].reasons[0].group == "fallback-policy"
+    assert report.fallback_policy_commands == [
+        "uv run glassbox eval run --profile commit-smoke --cwd ."
+    ]
+    assert report.cheapest_next_command == (
+        "uv run glassbox eval run --profile commit-smoke --cwd ."
+    )
+    assert report.warnings == [
+        "No confident replay or eval recommendation was found; fallback commands "
+        "are manual policy guidance, not inferred evidence."
+    ]
+    assert [group.group for group in report.reason_groups] == ["fallback-policy"]

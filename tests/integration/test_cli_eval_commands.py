@@ -757,7 +757,16 @@ def test_cli_eval_recommend_reports_cases_profiles_and_reasons(
     assert [case["case_id"] for case in payload["cases"]] == ["smoke.readme"]
     assert payload["cases"][0]["confidence"] == "owner-derived"
     assert payload["cases"][0]["reasons"][0]["confidence"] == "owner-derived"
+    assert payload["cases"][0]["reasons"][0]["group"] == "owner-derived-rule"
     assert "owner runtime.replay" in payload["cases"][0]["reasons"][0]["summary"]
+    assert payload["cheapest_next_command"] == (
+        "uv run glassbox eval run smoke.readme --cwd ."
+    )
+    assert [group["group"] for group in payload["reason_groups"]] == [
+        "owner-derived-rule",
+        "capability-derived-rule",
+        "stage-derived-profile",
+    ]
     assert [profile["profile_id"] for profile in payload["profiles"]] == [
         "commit-smoke",
         "push-confirmation",
@@ -871,8 +880,20 @@ def test_cli_eval_recommend_distinguishes_release_profiles_from_full_gates(
     assert payload["suggested_commands"] == [
         "uv run glassbox eval run --profile release-candidate --cwd ."
     ]
+    assert payload["cheapest_next_command"] == (
+        "uv run glassbox eval run --profile release-candidate --cwd ."
+    )
     assert release_surface["recommended_profile_ids"] == ["release-candidate"]
     assert release_surface["release_gate_commands"] == [
+        "uv run python scripts/validate_v10_release_gate.py --cwd .",
+        "uv run python scripts/validate_package_contents.py",
+    ]
+    release_gate_group = next(
+        group
+        for group in payload["reason_groups"]
+        if group["group"] == "release-gate-recommendation"
+    )
+    assert release_gate_group["release_gate_commands"] == [
         "uv run python scripts/validate_v10_release_gate.py --cwd .",
         "uv run python scripts/validate_package_contents.py",
     ]
@@ -889,6 +910,7 @@ def test_cli_eval_recommend_distinguishes_release_profiles_from_full_gates(
     captured = capsys.readouterr()
 
     assert exit_code == 0
+    assert "Cheapest next command:" in captured.out
     assert "Full gates:" in captured.out
     assert "uv run python scripts/validate_v10_release_gate.py --cwd ." in captured.out
 

@@ -21,6 +21,7 @@ def test_eval_recommendations_convert_to_verification_entries(tmp_path: Path) ->
                 reasons=[
                     EvalRecommendationReason(
                         confidence="direct",
+                        group="direct-path",
                         summary="runtime replay path matched smoke.hello",
                     )
                 ],

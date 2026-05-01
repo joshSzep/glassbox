@@ -27,10 +27,13 @@ from glassbox.runtime.eval_recommendation_matching import match_rules
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReason
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReport
 from glassbox.runtime.eval_recommendation_output import build_case_recommendations
+from glassbox.runtime.eval_recommendation_output import build_cheapest_next_command
+from glassbox.runtime.eval_recommendation_output import build_fallback_policy_commands
 from glassbox.runtime.eval_recommendation_output import (
     build_long_run_surface_recommendations,
 )
 from glassbox.runtime.eval_recommendation_output import build_profile_recommendations
+from glassbox.runtime.eval_recommendation_output import build_reason_groups
 from glassbox.runtime.eval_recommendation_output import (
     build_release_surface_recommendations,
 )
@@ -158,6 +161,11 @@ def recommend_eval_change_impact(
         case_recommendations=case_recommendations,
         profile_recommendations=profile_recommendations,
     )
+    reason_groups = build_reason_groups(
+        case_recommendations=case_recommendations,
+        profile_recommendations=profile_recommendations,
+        release_surfaces=release_surfaces,
+    )
 
     return EvalRecommendationReport(
         workspace_root=resolved_workspace_root,
@@ -171,6 +179,16 @@ def recommend_eval_change_impact(
         cases=case_recommendations,
         profiles=profile_recommendations,
         suggested_commands=suggested_commands,
+        cheapest_next_command=build_cheapest_next_command(
+            case_recommendations,
+            profile_recommendations,
+            coverage_audit_recommended=coverage_audit_recommended,
+        ),
+        fallback_policy_commands=build_fallback_policy_commands(
+            case_recommendations,
+            profile_recommendations,
+        ),
+        reason_groups=reason_groups,
     )
 
 

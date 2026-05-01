@@ -468,7 +468,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1120: Add Verification Recommendation Explainability
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1112`
 - Goal: make `glassbox eval recommend` easier to trust and act on
 - Deliverables:

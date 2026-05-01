@@ -64,6 +64,7 @@ def add_direct_path_recommendations(
                 case.case_id,
                 EvalRecommendationReason(
                     confidence="direct",
+                    group="direct-path",
                     summary=f"touched eval case manifest {touched_path}",
                     matched_path=touched_path,
                 ),
@@ -92,6 +93,7 @@ def add_direct_path_recommendations(
                     profile.profile_id,
                     EvalRecommendationReason(
                         confidence="direct",
+                        group="direct-path",
                         summary=f"touched eval profile manifest {touched_path}",
                         matched_path=touched_path,
                     ),
@@ -121,6 +123,7 @@ def add_rule_match_recommendations(
                     case_id,
                     EvalRecommendationReason(
                         confidence="direct",
+                        group="direct-path",
                         summary=(
                             f"impact rule {rule.rule_id} matched "
                             f"{match.matched_path} and names case {case_id}"
@@ -138,6 +141,7 @@ def add_rule_match_recommendations(
                 profile_id,
                 EvalRecommendationReason(
                     confidence="direct",
+                    group="direct-path",
                     summary=(
                         f"impact rule {rule.rule_id} matched "
                         f"{match.matched_path} and names profile {profile_id}"
@@ -170,6 +174,7 @@ def add_owner_derived_case_recommendations(
                     case.case_id,
                     EvalRecommendationReason(
                         confidence="owner-derived",
+                        group="owner-derived-rule",
                         summary=(
                             f"impact rule {match.rule.rule_id} matched "
                             f"{match.matched_path} and maps to owner {owner}"
@@ -205,6 +210,7 @@ def add_capability_derived_case_recommendations(
                     case_id,
                     EvalRecommendationReason(
                         confidence="capability-derived",
+                        group="capability-derived-rule",
                         summary=(
                             f"impact rule {match.rule.rule_id} matched "
                             f"{match.matched_path} and maps to capability "
@@ -260,6 +266,7 @@ def add_stage_derived_profile_recommendations(
             profile.profile_id,
             EvalRecommendationReason(
                 confidence="stage-derived",
+                group="stage-derived-profile",
                 summary=(
                     f"verification stage {profile.verification_stage} is "
                     "impacted by the matched cases or capabilities"
@@ -293,13 +300,18 @@ def add_fallback_profile_recommendations(
                 profile.profile_id,
                 EvalRecommendationReason(
                     confidence="fallback",
+                    group="fallback-policy",
                     summary=(
-                        "no stronger replay/eval mapping was found; use "
+                        "no confident replay/eval mapping was found; use "
                         "the smallest deterministic commit-time profile "
-                        "as a conservative fallback"
+                        "as manual policy guidance"
                     ),
                 ),
             )
+        warnings.append(
+            "No confident replay or eval recommendation was found; fallback "
+            "commands are manual policy guidance, not inferred evidence."
+        )
         return
 
     if not warnings:

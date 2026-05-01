@@ -17,6 +17,14 @@ type EvalRecommendationConfidence = Literal[
     "stage-derived",
     "fallback",
 ]
+type EvalRecommendationReasonGroupKind = Literal[
+    "direct-path",
+    "owner-derived-rule",
+    "capability-derived-rule",
+    "stage-derived-profile",
+    "release-gate-recommendation",
+    "fallback-policy",
+]
 
 _CONFIDENCE_PRIORITY: dict[EvalRecommendationConfidence, int] = {
     "direct": 5,
@@ -55,12 +63,28 @@ class EvalRecommendationReason(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     confidence: EvalRecommendationConfidence
+    group: EvalRecommendationReasonGroupKind
     summary: str
     matched_path: str | None = None
     rule_id: str | None = None
     owner: str | None = None
     capability_id: str | None = None
     verification_stage: str | None = None
+
+
+class EvalRecommendationReasonGroup(BaseModel):
+    """Grouped explanation rows for recommendation output."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    group: EvalRecommendationReasonGroupKind
+    title: str
+    summaries: list[str] = Field(default_factory=list)
+    matched_paths: list[str] = Field(default_factory=list)
+    rule_ids: list[str] = Field(default_factory=list)
+    recommended_case_ids: list[str] = Field(default_factory=list)
+    recommended_profile_ids: list[str] = Field(default_factory=list)
+    release_gate_commands: list[str] = Field(default_factory=list)
 
 
 class EvalCaseRecommendation(BaseModel):
@@ -141,3 +165,6 @@ class EvalRecommendationReport(BaseModel):
     cases: list[EvalCaseRecommendation] = Field(default_factory=list)
     profiles: list[EvalProfileRecommendation] = Field(default_factory=list)
     suggested_commands: list[str] = Field(default_factory=list)
+    cheapest_next_command: str | None = None
+    fallback_policy_commands: list[str] = Field(default_factory=list)
+    reason_groups: list[EvalRecommendationReasonGroup] = Field(default_factory=list)
