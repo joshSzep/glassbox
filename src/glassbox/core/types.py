@@ -43,6 +43,16 @@ class TurnRecoveryState(StrEnum):
     NON_RESUMABLE = "non_resumable"
 
 
+class CheckpointAbsenceReason(StrEnum):
+    """Why a session has no latest checkpoint projection."""
+
+    IMPORTED_INSPECTION_ONLY = "imported_inspection_only"
+    HISTORICAL_PRE_CHECKPOINT = "historical_pre_checkpoint"
+    ACTIVE_CHECKPOINT_EXPECTED = "active_checkpoint_expected"
+    PROJECTION_DEGRADED = "projection_degraded"
+    NOT_EXPECTED_YET = "not_expected_yet"
+
+
 class ToolExecutionStatus(StrEnum):
     """Lifecycle states for a tool execution."""
 

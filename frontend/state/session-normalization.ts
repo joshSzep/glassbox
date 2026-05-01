@@ -85,6 +85,7 @@ function normalizeSessionFields(snapshot: SessionSnapshot): SessionFields {
     branchableTurns,
     budgetPosture: snapshot.budget_posture ?? null,
     canFork: snapshot.can_fork,
+    checkpointAbsence: snapshot.checkpoint_absence ?? null,
     childSessions: [...snapshot.child_sessions],
     checkpointHistory: [...snapshot.checkpoint_history],
     currentTurn: inferCurrentTurn(snapshot),

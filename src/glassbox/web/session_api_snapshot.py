@@ -8,6 +8,7 @@ from pydantic import Field
 from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.runtime.context_builder import RuntimeContextSnapshot
 from glassbox.web.session_api_common import ActiveToolCallResponse
+from glassbox.web.session_api_common import CheckpointAbsenceResponse
 from glassbox.web.session_api_common import LongRunStatusResponse
 from glassbox.web.session_api_common import PendingApprovalResponse
 from glassbox.web.session_api_common import PolicyActivitySummaryResponse
@@ -63,6 +64,7 @@ class SessionSummaryResponse(BaseModel):
     session_failure_retryable: bool | None
     turn_recovery_posture: TurnRecoveryPostureResponse | None = None
     latest_checkpoint: TaskCheckpointResponse | None = None
+    checkpoint_absence: CheckpointAbsenceResponse | None = None
     latest_provider_recovery: ProviderRecoveryResponse | None = None
     long_run_status: LongRunStatusResponse
     latest_message_summary: str | None
@@ -101,6 +103,7 @@ class SessionSnapshotResponse(BaseModel):
     transcript: list[TranscriptMessageResponse]
     turn_recovery_posture: TurnRecoveryPostureResponse | None = None
     latest_checkpoint: TaskCheckpointResponse | None = None
+    checkpoint_absence: CheckpointAbsenceResponse | None = None
     checkpoint_history: list[TaskCheckpointResponse]
     latest_provider_recovery: ProviderRecoveryResponse | None = None
     long_run_status: LongRunStatusResponse

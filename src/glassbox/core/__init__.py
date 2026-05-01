@@ -155,6 +155,7 @@ from glassbox.core.models import AutonomySelection
 from glassbox.core.models import BackgroundJobRecord
 from glassbox.core.models import BranchCandidateRecord
 from glassbox.core.models import BranchSearchRecord
+from glassbox.core.models import CheckpointAbsenceRecord
 from glassbox.core.models import ContextCompactionRecord
 from glassbox.core.models import ForkedSession
 from glassbox.core.models import InheritedTranscriptMessage
@@ -202,6 +203,7 @@ from glassbox.core.types import BackgroundJobState
 from glassbox.core.types import BranchCandidateStatus
 from glassbox.core.types import BranchCandidateVerificationStatus
 from glassbox.core.types import BranchSearchStatus
+from glassbox.core.types import CheckpointAbsenceReason
 from glassbox.core.types import ContextCompactionFreshness
 from glassbox.core.types import ContextCompactionScope
 from glassbox.core.types import LongRunPhase
@@ -294,6 +296,8 @@ __all__ = [
     "CancellationAcknowledged",
     "CancellationFailed",
     "CancellationRequested",
+    "CheckpointAbsenceReason",
+    "CheckpointAbsenceRecord",
     "ContextCompactionCreated",
     "ContextCompactionFreshnessChanged",
     "ContextCompactionFreshness",

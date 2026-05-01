@@ -125,6 +125,41 @@ describe("session inspector", () => {
     expect(markup).toContain("blocking replay/eval artifact");
   });
 
+  it("labels checkpoint absence as historical context or an active recovery gap", () => {
+    const historicalData = hydrateSelectedSession(
+      createDashboardState(),
+      makeSessionSnapshot("historical-checkpoint-gap", {
+        checkpoint_absence: {
+          message: "This historical session has no checkpoint events.",
+          next_action: "No checkpoint action is required for historical inspection.",
+          reason: "historical_pre_checkpoint",
+          severity: "info",
+        },
+        status: "completed",
+      }),
+    );
+    const activeGapData = hydrateSelectedSession(
+      createDashboardState(),
+      makeSessionSnapshot("active-checkpoint-gap", {
+        checkpoint_absence: {
+          message: "This active session has reached its checkpoint interval.",
+          next_action: "Inspect live progress before relying on recovery state.",
+          reason: "active_checkpoint_expected",
+          severity: "warning",
+        },
+      }),
+    );
+
+    const historicalMarkup = renderInspectorTab(historicalData, "overview");
+    const activeMarkup = renderInspectorTab(activeGapData, "overview");
+
+    expect(historicalMarkup).toContain("historical pre checkpoint");
+    expect(historicalMarkup).toContain("No checkpoint action is required");
+    expect(historicalMarkup).not.toContain("checkpoint recovery gap");
+    expect(activeMarkup).toContain("checkpoint recovery gap");
+    expect(activeMarkup).toContain("reached its checkpoint interval");
+  });
+
   it("renders only the active inspector tab content", () => {
     const data = makeRichSessionData();
 

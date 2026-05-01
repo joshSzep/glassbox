@@ -1592,6 +1592,17 @@ export interface components {
       /** Turn Id */
       turn_id?: string | null;
     };
+    /** CheckpointAbsenceResponse */
+    CheckpointAbsenceResponse: {
+      /** Message */
+      message: string;
+      /** Next Action */
+      next_action: string;
+      /** Reason */
+      reason: string;
+      /** Severity */
+      severity: string;
+    };
     /**
      * CheckpointResumeSnapshot
      * @description Checkpoint-derived resume context with explicit trust posture.
@@ -1996,6 +2007,7 @@ export interface components {
       budget_posture?: components["schemas"]["AutonomyBudgetPostureRecord"] | null;
       /** Can Fork */
       can_fork: boolean;
+      checkpoint_absence?: components["schemas"]["CheckpointAbsenceResponse"] | null;
       /** Child Session Count */
       child_session_count: number;
       /**
@@ -2646,6 +2658,7 @@ export interface components {
       budget_posture?: components["schemas"]["AutonomyBudgetPostureRecord"] | null;
       /** Can Fork */
       can_fork: boolean;
+      checkpoint_absence?: components["schemas"]["CheckpointAbsenceResponse"] | null;
       /** Checkpoint History */
       checkpoint_history: components["schemas"]["TaskCheckpointResponse"][];
       /** Child Sessions */
@@ -2727,6 +2740,7 @@ export interface components {
       budget_posture?: components["schemas"]["AutonomyBudgetPostureRecord"] | null;
       /** Can Fork */
       can_fork: boolean;
+      checkpoint_absence?: components["schemas"]["CheckpointAbsenceResponse"] | null;
       /** Child Session Count */
       child_session_count: number;
       /**

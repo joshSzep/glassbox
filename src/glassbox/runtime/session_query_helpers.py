@@ -8,6 +8,7 @@ from glassbox.core.events import RecoveryDecisionRecorded
 from glassbox.core.events import ResumeOutcomeRecorded
 from glassbox.core.events import SessionFailed
 from glassbox.core.events import SessionStarted
+from glassbox.core.events import TranscriptMessageImported
 from glassbox.core.events import TurnCancelled
 from glassbox.core.events import TurnCompleted
 from glassbox.core.events import TurnFailed
@@ -18,14 +19,17 @@ from glassbox.core.ids import SessionId
 from glassbox.core.ids import TurnId
 from glassbox.core.models import ApprovalRecord
 from glassbox.core.models import AutonomyBudgetPostureRecord
+from glassbox.core.models import CheckpointAbsenceRecord
 from glassbox.core.models import PolicyActivitySummary
 from glassbox.core.models import ProjectionHealth
 from glassbox.core.models import SessionRecord
 from glassbox.core.models import SessionState
+from glassbox.core.models import TaskCheckpointRecord
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TranscriptMessage
 from glassbox.core.models import TurnMetricsRecord
 from glassbox.core.models import TurnRecoveryPosture
+from glassbox.core.types import CheckpointAbsenceReason
 from glassbox.core.types import RecoveryDecision
 from glassbox.core.types import ResumeOutcomeStatus
 from glassbox.core.types import TurnRecoveryState
@@ -195,6 +199,82 @@ def next_action_summary(
     return "Inspect session"
 
 
+def checkpoint_absence_from_evidence(
+    *,
+    status: str,
+    events: Sequence[EventEnvelope],
+    projection_health: ProjectionHealth,
+    budget_posture: AutonomyBudgetPostureRecord | None,
+    latest_checkpoint: TaskCheckpointRecord | None,
+) -> CheckpointAbsenceRecord | None:
+    """Explain why no latest checkpoint is available for a session."""
+
+    if latest_checkpoint is not None:
+        return None
+
+    if projection_health.degraded:
+        detail = projection_health.detail or projection_health.state
+        severity = "blocked" if projection_health.state == "unavailable" else "warning"
+        return CheckpointAbsenceRecord(
+            reason=CheckpointAbsenceReason.PROJECTION_DEGRADED,
+            severity=severity,
+            message=(
+                "Checkpoint state may be incomplete because derived projections "
+                f"are {projection_health.state}: {detail}."
+            ),
+            next_action=(
+                "Rebuild derived projections before trusting checkpoint absence."
+            ),
+        )
+
+    if _is_inspection_import(events):
+        return CheckpointAbsenceRecord(
+            reason=CheckpointAbsenceReason.IMPORTED_INSPECTION_ONLY,
+            severity="info",
+            message=(
+                "This session was imported for inspection and the package did "
+                "not include checkpoint evidence."
+            ),
+            next_action=(
+                "No checkpoint action is required; inspect the imported "
+                "transcript and handoff notes."
+            ),
+        )
+
+    if status in {"completed", "cancelled", "failed"}:
+        return CheckpointAbsenceRecord(
+            reason=CheckpointAbsenceReason.HISTORICAL_PRE_CHECKPOINT,
+            severity="info",
+            message=(
+                "This historical session has no checkpoint events; it likely "
+                "predates checkpoint capture or was recorded before checkpointing "
+                "was enabled."
+            ),
+            next_action="No checkpoint action is required for historical inspection.",
+        )
+
+    if _checkpoint_expected(budget_posture):
+        return CheckpointAbsenceRecord(
+            reason=CheckpointAbsenceReason.ACTIVE_CHECKPOINT_EXPECTED,
+            severity="warning",
+            message=(
+                "This active session has reached its checkpoint interval, but "
+                "no checkpoint is projected yet."
+            ),
+            next_action=(
+                "Inspect live progress and create or wait for a checkpoint "
+                "before relying on recovery state."
+            ),
+        )
+
+    return CheckpointAbsenceRecord(
+        reason=CheckpointAbsenceReason.NOT_EXPECTED_YET,
+        severity="info",
+        message="No checkpoint has been recorded for this session yet.",
+        next_action="No checkpoint action is required yet.",
+    )
+
+
 def turn_recovery_posture_from_events(
     events: Sequence[EventEnvelope],
     *,
@@ -254,6 +334,23 @@ def turn_recovery_posture_from_events(
         )
 
     return None
+
+
+def _is_inspection_import(events: Sequence[EventEnvelope]) -> bool:
+    return any(isinstance(event.payload, TranscriptMessageImported) for event in events)
+
+
+def _checkpoint_expected(
+    budget_posture: AutonomyBudgetPostureRecord | None,
+) -> bool:
+    if budget_posture is None or budget_posture.budget is None:
+        return False
+    interval = budget_posture.budget.checkpoint_interval_seconds
+    if interval is None:
+        return False
+    if budget_posture.next_checkpoint_due_in_seconds == 0:
+        return True
+    return budget_posture.usage.seconds_since_checkpoint >= interval
 
 
 def _latest_recovery_turn_id(events: Sequence[EventEnvelope]) -> TurnId | None:

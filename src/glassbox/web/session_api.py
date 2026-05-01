@@ -30,6 +30,7 @@ from glassbox.web.session_api_builders import build_session_summary_response
 from glassbox.web.session_api_builders import build_session_summary_responses
 from glassbox.web.session_api_common import ActiveToolCallResponse
 from glassbox.web.session_api_common import ArtifactDetailResponse
+from glassbox.web.session_api_common import CheckpointAbsenceResponse
 from glassbox.web.session_api_common import ContextCompactionResponse
 from glassbox.web.session_api_common import EventLogEntryResponse
 from glassbox.web.session_api_common import LongRunStatusResponse
@@ -64,6 +65,7 @@ __all__ = [
     "ArtifactDetailResponse",
     "BranchableTurnResponse",
     "CancelSessionTurnRequest",
+    "CheckpointAbsenceResponse",
     "ChildSessionSummaryResponse",
     "ContextCompactionResponse",
     "ErrorDetailResponse",

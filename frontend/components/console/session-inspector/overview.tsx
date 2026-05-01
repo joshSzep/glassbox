@@ -54,6 +54,7 @@ export function SessionOverviewTab({
           <ReadoutItem label="Status" value={data.status} />
           <ReadoutItem label="Live state" value={formatStreamStatus(stream)} />
           <ReadoutItem label="Projection" value={formatProjection(data)} />
+          <ReadoutItem label="Checkpoint" value={formatCheckpointState(data)} />
           <ReadoutItem label="Runtime owner" value={formatRuntimeOwner(data)} />
           <ReadoutItem label="Model" value={data.modelName ?? "model unknown"} />
           <ReadoutItem label="Lineage" value={formatLineage(data)} />
@@ -224,6 +225,19 @@ function deriveHealthItems(data: DashboardState, stream: SessionStreamState) {
     });
   }
 
+  if (
+    data.checkpointAbsence !== null &&
+    (data.checkpointAbsence.severity === "warning" || data.checkpointAbsence.severity === "blocked")
+  ) {
+    items.push({
+      label:
+        data.checkpointAbsence.reason === "active_checkpoint_expected"
+          ? "checkpoint recovery gap"
+          : "checkpoint projection gap",
+      value: `${data.checkpointAbsence.message} ${data.checkpointAbsence.next_action}`,
+    });
+  }
+
   if (data.latestProviderRecovery !== null) {
     items.push({
       label: "provider recovery",
@@ -350,6 +364,16 @@ function formatProjection(data: DashboardState): string {
     return "projection degraded";
   }
   return `projection ${data.projectionHealth.state}`;
+}
+
+function formatCheckpointState(data: DashboardState): string {
+  if (data.latestCheckpoint !== null) {
+    return `${data.latestCheckpoint.objective} · events ${data.latestCheckpoint.source_start_sequence}-${data.latestCheckpoint.source_end_sequence}`;
+  }
+  if (data.checkpointAbsence !== null) {
+    return `${data.checkpointAbsence.reason.replaceAll("_", " ")} · ${data.checkpointAbsence.next_action}`;
+  }
+  return "checkpoint state unavailable";
 }
 
 function formatRuntimeOwner(data: DashboardState): string {

@@ -412,7 +412,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1111: Clarify Historical Checkpoint Absence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1101`
 - Goal: make missing checkpoints on historical or imported sessions
   self-explanatory rather than requiring operator inference

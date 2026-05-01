@@ -38,6 +38,7 @@ from glassbox.core.types import BackgroundJobState
 from glassbox.core.types import BranchCandidateStatus
 from glassbox.core.types import BranchCandidateVerificationStatus
 from glassbox.core.types import BranchSearchStatus
+from glassbox.core.types import CheckpointAbsenceReason
 from glassbox.core.types import ContextCompactionFreshness
 from glassbox.core.types import ContextCompactionScope
 from glassbox.core.types import LongRunPhase
@@ -302,6 +303,17 @@ class LongRunStatusRecord(BaseModel):
     elapsed_seconds: int = Field(ge=0)
     stuck_reason: str | None = Field(default=None, max_length=2000)
     progress_summary: str = Field(min_length=1, max_length=2000)
+
+
+class CheckpointAbsenceRecord(BaseModel):
+    """Typed explanation for sessions that have no latest checkpoint."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    reason: CheckpointAbsenceReason
+    severity: Literal["info", "warning", "blocked"]
+    message: str = Field(min_length=1, max_length=2000)
+    next_action: str = Field(min_length=1, max_length=2000)
 
 
 class ProviderRecoveryRecord(BaseModel):

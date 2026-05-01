@@ -34,6 +34,8 @@ def _print_session_status(status_view: SessionStatusView) -> None:
         print(_format_turn_recovery_line(snapshot.turn_recovery_posture))
     if snapshot.latest_checkpoint is not None:
         print(_format_latest_checkpoint_line(snapshot.latest_checkpoint))
+    elif snapshot.checkpoint_absence is not None:
+        print(_format_checkpoint_absence_line(snapshot.checkpoint_absence))
     print(_format_compaction_summary_line(snapshot.runtime_context))
     print(f"Workspace: {snapshot.cwd}")
     print(f"Model: {snapshot.model_name}")
@@ -316,6 +318,17 @@ def _format_latest_checkpoint_line(checkpoint) -> str:
         f"next: {checkpoint.next_action}; "
         f"source events {checkpoint.source_start_sequence}-"
         f"{checkpoint.source_end_sequence}{blockers}"
+    )
+
+
+def _format_checkpoint_absence_line(absence) -> str:
+    reason = (
+        absence.reason.value if hasattr(absence.reason, "value") else absence.reason
+    )
+    return (
+        "Checkpoint absence: "
+        f"{reason}; "
+        f"{absence.message} Next action: {absence.next_action}"
     )
 
 

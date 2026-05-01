@@ -123,6 +123,13 @@ Long-run cockpit cues must be derived from explicit local data sources:
 - Checkpoints: `TaskCheckpointCreated` events, `task_checkpoints` projection,
   `/sessions/{session_id}/checkpoints`, and checkpoint context in runtime
   prompts.
+- Checkpoint absence: when no latest checkpoint exists, session summaries,
+  snapshots, `glassbox session status`, and the dashboard expose a typed
+  `checkpoint_absence` reason. `imported_inspection_only` and
+  `historical_pre_checkpoint` are informational no-action states,
+  `active_checkpoint_expected` is an active recovery gap, and
+  `projection_degraded` means projection repair must happen before trusting the
+  absence.
 - Compactions: `ContextCompactionCreated`,
   `ContextCompactionFreshnessChanged`, `context_compactions` projection,
   `/sessions/{session_id}/compactions`, and

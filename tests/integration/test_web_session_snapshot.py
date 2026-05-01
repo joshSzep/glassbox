@@ -197,6 +197,7 @@ def test_get_session_returns_snapshot_after_session_started(tmp_path: Path) -> N
             assert body["approval_mode"] == "confirm"
             assert body["status"] == "running"
             assert body["current_turn_id"] is None
+            assert body["checkpoint_absence"]["reason"] == "not_expected_yet"
             assert body["dashboard_url"] is None
             assert body["pending_approval_id"] is None
             assert body["pending_question_id"] is None
@@ -278,6 +279,7 @@ def test_get_session_exposes_latest_checkpoint_and_checkpoint_page(
             assert snapshot_body["latest_checkpoint"]["checkpoint_id"] == str(
                 checkpoint_id
             )
+            assert snapshot_body["checkpoint_absence"] is None
             assert snapshot_body["latest_checkpoint"]["current_phase"] == (
                 "checkpointing"
             )

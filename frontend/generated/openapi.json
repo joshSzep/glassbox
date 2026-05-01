@@ -1234,6 +1234,29 @@
         "title": "CancelSessionTurnRequest",
         "type": "object"
       },
+      "CheckpointAbsenceResponse": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "next_action": {
+            "title": "Next Action",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": ["reason", "severity", "message", "next_action"],
+        "title": "CheckpointAbsenceResponse",
+        "type": "object"
+      },
       "CheckpointResumeSnapshot": {
         "additionalProperties": false,
         "description": "Checkpoint-derived resume context with explicit trust posture.",
@@ -2324,6 +2347,16 @@
           "can_fork": {
             "title": "Can Fork",
             "type": "boolean"
+          },
+          "checkpoint_absence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckpointAbsenceResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "child_session_count": {
             "title": "Child Session Count",
@@ -4198,6 +4231,16 @@
             "title": "Can Fork",
             "type": "boolean"
           },
+          "checkpoint_absence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckpointAbsenceResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "checkpoint_history": {
             "items": {
               "$ref": "#/components/schemas/TaskCheckpointResponse"
@@ -4541,6 +4584,16 @@
           "can_fork": {
             "title": "Can Fork",
             "type": "boolean"
+          },
+          "checkpoint_absence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckpointAbsenceResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "child_session_count": {
             "title": "Child Session Count",

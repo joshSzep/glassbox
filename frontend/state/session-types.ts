@@ -8,6 +8,7 @@ export type ProjectionHealthCounts =
 export type RuntimeSummary = components["schemas"]["WorkspaceRuntimeSummaryResponse"];
 export type RuntimeContext = components["schemas"]["RuntimeContextSnapshot"];
 export type LongRunStatus = components["schemas"]["LongRunStatusResponse"];
+export type CheckpointAbsence = components["schemas"]["CheckpointAbsenceResponse"];
 export type ProviderRecovery = components["schemas"]["ProviderRecoveryResponse"];
 export type SessionAggregate = components["schemas"]["SessionAggregateResponse"];
 export type SessionSnapshot = components["schemas"]["SessionSnapshotResponse"];
@@ -78,6 +79,7 @@ export type SessionFields = {
   branchableTurns: BranchableTurn[];
   budgetPosture: components["schemas"]["AutonomyBudgetPostureRecord"] | null;
   canFork: boolean;
+  checkpointAbsence: CheckpointAbsence | null;
   childSessions: ChildSession[];
   checkpointHistory: TaskCheckpoint[];
   currentTurn: CurrentTurn | null;

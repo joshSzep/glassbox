@@ -101,6 +101,7 @@ export function createEmptySessionFields(): SessionFields {
     branchableTurns: [],
     budgetPosture: null,
     canFork: false,
+    checkpointAbsence: null,
     childSessions: [],
     checkpointHistory: [],
     currentTurn: null,

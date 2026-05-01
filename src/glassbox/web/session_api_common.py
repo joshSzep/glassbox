@@ -134,6 +134,13 @@ class LongRunStatusResponse(BaseModel):
     progress_summary: str
 
 
+class CheckpointAbsenceResponse(BaseModel):
+    reason: str
+    severity: str
+    message: str
+    next_action: str
+
+
 class ProviderRecoveryResponse(BaseModel):
     session_id: str
     provider: str

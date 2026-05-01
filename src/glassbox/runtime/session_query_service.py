@@ -17,6 +17,7 @@ from glassbox.runtime.operator_session_queries import session_queue_counts
 from glassbox.runtime.operator_session_queries import sort_operator_rows
 from glassbox.runtime.runtime_context_derivation import derive_runtime_context_snapshot
 from glassbox.runtime.session_query_helpers import branchable_turns_from_events
+from glassbox.runtime.session_query_helpers import checkpoint_absence_from_evidence
 from glassbox.runtime.session_query_helpers import child_counts_by_parent
 from glassbox.runtime.session_query_helpers import dashboard_url_from_events
 from glassbox.runtime.session_query_helpers import effective_current_turn_id
@@ -137,12 +138,20 @@ class SessionQueryService:
         budget_posture = (
             self._get_budget_posture(session_id) if projections_available else None
         )
+        snapshot_status = session_status(record, state)
         checkpoint_history = (
             self._session_repository.list_task_checkpoints(session_id, limit=5)
             if projections_available
             else []
         )
         latest_checkpoint = checkpoint_history[0] if checkpoint_history else None
+        checkpoint_absence = checkpoint_absence_from_evidence(
+            status=snapshot_status,
+            events=session_events,
+            projection_health=projection_health,
+            budget_posture=budget_posture,
+            latest_checkpoint=latest_checkpoint,
+        )
         latest_provider_recovery = (
             self._session_repository.get_latest_provider_recovery(session_id)
             if projections_available
@@ -172,7 +181,6 @@ class SessionQueryService:
             runtime_context = self._build_degraded_runtime_context(record)
             child_sessions = []
 
-        snapshot_status = session_status(record, state)
         turn_recovery_posture = turn_recovery_posture_from_events(
             session_events,
             current_turn_id=state.current_turn_id if state is not None else None,
@@ -231,6 +239,7 @@ class SessionQueryService:
             transcript=transcript,
             turn_recovery_posture=turn_recovery_posture,
             latest_checkpoint=latest_checkpoint,
+            checkpoint_absence=checkpoint_absence,
             checkpoint_history=checkpoint_history,
             latest_provider_recovery=latest_provider_recovery,
             long_run_status=build_long_run_status(
@@ -396,10 +405,18 @@ class SessionQueryService:
             if projections_available
             else None
         )
+        status = session_status(record, state)
         latest_checkpoint = (
             self._session_repository.get_latest_task_checkpoint(record.session_id)
             if projections_available
             else None
+        )
+        checkpoint_absence = checkpoint_absence_from_evidence(
+            status=status,
+            events=session_events,
+            projection_health=projection_health,
+            budget_posture=budget_posture,
+            latest_checkpoint=latest_checkpoint,
         )
         latest_provider_recovery = (
             self._session_repository.get_latest_provider_recovery(record.session_id)
@@ -411,7 +428,6 @@ class SessionQueryService:
             if projections_available
             else []
         )
-        status = session_status(record, state)
         turn_recovery_posture = turn_recovery_posture_from_events(
             session_events,
             current_turn_id=state.current_turn_id if state is not None else None,
@@ -460,6 +476,7 @@ class SessionQueryService:
             ),
             turn_recovery_posture=turn_recovery_posture,
             latest_checkpoint=latest_checkpoint,
+            checkpoint_absence=checkpoint_absence,
             latest_provider_recovery=latest_provider_recovery,
             long_run_status=build_long_run_status(
                 record,

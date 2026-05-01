@@ -9,7 +9,10 @@ from uuid import UUID
 import pytest
 
 from glassbox.cli import main
+from glassbox.core import AutonomyBudgetUsage
+from glassbox.core import MessagePart
 from glassbox.core.events import ApprovalResolved
+from glassbox.core.events import BudgetDecisionRecorded
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import ModelToolCallRequested
 from glassbox.core.events import RecoveryDecisionRecorded
@@ -19,15 +22,20 @@ from glassbox.core.events import SessionCompleted
 from glassbox.core.events import SessionFailed
 from glassbox.core.events import TaskCheckpointCreated
 from glassbox.core.events import ToolAttemptHeartbeat
+from glassbox.core.events import TranscriptMessageImported
 from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import new_approval_id
+from glassbox.core.ids import new_message_id
 from glassbox.core.ids import new_task_checkpoint_id
 from glassbox.core.ids import new_tool_attempt_id
 from glassbox.core.ids import new_tool_call_id
 from glassbox.core.types import ApprovalDecision
+from glassbox.core.types import AutonomyMode
 from glassbox.core.types import LongRunPhase
 from glassbox.core.types import ToolAttemptRetryClassification
 from glassbox.core.types import ToolAttemptStatus
+from glassbox.runtime.autonomy import default_budget_for_autonomy_mode
+from glassbox.runtime.budgeting import evaluate_budget
 from glassbox.runtime.context_builder import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
 from glassbox.runtime.context_builder import PytestFailureDigestArtifact
 from glassbox.store.repositories import FilesystemArtifactRepository
@@ -1102,6 +1110,118 @@ def test_cli_status_prints_human_session_summary(
         "Latest message: assistant: I received your request: Inspect the repository"
         in captured.out
     )
+    assert "Checkpoint absence: not_expected_yet" in captured.out
+
+
+def test_cli_status_explains_checkpoint_absence_reasons(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    active_root = tmp_path / "active"
+    historical_root = tmp_path / "historical"
+    imported_root = tmp_path / "imported"
+    active_root.mkdir()
+    historical_root.mkdir()
+    imported_root.mkdir()
+    active_db_path, active_session_id = _run_baseline_session(active_root)
+    historical_db_path, historical_session_id = _run_baseline_session(historical_root)
+    imported_db_path, imported_session_id = _run_baseline_session(imported_root)
+
+    connection = open_database(active_db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        budget = default_budget_for_autonomy_mode(AutonomyMode.TEST_DRIVEN)
+        usage = AutonomyBudgetUsage(
+            seconds_since_checkpoint=budget.checkpoint_interval_seconds or 0,
+        )
+        repository.append_event(
+            EventEnvelope(
+                session_id=active_session_id,
+                sequence=0,
+                payload=BudgetDecisionRecorded(
+                    scope="session",
+                    mode=AutonomyMode.TEST_DRIVEN,
+                    budget=budget,
+                    usage=usage,
+                    remaining=evaluate_budget(budget, usage).remaining,
+                    decision="allowed",
+                ),
+            )
+        )
+    finally:
+        connection.close()
+
+    connection = open_database(historical_db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=historical_session_id,
+                sequence=0,
+                payload=SessionCompleted(reason="finished before checkpoints"),
+            )
+        )
+    finally:
+        connection.close()
+
+    connection = open_database(imported_db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        imported_session = repository.get_session(imported_session_id)
+        assert imported_session is not None
+        repository.append_event(
+            EventEnvelope(
+                session_id=imported_session_id,
+                sequence=0,
+                payload=TranscriptMessageImported(
+                    message_id=new_message_id(),
+                    source_session_id=active_session_id,
+                    source_message_id=new_message_id(),
+                    source_turn_id=None,
+                    role="user",
+                    parts=[MessagePart(kind="text", text="imported prompt")],
+                    source_created_at=imported_session.created_at,
+                ),
+            )
+        )
+        repository.append_event(
+            EventEnvelope(
+                session_id=imported_session_id,
+                sequence=0,
+                payload=SessionCompleted(reason="imported for inspection"),
+            )
+        )
+    finally:
+        connection.close()
+
+    _ = capsys.readouterr()
+    outputs: list[str] = []
+    for root, db_path, session_id in (
+        (active_root, active_db_path, active_session_id),
+        (historical_root, historical_db_path, historical_session_id),
+        (imported_root, imported_db_path, imported_session_id),
+    ):
+        exit_code = main(
+            [
+                "session",
+                "status",
+                str(session_id),
+                "--cwd",
+                str(root),
+                "--db-path",
+                str(db_path),
+            ]
+        )
+        captured = capsys.readouterr()
+        assert exit_code == 0
+        outputs.append(captured.out)
+
+    assert "Checkpoint absence: active_checkpoint_expected" in outputs[0]
+    assert "reached its checkpoint interval" in outputs[0]
+    assert "Checkpoint absence: historical_pre_checkpoint" in outputs[1]
+    assert "No checkpoint action is required for historical inspection." in outputs[1]
+    assert "Checkpoint absence: imported_inspection_only" in outputs[2]
+    assert "imported for inspection" in outputs[2]
 
 
 def test_cli_status_includes_latest_checkpoint(

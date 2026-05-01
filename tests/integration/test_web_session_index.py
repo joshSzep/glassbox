@@ -272,6 +272,7 @@ def test_get_sessions_summary_response_includes_expected_top_level_keys(
                 "session_failure_retryable",
                 "turn_recovery_posture",
                 "latest_checkpoint",
+                "checkpoint_absence",
                 "latest_provider_recovery",
                 "long_run_status",
                 "latest_message_summary",
@@ -280,6 +281,7 @@ def test_get_sessions_summary_response_includes_expected_top_level_keys(
             }
             assert body[0]["turn_recovery_posture"] is None
             assert body[0]["latest_checkpoint"] is None
+            assert body[0]["checkpoint_absence"]["reason"] == "not_expected_yet"
             assert body[0]["latest_provider_recovery"] is None
             assert body[0]["long_run_status"]["state"] == "healthy"
             assert body[0]["projection_health"]["state"] == "ok"
