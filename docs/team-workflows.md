@@ -181,6 +181,12 @@ objective and knowledge posture summary when present. The imported session is
 historical and inspection-only; it does not silently merge with an existing
 session or become live mutable state.
 
+When the recipient is a reviewer rather than the next local operator, combine
+the handoff export with the guidance in
+[reviewer-evidence-bundles.md](./reviewer-evidence-bundles.md) so raw
+`.glassbox` state, screenshots, provider output, and unreviewed logs stay local
+unless they have been explicitly sanitized.
+
 ## Daily Team Workflow
 
 Use this order when a session needs to move between people or terminals:

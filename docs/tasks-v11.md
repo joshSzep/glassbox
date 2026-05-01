@@ -1035,7 +1035,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1182: Add Reviewer-Oriented Evidence Bundle Guidance
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1180`
 - Goal: make local evidence easy to hand to a reviewer without committing
   `.glassbox` state
@@ -1053,6 +1053,17 @@ Each phase below corresponds to one concrete milestone.
   - package contents validation if new docs must ship
 - Done when:
   - v11 has a clear local reviewer evidence story
+- Completed:
+  - added [reviewer-evidence-bundles.md](./reviewer-evidence-bundles.md) with
+    reviewer-safe surfaces for handoff exports, eval reports, eval audits,
+    replay bundles, release summaries, live cockpit summaries, and
+    accessibility/manual evidence
+  - documented redaction and retention rules that keep raw `.glassbox` state,
+    provider output, screenshots, logs, and ad hoc bundles local unless
+    explicitly sanitized
+  - linked the reviewer evidence story from the docs hub, team handoff guide,
+    and replay/eval guide with release-candidate and ordinary code-review
+    examples
 
 ---
 

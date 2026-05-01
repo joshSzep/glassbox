@@ -125,6 +125,9 @@ v11 confidence and adoption contract is the active implementation track for the
   blocked commands, and `ask_user` semantics
 - [team-workflows.md](./team-workflows.md): plan local-first session custody,
   intervention attribution, and handoff
+- [reviewer-evidence-bundles.md](./reviewer-evidence-bundles.md): prepare
+  local handoff, eval, replay, release, and manual evidence for reviewers
+  without committing raw `.glassbox` state
 
 ## Reference
 

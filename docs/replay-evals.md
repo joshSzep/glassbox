@@ -6,6 +6,9 @@ Replay and eval answer a different question from the live session CLI.
 - replay and eval answer: does the current codebase still reproduce the behavior I care about?
 
 Use replay and eval as repository-owned behavioral contracts, not as a replacement for unit tests, integration tests, linting, or type checking.
+When a replay bundle or eval summary is meant for human review, use
+[reviewer-evidence-bundles.md](./reviewer-evidence-bundles.md) for redaction
+and retention guidance before sharing or committing it.
 
 ## Pick The Right Workflow
 
