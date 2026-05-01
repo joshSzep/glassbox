@@ -1,6 +1,6 @@
 # Glassbox Refactor Boundaries
 
-For the docs hub and operator guides, start at [README.md](./README.md). This note defines the target architectural boundaries for the v1 refactor roadmap in [refactor-v1.md](./refactor-v1.md), the post-v8 follow-on roadmap in [refactor-v8.md](./refactor-v8.md), the second-order v10 roadmap in [refactor-v10.md](./refactor-v10.md), and the planned post-v11 confidence-surface roadmap in [refactor-v11.md](./refactor-v11.md).
+For the docs hub and operator guides, start at [README.md](./README.md). This note defines the target architectural boundaries for the v1 refactor roadmap in [refactor-v1.md](./refactor-v1.md), the post-v8 follow-on roadmap in [refactor-v8.md](./refactor-v8.md), the second-order v10 roadmap in [refactor-v10.md](./refactor-v10.md), and the post-v11 confidence-surface roadmap in [refactor-v11.md](./refactor-v11.md).
 
 ## Purpose
 
@@ -31,18 +31,19 @@ decomposition decisions; it identified the modules that grew after those splits
 and moved behavior-preserving ownership into focused frontend, web, runtime,
 provider, tool-policy, SQLite schema, and core-domain strategy boundaries.
 
-The v11 confidence-surface refactor map is planned in
+The v11 confidence-surface refactor map is implemented through Phase 75 of
 [refactor-v11.md](./refactor-v11.md). It starts from the completed v11 release
 candidate and targets the recommendation, knowledge posture, branch-search
 decision support, handoff, CLI guidance, frontend evidence, recovery, and
 projection modules that accumulated richer derivation and formatting behavior
 during the confidence-and-adoption milestone.
 
-The v11 map is now implemented through Phase 73 task `GBX-R432`.
 Recommendation output, recommendation matching, release-gate summaries,
 knowledge posture, branch-search decision support, frontend knowledge/branch
-sections, session export, session import, and the service-contract split
-strategy follow the helper boundaries described below.
+sections, session export/import, service-contract strategy, CLI status and
+command-guide surfaces, interactive command handlers, frontend session-store
+helpers, recovery helpers, compaction helpers, turn hooks, and task/background
+projection handlers now follow the helper boundaries described below.
 
 ## Scope
 
@@ -1024,8 +1025,8 @@ shape:
   `frontend/stores/session-store.ts`, `tool_attempt_recovery.py`,
   `context_compaction_service.py`, `turn_event_recorder.py`,
   `turn_tool_executor.py`, `sqlite_projection_tasks.py`, and
-  `sqlite_background_jobs.py` while existing commands, imports, routes, tests,
-  and component entrypoints transition to focused helpers
+  `sqlite_projection_background_jobs.py` while existing commands, imports,
+  routes, tests, and component entrypoints transition to focused helpers
 
 These facades are acceptable only while they stay thin, reviewable, and oriented
 around stable public imports. New behavior should move into the owning domain

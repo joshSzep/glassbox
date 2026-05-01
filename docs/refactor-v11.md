@@ -224,7 +224,7 @@ Current pressure points include:
 - `src/glassbox/cli/interactive_commands.py`
 - `src/glassbox/cli/parser_sessions.py`
 - `src/glassbox/store/sqlite_projection_tasks.py`
-- `src/glassbox/store/sqlite_background_jobs.py`
+- `src/glassbox/store/sqlite_projection_background_jobs.py`
 - `src/glassbox/services/contracts.py`
 - `frontend/components/console/knowledge-autonomy-sections.tsx`
 - `frontend/components/console/branch-search-sections.tsx`
@@ -1007,7 +1007,8 @@ Each phase below corresponds to one concrete refactor milestone.
 - Depends on: `GBX-R400`
 - Goal: reduce broad projection modules such as
   [sqlite_projection_tasks.py](../src/glassbox/store/sqlite_projection_tasks.py)
-  and [sqlite_background_jobs.py](../src/glassbox/store/sqlite_background_jobs.py)
+  and
+  [sqlite_projection_background_jobs.py](../src/glassbox/store/sqlite_projection_background_jobs.py)
   by separating event-family handlers where review pressure is highest
 - Deliverables:
   - task plan, task step, task pause/resume, and task verification projection
@@ -1054,7 +1055,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R460: Update Architecture Docs For The V11 Refactor Shape
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R410`, `GBX-R411`, `GBX-R412`, `GBX-R420`, `GBX-R421`,
   `GBX-R422`, `GBX-R430`, `GBX-R431`, `GBX-R432`, `GBX-R440`, `GBX-R441`,
   `GBX-R442`, `GBX-R443`, `GBX-R450`, `GBX-R451`, `GBX-R452`, `GBX-R453`
@@ -1082,6 +1083,20 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - docs and code describe the same v11 refactor shape and remaining
     compatibility shims are either justified or tracked
+- Completed notes:
+  - [architecture.md](./architecture.md) now names the final v11
+    confidence-surface ownership map across recommendation, knowledge,
+    branch-search, handoff, CLI, frontend, recovery, compaction, turn hooks,
+    and projection helpers.
+  - [database.md](./database.md) documents task/background projection
+    coordinators over event-family SQL helpers while preserving rebuildable
+    read-model semantics.
+  - [refactor-boundaries.md](./refactor-boundaries.md) now marks the v11 map as
+    implemented through projection handler split `GBX-R453` and fixes the
+    accepted projection facade list.
+  - The docs hub now describes [refactor-v11.md](./refactor-v11.md) as the
+    post-v11 confidence-surface refactor roadmap rather than a planned future
+    roadmap.
 
 ### GBX-R461: Close Out V11 Refactor Guardrails And Focused Validation
 

@@ -363,7 +363,7 @@ but they are not the first-run operator path.
 - [tasks-v2.md](./tasks-v2.md): v2 persistent runtime ownership,
   operator-console, upgrade safety, and workflow-hardening task graph
 - [tasks-v1.md](./tasks-v1.md): v1 implementation history and roadmap context
-- [refactor-v11.md](./refactor-v11.md): planned post-v11 confidence-surface
+- [refactor-v11.md](./refactor-v11.md): post-v11 confidence-surface
   refactor roadmap for recommendation, knowledge, branch-search, handoff, CLI,
   frontend, recovery, and projection boundaries
 - [refactor-v10.md](./refactor-v10.md): completed second-order v10 refactor

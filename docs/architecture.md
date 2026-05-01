@@ -2316,11 +2316,12 @@ Guidelines:
 
 ## Module Boundaries
 
-The current package layout reflects the post-v8 ownership boundaries rather
-than a small set of large mixed-responsibility modules. The v10 refactor also
-keeps second-order facades thin by moving derivation, HTTP-local helpers,
-provider evidence/scoring, tool-policy rules, and schema DDL into focused
-neighbor modules.
+The current package layout reflects the post-v8, v10, and v11 ownership
+boundaries rather than a small set of large mixed-responsibility modules. The
+later refactors keep facades thin by moving derivation, HTTP-local helpers,
+provider evidence/scoring, confidence-surface shaping, recovery logic,
+projection handlers, tool-policy rules, and schema DDL into focused neighbor
+modules.
 
 ```text
 src/glassbox/
@@ -2386,18 +2387,22 @@ src/glassbox/
         background_job_records.py
         background_jobs.py
         background_task_continuation.py
+        branch_decision_*.py
         bus.py
         context.py
         context_builder.py
+        context_compaction*.py
         context_formatting.py
         context_models.py
         context_snapshots.py
         context_working_set.py
+        eval_recommendation_*.py
         eval_summary.py
         eval_summary_annotations.py
         eval_summary_models.py
         eval_summary_release.py
         eval_summary_suite.py
+        knowledge_posture*.py
         model_loop.py
         observability.py
         observability_*.py
@@ -2418,12 +2423,19 @@ src/glassbox/
         replay_models.py
         replay_triage.py
         session_queries.py
+        session_export*.py
+        session_import*.py
         supervisor.py
         task_queries.py
         task_query_*.py
+        tool_attempt_recovery*.py
+        turn_artifacts.py
         turn_engine.py
+        turn_event_recorder.py
         turn_preparation.py
+        turn_replay_hooks.py
         turn_resumption.py
+        turn_tool_attempt_heartbeats.py
         turn_tool_executor.py
         workspace_memory_capture.py
         workspace_memory_*.py
@@ -2537,6 +2549,46 @@ behind explicit local owners.
 - `core/events.py` and `core/models.py` remain broad, stable public import
   surfaces. Future domain modules should be introduced only for real expansion,
   with explicit event registration and compatibility re-exports.
+
+### V11 Confidence-Surface Ownership
+
+The v11 refactor preserved CLI, dashboard, API, replay, eval, and projection
+behavior while moving confidence-surface derivation into focused owners.
+
+- Eval recommendation output keeps `eval_recommendation_output.py` as the
+  stable output facade while rows, execution plans, verification recipes,
+  release surfaces, long-run surfaces, reason groups, and shared formatting
+  live in `eval_recommendation_*` helpers.
+- Eval recommendation matching keeps `eval_recommendation_engine.py` as the
+  orchestration owner and `eval_recommendation_matching.py` as the compatibility
+  facade while path matching, case expansion, profile expansion, and shared
+  matching utilities live in focused helpers.
+- Knowledge posture keeps `knowledge_posture.py` as the compatibility facade
+  while sources, cue derivation, provenance, command guidance, ranking, and
+  shared models live in `knowledge_posture_*` helpers.
+- Branch-search decision support keeps `branch_decision_support.py` as the
+  public derivation facade while evidence, file summaries, verification
+  recommendation, cost, risk, and follow-up behavior live in
+  `branch_decision_*` helpers.
+- Session export/import keeps the public `session_export.py` and
+  `session_import.py` facades stable while package assembly, manifests,
+  redaction, validation, event shaping, and handoff-note text live in focused
+  helpers.
+- CLI status, command-guide, interactive command, and session parser surfaces
+  remain command-compatible facades over status-domain formatters,
+  command-guide data/render/workflow modules, local/daemon/action/launch
+  handlers, and session parser helpers.
+- Frontend knowledge and branch-search sections keep their established
+  entrypoints while domain section modules own formatting, typed props, detail
+  rendering, actions, and evidence. `session-store.ts` remains the stable store
+  factory while stream, pagination, draft, action, shared, and type helpers own
+  behavior.
+- Recovery, compaction, turn-artifact, replay-hook, and tool-attempt heartbeat
+  behavior lives in focused runtime helpers; facades stay independent from CLI,
+  web, and frontend presentation layers.
+- Task and background-job projection facades remain rebuild coordinators over
+  event-family SQL helpers. Projection tables remain derived read models, not a
+  second source of truth.
 
 The public entry modules are intentionally thinner than their neighbors:
 
