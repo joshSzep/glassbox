@@ -382,7 +382,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1202: Define Changeset Vocabulary And Operator Language
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1200`, `GBX-1201`
 - Goal: standardize how Glassbox names changes, review posture, commit
   readiness, and adoption decisions before adding command surfaces

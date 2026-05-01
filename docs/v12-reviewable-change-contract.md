@@ -62,6 +62,35 @@ The supported local lifecycle is:
 7. Glassbox explains commit readiness and may suggest a commit message, but the
    operator performs any final git action outside the changeset evidence model.
 
+## Vocabulary
+
+Use these terms consistently in CLI help, dashboard copy, API descriptions,
+docs, tests, and release evidence.
+
+| Term | Operator meaning | Command and dashboard shape |
+| --- | --- | --- |
+| Changeset | A local evidence object for one reviewable change. It has an id, objective, source references, inventory, verification posture, risks, review briefs, and readiness state. | Use `glassbox changeset ...` for explicit creation and inspection. Do not use "changeset" as a synonym for a git commit, branch, pull request, or session. |
+| Change inventory | The structured file-level summary attached to a changeset. It describes paths, change kind, size, generated/test/docs posture, binary posture, staged/unstaged state, sensitivity, provenance, and freshness. | Use "inventory" for the artifact-backed review summary. Use "diff" only when referring to git output or raw patch data. |
+| Review brief | A reviewer-safe Markdown or JSON artifact generated from one changeset's retained evidence. | Use "generate review brief" or "refresh review brief". Do not call it a PR description unless a future task adds explicit PR integration. |
+| Verification readiness | The current evidence posture for checks that should support review. It can include planned, missing, running, passed, failed, stale, skipped, accepted-with-risk, and not-applicable states. | Use "verification readiness" for review posture. Use "verification passed" only for a specific fresh check. |
+| Commit readiness | Advisory local evidence about whether a changeset appears ready for an operator to commit. It can be ready, blocked, needs-verification, needs-review, stale-inventory, dirty-untracked-risk, failed-checks, missing-provenance, or accepted-with-risk. | Use "prepare commit" or "commit readiness". Never say Glassbox committed, staged, pushed, opened a PR, or merged unless the operator performed that separate action. |
+| Adopted candidate | A branch-search candidate that an operator explicitly chose to connect to a changeset after previewing evidence. | Use "adopt candidate into a changeset". Do not say "merge candidate" unless an actual git merge workflow exists and is separately confirmed. |
+| Residual risk | A named uncertainty, stale signal, failed/skipped check, accepted risk, missing provenance, or degraded evidence item that remains visible during review. | Put residual risks beside readiness and verification summaries, not below optimistic success copy. |
+| Reviewer-safe evidence | Redacted, portable, bounded evidence intended for another human to inspect without raw `.glassbox` state. | Review briefs and changeset exports use this phrase. They cite evidence references instead of embedding raw databases or huge logs. |
+| Local-only evidence | Evidence that is useful on the current machine but not safe or portable enough to hand to a reviewer unchanged. | Label local-only paths, artifacts, provider outputs, environment details, and browser evidence explicitly. |
+
+The v12 vocabulary builds on the v9 nouns in
+[v9-vocabulary.md](./v9-vocabulary.md). Keep these distinctions clear:
+
+- A **git branch** is repository history.
+- A **session branch** is a child Glassbox session derived from existing
+  session history.
+- A **branch-search candidate** is bounded local decision-support evidence for
+  a strategy.
+- A **changeset** is reviewable local change evidence. It may cite a git
+  branch, session branch, or branch-search candidate, but it is not any of
+  those objects.
+
 ## Supported Workflow Set
 
 v12 supports these operator workflows:
@@ -169,6 +198,33 @@ remote collaboration actions as part of the v12 changeset lifecycle.
 - Publish, deploy, package-upload, destructive cleanup, and git history
   rewriting commands remain policy-aware and cannot be treated as ordinary
   verification proof.
+
+## Command And Dashboard Copy Guidelines
+
+Use copy that describes evidence and operator choice:
+
+- Prefer "create changeset from session/task/candidate/workspace diff" over
+  "capture commit" or "prepare PR".
+- Prefer "review brief generated" over "review approved".
+- Prefer "commit readiness: needs verification" over "not committable".
+- Prefer "safe next action: inspect inventory" before recommending any command
+  that mutates files, git state, worktrees, or remotes.
+- Prefer "candidate adopted into changeset" over "candidate merged".
+- Prefer "verification evidence is stale" over "tests are invalid" unless a
+  specific failed check proves that stronger claim.
+- Prefer "local-only evidence" when paths, browser runs, provider outputs, or
+  environment details should not be treated as portable reviewer artifacts.
+
+Avoid copy that implies hidden automation or remote authority:
+
+- Do not say Glassbox committed, staged, pushed, opened a PR, merged, rebased,
+  deployed, or published unless that explicit action happened outside the
+  changeset lifecycle.
+- Do not describe readiness as proof. Readiness is an evidence-backed local
+  posture, not a guarantee that the change is correct.
+- Do not describe stale topology, missing provenance, or degraded projections
+  as facts. Name the stale or missing evidence and the safe inspection command.
+- Do not hide failed verification under a passing or optimistic summary.
 
 ## Related Documents
 
