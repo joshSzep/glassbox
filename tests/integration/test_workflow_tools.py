@@ -1,6 +1,7 @@
 """Integration tests for the git status and run tests workflow tools."""
 
 import asyncio
+import shutil
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
@@ -31,6 +32,19 @@ from glassbox.tools.workflow import RunTestsTool
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def _git_repo_template(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    path = tmp_path_factory.mktemp("workflow-git-template")
+    _init_git_repo(path)
+    return path
+
+
+@pytest.fixture
+def git_repo(tmp_path: Path, _git_repo_template: Path) -> Path:
+    shutil.copytree(_git_repo_template, tmp_path, dirs_exist_ok=True)
+    return tmp_path
 
 
 def _init_git_repo(path: Path) -> None:
@@ -67,9 +81,8 @@ def _init_git_repo(path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_git_status_returns_branch_name(tmp_path: Path) -> None:
-    _init_git_repo(tmp_path)
-    tool = GitStatusTool(tmp_path)
+def test_git_status_returns_branch_name(git_repo: Path) -> None:
+    tool = GitStatusTool(git_repo)
 
     async def scenario() -> None:
         result = await tool.execute(GitStatusArgs())
@@ -79,9 +92,8 @@ def test_git_status_returns_branch_name(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
-def test_git_status_clean_after_initial_commit(tmp_path: Path) -> None:
-    _init_git_repo(tmp_path)
-    tool = GitStatusTool(tmp_path)
+def test_git_status_clean_after_initial_commit(git_repo: Path) -> None:
+    tool = GitStatusTool(git_repo)
 
     async def scenario() -> None:
         result = await tool.execute(GitStatusArgs())
@@ -94,10 +106,9 @@ def test_git_status_clean_after_initial_commit(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
-def test_git_status_detects_untracked_files(tmp_path: Path) -> None:
-    _init_git_repo(tmp_path)
-    (tmp_path / "new_file.py").write_text("# new\n", encoding="utf-8")
-    tool = GitStatusTool(tmp_path)
+def test_git_status_detects_untracked_files(git_repo: Path) -> None:
+    (git_repo / "new_file.py").write_text("# new\n", encoding="utf-8")
+    tool = GitStatusTool(git_repo)
 
     async def scenario() -> None:
         result = await tool.execute(GitStatusArgs())
@@ -108,10 +119,9 @@ def test_git_status_detects_untracked_files(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
-def test_git_status_detects_modified_files(tmp_path: Path) -> None:
-    _init_git_repo(tmp_path)
-    (tmp_path / "README.md").write_text("changed\n", encoding="utf-8")
-    tool = GitStatusTool(tmp_path)
+def test_git_status_detects_modified_files(git_repo: Path) -> None:
+    (git_repo / "README.md").write_text("changed\n", encoding="utf-8")
+    tool = GitStatusTool(git_repo)
 
     async def scenario() -> None:
         result = await tool.execute(GitStatusArgs())
@@ -122,13 +132,12 @@ def test_git_status_detects_modified_files(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
-def test_git_status_detects_staged_files(tmp_path: Path) -> None:
-    _init_git_repo(tmp_path)
-    (tmp_path / "staged.py").write_text("x = 1\n", encoding="utf-8")
+def test_git_status_detects_staged_files(git_repo: Path) -> None:
+    (git_repo / "staged.py").write_text("x = 1\n", encoding="utf-8")
     subprocess.run(
-        ["git", "add", "staged.py"], cwd=tmp_path, check=True, capture_output=True
+        ["git", "add", "staged.py"], cwd=git_repo, check=True, capture_output=True
     )
-    tool = GitStatusTool(tmp_path)
+    tool = GitStatusTool(git_repo)
 
     async def scenario() -> None:
         result = await tool.execute(GitStatusArgs())
@@ -149,9 +158,8 @@ def test_git_status_handles_non_git_directory(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
-def test_git_status_rejects_out_of_scope_cwd(tmp_path: Path) -> None:
-    _init_git_repo(tmp_path)
-    tool = GitStatusTool(tmp_path)
+def test_git_status_rejects_out_of_scope_cwd(git_repo: Path) -> None:
+    tool = GitStatusTool(git_repo)
 
     async def scenario() -> None:
         with pytest.raises(ValueError, match="outside workspace"):
@@ -165,17 +173,16 @@ def test_git_status_rejects_out_of_scope_cwd(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_diff_summary_reports_workspace_patch_risk(tmp_path: Path) -> None:
-    _init_git_repo(tmp_path)
-    (tmp_path / "README.md").write_text("init\nchanged\n", encoding="utf-8")
-    (tmp_path / "tests").mkdir()
-    (tmp_path / "tests" / "test_new.py").write_text(
+def test_diff_summary_reports_workspace_patch_risk(git_repo: Path) -> None:
+    (git_repo / "README.md").write_text("init\nchanged\n", encoding="utf-8")
+    (git_repo / "tests").mkdir()
+    (git_repo / "tests" / "test_new.py").write_text(
         "def test_new():\n    assert True\n",
         encoding="utf-8",
     )
-    (tmp_path / "docs").mkdir()
-    (tmp_path / "docs" / "guide.md").write_text("guide\n", encoding="utf-8")
-    tool = DiffSummaryTool(tmp_path)
+    (git_repo / "docs").mkdir()
+    (git_repo / "docs" / "guide.md").write_text("guide\n", encoding="utf-8")
+    tool = DiffSummaryTool(git_repo)
 
     async def scenario() -> None:
         result = await tool.execute(DiffSummaryArgs())
@@ -190,12 +197,11 @@ def test_diff_summary_reports_workspace_patch_risk(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
-def test_diff_summary_reports_staged_changes_only(tmp_path: Path) -> None:
-    _init_git_repo(tmp_path)
-    (tmp_path / "README.md").write_text("staged\n", encoding="utf-8")
-    (tmp_path / "later.md").write_text("unstaged\n", encoding="utf-8")
-    subprocess.run(["git", "add", "README.md"], cwd=tmp_path, check=True)
-    tool = DiffSummaryTool(tmp_path)
+def test_diff_summary_reports_staged_changes_only(git_repo: Path) -> None:
+    (git_repo / "README.md").write_text("staged\n", encoding="utf-8")
+    (git_repo / "later.md").write_text("unstaged\n", encoding="utf-8")
+    subprocess.run(["git", "add", "README.md"], cwd=git_repo, check=True)
+    tool = DiffSummaryTool(git_repo)
 
     async def scenario() -> None:
         result = await tool.execute(DiffSummaryArgs(scope=DiffSummaryScope.STAGED))
@@ -206,11 +212,10 @@ def test_diff_summary_reports_staged_changes_only(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
-def test_diff_summary_applies_path_filters(tmp_path: Path) -> None:
-    _init_git_repo(tmp_path)
-    (tmp_path / "README.md").write_text("changed\n", encoding="utf-8")
-    (tmp_path / "src.py").write_text("print('new')\n", encoding="utf-8")
-    tool = DiffSummaryTool(tmp_path)
+def test_diff_summary_applies_path_filters(git_repo: Path) -> None:
+    (git_repo / "README.md").write_text("changed\n", encoding="utf-8")
+    (git_repo / "src.py").write_text("print('new')\n", encoding="utf-8")
+    tool = DiffSummaryTool(git_repo)
 
     async def scenario() -> None:
         result = await tool.execute(DiffSummaryArgs(paths=["README.md"]))
@@ -220,9 +225,8 @@ def test_diff_summary_applies_path_filters(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
-def test_diff_summary_rejects_out_of_scope_path_filter(tmp_path: Path) -> None:
-    _init_git_repo(tmp_path)
-    tool = DiffSummaryTool(tmp_path)
+def test_diff_summary_rejects_out_of_scope_path_filter(git_repo: Path) -> None:
+    tool = DiffSummaryTool(git_repo)
 
     async def scenario() -> None:
         with pytest.raises(ValueError, match="outside workspace"):
@@ -232,21 +236,20 @@ def test_diff_summary_rejects_out_of_scope_path_filter(tmp_path: Path) -> None:
 
 
 def test_diff_summary_reports_binary_and_policy_sensitive_paths(
-    tmp_path: Path,
+    git_repo: Path,
 ) -> None:
-    _init_git_repo(tmp_path)
-    (tmp_path / "asset.bin").write_bytes(b"\x00\x01changed")
-    (tmp_path / "glassbox-policy.json").write_text("{}", encoding="utf-8")
-    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
+    (git_repo / "asset.bin").write_bytes(b"\x00\x01changed")
+    (git_repo / "glassbox-policy.json").write_text("{}", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=git_repo, check=True, capture_output=True)
     subprocess.run(
         ["git", "commit", "-m", "binary"],
-        cwd=tmp_path,
+        cwd=git_repo,
         check=True,
         capture_output=True,
     )
-    (tmp_path / "asset.bin").write_bytes(b"\x00\x02changed")
-    (tmp_path / "glassbox-policy.json").write_text('{"rules":[]}\n', encoding="utf-8")
-    tool = DiffSummaryTool(tmp_path)
+    (git_repo / "asset.bin").write_bytes(b"\x00\x02changed")
+    (git_repo / "glassbox-policy.json").write_text('{"rules":[]}\n', encoding="utf-8")
+    tool = DiffSummaryTool(git_repo)
 
     async def scenario() -> None:
         result = await tool.execute(DiffSummaryArgs())
@@ -258,14 +261,13 @@ def test_diff_summary_reports_binary_and_policy_sensitive_paths(
 
 
 def test_diff_summary_prepares_artifact_payload_for_large_summary(
-    tmp_path: Path,
+    git_repo: Path,
 ) -> None:
-    _init_git_repo(tmp_path)
     for index in range(4):
-        (tmp_path / f"file_{index}.py").write_text(
+        (git_repo / f"file_{index}.py").write_text(
             f"value = {index}\n", encoding="utf-8"
         )
-    tool = DiffSummaryTool(tmp_path)
+    tool = DiffSummaryTool(git_repo)
 
     async def scenario() -> None:
         result = await tool.execute(DiffSummaryArgs(inline_file_limit=2))

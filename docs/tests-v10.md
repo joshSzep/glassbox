@@ -635,7 +635,7 @@ Validation evidence:
 
 ### GBX-T940: Reduce Repeated Git Repository Setup Cost
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-T900`
 - Goal: make git workflow tests cheaper without losing real git behavior
 - Deliverables:
@@ -652,6 +652,26 @@ Validation evidence:
   - `uv run pytest tests/unit/test_verification_drift.py -q`
 - Done when:
   - git workflow setup is less repetitive and remains easy to inspect
+
+Validation evidence:
+
+- Added a session-scoped initialized git repository template and a function
+  scoped `git_repo` copy fixture in `test_workflow_tools.py`, so each test keeps
+  isolated workspace state while avoiding repeated `git init`, config, add, and
+  initial commit setup.
+- Kept tests that validate staged changes and additional commits on real git
+  commands inside the copied per-test repository.
+- Before: `uv run pytest tests/integration/test_workflow_tools.py --durations=40 --durations-min=0.01 -q`:
+  30 passed in 3.03s
+- After: `uv run pytest tests/integration/test_workflow_tools.py --durations=40 --durations-min=0.01 -q`:
+  30 passed in 2.59s
+- `uv run pytest tests/unit/test_verification_drift.py -q`:
+  4 passed in 0.53s
+- `uv run ruff format --check tests/integration/test_workflow_tools.py`:
+  1 file already formatted
+- `uv run ruff check tests/integration/test_workflow_tools.py`:
+  all checks passed
+- `uv run ty check`: all checks passed
 
 ### GBX-T941: Cache OpenAPI Schema Construction Where Tests Only Inspect Shape
 
