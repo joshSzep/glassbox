@@ -165,6 +165,12 @@ from glassbox.core.models import AutonomySelection
 from glassbox.core.models import BackgroundJobRecord
 from glassbox.core.models import BranchCandidateRecord
 from glassbox.core.models import BranchSearchRecord
+from glassbox.core.models import ChangesetInventoryRecord
+from glassbox.core.models import ChangesetReadinessRecord
+from glassbox.core.models import ChangesetRecord
+from glassbox.core.models import ChangesetReviewBriefRecord
+from glassbox.core.models import ChangesetSourceRecord
+from glassbox.core.models import ChangesetVerificationPostureRecord
 from glassbox.core.models import CheckpointAbsenceRecord
 from glassbox.core.models import ContextCompactionRecord
 from glassbox.core.models import ForkedSession
@@ -316,13 +322,19 @@ __all__ = [
     "ChangesetCreated",
     "ChangesetId",
     "ChangesetInventoryFreshness",
+    "ChangesetInventoryRecord",
     "ChangesetInventoryRefreshed",
     "ChangesetReadinessDecided",
     "ChangesetReadinessKind",
+    "ChangesetReadinessRecord",
     "ChangesetReadinessState",
+    "ChangesetRecord",
+    "ChangesetReviewBriefRecord",
     "ChangesetReviewBriefCreated",
     "ChangesetSourceAttached",
     "ChangesetSourceKind",
+    "ChangesetSourceRecord",
+    "ChangesetVerificationPostureRecord",
     "ChangesetVerificationPostureUpdated",
     "ChangesetVerificationState",
     "CheckpointAbsenceReason",

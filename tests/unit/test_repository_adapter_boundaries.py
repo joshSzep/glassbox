@@ -17,6 +17,7 @@ DOMAIN_EXPORTS: Mapping[str, set[str]] = {
     "glassbox.store.repository_workspace_memory": {"_SQLiteWorkspaceMemoryMethods"},
     "glassbox.store.repository_tasks": {"_SQLiteTaskMethods"},
     "glassbox.store.repository_branch_search": {"_SQLiteBranchSearchMethods"},
+    "glassbox.store.repository_changesets": {"_SQLiteChangesetMethods"},
     "glassbox.store.repository_artifacts": {"FilesystemArtifactRepository"},
 }
 
@@ -79,6 +80,10 @@ def test_sqlite_session_repository_inherits_domain_method_families() -> None:
         loaded_modules[
             "glassbox.store.repository_branch_search"
         ]._SQLiteBranchSearchMethods,
+    )
+    assert issubclass(
+        SQLiteSessionRepository,
+        loaded_modules["glassbox.store.repository_changesets"]._SQLiteChangesetMethods,
     )
 
 

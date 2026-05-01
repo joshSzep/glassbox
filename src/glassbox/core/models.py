@@ -15,6 +15,7 @@ from glassbox.core.ids import ArtifactId
 from glassbox.core.ids import BackgroundJobId
 from glassbox.core.ids import BranchCandidateId
 from glassbox.core.ids import BranchSearchId
+from glassbox.core.ids import ChangesetId
 from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import QuestionId
@@ -38,6 +39,11 @@ from glassbox.core.types import BackgroundJobState
 from glassbox.core.types import BranchCandidateStatus
 from glassbox.core.types import BranchCandidateVerificationStatus
 from glassbox.core.types import BranchSearchStatus
+from glassbox.core.types import ChangesetInventoryFreshness
+from glassbox.core.types import ChangesetReadinessKind
+from glassbox.core.types import ChangesetReadinessState
+from glassbox.core.types import ChangesetSourceKind
+from glassbox.core.types import ChangesetVerificationState
 from glassbox.core.types import CheckpointAbsenceReason
 from glassbox.core.types import ContextCompactionFreshness
 from glassbox.core.types import ContextCompactionScope
@@ -986,6 +992,140 @@ class BranchSearchRecord(BaseModel):
     abandoned_reason: str | None = Field(default=None, max_length=2000)
     candidate_count: int = Field(default=0, ge=0)
     created_at: datetime
+    updated_at: datetime
+    last_sequence: int = Field(ge=0)
+
+
+class ChangesetRecord(BaseModel):
+    """Projected state for one reviewable local changeset."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: SessionId
+    changeset_id: ChangesetId
+    objective: str = Field(min_length=1, max_length=4000)
+    summary: str | None = Field(default=None, max_length=4000)
+    status: str = Field(min_length=1, max_length=100)
+    created_by: str = Field(min_length=1, max_length=200)
+    archived_by: str | None = Field(default=None, max_length=200)
+    archived_reason: str | None = Field(default=None, max_length=2000)
+    replacement_changeset_id: ChangesetId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    branch_search_id: BranchSearchId | None = None
+    branch_candidate_id: BranchCandidateId | None = None
+    latest_inventory_artifact_id: ArtifactId | None = None
+    latest_verification_id: TaskVerificationId | None = None
+    latest_review_brief_artifact_id: ArtifactId | None = None
+    created_at: datetime
+    updated_at: datetime
+    last_sequence: int = Field(ge=0)
+
+
+class ChangesetSourceRecord(BaseModel):
+    """Projected provenance for one changeset source attachment."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: SessionId
+    changeset_id: ChangesetId
+    source_kind: ChangesetSourceKind
+    source_session_id: SessionId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    branch_search_id: BranchSearchId | None = None
+    branch_candidate_id: BranchCandidateId | None = None
+    verification_id: TaskVerificationId | None = None
+    artifact_id: ArtifactId | None = None
+    reason: str = Field(min_length=1, max_length=2000)
+    limitation: str | None = Field(default=None, max_length=2000)
+    created_at: datetime
+    last_sequence: int = Field(ge=0)
+
+
+class ChangesetInventoryRecord(BaseModel):
+    """Projected latest inventory summary for one changeset."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: SessionId
+    changeset_id: ChangesetId
+    artifact_id: ArtifactId
+    artifact_schema_version: int = Field(ge=1)
+    freshness: ChangesetInventoryFreshness
+    changed_path_count: int = Field(ge=0)
+    source_digest: str | None = Field(default=None, max_length=256)
+    previous_artifact_id: ArtifactId | None = None
+    refreshed_by: str = Field(min_length=1, max_length=200)
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    branch_search_id: BranchSearchId | None = None
+    branch_candidate_id: BranchCandidateId | None = None
+    updated_at: datetime
+    last_sequence: int = Field(ge=0)
+
+
+class ChangesetVerificationPostureRecord(BaseModel):
+    """Projected latest verification posture for one changeset."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: SessionId
+    changeset_id: ChangesetId
+    state: ChangesetVerificationState
+    summary: str = Field(min_length=1, max_length=4000)
+    verification_id: TaskVerificationId | None = None
+    artifact_id: ArtifactId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    stale_count: int = Field(ge=0)
+    missing_count: int = Field(ge=0)
+    failed_count: int = Field(ge=0)
+    accepted_risk_count: int = Field(ge=0)
+    updated_at: datetime
+    last_sequence: int = Field(ge=0)
+
+
+class ChangesetReviewBriefRecord(BaseModel):
+    """Projected reference to one generated changeset review brief."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: SessionId
+    changeset_id: ChangesetId
+    artifact_id: ArtifactId
+    artifact_schema_version: int = Field(ge=1)
+    render_targets: list[str] = Field(min_length=1, max_length=2)
+    inventory_artifact_id: ArtifactId | None = None
+    verification_id: TaskVerificationId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    created_by: str = Field(min_length=1, max_length=200)
+    redacted: bool
+    local_only: bool
+    created_at: datetime
+    last_sequence: int = Field(ge=0)
+
+
+class ChangesetReadinessRecord(BaseModel):
+    """Projected advisory readiness decision for one changeset."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: SessionId
+    changeset_id: ChangesetId
+    readiness_kind: ChangesetReadinessKind
+    state: ChangesetReadinessState
+    reason: str = Field(min_length=1, max_length=4000)
+    blockers: list[str] = Field(default_factory=list, max_length=20)
+    safe_next_actions: list[str] = Field(default_factory=list, max_length=20)
+    inventory_artifact_id: ArtifactId | None = None
+    review_brief_artifact_id: ArtifactId | None = None
+    verification_id: TaskVerificationId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    accepted_risk_count: int = Field(ge=0)
+    decided_by: str = Field(min_length=1, max_length=200)
     updated_at: datetime
     last_sequence: int = Field(ge=0)
 

@@ -40,6 +40,15 @@ DOMAIN_EXPORTS: Mapping[str, set[str]] = {
         "list_branch_candidates",
         "list_branch_searches",
     },
+    "glassbox.store.sqlite_query_changesets": {
+        "get_changeset",
+        "get_changeset_inventory",
+        "get_changeset_verification_posture",
+        "list_changeset_readiness",
+        "list_changeset_review_briefs",
+        "list_changeset_sources",
+        "list_changesets",
+    },
 }
 
 
@@ -74,3 +83,4 @@ def test_sqlite_query_domains_are_split_by_projection_family() -> None:
     assert loaded_modules["glassbox.store.sqlite_query_compactions"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_tasks"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_branch_search"].__doc__
+    assert loaded_modules["glassbox.store.sqlite_query_changesets"].__doc__

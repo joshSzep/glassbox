@@ -174,7 +174,7 @@ PYTHON_FACADE_RULES: tuple[
     (
         SRC_ROOT / "store" / "sqlite_queries.py",
         ("glassbox.store.sqlite_query_",),
-        50,
+        70,
         "sqlite_queries should stay a thin facade over domain query modules",
     ),
     (

@@ -157,6 +157,28 @@ class FakeSessionRepository:
             projected_last_sequence=0,
         )
 
+    def list_changesets(self, *, session_id=None, include_archived=False, limit=None):
+        del session_id, include_archived, limit
+        return []
+
+    def get_changeset(self, changeset_id):
+        return None
+
+    def list_changeset_sources(self, session_id, changeset_id):
+        return []
+
+    def get_changeset_inventory(self, session_id, changeset_id):
+        return None
+
+    def get_changeset_verification_posture(self, session_id, changeset_id):
+        return None
+
+    def list_changeset_review_briefs(self, session_id, changeset_id):
+        return []
+
+    def list_changeset_readiness(self, session_id, changeset_id):
+        return []
+
     def list_tool_calls(self, session_id, *, status=None, limit=None, offset=0):
         del status, limit, offset
         return []

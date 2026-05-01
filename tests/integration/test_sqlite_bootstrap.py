@@ -60,6 +60,7 @@ def _expected_migration_versions() -> list[int]:
         16,
         17,
         18,
+        19,
         SCHEMA_VERSION,
     ]
 
@@ -83,6 +84,7 @@ def _expected_migration_names() -> list[str]:
         "add tool attempt projection table",
         "add task verification ledger projection table",
         "add provider recovery projection table",
+        "add changeset projection tables",
     ]
 
 
@@ -132,6 +134,12 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         "task_checkpoints",
         "context_compactions",
         "tool_attempts",
+        "changesets",
+        "changeset_sources",
+        "changeset_inventories",
+        "changeset_verification_posture",
+        "changeset_review_briefs",
+        "changeset_readiness",
     }.issubset(tables)
     assert {
         "idx_sessions_status_updated",
@@ -180,6 +188,10 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         "idx_tool_attempts_session_status",
         "idx_tool_attempts_turn",
         "idx_tool_attempts_tool_call",
+        "idx_changesets_session_updated",
+        "idx_changesets_task",
+        "idx_changeset_sources_changeset",
+        "idx_changeset_review_briefs_changeset",
     }.issubset(indexes)
     assert [row[0] for row in migration_rows] == _expected_migration_versions()
     assert [row[1] for row in migration_rows] == _expected_migration_names()
@@ -519,5 +531,6 @@ def test_migrations_are_ordered_to_current_schema_version() -> None:
         16,
         17,
         18,
+        19,
         SCHEMA_VERSION,
     ]

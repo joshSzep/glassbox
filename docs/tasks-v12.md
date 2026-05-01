@@ -436,7 +436,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1211: Add Changeset Projection Schema And Rebuild Semantics
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1210`
 - Goal: make changesets queryable while preserving canonical events as the
   source of truth

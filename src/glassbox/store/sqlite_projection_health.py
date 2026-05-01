@@ -20,6 +20,12 @@ _PROJECTION_TABLES = (
     "workspace_memory",
     "long_run_events",
     "task_checkpoints",
+    "changesets",
+    "changeset_sources",
+    "changeset_inventories",
+    "changeset_verification_posture",
+    "changeset_review_briefs",
+    "changeset_readiness",
 )
 
 

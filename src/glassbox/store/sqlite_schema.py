@@ -14,6 +14,7 @@ from glassbox.store.sqlite_schema_background_jobs import (
 from glassbox.store.sqlite_schema_branch_search import (
     ensure_branch_search_projection_schema,
 )
+from glassbox.store.sqlite_schema_changesets import ensure_changeset_projection_schema
 from glassbox.store.sqlite_schema_checkpoints import (
     ensure_task_checkpoint_projection_schema,
 )
@@ -41,7 +42,7 @@ from glassbox.store.sqlite_schema_workspace_memory import (
     ensure_workspace_memory_projection_schema,
 )
 
-SCHEMA_VERSION = 19
+SCHEMA_VERSION = 20
 BASELINE_SCHEMA_VERSION = 3
 BASELINE_MIGRATION_NAME = "baseline event store and projections"
 
@@ -135,6 +136,11 @@ MIGRATIONS = (
         version=19,
         name="add provider recovery projection table",
         apply=ensure_provider_recovery_projection_schema,
+    ),
+    SchemaMigration(
+        version=20,
+        name="add changeset projection tables",
+        apply=ensure_changeset_projection_schema,
     ),
 )
 

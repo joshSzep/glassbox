@@ -12,6 +12,7 @@ from glassbox.store.sqlite_projection_branch_search import (
     _apply_branch_search_projection,
 )
 from glassbox.store.sqlite_projection_budgets import _apply_budget_projection
+from glassbox.store.sqlite_projection_changesets import _apply_changeset_projection
 from glassbox.store.sqlite_projection_checkpoints import (
     _apply_task_checkpoint_projection,
 )
@@ -63,6 +64,12 @@ _PROJECTION_TABLES = (
     "long_run_events",
     "task_checkpoints",
     "context_compactions",
+    "changeset_readiness",
+    "changeset_review_briefs",
+    "changeset_verification_posture",
+    "changeset_inventories",
+    "changeset_sources",
+    "changesets",
 )
 
 
@@ -87,6 +94,7 @@ def _apply_projection_event(
     _apply_long_run_projection(connection, event)
     _apply_task_checkpoint_projection(connection, event)
     _apply_context_compaction_projection(connection, event)
+    _apply_changeset_projection(connection, event)
 
 
 def _clear_session_projections(
