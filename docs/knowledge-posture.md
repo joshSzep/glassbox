@@ -34,6 +34,16 @@ The aggregate posture ranks `degraded` ahead of `stale`, `invalidated`,
 `missing`, `advisory`, and `historical-only`. This makes active recovery gaps
 more visible than normal absence or optional provider confidence.
 
+## Implementation Boundary
+
+`glassbox.runtime.knowledge_posture` remains the stable facade for API,
+dashboard, CLI, observability, and handoff callers. Source reads live in
+`knowledge_posture_sources.py`; cue shaping lives in
+`knowledge_posture_cues.py`; bounded provenance, safe inspection commands,
+aggregate ranking, and public posture models live in focused
+`knowledge_posture_*` helpers. These helpers still derive from existing events,
+projections, and retained artifacts only.
+
 ## Operator Use
 
 Use knowledge posture as an inspection summary before continuation, handoff, or

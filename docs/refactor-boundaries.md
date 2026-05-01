@@ -382,6 +382,13 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   aggregate ranking, provenance references, and safe inspection command
   guidance should be independent helpers; no new durable knowledge store is
   introduced by refactor-only work.
+- The v11 knowledge-posture split now keeps
+  `runtime/knowledge_posture.py` as the compatibility facade while
+  `knowledge_posture_sources.py`, `knowledge_posture_cues.py`,
+  `knowledge_posture_provenance.py`, `knowledge_posture_guidance.py`,
+  `knowledge_posture_ranking.py`, and `knowledge_posture_models.py` own source
+  collection, cue derivation, bounded provenance, safe inspection commands,
+  aggregate freshness precedence, and API models.
 - Branch decision support should keep branch search non-mutating. Candidate
   retained evidence extraction, changed-file and missing-diff posture,
   verification recommendation delegation, cost estimates, risk/accepted-risk

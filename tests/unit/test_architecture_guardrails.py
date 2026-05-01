@@ -1164,10 +1164,58 @@ V11_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
     (
         SRC_ROOT / "runtime" / "knowledge_posture.py",
-        640,
+        140,
+        (
+            "v11 knowledge_posture should stay a thin compatibility facade "
+            "over posture source, cue, ranking, provenance, and guidance helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "knowledge_posture_sources.py",
+        170,
+        (
+            "v11 knowledge posture source collection should stay owned by "
+            "knowledge_posture_sources.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "knowledge_posture_cues.py",
+        320,
         (
             "v11 knowledge posture should move new source collection, ranking, "
             "provenance, and command guidance into focused helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "knowledge_posture_provenance.py",
+        160,
+        (
+            "v11 knowledge posture provenance references should stay owned by "
+            "knowledge_posture_provenance.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "knowledge_posture_guidance.py",
+        90,
+        (
+            "v11 knowledge posture command guidance should stay owned by "
+            "knowledge_posture_guidance.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "knowledge_posture_ranking.py",
+        40,
+        (
+            "v11 knowledge posture aggregate ranking should stay owned by "
+            "knowledge_posture_ranking.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "knowledge_posture_models.py",
+        100,
+        (
+            "v11 knowledge posture API models should stay owned by "
+            "knowledge_posture_models.py"
         ),
     ),
     (
@@ -1334,6 +1382,46 @@ V11_PYTHON_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
         (
             "v11 knowledge posture helpers must derive evidence without CLI or "
             "web presentation imports"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "knowledge_posture_sources.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 knowledge posture source collectors must stay independent "
+            "from CLI and web presentation imports"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "knowledge_posture_cues.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 knowledge posture cue helpers must stay independent from "
+            "CLI and web presentation imports"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "knowledge_posture_provenance.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 knowledge posture provenance helpers must stay independent "
+            "from CLI and web presentation imports"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "knowledge_posture_guidance.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 knowledge posture command guidance must stay independent "
+            "from CLI and web presentation imports"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "knowledge_posture_ranking.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 knowledge posture ranking must stay independent from CLI "
+            "and web presentation imports"
         ),
     ),
     (

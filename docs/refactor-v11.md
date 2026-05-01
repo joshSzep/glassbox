@@ -417,7 +417,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R420: Split Knowledge Posture Into Cue Collection, Ranking, Provenance, And Guidance Modules
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R400`
 - Goal: reduce
   [knowledge_posture.py](../src/glassbox/runtime/knowledge_posture.py) by
@@ -443,6 +443,17 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - knowledge posture remains behavior-compatible while each cue family and
     aggregate decision is independently testable
+- Completed notes:
+  - `knowledge_posture.py` is now a compatibility facade over focused source,
+    cue, provenance, guidance, ranking, and model helpers.
+  - Guardrails now cap the facade and new helper modules so future posture
+    behavior lands in the intended owner.
+  - Validation: `uv run pytest tests/unit/test_knowledge_posture.py`,
+    `uv run pytest tests/unit/test_architecture_guardrails.py`,
+    `uv run pytest tests/integration/test_observability_status.py`,
+    `uv run ruff format --check src/glassbox/runtime/knowledge_posture*.py tests/unit/test_architecture_guardrails.py tests/unit/test_knowledge_posture.py`,
+    `uv run ruff check src/glassbox/runtime/knowledge_posture*.py tests/unit/test_architecture_guardrails.py tests/unit/test_knowledge_posture.py`,
+    and `uv run ty check src/glassbox/runtime/knowledge_posture.py src/glassbox/runtime/knowledge_posture_sources.py src/glassbox/runtime/knowledge_posture_cues.py src/glassbox/runtime/knowledge_posture_provenance.py src/glassbox/runtime/knowledge_posture_guidance.py src/glassbox/runtime/knowledge_posture_ranking.py src/glassbox/runtime/knowledge_posture_models.py`.
 
 ### GBX-R421: Split Branch Decision Support Into Evidence, Verification, Cost, Risk, And Follow-Up Helpers
 
