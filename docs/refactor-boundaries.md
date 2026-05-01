@@ -210,6 +210,12 @@ packaging concerns now sit next to one another:
   `frontend/components/console/branch-search-sections.tsx` now render dense
   v11 evidence and should split into summary, detail, evidence, formatting, and
   action-control modules while preserving their entrypoint exports.
+- The v11 frontend confidence split now keeps
+  `knowledge-autonomy-sections.tsx` and `branch-search-sections.tsx` as stable
+  export facades while section families under `knowledge-autonomy/` and
+  `branch-search/` own memory/repository details, candidate lists, decision
+  cards, evidence sections, action controls, shared state rows, and pure
+  formatting helpers.
 - `frontend/stores/session-store.ts` mixes stream lifecycle, detail pagination,
   drafts, and action mutations behind one store factory.
 - `src/glassbox/runtime/tool_attempt_recovery.py`,

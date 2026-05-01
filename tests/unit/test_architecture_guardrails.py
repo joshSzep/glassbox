@@ -1389,19 +1389,68 @@ V11_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
 V11_FRONTEND_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     (
         FRONTEND_ROOT / "components" / "console" / "knowledge-autonomy-sections.tsx",
-        700,
+        60,
         (
-            "v11 knowledge sections should move new summary, detail, "
-            "provenance, action, and formatting behavior into owned modules"
+            "v11 knowledge-autonomy-sections.tsx should stay a thin "
+            "compatibility facade over knowledge section modules"
         ),
     ),
     (
+        FRONTEND_ROOT / "components" / "console" / "knowledge-autonomy" / "memory.tsx",
+        340,
+        "v11 knowledge memory sections should stay owned by memory.tsx",
+    ),
+    (
+        FRONTEND_ROOT
+        / "components"
+        / "console"
+        / "knowledge-autonomy"
+        / "repository.tsx",
+        260,
+        "v11 knowledge repository-index sections should stay owned by repository.tsx",
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "knowledge-autonomy" / "format.ts",
+        100,
+        "v11 knowledge section formatting should stay owned by format.ts",
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "knowledge-autonomy" / "shared.tsx",
+        80,
+        "v11 knowledge section shared controls should stay owned by shared.tsx",
+    ),
+    (
         FRONTEND_ROOT / "components" / "console" / "branch-search-sections.tsx",
-        560,
+        60,
         (
-            "v11 branch-search sections should move new candidate, decision, "
-            "evidence, verification, action, and formatting behavior into owned modules"
+            "v11 branch-search-sections.tsx should stay a thin compatibility "
+            "facade over branch-search section modules"
         ),
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "branch-search" / "list.tsx",
+        100,
+        "v11 branch-search list sections should stay owned by list.tsx",
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "branch-search" / "detail.tsx",
+        240,
+        "v11 branch-search candidate decision sections should stay owned by detail.tsx",
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "branch-search" / "evidence.tsx",
+        120,
+        "v11 branch-search evidence sections should stay owned by evidence.tsx",
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "branch-search" / "actions.tsx",
+        100,
+        "v11 branch-search action controls should stay owned by actions.tsx",
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "branch-search" / "format.ts",
+        90,
+        "v11 branch-search formatting should stay owned by format.ts",
     ),
     (
         FRONTEND_ROOT / "stores" / "session-store.ts",
@@ -1615,11 +1664,27 @@ V11_FRONTEND_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
         ),
     ),
     (
+        FRONTEND_ROOT / "components" / "console" / "knowledge-autonomy",
+        ("@/api/client", "@/api/sse", "next/", "src/glassbox"),
+        (
+            "v11 knowledge section helpers should consume typed props and "
+            "avoid transport, Next server, or backend imports"
+        ),
+    ),
+    (
         FRONTEND_ROOT / "components" / "console" / "branch-search-sections.tsx",
         ("@/api/client", "@/api/sse", "next/", "src/glassbox"),
         (
             "v11 branch-search section rendering should consume typed props "
             "and avoid transport, store, Next server, or backend imports"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "branch-search",
+        ("@/api/client", "@/api/sse", "next/", "src/glassbox"),
+        (
+            "v11 branch-search section helpers should consume typed props and "
+            "avoid transport, Next server, or backend imports"
         ),
     ),
     (

@@ -501,7 +501,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R422: Split Frontend Knowledge And Branch Sections Into Summary, Detail, Action, And Evidence Modules
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R420`, `GBX-R421`
 - Goal: reduce frontend v11 evidence sections by moving dense knowledge and
   branch-search rendering into focused section families
@@ -526,6 +526,16 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - frontend knowledge and branch-search surfaces are thin over typed backend
     responses and pure frontend formatting helpers
+- Completed notes:
+  - `knowledge-autonomy-sections.tsx` now re-exports focused memory,
+    repository, shared-control, and formatting helpers from
+    `frontend/components/console/knowledge-autonomy/`.
+  - `branch-search-sections.tsx` now re-exports focused list, detail, evidence,
+    action-control, shared, and formatting helpers from
+    `frontend/components/console/branch-search/`.
+  - Validation: `pnpm --dir frontend test -- knowledge-autonomy-console.test.tsx`,
+    `pnpm --dir frontend test -- branch-search-console.test.tsx`,
+    `pnpm --dir frontend typecheck`, and `pnpm --dir frontend lint`.
 
 ---
 
