@@ -492,7 +492,7 @@ Validation evidence:
 
 ### GBX-T921: Add Shared Daemon Smoke Fixture With Strong Cleanup
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-T920`
 - Goal: reduce duplicated daemon lifecycle setup where multiple assertions can
   safely share one process within a test
@@ -506,11 +506,40 @@ Validation evidence:
   - keep the fixture function-scoped unless a broader scope proves safe under
     serial and parallel execution
   - avoid hiding test setup so much that process ownership is unclear
+  - share a daemon only when related assertions can safely exercise the same
+    workspace, database, and session state; keep separate daemon lifecycles for
+    startup failure, port conflict, stale-owner recovery, background-worker
+    smoke, and transcript-mutating attach flows where isolation is part of the
+    evidence
 - Tests and validation included in task:
   - `uv run pytest tests/integration/test_daemon_runtime.py -q`
   - rerun the daemon slice twice to look for cleanup leaks
 - Done when:
   - daemon lifecycle setup is explicit, reliable, and less repetitive
+
+Validation evidence:
+
+- Added a function-scoped `DaemonStarter` fixture that starts a real daemon with
+  an explicit workspace, optional database path, and reserved port, then always
+  stops any started daemon in fixture teardown.
+- Converted real-daemon smoke tests to use the shared starter where startup
+  itself is not the subject of the assertion.
+- Combined live attach observation, idle cancel routing, and historical-session
+  rejection into one real-daemon routing guard test, preserving the behavior
+  checks while reducing daemon lifecycles.
+- `uv run pytest tests/integration/test_daemon_runtime.py -q`:
+  19 passed in 12.17s
+- `uv run pytest -m daemon --durations=40 --durations-min=0.01 -q`:
+  7 passed, 1116 deselected in 11.48s
+- `uv run pytest -m daemon --durations=40 --durations-min=0.01 -q`:
+  7 passed, 1116 deselected in 11.39s
+- `uv run ruff format --check tests/integration/test_daemon_runtime.py`:
+  1 file already formatted
+- `uv run ruff check tests/integration/test_daemon_runtime.py`:
+  all checks passed
+- `uv run ty check`: all checks passed
+- `uv run pytest --durations=100 --durations-min=0.05 -q`:
+  1123 passed in 47.78s
 
 ---
 

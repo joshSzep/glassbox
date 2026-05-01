@@ -4,6 +4,8 @@ import json
 import os
 import socket
 import time
+from collections.abc import Iterator
+from dataclasses import dataclass
 from datetime import UTC
 from datetime import datetime
 from pathlib import Path
@@ -26,6 +28,49 @@ from glassbox.store.sqlite import open_database
 from tests.integration.cli_test_support import _run_baseline_session
 
 _DAEMON_TEST_POLL_INTERVAL_SECONDS = 0.005
+
+
+@dataclass(frozen=True)
+class StartedDaemon:
+    workspace_root: Path
+    db_path: Path | None
+    port: int
+
+
+class DaemonStarter:
+    def __init__(self) -> None:
+        self._started: list[StartedDaemon] = []
+
+    def start(
+        self,
+        workspace_root: Path,
+        *,
+        db_path: Path | None = None,
+        port: int | None = None,
+    ) -> StartedDaemon:
+        daemon = StartedDaemon(
+            workspace_root=workspace_root,
+            db_path=db_path,
+            port=port if port is not None else _reserve_port(),
+        )
+        command = [
+            "daemon",
+            "start",
+            "--cwd",
+            str(daemon.workspace_root),
+            "--port",
+            str(daemon.port),
+        ]
+        if daemon.db_path is not None:
+            command.extend(["--db-path", str(daemon.db_path)])
+
+        assert main(command) == 0
+        self._started.append(daemon)
+        return daemon
+
+    def stop_all(self) -> None:
+        for daemon in reversed(self._started):
+            _stop_daemon_if_running(daemon.workspace_root)
 
 
 def _reserve_port() -> int:
@@ -79,6 +124,15 @@ def _tight_daemon_polling(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
+@pytest.fixture
+def daemon_starter() -> Iterator[DaemonStarter]:
+    starter = DaemonStarter()
+    try:
+        yield starter
+    finally:
+        starter.stop_all()
+
+
 def test_cli_help_lists_daemon_command(capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as exc_info:
         main(["--help"])
@@ -118,84 +172,71 @@ def test_daemon_help_hides_internal_run_owner_command(
 def test_daemon_start_status_duplicate_rejection_and_stop(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
+    daemon_starter: DaemonStarter,
 ) -> None:
     port = _reserve_port()
 
-    try:
-        exit_code = main(
-            [
-                "daemon",
-                "start",
-                "--cwd",
-                str(tmp_path),
-                "--port",
-                str(port),
-            ]
-        )
-        start_capture = capsys.readouterr()
+    daemon_starter.start(tmp_path, port=port)
+    start_capture = capsys.readouterr()
 
-        assert exit_code == 0
-        assert f"Daemon running at http://127.0.0.1:{port}/" in start_capture.out
+    assert f"Daemon running at http://127.0.0.1:{port}/" in start_capture.out
 
-        exit_code = main(["daemon", "status", "--cwd", str(tmp_path)])
-        status_capture = capsys.readouterr()
+    exit_code = main(["daemon", "status", "--cwd", str(tmp_path)])
+    status_capture = capsys.readouterr()
 
-        assert exit_code == 0
-        assert "Status: running" in status_capture.out
-        assert "Health: ok" in status_capture.out
-        assert "Workspace:" in status_capture.out
-        assert "Owner metadata:" in status_capture.out
-        assert "Session index:" in status_capture.out
-        assert "Attach: glassbox session attach SESSION_ID" in status_capture.out
-        assert (
-            "Cancel active turn: glassbox session cancel SESSION_ID"
-            in status_capture.out
-        )
-        assert "Stop: glassbox daemon stop" in status_capture.out
+    assert exit_code == 0
+    assert "Status: running" in status_capture.out
+    assert "Health: ok" in status_capture.out
+    assert "Workspace:" in status_capture.out
+    assert "Owner metadata:" in status_capture.out
+    assert "Session index:" in status_capture.out
+    assert "Attach: glassbox session attach SESSION_ID" in status_capture.out
+    assert (
+        "Cancel active turn: glassbox session cancel SESSION_ID" in status_capture.out
+    )
+    assert "Stop: glassbox daemon stop" in status_capture.out
 
-        exit_code = main(
-            [
-                "daemon",
-                "start",
-                "--cwd",
-                str(tmp_path),
-                "--port",
-                str(port),
-            ]
-        )
-        duplicate_capture = capsys.readouterr()
+    exit_code = main(
+        [
+            "daemon",
+            "start",
+            "--cwd",
+            str(tmp_path),
+            "--port",
+            str(port),
+        ]
+    )
+    duplicate_capture = capsys.readouterr()
 
-        assert exit_code == 1
-        assert "workspace runtime is owned by glassbox daemon" in duplicate_capture.err
+    assert exit_code == 1
+    assert "workspace runtime is owned by glassbox daemon" in duplicate_capture.err
 
-        exit_code = main(
-            [
-                "session",
-                "message",
-                str(uuid4()),
-                "hello",
-                "--cwd",
-                str(tmp_path),
-            ]
-        )
-        guarded_capture = capsys.readouterr()
+    exit_code = main(
+        [
+            "session",
+            "message",
+            str(uuid4()),
+            "hello",
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    guarded_capture = capsys.readouterr()
 
-        assert exit_code == 1
-        assert "cannot submit a message locally" in guarded_capture.err
+    assert exit_code == 1
+    assert "cannot submit a message locally" in guarded_capture.err
 
-        exit_code = main(["daemon", "stop", "--cwd", str(tmp_path)])
-        stop_capture = capsys.readouterr()
+    exit_code = main(["daemon", "stop", "--cwd", str(tmp_path)])
+    stop_capture = capsys.readouterr()
 
-        assert exit_code == 0
-        assert "Stopped daemon pid" in stop_capture.out
+    assert exit_code == 0
+    assert "Stopped daemon pid" in stop_capture.out
 
-        exit_code = main(["daemon", "status", "--cwd", str(tmp_path)])
-        stopped_capture = capsys.readouterr()
+    exit_code = main(["daemon", "status", "--cwd", str(tmp_path)])
+    stopped_capture = capsys.readouterr()
 
-        assert exit_code == 0
-        assert "Status: not running" in stopped_capture.out
-    finally:
-        _stop_daemon_if_running(tmp_path)
+    assert exit_code == 0
+    assert "Status: not running" in stopped_capture.out
 
 
 def test_daemon_status_json_reports_discovery_and_health(
@@ -261,9 +302,11 @@ def test_daemon_status_json_reports_discovery_and_health(
 
 @pytest.mark.daemon
 @pytest.mark.release_gate
-def test_daemon_executes_read_only_background_job(tmp_path: Path) -> None:
+def test_daemon_executes_read_only_background_job(
+    tmp_path: Path,
+    daemon_starter: DaemonStarter,
+) -> None:
     db_path, session_id = _run_baseline_session(tmp_path)
-    port = _reserve_port()
     connection = open_database(db_path)
     try:
         repository = SQLiteSessionRepository(connection)
@@ -276,41 +319,22 @@ def test_daemon_executes_read_only_background_job(tmp_path: Path) -> None:
     finally:
         connection.close()
 
-    try:
-        assert (
-            main(
-                [
-                    "daemon",
-                    "start",
-                    "--cwd",
-                    str(tmp_path),
-                    "--db-path",
-                    str(db_path),
-                    "--port",
-                    str(port),
-                ]
-            )
-            == 0
-        )
-        deadline = time.monotonic() + 5
-        while time.monotonic() < deadline:
-            connection = open_database(db_path)
-            try:
-                updated = SQLiteSessionRepository(connection).get_background_job(
-                    job.job_id
-                )
-            finally:
-                connection.close()
-            if updated is not None and updated.state == BackgroundJobState.COMPLETED:
-                break
-            time.sleep(0.01)
-        else:
-            raise AssertionError("daemon did not complete read-only background job")
+    daemon_starter.start(tmp_path, db_path=db_path)
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        connection = open_database(db_path)
+        try:
+            updated = SQLiteSessionRepository(connection).get_background_job(job.job_id)
+        finally:
+            connection.close()
+        if updated is not None and updated.state == BackgroundJobState.COMPLETED:
+            break
+        time.sleep(0.01)
+    else:
+        raise AssertionError("daemon did not complete read-only background job")
 
-        assert updated.progress_message is not None
-        assert "Projection health refresh inspected" in updated.progress_message
-    finally:
-        _stop_daemon_if_running(tmp_path)
+    assert updated.progress_message is not None
+    assert "Projection health refresh inspected" in updated.progress_message
 
 
 def test_daemon_status_reports_not_running_discovery(
@@ -334,6 +358,7 @@ def test_daemon_status_reports_not_running_discovery(
 def test_daemon_start_recovers_stale_owner_metadata(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
+    daemon_starter: DaemonStarter,
 ) -> None:
     port = _reserve_port()
     owner_path = _runtime_owner_path(tmp_path)
@@ -354,29 +379,16 @@ def test_daemon_start_recovers_stale_owner_metadata(
         encoding="utf-8",
     )
 
-    try:
-        exit_code = main(
-            [
-                "daemon",
-                "start",
-                "--cwd",
-                str(tmp_path),
-                "--port",
-                str(port),
-            ]
-        )
-        captured = capsys.readouterr()
+    daemon_starter.start(tmp_path, port=port)
+    captured = capsys.readouterr()
 
-        assert exit_code == 0
-        assert "Recovered stale workspace daemon owner metadata." in captured.out
+    assert "Recovered stale workspace daemon owner metadata." in captured.out
 
-        exit_code = main(["daemon", "stop", "--cwd", str(tmp_path)])
-        stop_capture = capsys.readouterr()
+    exit_code = main(["daemon", "stop", "--cwd", str(tmp_path)])
+    stop_capture = capsys.readouterr()
 
-        assert exit_code == 0
-        assert "Stopped daemon pid" in stop_capture.out
-    finally:
-        _stop_daemon_if_running(tmp_path)
+    assert exit_code == 0
+    assert "Stopped daemon pid" in stop_capture.out
 
 
 def test_daemon_status_reports_stale_recovery_commands(
@@ -513,9 +525,9 @@ def test_cli_attach_routes_live_session_through_daemon_and_can_reattach(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
+    daemon_starter: DaemonStarter,
 ) -> None:
     db_path, session_id = _run_baseline_session(tmp_path)
-    port = _reserve_port()
     interactive_inputs = iter(
         [
             "Now summarize the tests.",
@@ -530,90 +542,74 @@ def test_cli_attach_routes_live_session_through_daemon_and_can_reattach(
         lambda prompt: next(interactive_inputs),
     )
 
+    daemon_starter.start(tmp_path, db_path=db_path)
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "session",
+            "attach",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    first_capture = capsys.readouterr()
+
+    assert exit_code == 0
+    assert f"Attached to live session {session_id}" in first_capture.out
+    assert "Queued user message: Now summarize the tests." in first_capture.out
+    assert (
+        "Assistant: I received your request: Now summarize the tests."
+        in first_capture.out
+    )
+    assert "Leaving interactive session" in first_capture.out
+
+    exit_code = main(
+        [
+            "session",
+            "attach",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    second_capture = capsys.readouterr()
+
+    assert exit_code == 0
+    assert f"Attached to live session {session_id}" in second_capture.out
+    assert "Queued user message: Add one more note." in second_capture.out
+    assert (
+        "Assistant: I received your request: Add one more note." in second_capture.out
+    )
+
+    connection = open_database(db_path)
     try:
-        exit_code = main(
-            [
-                "daemon",
-                "start",
-                "--cwd",
-                str(tmp_path),
-                "--db-path",
-                str(db_path),
-                "--port",
-                str(port),
-            ]
-        )
-        _ = capsys.readouterr()
-
-        assert exit_code == 0
-
-        exit_code = main(
-            [
-                "session",
-                "attach",
-                str(session_id),
-                "--cwd",
-                str(tmp_path),
-                "--db-path",
-                str(db_path),
-            ]
-        )
-        first_capture = capsys.readouterr()
-
-        assert exit_code == 0
-        assert f"Attached to live session {session_id}" in first_capture.out
-        assert "Queued user message: Now summarize the tests." in first_capture.out
-        assert (
-            "Assistant: I received your request: Now summarize the tests."
-            in first_capture.out
-        )
-        assert "Leaving interactive session" in first_capture.out
-
-        exit_code = main(
-            [
-                "session",
-                "attach",
-                str(session_id),
-                "--cwd",
-                str(tmp_path),
-                "--db-path",
-                str(db_path),
-            ]
-        )
-        second_capture = capsys.readouterr()
-
-        assert exit_code == 0
-        assert f"Attached to live session {session_id}" in second_capture.out
-        assert "Queued user message: Add one more note." in second_capture.out
-        assert (
-            "Assistant: I received your request: Add one more note."
-            in second_capture.out
-        )
-
-        connection = open_database(db_path)
-        try:
-            repository = SQLiteSessionRepository(connection)
-            transcript = repository.list_transcript_messages(session_id)
-        finally:
-            connection.close()
-
-        assert transcript[-4].parts[0].text == "Now summarize the tests."
-        assert transcript[-3].parts[0].text == (
-            "I received your request: Now summarize the tests."
-        )
-        assert transcript[-2].parts[0].text == "Add one more note."
-        assert transcript[-1].parts[0].text == (
-            "I received your request: Add one more note."
-        )
+        repository = SQLiteSessionRepository(connection)
+        transcript = repository.list_transcript_messages(session_id)
     finally:
-        _stop_daemon_if_running(tmp_path)
+        connection.close()
+
+    assert transcript[-4].parts[0].text == "Now summarize the tests."
+    assert transcript[-3].parts[0].text == (
+        "I received your request: Now summarize the tests."
+    )
+    assert transcript[-2].parts[0].text == "Add one more note."
+    assert transcript[-1].parts[0].text == (
+        "I received your request: Add one more note."
+    )
 
 
 @pytest.mark.daemon
-def test_cli_attach_can_observe_daemon_session_without_mutating_transcript(
+def test_live_daemon_session_routing_guards_share_one_process(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
+    daemon_starter: DaemonStarter,
 ) -> None:
     db_path, session_id = _run_baseline_session(tmp_path)
     connection = open_database(db_path)
@@ -630,95 +626,83 @@ def test_cli_attach_can_observe_daemon_session_without_mutating_transcript(
         lambda prompt: next(interactive_inputs),
     )
 
-    try:
-        exit_code = main(
-            [
-                "daemon",
-                "start",
-                "--cwd",
-                str(tmp_path),
-                "--db-path",
-                str(db_path),
-                "--port",
-                str(port),
-            ]
-        )
-        _ = capsys.readouterr()
-        assert exit_code == 0
+    daemon_starter.start(tmp_path, db_path=db_path, port=port)
+    _ = capsys.readouterr()
 
-        exit_code = main(
-            [
-                "session",
-                "attach",
-                str(session_id),
-                "--cwd",
-                str(tmp_path),
-                "--db-path",
-                str(db_path),
-            ]
-        )
-        captured = capsys.readouterr()
-
-        assert exit_code == 0
-        assert f"Attached to live session {session_id}" in captured.out
-        assert "Leaving interactive session" in captured.out
-
-        connection = open_database(db_path)
-        try:
-            repository = SQLiteSessionRepository(connection)
-            transcript = repository.list_transcript_messages(session_id)
-        finally:
-            connection.close()
-
-        assert [message.message_id for message in transcript] == [
-            message.message_id for message in initial_transcript
+    exit_code = main(
+        [
+            "session",
+            "attach",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
         ]
-    finally:
-        _stop_daemon_if_running(tmp_path)
+    )
+    captured = capsys.readouterr()
 
+    assert exit_code == 0
+    assert f"Attached to live session {session_id}" in captured.out
+    assert "Leaving interactive session" in captured.out
 
-@pytest.mark.daemon
-def test_cli_cancel_routes_to_daemon_and_reports_idle_conflict(
-    tmp_path: Path,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    db_path, session_id = _run_baseline_session(tmp_path)
-    port = _reserve_port()
-
+    connection = open_database(db_path)
     try:
-        exit_code = main(
-            [
-                "daemon",
-                "start",
-                "--cwd",
-                str(tmp_path),
-                "--db-path",
-                str(db_path),
-                "--port",
-                str(port),
-            ]
-        )
-        _ = capsys.readouterr()
-
-        assert exit_code == 0
-
-        exit_code = main(
-            [
-                "session",
-                "cancel",
-                str(session_id),
-                "--cwd",
-                str(tmp_path),
-                "--db-path",
-                str(db_path),
-            ]
-        )
-        captured = capsys.readouterr()
-
-        assert exit_code == 1
-        assert "has no cancellable active turn" in captured.err
+        repository = SQLiteSessionRepository(connection)
+        transcript = repository.list_transcript_messages(session_id)
     finally:
-        _stop_daemon_if_running(tmp_path)
+        connection.close()
+
+    assert [message.message_id for message in transcript] == [
+        message.message_id for message in initial_transcript
+    ]
+
+    exit_code = main(
+        [
+            "session",
+            "cancel",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "has no cancellable active turn" in captured.err
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=SessionCompleted(reason="done"),
+            )
+        )
+    finally:
+        connection.close()
+
+    exit_code = main(
+        [
+            "session",
+            "attach",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    historical_capture = capsys.readouterr()
+
+    assert exit_code == 1
+    assert (
+        "is only historically inspectable in status completed" in historical_capture.err
+    )
 
 
 def test_cli_attach_tui_routes_live_session_through_daemon(
@@ -839,63 +823,6 @@ def test_cli_attach_reports_live_runtime_unavailable(
     assert "Inspect health: http://127.0.0.1:9999/healthz" in captured.err
     assert "Status: glassbox daemon status" in captured.err
     assert "Recover: glassbox daemon stop" in captured.err
-
-
-@pytest.mark.daemon
-def test_cli_attach_reports_historical_only_session_when_daemon_is_running(
-    tmp_path: Path,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    db_path, session_id = _run_baseline_session(tmp_path)
-    port = _reserve_port()
-
-    connection = open_database(db_path)
-    try:
-        repository = SQLiteSessionRepository(connection)
-        repository.append_event(
-            EventEnvelope(
-                session_id=session_id,
-                sequence=0,
-                payload=SessionCompleted(reason="done"),
-            )
-        )
-    finally:
-        connection.close()
-
-    try:
-        exit_code = main(
-            [
-                "daemon",
-                "start",
-                "--cwd",
-                str(tmp_path),
-                "--db-path",
-                str(db_path),
-                "--port",
-                str(port),
-            ]
-        )
-        _ = capsys.readouterr()
-
-        assert exit_code == 0
-
-        exit_code = main(
-            [
-                "session",
-                "attach",
-                str(session_id),
-                "--cwd",
-                str(tmp_path),
-                "--db-path",
-                str(db_path),
-            ]
-        )
-        captured = capsys.readouterr()
-
-        assert exit_code == 1
-        assert "is only historically inspectable in status completed" in captured.err
-    finally:
-        _stop_daemon_if_running(tmp_path)
 
 
 def test_cli_attach_reports_stale_runtime_owner_then_falls_back_locally(
