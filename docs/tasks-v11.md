@@ -1176,7 +1176,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1193: Publish v11 Release-Candidate Guide
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1191`, `GBX-1192`
 - Goal: publish a concise public guide for the supported v11 `0.10.0`
   operating model, validation path, evidence expectations, non-goals,
@@ -1206,3 +1206,11 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - v11 has a publishable release-candidate narrative backed by retained
     automated, dogfooding, manual, and advisory evidence
+- Completed:
+  - published [v11-release-candidate.md](./v11-release-candidate.md) with the
+    supported `0.10.0` operating model, validation path, evidence expectations,
+    non-goals, residual risks, final pass/fail state, and GO decision
+  - linked the v11 release-candidate guide from the root README and docs hub
+  - aligned the release-readiness checklist with the v11 gate, deterministic
+    evals, live cockpit evidence, accessibility review, provider advisory
+    posture, dogfooding summary, and residual-risk acceptance

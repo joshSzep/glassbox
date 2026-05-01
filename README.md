@@ -101,9 +101,11 @@ path from install to chat, dashboard inspection, approvals, and verification.
 Version and release-candidate naming policy lives in
 [docs/version-release-policy.md](docs/version-release-policy.md).
 The inherited v10 release-candidate evidence is summarized in
-[docs/v10-release-candidate.md](docs/v10-release-candidate.md), and active v11
+[docs/v10-release-candidate.md](docs/v10-release-candidate.md). Active v11
 scope is defined in
-[docs/v11-confidence-adoption-contract.md](docs/v11-confidence-adoption-contract.md).
+[docs/v11-confidence-adoption-contract.md](docs/v11-confidence-adoption-contract.md),
+with the v11 release-candidate guide in
+[docs/v11-release-candidate.md](docs/v11-release-candidate.md).
 
 ## Documentation
 
@@ -116,6 +118,7 @@ Start here based on what you need:
 - [docs/v9-public-baseline.md](docs/v9-public-baseline.md)
 - [docs/v10-long-running-task-contract.md](docs/v10-long-running-task-contract.md)
 - [docs/v11-confidence-adoption-contract.md](docs/v11-confidence-adoption-contract.md)
+- [docs/v11-release-candidate.md](docs/v11-release-candidate.md)
 - [docs/v10-release-candidate.md](docs/v10-release-candidate.md)
 - [docs/v9-vocabulary.md](docs/v9-vocabulary.md)
 - [docs/operator-quickstart.md](docs/operator-quickstart.md)
@@ -138,6 +141,7 @@ Release evidence and milestone history remain available when you need them:
 
 - [docs/v9-release-candidate.md](docs/v9-release-candidate.md)
 - [docs/v10-release-candidate.md](docs/v10-release-candidate.md)
+- [docs/v11-release-candidate.md](docs/v11-release-candidate.md)
 - [docs/v8-release-candidate.md](docs/v8-release-candidate.md)
 - [docs/v7-release-candidate.md](docs/v7-release-candidate.md)
 - [docs/v6-release-candidate.md](docs/v6-release-candidate.md)

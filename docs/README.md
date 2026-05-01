@@ -57,6 +57,10 @@ v11 confidence and adoption contract is the active implementation track for the
 - [v11-dogfooding-summary.md](./v11-dogfooding-summary.md): sanitized v11
   dogfooding findings for release recommendations, compaction guidance, live
   cockpit evidence, branch-search review, and candidate follow-ups
+- [v11-release-candidate.md](./v11-release-candidate.md): v11
+  release-candidate guide for the supported `0.10.0` confidence-and-adoption
+  operating model, validation path, evidence expectations, residual risks, and
+  decision
 - [v10-release-candidate.md](./v10-release-candidate.md): v10
   release-candidate guide for the supported long-running-task model,
   validation path, evidence expectations, residual risks, and decision
@@ -156,8 +160,12 @@ v11 confidence and adoption contract is the active implementation track for the
 - [v10-release-gate.md](./v10-release-gate.md): automated v10 release evidence
   command, stage map, retained summary shape, advisory provider policy, and
   pass/fail rules
-- [v11-release-gate.md](./v11-release-gate.md): v11 provider-evidence release
-  scaffold for opt-in canary evidence and aligned freshness summaries
+- [v11-release-gate.md](./v11-release-gate.md): v11 automated release evidence
+  command, stage map, retained summary shape, advisory provider policy, and
+  pass/fail rules
+- [v11-release-candidate.md](./v11-release-candidate.md): release-candidate
+  narrative tying the v11 contract, gate, dogfooding, package, provider,
+  accessibility, live cockpit, and residual-risk evidence together
 - [v10-release-candidate.md](./v10-release-candidate.md): release-candidate
   narrative tying the v10 contract, gate, dogfooding, package, provider, and
   residual-risk evidence together
@@ -242,6 +250,11 @@ path.
   and GO decision
 - [v10-dogfooding-summary.md](./v10-dogfooding-summary.md): sanitized GBX-1092
   dogfooding summaries and finding dispositions for v10 release review
+- [v11-release-candidate.md](./v11-release-candidate.md): v11 operating model,
+  validation path, evidence expectations, non-goals, accepted residual risks,
+  and GO decision
+- [v11-dogfooding-summary.md](./v11-dogfooding-summary.md): sanitized GBX-1192
+  dogfooding summaries and finding dispositions for v11 release review
 - [live-cockpit-evidence-v11.md](./live-cockpit-evidence-v11.md): v11 live
   dashboard evidence protocol, scenario matrix, `.glassbox/releases/`
   directory convention, manual and automated evidence split, and non-claims
