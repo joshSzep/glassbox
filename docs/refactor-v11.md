@@ -323,7 +323,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R410: Split Eval Recommendation Output Into Surface, Plan, Recipe, And Formatter Modules
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R400`
 - Goal: reduce
   [eval_recommendation_output.py](../src/glassbox/runtime/eval_recommendation_output.py)

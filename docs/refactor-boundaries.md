@@ -356,6 +356,13 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   derivation, verification plan/skipped-check construction, recipe and
   release-gate command grouping, and terminal formatting. JSON payload models
   remain behavior-compatible with existing CLI and eval tests.
+- The v11 recommendation-output split now keeps
+  `runtime/eval_recommendation_output.py` as a compatibility facade while
+  `eval_recommendation_rows.py`, `eval_recommendation_plans.py`,
+  `eval_recommendation_recipes.py`, `eval_recommendation_release_surfaces.py`,
+  `eval_recommendation_long_run_surfaces.py`,
+  `eval_recommendation_reason_groups.py`, and
+  `eval_recommendation_common.py` own the extracted behavior.
 - Eval recommendation engine orchestration should delegate path-impact
   matching, owner/capability expansion, profile/stage expansion, release-gate
   command recommendation, and fallback/manual-guidance labeling to focused

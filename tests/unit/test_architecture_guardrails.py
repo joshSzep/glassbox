@@ -210,6 +210,23 @@ PYTHON_FACADE_RULES: tuple[
         "evals should stay a thin facade over split eval modules",
     ),
     (
+        SRC_ROOT / "runtime" / "eval_recommendation_output.py",
+        (
+            "glassbox.runtime.eval_recommendation_common",
+            "glassbox.runtime.eval_recommendation_long_run_surfaces",
+            "glassbox.runtime.eval_recommendation_plans",
+            "glassbox.runtime.eval_recommendation_reason_groups",
+            "glassbox.runtime.eval_recommendation_recipes",
+            "glassbox.runtime.eval_recommendation_release_surfaces",
+            "glassbox.runtime.eval_recommendation_rows",
+        ),
+        80,
+        (
+            "eval_recommendation_output should stay a thin compatibility "
+            "facade over v11 recommendation output helpers"
+        ),
+    ),
+    (
         SRC_ROOT / "runtime" / "background_jobs.py",
         (
             "asyncio",
@@ -1034,6 +1051,56 @@ V11_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
         (
             "v11 eval recommendation output should move new surface, recipe, "
             "plan, and terminal formatting behavior into focused helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "eval_recommendation_common.py",
+        80,
+        "v11 eval recommendation shared helpers should stay small and generic",
+    ),
+    (
+        SRC_ROOT / "runtime" / "eval_recommendation_rows.py",
+        120,
+        "v11 eval recommendation case/profile rows should stay owned by rows.py",
+    ),
+    (
+        SRC_ROOT / "runtime" / "eval_recommendation_plans.py",
+        120,
+        (
+            "v11 eval recommendation command-plan construction should stay "
+            "owned by plans.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "eval_recommendation_reason_groups.py",
+        140,
+        (
+            "v11 eval recommendation reason grouping should stay owned by "
+            "reason_groups.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "eval_recommendation_recipes.py",
+        140,
+        (
+            "v11 eval recommendation recipes and release-gate command grouping "
+            "should stay owned by recipes.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "eval_recommendation_release_surfaces.py",
+        160,
+        (
+            "v11 eval recommendation daily release surfaces should stay owned "
+            "by release_surfaces.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "eval_recommendation_long_run_surfaces.py",
+        220,
+        (
+            "v11 eval recommendation long-run surfaces should stay owned by "
+            "long_run_surfaces.py"
         ),
     ),
     (
