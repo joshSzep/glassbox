@@ -439,6 +439,41 @@ def test_v12_reviewable_change_contract_covers_product_boundary() -> None:
     assert "tasks-v12.md" in docs_readme
 
 
+def test_v12_change_lifecycle_audit_covers_current_boundaries() -> None:
+    content = (REPO_ROOT / "docs" / "v12-change-lifecycle-audit.md").read_text(
+        encoding="utf-8"
+    )
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Summary",
+        "## Classification Legend",
+        "## Audit Entries",
+        "## Test Inventory",
+        "## Disposition",
+        "Workspace diff summary",
+        "Git status",
+        "Branch search",
+        "Task checkpoints",
+        "Verification recommendations and ledger",
+        "Handoff summaries",
+        "Tool output artifacts",
+        "Command execution and policy",
+        "Dashboard review surfaces",
+        "Export and redaction",
+        "Fixed in v12",
+        "Evidence-only in v12",
+        "Accepted non-goal",
+        "src/glassbox/tools/workflow.py#L253",
+        "src/glassbox/runtime/session_export_package.py#L88",
+        "tests/integration/test_workflow_tools.py#L84",
+        "No product-code change is required by this audit.",
+    ):
+        assert required_text in content
+
+    assert "v12-change-lifecycle-audit.md" in docs_readme
+
+
 def test_v11_residual_risk_audit_covers_current_source_and_evidence() -> None:
     content = (REPO_ROOT / "docs" / "v11-residual-risk-audit.md").read_text(
         encoding="utf-8"

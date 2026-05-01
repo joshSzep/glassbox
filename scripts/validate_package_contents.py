@@ -78,6 +78,7 @@ SDIST_REQUIRED_SUFFIXES = (
     "docs/v11-residual-risk-audit.md",
     "docs/tasks-v11.md",
     "docs/v12-reviewable-change-contract.md",
+    "docs/v12-change-lifecycle-audit.md",
     "docs/tasks-v12.md",
     "docs/v7-release-candidate.md",
     "docs/v7-release-gate.md",

@@ -28,6 +28,10 @@ v11 confidence and adoption release candidate.
   active v12 contract for local changesets, review briefs, verification
   readiness, commit readiness, worktree isolation, topology, command evidence,
   and reviewable-change release authority
+- [v12-change-lifecycle-audit.md](./v12-change-lifecycle-audit.md):
+  source-linked audit of current diff, branch-search, checkpoint,
+  verification, handoff, artifact, command, dashboard, export, and redaction
+  gaps before v12 changeset implementation
 - [v11-residual-risk-audit.md](./v11-residual-risk-audit.md): source-linked
   audit of inherited v10 residual risks, current evidence, missing coverage,
   and v11 dispositions
@@ -174,6 +178,9 @@ v11 confidence and adoption release candidate.
   active v12 reviewable-change contract for changesets, review briefs,
   verification readiness, commit readiness, worktree isolation, topology, and
   command evidence
+- [v12-change-lifecycle-audit.md](./v12-change-lifecycle-audit.md):
+  source-linked v12 audit separating existing session evidence from the
+  reviewable-change lifecycle gaps
 - [v10-release-candidate.md](./v10-release-candidate.md): release-candidate
   narrative tying the v10 contract, gate, dogfooding, package, provider, and
   residual-risk evidence together

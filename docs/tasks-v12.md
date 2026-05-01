@@ -355,7 +355,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1201: Audit Current Change, Review, And Commit Boundaries
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1200`
 - Goal: ground v12 implementation in actual gaps between existing session
   evidence and reviewable changes
