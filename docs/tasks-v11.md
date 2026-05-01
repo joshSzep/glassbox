@@ -643,7 +643,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1140: Expand Provider Failure Fixture Coverage
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1101`
 - Goal: make repeated provider failure modes reviewable without depending on
   live-provider timing

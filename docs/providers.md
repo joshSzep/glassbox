@@ -146,6 +146,15 @@ switching; when recovery is unsafe, inspect the latest checkpoint or create a
 fresh one before retrying, switching providers, or falling back to deterministic
 local work.
 
+For v11, the provider recovery advice also has deterministic fixture coverage
+that does not require live credentials. The fixture set covers retryable
+provider errors, non-retryable provider errors, lost streams, malformed tool
+calls, stale retained canary evidence, and model fallback recommendations. These
+fixtures produce typed provider recovery history where relevant and assert that
+recommendations remain advisory: `recommended_action` may say to retry, pause,
+refresh evidence, switch intentionally, or use local fallback, but Glassbox does
+not silently change the model or provider for an active session.
+
 ## Troubleshooting
 
 Missing API key:
