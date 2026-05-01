@@ -624,7 +624,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R432: Split Service Contract Models By Domain Without Breaking Public Imports
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R430`
 - Goal: plan and optionally implement a careful split of
   [services/contracts.py](../src/glassbox/services/contracts.py) if export,
@@ -649,6 +649,21 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - the repository has a clear service-contract growth strategy and any moved
     contracts preserve public imports
+- Completed notes:
+  - `services/contracts.py` remains intentionally unsplit for this pass because
+    it is currently protocol/model-heavy rather than a mixed concrete
+    implementation module.
+  - [refactor-boundaries.md](./refactor-boundaries.md) now records the domain
+    split strategy, compatibility import plan, and criteria for a future
+    cohesive contract-family extraction.
+  - Import-stability coverage now asserts `glassbox.services` and
+    `glassbox.services.contracts` expose the same public contract objects.
+  - Validation: `uv run pytest tests/unit/test_service_contracts.py`,
+    `uv run pytest tests/test_import_smoke.py`,
+    `uv run pytest tests/unit/test_repository_adapter_boundaries.py`,
+    `uv run ruff format --check tests/unit/test_service_contracts.py tests/unit/test_architecture_guardrails.py`,
+    `uv run ruff check tests/unit/test_service_contracts.py tests/unit/test_architecture_guardrails.py`,
+    and `uv run ty check src/glassbox/services/contracts.py src/glassbox/services/__init__.py`.
 
 ---
 

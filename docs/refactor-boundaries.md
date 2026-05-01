@@ -38,11 +38,11 @@ decision support, handoff, CLI guidance, frontend evidence, recovery, and
 projection modules that accumulated richer derivation and formatting behavior
 during the confidence-and-adoption milestone.
 
-The v11 map is now implemented through Phase 73 task `GBX-R431`.
+The v11 map is now implemented through Phase 73 task `GBX-R432`.
 Recommendation output, recommendation matching, release-gate summaries,
 knowledge posture, branch-search decision support, frontend knowledge/branch
-sections, session export, and session import follow the helper boundaries
-described below.
+sections, session export, session import, and the service-contract split
+strategy follow the helper boundaries described below.
 
 ## Scope
 
@@ -542,6 +542,10 @@ The `services` package should not accumulate concrete behavior merely to avoid i
 
 - `services/contracts.py` may remain broad while it is mostly protocol and
   model declarations. It should not split for line count alone.
+- The `GBX-R432` review keeps `services/contracts.py` as the public contract
+  owner for now. The current pressure is breadth of protocol surface, not mixed
+  concrete behavior, so a behavior-preserving split would mainly create
+  re-export churn without a clearer ownership win.
 - Future contract splits should follow stable domains: session repository,
   artifact repository, background jobs, workspace memory, tasks, branch search,
   and session service.
@@ -550,6 +554,10 @@ The `services` package should not accumulate concrete behavior merely to avoid i
   modules are introduced.
 - Contract modules must stay free of concrete store, runtime, CLI, web,
   frontend, and script imports.
+- When a domain split becomes worthwhile, the preferred sequence is to move one
+  cohesive protocol family into `services/contracts_<domain>.py`, re-export it
+  from `services/contracts.py`, keep `services/__init__.py` unchanged, and add
+  import-smoke plus repository-adapter coverage before moving the next family.
 
 ### CLI
 

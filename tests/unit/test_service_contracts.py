@@ -4,6 +4,7 @@ import asyncio
 from dataclasses import FrozenInstanceError
 from datetime import UTC
 from datetime import datetime
+from importlib import import_module
 from pathlib import Path
 
 import pytest
@@ -404,6 +405,16 @@ def test_runtime_contract_fakes_satisfy_protocols() -> None:
     assert isinstance(FakeSessionRepository(), SessionRepository)
     assert isinstance(FakeArtifactRepository(), ArtifactRepository)
     assert isinstance(FakeSessionService(), SessionService)
+
+
+def test_service_contract_public_import_surfaces_remain_stable() -> None:
+    services = import_module("glassbox.services")
+    contracts = import_module("glassbox.services.contracts")
+
+    assert services.SessionRepository is contracts.SessionRepository
+    assert services.ArtifactRepository is contracts.ArtifactRepository
+    assert services.SessionService is contracts.SessionService
+    assert services.StoredArtifact is contracts.StoredArtifact
 
 
 def test_runtime_context_groups_services_and_dependencies() -> None:
