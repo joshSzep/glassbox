@@ -48,6 +48,64 @@ uv run pytest --durations=100 --durations-min=0.05 -q
 1124 passed in 56.36s
 ```
 
+## Repeatable Timing Command Set
+
+Use these serial commands when changing test-suite performance. Run them from
+the repository root on an otherwise quiet local machine, and keep the top
+duration output with the summary line. Treat the ranges as local guidance, not
+release-blocking thresholds.
+
+```bash
+uv run pytest --collect-only -q
+uv run pytest tests/unit --durations=50 --durations-min=0.01 -q
+uv run pytest tests/integration --durations=80 --durations-min=0.05 -q
+uv run pytest -m "daemon or subprocess or timeout or tui" --durations=80 --durations-min=0.01 -q
+uv run pytest -m "not daemon and not subprocess and not timeout and not tui and not slow" --durations=80 --durations-min=0.05 -q
+uv run pytest --durations=100 --durations-min=0.05 -q
+```
+
+Current local serial baseline ranges:
+
+- collection: about 1.5s to 2.3s
+- unit suite: about 9s to 11s
+- integration suite: about 46s to 52s
+- expensive marker slice: about 29s to 33s
+- fast marker slice: about 30s to 35s
+- full suite: about 56s to 62s
+
+Representative GBX-T901 timing pass:
+
+```text
+uv run pytest --collect-only -q
+1124 tests collected in 1.68s
+
+uv run pytest tests/unit --durations=50 --durations-min=0.01 -q
+566 passed in 9.93s
+
+uv run pytest tests/integration --durations=80 --durations-min=0.05 -q
+554 passed in 48.34s
+
+uv run pytest -m "daemon or subprocess or timeout or tui" --durations=80 --durations-min=0.01 -q
+51 passed, 1073 deselected in 30.61s
+
+uv run pytest -m "not daemon and not subprocess and not timeout and not tui and not slow" --durations=80 --durations-min=0.05 -q
+1073 passed, 51 deselected in 31.49s
+
+uv run pytest --durations=100 --durations-min=0.05 -q
+1124 passed in 59.07s
+```
+
+Refresh procedure:
+
+1. Run the six timing commands serially after the performance task is complete.
+2. Replace the representative summary lines above with the new output.
+3. Adjust baseline ranges only after at least two comparable local runs or a
+   stable CI run show a sustained shift.
+4. Preserve the top-duration output in task evidence when a speedup claim
+   depends on specific tests moving out of the slow tail.
+5. Do not make these timing ranges release-blocking until variance is tracked
+   across more machines.
+
 Collection is not the bottleneck. Test-body execution is the bottleneck, and it
 is concentrated in process-heavy integration tests, intentional timeout tests,
 and Textual app-driver tests.
@@ -260,7 +318,7 @@ Validation evidence:
 
 ### GBX-T901: Record A Repeatable Timing Command Set
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-T900`
 - Goal: make suite timing a routine measurement instead of an anecdote
 - Deliverables:
@@ -278,6 +336,20 @@ Validation evidence:
   - run the documented timing commands once and record representative output
 - Done when:
   - a future agent can measure whether a proposed speedup actually helped
+
+Validation evidence:
+
+- `uv run pytest --collect-only -q`: 1124 tests collected in 1.68s
+- `uv run pytest tests/unit --durations=50 --durations-min=0.01 -q`:
+  566 passed in 9.93s
+- `uv run pytest tests/integration --durations=80 --durations-min=0.05 -q`:
+  554 passed in 48.34s
+- `uv run pytest -m "daemon or subprocess or timeout or tui" --durations=80 --durations-min=0.01 -q`:
+  51 passed, 1073 deselected in 30.61s
+- `uv run pytest -m "not daemon and not subprocess and not timeout and not tui and not slow" --durations=80 --durations-min=0.05 -q`:
+  1073 passed, 51 deselected in 31.49s
+- `uv run pytest --durations=100 --durations-min=0.05 -q`:
+  1124 passed in 59.07s
 
 ---
 
