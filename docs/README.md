@@ -342,12 +342,15 @@ Use this section when changing implementation contracts, task scope, or
 historical roadmap material. Task graphs remain discoverable for contributors,
 but they are not the first-run operator path.
 
-- [tasks-v9.md](./tasks-v9.md): v9 public baseline, onboarding, cockpit,
-  provider freshness, operational polish, dogfooding, package, and release
-  task graph
+- [tasks-v11.md](./tasks-v11.md): v11 confidence, adoption, residual-risk
+  closure, verification recommendations, live cockpit evidence, provider,
+  knowledge posture, branch-search, handoff, package, and release task graph
 - [tasks-v10.md](./tasks-v10.md): v10 long-running task reliability,
   checkpoint, compaction, resumable-tool, cockpit, budget, verification,
   provider-recovery, eval, dogfooding, and release task graph
+- [tasks-v9.md](./tasks-v9.md): v9 public baseline, onboarding, cockpit,
+  provider freshness, operational polish, dogfooding, package, and release
+  task graph
 - [tasks-v8.md](./tasks-v8.md): v8 auditable-autonomy task graph
 - [tasks-v7.md](./tasks-v7.md): v7 adoption, scale, eval, provider, policy,
   dashboard, accessibility, onboarding, and release-signoff task graph
@@ -360,6 +363,11 @@ but they are not the first-run operator path.
 - [tasks-v2.md](./tasks-v2.md): v2 persistent runtime ownership,
   operator-console, upgrade safety, and workflow-hardening task graph
 - [tasks-v1.md](./tasks-v1.md): v1 implementation history and roadmap context
+- [refactor-v11.md](./refactor-v11.md): planned post-v11 confidence-surface
+  refactor roadmap for recommendation, knowledge, branch-search, handoff, CLI,
+  frontend, recovery, and projection boundaries
+- [refactor-v10.md](./refactor-v10.md): completed second-order v10 refactor
+  roadmap and closeout guardrails
 - [refactor-v8.md](./refactor-v8.md): completed post-v8 refactor roadmap and
   closeout guardrails
 - [refactor-v1.md](./refactor-v1.md): architecture-first refactor roadmap and

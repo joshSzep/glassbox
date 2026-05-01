@@ -1,6 +1,6 @@
 # Glassbox Refactor Boundaries
 
-For the docs hub and operator guides, start at [README.md](./README.md). This note defines the target architectural boundaries for the v1 refactor roadmap in [refactor-v1.md](./refactor-v1.md), the post-v8 follow-on roadmap in [refactor-v8.md](./refactor-v8.md), and the second-order v10 roadmap in [refactor-v10.md](./refactor-v10.md).
+For the docs hub and operator guides, start at [README.md](./README.md). This note defines the target architectural boundaries for the v1 refactor roadmap in [refactor-v1.md](./refactor-v1.md), the post-v8 follow-on roadmap in [refactor-v8.md](./refactor-v8.md), the second-order v10 roadmap in [refactor-v10.md](./refactor-v10.md), and the planned post-v11 confidence-surface roadmap in [refactor-v11.md](./refactor-v11.md).
 
 ## Purpose
 
@@ -10,7 +10,7 @@ It exists to answer one question before code moves begin:
 
 What are the intended module boundaries for the current Glassbox implementation, and what kinds of changes are explicitly out of scope for the first refactor pass?
 
-This note is intentionally code-aligned. It describes the current implementation shape and the target decomposition boundaries for refactor work already captured in [refactor-v1.md](./refactor-v1.md), [refactor-v8.md](./refactor-v8.md), and [refactor-v10.md](./refactor-v10.md). It does not define a new product architecture.
+This note is intentionally code-aligned. It describes the current implementation shape and the target decomposition boundaries for refactor work already captured in [refactor-v1.md](./refactor-v1.md), [refactor-v8.md](./refactor-v8.md), [refactor-v10.md](./refactor-v10.md), and [refactor-v11.md](./refactor-v11.md). It does not define a new product architecture.
 
 ## Implementation Status
 
@@ -30,6 +30,13 @@ The v10 second-order boundary map is implemented through Phase 64 of
 decomposition decisions; it identified the modules that grew after those splits
 and moved behavior-preserving ownership into focused frontend, web, runtime,
 provider, tool-policy, SQLite schema, and core-domain strategy boundaries.
+
+The v11 confidence-surface refactor map is planned in
+[refactor-v11.md](./refactor-v11.md). It starts from the completed v11 release
+candidate and targets the recommendation, knowledge posture, branch-search
+decision support, handoff, CLI guidance, frontend evidence, recovery, and
+projection modules that accumulated richer derivation and formatting behavior
+during the confidence-and-adoption milestone.
 
 ## Scope
 
@@ -55,6 +62,10 @@ The non-goals are:
 - change task-autonomy, verification, compare, provider, tool-policy, HTTP,
   projection, or core event/model behavior while performing v10 refactor-only
   movement
+- add new verification recommendation rules, knowledge sources, provider
+  checks, branch-search actions, handoff package fields, release-gate stages,
+  command semantics, dashboard workflows, or projection schemas while
+  performing v11 confidence-surface refactor-only movement
 
 ## Behavior-Preservation Contract
 
@@ -158,10 +169,64 @@ facades:
   until a domain expansion would otherwise make event registration, review, or
   ownership unsafe.
 
+The v11 pressure points are confidence-surface modules that grew during the
+release-candidate work. They are not broken because they are large; they are
+targets because derivation, ranking, formatting, command guidance, and
+packaging concerns now sit next to one another:
+
+- `src/glassbox/runtime/eval_recommendation_output.py` mixes daily-development
+  surfaces, long-run surfaces, release-gate recipe rendering, executable plan
+  shaping, skipped-check explanations, JSON model construction, and terminal
+  formatting.
+- `src/glassbox/runtime/eval_recommendation_engine.py` mixes path matching,
+  owner/capability/stage expansion, release-gate command recommendation, and
+  fallback/manual guidance.
+- `scripts/validate_v11_release_gate.py` remains the operator entrypoint, but
+  stage-summary shaping, advisory provider rows, dry-run planning, and retained
+  evidence summaries should become testable helper concerns.
+- `src/glassbox/runtime/knowledge_posture.py` mixes source-specific cue
+  collection, aggregate freshness/ranking decisions, provenance references,
+  safe inspection commands, and observability-facing summaries.
+- `src/glassbox/runtime/branch_decision_support.py` mixes candidate evidence,
+  changed-file posture, verification recommendations, cost, risk,
+  accepted-risk, and follow-up-action derivation.
+- `src/glassbox/runtime/session_export.py` mixes package assembly, artifact
+  manifest shaping, handoff summary generation, lineage/knowledge/checkpoint
+  evidence, safe command guidance, and redaction.
+- `src/glassbox/runtime/session_import.py` mixes package validation,
+  inspection-only session creation, imported transcript/runtime notes, and
+  handoff-note construction.
+- `src/glassbox/services/contracts.py` is model/protocol-heavy and acceptable
+  today, but should split only along stable domain contracts if export,
+  background-job, memory, task, branch-search, and session protocols keep
+  growing together.
+- `src/glassbox/cli/status_formatters.py` and
+  `src/glassbox/cli/command_guide.py` own terminal and JSON presentation, but
+  should not duplicate runtime-derived safe-command or evidence posture logic.
+- `src/glassbox/cli/interactive_commands.py` and
+  `src/glassbox/cli/parser_sessions.py` mix launch, daemon forwarding, local
+  actions, autonomy option resolution, and parser wiring.
+- `frontend/components/console/knowledge-autonomy-sections.tsx` and
+  `frontend/components/console/branch-search-sections.tsx` now render dense
+  v11 evidence and should split into summary, detail, evidence, formatting, and
+  action-control modules while preserving their entrypoint exports.
+- `frontend/stores/session-store.ts` mixes stream lifecycle, detail pagination,
+  drafts, and action mutations behind one store factory.
+- `src/glassbox/runtime/tool_attempt_recovery.py`,
+  `context_compaction_service.py`, `turn_event_recorder.py`, and
+  `turn_tool_executor.py` now carry richer recovery, freshness, artifact,
+  replay, and heartbeat shaping that should be separated by event/side-effect
+  concern.
+- `src/glassbox/store/sqlite_projection_tasks.py` and
+  `src/glassbox/store/sqlite_background_jobs.py` are rebuildable and coherent,
+  but should move high-pressure event-family handlers into focused helpers if
+  v11 follow-on changes add more task or background-job projection cues.
+
 Large files that are primarily model-heavy and should not be split just for
 line count include core event/model/type modules, generated frontend API types,
-and facade modules whose public contract is intentionally broad but already
-delegates behavior to owned implementation modules. Large files that are mixed
+generated OpenAPI JSON, fixture bundles, release evidence artifacts, and facade
+modules whose public contract is intentionally broad but already delegates
+behavior to owned implementation modules. Large files that are mixed
 coordinators should be split along ownership boundaries when their roadmap task
 arrives, not by mechanical line slicing.
 
@@ -284,6 +349,51 @@ The `runtime` package should not become a catch-all for transport formatting, ra
 - Provider modules should not hide global evidence reads inside scoring helpers
   or let observability formatting leak into canary execution.
 
+#### V11 Confidence Runtime Sub-Boundaries
+
+- Eval recommendation output should keep a stable public facade while focused
+  helpers own daily-development surface derivation, long-run surface
+  derivation, verification plan/skipped-check construction, recipe and
+  release-gate command grouping, and terminal formatting. JSON payload models
+  remain behavior-compatible with existing CLI and eval tests.
+- Eval recommendation engine orchestration should delegate path-impact
+  matching, owner/capability expansion, profile/stage expansion, release-gate
+  command recommendation, and fallback/manual-guidance labeling to focused
+  helpers. Live-provider canary guidance remains advisory and opt-in.
+- Knowledge posture should derive only from canonical events, projection rows,
+  retained artifacts/evidence, repository index data, checkpoint/compaction
+  state, provider evidence, and active session records. Source collectors,
+  aggregate ranking, provenance references, and safe inspection command
+  guidance should be independent helpers; no new durable knowledge store is
+  introduced by refactor-only work.
+- Branch decision support should keep branch search non-mutating. Candidate
+  retained evidence extraction, changed-file and missing-diff posture,
+  verification recommendation delegation, cost estimates, risk/accepted-risk
+  posture, and follow-up actions should be separate helpers over persisted
+  branch-search/session/evidence records.
+- Session export should keep package JSON and import compatibility stable while
+  package metadata/event/projection collection, artifact manifests, handoff
+  summary assembly, and deterministic redaction move into owned helpers.
+  Handoff summaries may mention objective, checkpoint, compaction,
+  verification, accepted risks, pending actions, lineage, knowledge posture,
+  and safe commands, but must not expose secrets or make imported packages
+  resumable.
+- Session import should validate packages separately from inspection-only
+  session creation, transcript/runtime-note import, and handoff-note
+  construction. Older packages remain readable, and imported sessions remain
+  inspection state rather than invented live evidence.
+- Tool-attempt recovery should separate inspection posture, retry eligibility,
+  abandon eligibility/event construction, artifact lookup/read, and CLI/API
+  result models. It should never rerun a tool without explicit operator
+  confirmation.
+- Context compaction service helpers should separate source-range planning,
+  over-cap guidance, artifact payload assembly, freshness assessment, refresh,
+  and invalidation. Compaction artifacts remain evidence and must not become
+  prompt-authoritative cleanup.
+- Turn event recorder and tool executor should keep event ordering stable while
+  artifact recording, replay capture hooks, task-plan capture linkage, and
+  tool-attempt heartbeat construction move into focused helpers.
+
 ### Store
 
 The `store` package should own canonical persistence and projection application.
@@ -347,6 +457,21 @@ The `store` package should not own runtime orchestration, CLI formatting, or web
   state, and they must not change table names, column names, indexes, or schema
   version during pure movement.
 
+#### V11 Projection Sub-Boundaries
+
+- Task projection application should remain rebuildable from canonical task,
+  task-step, pause/resume, budget, and verification events. If handlers split,
+  task plan, step, pause/resume, and verification projection helpers should sit
+  below repository adapters and preserve coordinator imports.
+- Background-job projection application should remain rebuildable from canonical
+  job creation, lifecycle, retry, pause/cancel, progress, and recovery events.
+  Creation, lifecycle, retry, pause/cancel, and recovery handler helpers may
+  split only if table shape, migration order, and rebuild outcomes stay
+  unchanged.
+- Projection helper extraction should not introduce abstract projection
+  frameworks, dynamic handler discovery, runtime service imports, HTTP models,
+  CLI formatters, or frontend state.
+
 ### Services
 
 The `services` package should remain the narrow contract layer between orchestration code and concrete persistence or runtime implementations.
@@ -358,6 +483,19 @@ Its stable responsibilities are:
 - shared contract surfaces consumed by CLI, runtime, and web wiring
 
 The `services` package should not accumulate concrete behavior merely to avoid imports.
+
+#### V11 Service Contract Strategy
+
+- `services/contracts.py` may remain broad while it is mostly protocol and
+  model declarations. It should not split for line count alone.
+- Future contract splits should follow stable domains: session repository,
+  artifact repository, background jobs, workspace memory, tasks, branch search,
+  and session service.
+- `glassbox.services` and `glassbox.services.contracts` should remain stable
+  public import surfaces through compatibility re-exports if domain contract
+  modules are introduced.
+- Contract modules must stay free of concrete store, runtime, CLI, web,
+  frontend, and script imports.
 
 ### CLI
 
@@ -383,6 +521,20 @@ The `cli` package should not build its own parallel session-query logic when the
 - workflow-family command handlers now live in `cli/interactive_commands.py`, `session_state_commands.py`, `replay_eval_commands.py`, and `server_commands.py`, with shared path resolution in `cli/path_helpers.py` and direct imports from their owning CLI modules
 - long-lived terminal prompt routing, blocked-state messaging, prompt redraw context, and attach-session gating now live in `cli/interactive_session.py`, which owns the interactive input seams directly
 - status/runtime-context rendering now lives in `cli/status_formatters.py`, replay/eval report rendering and replay JSON/exit-code helpers live in `cli/replay_eval_formatters.py`, and CLI internals no longer route through `cli/__init__.py` for those helpers
+
+#### V11 CLI Operator-Surface Sub-Boundaries
+
+- Status formatting should split by operator surface when it changes: session
+  status, task status, observability status, policy evidence, and knowledge
+  posture. CLI modules own copy and terminal layout; runtime helpers own
+  transport-agnostic evidence and safe-command derivation.
+- Command-guide behavior should separate command metadata, workflow grouping,
+  JSON serialization, and terminal rendering. It remains aligned with the real
+  parser and must not become a second parser definition source.
+- Interactive session commands should separate chat/run/attach launch,
+  daemon-forwarded actions, local session actions, autonomy option resolution,
+  and parser wiring while preserving daemon-owner safety checks, plain-mode
+  compatibility, exit codes, and current command options.
 
 #### Post-v8 TUI Sub-Boundaries
 
@@ -509,6 +661,24 @@ the Next.js SPA contract in [architecture.md](./architecture.md) and
   duplicate backend event derivation rules that already exist in runtime/store
   read models
 
+#### V11 Frontend Confidence-Surface Sub-Boundaries
+
+- Knowledge autonomy sections should split into summary, memory cue list,
+  repository-index posture, provenance drilldown, action controls, and pure
+  formatting helpers. They consume typed API/store state and must not recreate
+  backend knowledge ranking in React components.
+- Branch-search sections should split into candidate list, candidate decision
+  card, evidence details, verification recommendation, action controls, and
+  pure risk/cost/provenance formatting helpers. Branch-search UI remains
+  non-mutating unless it calls an existing explicit action.
+- Existing `knowledge-autonomy-sections.tsx` and
+  `branch-search-sections.tsx` entrypoints may remain compatibility facades
+  while owned section families are introduced.
+- `frontend/stores/session-store.ts` should keep `createSessionStore` stable
+  while stream lifecycle, detail pagination, local drafts, and action mutations
+  move into store-owned helpers. Store helpers may import API/SSE utilities and
+  pure state reducers, but not React components or backend source.
+
 ### Replay And Eval
 
 Replay and eval logic lives in `runtime`, but it should maintain its own internal boundaries.
@@ -529,6 +699,13 @@ Its internal ownership should stay explicit:
 - the replay runner split now keeps `src/glassbox/runtime/replay.py` as the stable facade while moving bundle loading and export to `replay_bundle_io.py`, execution coordination and failure mapping to `replay_orchestrator.py`, isolated deterministic execution to `replay_execution.py`, normalized-state comparison to `replay_compare.py`, and outcome classification to `replay_triage.py`
 - eval-suite input discovery and output-directory selection now live in `src/glassbox/runtime/eval_inputs.py` so suite execution, summary loading, and CLI report flows share one typed input boundary
 - the eval reporting split now keeps `src/glassbox/runtime/eval_summary.py` as the stable facade while moving suite payload and job-summary construction to `eval_summary_suite.py`, release-signoff aggregation to `eval_summary_release.py`, annotation helpers to `eval_summary_annotations.py`, and shared report models to `eval_summary_models.py`
+- v11 recommendation helpers should keep recommendation behavior stable while
+  making surface rows, long-run rows, execution plans, recipes, release-gate
+  command grouping, and terminal formatting separately reviewable
+- v11 release-gate helpers should keep `scripts/validate_v11_release_gate.py`
+  as the standalone operator command while making stage summaries, advisory
+  provider evidence, retained evidence rendering, and dry-run planning testable
+  without executing the full gate
 
 The replay and eval stack should not maintain a bespoke copy of live model-loop behavior when a shared execution boundary can serve both paths.
 
@@ -652,6 +829,16 @@ The practical rules are:
   CLI formatters, store implementations, or frontend modules
 - SQLite schema domain helpers must stay below runtime and transport layers and
   must not perform dynamic discovery that hides migration order
+- v11 confidence helpers should keep derivation below presentation: runtime
+  modules may derive knowledge, branch-search, verification, handoff, recovery,
+  and compaction posture, while CLI/web/frontend modules render or serialize it
+  without duplicating the underlying rules
+- v11 release-gate helper modules used by scripts may depend on runtime eval
+  models and standard library filesystem/process helpers, but should not import
+  CLI renderers, web routes, frontend code, or concrete dashboard state
+- session export/import redaction helpers must not depend on CLI, web,
+  frontend, or raw `.glassbox` filesystem layout beyond explicit package input
+  paths
 
 ## Boundary Guardrails
 
@@ -682,6 +869,11 @@ The guardrails are intentionally narrow:
   verification cue derivation, compare analysis, workspace-console routing,
   runtime task query helpers, provider canary/recommendation helpers,
   tool-policy helpers, and SQLite schema helpers
+- v11 guardrails should extend the same narrow approach to confidence surfaces:
+  keep public facades thin after helper extraction, block runtime helpers from
+  importing CLI/web/frontend presentation code, block frontend section helpers
+  from importing stores or backend source where they should be pure, and give
+  every failure message a concrete destination module
 
 If a guardrail fails, the default repair should be to move new behavior into the owning split module or add one focused neighbor module, not to widen a facade or cross a subsystem boundary.
 
@@ -708,6 +900,18 @@ shape:
   `store/sqlite_schema.py` may keep compatibility exports, explicit registries,
   or thin wrappers only when existing imports, route declarations, or migration
   ordering require a stable transition path
+- v11 compatibility facades may include `eval_recommendation_output.py`,
+  `eval_recommendation_engine.py`, `knowledge_posture.py`,
+  `branch_decision_support.py`, `session_export.py`, `session_import.py`,
+  `services/contracts.py`, `cli/status_formatters.py`,
+  `cli/command_guide.py`, `cli/interactive_commands.py`,
+  `cli/parser_sessions.py`, `frontend/components/console/knowledge-autonomy-sections.tsx`,
+  `frontend/components/console/branch-search-sections.tsx`,
+  `frontend/stores/session-store.ts`, `tool_attempt_recovery.py`,
+  `context_compaction_service.py`, `turn_event_recorder.py`,
+  `turn_tool_executor.py`, `sqlite_projection_tasks.py`, and
+  `sqlite_background_jobs.py` while existing commands, imports, routes, tests,
+  and component entrypoints transition to focused helpers
 
 These facades are acceptable only while they stay thin, reviewable, and oriented
 around stable public imports. New behavior should move into the owning domain
@@ -801,6 +1005,12 @@ The intended mapping is:
   domains, and core event/model expansion
 - `GBX-R301`: v10 guardrails for the second-order pressure points before bulk
   movement begins
+- `GBX-R400`: v11 confidence-surface boundary map for recommendation output,
+  knowledge posture, branch-search decision support, handoff/export, CLI
+  guidance, frontend evidence sections, recovery helpers, and projection
+  cleanup
+- `GBX-R401`: planned v11 guardrails for the post-v11 pressure points before
+  bulk movement begins
 
 Later tasks should follow this boundary map rather than redefining subsystem ownership case by case.
 
