@@ -148,6 +148,10 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert "sdist missing required file: evals/profiles.json" in problems
     assert "sdist missing required file: evals/recipes.json" in problems
     assert (
+        "sdist missing required file: evals/fixtures/recommendation_cases.json"
+        in problems
+    )
+    assert (
         "sdist missing required file: evals/cases/long-run.recovery-boundaries.json"
         in problems
     )
@@ -373,6 +377,7 @@ def _write_sdist(
                 "evals/coverage.json",
                 "evals/impact.json",
                 "evals/recipes.json",
+                "evals/fixtures/recommendation_cases.json",
                 "evals/cases/autonomy.budget-exhaustion.json",
                 "evals/cases/branch-search.candidate-comparison.json",
                 "evals/cases/context.compaction-provenance.json",

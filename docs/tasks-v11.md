@@ -516,7 +516,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1122: Promote Stable v11 Recommendation Cases Into Release Evidence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1121`
 - Goal: make verification recommendation behavior itself part of the release
   contract

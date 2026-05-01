@@ -2,12 +2,15 @@
 
 import json
 from pathlib import Path
+from typing import Any
 
 from glassbox.runtime.eval_recommendations import recommend_eval_change_impact
 from glassbox.runtime.eval_verification import build_eval_verification_plan
 from glassbox.runtime.eval_verification_recipes import (
     load_eval_verification_recipe_manifest,
 )
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _write_bundle(tmp_path: Path, case_id: str) -> None:
@@ -701,3 +704,56 @@ def test_recommend_eval_change_impact_includes_matching_recipes(
         "pnpm --dir frontend lint",
         "pnpm --dir frontend test",
     ]
+
+
+def test_repository_recommendation_fixture_cases_stay_stable() -> None:
+    fixture_path = _REPO_ROOT / "evals" / "fixtures" / "recommendation_cases.json"
+    fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+
+    assert fixture["manifest_version"] == 1
+    for case in fixture["cases"]:
+        _assert_recommendation_fixture_case(case)
+
+
+def _assert_recommendation_fixture_case(case: dict[str, Any]) -> None:
+    report = recommend_eval_change_impact(
+        _REPO_ROOT,
+        touched_paths=case["touched_paths"],
+    )
+    release_gate_commands = [
+        command
+        for surface in report.release_surfaces
+        for command in surface.release_gate_commands
+    ]
+    warning_text = "\n".join(report.warnings)
+
+    assert _contains_all(
+        [recommendation.case_id for recommendation in report.cases],
+        case.get("expected_case_ids", []),
+    ), case["case_id"]
+    assert _contains_all(
+        [recommendation.profile_id for recommendation in report.profiles],
+        case.get("expected_profile_ids", []),
+    ), case["case_id"]
+    assert _contains_all(
+        [recipe.recipe_id for recipe in report.recipes],
+        case.get("expected_recipe_ids", []),
+    ), case["case_id"]
+    assert _contains_all(
+        [group.group for group in report.reason_groups],
+        case.get("expected_reason_groups", []),
+    ), case["case_id"]
+    assert _contains_all(
+        release_gate_commands,
+        case.get("expected_release_gate_commands", []),
+    ), case["case_id"]
+    assert _contains_all(
+        report.fallback_policy_commands,
+        case.get("expected_fallback_policy_commands", []),
+    ), case["case_id"]
+    for warning_fragment in case.get("expected_warning_fragments", []):
+        assert warning_fragment in warning_text, case["case_id"]
+
+
+def _contains_all(actual: list[str], expected: list[str]) -> bool:
+    return all(value in actual for value in expected)

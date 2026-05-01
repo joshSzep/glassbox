@@ -1,0 +1,59 @@
+{
+    "manifest_version": 1,
+    "cases": [
+        {
+            "case_id": "recommendation.release-path",
+            "title": "Release path recommendation explains eval profile and full gate",
+            "touched_paths": [
+                "scripts/validate_v10_release_gate.py",
+                "docs/v10-release-candidate.md"
+            ],
+            "expected_profile_ids": ["release-candidate"],
+            "expected_reason_groups": [
+                "direct-path",
+                "release-gate-recommendation"
+            ],
+            "expected_release_gate_commands": [
+                "uv run python scripts/validate_v10_release_gate.py --cwd ."
+            ],
+            "expected_recipe_ids": [
+                "release-docs",
+                "release-gate-scripts"
+            ]
+        },
+        {
+            "case_id": "recommendation.frontend-path",
+            "title": "Frontend dashboard path recommendation includes dashboard recipes",
+            "touched_paths": [
+                "frontend/components/console/workspace-overview.tsx"
+            ],
+            "expected_case_ids": [
+                "dashboard.action-approval",
+                "dashboard.action-answer"
+            ],
+            "expected_recipe_ids": ["frontend-dashboard"]
+        },
+        {
+            "case_id": "recommendation.provider-path",
+            "title": "Provider posture path recommendation keeps live canary advisory",
+            "touched_paths": ["docs/providers.md"],
+            "expected_profile_ids": ["live-provider-canary"],
+            "expected_recipe_ids": ["docs-only", "provider-posture"]
+        },
+        {
+            "case_id": "recommendation.no-confident-match",
+            "title": "Unmapped runtime path uses manual-policy fallback",
+            "touched_paths": [
+                "src/glassbox/runtime/unmapped_recommendation_probe.py"
+            ],
+            "expected_profile_ids": ["commit-smoke"],
+            "expected_reason_groups": ["fallback-policy"],
+            "expected_fallback_policy_commands": [
+                "uv run glassbox eval run --profile commit-smoke --cwd ."
+            ],
+            "expected_warning_fragments": [
+                "manual policy guidance"
+            ]
+        }
+    ]
+}

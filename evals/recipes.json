@@ -6,6 +6,7 @@
             "title": "Docs-only contributor checks",
             "path_globs": [
                 "README.md",
+                "docs/*.md",
                 "docs/**/*.md"
             ],
             "commands": [

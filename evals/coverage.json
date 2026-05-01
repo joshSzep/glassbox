@@ -284,6 +284,16 @@
       "expected_case_ids": ["long-run.cockpit-summary"],
       "coverage_mode": "single_case",
       "notes": "GBX-1090 records progress, budget, checkpoint, and recovery posture that the cockpit is expected to summarize."
+    },
+    {
+      "capability_id": "verification_recommendation_explainability",
+      "title": "Verification recommendation explainability",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": [],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1122 protects the stable v11 recommendation behavior through focused deterministic fixtures in evals/fixtures/recommendation_cases.json and tests/unit/test_eval_recommendations.py. These fixtures cover release-path, frontend-path, provider-path, and no-confident-match fallback recommendations until compact replay cases are promoted."
     }
   ]
 }

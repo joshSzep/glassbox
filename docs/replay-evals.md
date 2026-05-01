@@ -210,6 +210,14 @@ provider posture, and packaging. Recipe commands are shown as guidance only;
 `eval recommend --execute` still executes only planned deterministic eval cases
 or profiles, never arbitrary recipe commands.
 
+The stable v11 recommendation contract has focused deterministic fixtures in
+`evals/fixtures/recommendation_cases.json`. Those fixtures currently cover
+release-path recommendation, frontend dashboard recommendation, provider-posture
+recommendation, and the no-confident-match fallback path. They are exercised by
+`tests/unit/test_eval_recommendations.py` and tracked in `evals/coverage.json`
+under `verification_recommendation_explainability` until compact replay cases
+are worth promoting into a deterministic eval profile.
+
 `eval recommend` also prints a compact daily-development release-surface view for
 `commit-time`, `push-time`, `release-candidate`, and `advisory`. Each row shows
 whether that surface is impacted, which profiles and cases are recommended,
