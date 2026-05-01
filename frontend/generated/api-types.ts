@@ -1482,6 +1482,39 @@ export interface components {
       /** Status */
       status: string;
     };
+    /** BranchCandidateDecisionSupportResponse */
+    BranchCandidateDecisionSupportResponse: {
+      /** Accepted Risks */
+      accepted_risks?: string[];
+      /** Candidate Id */
+      candidate_id: string;
+      /** Candidate Session Id */
+      candidate_session_id?: string | null;
+      /** Changed Files */
+      changed_files?: string[];
+      /** Changed Files Summary */
+      changed_files_summary: string;
+      /** Cost Estimate */
+      cost_estimate: string;
+      /** Evidence */
+      evidence?: components["schemas"]["BranchDecisionEvidenceResponse"][];
+      /** Objective */
+      objective: string;
+      /** Recommended Follow Up Action */
+      recommended_follow_up_action: string;
+      /** Risk Posture */
+      risk_posture: string;
+      /** Search Id */
+      search_id: string;
+      /** Selection State */
+      selection_state?: string | null;
+      /** Status */
+      status: string;
+      /** Strategy Label */
+      strategy_label: string;
+      /** Verification Posture */
+      verification_posture: string;
+    };
     /** BranchCandidateResponse */
     BranchCandidateResponse: {
       /** Artifact Id */
@@ -1527,10 +1560,39 @@ export interface components {
       /** Verification Summary */
       verification_summary?: string | null;
     };
+    /** BranchDecisionEvidenceResponse */
+    BranchDecisionEvidenceResponse: {
+      /** Artifact Id */
+      artifact_id?: string | null;
+      /** Kind */
+      kind: string;
+      /** Session Id */
+      session_id?: string | null;
+      /** Summary */
+      summary: string;
+      /** Verification Id */
+      verification_id?: string | null;
+    };
+    /** BranchSearchDecisionSupportResponse */
+    BranchSearchDecisionSupportResponse: {
+      /** Automatic Merge */
+      automatic_merge: boolean;
+      /** Candidates */
+      candidates: components["schemas"]["BranchCandidateDecisionSupportResponse"][];
+      /** Non Goal */
+      non_goal: string;
+      /** Objective */
+      objective: string;
+      /** Search Id */
+      search_id: string;
+      /** Selected Candidate Id */
+      selected_candidate_id?: string | null;
+    };
     /** BranchSearchDetailResponse */
     BranchSearchDetailResponse: {
       /** Candidates */
       candidates: components["schemas"]["BranchCandidateResponse"][];
+      decision_support: components["schemas"]["BranchSearchDecisionSupportResponse"];
       search: components["schemas"]["BranchSearchSummaryResponse"];
     };
     /** BranchSearchListPageResponse */

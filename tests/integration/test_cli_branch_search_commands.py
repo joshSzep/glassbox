@@ -58,6 +58,11 @@ def test_branch_search_list_and_show_commands(tmp_path: Path, capsys) -> None:
     assert payload["search"]["search_id"] == str(search_id)
     assert payload["candidates"][0]["candidate_id"] == str(candidate_id)
     assert payload["candidates"][0]["verification_status"] == "passed"
+    assert payload["decision_support"]["automatic_merge"] is False
+    assert (
+        payload["decision_support"]["candidates"][0]["recommended_follow_up_action"]
+        == "Candidate is eligible for operator review and explicit selection."
+    )
 
 
 def test_branch_search_start_records_bounded_plan(
@@ -154,6 +159,13 @@ def test_branch_search_select_reject_and_needs_review_are_projected(
     assert states[str(selected_id)] == "selected"
     assert states[str(rejected_id)] == "rejected"
     assert states[str(review_id)] == "needs_review"
+    support_by_id = {
+        candidate["candidate_id"]: candidate
+        for candidate in payload["decision_support"]["candidates"]
+    }
+    assert support_by_id[str(selected_id)]["risk_posture"] == "strong"
+    assert support_by_id[str(rejected_id)]["risk_posture"] == "blocked"
+    assert support_by_id[str(review_id)]["risk_posture"] == "review"
 
 
 def _seed_session(db_path: Path, tmp_path: Path, session_id) -> None:

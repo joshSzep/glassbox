@@ -31,6 +31,9 @@ import type {
 } from "@/stores/dashboard-stores";
 
 type Candidate = NonNullable<BranchSearchDetailState["detail"]>["candidates"][number];
+type CandidateDecisionSupport = NonNullable<
+  BranchSearchDetailState["detail"]
+>["decision_support"]["candidates"][number];
 
 export function BranchSearchList({
   detail,
@@ -130,6 +133,7 @@ export function BranchSearchDetail({
   }
 
   const selectedCandidate = selectedCandidateFor(detail.detail.candidates);
+  const decisionSupportCandidates = detail.detail.decision_support?.candidates ?? [];
   return (
     <section className="grid min-w-0 gap-4">
       <section className="rounded-md border border-border/80 bg-card p-4 shadow-sm">
@@ -161,10 +165,14 @@ export function BranchSearchDetail({
       <CandidateTable
         action={action}
         candidates={detail.detail.candidates}
+        decisionSupportCandidates={decisionSupportCandidates}
         onMarkCandidate={onMarkCandidate}
         searchId={detail.detail.search.search_id}
       />
-      <CandidateEvidence candidates={detail.detail.candidates} />
+      <CandidateEvidence
+        candidates={detail.detail.candidates}
+        decisionSupportCandidates={decisionSupportCandidates}
+      />
     </section>
   );
 }
@@ -172,11 +180,13 @@ export function BranchSearchDetail({
 function CandidateTable({
   action,
   candidates,
+  decisionSupportCandidates,
   onMarkCandidate,
   searchId,
 }: {
   action: BranchSearchActionStatus;
   candidates: Candidate[];
+  decisionSupportCandidates: CandidateDecisionSupport[];
   onMarkCandidate?: (input: {
     action: "needs-review" | "reject" | "select";
     candidateId: string;
@@ -192,68 +202,81 @@ function CandidateTable({
             <TableHead>Strategy</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Verification</TableHead>
-            <TableHead>Evidence</TableHead>
+            <TableHead>Decision</TableHead>
             <TableHead>Review</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {candidates.map((candidate) => (
-            <TableRow key={candidate.candidate_id}>
-              <TableCell>
-                <span className="font-medium">{candidate.strategy_label}</span>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {candidate.patch_summary ?? "No structured patch summary retained."}
-                </p>
-              </TableCell>
-              <TableCell>
-                <Badge variant={candidateStatusVariant(candidate.status)}>
-                  {candidate.selection_state ?? candidate.status}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <Badge variant={verificationVariant(candidate.verification_status)}>
-                  {candidate.verification_status}
-                </Badge>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {candidate.verification_summary ?? "No verification summary retained."}
-                </p>
-              </TableCell>
-              <TableCell className="text-xs text-muted-foreground">
-                <CandidateLinks candidate={candidate} />
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-wrap gap-2">
-                  <CandidateActionButton
-                    action="select"
-                    candidate={candidate}
-                    disabled={action.state === "pending"}
-                    icon={<ShieldCheck className={operatorIconSizeClass} aria-hidden="true" />}
-                    label="Select"
-                    onMarkCandidate={onMarkCandidate}
-                    searchId={searchId}
-                  />
-                  <CandidateActionButton
-                    action="needs-review"
-                    candidate={candidate}
-                    disabled={action.state === "pending"}
-                    icon={<FileSearch className={operatorIconSizeClass} aria-hidden="true" />}
-                    label="Review"
-                    onMarkCandidate={onMarkCandidate}
-                    searchId={searchId}
-                  />
-                  <CandidateActionButton
-                    action="reject"
-                    candidate={candidate}
-                    disabled={action.state === "pending"}
-                    icon={<XCircle className={operatorIconSizeClass} aria-hidden="true" />}
-                    label="Reject"
-                    onMarkCandidate={onMarkCandidate}
-                    searchId={searchId}
-                  />
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+          {candidates.map((candidate) => {
+            const support = decisionSupportFor(candidate, decisionSupportCandidates);
+            return (
+              <TableRow key={candidate.candidate_id}>
+                <TableCell>
+                  <span className="font-medium">{candidate.strategy_label}</span>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {candidate.patch_summary ?? "No structured patch summary retained."}
+                  </p>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={candidateStatusVariant(candidate.status)}>
+                    {candidate.selection_state ?? candidate.status}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={verificationVariant(candidate.verification_status)}>
+                    {support?.verification_posture ?? candidate.verification_status}
+                  </Badge>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {candidate.verification_summary ?? "No verification summary retained."}
+                  </p>
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {support != null ? (
+                    <div className="grid gap-1">
+                      <span>
+                        Risk {support.risk_posture} · Cost {support.cost_estimate}
+                      </span>
+                      <span>{support.recommended_follow_up_action}</span>
+                      <CandidateLinks candidate={candidate} />
+                    </div>
+                  ) : (
+                    <CandidateLinks candidate={candidate} />
+                  )}
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-2">
+                    <CandidateActionButton
+                      action="select"
+                      candidate={candidate}
+                      disabled={action.state === "pending"}
+                      icon={<ShieldCheck className={operatorIconSizeClass} aria-hidden="true" />}
+                      label="Select"
+                      onMarkCandidate={onMarkCandidate}
+                      searchId={searchId}
+                    />
+                    <CandidateActionButton
+                      action="needs-review"
+                      candidate={candidate}
+                      disabled={action.state === "pending"}
+                      icon={<FileSearch className={operatorIconSizeClass} aria-hidden="true" />}
+                      label="Review"
+                      onMarkCandidate={onMarkCandidate}
+                      searchId={searchId}
+                    />
+                    <CandidateActionButton
+                      action="reject"
+                      candidate={candidate}
+                      disabled={action.state === "pending"}
+                      icon={<XCircle className={operatorIconSizeClass} aria-hidden="true" />}
+                      label="Reject"
+                      onMarkCandidate={onMarkCandidate}
+                      searchId={searchId}
+                    />
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </section>
@@ -326,47 +349,72 @@ function CandidateLinks({ candidate }: { candidate: Candidate }) {
   return <span className="flex flex-col gap-1">{links}</span>;
 }
 
-function CandidateEvidence({ candidates }: { candidates: Candidate[] }) {
+function CandidateEvidence({
+  candidates,
+  decisionSupportCandidates,
+}: {
+  candidates: Candidate[];
+  decisionSupportCandidates: CandidateDecisionSupport[];
+}) {
   return (
     <section className="grid gap-4 lg:grid-cols-3">
-      {candidates.map((candidate) => (
-        <section
-          className="rounded-md border border-border/80 bg-card p-4 shadow-sm"
-          key={candidate.candidate_id}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <h3 className="text-sm font-semibold tracking-normal">{candidate.strategy_label}</h3>
-            <Badge variant={verificationVariant(candidate.verification_status)}>
-              {candidate.verification_status}
-            </Badge>
-          </div>
-          <DataList className="mt-3" density="compact">
-            <DataListItem>
-              <DataListLabel>Changed files</DataListLabel>
-              <DataListMeta>
-                {(candidate.changed_files ?? []).length > 0
-                  ? (candidate.changed_files ?? []).join(", ")
-                  : "No structured changed-file summary retained."}
-              </DataListMeta>
-            </DataListItem>
-            <DataListItem>
-              <DataListLabel>Policy and budget</DataListLabel>
-              <DataListMeta>
-                {candidate.policy_budget_summary ??
-                  "No candidate-specific policy or budget evidence retained."}
-              </DataListMeta>
-            </DataListItem>
-            <DataListItem>
-              <DataListLabel>Residual risks</DataListLabel>
-              <DataListMeta>
-                {(candidate.residual_risks ?? []).length > 0
-                  ? (candidate.residual_risks ?? []).join("; ")
-                  : "No residual risks recorded."}
-              </DataListMeta>
-            </DataListItem>
-          </DataList>
-        </section>
-      ))}
+      {candidates.map((candidate) => {
+        const support = decisionSupportFor(candidate, decisionSupportCandidates);
+        return (
+          <section
+            className="rounded-md border border-border/80 bg-card p-4 shadow-sm"
+            key={candidate.candidate_id}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="text-sm font-semibold tracking-normal">{candidate.strategy_label}</h3>
+              <Badge variant={verificationVariant(candidate.verification_status)}>
+                {support?.verification_posture ?? candidate.verification_status}
+              </Badge>
+            </div>
+            <DataList className="mt-3" density="compact">
+              <DataListItem>
+                <DataListLabel>Changed files</DataListLabel>
+                <DataListMeta>
+                  {support?.changed_files_summary ??
+                    ((candidate.changed_files ?? []).length > 0
+                      ? (candidate.changed_files ?? []).join(", ")
+                      : "No structured changed-file summary retained.")}
+                </DataListMeta>
+              </DataListItem>
+              <DataListItem>
+                <DataListLabel>Evidence</DataListLabel>
+                <DataListMeta>
+                  {support != null && (support.evidence ?? []).length > 0
+                    ? (support.evidence ?? []).map((item) => item.summary).join("; ")
+                    : "No retained decision evidence found."}
+                </DataListMeta>
+              </DataListItem>
+              <DataListItem>
+                <DataListLabel>Posture</DataListLabel>
+                <DataListMeta>
+                  {support != null
+                    ? `Risk ${support.risk_posture}; cost ${support.cost_estimate}.`
+                    : "No decision posture available."}
+                </DataListMeta>
+              </DataListItem>
+              <DataListItem>
+                <DataListLabel>Accepted risks</DataListLabel>
+                <DataListMeta>
+                  {support != null && (support.accepted_risks ?? []).length > 0
+                    ? (support.accepted_risks ?? []).join("; ")
+                    : "No accepted risks recorded."}
+                </DataListMeta>
+              </DataListItem>
+              <DataListItem>
+                <DataListLabel>Follow-up</DataListLabel>
+                <DataListMeta>
+                  {support?.recommended_follow_up_action ?? "Inspect candidate evidence."}
+                </DataListMeta>
+              </DataListItem>
+            </DataList>
+          </section>
+        );
+      })}
     </section>
   );
 }
@@ -398,6 +446,15 @@ function selectedCandidateFor(candidates: Candidate[]): Candidate | null {
   return candidates.find((candidate) => candidate.selection_state === "selected") ?? null;
 }
 
+function decisionSupportFor(
+  candidate: Candidate,
+  supportCandidates: CandidateDecisionSupport[],
+): CandidateDecisionSupport | null {
+  return (
+    supportCandidates.find((support) => support.candidate_id === candidate.candidate_id) ?? null
+  );
+}
+
 function candidateStatusVariant(status: string) {
   if (status === "selected" || status === "verified") {
     return "success" as const;
@@ -412,13 +469,18 @@ function candidateStatusVariant(status: string) {
 }
 
 function verificationVariant(status: string) {
-  if (status === "passed") {
+  if (status === "passed" || status === "strong") {
     return "success" as const;
   }
-  if (status === "failed" || status === "timed_out") {
+  if (status === "failed" || status === "timed_out" || status === "risky") {
     return "destructive" as const;
   }
-  if (status === "blocked" || status === "inconclusive" || status === "not_run") {
+  if (
+    status === "blocked" ||
+    status === "inconclusive" ||
+    status === "not_run" ||
+    status === "review"
+  ) {
     return "warning" as const;
   }
   return "muted" as const;

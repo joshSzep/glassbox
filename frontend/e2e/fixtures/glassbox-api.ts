@@ -20,6 +20,9 @@ type ActionRequest = {
 };
 
 type BranchCandidate = components["schemas"]["BranchCandidateResponse"];
+type BranchCandidateDecisionSupport =
+  components["schemas"]["BranchCandidateDecisionSupportResponse"];
+type BranchSearchDecisionSupport = components["schemas"]["BranchSearchDecisionSupportResponse"];
 type BranchSearchSummary = components["schemas"]["BranchSearchSummaryResponse"];
 type RepositoryEntry = components["schemas"]["RepositoryIndexEntryResponse"];
 type TaskDetail = components["schemas"]["TaskDetailResponse"];
@@ -166,6 +169,7 @@ async function installAutonomyConsoleRoutes(page: Page, state: GlassboxApiFixtur
   const repositoryEntry = makeRepositoryEntry("repo-entry-1");
   const branchSearch = makeBranchSearchSummary("search-1");
   const branchCandidate = makeBranchCandidate("candidate-1");
+  const branchDecisionSupport = makeBranchSearchDecisionSupport(branchSearch.search_id);
 
   await page.route("**/tasks**", async (route) => {
     const request = route.request();
@@ -323,7 +327,13 @@ async function installAutonomyConsoleRoutes(page: Page, state: GlassboxApiFixtur
       return;
     }
     if (path === `/branch-searches/${branchSearch.search_id}`) {
-      await route.fulfill({ json: { candidates: [branchCandidate], search: branchSearch } });
+      await route.fulfill({
+        json: {
+          candidates: [branchCandidate],
+          decision_support: branchDecisionSupport,
+          search: branchSearch,
+        },
+      });
       return;
     }
     await route.fulfill({ json: { detail: "not found" }, status: 404 });
@@ -615,6 +625,51 @@ function makeBranchCandidate(candidateId: string): BranchCandidate {
     verification_id: "verification-1",
     verification_status: "passed",
     verification_summary: "Targeted checks passed.",
+  };
+}
+
+function makeBranchCandidateDecisionSupport(candidateId: string): BranchCandidateDecisionSupport {
+  return {
+    accepted_risks: [],
+    candidate_id: candidateId,
+    candidate_session_id: defaultChildSessionId,
+    changed_files: [],
+    changed_files_summary:
+      "Changed-file evidence is not captured in current branch-search projections.",
+    cost_estimate: "low",
+    evidence: [
+      {
+        kind: "session",
+        session_id: defaultChildSessionId,
+        summary: "Candidate session is retained for inspection.",
+      },
+      {
+        kind: "verification",
+        summary: "Targeted checks passed.",
+        verification_id: "verification-1",
+      },
+    ],
+    objective: "Compare repair options",
+    recommended_follow_up_action:
+      "Candidate is eligible for operator review and explicit selection.",
+    risk_posture: "strong",
+    search_id: "search-1",
+    selection_state: null,
+    status: "verified",
+    strategy_label: "Try minimal fix",
+    verification_posture: "strong",
+  };
+}
+
+function makeBranchSearchDecisionSupport(searchId: string): BranchSearchDecisionSupport {
+  return {
+    automatic_merge: false,
+    candidates: [makeBranchCandidateDecisionSupport("candidate-1")],
+    non_goal:
+      "Branch search records candidate evidence and operator decisions; it does not automatically merge or mutate parent history.",
+    objective: "Compare repair options",
+    search_id: searchId,
+    selected_candidate_id: null,
   };
 }
 

@@ -14,6 +14,9 @@ from glassbox.core import EventEnvelope
 from glassbox.core import new_branch_candidate_id
 from glassbox.core import new_branch_search_id
 from glassbox.runtime.bootstrap import open_runtime_context
+from glassbox.runtime.branch_decision_support import (
+    derive_branch_search_decision_support,
+)
 from glassbox.runtime.branch_search import BranchSearchQueryService
 from glassbox.runtime.branch_search import BranchSearchRepository
 
@@ -114,25 +117,45 @@ def _branch_search_show_command(args: argparse.Namespace) -> int:
             cast(BranchSearchRepository, runtime_context.repositories.sessions)
         )
         detail = service.get_detail(args.search_id)
+    decision_support = derive_branch_search_decision_support(
+        search=detail.search,
+        candidates=detail.candidates,
+    )
     if args.json:
-        print_json_output(detail.model_dump(mode="json"))
+        payload = detail.model_dump(mode="json")
+        payload["decision_support"] = decision_support.model_dump(mode="json")
+        print_json_output(payload)
     else:
         search = detail.search
         print(f"Branch search {search.search_id}")
         print(f"Status: {search.status}")
         print(f"Objective: {search.objective}")
+        print(f"Automatic merge: {decision_support.automatic_merge}")
+        print(f"Non-goal: {decision_support.non_goal}")
         if search.selected_candidate_id is not None:
             print(f"Selected: {search.selected_candidate_id}")
         print(f"Candidates: {len(detail.candidates)}")
+        support_by_id = {
+            support.candidate_id: support for support in decision_support.candidates
+        }
         for candidate in detail.candidates:
             print(
                 f"  {candidate.candidate_id}  {candidate.status}  "
                 f"{candidate.verification_status}  {candidate.strategy_label}"
             )
+            support = support_by_id[candidate.candidate_id]
+            print(
+                "    Decision: "
+                f"verification={support.verification_posture}  "
+                f"risk={support.risk_posture}  cost={support.cost_estimate}"
+            )
             if candidate.candidate_session_id is not None:
                 print(f"    Session: {candidate.candidate_session_id}")
             if candidate.verification_summary:
                 print(f"    Verification: {candidate.verification_summary}")
+            print(f"    Follow-up: {support.recommended_follow_up_action}")
+            if support.accepted_risks:
+                print(f"    Accepted risks: {'; '.join(support.accepted_risks)}")
     return 0
 
 

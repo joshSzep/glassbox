@@ -916,6 +916,107 @@
         "title": "BranchCandidateActionResponse",
         "type": "object"
       },
+      "BranchCandidateDecisionSupportResponse": {
+        "properties": {
+          "accepted_risks": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Accepted Risks",
+            "type": "array"
+          },
+          "candidate_id": {
+            "title": "Candidate Id",
+            "type": "string"
+          },
+          "candidate_session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Session Id"
+          },
+          "changed_files": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Changed Files",
+            "type": "array"
+          },
+          "changed_files_summary": {
+            "title": "Changed Files Summary",
+            "type": "string"
+          },
+          "cost_estimate": {
+            "title": "Cost Estimate",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/BranchDecisionEvidenceResponse"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "objective": {
+            "title": "Objective",
+            "type": "string"
+          },
+          "recommended_follow_up_action": {
+            "title": "Recommended Follow Up Action",
+            "type": "string"
+          },
+          "risk_posture": {
+            "title": "Risk Posture",
+            "type": "string"
+          },
+          "search_id": {
+            "title": "Search Id",
+            "type": "string"
+          },
+          "selection_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selection State"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "strategy_label": {
+            "title": "Strategy Label",
+            "type": "string"
+          },
+          "verification_posture": {
+            "title": "Verification Posture",
+            "type": "string"
+          }
+        },
+        "required": [
+          "search_id",
+          "candidate_id",
+          "objective",
+          "strategy_label",
+          "status",
+          "changed_files_summary",
+          "verification_posture",
+          "cost_estimate",
+          "risk_posture",
+          "recommended_follow_up_action"
+        ],
+        "title": "BranchCandidateDecisionSupportResponse",
+        "type": "object"
+      },
       "BranchCandidateResponse": {
         "properties": {
           "artifact_id": {
@@ -1062,6 +1163,95 @@
         "title": "BranchCandidateResponse",
         "type": "object"
       },
+      "BranchDecisionEvidenceResponse": {
+        "properties": {
+          "artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifact Id"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "verification_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verification Id"
+          }
+        },
+        "required": ["kind", "summary"],
+        "title": "BranchDecisionEvidenceResponse",
+        "type": "object"
+      },
+      "BranchSearchDecisionSupportResponse": {
+        "properties": {
+          "automatic_merge": {
+            "title": "Automatic Merge",
+            "type": "boolean"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/BranchCandidateDecisionSupportResponse"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "non_goal": {
+            "title": "Non Goal",
+            "type": "string"
+          },
+          "objective": {
+            "title": "Objective",
+            "type": "string"
+          },
+          "search_id": {
+            "title": "Search Id",
+            "type": "string"
+          },
+          "selected_candidate_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected Candidate Id"
+          }
+        },
+        "required": ["search_id", "objective", "automatic_merge", "non_goal", "candidates"],
+        "title": "BranchSearchDecisionSupportResponse",
+        "type": "object"
+      },
       "BranchSearchDetailResponse": {
         "properties": {
           "candidates": {
@@ -1071,11 +1261,14 @@
             "title": "Candidates",
             "type": "array"
           },
+          "decision_support": {
+            "$ref": "#/components/schemas/BranchSearchDecisionSupportResponse"
+          },
           "search": {
             "$ref": "#/components/schemas/BranchSearchSummaryResponse"
           }
         },
-        "required": ["search", "candidates"],
+        "required": ["search", "candidates", "decision_support"],
         "title": "BranchSearchDetailResponse",
         "type": "object"
       },

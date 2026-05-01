@@ -1223,7 +1223,10 @@ describe("session store", () => {
 type EventLogEntry = components["schemas"]["EventLogEntryResponse"];
 type PageInfo = components["schemas"]["PageInfoResponse"];
 type BranchCandidate = components["schemas"]["BranchCandidateResponse"];
+type BranchCandidateDecisionSupport =
+  components["schemas"]["BranchCandidateDecisionSupportResponse"];
 type BranchSearchDetail = components["schemas"]["BranchSearchDetailResponse"];
+type BranchSearchDecisionSupport = components["schemas"]["BranchSearchDecisionSupportResponse"];
 type BranchSearchSummary = components["schemas"]["BranchSearchSummaryResponse"];
 type RepositoryEntry = components["schemas"]["RepositoryIndexEntryResponse"];
 type TaskDetail = components["schemas"]["TaskDetailResponse"];
@@ -1346,7 +1349,56 @@ function makeBranchCandidate(
 function makeBranchSearchDetail(searchId: string): BranchSearchDetail {
   return {
     candidates: [makeBranchCandidate("candidate-1", { search_id: searchId })],
+    decision_support: makeBranchSearchDecisionSupport(searchId),
     search: makeBranchSearchSummary(searchId),
+  };
+}
+
+function makeBranchCandidateDecisionSupport(
+  candidateId: string,
+  overrides: Partial<BranchCandidateDecisionSupport> = {},
+): BranchCandidateDecisionSupport {
+  return {
+    accepted_risks: [],
+    candidate_id: candidateId,
+    candidate_session_id: "session-child",
+    changed_files: [],
+    changed_files_summary:
+      "Changed-file evidence is not captured in current branch-search projections.",
+    cost_estimate: "low",
+    evidence: [
+      {
+        kind: "session",
+        session_id: "session-child",
+        summary: "Candidate session is retained for inspection.",
+      },
+    ],
+    objective: "Compare repair options",
+    recommended_follow_up_action:
+      "Candidate is eligible for operator review and explicit selection.",
+    risk_posture: "strong",
+    search_id: "search-1",
+    selection_state: null,
+    status: "verified",
+    strategy_label: "Try minimal fix",
+    verification_posture: "strong",
+    ...overrides,
+  };
+}
+
+function makeBranchSearchDecisionSupport(
+  searchId: string,
+  overrides: Partial<BranchSearchDecisionSupport> = {},
+): BranchSearchDecisionSupport {
+  return {
+    automatic_merge: false,
+    candidates: [makeBranchCandidateDecisionSupport("candidate-1", { search_id: searchId })],
+    non_goal:
+      "Branch search records candidate evidence and operator decisions; it does not automatically merge or mutate parent history.",
+    objective: "Compare repair options",
+    search_id: searchId,
+    selected_candidate_id: null,
+    ...overrides,
   };
 }
 

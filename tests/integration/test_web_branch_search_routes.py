@@ -70,6 +70,15 @@ def test_branch_search_routes_show_and_mark_candidates(tmp_path: Path) -> None:
                 detail_response.json()["candidates"][0]["verification_status"]
                 == "passed"
             )
+            assert (
+                detail_response.json()["decision_support"]["automatic_merge"] is False
+            )
+            assert (
+                detail_response.json()["decision_support"]["candidates"][0][
+                    "verification_posture"
+                ]
+                == "strong"
+            )
             assert select_response.status_code == 200
             assert select_response.json()["candidate"]["selection_state"] == "selected"
             assert reject_response.status_code == 200
@@ -85,6 +94,13 @@ def test_branch_search_routes_show_and_mark_candidates(tmp_path: Path) -> None:
             assert states[str(selected_id)] == "selected"
             assert states[str(rejected_id)] == "rejected"
             assert states[str(review_id)] == "needs_review"
+            support_by_id = {
+                candidate["candidate_id"]: candidate
+                for candidate in updated_detail.json()["decision_support"]["candidates"]
+            }
+            assert support_by_id[str(selected_id)]["risk_posture"] == "strong"
+            assert support_by_id[str(rejected_id)]["risk_posture"] == "blocked"
+            assert support_by_id[str(review_id)]["risk_posture"] == "review"
         finally:
             connection.close()
 

@@ -905,7 +905,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1171: Surface Candidate Evidence Comparison
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1170`
 - Goal: help operators compare candidate approaches by evidence instead of
   reading raw branches one at a time
@@ -925,6 +925,14 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - candidate comparison answers why one branch is safer or more promising than
     another
+- Completed:
+  - surfaced branch decision support in `branch-search show` JSON and human
+    output while preserving raw candidate details
+  - added API `decision_support` payloads for branch-search detail responses
+    and regenerated frontend OpenAPI/types
+  - updated the dashboard branch-search console to render candidate
+    verification posture, risk, cost, evidence, accepted risks, and follow-up
+    action for selected, rejected, and needs-review candidates
 
 ### GBX-1172: Add Branch-Search Verification Recommendations
 

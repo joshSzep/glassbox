@@ -12,6 +12,9 @@ from glassbox.core.events import BranchCandidateNeedsReview
 from glassbox.core.events import BranchCandidateRejected
 from glassbox.core.events import BranchCandidateSelected
 from glassbox.core.events import EventEnvelope
+from glassbox.runtime.branch_decision_support import (
+    derive_branch_search_decision_support,
+)
 from glassbox.runtime.branch_search import BranchSearchQueryService
 from glassbox.runtime.branch_search import BranchSearchRepository
 from glassbox.web.app import RuntimeContextDep
@@ -21,6 +24,7 @@ from glassbox.web.branch_search_api import BranchSearchDetailResponse
 from glassbox.web.branch_search_api import BranchSearchListPageResponse
 from glassbox.web.branch_search_api import build_branch_candidate_response
 from glassbox.web.branch_search_api import build_branch_candidate_responses
+from glassbox.web.branch_search_api import build_branch_search_decision_support_response
 from glassbox.web.branch_search_api import build_branch_search_summary_response
 from glassbox.web.branch_search_api import build_branch_search_summary_responses
 from glassbox.web.session_api import ErrorDetailResponse
@@ -71,6 +75,12 @@ async def get_branch_search_detail(
     return BranchSearchDetailResponse(
         search=build_branch_search_summary_response(detail.search),
         candidates=build_branch_candidate_responses(detail.candidates),
+        decision_support=build_branch_search_decision_support_response(
+            derive_branch_search_decision_support(
+                search=detail.search,
+                candidates=detail.candidates,
+            )
+        ),
     )
 
 

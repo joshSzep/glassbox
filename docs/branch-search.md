@@ -56,6 +56,13 @@ uv run glassbox branch-search select SEARCH_ID CANDIDATE_ID \
   --cwd .
 ```
 
+`branch-search show` includes a `decision_support` object in JSON output. Human
+output prints candidate verification posture, risk posture, cost estimate,
+follow-up action, and any accepted risks next to the raw candidate status. The
+dashboard branch-search console renders the same comparison so reviewers can
+separate passed, risky, rejected, and needs-review candidates without losing
+access to the candidate session or retained artifact links.
+
 The bounded coordinator runs candidates sequentially under branch-attempt,
 tool-call, write, command, and verification budgets. It records planned, forked,
 executed, verified, and compared evidence, but it never merges candidate
