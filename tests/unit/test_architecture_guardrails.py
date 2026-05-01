@@ -1483,10 +1483,58 @@ V11_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
     (
         SRC_ROOT / "runtime" / "tool_attempt_recovery.py",
-        810,
+        80,
         (
-            "v11 tool-attempt recovery should move new inspection, retry, "
-            "abandon, artifact, and result-model behavior into helpers"
+            "v11 tool-attempt recovery should stay a thin facade over "
+            "inspection, retry, abandon, artifact, and result-model helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "tool_attempt_recovery_models.py",
+        90,
+        (
+            "v11 tool-attempt recovery result models should stay separated "
+            "from recovery action orchestration"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "tool_attempt_recovery_common.py",
+        120,
+        (
+            "v11 tool-attempt recovery common helpers should stay limited to "
+            "shared attempt, source-call, and correlation lookups"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "tool_attempt_recovery_inspection.py",
+        110,
+        (
+            "v11 tool-attempt inspection summaries should stay owned by "
+            "tool_attempt_recovery_inspection.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "tool_attempt_recovery_artifacts.py",
+        130,
+        (
+            "v11 tool-attempt output artifact lookup and recording should stay "
+            "owned by tool_attempt_recovery_artifacts.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "tool_attempt_recovery_abandon.py",
+        130,
+        (
+            "v11 tool-attempt abandon decisions should stay owned by "
+            "tool_attempt_recovery_abandon.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "tool_attempt_recovery_retry.py",
+        520,
+        (
+            "v11 tool-attempt retry eligibility and replay execution should "
+            "stay owned by tool_attempt_recovery_retry.py"
         ),
     ),
     (
@@ -1850,6 +1898,54 @@ V11_PYTHON_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
         (
             "v11 tool-attempt recovery helpers must keep recovery derivation "
             "independent from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "tool_attempt_recovery_models.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 tool-attempt recovery result models must stay independent "
+            "from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "tool_attempt_recovery_common.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 tool-attempt recovery lookup helpers must stay independent "
+            "from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "tool_attempt_recovery_inspection.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 tool-attempt inspection summaries must stay independent "
+            "from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "tool_attempt_recovery_artifacts.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 tool-attempt output artifact helpers must stay independent "
+            "from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "tool_attempt_recovery_abandon.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 tool-attempt abandon helpers must stay independent from CLI "
+            "and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "tool_attempt_recovery_retry.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 tool-attempt retry helpers must stay independent from CLI "
+            "and web presentation layers"
         ),
     ),
     (

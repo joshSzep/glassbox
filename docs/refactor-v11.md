@@ -863,7 +863,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R450: Split Tool Attempt Recovery Into Inspection, Retry, Abandon, And Artifact Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R400`
 - Goal: reduce
   [tool_attempt_recovery.py](../src/glassbox/runtime/tool_attempt_recovery.py)
@@ -887,6 +887,24 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - tool-attempt recovery behavior remains stable while inspection, retry,
     abandon, and artifact concerns are independently owned
+- Completed notes:
+  - `tool_attempt_recovery.py` is now a compatibility facade over focused
+    inspection, retry, abandon, artifact, shared lookup, and result-model
+    helpers.
+  - Retry eligibility and replay execution live in
+    `tool_attempt_recovery_retry.py`, abandon decision events live in
+    `tool_attempt_recovery_abandon.py`, output lookup/recording lives in
+    `tool_attempt_recovery_artifacts.py`, and inspection summaries live in
+    `tool_attempt_recovery_inspection.py`.
+  - Guardrails now cap the facade and helper modules and keep recovery helpers
+    independent from CLI and web presentation imports.
+  - Validation: `uv run pytest tests/unit/test_tool_attempt_retry.py tests/unit/test_architecture_guardrails.py`,
+    `uv run pytest tests/integration/test_cli_session_commands.py -k tool_attempt`,
+    `uv run pytest tests/integration/test_turn_engine_tool_loop.py`,
+    `uv run pytest tests/integration/test_web_session_interaction.py`,
+    `uv run ruff format --check src/glassbox/runtime/tool_attempt_recovery*.py tests/unit/test_architecture_guardrails.py`,
+    `uv run ruff check src/glassbox/runtime/tool_attempt_recovery*.py tests/unit/test_architecture_guardrails.py`,
+    and `uv run ty check src/glassbox/runtime/tool_attempt_recovery.py src/glassbox/runtime/tool_attempt_recovery_models.py src/glassbox/runtime/tool_attempt_recovery_common.py src/glassbox/runtime/tool_attempt_recovery_inspection.py src/glassbox/runtime/tool_attempt_recovery_artifacts.py src/glassbox/runtime/tool_attempt_recovery_abandon.py src/glassbox/runtime/tool_attempt_recovery_retry.py`.
 
 ### GBX-R451: Split Context Compaction Service Into Range Planning, Artifact Assembly, Freshness, And Mutation Helpers
 

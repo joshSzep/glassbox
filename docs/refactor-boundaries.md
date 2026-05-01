@@ -226,11 +226,18 @@ packaging concerns now sit next to one another:
   formatting helpers.
 - `frontend/stores/session-store.ts` mixes stream lifecycle, detail pagination,
   drafts, and action mutations behind one store factory.
-- `src/glassbox/runtime/tool_attempt_recovery.py`,
-  `context_compaction_service.py`, `turn_event_recorder.py`, and
-  `turn_tool_executor.py` now carry richer recovery, freshness, artifact,
-  replay, and heartbeat shaping that should be separated by event/side-effect
-  concern.
+- The v11 tool-attempt recovery split now keeps
+  `src/glassbox/runtime/tool_attempt_recovery.py` as the stable import facade,
+  while `tool_attempt_recovery_inspection.py`,
+  `tool_attempt_recovery_retry.py`, `tool_attempt_recovery_abandon.py`,
+  `tool_attempt_recovery_artifacts.py`, `tool_attempt_recovery_common.py`, and
+  `tool_attempt_recovery_models.py` own inspection summaries, retry
+  eligibility/execution, abandon events, retained output artifacts, shared
+  lookups, and result models.
+- `src/glassbox/runtime/context_compaction_service.py`,
+  `turn_event_recorder.py`, and `turn_tool_executor.py` now carry richer
+  freshness, artifact, replay, and heartbeat shaping that should be separated
+  by event/side-effect concern.
 - `src/glassbox/store/sqlite_projection_tasks.py` and
   `src/glassbox/store/sqlite_background_jobs.py` are rebuildable and coherent,
   but should move high-pressure event-family handlers into focused helpers if
