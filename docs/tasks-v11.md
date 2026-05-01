@@ -873,7 +873,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1170: Define Branch Decision Support Model
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1100`
 - Goal: make branch-search comparison more useful without changing parent
   mutation semantics
@@ -894,6 +894,14 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - branch-search comparison has a typed decision-support target before UI or
     CLI changes
+- Completed:
+  - added a typed branch decision-support model derived from existing
+    branch-search projections
+  - captured candidate objective, retained evidence, changed-file unknowns,
+    verification posture, cost estimate, risk posture, accepted risks, and
+    follow-up action without adding parent-history mutation
+  - documented branch-search decision support and the explicit non-goal that
+    selection does not automatically merge candidate work
 
 ### GBX-1171: Surface Candidate Evidence Comparison
 

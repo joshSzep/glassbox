@@ -14,6 +14,32 @@ It differs from a manual fork in three ways:
 Candidate sessions remain inspectable. Rejected candidates are historical
 evidence unless an operator prunes artifacts separately.
 
+## Decision Support
+
+Branch-search decision support is a typed comparison target derived from local
+branch-search projections. It gives each candidate an operator-readable posture
+without changing branch-search semantics:
+
+- objective and strategy label
+- retained evidence pointers such as candidate session, verification, artifact,
+  and selection records
+- changed-file summary
+- verification posture
+- cost estimate
+- risk posture and accepted risks
+- recommended follow-up action
+
+Current changed-file evidence is intentionally conservative. Branch-search
+projections do not yet retain candidate diff inventories, so the decision
+support model reports an empty changed-file list with an instruction to inspect
+the candidate session before manually carrying work forward. Later surfaces may
+replace that unknown cue with retained diff evidence, but they must not infer
+file changes from unavailable state.
+
+Branch search remains decision support, not automatic integration. Selecting a
+candidate records operator intent and retained evidence; it does not merge,
+cherry-pick, rebase, or otherwise mutate the parent session history.
+
 Inspect searches:
 
 ```bash
