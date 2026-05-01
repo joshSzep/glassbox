@@ -186,6 +186,63 @@ class VerificationFailureCategory(StrEnum):
     UNKNOWN = "unknown"
 
 
+class ChangesetSourceKind(StrEnum):
+    """Source classes that can explain where a changeset came from."""
+
+    SESSION = "session"
+    TASK = "task"
+    BRANCH_SEARCH_CANDIDATE = "branch_search_candidate"
+    WORKSPACE_DIFF = "workspace_diff"
+    ARTIFACT = "artifact"
+    OPERATOR = "operator"
+    IMPORT = "import"
+
+
+class ChangesetInventoryFreshness(StrEnum):
+    """Freshness states for changeset inventory artifacts."""
+
+    FRESH = "fresh"
+    STALE = "stale"
+    SUPERSEDED = "superseded"
+    UNKNOWN = "unknown"
+
+
+class ChangesetVerificationState(StrEnum):
+    """Review-time verification posture for a changeset."""
+
+    PLANNED = "planned"
+    MISSING = "missing"
+    RUNNING = "running"
+    PASSED = "passed"
+    FAILED = "failed"
+    STALE = "stale"
+    SKIPPED = "skipped"
+    ACCEPTED_WITH_RISK = "accepted_with_risk"
+    NOT_APPLICABLE = "not_applicable"
+
+
+class ChangesetReadinessKind(StrEnum):
+    """Kinds of readiness decisions a changeset can carry."""
+
+    REVIEW = "review"
+    COMMIT = "commit"
+
+
+class ChangesetReadinessState(StrEnum):
+    """Advisory readiness states for review and commit preparation."""
+
+    READY = "ready"
+    BLOCKED = "blocked"
+    NEEDS_VERIFICATION = "needs_verification"
+    NEEDS_REVIEW = "needs_review"
+    STALE_INVENTORY = "stale_inventory"
+    DIRTY_UNTRACKED_RISK = "dirty_untracked_risk"
+    FAILED_CHECKS = "failed_checks"
+    MISSING_PROVENANCE = "missing_provenance"
+    ACCEPTED_WITH_RISK = "accepted_with_risk"
+    NOT_READY = "not_ready"
+
+
 class BranchSearchStatus(StrEnum):
     """Lifecycle states for a bounded branch-search workflow."""
 

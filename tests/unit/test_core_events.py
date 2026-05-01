@@ -32,6 +32,19 @@ from glassbox.core import BackgroundJobState
 from glassbox.core import CancellationAcknowledged
 from glassbox.core import CancellationFailed
 from glassbox.core import CancellationRequested
+from glassbox.core import ChangesetArchived
+from glassbox.core import ChangesetCandidateAdopted
+from glassbox.core import ChangesetCreated
+from glassbox.core import ChangesetInventoryFreshness
+from glassbox.core import ChangesetInventoryRefreshed
+from glassbox.core import ChangesetReadinessDecided
+from glassbox.core import ChangesetReadinessKind
+from glassbox.core import ChangesetReadinessState
+from glassbox.core import ChangesetReviewBriefCreated
+from glassbox.core import ChangesetSourceAttached
+from glassbox.core import ChangesetSourceKind
+from glassbox.core import ChangesetVerificationPostureUpdated
+from glassbox.core import ChangesetVerificationState
 from glassbox.core import ContextCompactionCreated
 from glassbox.core import ContextCompactionFreshness
 from glassbox.core import ContextCompactionFreshnessChanged
@@ -92,6 +105,9 @@ from glassbox.core import WorkspaceMemoryUsedInContext
 from glassbox.core import new_approval_id
 from glassbox.core import new_artifact_id
 from glassbox.core import new_background_job_id
+from glassbox.core import new_branch_candidate_id
+from glassbox.core import new_branch_search_id
+from glassbox.core import new_changeset_id
 from glassbox.core import new_context_compaction_id
 from glassbox.core import new_message_id
 from glassbox.core import new_pause_window_id
@@ -698,6 +714,173 @@ def test_long_run_envelope_exposes_correlation_ids() -> None:
 
     assert envelope.event_type == "TaskCheckpointCreated"
     assert envelope.checkpoint_id == checkpoint_id
+
+
+def test_changeset_payloads_round_trip_through_event_union() -> None:
+    adapter = TypeAdapter(EventPayloadType)
+    changeset_id = new_changeset_id()
+    task_id = new_task_id()
+    turn_id = new_turn_id()
+    source_session_id = new_session_id()
+    branch_search_id = new_branch_search_id()
+    branch_candidate_id = new_branch_candidate_id()
+    verification_id = new_task_verification_id()
+    inventory_artifact_id = new_artifact_id()
+    brief_artifact_id = new_artifact_id()
+
+    created = adapter.validate_python(
+        {
+            "event_type": "ChangesetCreated",
+            "changeset_id": changeset_id,
+            "objective": "Review local changes",
+            "task_id": task_id,
+            "turn_id": turn_id,
+            "branch_search_id": branch_search_id,
+            "branch_candidate_id": branch_candidate_id,
+        }
+    )
+    source = adapter.validate_python(
+        {
+            "event_type": "ChangesetSourceAttached",
+            "changeset_id": changeset_id,
+            "source_kind": "branch_search_candidate",
+            "source_session_id": source_session_id,
+            "task_id": task_id,
+            "turn_id": turn_id,
+            "branch_search_id": branch_search_id,
+            "branch_candidate_id": branch_candidate_id,
+            "verification_id": verification_id,
+            "artifact_id": inventory_artifact_id,
+            "reason": "candidate selected after review",
+            "limitation": "candidate diff inventory is degraded",
+        }
+    )
+    inventory = adapter.validate_python(
+        {
+            "event_type": "ChangesetInventoryRefreshed",
+            "changeset_id": changeset_id,
+            "artifact_id": inventory_artifact_id,
+            "freshness": "fresh",
+            "changed_path_count": 4,
+            "source_digest": "sha256:inventory",
+            "task_id": task_id,
+            "turn_id": turn_id,
+            "branch_search_id": branch_search_id,
+            "branch_candidate_id": branch_candidate_id,
+        }
+    )
+    verification = adapter.validate_python(
+        {
+            "event_type": "ChangesetVerificationPostureUpdated",
+            "changeset_id": changeset_id,
+            "state": "stale",
+            "summary": "unit tests passed before inventory refresh",
+            "verification_id": verification_id,
+            "artifact_id": new_artifact_id(),
+            "task_id": task_id,
+            "turn_id": turn_id,
+            "stale_count": 1,
+        }
+    )
+    brief = adapter.validate_python(
+        {
+            "event_type": "ChangesetReviewBriefCreated",
+            "changeset_id": changeset_id,
+            "artifact_id": brief_artifact_id,
+            "render_targets": ["markdown", "json"],
+            "inventory_artifact_id": inventory_artifact_id,
+            "verification_id": verification_id,
+            "redacted": True,
+        }
+    )
+    readiness = adapter.validate_python(
+        {
+            "event_type": "ChangesetReadinessDecided",
+            "changeset_id": changeset_id,
+            "readiness_kind": "commit",
+            "state": "needs_verification",
+            "reason": "verification evidence is stale",
+            "blockers": ["stale verification"],
+            "safe_next_actions": ["refresh inventory", "rerun focused tests"],
+            "inventory_artifact_id": inventory_artifact_id,
+            "review_brief_artifact_id": brief_artifact_id,
+            "verification_id": verification_id,
+            "accepted_risk_count": 1,
+        }
+    )
+    adoption = adapter.validate_python(
+        {
+            "event_type": "ChangesetCandidateAdopted",
+            "changeset_id": changeset_id,
+            "branch_search_id": branch_search_id,
+            "branch_candidate_id": branch_candidate_id,
+            "candidate_session_id": source_session_id,
+            "preview_artifact_id": new_artifact_id(),
+            "inventory_artifact_id": inventory_artifact_id,
+            "verification_id": verification_id,
+            "reason": "selected low-risk candidate",
+            "workspace_mutation_performed": False,
+        }
+    )
+    archived = adapter.validate_python(
+        {
+            "event_type": "ChangesetArchived",
+            "changeset_id": changeset_id,
+            "reason": "superseded by a refreshed changeset",
+            "replacement_changeset_id": new_changeset_id(),
+        }
+    )
+
+    assert isinstance(created, ChangesetCreated)
+    assert created.changeset_id == changeset_id
+    assert isinstance(source, ChangesetSourceAttached)
+    assert source.source_kind == ChangesetSourceKind.BRANCH_SEARCH_CANDIDATE
+    assert source.source_session_id == source_session_id
+    assert isinstance(inventory, ChangesetInventoryRefreshed)
+    assert inventory.freshness == ChangesetInventoryFreshness.FRESH
+    assert inventory.changed_path_count == 4
+    assert isinstance(verification, ChangesetVerificationPostureUpdated)
+    assert verification.state == ChangesetVerificationState.STALE
+    assert verification.stale_count == 1
+    assert isinstance(brief, ChangesetReviewBriefCreated)
+    assert brief.render_targets == ["markdown", "json"]
+    assert brief.redacted is True
+    assert isinstance(readiness, ChangesetReadinessDecided)
+    assert readiness.readiness_kind == ChangesetReadinessKind.COMMIT
+    assert readiness.state == ChangesetReadinessState.NEEDS_VERIFICATION
+    assert isinstance(adoption, ChangesetCandidateAdopted)
+    assert adoption.workspace_mutation_performed is False
+    assert isinstance(archived, ChangesetArchived)
+    assert archived.changeset_id == changeset_id
+
+
+def test_changeset_envelope_exposes_correlation_ids() -> None:
+    changeset_id = new_changeset_id()
+    artifact_id = new_artifact_id()
+    verification_id = new_task_verification_id()
+    task_id = new_task_id()
+    turn_id = new_turn_id()
+    envelope = EventEnvelope(
+        session_id=new_session_id(),
+        sequence=24,
+        payload=ChangesetVerificationPostureUpdated(
+            changeset_id=changeset_id,
+            state=ChangesetVerificationState.FAILED,
+            summary="focused tests failed",
+            verification_id=verification_id,
+            artifact_id=artifact_id,
+            task_id=task_id,
+            turn_id=turn_id,
+            failed_count=1,
+        ),
+    )
+
+    assert envelope.event_type == "ChangesetVerificationPostureUpdated"
+    assert envelope.changeset_id == changeset_id
+    assert envelope.artifact_id == artifact_id
+    assert envelope.verification_id == verification_id
+    assert envelope.task_id == task_id
+    assert envelope.turn_id == turn_id
 
 
 def test_context_compaction_rejects_inverted_source_range() -> None:

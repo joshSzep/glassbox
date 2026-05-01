@@ -408,7 +408,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1210: Add Changeset Event Vocabulary
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1202`
 - Goal: introduce canonical events for reviewable local changes without making
   projections authoritative

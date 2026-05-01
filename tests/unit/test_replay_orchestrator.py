@@ -4,14 +4,18 @@ from pathlib import Path
 
 import pytest
 
+from glassbox.core import ChangesetCreated
 from glassbox.core import EventEnvelope
 from glassbox.core import LongRunPhase
 from glassbox.core import LongRunPhaseChanged
 from glassbox.core import LongRunPhaseState
+from glassbox.core import ReplayArtifactRecorded
 from glassbox.core import SessionConfig
 from glassbox.core import TaskCheckpointCreated
 from glassbox.core import ToolAttemptHeartbeat
 from glassbox.core import ToolAttemptStatus
+from glassbox.core import new_artifact_id
+from glassbox.core import new_changeset_id
 from glassbox.core import new_session_id
 from glassbox.core import new_task_checkpoint_id
 from glassbox.core import new_task_id
@@ -19,6 +23,7 @@ from glassbox.core import new_tool_attempt_id
 from glassbox.core import new_tool_call_id
 from glassbox.core import new_turn_id
 from glassbox.runtime.replay_compare import collect_mismatches
+from glassbox.runtime.replay_compare import normalize_event_families
 from glassbox.runtime.replay_compare import normalize_long_run_events
 from glassbox.runtime.replay_failures import ReplayFailure
 from glassbox.runtime.replay_models import ReplayBundle
@@ -134,6 +139,36 @@ def test_replay_normalizes_long_run_event_families() -> None:
     assert normalized[0].task_id == str(task_id)
     assert normalized[1].checkpoint_id == str(checkpoint_id)
     assert normalized[0].fingerprint != normalized[1].fingerprint
+
+
+def test_replay_normalizes_changeset_event_families() -> None:
+    session_id = new_session_id()
+    changeset_id = new_changeset_id()
+
+    families = normalize_event_families(
+        [
+            EventEnvelope(
+                session_id=session_id,
+                sequence=1,
+                payload=ChangesetCreated(
+                    changeset_id=changeset_id,
+                    objective="review local workspace changes",
+                ),
+            ),
+            EventEnvelope(
+                session_id=session_id,
+                sequence=2,
+                payload=ReplayArtifactRecorded(
+                    turn_id=new_turn_id(),
+                    artifact_id=new_artifact_id(),
+                    artifact_kind="replay_baseline",
+                    path="replay/baseline.json",
+                ),
+            ),
+        ]
+    )
+
+    assert families == ["ChangesetCreated"]
 
 
 def test_replay_canonicalizes_tool_attempt_identifiers() -> None:

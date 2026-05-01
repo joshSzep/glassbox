@@ -102,11 +102,7 @@ def normalize_session(
         task_plans=normalize_task_plans(session_id, repository),
         budget_posture=normalize_budget_posture(session_id, repository),
         long_run_events=normalize_long_run_events(events),
-        event_families=[
-            event.event_type
-            for event in events
-            if event.event_type != "ReplayArtifactRecorded"
-        ],
+        event_families=normalize_event_families(events),
         final_state=ReplayFinalStateSnapshot(
             status=enum_value(session_state.status),
             has_active_turn=session_state.current_turn_id is not None,
@@ -114,6 +110,14 @@ def normalize_session(
             has_pending_question=session_state.pending_question_id is not None,
         ),
     )
+
+
+def normalize_event_families(events: Sequence[EventEnvelope]) -> list[str]:
+    return [
+        event.event_type
+        for event in events
+        if event.event_type != "ReplayArtifactRecorded"
+    ]
 
 
 def normalize_questions(

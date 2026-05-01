@@ -36,6 +36,14 @@ from glassbox.core.events import BudgetOverrideResolved
 from glassbox.core.events import CancellationAcknowledged
 from glassbox.core.events import CancellationFailed
 from glassbox.core.events import CancellationRequested
+from glassbox.core.events import ChangesetArchived
+from glassbox.core.events import ChangesetCandidateAdopted
+from glassbox.core.events import ChangesetCreated
+from glassbox.core.events import ChangesetInventoryRefreshed
+from glassbox.core.events import ChangesetReadinessDecided
+from glassbox.core.events import ChangesetReviewBriefCreated
+from glassbox.core.events import ChangesetSourceAttached
+from glassbox.core.events import ChangesetVerificationPostureUpdated
 from glassbox.core.events import ContextCompactionCreated
 from glassbox.core.events import ContextCompactionFreshnessChanged
 from glassbox.core.events import ContinuationWindowExpired
@@ -111,6 +119,7 @@ from glassbox.core.ids import BackgroundJobId
 from glassbox.core.ids import BranchCandidateId
 from glassbox.core.ids import BranchSearchId
 from glassbox.core.ids import BudgetOverrideId
+from glassbox.core.ids import ChangesetId
 from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import EventId
 from glassbox.core.ids import MessageId
@@ -132,6 +141,7 @@ from glassbox.core.ids import new_background_job_id
 from glassbox.core.ids import new_branch_candidate_id
 from glassbox.core.ids import new_branch_search_id
 from glassbox.core.ids import new_budget_override_id
+from glassbox.core.ids import new_changeset_id
 from glassbox.core.ids import new_context_compaction_id
 from glassbox.core.ids import new_event_id
 from glassbox.core.ids import new_message_id
@@ -203,6 +213,11 @@ from glassbox.core.types import BackgroundJobState
 from glassbox.core.types import BranchCandidateStatus
 from glassbox.core.types import BranchCandidateVerificationStatus
 from glassbox.core.types import BranchSearchStatus
+from glassbox.core.types import ChangesetInventoryFreshness
+from glassbox.core.types import ChangesetReadinessKind
+from glassbox.core.types import ChangesetReadinessState
+from glassbox.core.types import ChangesetSourceKind
+from glassbox.core.types import ChangesetVerificationState
 from glassbox.core.types import CheckpointAbsenceReason
 from glassbox.core.types import ContextCompactionFreshness
 from glassbox.core.types import ContextCompactionScope
@@ -296,6 +311,20 @@ __all__ = [
     "CancellationAcknowledged",
     "CancellationFailed",
     "CancellationRequested",
+    "ChangesetArchived",
+    "ChangesetCandidateAdopted",
+    "ChangesetCreated",
+    "ChangesetId",
+    "ChangesetInventoryFreshness",
+    "ChangesetInventoryRefreshed",
+    "ChangesetReadinessDecided",
+    "ChangesetReadinessKind",
+    "ChangesetReadinessState",
+    "ChangesetReviewBriefCreated",
+    "ChangesetSourceAttached",
+    "ChangesetSourceKind",
+    "ChangesetVerificationPostureUpdated",
+    "ChangesetVerificationState",
     "CheckpointAbsenceReason",
     "CheckpointAbsenceRecord",
     "ContextCompactionCreated",
@@ -451,6 +480,7 @@ __all__ = [
     "new_branch_candidate_id",
     "new_branch_search_id",
     "new_budget_override_id",
+    "new_changeset_id",
     "new_context_compaction_id",
     "new_event_id",
     "new_message_id",

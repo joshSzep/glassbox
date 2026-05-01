@@ -17,6 +17,7 @@ type TaskVerificationId = UUID
 type BudgetOverrideId = UUID
 type BackgroundJobId = UUID
 type WorkspaceMemoryId = UUID
+type ChangesetId = UUID
 type BranchSearchId = UUID
 type BranchCandidateId = UUID
 type TaskCheckpointId = UUID
@@ -93,6 +94,11 @@ def new_background_job_id() -> BackgroundJobId:
 
 def new_workspace_memory_id() -> WorkspaceMemoryId:
     """Create a new workspace memory identifier."""
+    return uuid4()
+
+
+def new_changeset_id() -> ChangesetId:
+    """Create a new changeset identifier."""
     return uuid4()
 
 

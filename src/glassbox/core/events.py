@@ -18,6 +18,7 @@ from glassbox.core.ids import BackgroundJobId
 from glassbox.core.ids import BranchCandidateId
 from glassbox.core.ids import BranchSearchId
 from glassbox.core.ids import BudgetOverrideId
+from glassbox.core.ids import ChangesetId
 from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import EventId
 from glassbox.core.ids import MessageId
@@ -55,6 +56,11 @@ from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import BackgroundJobRecoveryReason
 from glassbox.core.types import BackgroundJobState
 from glassbox.core.types import BranchCandidateVerificationStatus
+from glassbox.core.types import ChangesetInventoryFreshness
+from glassbox.core.types import ChangesetReadinessKind
+from glassbox.core.types import ChangesetReadinessState
+from glassbox.core.types import ChangesetSourceKind
+from glassbox.core.types import ChangesetVerificationState
 from glassbox.core.types import ContextCompactionFreshness
 from glassbox.core.types import ContextCompactionScope
 from glassbox.core.types import LongRunPhase
@@ -993,6 +999,125 @@ class ProviderRecoveryRecorded(EventPayload):
     next_retry_at: datetime | None = None
 
 
+class ChangesetCreated(EventPayload):
+    event_type: Literal["ChangesetCreated"] = "ChangesetCreated"
+    changeset_id: ChangesetId
+    objective: str = Field(min_length=1, max_length=4000)
+    summary: str | None = Field(default=None, max_length=4000)
+    created_by: str = Field(default="operator", min_length=1, max_length=200)
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    branch_search_id: BranchSearchId | None = None
+    branch_candidate_id: BranchCandidateId | None = None
+
+
+class ChangesetSourceAttached(EventPayload):
+    event_type: Literal["ChangesetSourceAttached"] = "ChangesetSourceAttached"
+    changeset_id: ChangesetId
+    source_kind: ChangesetSourceKind
+    reason: str = Field(min_length=1, max_length=2000)
+    source_session_id: SessionId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    branch_search_id: BranchSearchId | None = None
+    branch_candidate_id: BranchCandidateId | None = None
+    verification_id: TaskVerificationId | None = None
+    artifact_id: ArtifactId | None = None
+    limitation: str | None = Field(default=None, max_length=2000)
+
+
+class ChangesetInventoryRefreshed(EventPayload):
+    event_type: Literal["ChangesetInventoryRefreshed"] = "ChangesetInventoryRefreshed"
+    changeset_id: ChangesetId
+    artifact_id: ArtifactId
+    artifact_schema_version: int = Field(default=1, ge=1)
+    freshness: ChangesetInventoryFreshness = ChangesetInventoryFreshness.FRESH
+    changed_path_count: int = Field(default=0, ge=0)
+    source_digest: str | None = Field(default=None, max_length=256)
+    previous_artifact_id: ArtifactId | None = None
+    refreshed_by: str = Field(default="operator", min_length=1, max_length=200)
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    branch_search_id: BranchSearchId | None = None
+    branch_candidate_id: BranchCandidateId | None = None
+
+
+class ChangesetVerificationPostureUpdated(EventPayload):
+    event_type: Literal["ChangesetVerificationPostureUpdated"] = (
+        "ChangesetVerificationPostureUpdated"
+    )
+    changeset_id: ChangesetId
+    state: ChangesetVerificationState
+    summary: str = Field(min_length=1, max_length=4000)
+    verification_id: TaskVerificationId | None = None
+    artifact_id: ArtifactId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    stale_count: int = Field(default=0, ge=0)
+    missing_count: int = Field(default=0, ge=0)
+    failed_count: int = Field(default=0, ge=0)
+    accepted_risk_count: int = Field(default=0, ge=0)
+
+
+class ChangesetReviewBriefCreated(EventPayload):
+    event_type: Literal["ChangesetReviewBriefCreated"] = "ChangesetReviewBriefCreated"
+    changeset_id: ChangesetId
+    artifact_id: ArtifactId
+    artifact_schema_version: int = Field(default=1, ge=1)
+    render_targets: Annotated[
+        list[Literal["markdown", "json"]],
+        Field(min_length=1, max_length=2),
+    ] = ["markdown", "json"]
+    inventory_artifact_id: ArtifactId | None = None
+    verification_id: TaskVerificationId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    created_by: str = Field(default="operator", min_length=1, max_length=200)
+    redacted: bool = True
+    local_only: bool = False
+
+
+class ChangesetReadinessDecided(EventPayload):
+    event_type: Literal["ChangesetReadinessDecided"] = "ChangesetReadinessDecided"
+    changeset_id: ChangesetId
+    readiness_kind: ChangesetReadinessKind
+    state: ChangesetReadinessState
+    reason: str = Field(min_length=1, max_length=4000)
+    blockers: list[str] = Field(default_factory=list, max_length=20)
+    safe_next_actions: list[str] = Field(default_factory=list, max_length=20)
+    inventory_artifact_id: ArtifactId | None = None
+    review_brief_artifact_id: ArtifactId | None = None
+    verification_id: TaskVerificationId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    accepted_risk_count: int = Field(default=0, ge=0)
+    decided_by: str = Field(default="operator", min_length=1, max_length=200)
+
+
+class ChangesetCandidateAdopted(EventPayload):
+    event_type: Literal["ChangesetCandidateAdopted"] = "ChangesetCandidateAdopted"
+    changeset_id: ChangesetId
+    branch_search_id: BranchSearchId
+    branch_candidate_id: BranchCandidateId
+    adopted_by: str = Field(default="operator", min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=4000)
+    candidate_session_id: SessionId | None = None
+    preview_artifact_id: ArtifactId | None = None
+    inventory_artifact_id: ArtifactId | None = None
+    verification_id: TaskVerificationId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    workspace_mutation_performed: bool = False
+
+
+class ChangesetArchived(EventPayload):
+    event_type: Literal["ChangesetArchived"] = "ChangesetArchived"
+    changeset_id: ChangesetId
+    reason: str = Field(min_length=1, max_length=2000)
+    archived_by: str = Field(default="operator", min_length=1, max_length=200)
+    replacement_changeset_id: ChangesetId | None = None
+
+
 class WorkspaceMemoryCreated(EventPayload):
     event_type: Literal["WorkspaceMemoryCreated"] = "WorkspaceMemoryCreated"
     memory_id: WorkspaceMemoryId
@@ -1170,6 +1295,14 @@ EventPayloadType = Annotated[
     | RecoveryDecisionRecorded
     | ResumeOutcomeRecorded
     | ProviderRecoveryRecorded
+    | ChangesetCreated
+    | ChangesetSourceAttached
+    | ChangesetInventoryRefreshed
+    | ChangesetVerificationPostureUpdated
+    | ChangesetReviewBriefCreated
+    | ChangesetReadinessDecided
+    | ChangesetCandidateAdopted
+    | ChangesetArchived
     | WorkspaceMemoryCreated
     | WorkspaceMemoryConfirmed
     | WorkspaceMemoryUpdated
@@ -1282,3 +1415,15 @@ class EventEnvelope(BaseModel):
     @property
     def pause_window_id(self) -> PauseWindowId | None:
         return getattr(self.payload, "pause_window_id", None)
+
+    @property
+    def changeset_id(self) -> ChangesetId | None:
+        return getattr(self.payload, "changeset_id", None)
+
+    @property
+    def artifact_id(self) -> ArtifactId | None:
+        return getattr(self.payload, "artifact_id", None)
+
+    @property
+    def verification_id(self) -> TaskVerificationId | None:
+        return getattr(self.payload, "verification_id", None)
