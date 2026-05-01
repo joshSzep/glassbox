@@ -115,6 +115,20 @@ class EvalProfileRecommendation(BaseModel):
     reasons: list[EvalRecommendationReason] = Field(default_factory=list)
 
 
+class EvalVerificationRecipeRecommendation(BaseModel):
+    """Recommended verification recipe for one change set."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    recipe_id: str
+    title: str
+    matched_paths: list[str] = Field(default_factory=list)
+    commands: list[str] = Field(default_factory=list)
+    profile_ids: list[str] = Field(default_factory=list)
+    case_ids: list[str] = Field(default_factory=list)
+    notes: str | None = None
+
+
 class EvalReleaseSurfaceRecommendation(BaseModel):
     """Daily-development view of one release verification surface."""
 
@@ -164,6 +178,7 @@ class EvalRecommendationReport(BaseModel):
     )
     cases: list[EvalCaseRecommendation] = Field(default_factory=list)
     profiles: list[EvalProfileRecommendation] = Field(default_factory=list)
+    recipes: list[EvalVerificationRecipeRecommendation] = Field(default_factory=list)
     suggested_commands: list[str] = Field(default_factory=list)
     cheapest_next_command: str | None = None
     fallback_policy_commands: list[str] = Field(default_factory=list)

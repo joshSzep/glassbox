@@ -326,6 +326,21 @@ def _print_eval_recommendations(result: EvalRecommendationReport) -> None:
                 print(f"    Reason: {reason.summary}")
     else:
         print("Recommended profiles: none")
+    if result.recipes:
+        print("Verification recipes:")
+        for recipe in result.recipes:
+            print(f"  - {recipe.recipe_id}: {recipe.title}")
+            _print_optional_joined_line("Paths", recipe.matched_paths, indent="    ")
+            _print_optional_joined_line("Profiles", recipe.profile_ids, indent="    ")
+            _print_optional_joined_line("Cases", recipe.case_ids, indent="    ")
+            if recipe.notes:
+                print(f"    Notes: {recipe.notes}")
+            if recipe.commands:
+                print("    Commands:")
+                for command in recipe.commands:
+                    print("      - " + command)
+    else:
+        print("Verification recipes: none")
     if result.suggested_commands:
         print("Suggested commands:")
         for command in result.suggested_commands:

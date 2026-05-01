@@ -5,6 +5,9 @@ from pathlib import Path
 
 from glassbox.runtime.eval_recommendations import recommend_eval_change_impact
 from glassbox.runtime.eval_verification import build_eval_verification_plan
+from glassbox.runtime.eval_verification_recipes import (
+    load_eval_verification_recipe_manifest,
+)
 
 
 def _write_bundle(tmp_path: Path, case_id: str) -> None:
@@ -159,6 +162,15 @@ def _write_impact(tmp_path: Path) -> None:
             indent=2,
         )
         + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_recipes(tmp_path: Path, recipes: list[dict[str, object]]) -> None:
+    recipes_path = tmp_path / "evals" / "recipes.json"
+    recipes_path.parent.mkdir(parents=True, exist_ok=True)
+    recipes_path.write_text(
+        json.dumps({"manifest_version": 1, "recipes": recipes}, indent=2) + "\n",
         encoding="utf-8",
     )
 
@@ -602,3 +614,90 @@ def test_recommend_eval_change_impact_marks_fallback_as_manual_policy(
         "are manual policy guidance, not inferred evidence."
     ]
     assert [group.group for group in report.reason_groups] == ["fallback-policy"]
+
+
+def test_eval_verification_recipe_manifest_validates_and_dedupes(
+    tmp_path: Path,
+) -> None:
+    _write_recipes(
+        tmp_path,
+        [
+            {
+                "recipe_id": "frontend-dashboard",
+                "title": "Frontend dashboard",
+                "path_globs": ["frontend/**/*.tsx", "frontend/**/*.tsx"],
+                "commands": ["pnpm --dir frontend test", "pnpm --dir frontend test"],
+                "profile_ids": ["commit-smoke", "commit-smoke"],
+                "case_ids": ["dashboard.action-answer", "dashboard.action-answer"],
+            }
+        ],
+    )
+
+    manifest = load_eval_verification_recipe_manifest(tmp_path)
+
+    recipe = manifest.recipes[0]
+    assert recipe.path_globs == ["frontend/**/*.tsx"]
+    assert recipe.commands == ["pnpm --dir frontend test"]
+    assert recipe.profile_ids == ["commit-smoke"]
+    assert recipe.case_ids == ["dashboard.action-answer"]
+
+
+def test_eval_verification_recipe_manifest_rejects_empty_commands(
+    tmp_path: Path,
+) -> None:
+    _write_recipes(
+        tmp_path,
+        [
+            {
+                "recipe_id": "docs-only",
+                "title": "Docs only",
+                "path_globs": ["docs/**/*.md"],
+                "commands": [],
+            }
+        ],
+    )
+
+    try:
+        load_eval_verification_recipe_manifest(tmp_path)
+    except ValueError as exc:
+        assert "at least one command" in str(exc)
+    else:
+        raise AssertionError("expected invalid recipe manifest to fail")
+
+
+def test_recommend_eval_change_impact_includes_matching_recipes(
+    tmp_path: Path,
+) -> None:
+    _write_profiles(tmp_path)
+    _write_coverage(tmp_path)
+    _write_impact(tmp_path)
+    _write_recipes(
+        tmp_path,
+        [
+            {
+                "recipe_id": "frontend-dashboard",
+                "title": "Frontend dashboard",
+                "path_globs": ["frontend/**/*.tsx"],
+                "commands": [
+                    "pnpm --dir frontend lint",
+                    "pnpm --dir frontend test",
+                ],
+                "profile_ids": ["commit-smoke"],
+                "notes": "Run route tests when backend paths change.",
+            }
+        ],
+    )
+
+    report = recommend_eval_change_impact(
+        tmp_path,
+        touched_paths=["frontend/components/console/workspace-overview.tsx"],
+    )
+
+    assert [recipe.recipe_id for recipe in report.recipes] == ["frontend-dashboard"]
+    assert report.recipes[0].matched_paths == [
+        "frontend/components/console/workspace-overview.tsx"
+    ]
+    assert report.recipes[0].commands == [
+        "pnpm --dir frontend lint",
+        "pnpm --dir frontend test",
+    ]

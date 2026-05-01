@@ -491,7 +491,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1121: Introduce Verification Recipes For Common Change Families
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1120`
 - Goal: reduce command memorization for recurring contributor workflows
 - Deliverables:

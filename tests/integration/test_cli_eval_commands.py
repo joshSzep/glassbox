@@ -1040,6 +1040,94 @@ def test_cli_eval_recommend_reports_coverage_manifest_warning(
     assert payload["suggested_commands"] == ["uv run glassbox eval audit --cwd ."]
 
 
+def test_cli_eval_recommend_reports_verification_recipes(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "commit-smoke",
+                "title": "Commit smoke",
+                "verification_stage": "commit-time",
+                "blocking": True,
+            }
+        ],
+    )
+    _write_eval_coverage(tmp_path, profiles=[])
+    _write_eval_impact(tmp_path, rules=[])
+    recipes_path = tmp_path / "evals" / "recipes.json"
+    recipes_path.write_text(
+        json.dumps(
+            {
+                "manifest_version": 1,
+                "recipes": [
+                    {
+                        "recipe_id": "frontend-dashboard",
+                        "title": "Frontend dashboard",
+                        "path_globs": ["frontend/**/*.tsx"],
+                        "commands": [
+                            "pnpm --dir frontend lint",
+                            "pnpm --dir frontend test",
+                        ],
+                        "profile_ids": ["commit-smoke"],
+                    }
+                ],
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "recommend",
+            "frontend/components/console/workspace-overview.tsx",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["recipes"] == [
+        {
+            "recipe_id": "frontend-dashboard",
+            "title": "Frontend dashboard",
+            "matched_paths": ["frontend/components/console/workspace-overview.tsx"],
+            "commands": [
+                "pnpm --dir frontend lint",
+                "pnpm --dir frontend test",
+            ],
+            "profile_ids": ["commit-smoke"],
+            "case_ids": [],
+            "notes": None,
+        }
+    ]
+
+    exit_code = main(
+        [
+            "eval",
+            "recommend",
+            "frontend/components/console/workspace-overview.tsx",
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Verification recipes:" in captured.out
+    assert "frontend-dashboard: Frontend dashboard" in captured.out
+    assert "pnpm --dir frontend test" in captured.out
+
+
 def test_cli_eval_report_rejects_live_provider_canary_profile(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

@@ -1,0 +1,135 @@
+{
+    "manifest_version": 1,
+    "recipes": [
+        {
+            "recipe_id": "docs-only",
+            "title": "Docs-only contributor checks",
+            "path_globs": [
+                "README.md",
+                "docs/**/*.md"
+            ],
+            "commands": [
+                "uv run pytest tests/unit/test_release_candidate_docs.py -q"
+            ],
+            "notes": "Use when documentation changes do not touch release gates, package metadata, generated API contracts, or runtime behavior."
+        },
+        {
+            "recipe_id": "release-docs",
+            "title": "Release document checks",
+            "path_globs": [
+                "docs/v*-release-gate.md",
+                "docs/v*-release-candidate.md",
+                "docs/release-packaging.md",
+                "docs/version-release-policy.md"
+            ],
+            "commands": [
+                "uv run glassbox eval run --profile release-candidate --cwd .",
+                "uv run python scripts/validate_package_contents.py"
+            ],
+            "profile_ids": ["release-candidate"],
+            "notes": "Pair deterministic release-candidate replay proof with packaging checks when release narrative or package-content policy changes."
+        },
+        {
+            "recipe_id": "release-gate-scripts",
+            "title": "Release gate script checks",
+            "path_globs": [
+                "scripts/validate_v*_release_gate.py",
+                "scripts/validate_package_contents.py",
+                "scripts/validate_installed_wheel_smoke.py"
+            ],
+            "commands": [
+                "uv run pytest tests/unit/test_v10_release_gate.py tests/unit/test_packaging_metadata.py -q",
+                "uv run python scripts/validate_v10_release_gate.py --cwd ."
+            ],
+            "profile_ids": ["release-candidate"],
+            "notes": "Run the matching versioned gate when the touched script is not v10."
+        },
+        {
+            "recipe_id": "frontend-dashboard",
+            "title": "Frontend dashboard checks",
+            "path_globs": [
+                "frontend/**/*.ts",
+                "frontend/**/*.tsx",
+                "frontend/**/*.mjs",
+                "frontend/**/*.json",
+                "src/glassbox/web/**/*.py"
+            ],
+            "commands": [
+                "pnpm --dir frontend lint",
+                "pnpm --dir frontend typecheck",
+                "pnpm --dir frontend test",
+                "pnpm --dir frontend build"
+            ],
+            "case_ids": [
+                "dashboard.action-approval",
+                "dashboard.action-answer",
+                "long-run.cockpit-summary"
+            ],
+            "notes": "Add focused backend route tests when the touched path is under src/glassbox/web."
+        },
+        {
+            "recipe_id": "runtime-events",
+            "title": "Runtime event contract checks",
+            "path_globs": [
+                "src/glassbox/core/events.py",
+                "src/glassbox/runtime/*event*.py",
+                "src/glassbox/runtime/turn_event_recorder.py",
+                "tests/unit/test_core_events.py",
+                "tests/integration/test_sqlite_event_store.py"
+            ],
+            "commands": [
+                "uv run pytest tests/unit/test_core_events.py tests/unit/test_turn_event_recorder.py tests/integration/test_sqlite_event_store.py -q"
+            ],
+            "notes": "Event schema changes must preserve canonical event compatibility or document intentional drift."
+        },
+        {
+            "recipe_id": "store-schema",
+            "title": "SQLite store schema checks",
+            "path_globs": [
+                "src/glassbox/store/sqlite_schema*.py",
+                "src/glassbox/store/sqlite_projection*.py",
+                "src/glassbox/store/sqlite_query*.py",
+                "tests/unit/test_sqlite_*",
+                "tests/integration/test_sqlite_*.py"
+            ],
+            "commands": [
+                "uv run pytest tests/unit/test_sqlite_schema_boundaries.py tests/unit/test_sqlite_query_boundaries.py tests/integration/test_sqlite_bootstrap.py tests/integration/test_projection_rebuild.py -q"
+            ],
+            "notes": "Schema and projection work should keep canonical events authoritative and projections rebuildable."
+        },
+        {
+            "recipe_id": "provider-posture",
+            "title": "Provider posture checks",
+            "path_globs": [
+                "src/glassbox/runtime/provider*.py",
+                "src/glassbox/cli/provider_commands.py",
+                "docs/providers.md",
+                "tests/unit/test_runtime_provider_config.py",
+                "tests/unit/test_provider_recovery.py",
+                "tests/integration/test_provider_mode_runtime.py"
+            ],
+            "commands": [
+                "uv run pytest tests/unit/test_runtime_provider_config.py tests/unit/test_provider_recovery.py tests/integration/test_provider_mode_runtime.py -q"
+            ],
+            "notes": "Live-provider canaries remain advisory and require explicit operator selection."
+        },
+        {
+            "recipe_id": "packaging",
+            "title": "Packaging and installed smoke checks",
+            "path_globs": [
+                "pyproject.toml",
+                "uv.lock",
+                "scripts/validate_package_contents.py",
+                "scripts/validate_installed_wheel_smoke.py",
+                "tests/unit/test_packaging_metadata.py",
+                "tests/unit/test_installed_wheel_smoke.py",
+                "docs/release-packaging.md"
+            ],
+            "commands": [
+                "uv run pytest tests/unit/test_packaging_metadata.py tests/unit/test_installed_wheel_smoke.py -q",
+                "uv run python scripts/validate_package_contents.py"
+            ],
+            "notes": "Use alongside an installed-wheel smoke when package metadata or package contents change."
+        }
+    ]
+}

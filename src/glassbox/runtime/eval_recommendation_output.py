@@ -13,7 +13,12 @@ from glassbox.runtime.eval_recommendation_models import (
     EvalRecommendationReasonGroupKind,
 )
 from glassbox.runtime.eval_recommendation_models import EvalReleaseSurfaceRecommendation
+from glassbox.runtime.eval_recommendation_models import (
+    EvalVerificationRecipeRecommendation,
+)
 from glassbox.runtime.eval_recommendation_models import LongRunVerificationSurface
+from glassbox.runtime.eval_verification_recipes import EvalVerificationRecipe
+from glassbox.runtime.eval_verification_recipes import recipe_matched_paths
 from glassbox.runtime.evals import EvalCase
 from glassbox.runtime.evals import EvalProfileDefinition
 from glassbox.runtime.evals import EvalVerificationStage
@@ -208,6 +213,34 @@ def build_reason_groups(
         )
         if group in groups
     ]
+
+
+def build_recipe_recommendations(
+    *,
+    normalized_paths: list[str],
+    recipes: list[EvalVerificationRecipe],
+) -> list[EvalVerificationRecipeRecommendation]:
+    recommendations: list[EvalVerificationRecipeRecommendation] = []
+    for recipe in recipes:
+        matched_paths = recipe_matched_paths(
+            normalized_paths=normalized_paths,
+            recipe=recipe,
+        )
+        if not matched_paths:
+            continue
+        recommendations.append(
+            EvalVerificationRecipeRecommendation(
+                recipe_id=recipe.recipe_id,
+                title=recipe.title,
+                matched_paths=matched_paths,
+                commands=list(recipe.commands),
+                profile_ids=list(recipe.profile_ids),
+                case_ids=list(recipe.case_ids),
+                notes=recipe.notes,
+            )
+        )
+    recommendations.sort(key=lambda recommendation: recommendation.recipe_id)
+    return recommendations
 
 
 def build_release_surface_recommendations(

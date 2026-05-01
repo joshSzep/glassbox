@@ -103,6 +103,7 @@ SDIST_REQUIRED_SUFFIXES = (
     "evals/profiles.json",
     "evals/coverage.json",
     "evals/impact.json",
+    "evals/recipes.json",
     "evals/cases/autonomy.budget-exhaustion.json",
     "evals/cases/branch-search.candidate-comparison.json",
     "evals/cases/context.compaction-provenance.json",

@@ -34,11 +34,15 @@ from glassbox.runtime.eval_recommendation_output import (
 )
 from glassbox.runtime.eval_recommendation_output import build_profile_recommendations
 from glassbox.runtime.eval_recommendation_output import build_reason_groups
+from glassbox.runtime.eval_recommendation_output import build_recipe_recommendations
 from glassbox.runtime.eval_recommendation_output import (
     build_release_surface_recommendations,
 )
 from glassbox.runtime.eval_recommendation_output import build_suggested_commands
 from glassbox.runtime.eval_recommendation_output import dedupe_strings
+from glassbox.runtime.eval_verification_recipes import (
+    maybe_load_eval_verification_recipe_manifest,
+)
 from glassbox.runtime.evals import EvalCase
 from glassbox.runtime.evals import _ensure_path_within_root
 from glassbox.runtime.evals import discover_eval_case_files
@@ -52,6 +56,7 @@ def recommend_eval_change_impact(
     touched_paths: list[str],
     impact_path: Path | None = None,
     coverage_path: Path | None = None,
+    recipes_path: Path | None = None,
 ) -> EvalRecommendationReport:
     """Recommend replay/eval cases and profiles for one changed path set."""
 
@@ -83,6 +88,11 @@ def recommend_eval_change_impact(
         impact_path=impact_path,
     )
     rules = [] if impact_manifest is None else impact_manifest.rules
+    recipe_manifest = maybe_load_eval_verification_recipe_manifest(
+        resolved_workspace_root,
+        recipes_path=recipes_path,
+    )
+    recipes = [] if recipe_manifest is None else recipe_manifest.recipes
 
     case_reasons: dict[str, list[EvalRecommendationReason]] = {}
     profile_reasons: dict[str, list[EvalRecommendationReason]] = {}
@@ -166,6 +176,10 @@ def recommend_eval_change_impact(
         profile_recommendations=profile_recommendations,
         release_surfaces=release_surfaces,
     )
+    recipe_recommendations = build_recipe_recommendations(
+        normalized_paths=normalized_paths,
+        recipes=recipes,
+    )
 
     return EvalRecommendationReport(
         workspace_root=resolved_workspace_root,
@@ -178,6 +192,7 @@ def recommend_eval_change_impact(
         long_run_surfaces=long_run_surfaces,
         cases=case_recommendations,
         profiles=profile_recommendations,
+        recipes=recipe_recommendations,
         suggested_commands=suggested_commands,
         cheapest_next_command=build_cheapest_next_command(
             case_recommendations,

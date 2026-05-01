@@ -201,6 +201,15 @@ shape with `cheapest_next_command`, `reason_groups`, and
 `fallback_policy_commands` so downstream tools can distinguish inferred
 evidence from manual policy fallback guidance.
 
+The command also reads repository-owned verification recipes from
+`evals/recipes.json`. Recipes are declarative change-family guidance: each row
+matches touched paths with `path_globs` and prints commands the operator may run
+for familiar work such as docs-only edits, release docs, release-gate scripts,
+frontend dashboard changes, runtime event contracts, store schema changes,
+provider posture, and packaging. Recipe commands are shown as guidance only;
+`eval recommend --execute` still executes only planned deterministic eval cases
+or profiles, never arbitrary recipe commands.
+
 `eval recommend` also prints a compact daily-development release-surface view for
 `commit-time`, `push-time`, `release-candidate`, and `advisory`. Each row shows
 whether that surface is impacted, which profiles and cases are recommended,
