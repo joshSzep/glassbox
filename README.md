@@ -163,12 +163,15 @@ Run the baseline local validation sequence with:
 uv run ruff format --check .
 uv run ruff check .
 uv run ty check
-uv run pytest
+uv run pytest -n auto --dist loadfile
 uv run pre-commit run --all-files
 ```
 
-The unfiltered `uv run pytest` command is the full-confidence pytest check. It
-intentionally includes daemon, subprocess, timeout, TUI, slow, and release-gate
-coverage.
+The parallel `uv run pytest -n auto --dist loadfile` command is the default
+full-suite local check because it preserves file-level scheduling for daemon
+tests while cutting full-suite wall-clock time substantially. The serial
+`uv run pytest` command remains the conservative full-confidence fallback. Both
+commands intentionally include daemon, subprocess, timeout, TUI, slow, and
+release-gate coverage.
 
 For replay-backed regression checks, use the focused eval guide in [docs/replay-evals.md](docs/replay-evals.md).

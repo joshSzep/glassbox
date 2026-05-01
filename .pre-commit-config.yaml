@@ -32,8 +32,8 @@ repos:
         types_or: [python, pyi]
 
       - id: pytest
-        name: pytest
-        entry: uv run pytest
+        name: pytest (xdist loadfile)
+        entry: uv run pytest -n auto --dist loadfile
         language: unsupported
         always_run: true
         pass_filenames: false

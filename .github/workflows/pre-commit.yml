@@ -44,7 +44,7 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm --dir frontend exec playwright install --with-deps chromium
 
-      - name: Run pre-commit on all files
+      - name: Run pre-commit on all files (pytest uses xdist loadfile)
         run: uv run pre-commit run --all-files
 
       - name: Upload frontend browser artifacts

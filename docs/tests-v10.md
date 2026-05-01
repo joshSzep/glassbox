@@ -294,16 +294,21 @@ Baseline validation for completed test-suite work should include:
 uv run ruff format --check .
 uv run ruff check .
 uv run ty check
-uv run pytest
+uv run pytest -n auto --dist loadfile
 ```
 
-If parallel execution is introduced, keep both serial and parallel confidence
-checks available until ordering, cleanup, and port-allocation risks are closed.
-The supported local parallel confidence check is:
+Keep both serial and parallel confidence checks available. The supported default
+local full-suite confidence check is:
 
 ```bash
 uv run pytest -n auto --dist loadfile
 ```
+
+Use serial `uv run pytest` as the conservative full-confidence fallback and for
+release-gate scripts that intentionally avoid parallel scheduling assumptions.
+The pre-commit pytest hook and push workflow should use the supported parallel
+command so the validated xdist speedup is visible in the normal maintenance
+path.
 
 Keep daemon-heavy investigation serial or use the same file-level scheduler:
 
@@ -787,6 +792,10 @@ Validation evidence:
 Validation evidence:
 
 - Added `pytest-xdist>=3.8,<4` to the dev dependency group.
+- Adopted the supported `uv run pytest -n auto --dist loadfile` command in the
+  pre-commit pytest hook and push workflow path after the clean evaluation, so
+  routine validation gets the measured speedup without using the unsafe default
+  xdist scheduler.
 - Default xdist scheduling is not recommended for daemon-heavy slices:
   `uv run --with pytest-xdist pytest -m daemon -n auto --durations=40 --durations-min=0.01 -q`
   failed with 6 daemon startup-health failures because daemon tests were
