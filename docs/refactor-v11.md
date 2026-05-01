@@ -908,7 +908,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R451: Split Context Compaction Service Into Range Planning, Artifact Assembly, Freshness, And Mutation Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R400`
 - Goal: reduce
   [context_compaction_service.py](../src/glassbox/runtime/context_compaction_service.py)
@@ -933,6 +933,23 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - compaction guidance, artifact assembly, freshness, refresh, and
     invalidation are independently testable
+- Completed notes:
+  - `context_compaction_service.py` is now a compatibility facade over focused
+    range planning, artifact assembly, freshness assessment, and mutation
+    helpers.
+  - Over-cap source-range guidance lives in `context_compaction_range.py`,
+    deterministic artifact payload construction lives in
+    `context_compaction_artifact.py`, freshness derivation lives in
+    `context_compaction_freshness.py`, and create/refresh/invalidate event
+    mutations live in `context_compaction_mutations.py`.
+  - Guardrails now cap the facade and helper modules and keep compaction
+    helpers independent from CLI and web presentation imports.
+  - Validation: `uv run pytest tests/unit/test_context_compaction.py tests/unit/test_architecture_guardrails.py`,
+    `uv run pytest tests/integration/test_cli_session_commands.py -k compaction tests/integration/test_web_session_snapshot.py`,
+    `uv run glassbox eval run context.compaction-provenance context.compaction-cap-guidance --cwd .`,
+    `uv run ruff format --check src/glassbox/runtime/context_compaction*.py tests/unit/test_architecture_guardrails.py`,
+    `uv run ruff check src/glassbox/runtime/context_compaction*.py tests/unit/test_architecture_guardrails.py`,
+    and `uv run ty check src/glassbox/runtime/context_compaction_service.py src/glassbox/runtime/context_compaction_range.py src/glassbox/runtime/context_compaction_artifact.py src/glassbox/runtime/context_compaction_freshness.py src/glassbox/runtime/context_compaction_mutations.py`.
 
 ### GBX-R452: Split Turn Event Recorder And Tool Executor Artifact Hooks
 

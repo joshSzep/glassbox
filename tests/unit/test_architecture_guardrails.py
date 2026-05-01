@@ -1539,10 +1539,42 @@ V11_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
     (
         SRC_ROOT / "runtime" / "context_compaction_service.py",
-        680,
+        80,
         (
-            "v11 compaction service should move new range planning, artifact "
-            "assembly, freshness, refresh, and invalidation behavior into helpers"
+            "v11 compaction service should stay a thin facade over range "
+            "planning, artifact assembly, freshness, and mutation helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "context_compaction_range.py",
+        170,
+        (
+            "v11 compaction range planning and over-cap guidance should stay "
+            "owned by context_compaction_range.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "context_compaction_artifact.py",
+        300,
+        (
+            "v11 compaction artifact assembly should stay owned by "
+            "context_compaction_artifact.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "context_compaction_freshness.py",
+        160,
+        (
+            "v11 compaction freshness assessment should stay owned by "
+            "context_compaction_freshness.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "context_compaction_mutations.py",
+        220,
+        (
+            "v11 compaction refresh and invalidation mutations should stay "
+            "owned by context_compaction_mutations.py"
         ),
     ),
     (
@@ -1954,6 +1986,38 @@ V11_PYTHON_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
         (
             "v11 compaction helpers must keep range planning, freshness, and "
             "artifact assembly independent from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "context_compaction_range.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 compaction range planning helpers must stay independent from "
+            "CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "context_compaction_artifact.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 compaction artifact assembly helpers must stay independent "
+            "from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "context_compaction_freshness.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 compaction freshness helpers must stay independent from CLI "
+            "and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "context_compaction_mutations.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 compaction mutation helpers must stay independent from CLI "
+            "and web presentation layers"
         ),
     ),
     (

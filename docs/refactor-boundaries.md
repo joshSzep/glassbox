@@ -234,10 +234,16 @@ packaging concerns now sit next to one another:
   `tool_attempt_recovery_models.py` own inspection summaries, retry
   eligibility/execution, abandon events, retained output artifacts, shared
   lookups, and result models.
-- `src/glassbox/runtime/context_compaction_service.py`,
-  `turn_event_recorder.py`, and `turn_tool_executor.py` now carry richer
-  freshness, artifact, replay, and heartbeat shaping that should be separated
-  by event/side-effect concern.
+- The v11 context compaction split now keeps
+  `src/glassbox/runtime/context_compaction_service.py` as the stable import
+  facade, while `context_compaction_range.py`,
+  `context_compaction_artifact.py`, `context_compaction_freshness.py`, and
+  `context_compaction_mutations.py` own over-cap range guidance, artifact
+  payload assembly, freshness assessment, and create/refresh/invalidate event
+  mutations.
+- `src/glassbox/runtime/turn_event_recorder.py` and
+  `turn_tool_executor.py` now carry richer artifact, replay, and heartbeat
+  shaping that should be separated by event/side-effect concern.
 - `src/glassbox/store/sqlite_projection_tasks.py` and
   `src/glassbox/store/sqlite_background_jobs.py` are rebuildable and coherent,
   but should move high-pressure event-family handlers into focused helpers if
