@@ -8,6 +8,7 @@ from glassbox.cli.parser_common import _add_runtime_location_arguments
 from glassbox.cli.parser_common import _add_session_start_default_arguments
 from glassbox.cli.parser_common import _parse_port
 from glassbox.cli.parser_common import _parse_uuid
+from glassbox.cli.parser_session_launch import add_interactive_launch_arguments
 
 
 def _add_session_workflow_parsers(
@@ -53,7 +54,7 @@ def _add_session_workflow_parsers(
     )
     _add_runtime_location_arguments(session_chat_parser)
     _add_session_start_default_arguments(session_chat_parser)
-    _add_interactive_launch_arguments(session_chat_parser)
+    add_interactive_launch_arguments(session_chat_parser)
     session_chat_parser.add_argument(
         "--dashboard-host",
         default=None,
@@ -105,7 +106,7 @@ def _add_session_workflow_parsers(
     )
     attach_parser.add_argument("session_id", type=_parse_uuid)
     _add_runtime_location_arguments(attach_parser)
-    _add_interactive_launch_arguments(attach_parser)
+    add_interactive_launch_arguments(attach_parser)
 
     message_parser = session_subparsers.add_parser(
         "message",
@@ -502,23 +503,3 @@ def _add_autonomy_parsers(
     )
     _add_runtime_location_arguments(show_parser)
     show_parser.add_argument("--json", action="store_true")
-
-
-def _add_interactive_launch_arguments(parser: argparse.ArgumentParser) -> None:
-    launch_group = parser.add_mutually_exclusive_group()
-    launch_group.add_argument(
-        "--plain",
-        dest="interactive_launch_mode",
-        action="store_const",
-        const="plain",
-        default=None,
-        help="run the line-oriented compatibility terminal experience",
-    )
-    launch_group.add_argument(
-        "--tui",
-        dest="interactive_launch_mode",
-        action="store_const",
-        const="tui",
-        default=None,
-        help="request the full-screen terminal UI when the migration gate enables it",
-    )

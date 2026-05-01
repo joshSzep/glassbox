@@ -1435,18 +1435,50 @@ V11_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
     (
         SRC_ROOT / "cli" / "interactive_commands.py",
-        600,
+        460,
         (
-            "v11 interactive commands should move new launch, daemon, local "
-            "action, and autonomy-option behavior into owned helpers"
+            "v11 interactive_commands should keep command wrappers thin over "
+            "launch, daemon, local action, and autonomy-option helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "interactive_autonomy.py",
+        100,
+        (
+            "v11 interactive autonomy option resolution should stay owned by "
+            "interactive_autonomy.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "interactive_local_actions.py",
+        160,
+        (
+            "v11 interactive local actions should stay owned by "
+            "interactive_local_actions.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "interactive_daemon_actions.py",
+        60,
+        (
+            "v11 interactive daemon-forwarded actions should stay owned by "
+            "interactive_daemon_actions.py"
         ),
     ),
     (
         SRC_ROOT / "cli" / "parser_sessions.py",
-        570,
+        530,
         (
             "v11 session parser wiring should move new option-resolution "
             "behavior into parser/helper modules"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "parser_session_launch.py",
+        50,
+        (
+            "v11 session launch parser options should stay owned by "
+            "parser_session_launch.py"
         ),
     ),
     (

@@ -2334,9 +2334,13 @@ src/glassbox/
         command_guide_render.py
         command_guide_workflows.py
         entry.py
+        interactive_autonomy.py
         interactive_commands.py
+        interactive_daemon_actions.py
+        interactive_local_actions.py
         interactive_session.py
         parser.py
+        parser_session_launch.py
         path_helpers.py
         renderer.py
         replay_eval_commands.py

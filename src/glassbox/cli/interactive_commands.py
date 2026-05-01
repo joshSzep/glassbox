@@ -4,16 +4,31 @@ import argparse
 import asyncio
 from pathlib import Path
 
-import httpx
-
 from glassbox.cli.chat_startup import print_chat_startup_summary
 from glassbox.cli.daemon_attach import attach_tui_via_daemon
 from glassbox.cli.daemon_attach import attach_via_daemon
 from glassbox.cli.daemon_status import build_runtime_owner_status_report
+from glassbox.cli.interactive_autonomy import (
+    build_ad_hoc_autonomy_config as _build_ad_hoc_autonomy_config,
+)
+from glassbox.cli.interactive_autonomy import (
+    build_start_session_config as _build_start_session_config,
+)
+from glassbox.cli.interactive_autonomy import (
+    print_autonomy_config_summary as _print_autonomy_config_summary,
+)
 from glassbox.cli.interactive_client import LocalInteractiveSessionClient
+from glassbox.cli.interactive_daemon_actions import request_cancel_via_daemon
 from glassbox.cli.interactive_launch import InteractiveLaunchMode
 from glassbox.cli.interactive_launch import interactive_launch_options_from_args
 from glassbox.cli.interactive_launch import resolve_interactive_launch_mode
+from glassbox.cli.interactive_local_actions import answer_question_locally
+from glassbox.cli.interactive_local_actions import cancel_session_turn_locally
+from glassbox.cli.interactive_local_actions import fork_session_locally
+from glassbox.cli.interactive_local_actions import resolve_approval_locally
+from glassbox.cli.interactive_local_actions import resume_session_locally
+from glassbox.cli.interactive_local_actions import submit_prompt_if_present
+from glassbox.cli.interactive_local_actions import submit_session_message_locally
 from glassbox.cli.interactive_session import _interactive_session_loop
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.cli.runtime_runner import _dashboard_session_url
@@ -23,7 +38,6 @@ from glassbox.cli.tui import create_session_tui_app
 from glassbox.cli.tui import run_tui_app
 from glassbox.cli.tui.conversation import with_runtime_owner
 from glassbox.core import SessionConfig
-from glassbox.core.ids import SessionId
 from glassbox.core.types import ApprovalDecision
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.bootstrap_storage import resolve_runtime_storage_paths
@@ -31,7 +45,6 @@ from glassbox.runtime.context import RuntimeContext
 from glassbox.runtime.daemon import clear_stale_runtime_owner
 from glassbox.runtime.daemon import inspect_runtime_owner
 from glassbox.runtime.provider_diagnostics import build_provider_diagnostics_report
-from glassbox.runtime.workspace_profile import resolve_session_start_defaults
 from glassbox.web.app import _STATIC_NEXT_DIR
 from glassbox.web.spa_static import validate_spa_static_assets
 
@@ -56,7 +69,7 @@ async def _run_command_async(args: argparse.Namespace) -> int:
         )
         await asyncio.sleep(0)
         _print_autonomy_config_summary(config)
-        await _submit_prompt_if_present(
+        await submit_prompt_if_present(
             runtime_context,
             session_state.session_id,
             args.prompt,
@@ -119,7 +132,7 @@ async def _chat_command_async(args: argparse.Namespace) -> int:
                 ),
                 include_prompt_suggestions=args.prompt is None,
             )
-            await _submit_prompt_if_present(
+            await submit_prompt_if_present(
                 runtime_context,
                 session_state.session_id,
                 args.prompt,
@@ -181,7 +194,7 @@ async def _chat_tui_command_async(
                 ),
                 include_prompt_suggestions=args.prompt is None,
             )
-            await _submit_prompt_if_present(
+            await submit_prompt_if_present(
                 runtime_context,
                 session_state.session_id,
                 args.prompt,
@@ -306,10 +319,7 @@ async def _resume_command_async(args: argparse.Namespace) -> int:
     autonomy_config = _build_ad_hoc_autonomy_config(args, cwd)
 
     async def action(runtime_context: RuntimeContext, _prompt_state) -> None:
-        if autonomy_config is not None:
-            _print_autonomy_config_summary(autonomy_config)
-        await runtime_context.services.session_service.resume_session(args.session_id)
-        await asyncio.sleep(0)
+        await resume_session_locally(runtime_context, args, autonomy_config)
 
     return await _run_with_renderer(cwd, db_path, action)
 
@@ -326,13 +336,7 @@ async def _message_command_async(args: argparse.Namespace) -> int:
     autonomy_config = _build_ad_hoc_autonomy_config(args, cwd)
 
     async def action(runtime_context: RuntimeContext, _prompt_state) -> None:
-        if autonomy_config is not None:
-            _print_autonomy_config_summary(autonomy_config)
-        await runtime_context.services.session_service.submit_user_message(
-            args.session_id,
-            args.prompt,
-        )
-        await asyncio.sleep(0)
+        await submit_session_message_locally(runtime_context, args, autonomy_config)
 
     return await _run_with_renderer(cwd, db_path, action)
 
@@ -351,20 +355,12 @@ async def _cancel_command_async(args: argparse.Namespace) -> int:
                 f"{daemon_status.record.dashboard_url}; cannot cancel session "
                 f"{args.session_id}"
             )
-        async with httpx.AsyncClient(
-            base_url=daemon_status.record.dashboard_url,
-            timeout=httpx.Timeout(5.0, connect=1.0, read=5.0, write=5.0),
-        ) as client:
-            response = await client.post(
-                f"/sessions/{args.session_id}/cancel",
-                json={
-                    "reason": args.reason,
-                    "turn_id": str(args.turn_id) if args.turn_id else None,
-                },
-            )
-        if response.status_code in {404, 409, 422}:
-            raise ValueError(response.json().get("detail", response.text))
-        response.raise_for_status()
+        await request_cancel_via_daemon(
+            dashboard_url=daemon_status.record.dashboard_url,
+            session_id=args.session_id,
+            turn_id=args.turn_id,
+            reason=args.reason,
+        )
         print(f"Cancellation requested for session {args.session_id}")
         return 0
 
@@ -374,14 +370,7 @@ async def _cancel_command_async(args: argparse.Namespace) -> int:
     )
 
     async def action(runtime_context: RuntimeContext, _prompt_state) -> None:
-        await runtime_context.services.session_service.cancel_turn(
-            args.session_id,
-            turn_id=args.turn_id,
-            requested_by="cli",
-            reason=args.reason,
-        )
-        await asyncio.sleep(0)
-        print(f"Cancellation requested for session {args.session_id}")
+        await cancel_session_turn_locally(runtime_context, args)
 
     return await _run_with_renderer(cwd, db_path, action)
 
@@ -397,109 +386,9 @@ async def _fork_command_async(args: argparse.Namespace) -> int:
     )
 
     async def action(runtime_context: RuntimeContext, _prompt_state) -> None:
-        forked_session = await runtime_context.services.session_service.fork_session(
-            args.session_id,
-            turn_id=args.turn_id,
-            branch_label=args.branch_label,
-        )
-        await asyncio.sleep(0)
-        print(
-            "Forked session "
-            f"{forked_session.child_session_id} "
-            f"from {forked_session.parent_session_id} "
-            f"at turn {forked_session.forked_from_turn_id} "
-            f"(sequence {forked_session.forked_from_sequence})"
-        )
-        print(
-            "Imported "
-            f"{forked_session.inherited_message_count} transcript messages "
-            "into child session"
-        )
-        if forked_session.branch_label is not None:
-            print(f"Branch label: {forked_session.branch_label}")
-        if args.prompt:
-            await _submit_prompt_if_present(
-                runtime_context,
-                forked_session.child_session_id,
-                args.prompt,
-            )
+        await fork_session_locally(runtime_context, args)
 
     return await _run_with_renderer(cwd, db_path, action)
-
-
-def _build_start_session_config(
-    args: argparse.Namespace,
-    cwd: Path,
-) -> SessionConfig:
-    defaults = resolve_session_start_defaults(
-        cwd,
-        explicit_model_name=args.model_name,
-        explicit_approval_mode=args.approval_mode,
-        explicit_autonomy_mode=getattr(args, "autonomy_mode", None),
-        explicit_autonomy_budget_preset=getattr(args, "autonomy_budget_preset", None),
-    )
-    return SessionConfig(
-        model_name=defaults.model_name,
-        cwd=cwd,
-        approval_mode=defaults.approval_mode,
-        autonomy_mode=defaults.autonomy_mode,
-        autonomy_budget=defaults.autonomy_budget,
-        autonomy_budget_preset=defaults.autonomy_budget_preset,
-    )
-
-
-def _print_autonomy_config_summary(config: SessionConfig) -> None:
-    budget = config.autonomy_budget
-    if budget is None:
-        print(f"Autonomy: {config.autonomy_mode.value}; budget unavailable")
-        return
-    print(
-        "Autonomy: "
-        f"{config.autonomy_mode.value}; "
-        f"budget {config.autonomy_budget_preset or config.autonomy_mode.value}; "
-        f"steps {budget.max_steps}, tools {budget.max_tool_calls}, "
-        f"writes {budget.max_write_operations}, "
-        f"commands {budget.max_command_operations}"
-    )
-
-
-def _build_ad_hoc_autonomy_config(
-    args: argparse.Namespace,
-    cwd: Path,
-) -> SessionConfig | None:
-    autonomy_mode = getattr(args, "autonomy_mode", None)
-    autonomy_budget_preset = getattr(args, "autonomy_budget_preset", None)
-    if not (autonomy_mode or autonomy_budget_preset):
-        return None
-    defaults = resolve_session_start_defaults(
-        cwd,
-        explicit_model_name=None,
-        explicit_approval_mode=None,
-        explicit_autonomy_mode=autonomy_mode,
-        explicit_autonomy_budget_preset=autonomy_budget_preset,
-    )
-    return SessionConfig(
-        model_name=defaults.model_name,
-        cwd=cwd,
-        approval_mode=defaults.approval_mode,
-        autonomy_mode=defaults.autonomy_mode,
-        autonomy_budget=defaults.autonomy_budget,
-        autonomy_budget_preset=defaults.autonomy_budget_preset,
-    )
-
-
-async def _submit_prompt_if_present(
-    runtime_context: RuntimeContext,
-    session_id: SessionId,
-    prompt: str | None,
-) -> None:
-    if not prompt:
-        return
-    await runtime_context.services.session_service.submit_user_message(
-        session_id,
-        prompt,
-    )
-    await asyncio.sleep(0)
 
 
 def _answer_command(args: argparse.Namespace) -> int:
@@ -513,12 +402,7 @@ async def _answer_command_async(args: argparse.Namespace) -> int:
     )
 
     async def action(runtime_context: RuntimeContext, _prompt_state) -> None:
-        await runtime_context.services.session_service.provide_user_answer(
-            args.session_id,
-            args.question_id,
-            args.answer,
-        )
-        await asyncio.sleep(0)
+        await answer_question_locally(runtime_context, args)
 
     return await _run_with_renderer(cwd, db_path, action)
 
@@ -540,11 +424,6 @@ async def _resolve_approval_command_async(
     )
 
     async def action(runtime_context: RuntimeContext, _prompt_state) -> None:
-        await runtime_context.services.session_service.resolve_approval(
-            args.session_id,
-            args.approval_id,
-            decision,
-        )
-        await asyncio.sleep(0)
+        await resolve_approval_locally(runtime_context, args, decision)
 
     return await _run_with_renderer(cwd, db_path, action)

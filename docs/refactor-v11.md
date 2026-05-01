@@ -760,7 +760,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R442: Split Interactive Command Handlers By Local, Daemon, Action, And Launch Boundaries
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R400`
 - Goal: reduce
   [interactive_commands.py](../src/glassbox/cli/interactive_commands.py) and
@@ -788,6 +788,23 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - interactive session command behavior is stable while launch, daemon, local
     action, and parser concerns are independently owned
+- Completed notes:
+  - `interactive_commands.py` now keeps the established command wrapper and
+    monkeypatch-compatible import surface while delegating autonomy option
+    resolution to `interactive_autonomy.py`, local session mutations to
+    `interactive_local_actions.py`, and daemon-forwarded cancellation posting
+    to `interactive_daemon_actions.py`.
+  - Session parser launch-mode wiring now lives in
+    `parser_session_launch.py`, leaving `parser_sessions.py` focused on session
+    command registration and argument shape.
+  - Guardrails now cap the interactive command facade, parser wiring, and new
+    helper modules so future launch, daemon, local-action, and autonomy behavior
+    lands in the intended owner.
+  - Validation: `uv run pytest tests/unit/test_cli_interactive_launch.py tests/unit/test_cli_interactive_client.py`,
+    `uv run pytest tests/integration/test_cli_interactive_commands.py tests/integration/test_daemon_runtime.py`,
+    `uv run ruff format --check src/glassbox/cli/interactive_commands.py src/glassbox/cli/interactive_autonomy.py src/glassbox/cli/interactive_daemon_actions.py src/glassbox/cli/interactive_local_actions.py src/glassbox/cli/parser_sessions.py src/glassbox/cli/parser_session_launch.py tests/unit/test_architecture_guardrails.py`,
+    `uv run ruff check src/glassbox/cli/interactive_commands.py src/glassbox/cli/interactive_autonomy.py src/glassbox/cli/interactive_daemon_actions.py src/glassbox/cli/interactive_local_actions.py src/glassbox/cli/parser_sessions.py src/glassbox/cli/parser_session_launch.py tests/unit/test_architecture_guardrails.py`,
+    and `uv run ty check src/glassbox/cli/interactive_commands.py src/glassbox/cli/interactive_autonomy.py src/glassbox/cli/interactive_daemon_actions.py src/glassbox/cli/interactive_local_actions.py src/glassbox/cli/parser_sessions.py src/glassbox/cli/parser_session_launch.py`.
 
 ### GBX-R443: Split Session Store Stream, Detail Pagination, Drafts, And Actions
 

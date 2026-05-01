@@ -610,6 +610,12 @@ The `cli` package should not build its own parallel session-query logic when the
   daemon-forwarded actions, local session actions, autonomy option resolution,
   and parser wiring while preserving daemon-owner safety checks, plain-mode
   compatibility, exit codes, and current command options.
+- The interactive split now keeps `cli/interactive_commands.py` as the stable
+  command-wrapper surface while `cli/interactive_autonomy.py`,
+  `cli/interactive_local_actions.py`, and
+  `cli/interactive_daemon_actions.py` own autonomy option resolution, local
+  session mutations, and daemon-forwarded action payloads. Session launch
+  parser options live in `cli/parser_session_launch.py`.
 
 #### Post-v8 TUI Sub-Boundaries
 
