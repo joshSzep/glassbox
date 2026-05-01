@@ -601,6 +601,11 @@ The `cli` package should not build its own parallel session-query logic when the
 - Command-guide behavior should separate command metadata, workflow grouping,
   JSON serialization, and terminal rendering. It remains aligned with the real
   parser and must not become a second parser definition source.
+- The command-guide split now keeps `cli/command_guide.py` as a compatibility
+  facade while `cli/command_guide_data.py`, `cli/command_guide_workflows.py`,
+  `cli/command_guide_json.py`, `cli/command_guide_render.py`, and
+  `cli/command_guide_models.py` own metadata, workflow grouping,
+  serialization, rendering, and typed command-guide models.
 - Interactive session commands should separate chat/run/attach launch,
   daemon-forwarded actions, local session actions, autonomy option resolution,
   and parser wiring while preserving daemon-owner safety checks, plain-mode

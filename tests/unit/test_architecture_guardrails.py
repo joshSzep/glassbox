@@ -1393,11 +1393,45 @@ V11_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
     (
         SRC_ROOT / "cli" / "command_guide.py",
-        540,
+        60,
         (
-            "v11 command guide should move new metadata, workflow grouping, "
-            "JSON serialization, and terminal rendering into owned helpers"
+            "v11 command_guide should stay a thin compatibility facade over "
+            "data, workflow grouping, JSON serialization, and terminal rendering"
         ),
+    ),
+    (
+        SRC_ROOT / "cli" / "command_guide_data.py",
+        480,
+        ("v11 command guide metadata should stay owned by command_guide_data.py"),
+    ),
+    (
+        SRC_ROOT / "cli" / "command_guide_workflows.py",
+        90,
+        (
+            "v11 command guide workflow grouping should stay owned by "
+            "command_guide_workflows.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "command_guide_json.py",
+        60,
+        (
+            "v11 command guide JSON serialization should stay owned by "
+            "command_guide_json.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "command_guide_render.py",
+        60,
+        (
+            "v11 command guide terminal rendering should stay owned by "
+            "command_guide_render.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "command_guide_models.py",
+        50,
+        ("v11 command guide models should stay owned by command_guide_models.py"),
     ),
     (
         SRC_ROOT / "cli" / "interactive_commands.py",

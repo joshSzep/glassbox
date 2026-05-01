@@ -718,7 +718,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R441: Split Command Guide Data From Rendering And Workflow Grouping
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R440`
 - Goal: reduce
   [command_guide.py](../src/glassbox/cli/command_guide.py) by separating
@@ -740,6 +740,23 @@ Each phase below corresponds to one concrete refactor milestone.
   - `uv run glassbox command guide --json`
 - Done when:
   - workflow command guidance can expand without widening one formatter module
+- Completed notes:
+  - `command_guide.py` is now a compatibility facade over focused command
+    guide models, section data, workflow grouping, JSON serialization, and
+    terminal rendering helpers.
+  - `command_guide_workflows.py` owns workflow-family grouping for recovery,
+    verification, provider, knowledge, branch-search, handoff, and release
+    guidance while `command_guide_data.py` remains aligned with the real parser
+    command names.
+  - Unit coverage now characterizes the renderer, stable JSON payload shape,
+    and workflow grouping helper, and guardrails cap the facade plus each new
+    command-guide owner.
+  - Validation: `uv run pytest tests/unit/test_command_guide.py tests/integration/test_cli_entrypoint.py -k command_guide`,
+    `uv run glassbox command guide`,
+    `uv run glassbox command guide --json`,
+    `uv run ruff format --check src/glassbox/cli/command_guide*.py tests/unit/test_command_guide.py tests/unit/test_architecture_guardrails.py`,
+    `uv run ruff check src/glassbox/cli/command_guide*.py tests/unit/test_command_guide.py tests/unit/test_architecture_guardrails.py`,
+    and `uv run ty check src/glassbox/cli/command_guide.py src/glassbox/cli/command_guide_data.py src/glassbox/cli/command_guide_models.py src/glassbox/cli/command_guide_json.py src/glassbox/cli/command_guide_render.py src/glassbox/cli/command_guide_workflows.py tests/unit/test_command_guide.py`.
 
 ### GBX-R442: Split Interactive Command Handlers By Local, Daemon, Action, And Launch Boundaries
 

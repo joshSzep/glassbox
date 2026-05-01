@@ -2327,6 +2327,12 @@ src/glassbox/
     __init__.py
     cli/
         __init__.py
+        command_guide.py
+        command_guide_data.py
+        command_guide_json.py
+        command_guide_models.py
+        command_guide_render.py
+        command_guide_workflows.py
         entry.py
         interactive_commands.py
         interactive_session.py
