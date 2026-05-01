@@ -30,7 +30,7 @@ The v10 test-suite thesis is:
   for full-stack startup in every adjacent test
 - make timing regressions visible before they become accepted background noise
 
-## Current Timing Baseline
+## Initial Timing Baseline
 
 The current timing probe on the repository produced:
 
@@ -62,9 +62,10 @@ uv run pytest tests/integration --durations=80 --durations-min=0.05 -q
 uv run pytest -m "daemon or subprocess or timeout or tui" --durations=80 --durations-min=0.01 -q
 uv run pytest -m "not daemon and not subprocess and not timeout and not tui and not slow" --durations=80 --durations-min=0.05 -q
 uv run pytest --durations=100 --durations-min=0.05 -q
+uv run pytest -n auto --dist loadfile --durations=100 --durations-min=0.05 -q
 ```
 
-Current local serial baseline ranges:
+Current local baseline ranges:
 
 - collection: about 1.5s to 2.3s
 - unit suite: about 9s to 11s
@@ -72,8 +73,9 @@ Current local serial baseline ranges:
 - expensive marker slice: about 29s to 33s
 - fast marker slice: about 30s to 35s
 - full suite: about 56s to 62s
+- parallel full suite with file-level scheduling: about 26s to 28s
 
-Representative GBX-T901 timing pass:
+Representative timing evidence:
 
 ```text
 uv run pytest --collect-only -q
@@ -93,6 +95,9 @@ uv run pytest -m "not daemon and not subprocess and not timeout and not tui and 
 
 uv run pytest --durations=100 --durations-min=0.05 -q
 1124 passed in 59.07s
+
+uv run pytest -n auto --dist loadfile --durations=100 --durations-min=0.05 -q
+1121 passed in 26.24s
 ```
 
 Refresh procedure:
@@ -105,6 +110,9 @@ Refresh procedure:
    depends on specific tests moving out of the slow tail.
 5. Do not make these timing ranges release-blocking until variance is tracked
    across more machines.
+6. Use `--dist loadfile` for xdist runs. The default xdist scheduler can fan
+   daemon tests across workers and is not the documented parallel strategy for
+   this suite.
 
 Collection is not the bottleneck. Test-body execution is the bottleneck, and it
 is concentrated in process-heavy integration tests, intentional timeout tests,
@@ -261,6 +269,17 @@ uv run pytest
 
 If parallel execution is introduced, keep both serial and parallel confidence
 checks available until ordering, cleanup, and port-allocation risks are closed.
+The supported local parallel confidence check is:
+
+```bash
+uv run pytest -n auto --dist loadfile
+```
+
+Keep daemon-heavy investigation serial or use the same file-level scheduler:
+
+```bash
+uv run pytest -m daemon -n auto --dist loadfile
+```
 
 ## Milestone Map
 
@@ -714,7 +733,7 @@ Validation evidence:
 
 ### GBX-T950: Evaluate Pytest Parallelism Safely
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-T920`, `GBX-T940`
 - Goal: determine whether `pytest-xdist` can shorten full-suite wall-clock time
   without hiding cleanup or port-allocation bugs
@@ -734,6 +753,43 @@ Validation evidence:
 - Done when:
   - the project either has a documented safe parallel command or a documented
     reason to defer parallelism
+
+Validation evidence:
+
+- Added `pytest-xdist>=3.8,<4` to the dev dependency group.
+- Default xdist scheduling is not recommended for daemon-heavy slices:
+  `uv run --with pytest-xdist pytest -m daemon -n auto --durations=40 --durations-min=0.01 -q`
+  failed with 6 daemon startup-health failures because daemon tests were
+  scheduled across workers concurrently.
+- `uv run pytest --durations=100 --durations-min=0.05 -q`:
+  1121 passed in 44.47s
+- `uv run --with pytest-xdist pytest -n auto --durations=100 --durations-min=0.05 -q`:
+  1121 passed in 20.01s, but this default scheduler is not the documented
+  strategy because the daemon slice failed separately.
+- `uv run --with pytest-xdist pytest tests/unit -n auto --durations=50 --durations-min=0.01 -q`:
+  564 passed in 26.13s
+- `uv run --with pytest-xdist pytest tests/integration -n auto --dist loadfile --durations=80 --durations-min=0.05 -q`:
+  553 passed in 26.68s
+- `uv run --with pytest-xdist pytest -m daemon -n auto --dist loadfile --durations=40 --durations-min=0.01 -q`:
+  7 passed in 27.98s
+- repeated `uv run --with pytest-xdist pytest -m daemon -n auto --dist loadfile --durations=40 --durations-min=0.01 -q`:
+  7 passed in 26.92s
+- `uv run --with pytest-xdist pytest -n auto --dist loadfile --durations=100 --durations-min=0.05 -q`:
+  1121 passed in 26.24s
+- final installed-dependency `uv run pytest -q`:
+  1121 passed in 44.80s
+- final installed-dependency `uv run pytest -n auto --dist loadfile -q`:
+  1121 passed in 18.97s
+- final installed-dependency `uv run pytest -m daemon -n auto --dist loadfile -q`:
+  7 passed in 15.47s
+- final installed-dependency `uv run pytest --collect-only -q`:
+  1121 tests collected in 1.33s
+- `uv run ruff format --check .`:
+  496 files already formatted
+- `uv run ruff check .`:
+  all checks passed
+- `uv run ty check`:
+  all checks passed
 
 ---
 
