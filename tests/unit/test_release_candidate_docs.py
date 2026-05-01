@@ -502,6 +502,33 @@ def test_v11_accessibility_review_records_named_pairings_and_non_claims() -> Non
     assert "accessibility-review-v11.md" in docs_readme
 
 
+def test_v11_dashboard_performance_doc_records_large_session_measurement() -> None:
+    content = (REPO_ROOT / "docs" / "dashboard-performance-v11.md").read_text(
+        encoding="utf-8"
+    )
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Scope",
+        "## Measurement Summary",
+        "54 passed",
+        "2 passed",
+        "## Coverage Map",
+        "Aggregate load",
+        "Selected-session load",
+        "SSE reducer cost",
+        "Long timeline rendering",
+        "Detail-page pagination",
+        "Browser long-session route",
+        "No blocking large-session dashboard performance issue",
+        "GBX-1131",
+        "long-run-cockpit-contract.md",
+    ):
+        assert required_text in content
+
+    assert "dashboard-performance-v11.md" in docs_readme
+
+
 def test_v9_dashboard_cockpit_contract_covers_operator_priority_model() -> None:
     content = (REPO_ROOT / "docs" / "dashboard-cockpit-contract.md").read_text(
         encoding="utf-8"

@@ -232,6 +232,10 @@ path.
 - [accessibility-review-v11.md](./accessibility-review-v11.md): v11 named
   terminal keyboard/plain-mode and dashboard keyboard pairing evidence,
   supported claims, screen-reader non-claims, and follow-ups
+- [dashboard-performance-v11.md](./dashboard-performance-v11.md): v11
+  large-session dashboard measurement pass for aggregate load, selected
+  session load, SSE reducer behavior, timeline rendering, pagination, and
+  browser long-session routes
 - [manual-v9-release-validation.md](./manual-v9-release-validation.md): retained
   GBX-992 manual validation pass for first-run, dashboard cockpit, recovery,
   provider, package, accessibility, residual-risk, and go/no-go evidence

@@ -616,7 +616,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1133: Harden Dashboard Performance For Large Local Sessions
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1131`
 - Goal: keep the cockpit usable when sessions, transcript pages, event logs,
   tool attempts, and recovery cues grow
