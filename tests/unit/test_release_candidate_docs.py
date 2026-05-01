@@ -846,6 +846,45 @@ def test_v10_refactor_docs_describe_final_module_shape() -> None:
     assert "pnpm --dir frontend test" in roadmap
 
 
+def test_v11_refactor_docs_describe_final_module_shape() -> None:
+    architecture = (REPO_ROOT / "docs" / "architecture.md").read_text(encoding="utf-8")
+    boundaries = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
+        encoding="utf-8"
+    )
+    roadmap = (REPO_ROOT / "docs" / "refactor-v11.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "### V11 Confidence-Surface Ownership",
+        "eval_recommendation_*.py",
+        "knowledge_posture*.py",
+        "branch_decision_*.py",
+        "session_export*.py",
+        "session_import*.py",
+        "tool_attempt_recovery*.py",
+        "sqlite_projection_*.py",
+    ):
+        assert required_text in architecture
+
+    for required_text in (
+        "The v11 confidence-surface refactor map is implemented through Phase 75",
+        "## V11 Closeout Validation Commands",
+        "uv run pytest tests/unit/test_architecture_guardrails.py",
+        "pnpm --dir frontend typecheck",
+        "uv run python scripts/validate_v11_release_gate.py --dry-run",
+        "`sqlite_projection_background_jobs.py`",
+    ):
+        assert required_text in boundaries
+
+    assert "GBX-R460: Update Architecture Docs For The V11 Refactor Shape" in roadmap
+    assert (
+        "GBX-R461: Close Out V11 Refactor Guardrails And Focused Validation" in roadmap
+    )
+    assert "Accepted compatibility shims and intended owners are listed" in roadmap
+    assert "uv run pytest tests/unit/test_architecture_guardrails.py" in roadmap
+    assert "pnpm --dir frontend lint" in roadmap
+    assert "pnpm --dir frontend test" in roadmap
+
+
 def test_provider_docs_define_v9_evidence_freshness_contract() -> None:
     content = (REPO_ROOT / "docs" / "providers.md").read_text(encoding="utf-8")
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")

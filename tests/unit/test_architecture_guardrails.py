@@ -2263,6 +2263,154 @@ V11_FRONTEND_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
     ),
 )
 
+V11_COMPATIBILITY_FACADE_DELEGATES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
+    (
+        SRC_ROOT / "runtime" / "eval_recommendation_output.py",
+        (
+            "glassbox.runtime.eval_recommendation_rows",
+            "glassbox.runtime.eval_recommendation_plans",
+            "glassbox.runtime.eval_recommendation_recipes",
+            "glassbox.runtime.eval_recommendation_release_surfaces",
+            "glassbox.runtime.eval_recommendation_long_run_surfaces",
+            "glassbox.runtime.eval_recommendation_reason_groups",
+        ),
+        "v11 recommendation output facade should delegate to output helper owners",
+    ),
+    (
+        SRC_ROOT / "runtime" / "eval_recommendation_matching.py",
+        (
+            "glassbox.runtime.eval_recommendation_path_matching",
+            "glassbox.runtime.eval_recommendation_case_expansion",
+            "glassbox.runtime.eval_recommendation_profile_expansion",
+            "glassbox.runtime.eval_recommendation_matching_common",
+        ),
+        "v11 recommendation matching facade should delegate to matching helpers",
+    ),
+    (
+        SRC_ROOT / "runtime" / "knowledge_posture.py",
+        (
+            "glassbox.runtime.knowledge_posture_sources",
+            "glassbox.runtime.knowledge_posture_cues",
+            "glassbox.runtime.knowledge_posture_guidance",
+            "glassbox.runtime.knowledge_posture_ranking",
+            "glassbox.runtime.knowledge_posture_models",
+        ),
+        "v11 knowledge posture facade should delegate to knowledge helpers",
+    ),
+    (
+        SRC_ROOT / "runtime" / "branch_decision_support.py",
+        (
+            "glassbox.runtime.branch_decision_evidence",
+            "glassbox.runtime.branch_decision_files",
+            "glassbox.runtime.branch_decision_verification",
+            "glassbox.runtime.branch_decision_cost",
+            "glassbox.runtime.branch_decision_risk",
+            "glassbox.runtime.branch_decision_followup",
+            "glassbox.runtime.branch_decision_models",
+        ),
+        "v11 branch decision facade should delegate to branch helpers",
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_export.py",
+        (
+            "glassbox.runtime.session_export_models",
+            "glassbox.runtime.session_export_package",
+        ),
+        "v11 session export facade should delegate to export helpers",
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_import.py",
+        (
+            "glassbox.runtime.session_import_events",
+            "glassbox.runtime.session_import_validation",
+        ),
+        "v11 session import facade should delegate to import helpers",
+    ),
+    (
+        SRC_ROOT / "runtime" / "tool_attempt_recovery.py",
+        (
+            "glassbox.runtime.tool_attempt_recovery_abandon",
+            "glassbox.runtime.tool_attempt_recovery_artifacts",
+            "glassbox.runtime.tool_attempt_recovery_inspection",
+            "glassbox.runtime.tool_attempt_recovery_models",
+            "glassbox.runtime.tool_attempt_recovery_retry",
+        ),
+        "v11 tool-attempt recovery facade should delegate to recovery helpers",
+    ),
+    (
+        SRC_ROOT / "runtime" / "context_compaction_service.py",
+        (
+            "glassbox.runtime.context_compaction_freshness",
+            "glassbox.runtime.context_compaction_mutations",
+            "glassbox.runtime.context_compaction_range",
+        ),
+        "v11 compaction service facade should delegate to compaction helpers",
+    ),
+    (
+        SRC_ROOT / "runtime" / "turn_event_recorder.py",
+        (
+            "glassbox.runtime.turn_artifacts",
+            "glassbox.runtime.turn_replay_hooks",
+        ),
+        "v11 turn event recorder should delegate artifact and replay hooks",
+    ),
+    (
+        SRC_ROOT / "runtime" / "turn_tool_executor.py",
+        ("glassbox.runtime.turn_tool_attempt_heartbeats",),
+        "v11 turn tool executor should delegate tool-attempt heartbeat shaping",
+    ),
+    (
+        SRC_ROOT / "cli" / "status_formatters.py",
+        ("glassbox.cli.status_session",),
+        "v11 status formatter facade should delegate to status-domain helpers",
+    ),
+    (
+        SRC_ROOT / "cli" / "command_guide.py",
+        (
+            "glassbox.cli.command_guide_data",
+            "glassbox.cli.command_guide_json",
+            "glassbox.cli.command_guide_models",
+            "glassbox.cli.command_guide_render",
+            "glassbox.cli.command_guide_workflows",
+        ),
+        "v11 command guide facade should delegate to command-guide helpers",
+    ),
+    (
+        SRC_ROOT / "cli" / "interactive_commands.py",
+        (
+            "glassbox.cli.interactive_autonomy",
+            "glassbox.cli.interactive_daemon_actions",
+            "glassbox.cli.interactive_launch",
+            "glassbox.cli.interactive_local_actions",
+            "glassbox.cli.interactive_session",
+        ),
+        "v11 interactive command facade should delegate to interactive helpers",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_tasks.py",
+        (
+            "glassbox.store.sqlite_projection_task_lifecycle",
+            "glassbox.store.sqlite_projection_task_plan",
+            "glassbox.store.sqlite_projection_task_steps",
+            "glassbox.store.sqlite_projection_task_verifications",
+        ),
+        "v11 task projection facade should delegate to event-family helpers",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_background_jobs.py",
+        (
+            "glassbox.store.sqlite_projection_background_job_control",
+            "glassbox.store.sqlite_projection_background_job_creation",
+            "glassbox.store.sqlite_projection_background_job_lifecycle",
+            "glassbox.store.sqlite_projection_background_job_recovery",
+        ),
+        (
+            "v11 background-job projection facade should delegate to "
+            "event-family helpers"
+        ),
+    ),
+)
+
 
 def test_dependency_direction_rules_hold_for_refactor_boundaries() -> None:
     violations: list[str] = []
@@ -2426,6 +2574,30 @@ def test_v11_frontend_boundaries_avoid_transport_and_backend_imports() -> None:
         violations.extend(
             _frontend_import_violations(file_path, forbidden_prefixes, message)
         )
+
+    assert violations == []
+
+
+def test_v11_compatibility_facades_delegate_to_intended_owners() -> None:
+    violations: list[str] = []
+
+    for file_path, required_prefixes, message in V11_COMPATIBILITY_FACADE_DELEGATES:
+        modules = _python_import_modules(file_path)
+        missing = [
+            required_prefix
+            for required_prefix in required_prefixes
+            if not any(
+                _matches_any_prefix(module, (required_prefix,)) for module in modules
+            )
+        ]
+        if missing:
+            violations.append(
+                _format_violation(
+                    file_path,
+                    message,
+                    f"missing delegate imports {missing}",
+                )
+            )
 
     assert violations == []
 

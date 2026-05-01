@@ -992,6 +992,27 @@ The guardrails are intentionally narrow:
 
 If a guardrail fails, the default repair should be to move new behavior into the owning split module or add one focused neighbor module, not to widen a facade or cross a subsystem boundary.
 
+## V11 Closeout Validation Commands
+
+Future confidence-surface refactors should start with the narrowest command
+that covers the touched seam, then finish with the broader v11 closeout set
+when behavior crosses recommendation, knowledge, branch-search, handoff, CLI,
+frontend, recovery, or projection boundaries:
+
+```bash
+uv run pytest tests/unit/test_architecture_guardrails.py
+uv run pytest tests/unit/test_release_candidate_docs.py
+uv run pytest tests/unit/test_eval_recommendations.py tests/unit/test_knowledge_posture.py tests/unit/test_branch_search.py
+uv run pytest tests/integration/test_cli_session_export.py tests/integration/test_cli_session_import.py
+uv run pytest tests/unit/test_cli_facade_characterization.py tests/unit/test_command_guide.py
+uv run pytest tests/unit/test_tool_attempt_retry.py tests/unit/test_context_compaction.py tests/unit/test_turn_event_recorder.py
+uv run pytest tests/integration/test_sqlite_projections.py tests/integration/test_projection_rebuild.py tests/integration/test_background_jobs.py tests/integration/test_web_task_routes.py
+pnpm --dir frontend typecheck
+pnpm --dir frontend lint
+pnpm --dir frontend test
+uv run python scripts/validate_v11_release_gate.py --dry-run
+```
+
 ## Stable Compatibility Facades
 
 The following compatibility patterns are acceptable in the completed refactor

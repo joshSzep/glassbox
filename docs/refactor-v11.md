@@ -1100,7 +1100,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R461: Close Out V11 Refactor Guardrails And Focused Validation
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R460`
 - Goal: add final characterization and validation coverage proving the v11
   refactor preserved behavior across recommendation, knowledge, branch-search,
@@ -1129,3 +1129,25 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - the v11 refactor roadmap can be marked complete with guardrails that
     protect the new module shape from immediate regression
+- Completed notes:
+  - `tests/unit/test_architecture_guardrails.py` now checks that accepted v11
+    compatibility facades still delegate to their intended helper owners, in
+    addition to the existing line-count and dependency-direction guardrails.
+  - [refactor-boundaries.md](./refactor-boundaries.md) now documents the v11
+    closeout validation command set for future confidence-surface refactors.
+  - Accepted compatibility shims and intended owners are listed in
+    [refactor-boundaries.md](./refactor-boundaries.md): recommendation output
+    and matching, knowledge posture, branch-decision support, session
+    export/import, service contracts, CLI status and command-guide facades,
+    interactive/session parser facades, frontend knowledge/branch/session-store
+    entrypoints, recovery, compaction, turn-hook, and projection coordinators.
+  - Validation: `uv run pytest tests/unit/test_architecture_guardrails.py`,
+    `uv run pytest tests/unit/test_release_candidate_docs.py`,
+    `uv run pytest tests/unit/test_eval_recommendations.py tests/unit/test_knowledge_posture.py tests/unit/test_branch_search.py`,
+    `uv run pytest tests/integration/test_cli_session_export.py tests/integration/test_cli_session_import.py`,
+    `uv run pytest tests/unit/test_cli_facade_characterization.py tests/unit/test_command_guide.py`,
+    `uv run pytest tests/unit/test_tool_attempt_retry.py tests/unit/test_context_compaction.py tests/unit/test_turn_event_recorder.py`,
+    `uv run pytest tests/integration/test_sqlite_projections.py tests/integration/test_projection_rebuild.py tests/integration/test_background_jobs.py tests/integration/test_web_task_routes.py`,
+    `pnpm --dir frontend typecheck`, `pnpm --dir frontend lint`,
+    `pnpm --dir frontend test`, and
+    `uv run python scripts/validate_v11_release_gate.py --dry-run`.
