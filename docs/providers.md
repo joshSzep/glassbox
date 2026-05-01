@@ -267,8 +267,10 @@ workflow-specific live automation is available, so skipped rows should be read a
 explicit capability limits rather than silent success.
 
 Provider capability matrix rows include scenario confidence, observed limits,
-retry posture, and tool-call reliability. These fields help operators compare
-provider fit for agentic workflows such as bounded plan following and
+retry posture, tool-call reliability, context-window posture, structured-output
+support, latency posture, cost/risk posture, and long-work guidance. These
+fields help operators compare provider fit for agentic workflows such as bounded
+plan following, large-context continuity, retry-heavy continuation, and
 verify-repair loops, but they remain advisory and do not silently change the
 model selected for a session.
 
@@ -355,6 +357,13 @@ provider recovery evidence for a session. They report posture (`recommended`,
 `recommended_action`, `failure_posture`, `budget_impact`, required
 capabilities, reasons, warnings, unknowns, relevant scenarios, and next
 actions.
+
+Recommendation copy distinguishes missing evidence, stale evidence, partial
+preflight-only evidence, and known provider failure posture. Missing or stale
+evidence points to canary refresh before long-running work. Partial evidence
+names preflight-only scenarios instead of treating them as observed support.
+Known blocked, degraded, or repeated provider failures tell the operator to
+inspect recovery evidence before choosing a provider or model switch.
 
 `recommended_action` is the operator-facing next move. Values are:
 

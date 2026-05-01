@@ -43,9 +43,19 @@ def provider_recommendation_reasons(
             )
     elif diagnostics.state != "ready":
         warnings.append(f"provider diagnostics state is {diagnostics.state}")
-    if evidence.canary_status in {"missing", "skipped"}:
-        warnings.append("provider canary evidence is missing or skipped")
-    if evidence.freshness_status != "fresh":
+    if evidence.canary_status == "missing" or evidence.freshness_status == "missing":
+        warnings.append(
+            "provider evidence is missing; run provider canaries before relying "
+            "on live-provider confidence"
+        )
+    elif evidence.canary_status == "skipped":
+        warnings.append("provider canary evidence was skipped and remains advisory")
+    if evidence.freshness_status == "stale":
+        warnings.append(
+            "provider evidence is stale; refresh retained canary evidence before "
+            "long-running work"
+        )
+    elif evidence.freshness_status != "fresh":
         warnings.append(f"provider evidence freshness is {evidence.freshness_status}")
     if evidence.model_identity_matches_config is False:
         warnings.append("retained provider evidence was captured for a different model")
@@ -53,6 +63,11 @@ def provider_recommendation_reasons(
         warnings.append(
             "missing relevant scenario evidence: "
             + ", ".join(evidence.relevant_skipped_or_missing)
+        )
+    if evidence.relevant_preflight:
+        warnings.append(
+            "partial provider evidence: preflight-only scenarios are "
+            + ", ".join(evidence.relevant_preflight)
         )
     if evidence.relevant_passed:
         reasons.append(
@@ -64,6 +79,11 @@ def provider_recommendation_reasons(
         )
     if failure_posture.state != "none":
         warnings.append(f"current provider failure posture is {failure_posture.state}")
+    if failure_posture.state in {"blocked", "degraded", "repeated_failure"}:
+        warnings.append(
+            "known provider failure posture requires inspection before provider "
+            "or model changes"
+        )
     return reasons, warnings
 
 

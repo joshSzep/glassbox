@@ -290,11 +290,17 @@ def test_provider_capability_matrix_includes_agentic_workflow_fields(
     rows = {entry.scenario_id: entry for entry in matrix.entries}
 
     assert rows["malformed-tool-call"].tool_call_reliability == "unknown"
+    assert rows["malformed-tool-call"].structured_output_support == "unknown"
+    assert rows["malformed-tool-call"].cost_risk_posture == "high"
     assert rows["retry-behavior"].retry_posture == "not_evaluated"
+    assert rows["retry-behavior"].latency_posture == "risk_for_long_work"
     assert rows["rate-limit-handling"].retry_posture == "rate_limit_unknown"
+    assert rows["rate-limit-handling"].cost_risk_posture == "high"
     assert rows["tool-call-streaming"].streaming_support == "supported"
     assert rows["tool-call-streaming"].tool_call_support == "supported"
+    assert rows["tool-call-streaming"].structured_output_support == "assumed"
     assert rows["verification-loop-interaction"].tool_call_reliability == "assumed"
+    assert rows["verification-loop-interaction"].long_work_guidance
     assert all(row.scenario_confidence == "preflight" for row in rows.values())
 
 
@@ -377,6 +383,9 @@ def test_provider_recommendation_uses_retained_canary_evidence(
     assert "verification-loop-interaction" in (
         recommendation.evidence.relevant_preflight
     )
+    assert any(
+        "partial provider evidence" in warning for warning in recommendation.warnings
+    )
     assert any("preflight-only" in unknown for unknown in recommendation.unknowns)
 
 
@@ -444,7 +453,7 @@ def test_provider_recommendation_degrades_stale_evidence(
     assert recommendation.risk_posture == "high"
     assert recommendation.evidence_freshness == "stale"
     assert recommendation.recommended_action == "refresh_evidence"
-    assert any("freshness is stale" in warning for warning in recommendation.warnings)
+    assert any("evidence is stale" in warning for warning in recommendation.warnings)
 
 
 def test_provider_recommendation_switches_after_repeated_provider_failure(
@@ -486,6 +495,9 @@ def test_provider_recommendation_switches_after_repeated_provider_failure(
     assert recommendation.failure_posture.state == "repeated_failure"
     assert recommendation.failure_posture.repeated_failure_count == 2
     assert recommendation.risk_posture == "high"
+    assert any(
+        "known provider failure" in warning for warning in recommendation.warnings
+    )
     assert any("provider switch" in action for action in recommendation.next_actions)
 
 

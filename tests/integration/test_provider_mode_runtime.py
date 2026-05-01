@@ -321,6 +321,9 @@ def test_provider_recommend_cli_reports_advisory_posture(
     assert payload["recommended_action"] == "local_fallback"
     assert payload["failure_posture"]["state"] == "none"
     assert payload["budget_impact"]["budget_warning"] is None
+    assert any(
+        "provider evidence is missing" in warning for warning in payload["warnings"]
+    )
     assert "secret" not in captured.out
 
 
@@ -397,6 +400,9 @@ def test_provider_recommend_cli_json_includes_session_recovery_guidance(
     assert payload["failure_posture"]["state"] == "retryable"
     assert payload["failure_posture"]["provider"] == "openai"
     assert payload["budget_impact"]["retry_delay_seconds"] == 4
+    assert any(
+        "provider evidence is missing" in warning for warning in payload["warnings"]
+    )
     assert "secret-openai" not in captured.out
 
 
@@ -448,6 +454,10 @@ def test_provider_canary_cli_writes_skipped_summary_without_credentials(
         "approval",
     ]
     assert payload["capability_matrix"]["deterministic_release_blocking"] is False
+    streaming_row = payload["capability_matrix"]["entries"][0]
+    assert streaming_row["context_window_posture"] == "sufficient_for_short_work"
+    assert streaming_row["latency_posture"] == "acceptable_for_interactive_work"
+    assert streaming_row["cost_risk_posture"] == "low"
     assert payload["capability_matrix"]["entries"][0]["redaction_status"] == "redacted"
     assert {scenario["outcome"] for scenario in payload["scenarios"]} == {"skipped"}
     assert retained == payload

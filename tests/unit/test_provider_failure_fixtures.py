@@ -93,7 +93,7 @@ def test_stale_canary_fixture_recommends_refresh_without_live_credentials(
     assert result.recommendation.recommended_action == "refresh_evidence"
     assert result.recommendation.posture == "risky"
     assert any(
-        "freshness is stale" in warning for warning in result.recommendation.warnings
+        "evidence is stale" in warning for warning in result.recommendation.warnings
     )
 
 

@@ -665,7 +665,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1141: Refresh Provider Capability Matrix For Long Work
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1140`
 - Goal: make provider recommendations more precise for long-running local tasks
 - Deliverables:

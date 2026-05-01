@@ -54,6 +54,31 @@ type ProviderToolCallReliability = Literal[
     "not_applicable",
     "unknown",
 ]
+type ProviderContextWindowPosture = Literal[
+    "sufficient_for_short_work",
+    "long_context_unmeasured",
+    "not_applicable",
+    "unknown",
+]
+type ProviderStructuredOutputSupport = Literal[
+    "supported",
+    "assumed",
+    "not_applicable",
+    "unknown",
+]
+type ProviderLatencyPosture = Literal[
+    "not_measured",
+    "acceptable_for_interactive_work",
+    "risk_for_long_work",
+    "unknown",
+]
+type ProviderCostRiskPosture = Literal[
+    "low",
+    "medium",
+    "high",
+    "not_measured",
+    "unknown",
+]
 
 
 class _ScenarioCapabilities(TypedDict):
@@ -67,6 +92,11 @@ class _ScenarioCapabilities(TypedDict):
     observed_limits: list[str]
     retry_posture: ProviderRetryPosture
     tool_call_reliability: ProviderToolCallReliability
+    context_window_posture: ProviderContextWindowPosture
+    structured_output_support: ProviderStructuredOutputSupport
+    latency_posture: ProviderLatencyPosture
+    cost_risk_posture: ProviderCostRiskPosture
+    long_work_guidance: str
 
 
 class ProviderCapabilityMatrixEntry(BaseModel):
@@ -89,6 +119,14 @@ class ProviderCapabilityMatrixEntry(BaseModel):
     observed_limits: list[str] = Field(default_factory=list)
     retry_posture: ProviderRetryPosture
     tool_call_reliability: ProviderToolCallReliability
+    context_window_posture: ProviderContextWindowPosture = "unknown"
+    structured_output_support: ProviderStructuredOutputSupport = "unknown"
+    latency_posture: ProviderLatencyPosture = "unknown"
+    cost_risk_posture: ProviderCostRiskPosture = "unknown"
+    long_work_guidance: str = (
+        "Provider long-work suitability is advisory; inspect retained evidence "
+        "before relying on it."
+    )
     result: ProviderCapabilityResult
     skipped_reason: str | None = None
     redaction_status: ProviderRedactionStatus = "redacted"
@@ -148,6 +186,11 @@ def build_provider_capability_matrix(
                 observed_limits=capabilities["observed_limits"],
                 retry_posture=capabilities["retry_posture"],
                 tool_call_reliability=capabilities["tool_call_reliability"],
+                context_window_posture=capabilities["context_window_posture"],
+                structured_output_support=capabilities["structured_output_support"],
+                latency_posture=capabilities["latency_posture"],
+                cost_risk_posture=capabilities["cost_risk_posture"],
+                long_work_guidance=capabilities["long_work_guidance"],
                 result=result,
                 skipped_reason=(
                     skipped_reason if result == "skipped" or not result_map else None
@@ -197,23 +240,43 @@ def _scenario_capabilities(scenario_id: str) -> _ScenarioCapabilities:
         "observed_limits": [],
         "retry_posture": "not_applicable",
         "tool_call_reliability": "not_applicable",
+        "context_window_posture": "unknown",
+        "structured_output_support": "unknown",
+        "latency_posture": "not_measured",
+        "cost_risk_posture": "not_measured",
+        "long_work_guidance": (
+            "Treat provider suitability for long local work as advisory until "
+            "retained scenario evidence covers this row."
+        ),
     }
     if scenario_id == "streaming-text":
         values["streaming_support"] = "supported"
+        values["context_window_posture"] = "sufficient_for_short_work"
+        values["latency_posture"] = "acceptable_for_interactive_work"
+        values["cost_risk_posture"] = "low"
         values["observed_limits"] = ["text streaming only"]
     elif scenario_id == "tool-call":
         values["tool_call_support"] = "supported"
         values["tool_call_reliability"] = "assumed"
+        values["structured_output_support"] = "assumed"
+        values["cost_risk_posture"] = "medium"
     elif scenario_id == "approval":
         values["tool_call_support"] = "supported"
         values["approval_behavior"] = "supported"
         values["tool_call_reliability"] = "assumed"
+        values["structured_output_support"] = "assumed"
     elif scenario_id == "ask-user":
         values["tool_call_support"] = "supported"
         values["ask_user_behavior"] = "supported"
         values["tool_call_reliability"] = "assumed"
+        values["structured_output_support"] = "assumed"
     elif scenario_id == "cancellation":
         values["cancellation_behavior"] = "assumed"
+        values["latency_posture"] = "risk_for_long_work"
+        values["long_work_guidance"] = (
+            "Provider-side cancellation timing is advisory; local cancellation "
+            "evidence remains the source of truth."
+        )
     elif scenario_id == "dashboard":
         values["dashboard_compatibility"] = "assumed"
     elif scenario_id == "daemon-attach":
@@ -221,35 +284,86 @@ def _scenario_capabilities(scenario_id: str) -> _ScenarioCapabilities:
     elif scenario_id == "malformed-tool-call":
         values["tool_call_support"] = "supported"
         values["tool_call_reliability"] = "unknown"
+        values["structured_output_support"] = "unknown"
+        values["cost_risk_posture"] = "high"
         values["observed_limits"] = ["schema-invalid tool-call recovery not automated"]
+        values["long_work_guidance"] = (
+            "Require checkpoint inspection before continuing after malformed "
+            "tool-call recovery evidence."
+        )
     elif scenario_id == "long-context-continuity":
         values["streaming_support"] = "assumed"
+        values["context_window_posture"] = "long_context_unmeasured"
+        values["latency_posture"] = "risk_for_long_work"
+        values["cost_risk_posture"] = "medium"
         values["observed_limits"] = [
             "context window and continuity limits not measured"
         ]
+        values["long_work_guidance"] = (
+            "Refresh evidence before relying on this provider for large "
+            "compactions, checkpoints, or extended task context."
+        )
     elif scenario_id == "retry-behavior":
         values["retry_posture"] = "not_evaluated"
+        values["latency_posture"] = "risk_for_long_work"
+        values["cost_risk_posture"] = "medium"
         values["observed_limits"] = ["transient provider retry path not automated"]
+        values["long_work_guidance"] = (
+            "Keep retries bounded by local autonomy and retry budgets."
+        )
     elif scenario_id == "rate-limit-handling":
         values["retry_posture"] = "rate_limit_unknown"
+        values["latency_posture"] = "risk_for_long_work"
+        values["cost_risk_posture"] = "high"
         values["observed_limits"] = ["rate-limit headers and backoff not observed"]
+        values["long_work_guidance"] = (
+            "Treat rate limits as long-work risk until retained evidence "
+            "shows bounded backoff behavior."
+        )
     elif scenario_id == "tool-call-streaming":
         values["streaming_support"] = "supported"
         values["tool_call_support"] = "supported"
         values["tool_call_reliability"] = "assumed"
+        values["structured_output_support"] = "assumed"
+        values["latency_posture"] = "risk_for_long_work"
+        values["cost_risk_posture"] = "medium"
         values["observed_limits"] = ["streaming tool-call delta handling not automated"]
+        values["long_work_guidance"] = (
+            "Inspect tool-call streaming evidence before depending on live "
+            "provider deltas during verification loops."
+        )
     elif scenario_id == "cancellation-during-retry":
         values["cancellation_behavior"] = "assumed"
         values["retry_posture"] = "not_evaluated"
+        values["latency_posture"] = "risk_for_long_work"
+        values["cost_risk_posture"] = "medium"
         values["observed_limits"] = ["retry cancellation timing not automated"]
+        values["long_work_guidance"] = (
+            "Pause and inspect local recovery evidence before continuing after "
+            "retry cancellation."
+        )
     elif scenario_id == "multi-step-plan-following":
         values["tool_call_support"] = "supported"
         values["tool_call_reliability"] = "assumed"
+        values["structured_output_support"] = "assumed"
+        values["context_window_posture"] = "long_context_unmeasured"
+        values["cost_risk_posture"] = "medium"
         values["observed_limits"] = ["multi-step plan adherence not automated"]
+        values["long_work_guidance"] = (
+            "Use deterministic task-plan and verification evidence as the "
+            "authority for multi-step local work."
+        )
     elif scenario_id == "verification-loop-interaction":
         values["tool_call_support"] = "supported"
         values["tool_call_reliability"] = "assumed"
+        values["structured_output_support"] = "assumed"
+        values["latency_posture"] = "risk_for_long_work"
+        values["cost_risk_posture"] = "medium"
         values["observed_limits"] = ["verify-repair interaction not automated"]
+        values["long_work_guidance"] = (
+            "Keep provider advice advisory; deterministic verification remains "
+            "the release authority."
+        )
     return values
 
 
