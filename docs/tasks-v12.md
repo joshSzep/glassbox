@@ -461,7 +461,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1212: Derive Changesets From Sessions, Tasks, And Branch Search
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1211`
 - Goal: let operators create a changeset from existing Glassbox work without
   manually reconstructing the story
