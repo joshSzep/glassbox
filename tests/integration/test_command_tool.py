@@ -78,6 +78,9 @@ def test_run_command_captures_stderr(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
+@pytest.mark.timeout
+@pytest.mark.subprocess
+@pytest.mark.release_gate
 def test_run_command_times_out(tmp_path: Path) -> None:
     tool = RunCommandTool(tmp_path)
 

@@ -46,7 +46,16 @@ force-single-line = true
 ban-relative-imports = "all"
 
 [tool.pytest.ini_options]
-addopts = ["-ra"]
+addopts = ["-ra", "--strict-markers"]
+markers = [
+    "anyio: async tests that run under the AnyIO pytest plugin",
+    "daemon: tests that start, stop, inspect, or guard the workspace daemon boundary",
+    "release_gate: smoke tests required by full release confidence checks",
+    "slow: tests that are intentionally expensive for reasons not covered by a narrower marker",
+    "subprocess: tests that spawn a real subprocess boundary",
+    "timeout: tests that intentionally exercise timeout behavior",
+    "tui: tests that run or smoke the terminal Textual app boundary",
+]
 testpaths = ["tests"]
 
 [tool.ty.environment]

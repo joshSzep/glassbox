@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import AsyncIterator
 from typing import cast
 
+import pytest
 from textual.widgets import Static
 
 from glassbox.cli.interactive_client import InteractiveClientError
@@ -50,6 +51,8 @@ from glassbox.core.models import MessagePart
 from glassbox.core.models import SessionState
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import SessionStatus
+
+pytestmark = pytest.mark.tui
 
 
 def test_tui_app_factory_builds_app_with_fake_client() -> None:

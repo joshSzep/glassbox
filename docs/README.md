@@ -70,6 +70,9 @@ v11 confidence and adoption contract is the active implementation track for the
   configuration, diagnostics, canaries, freshness states, and redaction posture
 - [dogfooding.md](./dogfooding.md): real-repository dogfooding protocol,
   evidence template, redaction rules, and finding-disposition policy
+- [tests-v10.md](./tests-v10.md): v10 test-suite marker taxonomy, fast-local
+  validation command, full-confidence command, timing roadmap, and speed work
+  evidence
 
 ## Daily Workflows
 

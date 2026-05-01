@@ -5,6 +5,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
+pytestmark = [pytest.mark.subprocess, pytest.mark.tui, pytest.mark.release_gate]
+
 
 def test_session_chat_implicit_non_tty_subprocess_falls_back_to_plain(
     tmp_path: Path,

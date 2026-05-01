@@ -488,6 +488,9 @@ def test_run_tests_keyword_filter(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
+@pytest.mark.timeout
+@pytest.mark.subprocess
+@pytest.mark.release_gate
 def test_run_tests_times_out(tmp_path: Path) -> None:
     (tmp_path / "test_slow.py").write_text(
         "import time\ndef test_slow():\n    time.sleep(60)\n",

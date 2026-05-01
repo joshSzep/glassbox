@@ -2,9 +2,12 @@
 
 import asyncio
 
+import pytest
 from textual.app import App
 from textual.app import ComposeResult
 from textual.widgets import Static
+
+pytestmark = pytest.mark.tui
 
 
 class _SmokeApp(App[None]):

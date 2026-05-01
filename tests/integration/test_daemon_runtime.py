@@ -101,6 +101,8 @@ def test_daemon_help_hides_internal_run_owner_command(
     assert "run-owner" not in captured.out
 
 
+@pytest.mark.daemon
+@pytest.mark.release_gate
 def test_daemon_start_status_duplicate_rejection_and_stop(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -184,6 +186,7 @@ def test_daemon_start_status_duplicate_rejection_and_stop(
         _stop_daemon_if_running(tmp_path)
 
 
+@pytest.mark.daemon
 def test_daemon_status_json_reports_discovery_and_health(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -235,6 +238,8 @@ def test_daemon_status_json_reports_discovery_and_health(
         _stop_daemon_if_running(tmp_path)
 
 
+@pytest.mark.daemon
+@pytest.mark.release_gate
 def test_daemon_executes_read_only_background_job(tmp_path: Path) -> None:
     db_path, session_id = _run_baseline_session(tmp_path)
     port = _reserve_port()
@@ -304,6 +309,7 @@ def test_daemon_status_reports_not_running_discovery(
     assert "Owner metadata:" in captured.out
 
 
+@pytest.mark.daemon
 def test_daemon_start_recovers_stale_owner_metadata(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -373,6 +379,7 @@ def test_daemon_status_reports_stale_recovery_commands(
     assert "then glassbox daemon start" in captured.out
 
 
+@pytest.mark.daemon
 def test_daemon_start_reports_process_startup_failure(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -406,6 +413,7 @@ def test_daemon_start_reports_process_startup_failure(
     assert "runtime-owner.stderr.log" in captured.err
 
 
+@pytest.mark.daemon
 def test_daemon_start_reports_port_conflict(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -474,6 +482,8 @@ def test_daemon_stop_timeout_reports_pid_and_keeps_metadata(
     assert _runtime_owner_path(tmp_path).exists()
 
 
+@pytest.mark.daemon
+@pytest.mark.release_gate
 def test_cli_attach_routes_live_session_through_daemon_and_can_reattach(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -574,6 +584,7 @@ def test_cli_attach_routes_live_session_through_daemon_and_can_reattach(
         _stop_daemon_if_running(tmp_path)
 
 
+@pytest.mark.daemon
 def test_cli_attach_can_observe_daemon_session_without_mutating_transcript(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -641,6 +652,7 @@ def test_cli_attach_can_observe_daemon_session_without_mutating_transcript(
         _stop_daemon_if_running(tmp_path)
 
 
+@pytest.mark.daemon
 def test_cli_cancel_routes_to_daemon_and_reports_idle_conflict(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -684,6 +696,7 @@ def test_cli_cancel_routes_to_daemon_and_reports_idle_conflict(
         _stop_daemon_if_running(tmp_path)
 
 
+@pytest.mark.daemon
 def test_cli_attach_tui_routes_live_session_through_daemon(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -804,6 +817,7 @@ def test_cli_attach_reports_live_runtime_unavailable(
     assert "Recover: glassbox daemon stop" in captured.err
 
 
+@pytest.mark.daemon
 def test_cli_attach_reports_historical_only_session_when_daemon_is_running(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
