@@ -27,6 +27,9 @@ v11 confidence and adoption contract is the active implementation track for the
 - [v11-residual-risk-audit.md](./v11-residual-risk-audit.md): source-linked
   audit of inherited v10 residual risks, current evidence, missing coverage,
   and v11 dispositions
+- [live-cockpit-evidence-v11.md](./live-cockpit-evidence-v11.md): v11 protocol
+  for retained live dashboard evidence, scenario coverage, evidence
+  directories, manual runs, automated runs, and bounded non-claims
 - [v9-public-baseline.md](./v9-public-baseline.md): retained v9 product
   contract, core model, daily workflows, advisory posture, release-evidence
   split, residual-risk mapping, and pre-1.0 version posture
@@ -223,6 +226,9 @@ path.
   and GO decision
 - [v10-dogfooding-summary.md](./v10-dogfooding-summary.md): sanitized GBX-1092
   dogfooding summaries and finding dispositions for v10 release review
+- [live-cockpit-evidence-v11.md](./live-cockpit-evidence-v11.md): v11 live
+  dashboard evidence protocol, scenario matrix, `.glassbox/releases/`
+  directory convention, manual and automated evidence split, and non-claims
 - [manual-v9-release-validation.md](./manual-v9-release-validation.md): retained
   GBX-992 manual validation pass for first-run, dashboard cockpit, recovery,
   provider, package, accessibility, residual-risk, and go/no-go evidence

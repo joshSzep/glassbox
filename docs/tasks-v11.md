@@ -543,7 +543,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1130: Define Live Cockpit Evidence Protocol
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1101`
 - Goal: turn live dashboard monitoring from an accepted gap into a repeatable
   evidence workflow

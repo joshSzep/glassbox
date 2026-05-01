@@ -433,6 +433,42 @@ def test_v11_residual_risk_audit_covers_current_source_and_evidence() -> None:
     assert "v11-residual-risk-audit.md" in docs_readme
 
 
+def test_v11_live_cockpit_evidence_protocol_covers_scenarios_and_non_claims() -> None:
+    content = (REPO_ROOT / "docs" / "live-cockpit-evidence-v11.md").read_text(
+        encoding="utf-8"
+    )
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Purpose",
+        "## Evidence Directory Convention",
+        ".glassbox/releases/YYYYMMDDTHHMMSSZ-v11-live-cockpit/",
+        "## Scenario Matrix",
+        "Active turn",
+        "Pending approval",
+        "Pending question",
+        "Stale tool attempt",
+        "Stale verification",
+        "Compaction freshness",
+        "Provider warning",
+        "Daemon interruption",
+        "Stream reconnect",
+        "Historical snapshot",
+        "## Automated Evidence",
+        "## Manual Evidence",
+        "## Non-Claims",
+        "formal accessibility certification",
+        "provider reliability or provider release authority",
+        "deterministic cockpit evidence",
+        "## Release Summary Template",
+        "v11-confidence-adoption-contract.md",
+        "long-run-cockpit-contract.md",
+    ):
+        assert required_text in content
+
+    assert "live-cockpit-evidence-v11.md" in docs_readme
+
+
 def test_v9_dashboard_cockpit_contract_covers_operator_priority_model() -> None:
     content = (REPO_ROOT / "docs" / "dashboard-cockpit-contract.md").read_text(
         encoding="utf-8"
