@@ -783,7 +783,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1160: Define Workspace Knowledge Posture
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1101`
 - Goal: give operators one coherent mental model for freshness across memory,
   repository index, compactions, checkpoints, verification, and provider

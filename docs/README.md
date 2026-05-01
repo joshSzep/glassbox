@@ -74,6 +74,9 @@ v11 confidence and adoption contract is the active implementation track for the
   commands
 - [providers.md](./providers.md): optional OpenAI or Anthropic provider
   configuration, diagnostics, canaries, freshness states, and redaction posture
+- [knowledge-posture.md](./knowledge-posture.md): v11 source map and status
+  model for memory, repository index, checkpoints, compactions, verification,
+  and advisory provider evidence freshness
 - [dogfooding.md](./dogfooding.md): real-repository dogfooding protocol,
   evidence template, redaction rules, and finding-disposition policy
 - [tests-v10.md](./tests-v10.md): v10 test-suite marker taxonomy, fast-local
@@ -112,6 +115,8 @@ v11 confidence and adoption contract is the active implementation track for the
   and prune local workspace memory
 - [repository-intelligence-index.md](./repository-intelligence-index.md): build,
   inspect, and refresh rebuildable local repository intelligence
+- [knowledge-posture.md](./knowledge-posture.md): understand the unified v11
+  freshness categories before continuation or handoff
 - [background-jobs.md](./background-jobs.md): inspect and recover daemon-owned
   background work
 - [workspace-profiles.md](./workspace-profiles.md): declare repository-owned
