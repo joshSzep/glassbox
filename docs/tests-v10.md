@@ -547,7 +547,7 @@ Validation evidence:
 
 ### GBX-T930: Audit Textual Pilot Pauses
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-T900`
 - Goal: remove unnecessary `pilot.pause()` calls and replace them with more
   specific assertions or event waits
@@ -568,6 +568,26 @@ Validation evidence:
 - Done when:
   - Textual unit tests are faster and the remaining waits name what they are
     waiting for
+
+Validation evidence:
+
+- Replaced raw `pilot.pause()` calls in `test_cli_tui_app.py` with named helper
+  waits for reactive widget updates, palette filtering, stream ingestion,
+  transcript scrolling, and markdown rendering.
+- Shortened the command palette filter path by setting the mounted palette
+  input value directly and waiting for the filter update instead of simulating
+  long per-character typing.
+- Before: `uv run pytest tests/unit/test_cli_tui_app.py --durations=40 --durations-min=0.01 -q`:
+  36 passed in 7.14s; command palette test 1.76s.
+- After: `uv run pytest tests/unit/test_cli_tui_app.py --durations=40 --durations-min=0.01 -q`:
+  36 passed in 6.33s; command palette test 0.47s.
+- `uv run pytest tests/unit/test_tui_framework_smoke.py -q`:
+  1 passed in 0.06s
+- `uv run ruff format --check tests/unit/test_cli_tui_app.py`:
+  1 file already formatted
+- `uv run ruff check tests/unit/test_cli_tui_app.py`:
+  all checks passed
+- `uv run ty check`: all checks passed
 
 ### GBX-T931: Separate Pure TUI State Tests From App-Driver Tests
 

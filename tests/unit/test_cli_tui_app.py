@@ -5,6 +5,8 @@ from collections.abc import AsyncIterator
 from typing import cast
 
 import pytest
+from textual.pilot import Pilot
+from textual.widgets import Input
 from textual.widgets import Static
 
 from glassbox.cli.interactive_client import InteractiveClientError
@@ -53,6 +55,26 @@ from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import SessionStatus
 
 pytestmark = pytest.mark.tui
+
+
+async def _wait_for_tui_reactive_update(pilot: Pilot[None]) -> None:
+    await pilot.pause()
+
+
+async def _wait_for_palette_filter(pilot: Pilot[None]) -> None:
+    await pilot.pause()
+
+
+async def _wait_for_stream_events(pilot: Pilot[None]) -> None:
+    await pilot.pause()
+
+
+async def _wait_for_transcript_scroll(pilot: Pilot[None]) -> None:
+    await pilot.pause()
+
+
+async def _wait_for_markdown_render(pilot: Pilot[None]) -> None:
+    await pilot.pause()
 
 
 def test_tui_app_factory_builds_app_with_fake_client() -> None:
@@ -318,19 +340,19 @@ async def _run_prompt_submit_test() -> None:
     async with app.run_test(size=(100, 30)) as pilot:
         composer = pilot.app.query_one(ComposerWidget)
         composer.text = "Inspect this file"
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
 
         await pilot.press("ctrl+enter")
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
 
         assert composer.text == "\nInspect this file"
         assert client.submitted_messages == []
 
         composer.text = "Inspect this file\nThen summarize it"
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
 
         await pilot.press("enter")
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
 
         assert client.submitted_messages == ["Inspect this file\nThen summarize it"]
         assert composer.text == ""
@@ -357,7 +379,7 @@ async def _run_pending_submission_feedback_test() -> None:
     async with app.run_test(size=(100, 30)) as pilot:
         composer = pilot.app.query_one(ComposerWidget)
         composer.text = "long prompt"
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
 
         submit_task = asyncio.create_task(pilot.press("enter"))
         await client.submit_started.wait()
@@ -368,7 +390,7 @@ async def _run_pending_submission_feedback_test() -> None:
 
         client.submit_release.set()
         await submit_task
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
 
         assert "Accepted: Prompt accepted" in str(feedback.content)
 
@@ -411,7 +433,7 @@ async def _run_validation_and_conflict_feedback_test() -> None:
     async with conflict_app.run_test(size=(100, 30)) as pilot:
         composer = pilot.app.query_one(ComposerWidget)
         composer.text = "keep this draft"
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         await pilot.press("enter")
         feedback = pilot.app.query_one(ComposerFeedbackLine)
 
@@ -440,7 +462,7 @@ async def _run_network_and_retryable_feedback_test() -> None:
     async with network_app.run_test(size=(100, 30)) as pilot:
         composer = pilot.app.query_one(ComposerWidget)
         composer.text = "retry me"
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         await pilot.press("enter")
         feedback = pilot.app.query_one(ComposerFeedbackLine)
 
@@ -462,7 +484,7 @@ async def _run_network_and_retryable_feedback_test() -> None:
     async with retry_app.run_test(size=(100, 30)) as pilot:
         composer = pilot.app.query_one(ComposerWidget)
         composer.text = "still here"
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         await pilot.press("enter")
         feedback = pilot.app.query_one(ComposerFeedbackLine)
 
@@ -494,7 +516,7 @@ async def _run_unavailable_runtime_feedback_test() -> None:
         )
         composer = pilot.app.query_one(ComposerWidget)
         composer.text = "preserve while unavailable"
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         await pilot.press("enter")
         feedback = pilot.app.query_one(ComposerFeedbackLine)
 
@@ -534,7 +556,7 @@ async def _run_stream_reconnect_success_test() -> None:
     )
 
     async with app.run_test(size=(100, 30)) as pilot:
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         header = pilot.app.query_one("#session-header", Static)
         conversation = pilot.app.query_one(ConversationPane)
 
@@ -572,7 +594,7 @@ async def _run_stream_reconnect_after_live_event_test() -> None:
     )
 
     async with app.run_test(size=(100, 30)) as pilot:
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         conversation = pilot.app.query_one(ConversationPane)
 
         assert client.stream_after_sequences == [7, 9]
@@ -599,7 +621,7 @@ async def _run_stream_retry_exhaustion_test() -> None:
     )
 
     async with app.run_test(size=(100, 30)) as pilot:
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         header = pilot.app.query_one("#session-header", Static)
         composer = pilot.app.query_one(ComposerWidget)
 
@@ -630,7 +652,7 @@ async def _run_stream_terminal_event_test() -> None:
     )
 
     async with app.run_test(size=(100, 30)) as pilot:
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         header = pilot.app.query_one("#session-header", Static)
         composer = pilot.app.query_one(ComposerWidget)
 
@@ -664,7 +686,7 @@ async def _run_draft_preservation_test() -> None:
     async with app.run_test(size=(100, 30)) as pilot:
         composer = pilot.app.query_one(ComposerWidget)
         composer.text = "keep my draft"
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
 
         assert composer.text == "keep my draft"
         typed_app = cast(GlassboxTerminalApp, pilot.app)
@@ -687,10 +709,10 @@ async def _run_prompt_history_test() -> None:
         composer = pilot.app.query_one(ComposerWidget)
         composer.text = "first prompt"
         await pilot.press("enter")
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         composer.text = "second prompt"
         await pilot.press("enter")
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
 
         typed_app = cast(GlassboxTerminalApp, pilot.app)
         typed_app.action_prompt_history_previous()
@@ -718,7 +740,8 @@ async def _run_command_palette_test() -> None:
         assert palette.display is False
 
         await pilot.press("ctrl+p")
-        await pilot.press("d", "a", "s", "h")
+        palette.query_one(Input).value = "dash"
+        await _wait_for_palette_filter(pilot)
         command_list = pilot.app.query_one("#command-list", Static)
 
         assert palette.display is True
@@ -729,9 +752,9 @@ async def _run_command_palette_test() -> None:
         assert palette.display is False
 
         await pilot.press("ctrl+p")
-        await pilot.press("c", "o", "p", "y", "-", "s", "e", "s", "s", "i", "o", "n")
+        palette.query_one(Input).value = "copy session"
+        await _wait_for_palette_filter(pilot)
         await pilot.press("enter")
-        await pilot.pause()
 
         assert palette.display is False
         assert pilot.app.clipboard == str(app.state.header.session_id)
@@ -766,7 +789,7 @@ async def _run_command_execution_test() -> None:
     )
 
     async with app.run_test(size=(100, 30)) as pilot:
-        await pilot.pause()
+        await _wait_for_stream_events(pilot)
         typed_app = cast(GlassboxTerminalApp, pilot.app)
         await typed_app.execute_terminal_command(TerminalCommandId.COPY_SESSION_ID)
         await typed_app.execute_terminal_command(TerminalCommandId.APPROVE)
@@ -817,7 +840,7 @@ async def _run_markdown_toggle_test() -> None:
     )
 
     async with app.run_test(size=(100, 30)) as pilot:
-        await pilot.pause()
+        await _wait_for_stream_events(pilot)
         conversation = pilot.app.query_one(ConversationPane)
         assert conversation.markdown_enabled is True
         assert "**done**" in conversation.content_text
@@ -827,7 +850,7 @@ async def _run_markdown_toggle_test() -> None:
         assert "**done**" not in rendered_text
 
         await app.execute_terminal_command(TerminalCommandId.TOGGLE_MARKDOWN)
-        await pilot.pause()
+        await _wait_for_markdown_render(pilot)
 
         action_strip = pilot.app.query_one("#action-strip", Static)
         rendered_text = "\n".join(strip.text for strip in conversation.lines)
@@ -838,7 +861,7 @@ async def _run_markdown_toggle_test() -> None:
         assert "**done**" in rendered_text
 
         await app.execute_terminal_command(TerminalCommandId.TOGGLE_MARKDOWN)
-        await pilot.pause()
+        await _wait_for_markdown_render(pilot)
 
         rendered_text = "\n".join(strip.text for strip in conversation.lines)
         assert conversation.markdown_enabled is True
@@ -926,10 +949,10 @@ async def _run_answer_shortcut_test() -> None:
     )
 
     async with app.run_test(size=(100, 30)) as pilot:
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         composer = pilot.app.query_one(ComposerWidget)
         composer.text = "src/glassbox/cli/tui/app.py"
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         typed_app = cast(GlassboxTerminalApp, pilot.app)
 
         assert typed_app.state.composer.question_id == question_id
@@ -982,10 +1005,10 @@ async def _run_answer_failure_feedback_test() -> None:
     )
 
     async with app.run_test(size=(100, 30)) as pilot:
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         composer = pilot.app.query_one(ComposerWidget)
         composer.text = "src/app.py"
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
 
         typed_app = cast(GlassboxTerminalApp, pilot.app)
         await typed_app.action_submit_answer()
@@ -1044,7 +1067,7 @@ async def _run_answer_stale_and_unavailable_test() -> None:
         launch_options=_launch_options(),
     )
     async with unavailable_app.run_test(size=(100, 30)) as pilot:
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         typed_app = cast(GlassboxTerminalApp, pilot.app)
         typed_app.update_conversation_state(
             with_stream_status(
@@ -1055,7 +1078,7 @@ async def _run_answer_stale_and_unavailable_test() -> None:
         )
         composer = pilot.app.query_one(ComposerWidget)
         composer.text = "src/app.py"
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         await typed_app.action_submit_answer()
         action_strip = pilot.app.query_one("#action-strip", Static)
 
@@ -1093,7 +1116,7 @@ async def _run_approval_resolution_feedback_test() -> None:
         launch_options=_launch_options(),
     )
     async with approve_app.run_test(size=(100, 30)) as pilot:
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         typed_app = cast(GlassboxTerminalApp, pilot.app)
         await typed_app.execute_terminal_command(TerminalCommandId.APPROVE)
         action_strip = pilot.app.query_one("#action-strip", Static)
@@ -1130,7 +1153,7 @@ async def _run_approval_resolution_feedback_test() -> None:
         launch_options=_launch_options(),
     )
     async with deny_app.run_test(size=(100, 30)) as pilot:
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         typed_app = cast(GlassboxTerminalApp, pilot.app)
         await typed_app.execute_terminal_command(TerminalCommandId.DENY)
         action_strip = pilot.app.query_one("#action-strip", Static)
@@ -1165,7 +1188,7 @@ async def _run_approval_resolution_feedback_test() -> None:
         launch_options=_launch_options(),
     )
     async with network_app.run_test(size=(100, 30)) as pilot:
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         typed_app = cast(GlassboxTerminalApp, pilot.app)
         await typed_app.execute_terminal_command(TerminalCommandId.APPROVE)
         action_strip = pilot.app.query_one("#action-strip", Static)
@@ -1205,7 +1228,7 @@ async def _run_approval_resolution_feedback_test() -> None:
         launch_options=_launch_options(),
     )
     async with resolved_app.run_test(size=(100, 30)) as pilot:
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         typed_app = cast(GlassboxTerminalApp, pilot.app)
         await typed_app.execute_terminal_command(TerminalCommandId.APPROVE)
         action_strip = pilot.app.query_one("#action-strip", Static)
@@ -1254,7 +1277,7 @@ async def _run_handoff_feedback_test() -> None:
     )
 
     async with app.run_test(size=(100, 30)) as pilot:
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         typed_app = cast(GlassboxTerminalApp, pilot.app)
 
         await typed_app.execute_terminal_command(TerminalCommandId.COPY_SESSION_ID)
@@ -1303,13 +1326,13 @@ async def _run_approval_slash_command_test() -> None:
     )
 
     async with app.run_test(size=(100, 30)) as pilot:
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         composer = pilot.app.query_one(ComposerWidget)
 
         assert composer.read_only is False
 
         composer.text = "/approve"
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         await pilot.press("enter")
         action_strip = pilot.app.query_one("#action-strip", Static)
 
@@ -1359,12 +1382,12 @@ async def _run_streaming_transcript_follow_latest_test(
     )
 
     async with app.run_test(size=(60, 16)) as pilot:
-        await pilot.pause()
+        await _wait_for_stream_events(pilot)
         typed_app = cast(GlassboxTerminalApp, pilot.app)
         conversation = pilot.app.query_one(ConversationPane)
         if conversation.markdown_enabled is not render_markdown:
             await typed_app.execute_terminal_command(TerminalCommandId.TOGGLE_MARKDOWN)
-            await pilot.pause()
+            await _wait_for_markdown_render(pilot)
 
         assert conversation.markdown_enabled is render_markdown
         assert expected_tail in conversation.content_text
@@ -1387,7 +1410,7 @@ async def _run_streaming_transcript_follow_latest_test(
             conversation.page_up()
         else:
             await pilot.press("pageup")
-        await pilot.pause()
+        await _wait_for_transcript_scroll(pilot)
         assert conversation.scroll_y < conversation.max_scroll_y
         assert conversation.vertical_scrollbar.position == conversation.scroll_y
         manual_scroll_y = conversation.scroll_y
@@ -1402,13 +1425,13 @@ async def _run_streaming_transcript_follow_latest_test(
                 ),
             )
         )
-        await pilot.pause()
+        await _wait_for_stream_events(pilot)
 
         assert conversation.scroll_y == manual_scroll_y
         assert conversation.scroll_y < conversation.max_scroll_y
 
         await pilot.press("ctrl+l")
-        await pilot.pause()
+        await _wait_for_transcript_scroll(pilot)
         action_strip = pilot.app.query_one("#action-strip", Static)
         assert conversation.scroll_y == conversation.max_scroll_y
         assert conversation.vertical_scrollbar.position == conversation.scroll_y
@@ -1433,10 +1456,10 @@ async def _run_dashboard_details_wrap_test() -> None:
     )
 
     async with app.run_test(size=(120, 20)) as pilot:
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         details = pilot.app.query_one(DetailsPane)
         details.toggle()
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         details_text = str(details.content)
         dashboard_block = details_text.split("dashboard: ", 1)[1].split(
             "\nselected tool",
@@ -1475,7 +1498,7 @@ async def _run_interrupt_and_quit_contract_test() -> None:
     )
 
     async with app.run_test(size=(100, 30)) as pilot:
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         typed_app = cast(GlassboxTerminalApp, pilot.app)
 
         await typed_app.execute_terminal_command(TerminalCommandId.INTERRUPT)
@@ -1539,7 +1562,7 @@ async def _run_live_event_test() -> None:
     )
 
     async with app.run_test(size=(100, 30)) as pilot:
-        await pilot.pause()
+        await _wait_for_tui_reactive_update(pilot)
         conversation = pilot.app.query_one(ConversationPane)
 
         assert "Assistant" not in conversation.content_text
