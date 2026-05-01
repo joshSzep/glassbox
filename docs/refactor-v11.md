@@ -953,7 +953,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R452: Split Turn Event Recorder And Tool Executor Artifact Hooks
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R450`, `GBX-R451`
 - Goal: keep
   [turn_event_recorder.py](../src/glassbox/runtime/turn_event_recorder.py) and
@@ -982,6 +982,24 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - turn event recording and tool execution remain behavior-compatible while
     artifact/replay/attempt helpers are owned and covered
+- Completed notes:
+  - `turn_event_recorder.py` now delegates context/tool-output artifact writes
+    to `turn_artifacts.py` and replay capture forwarding to
+    `turn_replay_hooks.py` while preserving its existing internal hook methods.
+  - `turn_tool_executor.py` now delegates classified normal, failed, and
+    cancelled/final tool-attempt heartbeat construction to
+    `turn_tool_attempt_heartbeats.py`.
+  - Tool-output artifact content helpers now live in `turn_artifacts.py`, with
+    compatibility wrappers retained in `turn_event_recorder.py` for existing
+    internal imports.
+  - Guardrails now cap the recorder, executor, and new helper modules and keep
+    turn hook helpers independent from CLI and web presentation imports.
+  - Validation: `uv run pytest tests/unit/test_turn_event_recorder.py tests/unit/test_architecture_guardrails.py tests/integration/test_turn_engine.py tests/integration/test_turn_engine_tool_loop.py`,
+    `uv run pytest tests/unit/test_replay_capture.py tests/integration/test_replay_runner.py`,
+    `uv run pytest tests/integration/test_web_session_interaction.py`,
+    `uv run ruff format --check src/glassbox/runtime/turn_event_recorder.py src/glassbox/runtime/turn_tool_executor.py src/glassbox/runtime/turn_artifacts.py src/glassbox/runtime/turn_replay_hooks.py src/glassbox/runtime/turn_tool_attempt_heartbeats.py src/glassbox/runtime/tool_attempt_recovery_artifacts.py tests/unit/test_turn_event_recorder.py tests/unit/test_architecture_guardrails.py`,
+    `uv run ruff check src/glassbox/runtime/turn_event_recorder.py src/glassbox/runtime/turn_tool_executor.py src/glassbox/runtime/turn_artifacts.py src/glassbox/runtime/turn_replay_hooks.py src/glassbox/runtime/turn_tool_attempt_heartbeats.py src/glassbox/runtime/tool_attempt_recovery_artifacts.py tests/unit/test_turn_event_recorder.py tests/unit/test_architecture_guardrails.py`,
+    and `uv run ty check src/glassbox/runtime/turn_event_recorder.py src/glassbox/runtime/turn_tool_executor.py src/glassbox/runtime/turn_artifacts.py src/glassbox/runtime/turn_replay_hooks.py src/glassbox/runtime/turn_tool_attempt_heartbeats.py src/glassbox/runtime/tool_attempt_recovery_artifacts.py`.
 
 ### GBX-R453: Split Task And Background Projection Application By Event Family
 

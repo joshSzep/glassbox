@@ -12,8 +12,8 @@ from glassbox.core.models import ToolAttemptRecord
 from glassbox.runtime.tool_attempt_recovery_common import require_attempt
 from glassbox.runtime.tool_attempt_recovery_models import ToolAttemptArtifactReference
 from glassbox.runtime.tool_attempt_recovery_models import ToolAttemptRecoveryError
-from glassbox.runtime.turn_event_recorder import _tool_output_artifact_content
-from glassbox.runtime.turn_event_recorder import _tool_output_artifact_kind
+from glassbox.runtime.turn_artifacts import tool_output_artifact_content
+from glassbox.runtime.turn_artifacts import tool_output_artifact_kind
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
 
@@ -75,14 +75,14 @@ def record_retry_output_artifact(
 
     if artifact_repository is None:
         return None
-    artifact_content = _tool_output_artifact_content(tool_name, output_payload)
+    artifact_content = tool_output_artifact_content(tool_name, output_payload)
     if artifact_content is None:
         return None
     stored_artifact, _stored_event = artifact_repository.record_text_artifact(
         session_id,
         original.turn_id,
         tool_call_id,
-        _tool_output_artifact_kind(artifact_content),
+        tool_output_artifact_kind(artifact_content),
         json.dumps(artifact_content, indent=2, sort_keys=True) + "\n",
         suffix="log.json",
     )

@@ -13,7 +13,6 @@ from pydantic_ai.messages import ModelMessage
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import ModelToolCallRequested
-from glassbox.core.events import ToolAttemptHeartbeat
 from glassbox.core.events import ToolExecutionCancelled
 from glassbox.core.events import ToolExecutionCompleted
 from glassbox.core.events import ToolExecutionStarted
@@ -36,7 +35,7 @@ from glassbox.runtime.cancellation import TurnCancellationRequested
 from glassbox.runtime.logging import get_runtime_logger
 from glassbox.runtime.logging import runtime_log_extra
 from glassbox.runtime.model_loop import ModelLoopSuspension
-from glassbox.runtime.tool_attempts import classify_tool_attempt_retry
+from glassbox.runtime.turn_tool_attempt_heartbeats import build_tool_attempt_heartbeat
 from glassbox.tools import PreparedToolExecution
 from glassbox.tools import ToolExecutionResult
 from glassbox.tools import ToolRuntime
@@ -361,20 +360,6 @@ class TurnToolExecutor:
             prepared_tool_call.policy_decision
         )
         tool_attempt_id = new_tool_attempt_id()
-        started_retry = classify_tool_attempt_retry(
-            status=ToolAttemptStatus.STARTED,
-            tool_name=prepared_tool_call.tool_name,
-            tool_spec=prepared_tool_call.tool.spec,
-            arguments=prepared_tool_call.validated_arguments,
-            policy_decision=prepared_tool_call.policy_decision,
-        )
-        running_retry = classify_tool_attempt_retry(
-            status=ToolAttemptStatus.RUNNING,
-            tool_name=prepared_tool_call.tool_name,
-            tool_spec=prepared_tool_call.tool.spec,
-            arguments=prepared_tool_call.validated_arguments,
-            policy_decision=prepared_tool_call.policy_decision,
-        )
         self._hooks._append_and_publish(
             session_id,
             [
@@ -393,34 +378,22 @@ class TurnToolExecutor:
                     policy_reason=prepared_tool_call.policy_decision.reason,
                     policy_trace=policy_trace,
                 ),
-                ToolAttemptHeartbeat(
+                build_tool_attempt_heartbeat(
                     tool_attempt_id=tool_attempt_id,
                     status=ToolAttemptStatus.STARTED,
                     turn_id=turn_id,
-                    tool_call_id=prepared_tool_call.event_tool_call_id,
-                    tool_name=prepared_tool_call.tool_name,
+                    prepared_tool_call=prepared_tool_call,
                     message="Tool attempt started.",
-                    safe_to_retry=started_retry.safe_to_retry,
-                    retry_classification=started_retry.classification,
-                    retry_requires_approval=started_retry.requires_approval,
-                    retry_reason=started_retry.reason,
-                    retry_policy_reason=started_retry.policy_reason,
                 ),
-                ToolAttemptHeartbeat(
+                build_tool_attempt_heartbeat(
                     tool_attempt_id=tool_attempt_id,
                     status=ToolAttemptStatus.RUNNING,
                     turn_id=turn_id,
-                    tool_call_id=prepared_tool_call.event_tool_call_id,
-                    tool_name=prepared_tool_call.tool_name,
+                    prepared_tool_call=prepared_tool_call,
                     message="Tool execution is running.",
                     heartbeat_expires_at=_tool_attempt_heartbeat_expiry(
                         prepared_tool_call
                     ),
-                    safe_to_retry=running_retry.safe_to_retry,
-                    retry_classification=running_retry.classification,
-                    retry_requires_approval=running_retry.requires_approval,
-                    retry_reason=running_retry.reason,
-                    retry_policy_reason=running_retry.policy_reason,
                 ),
             ],
         )
@@ -458,28 +431,15 @@ class TurnToolExecutor:
                     cancellation_controller=cancellation_controller,
                 )
         except Exception as exc:
-            retry_assessment = classify_tool_attempt_retry(
-                status=ToolAttemptStatus.FAILED,
-                tool_name=prepared_tool_call.tool_name,
-                tool_spec=prepared_tool_call.tool.spec,
-                arguments=prepared_tool_call.validated_arguments,
-                policy_decision=prepared_tool_call.policy_decision,
-            )
             self._hooks._append_and_publish(
                 session_id,
                 [
-                    ToolAttemptHeartbeat(
+                    build_tool_attempt_heartbeat(
                         tool_attempt_id=tool_attempt_id,
                         status=ToolAttemptStatus.FAILED,
                         turn_id=turn_id,
-                        tool_call_id=prepared_tool_call.event_tool_call_id,
-                        tool_name=prepared_tool_call.tool_name,
+                        prepared_tool_call=prepared_tool_call,
                         message=str(exc),
-                        safe_to_retry=retry_assessment.safe_to_retry,
-                        retry_classification=retry_assessment.classification,
-                        retry_requires_approval=retry_assessment.requires_approval,
-                        retry_reason=retry_assessment.reason,
-                        retry_policy_reason=retry_assessment.policy_reason,
                     ),
                     ToolExecutionCompleted(
                         turn_id=turn_id,
@@ -543,30 +503,18 @@ class TurnToolExecutor:
                 else ToolAttemptStatus.FAILED
             )
         )
-        retry_assessment = classify_tool_attempt_retry(
-            status=final_status,
-            tool_name=prepared_tool_call.tool_name,
-            tool_spec=prepared_tool_call.tool.spec,
-            arguments=prepared_tool_call.validated_arguments,
-            output_payload=execution_result.output_payload,
-            policy_decision=prepared_tool_call.policy_decision,
-        )
         self._hooks._append_and_publish(
             session_id,
             [
-                ToolAttemptHeartbeat(
+                build_tool_attempt_heartbeat(
                     tool_attempt_id=tool_attempt_id,
                     status=final_status,
                     turn_id=turn_id,
-                    tool_call_id=execution_result.event_tool_call_id,
-                    tool_name=prepared_tool_call.tool_name,
+                    prepared_tool_call=prepared_tool_call,
                     message=cancellation_summary or execution_result.summary,
+                    tool_call_id=execution_result.event_tool_call_id,
                     output_artifact_id=output_artifact_id,
-                    safe_to_retry=retry_assessment.safe_to_retry,
-                    retry_classification=retry_assessment.classification,
-                    retry_requires_approval=retry_assessment.requires_approval,
-                    retry_reason=retry_assessment.reason,
-                    retry_policy_reason=retry_assessment.policy_reason,
+                    output_payload=execution_result.output_payload,
                 ),
                 ToolExecutionCompleted(
                     turn_id=turn_id,

@@ -241,9 +241,12 @@ packaging concerns now sit next to one another:
   `context_compaction_mutations.py` own over-cap range guidance, artifact
   payload assembly, freshness assessment, and create/refresh/invalidate event
   mutations.
-- `src/glassbox/runtime/turn_event_recorder.py` and
-  `turn_tool_executor.py` now carry richer artifact, replay, and heartbeat
-  shaping that should be separated by event/side-effect concern.
+- The v11 turn hook split now keeps `turn_event_recorder.py` and
+  `turn_tool_executor.py` as event/execution coordinators while
+  `turn_artifacts.py`, `turn_replay_hooks.py`, and
+  `turn_tool_attempt_heartbeats.py` own context/tool-output artifact side
+  effects, replay capture forwarding, and classified tool-attempt heartbeat
+  construction.
 - `src/glassbox/store/sqlite_projection_tasks.py` and
   `src/glassbox/store/sqlite_background_jobs.py` are rebuildable and coherent,
   but should move high-pressure event-family handlers into focused helpers if

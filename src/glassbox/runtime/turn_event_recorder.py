@@ -1,6 +1,5 @@
-"""Event, artifact, and replay side effects for turn execution."""
+"""Event side effects for turn execution."""
 
-import json
 from collections.abc import Sequence
 from typing import Any
 from typing import cast
@@ -34,24 +33,24 @@ from glassbox.llm import ModelTextDelta
 from glassbox.llm import ModelToolCall
 from glassbox.llm import ModelToolCallDelta
 from glassbox.llm import PreparedModelTurn
-from glassbox.runtime.context_builder import PYTEST_FAILURE_DIGEST_ARTIFACT_KIND
 from glassbox.runtime.context_builder import TurnContext
-from glassbox.runtime.context_builder import build_pytest_failure_digest_artifact
 from glassbox.runtime.errors import SessionRuntimeFailure
 from glassbox.runtime.logging import get_runtime_logger
 from glassbox.runtime.logging import runtime_log_extra
 from glassbox.runtime.replay_capture import ReplayArtifactRecorder
 from glassbox.runtime.task_plan_capture import CapturedTaskPlanEvents
 from glassbox.runtime.transport import RuntimeEventTransport
+from glassbox.runtime.turn_artifacts import record_context_artifacts_for_tool_execution
+from glassbox.runtime.turn_artifacts import (
+    record_tool_output_artifact_for_tool_execution,
+)
+from glassbox.runtime.turn_artifacts import tool_output_artifact_content
+from glassbox.runtime.turn_artifacts import tool_output_artifact_kind
+from glassbox.runtime.turn_replay_hooks import TurnReplayHooks
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
-from glassbox.tools.workflow import DIFF_SUMMARY_ARTIFACT_KIND
-from glassbox.tools.workflow import diff_summary_artifact_content
 
 logger = get_runtime_logger("turn_engine")
-
-TOOL_OUTPUT_ARTIFACT_KIND_PREFIX = "tool_output"
-TOOL_OUTPUT_ARTIFACT_SCHEMA_VERSION = 1
 
 
 class TurnEventRecorder:
@@ -67,7 +66,7 @@ class TurnEventRecorder:
     ) -> None:
         self._session_repository = session_repository
         self._event_bus = event_bus
-        self._replay_recorder = replay_recorder
+        self._replay_hooks = TurnReplayHooks(replay_recorder)
         self._artifact_repository = artifact_repository
 
     def record_turn_started(
@@ -422,11 +421,9 @@ class TurnEventRecorder:
         prepared_turn: PreparedModelTurn,
         call_index: int,
     ) -> None:
-        if self._replay_recorder is None:
-            return
-        self._replay_recorder.record_model_call(
+        self._replay_hooks.record_model_call(
             session_id,
-            turn_id,
+            turn_id=turn_id,
             call_index=call_index,
             turn_context=turn_context,
             prepared_turn=prepared_turn,
@@ -439,12 +436,10 @@ class TurnEventRecorder:
         turn_id,
         prepared_tool_call,
     ) -> None:
-        if self._replay_recorder is None:
-            return
-        self._replay_recorder.record_tool_request(
+        self._replay_hooks.record_tool_request(
             session_id,
-            turn_id,
-            prepared_tool_call,
+            turn_id=turn_id,
+            prepared_tool_call=prepared_tool_call,
         )
 
     def _record_replay_tool_execution_result(
@@ -454,12 +449,10 @@ class TurnEventRecorder:
         turn_id,
         execution_result,
     ) -> None:
-        if self._replay_recorder is None:
-            return
-        self._replay_recorder.record_tool_execution_result(
+        self._replay_hooks.record_tool_execution_result(
             session_id,
-            turn_id,
-            execution_result,
+            turn_id=turn_id,
+            execution_result=execution_result,
         )
 
     def _record_replay_tool_result(
@@ -474,11 +467,9 @@ class TurnEventRecorder:
         summary: str,
         error_message: str | None = None,
     ) -> None:
-        if self._replay_recorder is None:
-            return
-        self._replay_recorder.record_tool_result(
+        self._replay_hooks.record_tool_result(
             session_id,
-            turn_id,
+            turn_id=turn_id,
             tool_call_id=tool_call_id,
             provider_tool_call_id=provider_tool_call_id,
             tool_name=tool_name,
@@ -495,50 +486,14 @@ class TurnEventRecorder:
         prepared_tool_call,
         execution_result,
     ) -> None:
-        if self._artifact_repository is None:
-            return
-        if prepared_tool_call.tool_name == "workspace_diff_summary":
-            diff_summary_content = diff_summary_artifact_content(
-                execution_result.output_payload
-            )
-            if diff_summary_content is None:
-                return
-
-            _, stored_event = self._artifact_repository.record_text_artifact(
-                session_id,
-                turn_id,
-                execution_result.event_tool_call_id,
-                DIFF_SUMMARY_ARTIFACT_KIND,
-                diff_summary_content,
-                suffix="json",
-            )
-            self._event_bus.publish(stored_event)
-            return
-
-        if prepared_tool_call.tool_name != "run_tests":
-            return
-
-        pytest_failure_digest = build_pytest_failure_digest_artifact(
-            prepared_tool_call.validated_arguments.model_dump(mode="json"),
-            execution_result.output_payload,
-        )
-        if pytest_failure_digest is None:
-            return
-
-        _, stored_event = self._artifact_repository.record_text_artifact(
+        record_context_artifacts_for_tool_execution(
+            self._artifact_repository,
+            self._event_bus,
             session_id,
-            turn_id,
-            execution_result.event_tool_call_id,
-            PYTEST_FAILURE_DIGEST_ARTIFACT_KIND,
-            json.dumps(
-                pytest_failure_digest.model_dump(mode="json"),
-                indent=2,
-                sort_keys=True,
-            )
-            + "\n",
-            suffix="json",
+            turn_id=turn_id,
+            prepared_tool_call=prepared_tool_call,
+            execution_result=execution_result,
         )
-        self._event_bus.publish(stored_event)
 
     def _record_tool_output_artifact_for_tool_execution(
         self,
@@ -548,25 +503,14 @@ class TurnEventRecorder:
         prepared_tool_call,
         execution_result,
     ) -> ArtifactId | None:
-        if self._artifact_repository is None:
-            return None
-        artifact_content = _tool_output_artifact_content(
-            prepared_tool_call.tool_name,
-            execution_result.output_payload,
-        )
-        if artifact_content is None:
-            return None
-        artifact_kind = _tool_output_artifact_kind(artifact_content)
-        stored_artifact, stored_event = self._artifact_repository.record_text_artifact(
+        return record_tool_output_artifact_for_tool_execution(
+            self._artifact_repository,
+            self._event_bus,
             session_id,
-            turn_id,
-            execution_result.event_tool_call_id,
-            artifact_kind,
-            json.dumps(artifact_content, indent=2, sort_keys=True) + "\n",
-            suffix="log.json",
+            turn_id=turn_id,
+            prepared_tool_call=prepared_tool_call,
+            execution_result=execution_result,
         )
-        self._event_bus.publish(stored_event)
-        return stored_artifact.artifact_id
 
     def _record_replay_turn_output(
         self,
@@ -577,11 +521,9 @@ class TurnEventRecorder:
         assistant_text: str | None = None,
         details: dict[str, object] | None = None,
     ) -> None:
-        if self._replay_recorder is None:
-            return
-        self._replay_recorder.record_turn_output(
+        self._replay_hooks.record_turn_output(
             session_id,
-            turn_id,
+            turn_id=turn_id,
             outcome=outcome,
             assistant_text=assistant_text,
             details=details,
@@ -592,48 +534,12 @@ def _tool_output_artifact_content(
     tool_name: str,
     output_payload: dict[str, object],
 ) -> dict[str, object] | None:
-    if tool_name not in {"run_command", "run_tests"}:
-        return None
-    stdout = output_payload.get("stdout")
-    stderr = output_payload.get("stderr")
-    if not isinstance(stdout, str) and not isinstance(stderr, str):
-        return None
+    """Compatibility wrapper for older focused tests and internal imports."""
 
-    truncated = output_payload.get("truncated") is True
-    timed_out = output_payload.get("timed_out") is True
-    cancelled = output_payload.get("cancelled") is True
-    output_status = "partial" if timed_out or cancelled or truncated else "final"
-    payload: dict[str, object] = {
-        "artifact_kind": TOOL_OUTPUT_ARTIFACT_KIND_PREFIX,
-        "schema_version": TOOL_OUTPUT_ARTIFACT_SCHEMA_VERSION,
-        "tool_name": tool_name,
-        "output_status": output_status,
-        "truncated": truncated,
-        "redacted": False,
-        "stdout": stdout if isinstance(stdout, str) else "",
-        "stderr": stderr if isinstance(stderr, str) else "",
-    }
-    for key in (
-        "exit_code",
-        "timed_out",
-        "cancelled",
-        "failure_category",
-        "termination_signal",
-        "execution_envelope",
-    ):
-        if key in output_payload:
-            payload[key] = output_payload[key]
-    return payload
+    return tool_output_artifact_content(tool_name, output_payload)
 
 
 def _tool_output_artifact_kind(artifact_content: dict[str, object]) -> str:
-    output_status = artifact_content.get("output_status")
-    truncated = artifact_content.get("truncated") is True
-    redacted = artifact_content.get("redacted") is True
-    status_suffix = output_status if isinstance(output_status, str) else "unknown"
-    truncation_suffix = "truncated" if truncated else "complete"
-    redaction_suffix = "redacted" if redacted else "unredacted"
-    return (
-        f"{TOOL_OUTPUT_ARTIFACT_KIND_PREFIX}_{status_suffix}_"
-        f"{truncation_suffix}_{redaction_suffix}"
-    )
+    """Compatibility wrapper for older focused tests and internal imports."""
+
+    return tool_output_artifact_kind(artifact_content)

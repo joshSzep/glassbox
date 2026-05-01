@@ -1579,18 +1579,39 @@ V11_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
     (
         SRC_ROOT / "runtime" / "turn_event_recorder.py",
-        690,
+        590,
         (
-            "v11 turn event recorder should move new artifact, replay, "
-            "task-plan, and heartbeat behavior into helpers"
+            "v11 turn event recorder should keep artifact, replay, task-plan, "
+            "and heartbeat behavior in focused helpers"
         ),
     ),
     (
         SRC_ROOT / "runtime" / "turn_tool_executor.py",
-        670,
+        610,
         (
-            "v11 turn tool executor should move new artifact, replay, "
-            "task-plan, and heartbeat behavior into helpers"
+            "v11 turn tool executor should keep artifact, replay, task-plan, "
+            "and heartbeat behavior in focused helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "turn_artifacts.py",
+        220,
+        ("v11 turn artifact recording should stay owned by turn_artifacts.py"),
+    ),
+    (
+        SRC_ROOT / "runtime" / "turn_replay_hooks.py",
+        140,
+        (
+            "v11 turn replay capture forwarding should stay owned by "
+            "turn_replay_hooks.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "turn_tool_attempt_heartbeats.py",
+        80,
+        (
+            "v11 tool-attempt heartbeat construction should stay owned by "
+            "turn_tool_attempt_heartbeats.py"
         ),
     ),
     (
@@ -2034,6 +2055,30 @@ V11_PYTHON_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
         (
             "v11 turn tool executor helpers must keep tool side effects "
             "independent from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "turn_artifacts.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 turn artifact helpers must stay independent from CLI and web "
+            "presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "turn_replay_hooks.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 turn replay hooks must stay independent from CLI and web "
+            "presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "turn_tool_attempt_heartbeats.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 tool-attempt heartbeat helpers must stay independent from CLI "
+            "and web presentation layers"
         ),
     ),
     (

@@ -1,11 +1,11 @@
-"""Focused tests for turn event recording helpers."""
+"""Focused tests for turn artifact helpers."""
 
-from glassbox.runtime.turn_event_recorder import _tool_output_artifact_content
-from glassbox.runtime.turn_event_recorder import _tool_output_artifact_kind
+from glassbox.runtime.turn_artifacts import tool_output_artifact_content
+from glassbox.runtime.turn_artifacts import tool_output_artifact_kind
 
 
 def test_tool_output_artifact_content_marks_timeout_as_partial() -> None:
-    artifact = _tool_output_artifact_content(
+    artifact = tool_output_artifact_content(
         "run_command",
         {
             "exit_code": -9,
@@ -22,13 +22,13 @@ def test_tool_output_artifact_content_marks_timeout_as_partial() -> None:
     assert artifact["output_status"] == "partial"
     assert artifact["stdout"] == "ready\n"
     assert artifact["redacted"] is False
-    assert _tool_output_artifact_kind(artifact) == (
-        "tool_output_partial_complete_unredacted"
+    assert (
+        tool_output_artifact_kind(artifact) == "tool_output_partial_complete_unredacted"
     )
 
 
 def test_tool_output_artifact_content_marks_truncated_output() -> None:
-    artifact = _tool_output_artifact_content(
+    artifact = tool_output_artifact_content(
         "run_tests",
         {
             "exit_code": 1,
@@ -44,6 +44,6 @@ def test_tool_output_artifact_content_marks_truncated_output() -> None:
     assert artifact is not None
     assert artifact["output_status"] == "partial"
     assert artifact["truncated"] is True
-    assert _tool_output_artifact_kind(artifact) == (
+    assert tool_output_artifact_kind(artifact) == (
         "tool_output_partial_truncated_unredacted"
     )
