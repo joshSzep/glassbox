@@ -4,9 +4,11 @@ import asyncio
 import json
 import re
 import sys
+from collections.abc import Awaitable
 from collections.abc import Callable
 from enum import StrEnum
 from pathlib import Path
+from typing import Protocol
 from typing import cast
 
 from pydantic import BaseModel
@@ -14,6 +16,7 @@ from pydantic import ConfigDict
 from pydantic import Field
 
 from glassbox.tools._subprocess import DEFAULT_MAX_OUTPUT_BYTES
+from glassbox.tools._subprocess import CapturedSubprocessOutput
 from glassbox.tools._subprocess import CommandExecutionResult
 from glassbox.tools._subprocess import SubprocessCancellationController
 from glassbox.tools._subprocess import build_command_execution_envelope
@@ -636,6 +639,21 @@ class RunTestsResult(CommandExecutionResult):
     warnings: int = 0
 
 
+class RunTestsSubprocessRunner(Protocol):
+    """Subprocess execution seam for pytest-runner tests."""
+
+    def __call__(
+        self,
+        command: list[str],
+        *,
+        cwd: Path,
+        timeout_seconds: int,
+        on_chunk: Callable[[str, str], None],
+        output_limit_bytes: int,
+        cancellation_controller: SubprocessCancellationController | None,
+    ) -> Awaitable[CapturedSubprocessOutput]: ...
+
+
 class RunTestsTool:
     """Run pytest in the workspace with constrained arguments."""
 
@@ -652,8 +670,14 @@ class RunTestsTool:
         path_argument_names=("paths",),
     )
 
-    def __init__(self, workspace_root: Path) -> None:
+    def __init__(
+        self,
+        workspace_root: Path,
+        *,
+        subprocess_runner: RunTestsSubprocessRunner | None = None,
+    ) -> None:
         self._workspace_root = workspace_root.resolve(strict=False)
+        self._subprocess_runner = subprocess_runner or _run_exec_subprocess
 
     async def execute(self, arguments: RunTestsArgs) -> RunTestsResult:
         """Run tests; streaming output is discarded."""
@@ -688,15 +712,9 @@ class RunTestsTool:
             output_limit_bytes=DEFAULT_MAX_OUTPUT_BYTES,
         )
 
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+        captured = await self._subprocess_runner(
+            cmd,
             cwd=self._workspace_root,
-            start_new_session=True,
-        )
-        captured = await capture_streaming_subprocess(
-            process,
             timeout_seconds=arguments.timeout,
             on_chunk=on_chunk,
             output_limit_bytes=DEFAULT_MAX_OUTPUT_BYTES,
@@ -722,6 +740,31 @@ class RunTestsTool:
             failure_category=captured.failure_category,
             termination_signal=captured.termination_signal,
         )
+
+
+async def _run_exec_subprocess(
+    command: list[str],
+    *,
+    cwd: Path,
+    timeout_seconds: int,
+    on_chunk: Callable[[str, str], None],
+    output_limit_bytes: int,
+    cancellation_controller: SubprocessCancellationController | None,
+) -> CapturedSubprocessOutput:
+    process = await asyncio.create_subprocess_exec(
+        *command,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        cwd=cwd,
+        start_new_session=True,
+    )
+    return await capture_streaming_subprocess(
+        process,
+        timeout_seconds=timeout_seconds,
+        on_chunk=on_chunk,
+        output_limit_bytes=output_limit_bytes,
+        cancellation_controller=cancellation_controller,
+    )
 
 
 def _parse_pytest_summary(output: str) -> dict[str, int]:

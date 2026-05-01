@@ -1,14 +1,17 @@
 """Command execution tool with subprocess streaming for Glassbox sessions."""
 
 import asyncio
+from collections.abc import Awaitable
 from collections.abc import Callable
 from pathlib import Path
+from typing import Protocol
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 
 from glassbox.tools._subprocess import DEFAULT_MAX_OUTPUT_BYTES
+from glassbox.tools._subprocess import CapturedSubprocessOutput
 from glassbox.tools._subprocess import CommandExecutionResult
 from glassbox.tools._subprocess import SubprocessCancellationController
 from glassbox.tools._subprocess import build_command_execution_envelope
@@ -45,6 +48,21 @@ class RunCommandResult(CommandExecutionResult):
     command: str
 
 
+class RunCommandSubprocessRunner(Protocol):
+    """Subprocess execution seam for command-runner tests."""
+
+    def __call__(
+        self,
+        command: str,
+        *,
+        cwd: Path,
+        timeout_seconds: int,
+        on_chunk: Callable[[str, str], None],
+        output_limit_bytes: int,
+        cancellation_controller: SubprocessCancellationController | None,
+    ) -> Awaitable[CapturedSubprocessOutput]: ...
+
+
 class RunCommandTool:
     """Run a shell command inside the workspace and stream its output."""
 
@@ -61,8 +79,14 @@ class RunCommandTool:
         command_argument_name="command",
     )
 
-    def __init__(self, workspace_root: Path) -> None:
+    def __init__(
+        self,
+        workspace_root: Path,
+        *,
+        subprocess_runner: RunCommandSubprocessRunner | None = None,
+    ) -> None:
         self._workspace_root = workspace_root.resolve(strict=False)
+        self._subprocess_runner = subprocess_runner or _run_shell_subprocess
 
     async def execute(self, arguments: RunCommandArgs) -> RunCommandResult:
         """Execute the command; streaming output is discarded."""
@@ -87,18 +111,9 @@ class RunCommandTool:
             output_limit_bytes=DEFAULT_MAX_OUTPUT_BYTES,
         )
 
-        # The command string originates from the model, not direct user input.
-        # Policy evaluation (destructive-pattern blocking and approval gating)
-        # must happen before this method is called via ToolRuntime.
-        process = await asyncio.create_subprocess_shell(
+        captured = await self._subprocess_runner(
             arguments.command,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
             cwd=cwd,
-            start_new_session=True,
-        )
-        captured = await capture_streaming_subprocess(
-            process,
             timeout_seconds=arguments.timeout,
             on_chunk=on_chunk,
             output_limit_bytes=DEFAULT_MAX_OUTPUT_BYTES,
@@ -117,6 +132,34 @@ class RunCommandTool:
             failure_category=captured.failure_category,
             termination_signal=captured.termination_signal,
         )
+
+
+async def _run_shell_subprocess(
+    command: str,
+    *,
+    cwd: Path,
+    timeout_seconds: int,
+    on_chunk: Callable[[str, str], None],
+    output_limit_bytes: int,
+    cancellation_controller: SubprocessCancellationController | None,
+) -> CapturedSubprocessOutput:
+    # The command string originates from the model, not direct user input.
+    # Policy evaluation (destructive-pattern blocking and approval gating)
+    # must happen before this method is called via ToolRuntime.
+    process = await asyncio.create_subprocess_shell(
+        command,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        cwd=cwd,
+        start_new_session=True,
+    )
+    return await capture_streaming_subprocess(
+        process,
+        timeout_seconds=timeout_seconds,
+        on_chunk=on_chunk,
+        output_limit_bytes=output_limit_bytes,
+        cancellation_controller=cancellation_controller,
+    )
 
 
 def build_command_tool_registry(workspace_root: Path) -> ToolRegistry:

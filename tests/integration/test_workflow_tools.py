@@ -2,6 +2,7 @@
 
 import asyncio
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -10,6 +11,8 @@ from glassbox.tools import ApprovalMode
 from glassbox.tools import ToolPolicyContext
 from glassbox.tools import ToolPolicyEngine
 from glassbox.tools import build_workflow_tool_registry
+from glassbox.tools._subprocess import CapturedSubprocessOutput
+from glassbox.tools._subprocess import SubprocessCancellationController
 from glassbox.tools.test_discovery import TestDiscoveryArgs as DiscoveryArgs
 from glassbox.tools.test_discovery import TestDiscoveryTool as DiscoveryTool
 from glassbox.tools.test_discovery import TestFramework as DiscoveryFramework
@@ -489,19 +492,47 @@ def test_run_tests_keyword_filter(tmp_path: Path) -> None:
 
 
 @pytest.mark.timeout
-@pytest.mark.subprocess
-@pytest.mark.release_gate
 def test_run_tests_times_out(tmp_path: Path) -> None:
     (tmp_path / "test_slow.py").write_text(
         "import time\ndef test_slow():\n    time.sleep(60)\n",
         encoding="utf-8",
     )
-    tool = RunTestsTool(tmp_path)
+
+    async def fake_timeout_runner(
+        command: list[str],
+        *,
+        cwd: Path,
+        timeout_seconds: int,
+        on_chunk: Callable[[str, str], None],
+        output_limit_bytes: int,
+        cancellation_controller: SubprocessCancellationController | None,
+    ) -> CapturedSubprocessOutput:
+        assert command[-1] == "test_slow.py"
+        assert cwd == tmp_path
+        assert timeout_seconds == 2
+        assert output_limit_bytes > 0
+        assert cancellation_controller is None
+        on_chunk("stderr", "pytest timed out\n")
+        return CapturedSubprocessOutput(
+            exit_code=-9,
+            stdout="",
+            stderr="pytest timed out\n",
+            truncated=False,
+            timed_out=True,
+            cancelled=False,
+            failure_category="timed_out",
+            termination_signal=9,
+        )
+
+    tool = RunTestsTool(tmp_path, subprocess_runner=fake_timeout_runner)
 
     async def scenario() -> None:
         result = await tool.execute(RunTestsArgs(paths=["test_slow.py"], timeout=2))
         assert result.timed_out is True
+        assert result.exit_code != 0
         assert result.failure_category == "timed_out"
+        assert result.execution_envelope.timeout_seconds == 2
+        assert "pytest timed out" in result.stderr
 
     asyncio.run(scenario())
 

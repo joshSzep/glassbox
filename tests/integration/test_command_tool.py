@@ -1,6 +1,7 @@
 """Integration tests for the command runner tool."""
 
 import asyncio
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -13,6 +14,8 @@ from glassbox.tools import ToolPolicyContext
 from glassbox.tools import ToolPolicyEngine
 from glassbox.tools import build_command_tool_registry
 from glassbox.tools import load_tool_policy_manifest
+from glassbox.tools._subprocess import CapturedSubprocessOutput
+from glassbox.tools._subprocess import SubprocessCancellationController
 from glassbox.tools.command import RunCommandArgs
 from glassbox.tools.command import RunCommandTool
 
@@ -79,13 +82,59 @@ def test_run_command_captures_stderr(tmp_path: Path) -> None:
 
 
 @pytest.mark.timeout
-@pytest.mark.subprocess
-@pytest.mark.release_gate
 def test_run_command_times_out(tmp_path: Path) -> None:
-    tool = RunCommandTool(tmp_path)
+    async def fake_timeout_runner(
+        command: str,
+        *,
+        cwd: Path,
+        timeout_seconds: int,
+        on_chunk: Callable[[str, str], None],
+        output_limit_bytes: int,
+        cancellation_controller: SubprocessCancellationController | None,
+    ) -> CapturedSubprocessOutput:
+        assert command == "sleep 60"
+        assert cwd == tmp_path
+        assert timeout_seconds == 1
+        assert output_limit_bytes > 0
+        assert cancellation_controller is None
+        on_chunk("stderr", "timed out\n")
+        return CapturedSubprocessOutput(
+            exit_code=-9,
+            stdout="",
+            stderr="timed out\n",
+            truncated=False,
+            timed_out=True,
+            cancelled=False,
+            failure_category="timed_out",
+            termination_signal=9,
+        )
+
+    tool = RunCommandTool(tmp_path, subprocess_runner=fake_timeout_runner)
 
     async def scenario() -> None:
         result = await tool.execute(RunCommandArgs(command="sleep 60", timeout=1))
+        assert result.timed_out is True
+        assert result.exit_code != 0
+        assert result.failure_category == "timed_out"
+        assert result.execution_envelope.timeout_seconds == 1
+        assert "timed out" in result.stderr
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.timeout
+@pytest.mark.subprocess
+@pytest.mark.release_gate
+def test_run_command_real_timeout_smoke(tmp_path: Path) -> None:
+    tool = RunCommandTool(tmp_path)
+
+    async def scenario() -> None:
+        result = await tool.execute(
+            RunCommandArgs(
+                command=('python -c "import threading; threading.Event().wait(60)"'),
+                timeout=1,
+            )
+        )
         assert result.timed_out is True
         assert result.exit_code != 0
         assert result.failure_category == "timed_out"

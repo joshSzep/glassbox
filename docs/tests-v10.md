@@ -357,7 +357,7 @@ Validation evidence:
 
 ### GBX-T910: Replace Real Timeout Sleeps With Deterministic Timeout Seams
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-T900`
 - Goal: remove the hard wall-clock floor from command and pytest timeout tests
   while preserving timeout behavior coverage
@@ -381,6 +381,26 @@ Validation evidence:
 - Done when:
   - timeout coverage remains explicit, but the regular timeout slice no longer
     pays multiple seconds of unavoidable waiting
+
+Validation evidence:
+
+- Added injectable subprocess-runner seams to `RunCommandTool` and
+  `RunTestsTool` so timeout result envelopes can be exercised without waiting
+  for real subprocess expiry.
+- Kept `test_run_command_real_timeout_smoke` as the marked `timeout`,
+  `subprocess`, and `release_gate` wall-clock smoke path.
+- `uv run pytest tests/integration/test_command_tool.py -q`:
+  16 passed in 1.73s
+- `uv run pytest tests/integration/test_workflow_tools.py -q`:
+  30 passed in 3.90s
+- `uv run pytest -m timeout --durations=20 --durations-min=0.01 -q`:
+  3 passed, 1122 deselected in 2.73s; only the real timeout smoke appears in
+  the slow list at 1.01s
+- `uv run ruff format --check src/glassbox/tools/command.py src/glassbox/tools/workflow.py tests/integration/test_command_tool.py tests/integration/test_workflow_tools.py`:
+  4 files already formatted
+- `uv run ruff check src/glassbox/tools/command.py src/glassbox/tools/workflow.py tests/integration/test_command_tool.py tests/integration/test_workflow_tools.py`:
+  all checks passed
+- `uv run ty check`: all checks passed
 
 ### GBX-T911: Tighten Daemon Polling In Tests Without Weakening Production Defaults
 
