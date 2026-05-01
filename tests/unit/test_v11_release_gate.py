@@ -34,10 +34,19 @@ def test_v11_release_gate_dry_run_records_provider_evidence_plan(
 
     assert result.returncode == 0
     assert "v11 advisory provider evidence" in result.stdout
+    assert "v11 confidence release profile" in result.stdout
     summary = json.loads((evidence_dir / "summary.json").read_text(encoding="utf-8"))
+    labels = [stage["label"] for stage in summary["stages"]]
 
     assert summary["gate"] == "v11-release"
     assert summary["status"] == "dry_run"
+    assert "v11 package version metadata" in labels
+    assert "v11 deterministic eval release report" in labels
+    assert "v11 confidence release profile" in labels
+    assert "v11 recommendation and recovery guidance smoke" in labels
+    assert "v11 knowledge and branch-search smoke" in labels
+    assert "v11 eval coverage audit" in labels
+    assert summary["blocking"] == summary["stages"]
     assert summary["provider_evidence"]["blocking"] is False
     assert summary["provider_evidence"]["opt_in"] is True
     assert summary["advisory"][0]["status"] == "planned"
@@ -45,6 +54,35 @@ def test_v11_release_gate_dry_run_records_provider_evidence_plan(
     assert summary["advisory"][0]["blocking"] is False
     assert summary["advisory"][0]["summary_path"] == str(
         evidence_dir / "provider-canary" / "provider-canary-summary.json"
+    )
+    assert (
+        "v11 confidence release profile"
+        in (summary["release_authority"]["blocking_evidence"])
+    )
+
+
+def test_v11_gate_stage_plan_adds_v11_confidence_checks(tmp_path: Path) -> None:
+    stages = v11_gate.build_gate_stages(tmp_path / "evidence")
+    labels = [stage.label for stage in stages]
+
+    assert labels[-6:] == [
+        "v11 package version metadata",
+        "v11 deterministic eval release report",
+        "v11 confidence release profile",
+        "v11 recommendation and recovery guidance smoke",
+        "v11 knowledge and branch-search smoke",
+        "v11 eval coverage audit",
+    ]
+    assert any(
+        "recommendation.release-path" in stage.command
+        and "context.compaction-cap-guidance" in stage.command
+        and "checkpoint.absence-explanation" in stage.command
+        for stage in stages
+    )
+    assert any(
+        "knowledge.posture-summary" in stage.command
+        and "branch-search.decision-support" in stage.command
+        for stage in stages
     )
 
 

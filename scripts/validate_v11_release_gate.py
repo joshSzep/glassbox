@@ -31,10 +31,107 @@ from glassbox.runtime.provider_canary import load_provider_canary_evidence  # no
 
 
 def build_gate_stages(evidence_dir: Path | None = None) -> list[GateStage]:
-    """Return the inherited deterministic blocking stages for the v11 scaffold."""
+    """Return the deterministic blocking stages for the v11 gate."""
 
     resolved_evidence_dir = evidence_dir or Path(".glassbox/releases/v11-gate")
-    return [*build_v10_gate_stages(resolved_evidence_dir)]
+    eval_output_dir = _eval_evidence_dir(resolved_evidence_dir)
+    return [
+        *build_v10_gate_stages(resolved_evidence_dir),
+        GateStage(
+            "v11 package version metadata",
+            (
+                "uv",
+                "run",
+                "pytest",
+                "tests/test_import_smoke.py",
+                "tests/integration/test_cli_entrypoint.py",
+                "-q",
+            ),
+        ),
+        GateStage(
+            "v11 deterministic eval release report",
+            (
+                "uv",
+                "run",
+                "glassbox",
+                "eval",
+                "report",
+                "commit-smoke",
+                "push-confirmation",
+                "release-candidate",
+                "--output-dir",
+                str(eval_output_dir / "v11-release-signoff"),
+                "--cwd",
+                ".",
+            ),
+        ),
+        GateStage(
+            "v11 confidence release profile",
+            (
+                "uv",
+                "run",
+                "glassbox",
+                "eval",
+                "run",
+                "--profile",
+                "release-candidate",
+                "--output-dir",
+                str(eval_output_dir / "v11-confidence-release"),
+                "--refresh-output-dir",
+                "--cwd",
+                ".",
+            ),
+        ),
+        GateStage(
+            "v11 recommendation and recovery guidance smoke",
+            (
+                "uv",
+                "run",
+                "glassbox",
+                "eval",
+                "run",
+                "recommendation.release-path",
+                "context.compaction-cap-guidance",
+                "checkpoint.absence-explanation",
+                "--output-dir",
+                str(eval_output_dir / "v11-recommendation-recovery-smoke"),
+                "--refresh-output-dir",
+                "--cwd",
+                ".",
+            ),
+        ),
+        GateStage(
+            "v11 knowledge and branch-search smoke",
+            (
+                "uv",
+                "run",
+                "glassbox",
+                "eval",
+                "run",
+                "knowledge.posture-summary",
+                "branch-search.decision-support",
+                "--output-dir",
+                str(eval_output_dir / "v11-knowledge-branch-smoke"),
+                "--refresh-output-dir",
+                "--cwd",
+                ".",
+            ),
+        ),
+        GateStage(
+            "v11 eval coverage audit",
+            (
+                "uv",
+                "run",
+                "glassbox",
+                "eval",
+                "audit",
+                "--profile",
+                "release-candidate",
+                "--cwd",
+                ".",
+            ),
+        ),
+    ]
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -286,16 +383,16 @@ def _record_stage_result(
     started_at: str | None,
     ended_at: str | None,
 ) -> None:
-    summary["stages"].append(
-        {
-            "label": label,
-            "command": list(command),
-            "status": status,
-            "exit_code": exit_code,
-            "started_at": started_at,
-            "ended_at": ended_at,
-        }
-    )
+    stage_result = {
+        "label": label,
+        "command": list(command),
+        "status": status,
+        "exit_code": exit_code,
+        "started_at": started_at,
+        "ended_at": ended_at,
+    }
+    summary["stages"].append(stage_result)
+    summary["blocking"].append(stage_result)
 
 
 def _resolve_evidence_dir(requested: Path | None) -> Path:
@@ -303,6 +400,10 @@ def _resolve_evidence_dir(requested: Path | None) -> Path:
         return requested
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     return DEFAULT_EVIDENCE_ROOT / f"{timestamp}-v11-gate"
+
+
+def _eval_evidence_dir(evidence_dir: Path) -> Path:
+    return Path(".glassbox/evals") / evidence_dir.name
 
 
 def _new_evidence_summary(
@@ -329,15 +430,23 @@ def _new_evidence_summary(
             "dry_run": dry_run,
         },
         "stages": [],
+        "blocking": [],
         "advisory": [],
         "artifacts": {
             "dist_dir": str(DIST_DIR.relative_to(REPO_ROOT)),
+            "eval_evidence_root": str(_eval_evidence_dir(evidence_dir)),
             "provider_canary_evidence": str(evidence_dir / "provider-canary"),
             "packaging_docs": "docs/release-packaging.md",
             "providers_docs": "docs/providers.md",
             "v10_release_gate": "docs/v10-release-gate.md",
             "v11_task_graph": "docs/tasks-v11.md",
             "v11_confidence_contract": "docs/v11-confidence-adoption-contract.md",
+            "v11_release_gate": "docs/v11-release-gate.md",
+            "v11_eval_cases": "evals/README.md",
+            "v11_replay_evals": "docs/replay-evals.md",
+            "v11_live_cockpit_evidence": "docs/live-cockpit-evidence-v11.md",
+            "v11_accessibility_review": "docs/accessibility-review-v11.md",
+            "v11_reviewer_evidence": "docs/reviewer-evidence-bundles.md",
         },
         "provider_evidence": {
             "blocking": False,
@@ -348,6 +457,12 @@ def _new_evidence_summary(
         "release_authority": {
             "blocking_evidence": [
                 "inherited v10 deterministic release stages",
+                "v11 package version metadata",
+                "v11 deterministic eval release report",
+                "v11 confidence release profile",
+                "v11 recommendation and recovery guidance smoke",
+                "v11 knowledge and branch-search smoke",
+                "v11 eval coverage audit",
                 "package contents validation",
                 "installed wheel smoke",
             ],

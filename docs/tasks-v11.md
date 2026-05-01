@@ -1105,7 +1105,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1191: Add v11 Release Gate
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1102`, `GBX-1142`, `GBX-1190`
 - Goal: provide one command that records v11 blocking and advisory evidence
   clearly
@@ -1128,6 +1128,16 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - v11 readiness has one command that records deterministic, package,
     provider, long-run, cockpit, recommendation, and knowledge evidence clearly
+- Completed:
+  - expanded `scripts/validate_v11_release_gate.py` from the provider-evidence
+    scaffold into an explicit v11 gate with package-version metadata,
+    deterministic eval report, expanded release-candidate profile,
+    recommendation/recovery guidance smoke, knowledge/branch-search smoke, and
+    release-candidate coverage audit stages
+  - retained both `blocking` and `advisory` sections in `summary.json`, with
+    provider canaries remaining opt-in and non-authoritative
+  - documented the automated stages, evidence summary, pass/fail policy, and
+    provider advisory posture in [v11-release-gate.md](./v11-release-gate.md)
 
 ### GBX-1192: Run v11 Dogfooding Passes
 
