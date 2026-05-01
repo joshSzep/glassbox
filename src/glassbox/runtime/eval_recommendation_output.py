@@ -400,7 +400,7 @@ def _release_gate_commands(
     commands: list[str] = []
     for major in _release_gate_majors(touched_paths):
         script = f"scripts/validate_v{major}_release_gate.py"
-        commands.append(f"uv run python {script} --cwd .")
+        commands.append(f"uv run python {script}")
     if _touches_package_content_gate(touched_paths):
         commands.append("uv run python scripts/validate_package_contents.py")
     return dedupe_strings(commands)
@@ -429,7 +429,7 @@ def _release_gate_notes(
 def _release_gate_majors(touched_paths: list[str]) -> list[int]:
     majors: list[int] = []
     for path in touched_paths:
-        for major in (10, 9, 8, 7, 6, 5):
+        for major in (11, 10, 9, 8, 7, 6, 5):
             if _touches_major_release_gate(path, major):
                 if major not in majors:
                     majors.append(major)

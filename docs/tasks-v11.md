@@ -1141,7 +1141,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1192: Run v11 Dogfooding Passes
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1191`
 - Goal: validate v11 against real local operator use and record product
   friction before release signoff
@@ -1166,6 +1166,13 @@ Each phase below corresponds to one concrete milestone.
   - focused validation commands chosen from actual touched surfaces
 - Done when:
   - v11 priorities are informed by real operator confidence and adoption use
+- Completed:
+  - recorded sanitized findings in
+    [v11-dogfooding-summary.md](./v11-dogfooding-summary.md)
+  - dogfooded release-path recommendations, compaction over-range guidance,
+    live cockpit evidence, and branch-search decision support
+  - fixed stale v10 release-gate recommendation/recipe guidance discovered
+    during dogfooding and added focused recommendation coverage for the v11 gate
 
 ### GBX-1193: Publish v11 Release-Candidate Guide
 

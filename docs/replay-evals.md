@@ -228,7 +228,7 @@ whether that surface is impacted, which profiles and cases are recommended,
 which blocking profiles are involved, and any profile-budget notes that matter
 for local verification scope. Release-candidate rows can also include
 `release_gate_commands`; those are full sign-off gates such as
-`uv run python scripts/validate_v10_release_gate.py --cwd .` or package-content
+`uv run python scripts/validate_v11_release_gate.py` or package-content
 validation, not replay/eval profiles. Advisory rows may include deterministic
 advisory profiles or live-provider canary profiles, but live-provider checks are
 skipped from the executable verification plan unless the operator explicitly

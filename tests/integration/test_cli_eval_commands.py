@@ -885,7 +885,7 @@ def test_cli_eval_recommend_distinguishes_release_profiles_from_full_gates(
     )
     assert release_surface["recommended_profile_ids"] == ["release-candidate"]
     assert release_surface["release_gate_commands"] == [
-        "uv run python scripts/validate_v10_release_gate.py --cwd .",
+        "uv run python scripts/validate_v10_release_gate.py",
         "uv run python scripts/validate_package_contents.py",
     ]
     release_gate_group = next(
@@ -894,7 +894,7 @@ def test_cli_eval_recommend_distinguishes_release_profiles_from_full_gates(
         if group["group"] == "release-gate-recommendation"
     )
     assert release_gate_group["release_gate_commands"] == [
-        "uv run python scripts/validate_v10_release_gate.py --cwd .",
+        "uv run python scripts/validate_v10_release_gate.py",
         "uv run python scripts/validate_package_contents.py",
     ]
 
@@ -912,7 +912,7 @@ def test_cli_eval_recommend_distinguishes_release_profiles_from_full_gates(
     assert exit_code == 0
     assert "Cheapest next command:" in captured.out
     assert "Full gates:" in captured.out
-    assert "uv run python scripts/validate_v10_release_gate.py --cwd ." in captured.out
+    assert "uv run python scripts/validate_v10_release_gate.py" in captured.out
 
 
 def test_cli_eval_recommend_reports_live_provider_canary_as_skipped_check(

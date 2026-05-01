@@ -14,7 +14,27 @@
                 "release-gate-recommendation"
             ],
             "expected_release_gate_commands": [
-                "uv run python scripts/validate_v10_release_gate.py --cwd ."
+                "uv run python scripts/validate_v10_release_gate.py"
+            ],
+            "expected_recipe_ids": [
+                "release-docs",
+                "release-gate-scripts"
+            ]
+        },
+        {
+            "case_id": "recommendation.v11-release-path",
+            "title": "V11 release path recommendation names the v11 gate",
+            "touched_paths": [
+                "scripts/validate_v11_release_gate.py",
+                "docs/v11-release-gate.md"
+            ],
+            "expected_profile_ids": ["release-candidate"],
+            "expected_reason_groups": [
+                "direct-path",
+                "release-gate-recommendation"
+            ],
+            "expected_release_gate_commands": [
+                "uv run python scripts/validate_v11_release_gate.py"
             ],
             "expected_recipe_ids": [
                 "release-docs",

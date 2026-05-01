@@ -54,6 +54,9 @@ v11 confidence and adoption contract is the active implementation track for the
 - [v11-release-gate.md](./v11-release-gate.md): v11 release-gate scaffold with
   optional advisory provider evidence collection, freshness reporting, and
   explicit skipped-provider posture
+- [v11-dogfooding-summary.md](./v11-dogfooding-summary.md): sanitized v11
+  dogfooding findings for release recommendations, compaction guidance, live
+  cockpit evidence, branch-search review, and candidate follow-ups
 - [v10-release-candidate.md](./v10-release-candidate.md): v10
   release-candidate guide for the supported long-running-task model,
   validation path, evidence expectations, residual risks, and decision

@@ -322,7 +322,7 @@ def test_recommend_eval_change_impact_distinguishes_release_profiles_from_gates(
     ]
     assert release_surface.recommended_profile_ids == ["release-candidate"]
     assert release_surface.release_gate_commands == [
-        "uv run python scripts/validate_v10_release_gate.py --cwd .",
+        "uv run python scripts/validate_v10_release_gate.py",
         "uv run python scripts/validate_package_contents.py",
     ]
     assert any(
@@ -337,9 +337,29 @@ def test_recommend_eval_change_impact_distinguishes_release_profiles_from_gates(
         if group.group == "release-gate-recommendation"
     )
     assert release_gate_group.release_gate_commands == [
-        "uv run python scripts/validate_v10_release_gate.py --cwd .",
+        "uv run python scripts/validate_v10_release_gate.py",
         "uv run python scripts/validate_package_contents.py",
     ]
+
+
+def test_recommend_eval_change_impact_names_v11_release_gate() -> None:
+    report = recommend_eval_change_impact(
+        _REPO_ROOT,
+        touched_paths=[
+            "scripts/validate_v11_release_gate.py",
+            "docs/v11-release-gate.md",
+        ],
+    )
+    release_surface = next(
+        surface
+        for surface in report.release_surfaces
+        if surface.verification_stage == "release-candidate"
+    )
+
+    assert release_surface.release_gate_commands == [
+        "uv run python scripts/validate_v11_release_gate.py"
+    ]
+    assert "release-candidate" in release_surface.recommended_profile_ids
 
 
 def test_recommend_eval_change_impact_routes_policy_changes_to_approval_case(
