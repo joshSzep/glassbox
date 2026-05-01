@@ -31,9 +31,10 @@ uv run glassbox readiness check --cwd .
 ```
 
 The readiness check prints concrete remediation commands for provider setup,
-packaged dashboard assets, repository index freshness, writable `.glassbox`
-state, eval profile availability, and package/build posture. It is safe to run
-before the first session and after fixing any warning.
+workspace profile defaults, packaged dashboard assets, repository index
+freshness, writable `.glassbox` state, eval profile availability, and
+package/build posture. It is safe to run before the first session and after
+fixing any warning.
 
 ## First-Run Provider And Profile Setup
 
@@ -61,6 +62,10 @@ credentials. Keep reviewable defaults, never secrets, in `glassbox.profile.json`
   }
 }
 ```
+
+For common manual, test-driven, release-candidate, offline deterministic, and
+conservative provider-backed defaults, start from the templates in
+[workspace-profiles.md](./workspace-profiles.md).
 
 After the first session starts, the terminal header and command palette show the
 paired dashboard URL. Use the local eval profile as the smallest repository

@@ -1001,7 +1001,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1181: Add Workspace Profile Templates For Common Team Defaults
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1151`
 - Goal: make repository-owned defaults easier to set up without encoding
   secrets or owner state
@@ -1022,6 +1022,16 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - teams can adopt shared local defaults without weakening local operator
     control
+- Completed:
+  - documented named profile templates for manual, test-driven,
+    release-candidate, offline deterministic, and conservative provider-backed
+    workflows without secrets or owner state
+  - added a readiness workspace-profile defaults check that points operators to
+    the profile templates when no shared defaults are present, warns for partial
+    profiles, and fails visibly for invalid profiles
+  - updated getting started, operator quickstart, and team workflow docs so
+    profile defaults remain reviewable conventions and explicit CLI flags still
+    win for one-off runs
 
 ### GBX-1182: Add Reviewer-Oriented Evidence Bundle Guidance
 

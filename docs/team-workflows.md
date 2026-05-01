@@ -201,8 +201,11 @@ Use this order when a session needs to move between people or terminals:
 
 Workspace defaults help teams keep routine commands consistent. A repository can
 declare `glassbox.profile.json` with default model, approval mode, and eval
-profile routing. Those values apply only when the operator does not pass an
-explicit CLI flag. Provider credentials, base URLs, local database paths, and
+profile routing. Use the named templates in
+[workspace-profiles.md](./workspace-profiles.md) for manual, test-driven,
+release-candidate, offline deterministic, and conservative provider-backed
+workflows. Those values apply only when the operator does not pass an explicit
+CLI flag. Provider credentials, base URLs, local database paths, and
 runtime-owner metadata remain runtime-only local configuration.
 
 ## Attach, Approval, Answer, And Branching Review

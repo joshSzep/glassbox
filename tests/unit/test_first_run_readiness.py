@@ -1,5 +1,6 @@
 """Unit coverage for first-run readiness checks."""
 
+import json
 from datetime import UTC
 from datetime import datetime
 from pathlib import Path
@@ -32,6 +33,79 @@ def test_first_run_readiness_reports_healthy_workspace(tmp_path: Path) -> None:
     assert _check_status(report, "repository-index") == "pass"
     assert _check_status(report, "eval-profile-availability") == "pass"
     assert _check_status(report, "package-build-posture") == "pass"
+    profile_check = _check(report, "workspace-profile-defaults")
+    assert profile_check.status == "pass"
+    assert "No glassbox.profile.json found" in profile_check.detail
+    assert "review `docs/workspace-profiles.md` profile templates" in (
+        profile_check.next_actions
+    )
+
+
+def test_first_run_readiness_warns_for_partial_workspace_profile(
+    tmp_path: Path,
+) -> None:
+    static_root = _write_spa_build(tmp_path / "static_next")
+    _seed_repository(tmp_path)
+    _seed_eval_profiles(tmp_path)
+    build_and_write_repository_index(tmp_path)
+    _write_workspace_profile(
+        tmp_path,
+        {
+            "profile_version": 1,
+            "runtime": {"model_name": "local-test-model"},
+        },
+    )
+
+    report = build_first_run_readiness_report(
+        tmp_path,
+        model_name="local-test-model",
+        environ={},
+        static_root=static_root,
+    )
+    profile_check = _check(report, "workspace-profile-defaults")
+
+    assert report.status == "needs_attention"
+    assert profile_check.status == "warning"
+    assert "runtime.approval_mode" in profile_check.detail
+    assert "runtime.autonomy_mode" in profile_check.detail
+    assert "verification.eval_profile" in profile_check.detail
+    assert "review `docs/workspace-profiles.md` profile templates" in (
+        profile_check.next_actions
+    )
+
+
+def test_first_run_readiness_blocks_invalid_workspace_profile(
+    tmp_path: Path,
+) -> None:
+    static_root = _write_spa_build(tmp_path / "static_next")
+    _seed_repository(tmp_path)
+    _seed_eval_profiles(tmp_path)
+    build_and_write_repository_index(tmp_path)
+    _write_workspace_profile(
+        tmp_path,
+        {
+            "profile_version": 1,
+            "runtime": {"provider_api_key": "secret"},
+        },
+    )
+
+    report = build_first_run_readiness_report(
+        tmp_path,
+        model_name=None,
+        environ={},
+        static_root=static_root,
+    )
+    profile_check = _check(report, "workspace-profile-defaults")
+    provider_check = _check(report, "provider-configuration")
+
+    assert report.status == "blocked"
+    assert profile_check.status == "fail"
+    assert "Workspace profile is invalid" in profile_check.detail
+    assert "review `docs/workspace-profiles.md` profile templates" in (
+        profile_check.next_actions
+    )
+    assert provider_check.status == "fail"
+    assert "invalid_workspace_profile" in provider_check.detail
 
 
 def test_first_run_readiness_warns_for_missing_live_provider(
@@ -277,5 +351,12 @@ def _seed_eval_profiles(root: Path) -> None:
   ]
 }
 """,
+        encoding="utf-8",
+    )
+
+
+def _write_workspace_profile(root: Path, payload: dict[str, object]) -> None:
+    (root / "glassbox.profile.json").write_text(
+        json.dumps(payload, indent=2) + "\n",
         encoding="utf-8",
     )

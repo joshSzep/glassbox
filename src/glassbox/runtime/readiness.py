@@ -20,6 +20,8 @@ from glassbox.runtime.provider_diagnostics import build_provider_diagnostics_rep
 from glassbox.runtime.repository_index import RepositoryIndexNotFoundError
 from glassbox.runtime.repository_index import load_repository_index
 from glassbox.runtime.repository_index import repository_index_path
+from glassbox.runtime.workspace_profile import load_workspace_profile
+from glassbox.runtime.workspace_profile import workspace_profile_path
 from glassbox.tools import DEFAULT_TOOL_POLICY_PATH
 from glassbox.tools import load_tool_policy_manifest
 from glassbox.web.app import _STATIC_NEXT_DIR
@@ -78,6 +80,7 @@ def build_first_run_readiness_report(
         _workspace_path_check(storage_paths.workspace_root),
         _writable_state_check(storage_paths.workspace_root),
         _database_bootstrap_check(storage_paths),
+        _workspace_profile_defaults_check(storage_paths.workspace_root),
         _provider_configuration_check(
             storage_paths.workspace_root,
             model_name=model_name,
@@ -260,11 +263,24 @@ def _provider_configuration_check(
     model_name: str | None,
     environ: Mapping[str, str] | None,
 ) -> FirstRunReadinessCheck:
-    report = build_provider_diagnostics_report(
-        workspace_root,
-        explicit_model_name=model_name,
-        environ=environ,
-    )
+    try:
+        report = build_provider_diagnostics_report(
+            workspace_root,
+            explicit_model_name=model_name,
+            environ=environ,
+        )
+    except ValueError as exc:
+        return FirstRunReadinessCheck(
+            check_id="provider-configuration",
+            title="Provider configuration",
+            status="fail",
+            detail=f"Provider diagnostics could not read workspace defaults: {exc}",
+            next_actions=[
+                "fix `glassbox.profile.json` or override `--model-name`",
+                "review `docs/workspace-profiles.md` profile templates",
+                "`glassbox readiness check --cwd .`",
+            ],
+        )
     if report.state == "ready":
         return FirstRunReadinessCheck(
             check_id="provider-configuration",
@@ -309,6 +325,79 @@ def _provider_configuration_check(
             ),
             *report.next_actions,
         ],
+    )
+
+
+def _workspace_profile_defaults_check(workspace_root: Path) -> FirstRunReadinessCheck:
+    profile_path = workspace_profile_path(workspace_root)
+    try:
+        profile = load_workspace_profile(workspace_root)
+    except ValueError as exc:
+        return FirstRunReadinessCheck(
+            check_id="workspace-profile-defaults",
+            title="Workspace profile defaults",
+            status="fail",
+            detail=f"Workspace profile is invalid: {exc}",
+            next_actions=[
+                "fix `glassbox.profile.json` or remove it",
+                "review `docs/workspace-profiles.md` profile templates",
+                "`glassbox readiness check --cwd .`",
+            ],
+            path=str(profile_path),
+        )
+    if profile is None:
+        return FirstRunReadinessCheck(
+            check_id="workspace-profile-defaults",
+            title="Workspace profile defaults",
+            status="pass",
+            detail=(
+                "No glassbox.profile.json found; built-in defaults apply. "
+                "Use a documented template when the team wants shared local "
+                "defaults."
+            ),
+            next_actions=[
+                "review `docs/workspace-profiles.md` profile templates",
+            ],
+            path=str(profile_path),
+        )
+
+    missing_defaults: list[str] = []
+    if profile.runtime.model_name is None:
+        missing_defaults.append("runtime.model_name")
+    if profile.runtime.approval_mode is None:
+        missing_defaults.append("runtime.approval_mode")
+    if profile.runtime.autonomy_mode is None:
+        missing_defaults.append("runtime.autonomy_mode")
+    if profile.verification.eval_profile is None:
+        missing_defaults.append("verification.eval_profile")
+
+    if missing_defaults:
+        return FirstRunReadinessCheck(
+            check_id="workspace-profile-defaults",
+            title="Workspace profile defaults",
+            status="warning",
+            detail=(
+                "Workspace profile exists but leaves built-in defaults in effect "
+                f"for: {', '.join(missing_defaults)}."
+            ),
+            next_actions=[
+                "review `docs/workspace-profiles.md` profile templates",
+                "pass explicit CLI flags when one run should differ from the profile",
+            ],
+            path=str(profile_path),
+        )
+    return FirstRunReadinessCheck(
+        check_id="workspace-profile-defaults",
+        title="Workspace profile defaults",
+        status="pass",
+        detail=(
+            "Workspace profile supplies runtime, autonomy, and verification "
+            "defaults without secrets or owner state."
+        ),
+        next_actions=[
+            "review `docs/workspace-profiles.md` before changing shared defaults",
+        ],
+        path=str(profile_path),
     )
 
 

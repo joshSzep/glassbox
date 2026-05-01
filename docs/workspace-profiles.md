@@ -89,9 +89,31 @@ For provider settings only, precedence is different: process environment values
 override `.env`, and both remain runtime-only local configuration. Profiles do
 not read or write provider secrets.
 
-## Example Profiles
+## Profile Templates
 
-OpenAI with reviewable approval defaults:
+These templates are starting points for common team defaults. Keep them
+reviewable in source control, then override one invocation with explicit CLI
+flags when needed. Do not add API keys, local database paths, runtime owner
+state, or personal machine paths.
+
+Manual local default:
+
+```json
+{
+  "profile_version": 1,
+  "runtime": {
+    "model_name": "local-test-model",
+    "approval_mode": "confirm",
+    "autonomy_mode": "manual",
+    "autonomy_budget_preset": "manual"
+  },
+  "verification": {
+    "eval_profile": "commit-smoke"
+  }
+}
+```
+
+Test-driven contributor default:
 
 ```json
 {
@@ -123,29 +145,33 @@ OpenAI with reviewable approval defaults:
 }
 ```
 
-Anthropic with a stricter review posture:
+Release-candidate default:
 
 ```json
 {
   "profile_version": 1,
   "runtime": {
-    "model_name": "anthropic:claude-sonnet-4",
-    "approval_mode": "review"
+    "model_name": "openai:gpt-5.4",
+    "approval_mode": "confirm",
+    "autonomy_mode": "release-candidate",
+    "autonomy_budget_preset": "release-candidate"
   },
   "verification": {
-    "eval_profile": "advisory-context"
+    "eval_profile": "release-candidate"
   }
 }
 ```
 
-Offline deterministic local workflow:
+Offline deterministic default:
 
 ```json
 {
   "profile_version": 1,
   "runtime": {
     "model_name": "local-test-model",
-    "approval_mode": "never"
+    "approval_mode": "never",
+    "autonomy_mode": "inspect",
+    "autonomy_budget_preset": "inspect"
   },
   "verification": {
     "eval_profile": "commit-smoke"
@@ -153,9 +179,43 @@ Offline deterministic local workflow:
 }
 ```
 
-After editing a profile, run:
+Conservative provider-backed default:
+
+```json
+{
+  "profile_version": 1,
+  "runtime": {
+    "model_name": "anthropic:claude-sonnet-4",
+    "approval_mode": "review",
+    "autonomy_mode": "edit-safe",
+    "autonomy_budget_preset": "provider-conservative"
+  },
+  "autonomy": {
+    "budget_presets": {
+      "provider-conservative": {
+        "max_steps": 4,
+        "max_tool_calls": 24,
+        "max_write_operations": 2,
+        "max_command_operations": 1,
+        "max_wall_clock_seconds": 900,
+        "max_verification_attempts": 2,
+        "max_branch_attempts": 0,
+        "max_artifact_bytes": 2000000,
+        "allowed_risk_buckets": ["read_only", "workspace_write", "command"]
+      }
+    }
+  },
+  "verification": {
+    "eval_profile": "commit-smoke"
+  }
+}
+```
+
+After editing a profile, run readiness first. It reports missing profile
+defaults, invalid fields, and the profile-template docs to review:
 
 ```bash
+uv run glassbox readiness check --cwd .
 uv run glassbox provider diagnostics --cwd .
 uv run glassbox eval run --profile commit-smoke --cwd .
 ```

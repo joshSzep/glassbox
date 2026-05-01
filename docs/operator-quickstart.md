@@ -27,10 +27,13 @@ uv run glassbox readiness check --cwd .
 ```
 
 The readiness report checks runtime imports, workspace and `.glassbox/`
-writability, SQLite bootstrap, provider posture, packaged dashboard assets,
-repository index freshness, eval profile availability, package/build posture,
-and tool policy. Warnings include concrete remediation commands, and missing
-provider credentials do not block deterministic local smoke.
+writability, SQLite bootstrap, workspace profile defaults, provider posture,
+packaged dashboard assets, repository index freshness, eval profile
+availability, package/build posture, and tool policy. Warnings include concrete
+remediation commands, and missing provider credentials do not block
+deterministic local smoke. For shared team defaults, use the manual,
+test-driven, release-candidate, offline deterministic, or conservative
+provider-backed templates in [workspace-profiles.md](./workspace-profiles.md).
 
 ## 2. Configure An Optional Provider
 
