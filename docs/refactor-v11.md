@@ -291,7 +291,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R401: Extend Architecture Guardrails For V11 Pressure Points
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R400`
 - Goal: prevent v11 confidence modules from growing into new hidden monoliths
 - Deliverables:

@@ -1027,6 +1027,295 @@ V10_FRONTEND_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
     ),
 )
 
+V11_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
+    (
+        SRC_ROOT / "runtime" / "eval_recommendation_output.py",
+        720,
+        (
+            "v11 eval recommendation output should move new surface, recipe, "
+            "plan, and terminal formatting behavior into focused helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "eval_recommendation_engine.py",
+        300,
+        (
+            "v11 eval recommendation engine should move new matching, "
+            "capability expansion, release, and fallback behavior into helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "knowledge_posture.py",
+        640,
+        (
+            "v11 knowledge posture should move new source collection, ranking, "
+            "provenance, and command guidance into focused helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "branch_decision_support.py",
+        430,
+        (
+            "v11 branch decision support should move new evidence, "
+            "verification, cost, risk, and follow-up behavior into helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_export.py",
+        1150,
+        (
+            "v11 session export should move new package assembly, handoff, "
+            "artifact manifest, and redaction behavior into helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_import.py",
+        320,
+        (
+            "v11 session import should move new validation, inspection-only "
+            "creation, transcript, runtime-note, and handoff behavior into helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "services" / "contracts.py",
+        560,
+        (
+            "v11 service contracts should split only by stable domain contract "
+            "families while preserving public imports"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "status_formatters.py",
+        780,
+        (
+            "v11 status formatters should move new session, task, "
+            "observability, policy, and knowledge formatting into owned helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "command_guide.py",
+        540,
+        (
+            "v11 command guide should move new metadata, workflow grouping, "
+            "JSON serialization, and terminal rendering into owned helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "interactive_commands.py",
+        600,
+        (
+            "v11 interactive commands should move new launch, daemon, local "
+            "action, and autonomy-option behavior into owned helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "parser_sessions.py",
+        570,
+        (
+            "v11 session parser wiring should move new option-resolution "
+            "behavior into parser/helper modules"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "tool_attempt_recovery.py",
+        810,
+        (
+            "v11 tool-attempt recovery should move new inspection, retry, "
+            "abandon, artifact, and result-model behavior into helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "context_compaction_service.py",
+        680,
+        (
+            "v11 compaction service should move new range planning, artifact "
+            "assembly, freshness, refresh, and invalidation behavior into helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "turn_event_recorder.py",
+        690,
+        (
+            "v11 turn event recorder should move new artifact, replay, "
+            "task-plan, and heartbeat behavior into helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "turn_tool_executor.py",
+        670,
+        (
+            "v11 turn tool executor should move new artifact, replay, "
+            "task-plan, and heartbeat behavior into helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_tasks.py",
+        630,
+        (
+            "v11 task projection handlers should move new event-family "
+            "behavior into focused projection helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_background_jobs.py",
+        580,
+        (
+            "v11 background-job projection handlers should move new "
+            "event-family behavior into focused projection helpers"
+        ),
+    ),
+)
+
+V11_FRONTEND_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
+    (
+        FRONTEND_ROOT / "components" / "console" / "knowledge-autonomy-sections.tsx",
+        700,
+        (
+            "v11 knowledge sections should move new summary, detail, "
+            "provenance, action, and formatting behavior into owned modules"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "branch-search-sections.tsx",
+        560,
+        (
+            "v11 branch-search sections should move new candidate, decision, "
+            "evidence, verification, action, and formatting behavior into owned modules"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "stores" / "session-store.ts",
+        610,
+        (
+            "v11 session store should move new stream, pagination, draft, "
+            "and action behavior into store-owned helpers"
+        ),
+    ),
+)
+
+V11_PYTHON_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
+    (
+        SRC_ROOT / "runtime" / "eval_recommendation_output.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 recommendation output helpers must keep derivation separate "
+            "from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "eval_recommendation_engine.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 recommendation engine helpers must keep matching and expansion "
+            "transport-agnostic"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "knowledge_posture.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 knowledge posture helpers must derive evidence without CLI or "
+            "web presentation imports"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "branch_decision_support.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 branch decision helpers must derive evidence without CLI or "
+            "web presentation imports"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_export.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 session export helpers must keep package and handoff "
+            "assembly independent from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_import.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 session import helpers must keep validation and handoff-note "
+            "assembly independent from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "tool_attempt_recovery.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 tool-attempt recovery helpers must keep recovery derivation "
+            "independent from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "context_compaction_service.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 compaction helpers must keep range planning, freshness, and "
+            "artifact assembly independent from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "turn_event_recorder.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 turn event recorder helpers must keep event and artifact "
+            "recording independent from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "turn_tool_executor.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 turn tool executor helpers must keep tool side effects "
+            "independent from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_tasks.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        ("v11 task projection handlers must stay below runtime and transport layers"),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_background_jobs.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        (
+            "v11 background-job projection handlers must stay below runtime "
+            "and transport layers"
+        ),
+    ),
+)
+
+V11_FRONTEND_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
+    (
+        FRONTEND_ROOT / "components" / "console" / "knowledge-autonomy-sections.tsx",
+        ("@/api/client", "@/api/sse", "next/", "src/glassbox"),
+        (
+            "v11 knowledge section rendering should consume typed props and "
+            "avoid transport, store, Next server, or backend imports"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "branch-search-sections.tsx",
+        ("@/api/client", "@/api/sse", "next/", "src/glassbox"),
+        (
+            "v11 branch-search section rendering should consume typed props "
+            "and avoid transport, store, Next server, or backend imports"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "stores" / "session-store.ts",
+        ("@/components", "next/", "react", "src/glassbox"),
+        (
+            "v11 session store helpers should own transport and actions "
+            "without importing React components, Next server, or backend source"
+        ),
+    ),
+)
+
 
 def test_dependency_direction_rules_hold_for_refactor_boundaries() -> None:
     violations: list[str] = []
@@ -1160,6 +1449,40 @@ def test_v10_frontend_boundaries_avoid_transport_and_backend_imports() -> None:
     assert violations == []
 
 
+def test_v11_python_pressure_points_do_not_grow_before_split() -> None:
+    violations = _line_count_violations(V11_PYTHON_PRESSURE_POINT_RULES)
+
+    assert violations == []
+
+
+def test_v11_frontend_pressure_points_do_not_grow_before_split() -> None:
+    violations = _line_count_violations(V11_FRONTEND_PRESSURE_POINT_RULES)
+
+    assert violations == []
+
+
+def test_v11_python_boundaries_avoid_presentation_imports() -> None:
+    violations: list[str] = []
+
+    for file_path, forbidden_prefixes, message in V11_PYTHON_IMPORT_RULES:
+        violations.extend(
+            _python_import_violations(file_path, forbidden_prefixes, message)
+        )
+
+    assert violations == []
+
+
+def test_v11_frontend_boundaries_avoid_transport_and_backend_imports() -> None:
+    violations: list[str] = []
+
+    for file_path, forbidden_prefixes, message in V11_FRONTEND_IMPORT_RULES:
+        violations.extend(
+            _frontend_import_violations(file_path, forbidden_prefixes, message)
+        )
+
+    assert violations == []
+
+
 def test_post_v8_python_guardrail_messages_point_to_owned_boundaries(
     tmp_path: Path,
 ) -> None:
@@ -1257,6 +1580,71 @@ def test_v10_guardrail_messages_point_to_next_owner(tmp_path: Path) -> None:
             "exceeds 0"
         )
     ]
+
+
+def test_v11_guardrail_messages_point_to_next_owner(tmp_path: Path) -> None:
+    knowledge_file = tmp_path / "knowledge_posture.py"
+    knowledge_file.write_text(
+        "from glassbox.cli.status_formatters import format_status\n",
+        encoding="utf-8",
+    )
+
+    import_violations = _python_import_violations(
+        knowledge_file,
+        ("glassbox.cli",),
+        (
+            "v11 knowledge posture helpers must derive evidence without CLI or "
+            "web presentation imports"
+        ),
+    )
+
+    assert import_violations == [
+        (
+            f"{knowledge_file}: v11 knowledge posture helpers must derive "
+            "evidence without CLI or web presentation imports: "
+            "glassbox.cli.status_formatters"
+        )
+    ]
+
+    growth_violations = _line_count_violations(
+        (
+            (
+                knowledge_file,
+                0,
+                (
+                    "v11 knowledge posture should move new source collection, "
+                    "ranking, provenance, and command guidance into focused helpers"
+                ),
+            ),
+        )
+    )
+
+    assert growth_violations == [
+        (
+            f"{knowledge_file}: v11 knowledge posture should move new source "
+            "collection, ranking, provenance, and command guidance into focused "
+            "helpers: 1 lines exceeds 0"
+        )
+    ]
+
+
+def test_v11_confidence_boundary_strategy_is_documented() -> None:
+    boundary_doc = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "#### V11 Confidence Runtime Sub-Boundaries",
+        "Eval recommendation output should keep a stable public facade",
+        "Knowledge posture should derive only from canonical events",
+        "Branch decision support should keep branch search non-mutating",
+        "Session export should keep package JSON and import compatibility stable",
+        "#### V11 Projection Sub-Boundaries",
+        "#### V11 CLI Operator-Surface Sub-Boundaries",
+        "#### V11 Frontend Confidence-Surface Sub-Boundaries",
+        "v11 guardrails should extend the same narrow approach",
+    ):
+        assert required_text in boundary_doc
 
 
 def test_v10_core_domain_strategy_is_documented() -> None:
