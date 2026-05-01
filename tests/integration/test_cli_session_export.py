@@ -13,11 +13,24 @@ from glassbox.core import BranchCandidatePlanned
 from glassbox.core import BranchCandidateSelected
 from glassbox.core import BranchSearchStarted
 from glassbox.core import BudgetDecisionRecorded
+from glassbox.core import ContextCompactionCreated
+from glassbox.core import ContextCompactionFreshness
+from glassbox.core import ContextCompactionScope
 from glassbox.core import LongRunPhase
 from glassbox.core import TaskCheckpointCreated
+from glassbox.core import TaskVerificationCompleted
+from glassbox.core import TaskVerificationPlanned
+from glassbox.core import TaskVerificationResidualRiskAccepted
+from glassbox.core import TaskVerificationStatus
+from glassbox.core import VerificationCheckKind
+from glassbox.core import VerificationPlanEntry
+from glassbox.core import VerificationPlanSource
+from glassbox.core import new_artifact_id
 from glassbox.core import new_branch_candidate_id
 from glassbox.core import new_branch_search_id
+from glassbox.core import new_context_compaction_id
 from glassbox.core import new_task_checkpoint_id
+from glassbox.core import new_task_verification_id
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import new_turn_id
 from glassbox.core.types import AutonomyEscalationReason
@@ -491,6 +504,159 @@ def test_cli_session_export_import_preserves_checkpoints_for_inspection(
     assert imported_checkpoints[0].objective == "Finish handoff for <workspace-root>"
 
 
+def test_cli_session_export_includes_v11_handoff_summary(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _seed_proposed_task(tmp_path)
+    task_id = _tasks_for_session(db_path, session_id)[0].task_id
+    checkpoint_id = new_task_checkpoint_id()
+    verification_id = new_task_verification_id()
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskCheckpointCreated(
+                        checkpoint_id=checkpoint_id,
+                        objective=f"Finish handoff summary for {tmp_path}",
+                        current_phase=LongRunPhase.CHECKPOINTING,
+                        completed_step="Prepared reviewer context",
+                        next_action="Review summary export",
+                        recovery_guidance="Inspect exported handoff summary first",
+                        touched_files=[str(tmp_path / "docs" / "handoff.md")],
+                        verification_status="passed",
+                        budget_status="within budget",
+                        source_start_sequence=1,
+                        source_end_sequence=4,
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ContextCompactionCreated(
+                        compaction_id=new_context_compaction_id(),
+                        scope=ContextCompactionScope.TRANSCRIPT,
+                        source_start_sequence=1,
+                        source_end_sequence=4,
+                        summary="Reviewer summary with accepted risk context",
+                        artifact_id=new_artifact_id(),
+                        freshness=ContextCompactionFreshness.FRESH,
+                        task_id=task_id,
+                        checkpoint_id=checkpoint_id,
+                        accepted_risk_count=1,
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskVerificationPlanned(
+                        task_id=task_id,
+                        verification=VerificationPlanEntry(
+                            verification_id=verification_id,
+                            check_name="pytest handoff",
+                            kind=VerificationCheckKind.TEST,
+                            command=[
+                                "uv",
+                                "run",
+                                "pytest",
+                                "tests/integration/test_cli_session_export.py",
+                            ],
+                            source=VerificationPlanSource.OPERATOR,
+                            rationale="handoff summary coverage",
+                        ),
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskVerificationCompleted(
+                        task_id=task_id,
+                        verification_id=verification_id,
+                        status=TaskVerificationStatus.PASSED,
+                        summary="handoff summary test passed",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskVerificationResidualRiskAccepted(
+                        task_id=task_id,
+                        verification_id=verification_id,
+                        reason=f"accepted local evidence gap near {tmp_path}",
+                        residual_risks=[f"manual reviewer still inspects {tmp_path}"],
+                    ),
+                ),
+            ]
+        )
+    finally:
+        connection.close()
+
+    output_path = tmp_path / "summary-session.json"
+    _ = capsys.readouterr()
+    export_exit_code = main(
+        [
+            "session",
+            "export",
+            str(session_id),
+            str(output_path),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    raw_package = output_path.read_text(encoding="utf-8")
+    payload = SessionExportPayload.model_validate_json(raw_package)
+    _ = capsys.readouterr()
+
+    import_exit_code = main(
+        [
+            "session",
+            "import",
+            str(output_path),
+            "--json",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    import_payload = json.loads(capsys.readouterr().out)
+    imported_session_id = UUID(import_payload["imported_session_id"])
+    imported_notes = _runtime_notes_for_session(db_path, imported_session_id)
+
+    assert export_exit_code == 0
+    assert import_exit_code == 0
+    assert payload.handoff.summary is not None
+    summary = payload.handoff.summary
+    assert summary.latest_objective == "Finish handoff summary for <workspace-root>"
+    assert "Latest checkpoint" in summary.checkpoint_posture
+    assert "status passed" in summary.checkpoint_posture
+    assert "1 retained context compaction(s)" in summary.compaction_posture
+    assert "1 accepted risk(s)" in summary.compaction_posture
+    assert "1 task plan(s), 1 verification check(s):" in (summary.verification_state)
+    assert "1 accepted risk(s)" in summary.verification_state
+    assert "posture accepted_with_risk" in summary.verification_state
+    assert "manual reviewer still inspects <workspace-root>" in summary.accepted_risks
+    assert "accepted local evidence gap near <workspace-root>" in summary.accepted_risks
+    assert "Review summary export" in summary.pending_actions
+    assert summary.branch_lineage.startswith("Root session")
+    assert summary.knowledge_posture.startswith("Overall ")
+    assert f"glassbox session status {session_id} --cwd ." in (
+        summary.safe_inspection_commands
+    )
+    assert f"glassbox task show {task_id} --cwd ." in summary.safe_inspection_commands
+    assert str(tmp_path) not in raw_package
+    assert imported_notes
+    assert "latest objective: Finish handoff summary for <workspace-root>" in (
+        imported_notes[0].message
+    )
+
+
 def _single_child_session_id(db_path: Path, parent_session_id: UUID) -> UUID:
     connection = open_database(db_path)
     try:
@@ -561,6 +727,15 @@ def _checkpoints_for_session(db_path: Path, session_id: UUID):
     try:
         repository = SQLiteSessionRepository(connection)
         return repository.list_task_checkpoints(session_id)
+    finally:
+        connection.close()
+
+
+def _runtime_notes_for_session(db_path: Path, session_id: UUID):
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        return repository.list_runtime_notes(session_id)
     finally:
         connection.close()
 

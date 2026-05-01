@@ -253,6 +253,13 @@ def _import_note(package: SessionExportPayload) -> str:
         fragments.append(f"expected custodian: {package.handoff.expected_custodian}")
     if package.handoff.note is not None:
         fragments.append(f"handoff note: {package.handoff.note}")
+    if package.handoff.summary is not None:
+        fragments.append(
+            f"latest objective: {package.handoff.summary.latest_objective}"
+        )
+        fragments.append(
+            f"knowledge posture: {package.handoff.summary.knowledge_posture}"
+        )
     return "; ".join(fragments)
 
 

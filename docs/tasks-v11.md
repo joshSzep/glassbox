@@ -970,7 +970,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1180: Improve Session Handoff Summaries
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1162`
 - Goal: make exported or shared local session state easier for another operator
   to inspect safely
@@ -989,6 +989,15 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - a reviewer can inspect a handoff package without reconstructing the story
     manually from raw events
+- Completed:
+  - added a redacted `handoff.summary` block to portable session exports with
+    latest objective, checkpoint posture, compaction posture, verification
+    state, accepted risks, pending actions, branch lineage, knowledge posture,
+    and safe inspection commands
+  - preserved import compatibility while recording the summary objective and
+    knowledge posture in imported inspection notes when present
+  - covered export, import, and redaction behavior in focused session handoff
+    integration tests and updated the team handoff guide
 
 ### GBX-1181: Add Workspace Profile Templates For Common Team Defaults
 

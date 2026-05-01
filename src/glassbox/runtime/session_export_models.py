@@ -70,6 +70,22 @@ class SessionExportLineage(BaseModel):
     fork_blocked_reason: str | None = None
 
 
+class SessionExportHandoffSummary(BaseModel):
+    """Reviewer-oriented story for a portable session handoff."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    latest_objective: str
+    checkpoint_posture: str
+    compaction_posture: str
+    verification_state: str
+    accepted_risks: list[str] = Field(default_factory=list, max_length=20)
+    pending_actions: list[str] = Field(default_factory=list, max_length=20)
+    branch_lineage: str
+    knowledge_posture: str
+    safe_inspection_commands: list[str] = Field(default_factory=list, max_length=20)
+
+
 class SessionExportHandoff(BaseModel):
     """Operator-facing handoff context for the exported session."""
 
@@ -85,6 +101,7 @@ class SessionExportHandoff(BaseModel):
     session_failure_message: str | None = None
     session_failure_retryable: bool | None = None
     latest_checkpoint: TaskCheckpointRecord | None = None
+    summary: SessionExportHandoffSummary | None = None
     historical_only: bool
     live_actionable: bool
 

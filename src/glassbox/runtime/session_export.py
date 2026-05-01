@@ -2,6 +2,7 @@
 
 import json
 import re
+from collections.abc import Iterable
 from collections.abc import Sequence
 from datetime import UTC
 from datetime import datetime
@@ -22,18 +23,26 @@ from glassbox.core.events import ToolArtifactRecorded
 from glassbox.core.events import ToolExecutionStarted
 from glassbox.core.ids import SessionId
 from glassbox.core.models import ApprovalRecord
+from glassbox.core.models import ContextCompactionRecord
 from glassbox.core.models import MessagePart
 from glassbox.core.models import PolicyDecisionTrace
 from glassbox.core.models import TaskCheckpointRecord
 from glassbox.core.models import TranscriptMessage
 from glassbox.runtime import session_export_models
+from glassbox.runtime.branch_decision_support import BranchSearchDecisionSupport
+from glassbox.runtime.branch_decision_support import (
+    derive_branch_search_decision_support,
+)
 from glassbox.runtime.branch_search import BranchSearchQueryService
 from glassbox.runtime.branch_search import BranchSearchRepository
+from glassbox.runtime.knowledge_posture import WorkspaceKnowledgePosture
+from glassbox.runtime.knowledge_posture import build_workspace_knowledge_posture
 from glassbox.runtime.session_export_models import SessionExportArtifactReference
 from glassbox.runtime.session_export_models import SessionExportBranchSearchSummary
 from glassbox.runtime.session_export_models import SessionExportCheckpointEventReference
 from glassbox.runtime.session_export_models import SessionExportEventSummary
 from glassbox.runtime.session_export_models import SessionExportHandoff
+from glassbox.runtime.session_export_models import SessionExportHandoffSummary
 from glassbox.runtime.session_export_models import SessionExportLineage
 from glassbox.runtime.session_export_models import SessionExportMetadata
 from glassbox.runtime.session_export_models import SessionExportPayload
@@ -128,7 +137,10 @@ def build_session_export_payload(
     """Build a portable handoff payload from persisted session state."""
 
     query_service = SessionQueryService(session_repository, artifact_repository)
-    task_query_service = TaskQueryService(cast(TaskPlanRepository, session_repository))
+    task_query_service = TaskQueryService(
+        cast(TaskPlanRepository, session_repository),
+        workspace_root=workspace_root,
+    )
     branch_search_service = BranchSearchQueryService(
         cast(BranchSearchRepository, session_repository)
     )
@@ -143,6 +155,15 @@ def build_session_export_payload(
         task_query_service.get_task_detail(task.task_id)
         for task in task_query_service.list_task_summaries(session_id=session_id)
     ]
+    compactions = session_repository.list_context_compactions(session_id, limit=None)
+    branch_search_summaries = _branch_search_summaries(
+        branch_search_service,
+        session_id,
+    )
+    knowledge_posture = build_workspace_knowledge_posture(
+        workspace_root,
+        session_repository,
+    )
 
     return SessionExportPayload(
         exported_at=datetime.now(UTC),
@@ -160,6 +181,14 @@ def build_session_export_payload(
             exported_by=exported_by,
             expected_custodian=expected_custodian,
             note=note,
+            summary=_build_handoff_summary(
+                snapshot=snapshot,
+                task_details=task_details,
+                compactions=compactions,
+                branch_search_summaries=branch_search_summaries,
+                knowledge_posture=knowledge_posture,
+                redaction_context=redaction_context,
+            ),
         ),
         autonomy_budget_posture=snapshot.budget_posture,
         transcript=_export_transcript(snapshot.transcript, redaction_context),
@@ -183,10 +212,7 @@ def build_session_export_payload(
             events,
             redaction_context,
         ),
-        branch_search_summaries=_branch_search_summaries(
-            branch_search_service,
-            session_id,
-        ),
+        branch_search_summaries=branch_search_summaries,
         event_count=len(events),
         events=[_event_summary(event) for event in events],
         redaction_notes=list(_REDACTION_NOTES),
@@ -254,6 +280,7 @@ def _build_export_handoff(
     exported_by: str | None,
     expected_custodian: str | None,
     note: str | None,
+    summary: SessionExportHandoffSummary,
 ) -> SessionExportHandoff:
     return SessionExportHandoff(
         exported_by=_redact_optional_text(exported_by, redaction_context),
@@ -276,10 +303,291 @@ def _build_export_handoff(
         ),
         session_failure_retryable=snapshot.session_failure_retryable,
         latest_checkpoint=latest_checkpoint,
+        summary=summary,
         historical_only=snapshot.status in {"completed", "failed", "cancelled"},
         live_actionable=snapshot.status
         in {"running", "awaiting_approval", "awaiting_user_input"},
     )
+
+
+def _build_handoff_summary(
+    *,
+    snapshot: SessionSnapshotView,
+    task_details: Sequence[TaskDetailView],
+    compactions: Sequence[ContextCompactionRecord],
+    branch_search_summaries: Sequence[SessionExportBranchSearchSummary],
+    knowledge_posture: WorkspaceKnowledgePosture,
+    redaction_context: _RedactionContext,
+) -> SessionExportHandoffSummary:
+    return SessionExportHandoffSummary(
+        latest_objective=_latest_objective(
+            snapshot,
+            task_details,
+            branch_search_summaries,
+            redaction_context,
+        ),
+        checkpoint_posture=_checkpoint_posture(snapshot, redaction_context),
+        compaction_posture=_compaction_posture(compactions),
+        verification_state=_verification_state(task_details),
+        accepted_risks=_accepted_risks_for_handoff(
+            task_details,
+            compactions,
+            branch_search_summaries,
+            redaction_context,
+        ),
+        pending_actions=_pending_actions_for_handoff(
+            snapshot,
+            task_details,
+            branch_search_summaries,
+            redaction_context,
+        ),
+        branch_lineage=_branch_lineage(
+            snapshot,
+            branch_search_summaries,
+            redaction_context,
+        ),
+        knowledge_posture=_knowledge_posture_summary(knowledge_posture),
+        safe_inspection_commands=_safe_inspection_commands(
+            snapshot,
+            task_details,
+            branch_search_summaries,
+        ),
+    )
+
+
+def _latest_objective(
+    snapshot: SessionSnapshotView,
+    task_details: Sequence[TaskDetailView],
+    branch_search_summaries: Sequence[SessionExportBranchSearchSummary],
+    redaction_context: _RedactionContext,
+) -> str:
+    if snapshot.latest_checkpoint is not None:
+        return _redact_text(snapshot.latest_checkpoint.objective, redaction_context)
+    if task_details:
+        latest_task = max(task_details, key=lambda detail: detail.task.updated_at)
+        return _redact_text(latest_task.task.goal, redaction_context)
+    if branch_search_summaries:
+        latest_search = max(
+            branch_search_summaries,
+            key=lambda summary: summary.search.updated_at,
+        )
+        return _redact_text(latest_search.search.objective, redaction_context)
+    for message in reversed(snapshot.transcript):
+        if _enum_value(message.role) != "user":
+            continue
+        text = _message_text(message.parts)
+        if text:
+            return _redact_text(text, redaction_context)
+    return "Inspect session state and decide the next safe action."
+
+
+def _checkpoint_posture(
+    snapshot: SessionSnapshotView,
+    redaction_context: _RedactionContext,
+) -> str:
+    checkpoint = snapshot.latest_checkpoint
+    if checkpoint is not None:
+        status = checkpoint.verification_status or checkpoint.budget_status or "unknown"
+        return _redact_text(
+            "Latest checkpoint "
+            f"{checkpoint.checkpoint_id} covers events "
+            f"{checkpoint.source_start_sequence}-{checkpoint.source_end_sequence}; "
+            f"status {status}; next action: {checkpoint.next_action}",
+            redaction_context,
+        )
+    absence = snapshot.checkpoint_absence
+    if absence is not None:
+        return _redact_text(
+            "No checkpoint: "
+            f"{_enum_value(absence.reason)} ({absence.severity}); "
+            f"{absence.message}; next action: {absence.next_action}",
+            redaction_context,
+        )
+    return (
+        "No checkpoint evidence is projected; inspect session status before continuing."
+    )
+
+
+def _compaction_posture(compactions: Sequence[ContextCompactionRecord]) -> str:
+    if not compactions:
+        return "No context compaction artifacts are retained for this session."
+    stale_count = sum(
+        1 for compaction in compactions if _enum_value(compaction.freshness) != "fresh"
+    )
+    accepted_risk_count = sum(
+        compaction.accepted_risk_count for compaction in compactions
+    )
+    latest = max(compactions, key=lambda compaction: compaction.last_sequence)
+    stale_fragment = f"{stale_count} stale" if stale_count else "all fresh"
+    risk_fragment = (
+        f"; {accepted_risk_count} accepted risk(s)" if accepted_risk_count else ""
+    )
+    return (
+        f"{len(compactions)} retained context compaction(s), {stale_fragment}; "
+        f"latest covers events {latest.source_start_sequence}-"
+        f"{latest.source_end_sequence} ({_enum_value(latest.freshness)})"
+        f"{risk_fragment}."
+    )
+
+
+def _verification_state(task_details: Sequence[TaskDetailView]) -> str:
+    if not task_details:
+        return "No task plans are retained, so task verification state is absent."
+    total = sum(detail.verification_summary.total_count for detail in task_details)
+    if total == 0:
+        return (
+            f"{len(task_details)} task plan(s) retained with no verification "
+            "checks yet."
+        )
+    passed = sum(detail.verification_summary.passed_count for detail in task_details)
+    failed = sum(detail.verification_summary.failed_count for detail in task_details)
+    running = sum(detail.verification_summary.running_count for detail in task_details)
+    skipped = sum(detail.verification_summary.skipped_count for detail in task_details)
+    accepted = sum(
+        detail.verification_summary.accepted_risk_count for detail in task_details
+    )
+    postures = _dedupe(
+        detail.verification_summary.current_posture for detail in task_details
+    )
+    return (
+        f"{len(task_details)} task plan(s), {total} verification check(s): "
+        f"{passed} passed, {failed} failed, {running} running, {skipped} skipped, "
+        f"{accepted} accepted risk(s); posture {', '.join(postures)}."
+    )
+
+
+def _accepted_risks_for_handoff(
+    task_details: Sequence[TaskDetailView],
+    compactions: Sequence[ContextCompactionRecord],
+    branch_search_summaries: Sequence[SessionExportBranchSearchSummary],
+    redaction_context: _RedactionContext,
+) -> list[str]:
+    risks: list[str] = []
+    for detail in task_details:
+        for ledger_entry in detail.verification_ledger:
+            risks.extend(ledger_entry.accepted_risks)
+            if ledger_entry.residual_risk_reason is not None:
+                risks.append(ledger_entry.residual_risk_reason)
+    compaction_risk_count = sum(
+        compaction.accepted_risk_count for compaction in compactions
+    )
+    if compaction_risk_count:
+        risks.append(
+            f"{compaction_risk_count} accepted context compaction risk(s) retained"
+        )
+    for support in _branch_support(branch_search_summaries):
+        for candidate in support.candidates:
+            risks.extend(candidate.accepted_risks)
+    return _dedupe(_redact_text(risk, redaction_context) for risk in risks if risk)[:20]
+
+
+def _pending_actions_for_handoff(
+    snapshot: SessionSnapshotView,
+    task_details: Sequence[TaskDetailView],
+    branch_search_summaries: Sequence[SessionExportBranchSearchSummary],
+    redaction_context: _RedactionContext,
+) -> list[str]:
+    actions = [_session_next_action_summary(snapshot)]
+    if snapshot.pending_approval_id is not None:
+        actions.append(f"Inspect pending approval {snapshot.pending_approval_id}.")
+    if snapshot.pending_question_text is not None:
+        actions.append(f"Answer pending question: {snapshot.pending_question_text}")
+    if snapshot.session_failure_message is not None:
+        actions.append(f"Inspect session failure: {snapshot.session_failure_message}")
+    if snapshot.latest_checkpoint is not None:
+        actions.append(snapshot.latest_checkpoint.next_action)
+    for detail in sorted(
+        task_details,
+        key=lambda item: item.task.updated_at,
+        reverse=True,
+    )[:3]:
+        actions.append(detail.task.next_action_summary)
+    for support in _branch_support(branch_search_summaries):
+        for candidate in support.candidates:
+            if candidate.recommended_follow_up_action:
+                actions.append(candidate.recommended_follow_up_action)
+    return _dedupe(
+        _redact_text(action, redaction_context) for action in actions if action
+    )[:20]
+
+
+def _branch_lineage(
+    snapshot: SessionSnapshotView,
+    branch_search_summaries: Sequence[SessionExportBranchSearchSummary],
+    redaction_context: _RedactionContext,
+) -> str:
+    if snapshot.parent_session_id is not None:
+        lineage = (
+            f"Branch session from parent {snapshot.parent_session_id}"
+            f" at sequence {snapshot.forked_from_sequence or 'unknown'}"
+        )
+        if snapshot.branch_label:
+            lineage = f"{lineage} ({snapshot.branch_label})"
+    else:
+        lineage = "Root session"
+    if snapshot.child_sessions:
+        lineage = f"{lineage}; {len(snapshot.child_sessions)} child session(s)"
+    if snapshot.can_fork:
+        lineage = (
+            f"{lineage}; forkable at sequence "
+            f"{snapshot.latest_fork_point_sequence or 'unknown'}"
+        )
+    elif snapshot.fork_blocked_reason:
+        lineage = f"{lineage}; fork blocked: {snapshot.fork_blocked_reason}"
+    if branch_search_summaries:
+        selected_count = sum(
+            1
+            for summary in branch_search_summaries
+            if summary.search.selected_candidate_id is not None
+        )
+        lineage = (
+            f"{lineage}; {len(branch_search_summaries)} branch search(es), "
+            f"{selected_count} with selected candidate"
+        )
+    return _redact_text(lineage, redaction_context)
+
+
+def _knowledge_posture_summary(posture: WorkspaceKnowledgePosture) -> str:
+    cue_fragments = [f"{cue.key}={cue.status}" for cue in posture.cues[:6]]
+    return f"Overall {posture.overall_status}; " + ", ".join(cue_fragments)
+
+
+def _safe_inspection_commands(
+    snapshot: SessionSnapshotView,
+    task_details: Sequence[TaskDetailView],
+    branch_search_summaries: Sequence[SessionExportBranchSearchSummary],
+) -> list[str]:
+    commands = [
+        f"glassbox session status {snapshot.session_id} --cwd .",
+        f"glassbox session compactions {snapshot.session_id} --cwd .",
+        "glassbox observability status --cwd .",
+        "glassbox eval audit --cwd .",
+    ]
+    commands.extend(
+        f"glassbox task show {detail.task.task_id} --cwd ."
+        for detail in sorted(
+            task_details,
+            key=lambda item: item.task.updated_at,
+            reverse=True,
+        )[:3]
+    )
+    commands.extend(
+        f"glassbox branch-search show {summary.search.search_id} --cwd ."
+        for summary in branch_search_summaries[:3]
+    )
+    return _dedupe(commands)[:20]
+
+
+def _branch_support(
+    branch_search_summaries: Sequence[SessionExportBranchSearchSummary],
+) -> list[BranchSearchDecisionSupport]:
+    return [
+        derive_branch_search_decision_support(
+            search=summary.search,
+            candidates=summary.candidates,
+        )
+        for summary in branch_search_summaries
+    ]
 
 
 def _export_transcript(
@@ -751,6 +1059,27 @@ def _secret_replacement(match: re.Match[str]) -> str:
     if match.lastindex and match.lastindex >= 2:
         return f"{match.group(1)}={_REDACTION_PLACEHOLDER}"
     return _REDACTION_PLACEHOLDER
+
+
+def _message_text(parts: Sequence[MessagePart]) -> str:
+    return " ".join(part.text for part in parts if part.text).strip()
+
+
+def _enum_value(value: object) -> str:
+    if hasattr(value, "value"):
+        return str(value.value)
+    return str(value)
+
+
+def _dedupe(values: Iterable[str]) -> list[str]:
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        deduped.append(value)
+    return deduped
 
 
 def _stringify_optional(value) -> str | None:

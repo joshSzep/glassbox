@@ -134,10 +134,27 @@ uv run glassbox session export SESSION_ID handoff.json --cwd .
 
 The package is an inspectable JSON file for review and handoff. It is distinct
 from `replay bundle export`: session export carries redacted session metadata,
-transcript, lineage, pending-action context, event summaries, and retained
-artifact references, while replay bundle export carries deterministic execution
-fixtures for offline replay. Session export does not include the SQLite database
-or embed artifact contents.
+transcript, lineage, pending-action context, event summaries, retained artifact
+references, and a `handoff.summary` block, while replay bundle export carries
+deterministic execution fixtures for offline replay. Session export does not
+include the SQLite database or embed artifact contents.
+
+The `handoff.summary` block is the reviewer story. It names the latest
+objective, checkpoint posture, compaction posture, verification state, accepted
+risks, pending actions, branch lineage, workspace knowledge posture, and safe
+inspection commands such as:
+
+```bash
+uv run glassbox session status SESSION_ID --cwd .
+uv run glassbox session compactions SESSION_ID --cwd .
+uv run glassbox observability status --cwd .
+uv run glassbox eval audit --cwd .
+```
+
+When the session has task plans or branch-search records, the summary also adds
+bounded read-only commands such as `glassbox task show TASK_ID --cwd .` and
+`glassbox branch-search show SEARCH_ID --cwd .`. Approve, answer, resume, and
+select commands are intentionally not listed as safe inspection commands.
 
 For explicit handoff context, add local operator labels:
 
@@ -159,9 +176,10 @@ uv run glassbox session import handoff.json --cwd .
 ```
 
 Import creates a new local session ID and records imported transcript/history as
-canonical import events. The imported session is historical and inspection-only;
-it does not silently merge with an existing session or become live mutable
-state.
+canonical import events. The imported handoff note includes the package's latest
+objective and knowledge posture summary when present. The imported session is
+historical and inspection-only; it does not silently merge with an existing
+session or become live mutable state.
 
 ## Daily Team Workflow
 
@@ -252,7 +270,9 @@ proposed change preserves this contract:
 - any new operator-originated mutation has a place to carry acting-operator
   metadata
 - exported handoff artifacts distinguish last actor, expected custodian, runtime
-  availability, and historical-only state
+  availability, historical-only state, latest objective, checkpoint and
+  compaction posture, verification state, accepted risks, branch lineage,
+  knowledge posture, and safe inspection commands
 - imported sessions do not silently become live mutable sessions without an
   explicit resumability decision
 - runtime ownership remains the writer-safety mechanism; session custody remains
