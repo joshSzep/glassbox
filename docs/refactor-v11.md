@@ -808,7 +808,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R443: Split Session Store Stream, Detail Pagination, Drafts, And Actions
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R422`
 - Goal: reduce
   [session-store.ts](../frontend/stores/session-store.ts) by moving live stream
@@ -835,6 +835,27 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - session-store behavior remains stable while stream, pagination, drafts, and
     actions can evolve independently
+- Completed notes:
+  - `session-store.ts` now preserves the `createSessionStore` factory and
+    public type exports while stream lifecycle, detail pagination, local drafts,
+    typed action mutations, shared guards, and store-facing types live in
+    `session-store-stream.ts`, `session-store-pagination.ts`,
+    `session-store-drafts.ts`, `session-store-actions.ts`,
+    `session-store-shared.ts`, and `session-store-types.ts`.
+  - The stream helper owns connect/reconnect/disconnect callbacks, pagination
+    owns transcript/event/metric page loading, draft helpers own local draft
+    shaping, and action helpers own prompt, answer, approval, cancel, fork,
+    retry, and abandon mutations.
+  - Guardrails now cap the store facade and helper modules so future frontend
+    session-store behavior lands in the intended owner.
+  - Validation: `pnpm --dir frontend exec prettier --check stores/session-store.ts stores/session-store-actions.ts stores/session-store-drafts.ts stores/session-store-pagination.ts stores/session-store-shared.ts stores/session-store-stream.ts stores/session-store-types.ts`,
+    `pnpm --dir frontend lint`,
+    `pnpm --dir frontend typecheck`,
+    `pnpm --dir frontend test -- session-state.test.ts sse-client.test.ts dashboard-stores.test.ts`,
+    `pnpm --dir frontend build`,
+    `uv run pytest tests/unit/test_architecture_guardrails.py`,
+    `uv run ruff format --check tests/unit/test_architecture_guardrails.py`,
+    and `uv run ruff check tests/unit/test_architecture_guardrails.py`.
 
 ---
 

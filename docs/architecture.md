@@ -2490,6 +2490,7 @@ src/glassbox/
         stores/
             dashboard-stores.ts
             *-store.ts
+            session-store-*.ts
         tests/
         package.json
     services/

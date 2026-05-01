@@ -1599,10 +1599,46 @@ V11_FRONTEND_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
     (
         FRONTEND_ROOT / "stores" / "session-store.ts",
-        610,
+        240,
         (
-            "v11 session store should move new stream, pagination, draft, "
-            "and action behavior into store-owned helpers"
+            "v11 session-store should keep createSessionStore as a thin "
+            "factory over stream, pagination, draft, and action helpers"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "stores" / "session-store-stream.ts",
+        100,
+        "v11 session stream lifecycle should stay owned by session-store-stream.ts",
+    ),
+    (
+        FRONTEND_ROOT / "stores" / "session-store-pagination.ts",
+        160,
+        (
+            "v11 session detail pagination should stay owned by "
+            "session-store-pagination.ts"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "stores" / "session-store-drafts.ts",
+        60,
+        "v11 session drafts should stay owned by session-store-drafts.ts",
+    ),
+    (
+        FRONTEND_ROOT / "stores" / "session-store-actions.ts",
+        220,
+        "v11 session actions should stay owned by session-store-actions.ts",
+    ),
+    (
+        FRONTEND_ROOT / "stores" / "session-store-types.ts",
+        120,
+        "v11 session store types should stay owned by session-store-types.ts",
+    ),
+    (
+        FRONTEND_ROOT / "stores" / "session-store-shared.ts",
+        40,
+        (
+            "v11 session store shared guards should stay owned by "
+            "session-store-shared.ts"
         ),
     ),
 )

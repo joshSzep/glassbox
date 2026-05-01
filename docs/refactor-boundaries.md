@@ -759,6 +759,12 @@ the Next.js SPA contract in [architecture.md](./architecture.md) and
   while stream lifecycle, detail pagination, local drafts, and action mutations
   move into store-owned helpers. Store helpers may import API/SSE utilities and
   pure state reducers, but not React components or backend source.
+- The session-store split now keeps `frontend/stores/session-store.ts` as the
+  stable factory and type facade while `session-store-stream.ts`,
+  `session-store-pagination.ts`, `session-store-drafts.ts`,
+  `session-store-actions.ts`, `session-store-shared.ts`, and
+  `session-store-types.ts` own stream lifecycle, detail pagination, draft
+  shaping, action mutations, shared guards, and public store types.
 
 ### Replay And Eval
 
