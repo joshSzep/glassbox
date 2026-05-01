@@ -9,8 +9,10 @@ Glassbox has two documentation layers:
 
 Use this page by audience. Start with the current v9 baseline for the product
 story, then follow the daily workflow guides before diving into release
-evidence or milestone history. The v10 long-running-task contract is the active
-implementation track after the v9 baseline.
+evidence or milestone history. The v10 long-running-task contract is the
+completed release-candidate track after the v9 baseline, and the v11 confidence
+and adoption contract is the active implementation track for the `0.10.0`
+milestone.
 
 ## Start Here
 
@@ -21,6 +23,10 @@ implementation track after the v9 baseline.
   active v10 contract for durable long-running work, checkpoints,
   compactions, resumable attempts, heartbeats, verification, recovery, and
   release evidence
+- [v11-confidence-adoption-contract.md](./v11-confidence-adoption-contract.md):
+  active v11 contract for confidence, verification recommendations, live
+  cockpit evidence, provider maturity, knowledge posture, branch-search
+  decision support, handoff, and the `0.10.0` version target
 - [v10-durability-audit.md](./v10-durability-audit.md): source-linked audit of
   process-local, durable, rebuildable, and weakly surfaced state boundaries for
   long-running work
@@ -45,6 +51,9 @@ implementation track after the v9 baseline.
 - [v10-dogfooding-summary.md](./v10-dogfooding-summary.md): sanitized v10
   dogfooding findings for long-session compaction, release-gate editing,
   background continuation recovery, and candidate follow-ups
+- [v11-confidence-adoption-contract.md](./v11-confidence-adoption-contract.md):
+  contributor-facing v11 confidence and adoption contract for the `0.10.0`
+  milestone
 - [operator-quickstart.md](./operator-quickstart.md): short happy path for
   install, provider setup, terminal chat, dashboard inspection, approvals, and
   verification
@@ -127,6 +136,9 @@ implementation track after the v9 baseline.
 - [v10-dogfooding-summary.md](./v10-dogfooding-summary.md): sanitized
   long-running-task dogfooding pass summaries, friction findings, and candidate
   test/eval follow-ups
+- [v11-confidence-adoption-contract.md](./v11-confidence-adoption-contract.md):
+  active v11 contract, residual-risk mapping, evidence expectations,
+  non-goals, and pass/fail policy
 - [v9-vocabulary.md](./v9-vocabulary.md): standardize operator-facing product
   terms and command/dashboard language for v9
 - [v9-command-surface-review.md](./v9-command-surface-review.md): classify the

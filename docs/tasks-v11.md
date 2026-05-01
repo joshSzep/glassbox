@@ -302,7 +302,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1100: Define The v11 Confidence And Adoption Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: none
 - Goal: publish the v11 product contract before changing behavior
 - Deliverables:

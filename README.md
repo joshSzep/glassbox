@@ -109,6 +109,13 @@ and provider failure recovery. Its contract is
 with release-candidate evidence summarized in
 [docs/v10-release-candidate.md](docs/v10-release-candidate.md).
 
+The active v11 implementation track turns the v10 release candidate into the
+`0.10.0` confidence and adoption milestone: residual-risk closure, explainable
+verification recommendations, retained live cockpit evidence, provider recovery
+maturity, unified knowledge posture, branch-search decision support, and local
+handoff polish. Its scope is defined in
+[docs/v11-confidence-adoption-contract.md](docs/v11-confidence-adoption-contract.md).
+
 ## Documentation
 
 The root README is the shortest path into the project. The detailed operator,
@@ -119,6 +126,7 @@ Start here based on what you need:
 
 - [docs/v9-public-baseline.md](docs/v9-public-baseline.md)
 - [docs/v10-long-running-task-contract.md](docs/v10-long-running-task-contract.md)
+- [docs/v11-confidence-adoption-contract.md](docs/v11-confidence-adoption-contract.md)
 - [docs/v10-release-candidate.md](docs/v10-release-candidate.md)
 - [docs/v9-vocabulary.md](docs/v9-vocabulary.md)
 - [docs/operator-quickstart.md](docs/operator-quickstart.md)

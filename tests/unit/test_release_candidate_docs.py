@@ -372,6 +372,35 @@ def test_v9_command_surface_review_covers_deemphasis_plan() -> None:
         assert required_text in content
 
 
+def test_v11_confidence_adoption_contract_covers_scope_and_residual_risks() -> None:
+    content = (REPO_ROOT / "docs" / "v11-confidence-adoption-contract.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Scope",
+        "## Non-Goals",
+        "## Supported Workflow Set",
+        "## Evidence Expectations",
+        "## V10 Residual-Risk Mapping",
+        "## Pass And Fail Policy",
+        "`0.10.0`",
+        "Large full-session compactions",
+        "`glassbox eval recommend`",
+        "live dashboard",
+        "Provider canaries, live browser runs, and accessibility pairings",
+        "blocking release authority",
+        "Long-running work remains bounded local continuation",
+        "tasks-v11.md",
+    ):
+        assert required_text in content
+
+    assert "docs/v11-confidence-adoption-contract.md" in root_readme
+    assert "v11-confidence-adoption-contract.md" in docs_readme
+
+
 def test_v9_dashboard_cockpit_contract_covers_operator_priority_model() -> None:
     content = (REPO_ROOT / "docs" / "dashboard-cockpit-contract.md").read_text(
         encoding="utf-8"
