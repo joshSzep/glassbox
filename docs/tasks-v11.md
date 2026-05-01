@@ -329,7 +329,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1101: Audit v10 Residual Risks Against Current Source And Evidence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1100`
 - Goal: ground v11 implementation in the actual remaining gaps after v10 and
   the post-v10 refactor

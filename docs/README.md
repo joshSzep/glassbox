@@ -27,6 +27,9 @@ milestone.
   active v11 contract for confidence, verification recommendations, live
   cockpit evidence, provider maturity, knowledge posture, branch-search
   decision support, handoff, and the `0.10.0` version target
+- [v11-residual-risk-audit.md](./v11-residual-risk-audit.md): source-linked
+  audit of inherited v10 residual risks, current evidence, missing coverage,
+  and v11 dispositions
 - [v10-durability-audit.md](./v10-durability-audit.md): source-linked audit of
   process-local, durable, rebuildable, and weakly surfaced state boundaries for
   long-running work
@@ -54,6 +57,9 @@ milestone.
 - [v11-confidence-adoption-contract.md](./v11-confidence-adoption-contract.md):
   contributor-facing v11 confidence and adoption contract for the `0.10.0`
   milestone
+- [v11-residual-risk-audit.md](./v11-residual-risk-audit.md): source-linked
+  v11 audit for compaction, checkpoint absence, recommendations, cockpit,
+  accessibility, provider, autonomy, and command-surface gaps
 - [operator-quickstart.md](./operator-quickstart.md): short happy path for
   install, provider setup, terminal chat, dashboard inspection, approvals, and
   verification
@@ -139,6 +145,8 @@ milestone.
 - [v11-confidence-adoption-contract.md](./v11-confidence-adoption-contract.md):
   active v11 contract, residual-risk mapping, evidence expectations,
   non-goals, and pass/fail policy
+- [v11-residual-risk-audit.md](./v11-residual-risk-audit.md): current-source
+  audit and test inventory for the v10 residual risks carried into v11
 - [v9-vocabulary.md](./v9-vocabulary.md): standardize operator-facing product
   terms and command/dashboard language for v9
 - [v9-command-surface-review.md](./v9-command-surface-review.md): classify the

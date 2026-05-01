@@ -401,6 +401,38 @@ def test_v11_confidence_adoption_contract_covers_scope_and_residual_risks() -> N
     assert "v11-confidence-adoption-contract.md" in docs_readme
 
 
+def test_v11_residual_risk_audit_covers_current_source_and_evidence() -> None:
+    content = (REPO_ROOT / "docs" / "v11-residual-risk-audit.md").read_text(
+        encoding="utf-8"
+    )
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Summary",
+        "## Detailed Audit",
+        "### Compaction Cap Handling",
+        "### Historical Checkpoint Absence",
+        "### Release-Path Recommendation Gap",
+        "### Live Cockpit Evidence",
+        "### Accessibility Evidence",
+        "### Provider Matrix Partialness",
+        "### Bounded Autonomy Non-Goals",
+        "### Broad Command-Surface Friction",
+        "Fixed in v11",
+        "Evidence-only in v11",
+        "Accepted non-goal",
+        "src/glassbox/runtime/context_compaction.py:83",
+        "src/glassbox/runtime/session_query_service.py:140",
+        "evals/impact.json:253",
+        "frontend/tests/task-autonomy-console.test.tsx:93",
+        "src/glassbox/runtime/provider_canary_scenarios.py:5",
+        "tests/integration/test_cli_eval_commands.py:642",
+    ):
+        assert required_text in content
+
+    assert "v11-residual-risk-audit.md" in docs_readme
+
+
 def test_v9_dashboard_cockpit_contract_covers_operator_priority_model() -> None:
     content = (REPO_ROOT / "docs" / "dashboard-cockpit-contract.md").read_text(
         encoding="utf-8"
