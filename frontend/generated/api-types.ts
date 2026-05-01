@@ -1514,6 +1514,8 @@ export interface components {
       strategy_label: string;
       /** Verification Posture */
       verification_posture: string;
+      /** Verification Recommendations */
+      verification_recommendations?: components["schemas"]["BranchCandidateVerificationRecommendationResponse"][];
     };
     /** BranchCandidateResponse */
     BranchCandidateResponse: {
@@ -1559,6 +1561,23 @@ export interface components {
       verification_status: string;
       /** Verification Summary */
       verification_summary?: string | null;
+    };
+    /** BranchCandidateVerificationRecommendationResponse */
+    BranchCandidateVerificationRecommendationResponse: {
+      /** Case Ids */
+      case_ids?: string[];
+      /** Commands */
+      commands?: string[];
+      /** Profile Ids */
+      profile_ids?: string[];
+      /** Rationale */
+      rationale: string;
+      /** Recipe Ids */
+      recipe_ids?: string[];
+      /** Source */
+      source: string;
+      /** Warnings */
+      warnings?: string[];
     };
     /** BranchDecisionEvidenceResponse */
     BranchDecisionEvidenceResponse: {

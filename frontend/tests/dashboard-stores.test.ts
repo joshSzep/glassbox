@@ -1382,6 +1382,14 @@ function makeBranchCandidateDecisionSupport(
     status: "verified",
     strategy_label: "Try minimal fix",
     verification_posture: "strong",
+    verification_recommendations: [
+      {
+        commands: ["pnpm --dir frontend test"],
+        rationale: "Candidate changed files matched repository verification recommendations.",
+        recipe_ids: ["frontend-dashboard"],
+        source: "changed-files",
+      },
+    ],
     ...overrides,
   };
 }

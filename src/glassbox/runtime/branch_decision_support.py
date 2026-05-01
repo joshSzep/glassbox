@@ -1,5 +1,6 @@
 """Decision-support derivation for bounded branch searches."""
 
+from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel
@@ -15,10 +16,16 @@ from glassbox.core import BranchSearchId
 from glassbox.core import BranchSearchRecord
 from glassbox.core import SessionId
 from glassbox.core import TaskVerificationId
+from glassbox.runtime.eval_recommendation_engine import recommend_eval_change_impact
 
 BranchEvidenceKind = Literal["session", "verification", "artifact", "selection"]
 BranchPosture = Literal["strong", "review", "risky", "blocked", "unknown"]
 BranchCostEstimate = Literal["low", "medium", "unknown"]
+BranchVerificationRecommendationSource = Literal[
+    "changed-files",
+    "existing-evidence",
+    "missing-changed-files",
+]
 
 
 class BranchDecisionEvidence(BaseModel):
@@ -31,6 +38,20 @@ class BranchDecisionEvidence(BaseModel):
     session_id: SessionId | None = None
     verification_id: TaskVerificationId | None = None
     artifact_id: ArtifactId | None = None
+
+
+class BranchCandidateVerificationRecommendation(BaseModel):
+    """One candidate-level verification recommendation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source: BranchVerificationRecommendationSource
+    rationale: str = Field(min_length=1, max_length=1000)
+    commands: list[str] = Field(default_factory=list)
+    recipe_ids: list[str] = Field(default_factory=list)
+    case_ids: list[str] = Field(default_factory=list)
+    profile_ids: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
 
 
 class BranchCandidateDecisionSupport(BaseModel):
@@ -52,6 +73,9 @@ class BranchCandidateDecisionSupport(BaseModel):
     cost_estimate: BranchCostEstimate
     risk_posture: BranchPosture
     accepted_risks: list[str] = Field(default_factory=list, max_length=20)
+    verification_recommendations: list[BranchCandidateVerificationRecommendation] = (
+        Field(default_factory=list)
+    )
     recommended_follow_up_action: str = Field(min_length=1, max_length=1000)
 
 
@@ -72,9 +96,12 @@ def derive_branch_search_decision_support(
     *,
     search: BranchSearchRecord,
     candidates: list[BranchCandidateRecord],
+    workspace_root: Path | None = None,
+    changed_files_by_candidate: dict[BranchCandidateId, list[str]] | None = None,
 ) -> BranchSearchDecisionSupport:
     """Derive comparison posture without mutating parent history."""
 
+    changed_files_by_candidate = changed_files_by_candidate or {}
     return BranchSearchDecisionSupport(
         search_id=search.search_id,
         objective=search.objective,
@@ -84,7 +111,15 @@ def derive_branch_search_decision_support(
             "it does not automatically merge or mutate parent history."
         ),
         candidates=[
-            _candidate_decision_support(search=search, candidate=candidate)
+            _candidate_decision_support(
+                search=search,
+                candidate=candidate,
+                workspace_root=workspace_root,
+                changed_files=changed_files_by_candidate.get(
+                    candidate.candidate_id,
+                    [],
+                ),
+            )
             for candidate in candidates
         ],
     )
@@ -94,6 +129,8 @@ def _candidate_decision_support(
     *,
     search: BranchSearchRecord,
     candidate: BranchCandidateRecord,
+    workspace_root: Path | None,
+    changed_files: list[str],
 ) -> BranchCandidateDecisionSupport:
     verification_posture = _verification_posture(candidate.verification_status)
     risk_posture = _risk_posture(candidate)
@@ -105,22 +142,102 @@ def _candidate_decision_support(
         status=candidate.status,
         selection_state=candidate.selection_state,
         candidate_session_id=candidate.candidate_session_id,
-        changed_files=[],
-        changed_files_summary=(
-            "Changed-file evidence is not captured in current branch-search "
-            "projections; inspect the candidate session before merging work."
-        ),
+        changed_files=changed_files,
+        changed_files_summary=_changed_files_summary(changed_files),
         evidence=_candidate_evidence(candidate),
         verification_posture=verification_posture,
         cost_estimate=_cost_estimate(candidate),
         risk_posture=risk_posture,
         accepted_risks=_accepted_risks(candidate),
+        verification_recommendations=_verification_recommendations(
+            search=search,
+            candidate=candidate,
+            changed_files=changed_files,
+            workspace_root=workspace_root,
+        ),
         recommended_follow_up_action=_recommended_follow_up_action(
             candidate,
             verification_posture=verification_posture,
             risk_posture=risk_posture,
+            has_changed_files=bool(changed_files),
         ),
     )
+
+
+def _changed_files_summary(changed_files: list[str]) -> str:
+    if changed_files:
+        return ", ".join(changed_files)
+    return (
+        "Changed-file evidence is not captured in current branch-search "
+        "projections; inspect the candidate session before merging work."
+    )
+
+
+def _verification_recommendations(
+    *,
+    search: BranchSearchRecord,
+    candidate: BranchCandidateRecord,
+    changed_files: list[str],
+    workspace_root: Path | None,
+) -> list[BranchCandidateVerificationRecommendation]:
+    if changed_files and workspace_root is not None:
+        report = recommend_eval_change_impact(
+            workspace_root,
+            touched_paths=changed_files,
+        )
+        commands = _dedupe(
+            [
+                *(
+                    [report.cheapest_next_command]
+                    if report.cheapest_next_command
+                    else []
+                ),
+                *[command for recipe in report.recipes for command in recipe.commands],
+                *report.suggested_commands,
+            ]
+        )
+        return [
+            BranchCandidateVerificationRecommendation(
+                source="changed-files",
+                rationale=(
+                    "Candidate changed files matched repository verification "
+                    "recommendations."
+                ),
+                commands=commands,
+                recipe_ids=[recipe.recipe_id for recipe in report.recipes],
+                case_ids=[case.case_id for case in report.cases],
+                profile_ids=[profile.profile_id for profile in report.profiles],
+                warnings=report.warnings,
+            )
+        ]
+    if candidate.verification_status == BranchCandidateVerificationStatus.PASSED:
+        return [
+            BranchCandidateVerificationRecommendation(
+                source="existing-evidence",
+                rationale=(
+                    "Candidate already has passed verification evidence; inspect "
+                    "the retained summary before selection."
+                ),
+            )
+        ]
+    return [
+        BranchCandidateVerificationRecommendation(
+            source="missing-changed-files",
+            rationale=(
+                f"Branch search {search.search_id} does not retain changed-file "
+                "evidence for this candidate yet; inspect the candidate session "
+                "and run focused verification before selecting it."
+            ),
+        )
+    ]
+
+
+def _dedupe(values: list[str]) -> list[str]:
+    unique: list[str] = []
+    for value in values:
+        if value and value not in unique:
+            unique.append(value)
+    return unique
 
 
 def _candidate_evidence(
@@ -226,6 +343,7 @@ def _recommended_follow_up_action(
     *,
     verification_posture: BranchPosture,
     risk_posture: BranchPosture,
+    has_changed_files: bool,
 ) -> str:
     if candidate.selection_state == BranchCandidateStatus.SELECTED:
         return (
@@ -243,15 +361,22 @@ def _recommended_follow_up_action(
         return "Candidate is eligible for operator review and explicit selection."
     if verification_posture in {"risky", "blocked"}:
         return "Do not select yet; inspect failures and repair or reject the candidate."
+    if not has_changed_files and verification_posture == "unknown":
+        return (
+            "Inspect the candidate session and attach changed-file evidence before "
+            "choosing verification."
+        )
     return "Run or attach verification evidence before comparing this candidate."
 
 
 __all__ = [
     "BranchCandidateDecisionSupport",
+    "BranchCandidateVerificationRecommendation",
     "BranchCostEstimate",
     "BranchDecisionEvidence",
     "BranchEvidenceKind",
     "BranchPosture",
     "BranchSearchDecisionSupport",
+    "BranchVerificationRecommendationSource",
     "derive_branch_search_decision_support",
 ]

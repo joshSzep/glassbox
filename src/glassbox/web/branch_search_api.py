@@ -9,6 +9,9 @@ from pydantic import Field
 from glassbox.core.models import BranchCandidateRecord
 from glassbox.core.models import BranchSearchRecord
 from glassbox.runtime.branch_decision_support import BranchCandidateDecisionSupport
+from glassbox.runtime.branch_decision_support import (
+    BranchCandidateVerificationRecommendation,
+)
 from glassbox.runtime.branch_decision_support import BranchDecisionEvidence
 from glassbox.runtime.branch_decision_support import BranchSearchDecisionSupport
 
@@ -57,6 +60,16 @@ class BranchDecisionEvidenceResponse(BaseModel):
     artifact_id: str | None = None
 
 
+class BranchCandidateVerificationRecommendationResponse(BaseModel):
+    source: str
+    rationale: str
+    commands: list[str] = Field(default_factory=list)
+    recipe_ids: list[str] = Field(default_factory=list)
+    case_ids: list[str] = Field(default_factory=list)
+    profile_ids: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
 class BranchCandidateDecisionSupportResponse(BaseModel):
     search_id: str
     candidate_id: str
@@ -72,6 +85,9 @@ class BranchCandidateDecisionSupportResponse(BaseModel):
     cost_estimate: str
     risk_posture: str
     accepted_risks: list[str] = Field(default_factory=list)
+    verification_recommendations: list[
+        BranchCandidateVerificationRecommendationResponse
+    ] = Field(default_factory=list)
     recommended_follow_up_action: str
 
 
@@ -228,7 +244,25 @@ def build_branch_candidate_decision_support_response(
         cost_estimate=candidate.cost_estimate,
         risk_posture=candidate.risk_posture,
         accepted_risks=candidate.accepted_risks,
+        verification_recommendations=[
+            build_branch_candidate_verification_recommendation_response(item)
+            for item in candidate.verification_recommendations
+        ],
         recommended_follow_up_action=candidate.recommended_follow_up_action,
+    )
+
+
+def build_branch_candidate_verification_recommendation_response(
+    recommendation: BranchCandidateVerificationRecommendation,
+) -> BranchCandidateVerificationRecommendationResponse:
+    return BranchCandidateVerificationRecommendationResponse(
+        source=recommendation.source,
+        rationale=recommendation.rationale,
+        commands=recommendation.commands,
+        recipe_ids=recommendation.recipe_ids,
+        case_ids=recommendation.case_ids,
+        profile_ids=recommendation.profile_ids,
+        warnings=recommendation.warnings,
     )
 
 

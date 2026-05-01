@@ -63,6 +63,12 @@ def test_branch_search_list_and_show_commands(tmp_path: Path, capsys) -> None:
         payload["decision_support"]["candidates"][0]["recommended_follow_up_action"]
         == "Candidate is eligible for operator review and explicit selection."
     )
+    assert (
+        payload["decision_support"]["candidates"][0]["verification_recommendations"][0][
+            "source"
+        ]
+        == "existing-evidence"
+    )
 
 
 def test_branch_search_start_records_bounded_plan(
@@ -166,6 +172,10 @@ def test_branch_search_select_reject_and_needs_review_are_projected(
     assert support_by_id[str(selected_id)]["risk_posture"] == "strong"
     assert support_by_id[str(rejected_id)]["risk_posture"] == "blocked"
     assert support_by_id[str(review_id)]["risk_posture"] == "review"
+    assert (
+        support_by_id[str(review_id)]["verification_recommendations"][0]["source"]
+        == "missing-changed-files"
+    )
 
 
 def _seed_session(db_path: Path, tmp_path: Path, session_id) -> None:

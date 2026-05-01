@@ -120,6 +120,7 @@ def _branch_search_show_command(args: argparse.Namespace) -> int:
     decision_support = derive_branch_search_decision_support(
         search=detail.search,
         candidates=detail.candidates,
+        workspace_root=cwd,
     )
     if args.json:
         payload = detail.model_dump(mode="json")
@@ -156,6 +157,11 @@ def _branch_search_show_command(args: argparse.Namespace) -> int:
             print(f"    Follow-up: {support.recommended_follow_up_action}")
             if support.accepted_risks:
                 print(f"    Accepted risks: {'; '.join(support.accepted_risks)}")
+            for recommendation in support.verification_recommendations:
+                if recommendation.commands:
+                    print(f"    Verify: {' && '.join(recommendation.commands)}")
+                else:
+                    print(f"    Verify: {recommendation.rationale}")
     return 0
 
 

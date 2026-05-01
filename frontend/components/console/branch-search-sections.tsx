@@ -398,6 +398,10 @@ function CandidateEvidence({
                 </DataListMeta>
               </DataListItem>
               <DataListItem>
+                <DataListLabel>Verification recommendation</DataListLabel>
+                <DataListMeta>{verificationRecommendationSummary(support)}</DataListMeta>
+              </DataListItem>
+              <DataListItem>
                 <DataListLabel>Accepted risks</DataListLabel>
                 <DataListMeta>
                   {support != null && (support.accepted_risks ?? []).length > 0
@@ -417,6 +421,17 @@ function CandidateEvidence({
       })}
     </section>
   );
+}
+
+function verificationRecommendationSummary(support: CandidateDecisionSupport | null): string {
+  const recommendation = support?.verification_recommendations?.[0];
+  if (recommendation == null) {
+    return "Inspect candidate evidence before choosing verification.";
+  }
+  if ((recommendation.commands ?? []).length > 0) {
+    return (recommendation.commands ?? []).join("; ");
+  }
+  return recommendation.rationale;
 }
 
 export function StateLine({

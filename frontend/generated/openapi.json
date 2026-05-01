@@ -1000,6 +1000,13 @@
           "verification_posture": {
             "title": "Verification Posture",
             "type": "string"
+          },
+          "verification_recommendations": {
+            "items": {
+              "$ref": "#/components/schemas/BranchCandidateVerificationRecommendationResponse"
+            },
+            "title": "Verification Recommendations",
+            "type": "array"
           }
         },
         "required": [
@@ -1161,6 +1168,56 @@
           "last_sequence"
         ],
         "title": "BranchCandidateResponse",
+        "type": "object"
+      },
+      "BranchCandidateVerificationRecommendationResponse": {
+        "properties": {
+          "case_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Case Ids",
+            "type": "array"
+          },
+          "commands": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Commands",
+            "type": "array"
+          },
+          "profile_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Profile Ids",
+            "type": "array"
+          },
+          "rationale": {
+            "title": "Rationale",
+            "type": "string"
+          },
+          "recipe_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recipe Ids",
+            "type": "array"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": ["source", "rationale"],
+        "title": "BranchCandidateVerificationRecommendationResponse",
         "type": "object"
       },
       "BranchDecisionEvidenceResponse": {

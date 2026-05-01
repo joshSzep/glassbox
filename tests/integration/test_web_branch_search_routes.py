@@ -79,6 +79,12 @@ def test_branch_search_routes_show_and_mark_candidates(tmp_path: Path) -> None:
                 ]
                 == "strong"
             )
+            assert (
+                detail_response.json()["decision_support"]["candidates"][0][
+                    "verification_recommendations"
+                ][0]["source"]
+                == "existing-evidence"
+            )
             assert select_response.status_code == 200
             assert select_response.json()["candidate"]["selection_state"] == "selected"
             assert reject_response.status_code == 200
@@ -101,6 +107,12 @@ def test_branch_search_routes_show_and_mark_candidates(tmp_path: Path) -> None:
             assert support_by_id[str(selected_id)]["risk_posture"] == "strong"
             assert support_by_id[str(rejected_id)]["risk_posture"] == "blocked"
             assert support_by_id[str(review_id)]["risk_posture"] == "review"
+            assert (
+                support_by_id[str(review_id)]["verification_recommendations"][0][
+                    "source"
+                ]
+                == "missing-changed-files"
+            )
         finally:
             connection.close()
 

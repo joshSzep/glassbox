@@ -936,7 +936,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1172: Add Branch-Search Verification Recommendations
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1171`, `GBX-1121`
 - Goal: connect branch candidates to the verification recommendations that make
   selection trustworthy
@@ -954,6 +954,15 @@ Each phase below corresponds to one concrete milestone.
   - eval recommendation integration tests
 - Done when:
   - branch-search selection is paired with concrete verification guidance
+- Completed:
+  - added candidate-level verification recommendation models to branch
+    decision support
+  - wired changed-file recommendations through the existing eval/verification
+    recipe engine when candidate changed-file evidence is available
+  - preserved explicit missing-evidence guidance when branch-search projections
+    do not yet retain candidate diff inventories
+  - surfaced recommendation commands and rationale through CLI, API, generated
+    frontend types, and dashboard candidate evidence cards
 
 ---
 

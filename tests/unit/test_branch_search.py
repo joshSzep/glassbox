@@ -1,6 +1,7 @@
 """Tests for bounded branch-search coordination."""
 
 import asyncio
+from pathlib import Path
 
 from glassbox.core import AutonomyBudget
 from glassbox.core import AutonomyMode
@@ -143,9 +144,60 @@ def test_branch_decision_support_derives_candidate_postures() -> None:
     assert support.candidates[1].accepted_risks == [
         "candidate has no verification evidence yet"
     ]
+    assert (
+        support.candidates[1].verification_recommendations[0].source
+        == "missing-changed-files"
+    )
     assert "Changed-file evidence is not captured" in (
         support.candidates[1].changed_files_summary
     )
+
+
+def test_branch_decision_support_recommends_eval_commands_for_changed_files() -> None:
+    search_id = new_branch_search_id()
+    parent_session_id = new_session_id()
+    candidate_id = new_branch_candidate_id()
+    created_at = _now()
+    search = BranchSearchRecord(
+        search_id=search_id,
+        session_id=parent_session_id,
+        parent_session_id=parent_session_id,
+        status=BranchSearchStatus.RUNNING,
+        objective="Compare dashboard fixes",
+        candidate_count=1,
+        created_at=created_at,
+        updated_at=created_at,
+        last_sequence=3,
+    )
+    candidate = BranchCandidateRecord(
+        search_id=search_id,
+        candidate_id=candidate_id,
+        parent_session_id=parent_session_id,
+        candidate_session_id=new_session_id(),
+        strategy_label="dashboard repair",
+        status=BranchCandidateStatus.FORKED,
+        verification_status=BranchCandidateVerificationStatus.NOT_RUN,
+        created_at=created_at,
+        updated_at=created_at,
+        last_sequence=4,
+    )
+
+    support = derive_branch_search_decision_support(
+        search=search,
+        candidates=[candidate],
+        workspace_root=Path.cwd(),
+        changed_files_by_candidate={
+            candidate_id: ["frontend/components/console/branch-search-console.tsx"],
+        },
+    )
+
+    recommendation = support.candidates[0].verification_recommendations[0]
+    assert support.candidates[0].changed_files == [
+        "frontend/components/console/branch-search-console.tsx"
+    ]
+    assert recommendation.source == "changed-files"
+    assert "frontend-dashboard" in recommendation.recipe_ids
+    assert "pnpm --dir frontend test" in recommendation.commands
 
 
 def _budget(max_branch_attempts: int) -> AutonomyBudget:

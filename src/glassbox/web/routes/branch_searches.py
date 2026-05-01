@@ -79,6 +79,7 @@ async def get_branch_search_detail(
             derive_branch_search_decision_support(
                 search=detail.search,
                 candidates=detail.candidates,
+                workspace_root=context.infrastructure.artifacts_root,
             )
         ),
     )

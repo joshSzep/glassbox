@@ -41,6 +41,13 @@ describe("branch search console", () => {
       selection_state: "needs_review",
       strategy_label: "Try broader rewrite",
       verification_posture: "risky",
+      verification_recommendations: [
+        {
+          rationale:
+            "Branch search search-1 does not retain changed-file evidence for this candidate yet.",
+          source: "missing-changed-files",
+        },
+      ],
     });
     const markup = renderToStaticMarkup(
       React.createElement(BranchSearchConsole, {
@@ -72,6 +79,7 @@ describe("branch search console", () => {
     expect(markup).toContain("Targeted tests passed.");
     expect(markup).toContain("Risk strong");
     expect(markup).toContain("Cost low");
+    expect(markup).toContain("pnpm --dir frontend test");
     expect(markup).toContain("candidate verification failed");
     expect(markup).toContain("Changed-file evidence is not captured");
     expect(markup).toContain("Session session-...");
@@ -170,6 +178,14 @@ function makeCandidateSupport(
     status: "verified",
     strategy_label: "Try minimal fix",
     verification_posture: "strong",
+    verification_recommendations: [
+      {
+        commands: ["pnpm --dir frontend test"],
+        rationale: "Candidate changed files matched repository verification recommendations.",
+        recipe_ids: ["frontend-dashboard"],
+        source: "changed-files",
+      },
+    ],
     ...overrides,
   };
 }
