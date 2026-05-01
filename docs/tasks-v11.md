@@ -808,7 +808,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1161: Surface Knowledge Posture In CLI And Dashboard
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1160`
 - Goal: make the unified knowledge posture visible where operators decide
   whether to continue work
@@ -828,6 +828,14 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - operators can see whether local knowledge is trustworthy before relying on
     it for continuation
+- Completed:
+  - surfaced `knowledge_posture` in `observability status --json` and the human
+    observability output
+  - added the aggregate API field, regenerated OpenAPI/frontend types, and
+    hydrated dashboard state from the new payload
+  - added a workspace overview rail cue that shows knowledge freshness behind
+    live blockers and recovery state
+  - documented CLI, JSON, and dashboard surfaces in the knowledge posture guide
 
 ### GBX-1162: Add Provenance Drill-Down For Knowledge Cues
 

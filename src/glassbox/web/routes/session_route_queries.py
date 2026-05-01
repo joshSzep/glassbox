@@ -10,6 +10,7 @@ from glassbox.core.events import ToolArtifactRecorded
 from glassbox.runtime.context import RuntimeContext
 from glassbox.runtime.daemon import RuntimeOwnerStatus
 from glassbox.runtime.daemon import inspect_runtime_owner
+from glassbox.runtime.knowledge_posture import build_workspace_knowledge_posture
 from glassbox.runtime.observability import build_background_job_observability
 from glassbox.runtime.provider_canary import load_provider_canary_evidence
 from glassbox.runtime.session_queries import OPERATOR_SORT_PRIORITY
@@ -85,6 +86,10 @@ def get_session_aggregate_response(
     response = build_session_aggregate_response(aggregate)
     response.provider_evidence = build_provider_evidence_summary_response(
         load_provider_canary_evidence(workspace_root)
+    )
+    response.knowledge_posture = build_workspace_knowledge_posture(
+        workspace_root,
+        context.repositories.sessions,
     )
     return response
 

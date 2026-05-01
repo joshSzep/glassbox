@@ -1,4 +1,8 @@
-import { createDashboardState, createEmptyProviderEvidence } from "@/state/session-initial-state";
+import {
+  createDashboardState,
+  createEmptyKnowledgePosture,
+  createEmptyProviderEvidence,
+} from "@/state/session-initial-state";
 import type {
   BranchableTurn,
   ComparableSession,
@@ -24,6 +28,14 @@ export function hydrateSessionAggregate(
       missing_scenarios: [...(aggregate.provider_evidence?.missing_scenarios ?? [])],
       next_actions: [...(aggregate.provider_evidence?.next_actions ?? [])],
     },
+    knowledgePosture: aggregate.knowledge_posture
+      ? {
+          ...createEmptyKnowledgePosture(),
+          ...aggregate.knowledge_posture,
+          cues: [...(aggregate.knowledge_posture.cues ?? [])],
+          next_actions: [...(aggregate.knowledge_posture.next_actions ?? [])],
+        }
+      : createEmptyKnowledgePosture(),
     queueCounts: { ...aggregate.queue_counts },
     runtimeSummary: { ...aggregate.runtime },
     selectedQueue: aggregate.queue ?? state.selectedQueue,

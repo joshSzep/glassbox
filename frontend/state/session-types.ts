@@ -2,6 +2,7 @@ import type { components } from "@/generated/api-types";
 
 export type ProjectionHealth = components["schemas"]["ProjectionHealthResponse"];
 export type ProviderEvidence = components["schemas"]["ProviderEvidenceSummaryResponse"];
+export type KnowledgePosture = components["schemas"]["WorkspaceKnowledgePosture"];
 export type QueueCounts = components["schemas"]["SessionQueueCountsResponse"];
 export type ProjectionHealthCounts =
   components["schemas"]["ProjectionHealthCountsAggregateResponse"];
@@ -128,6 +129,7 @@ export type DashboardState = SessionFields & {
   liveOutput: LiveOutputEntry[];
   projectionHealthCounts: ProjectionHealthCounts;
   providerEvidence: ProviderEvidence;
+  knowledgePosture: KnowledgePosture | null;
   queueCounts: QueueCounts;
   runtimeSummary: RuntimeSummary;
   selectedQueue: string;

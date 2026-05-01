@@ -52,6 +52,8 @@ def test_openapi_schema_includes_browser_transport_contracts(
 
     assert "HealthResponse" in components
     assert "SessionAggregateResponse" in components
+    assert "WorkspaceKnowledgePosture" in components
+    assert "KnowledgePostureCue" in components
     assert "SessionCheckpointPageResponse" in components
     assert "SessionSnapshotResponse" in components
     assert "TaskCheckpointResponse" in components
@@ -77,6 +79,12 @@ def test_openapi_schema_includes_browser_transport_contracts(
     assert "WorkspaceMemoryContextItemSnapshot" in components
     assert "ErrorDetailResponse" in components
     assert "HTTPValidationError" in components
+    assert (
+        components["SessionAggregateResponse"]["properties"]["knowledge_posture"][
+            "anyOf"
+        ][0]["$ref"]
+        == "#/components/schemas/WorkspaceKnowledgePosture"
+    )
 
 
 def test_openapi_schema_documents_action_error_responses(

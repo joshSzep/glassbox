@@ -11,6 +11,7 @@ import {
 } from "../state/session-state";
 import {
   makeProjectionHealth,
+  makeKnowledgePosture,
   makeProviderEvidence,
   makeSessionAggregate,
   makeSessionSnapshot,
@@ -127,6 +128,7 @@ describe("workspace overview console", () => {
         ],
         {
           projection_health_counts: { degraded: 1, ok: 0, stale: 1, unavailable: 0 },
+          knowledge_posture: makeKnowledgePosture({ overall_status: "stale" }),
           queue: "degraded",
         },
       ),
@@ -135,6 +137,7 @@ describe("workspace overview console", () => {
     expect(renderOverview(degradedState, "loaded", null, "degraded")).toContain(
       "2 projection alerts",
     );
+    expect(renderOverview(degradedState, "loaded", null, "degraded")).toContain("knowledge stale");
     expect(renderOverview(degradedState, "loaded", null, "degraded")).toContain("stale");
     expect(renderOverview(degradedState, "loaded", null, "degraded")).toContain(
       "uv run glassbox projection check --all --cwd .",

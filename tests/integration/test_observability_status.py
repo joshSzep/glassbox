@@ -114,6 +114,14 @@ def test_observability_status_json_reports_health_lag_and_verification(
     assert payload["verification"]["latest_suite_status"] == "failed"
     assert payload["verification"]["latest_exit_code"] == 13
     assert payload["verification"]["latest_failed_case_count"] == 1
+    assert payload["knowledge_posture"]["overall_status"] in {
+        "degraded",
+        "missing",
+        "stale",
+    }
+    assert any(
+        cue["key"] == "repository-index" for cue in payload["knowledge_posture"]["cues"]
+    )
     assert "glassbox projection rebuild --all" in payload["next_actions"]
 
 
@@ -151,6 +159,7 @@ def test_observability_status_text_reports_next_actions(
     assert "Branch searches:" in captured.out
     assert "Artifacts:" in captured.out
     assert "Verification: not run" in captured.out
+    assert "Knowledge posture:" in captured.out
     assert "Safe workflow summary:" in captured.out
     assert "Daemon: glassbox daemon status --cwd ." in captured.out
     assert "Projections: glassbox projection check --all --cwd ." in captured.out

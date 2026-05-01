@@ -1,5 +1,6 @@
 import type {
   DashboardState,
+  KnowledgePosture,
   ProjectionHealthCounts,
   ProviderEvidence,
   QueueCounts,
@@ -17,6 +18,7 @@ export function createDashboardState(): DashboardState {
     liveOutput: [],
     projectionHealthCounts: createEmptyProjectionHealthCounts(),
     providerEvidence: createEmptyProviderEvidence(),
+    knowledgePosture: createEmptyKnowledgePosture(),
     queueCounts: createEmptyQueueCounts(),
     runtimeSummary: createEmptyRuntimeSummary(),
     selectedQueue: "all",
@@ -24,6 +26,14 @@ export function createDashboardState(): DashboardState {
     sessionIndex: [],
     sessionIndexSort: "priority",
     workspaceAttention: createHealthyWorkspaceAttentionSummary(),
+  };
+}
+
+export function createEmptyKnowledgePosture(): KnowledgePosture {
+  return {
+    cues: [],
+    next_actions: [],
+    overall_status: "missing",
   };
 }
 

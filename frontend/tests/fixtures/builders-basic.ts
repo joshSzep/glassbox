@@ -78,6 +78,17 @@ export function makeProviderEvidence(
   };
 }
 
+export function makeKnowledgePosture(
+  overrides: Partial<components["schemas"]["WorkspaceKnowledgePosture"]> = {},
+): components["schemas"]["WorkspaceKnowledgePosture"] {
+  return {
+    cues: [],
+    next_actions: [],
+    overall_status: "missing",
+    ...overrides,
+  };
+}
+
 export function makeSessionSummary(
   sessionId: string,
   overrides: Partial<components["schemas"]["OperatorSessionSummaryResponse"]> = {},
@@ -131,6 +142,7 @@ export function makeSessionAggregate(
 ): components["schemas"]["SessionAggregateResponse"] {
   return {
     limit: null,
+    knowledge_posture: makeKnowledgePosture(),
     projection_health_counts: { degraded: 0, ok: sessions.length, stale: 0, unavailable: 0 },
     provider_evidence: makeProviderEvidence(),
     queue: "all",

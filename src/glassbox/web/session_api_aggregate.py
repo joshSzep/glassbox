@@ -5,6 +5,7 @@ from datetime import datetime
 from pydantic import BaseModel
 from pydantic import Field
 
+from glassbox.runtime.knowledge_posture import WorkspaceKnowledgePosture
 from glassbox.web.session_api_snapshot import SessionSummaryResponse
 
 
@@ -87,4 +88,5 @@ class SessionAggregateResponse(BaseModel):
     provider_evidence: ProviderEvidenceSummaryResponse = Field(
         default_factory=ProviderEvidenceSummaryResponse
     )
+    knowledge_posture: WorkspaceKnowledgePosture | None = None
     sessions: list[OperatorSessionSummaryResponse]

@@ -1938,6 +1938,37 @@ export interface components {
       freshness_reason: string;
     };
     /**
+     * KnowledgePostureCue
+     * @description One derived freshness cue for a local knowledge source.
+     */
+    KnowledgePostureCue: {
+      /** Authoritative Source */
+      authoritative_source: string;
+      /** Inspect Commands */
+      inspect_commands?: string[];
+      /** Key */
+      key: string;
+      /**
+       * Source Count
+       * @default 0
+       */
+      source_count: number;
+      status: components["schemas"]["KnowledgePostureStatus"];
+      /** Summary */
+      summary: string;
+      /** Title */
+      title: string;
+    };
+    /** @enum {string} */
+    KnowledgePostureStatus:
+      | "fresh"
+      | "stale"
+      | "missing"
+      | "invalidated"
+      | "degraded"
+      | "advisory"
+      | "historical-only";
+    /**
      * LongRunPhase
      * @description Operator-visible phases for long-running local work.
      * @enum {string}
@@ -2572,6 +2603,7 @@ export interface components {
     };
     /** SessionAggregateResponse */
     SessionAggregateResponse: {
+      knowledge_posture?: components["schemas"]["WorkspaceKnowledgePosture"] | null;
       /** Limit */
       limit: number | null;
       projection_health_counts: components["schemas"]["ProjectionHealthCountsAggregateResponse"];
@@ -3611,6 +3643,17 @@ export interface components {
       additional_item_count: number;
       /** Items */
       items?: components["schemas"]["WorkingSetItemSnapshot"][];
+    };
+    /**
+     * WorkspaceKnowledgePosture
+     * @description Unified operator-facing knowledge posture.
+     */
+    WorkspaceKnowledgePosture: {
+      /** Cues */
+      cues: components["schemas"]["KnowledgePostureCue"][];
+      /** Next Actions */
+      next_actions?: string[];
+      overall_status: components["schemas"]["KnowledgePostureStatus"];
     };
     /** WorkspaceMemoryActionRequest */
     WorkspaceMemoryActionRequest: {

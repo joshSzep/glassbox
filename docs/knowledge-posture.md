@@ -41,3 +41,15 @@ release review. If a cue is stale or degraded, inspect the source command first,
 then refresh derived evidence deliberately. Provider posture remains advisory;
 deterministic replay, eval, package, and release-gate evidence remain release
 authority.
+
+## Surfaces
+
+`glassbox observability status --cwd .` prints the overall knowledge posture and
+the highest-signal cues next to runtime, projection, artifact, verification, and
+provider health. `--json` includes a `knowledge_posture` object with the same
+cue list and safe inspection commands.
+
+The dashboard workspace overview rail shows the aggregate posture as a compact
+cue. Live blockers, approvals, questions, failed sessions, and degraded
+projections still keep priority; knowledge posture is a trust signal operators
+can inspect before relying on local context for continuation.

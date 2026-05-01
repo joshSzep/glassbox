@@ -191,6 +191,11 @@ read checkpoint, compaction, tool-attempt, verification, provider, projection,
 artifact, index, and backup posture first, then run any mutating recovery
 command deliberately.
 
+`observability status` also prints the workspace knowledge posture so you can
+check whether memory, the repository index, compactions, checkpoints,
+verification, and provider evidence are fresh enough to trust before continuing
+long-running work.
+
 For long-running work, inspect the latest checkpoint and any resumable tool
 attempts before mutating recovery state:
 

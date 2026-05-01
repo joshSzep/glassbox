@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Activity,
   AlertTriangle,
+  Brain,
   CheckCircle2,
   Database,
   RadioTower,
@@ -40,6 +41,8 @@ export function WorkspaceStatusRail({
   const RuntimeIcon = runtime.icon;
   const projection = projectionSummaryDescriptor(data);
   const ProjectionIcon = projection.icon;
+  const knowledge = knowledgePostureDescriptor(data);
+  const KnowledgeIcon = knowledge.icon;
   const backgroundJobs = backgroundJobDescriptor(data);
   const streamStatus = streamDescriptor(stream, selectedSessionId);
   const StreamIcon = streamStatus.icon;
@@ -61,7 +64,7 @@ export function WorkspaceStatusRail({
           </p>
         </div>
 
-        <div className="grid min-w-0 gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:min-w-[44rem]">
+        <div className="grid min-w-0 gap-2 sm:grid-cols-2 lg:grid-cols-5 xl:min-w-[52rem]">
           <RailFact
             icon={RuntimeIcon}
             label="Runtime owner"
@@ -73,6 +76,12 @@ export function WorkspaceStatusRail({
             label="Projection health"
             value={projection.label}
             variant={projection.variant}
+          />
+          <RailFact
+            icon={KnowledgeIcon}
+            label="Knowledge posture"
+            value={knowledge.label}
+            variant={knowledge.variant}
           />
           <RailFact
             icon={StreamIcon}
@@ -175,6 +184,23 @@ function projectionSummaryDescriptor(data: DashboardState) {
     };
   }
   return { icon: Database, label: "projection fresh", variant: "success" as const };
+}
+
+function knowledgePostureDescriptor(data: DashboardState) {
+  const status = data.knowledgePosture?.overall_status ?? "missing";
+  if (status === "degraded") {
+    return { icon: AlertTriangle, label: "knowledge degraded", variant: "warning" as const };
+  }
+  if (status === "stale" || status === "invalidated") {
+    return { icon: RefreshCcw, label: `knowledge ${status}`, variant: "warning" as const };
+  }
+  if (status === "missing" || status === "historical-only") {
+    return { icon: Brain, label: `knowledge ${status}`, variant: "muted" as const };
+  }
+  if (status === "advisory") {
+    return { icon: Brain, label: "knowledge advisory", variant: "info" as const };
+  }
+  return { icon: Brain, label: "knowledge fresh", variant: "success" as const };
 }
 
 function backgroundJobDescriptor(data: DashboardState) {

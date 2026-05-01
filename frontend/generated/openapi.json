@@ -2133,6 +2133,59 @@
         "title": "InvalidateContextCompactionResponse",
         "type": "object"
       },
+      "KnowledgePostureCue": {
+        "additionalProperties": false,
+        "description": "One derived freshness cue for a local knowledge source.",
+        "properties": {
+          "authoritative_source": {
+            "title": "Authoritative Source",
+            "type": "string"
+          },
+          "inspect_commands": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Inspect Commands",
+            "type": "array"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "source_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Source Count",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/KnowledgePostureStatus"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": ["key", "title", "status", "summary", "authoritative_source"],
+        "title": "KnowledgePostureCue",
+        "type": "object"
+      },
+      "KnowledgePostureStatus": {
+        "enum": [
+          "fresh",
+          "stale",
+          "missing",
+          "invalidated",
+          "degraded",
+          "advisory",
+          "historical-only"
+        ],
+        "type": "string"
+      },
       "LongRunPhase": {
         "description": "Operator-visible phases for long-running local work.",
         "enum": [
@@ -3975,6 +4028,16 @@
       },
       "SessionAggregateResponse": {
         "properties": {
+          "knowledge_posture": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkspaceKnowledgePosture"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "limit": {
             "anyOf": [
               {
@@ -7365,6 +7428,32 @@
           }
         },
         "title": "WorkingSetSnapshot",
+        "type": "object"
+      },
+      "WorkspaceKnowledgePosture": {
+        "additionalProperties": false,
+        "description": "Unified operator-facing knowledge posture.",
+        "properties": {
+          "cues": {
+            "items": {
+              "$ref": "#/components/schemas/KnowledgePostureCue"
+            },
+            "title": "Cues",
+            "type": "array"
+          },
+          "next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Next Actions",
+            "type": "array"
+          },
+          "overall_status": {
+            "$ref": "#/components/schemas/KnowledgePostureStatus"
+          }
+        },
+        "required": ["overall_status", "cues"],
+        "title": "WorkspaceKnowledgePosture",
         "type": "object"
       },
       "WorkspaceMemoryActionRequest": {

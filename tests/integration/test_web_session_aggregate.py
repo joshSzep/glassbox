@@ -319,6 +319,23 @@ def test_get_sessions_aggregate_returns_priority_counts_and_runtime_summary(
             assert body["provider_evidence"]["next_actions"] == [
                 f"glassbox provider canary run --cwd {tmp_path}"
             ]
+            assert body["knowledge_posture"]["overall_status"] in {
+                "degraded",
+                "missing",
+                "stale",
+            }
+            assert {cue["key"] for cue in body["knowledge_posture"]["cues"]} >= {
+                "workspace-memory",
+                "repository-index",
+                "checkpoints",
+                "compactions",
+                "verification",
+                "provider-evidence",
+            }
+            assert (
+                "glassbox repo index status --cwd ."
+                in body["knowledge_posture"]["next_actions"]
+            )
             assert [item["session_id"] for item in body["sessions"]] == [
                 str(approval_state.session_id),
                 str(question_state.session_id),

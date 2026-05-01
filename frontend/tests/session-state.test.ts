@@ -11,6 +11,7 @@ import {
 import {
   largeTranscriptSessionId,
   makeEnvelope,
+  makeKnowledgePosture,
   makeRuntimeContext,
   makeV4ScenarioAggregate,
   makeV4ScenarioSnapshot,
@@ -31,7 +32,11 @@ describe("session state hydration", () => {
     });
     const state = hydrateSessionAggregate(
       createDashboardState(),
-      makeSessionAggregate([session], { queue: "approvals", sort: "updated_at" }),
+      makeSessionAggregate([session], {
+        knowledge_posture: makeKnowledgePosture({ overall_status: "stale" }),
+        queue: "approvals",
+        sort: "updated_at",
+      }),
     );
 
     expect(state.selectedQueue).toBe("approvals");
@@ -39,6 +44,7 @@ describe("session state hydration", () => {
     expect(state.queueCounts.approvals).toBe(1);
     expect(state.projectionHealthCounts.ok).toBe(1);
     expect(state.runtimeSummary.workspace_root).toBe("/tmp/workspace");
+    expect(state.knowledgePosture?.overall_status).toBe("stale");
     expect(state.sessionIndexSort).toBe("updated_at");
   });
 

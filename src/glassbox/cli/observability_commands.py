@@ -6,6 +6,8 @@ from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.daemon import inspect_runtime_owner
+from glassbox.runtime.knowledge_posture import WorkspaceKnowledgePosture
+from glassbox.runtime.knowledge_posture import build_workspace_knowledge_posture
 from glassbox.runtime.observability import WorkspaceObservabilityReport
 from glassbox.runtime.observability import build_workspace_observability_report
 
@@ -27,15 +29,24 @@ def _observability_status_command(args: argparse.Namespace) -> int:
             session_repository=runtime_context.repositories.sessions,
             event_transport_stats=runtime_context.infrastructure.event_transport.stats(),
         )
+        knowledge_posture = build_workspace_knowledge_posture(
+            cwd,
+            runtime_context.repositories.sessions,
+        )
 
     if args.json:
-        print_json_output(report.model_dump(mode="json"))
+        payload = report.model_dump(mode="json")
+        payload["knowledge_posture"] = knowledge_posture.model_dump(mode="json")
+        print_json_output(payload)
     else:
-        _print_observability_report(report)
+        _print_observability_report(report, knowledge_posture)
     return 0
 
 
-def _print_observability_report(report: WorkspaceObservabilityReport) -> None:
+def _print_observability_report(
+    report: WorkspaceObservabilityReport,
+    knowledge_posture: WorkspaceKnowledgePosture | None = None,
+) -> None:
     print(f"Workspace: {report.workspace_root}")
     print(f"Runtime: {report.runtime.state} ({report.runtime.health or 'n/a'})")
     print(
@@ -126,6 +137,10 @@ def _print_observability_report(report: WorkspaceObservabilityReport) -> None:
     )
     if report.provider_canary.latest_summary_path is not None:
         print(f"Latest provider canary: {report.provider_canary.latest_summary_path}")
+    if knowledge_posture is not None:
+        print(f"Knowledge posture: {knowledge_posture.overall_status}")
+        for cue in knowledge_posture.cues[:4]:
+            print(f"  - {cue.title}: {cue.status}; {cue.summary}")
     for line in _format_observability_safe_workflow_lines(report):
         print(line)
     if not report.next_actions:
