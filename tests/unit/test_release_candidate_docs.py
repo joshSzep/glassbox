@@ -461,6 +461,10 @@ def test_v11_live_cockpit_evidence_protocol_covers_scenarios_and_non_claims() ->
         "provider reliability or provider release authority",
         "deterministic cockpit evidence",
         "## Release Summary Template",
+        "## GBX-1131 Evidence Summary",
+        ".glassbox/releases/gbx-1131-live-cockpit/",
+        "Stream degradation and reconnect",
+        "duplicate React key warning",
         "v11-confidence-adoption-contract.md",
         "long-run-cockpit-contract.md",
     ):

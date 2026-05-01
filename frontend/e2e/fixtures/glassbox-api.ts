@@ -29,6 +29,7 @@ type WorkspaceMemoryEntry = components["schemas"]["WorkspaceMemoryEntryResponse"
 
 export type GlassboxApiFixtureState = {
   actions: ActionRequest[];
+  eventStreamRequests: string[];
 };
 
 export { defaultChildSessionId, defaultSessionId };
@@ -41,7 +42,7 @@ export async function installGlassboxApiFixture(
   page: Page,
   scenarioId: ScreenshotScenarioId = "live-session",
 ): Promise<GlassboxApiFixtureState> {
-  const state: GlassboxApiFixtureState = { actions: [] };
+  const state: GlassboxApiFixtureState = { actions: [], eventStreamRequests: [] };
   const scenario = scenarioFixtures[scenarioId];
   const selectedSessionId = "sessionId" in scenario ? scenario.sessionId : undefined;
   let emittedLiveUpdate = false;
@@ -74,13 +75,17 @@ export async function installGlassboxApiFixture(
 
   await page.route("**/sessions/*/events**", (route) => {
     const pathname = new URL(route.request().url()).pathname;
+    state.eventStreamRequests.push(route.request().url());
     const isSelectedStream =
       selectedSessionId !== undefined && pathname.endsWith(`/sessions/${selectedSessionId}/events`);
     const envelopes =
       isSelectedStream && !emittedLiveUpdate
         ? makeV4ScenarioSseEnvelopes(scenarioId, selectedSessionId)
         : [];
-    const body = envelopes.map(toSseMessage).join("");
+    const status = isSelectedStream && !emittedLiveUpdate ? makeStreamStatus(scenarioId) : null;
+    const body = [status === null ? "" : toSseMessage(status), ...envelopes.map(toSseMessage)]
+      .filter(Boolean)
+      .join("");
     emittedLiveUpdate = emittedLiveUpdate || body.length > 0;
 
     route.fulfill({
@@ -345,6 +350,34 @@ function makeFixtureEventLog(sessionId: string, scenarioId: ScreenshotScenarioId
     sequence: event.sequence,
     session_id: sessionId,
   }));
+}
+
+function makeStreamStatus(scenarioId: ScreenshotScenarioId) {
+  if (scenarioId !== "projection-degraded") {
+    return null;
+  }
+  return {
+    after_sequence: 4,
+    canonical_last_sequence: 8,
+    event_type: "glassbox.stream.status",
+    history_truncated: false,
+    last_delivered_sequence: 4,
+    message: "Projection lag detected while replaying persisted events.",
+    projection_health: {
+      degraded: true,
+      lag: 3,
+      state: "stale",
+    },
+    replayed_count: 0,
+    status: "degraded",
+    transport: {
+      dropped_events: 1,
+      last_published_sequence: 8,
+      max_queue_depth: 8,
+      queue_capacity: 64,
+      subscriber_count: 1,
+    },
+  };
 }
 
 function makeProjectionHealth() {

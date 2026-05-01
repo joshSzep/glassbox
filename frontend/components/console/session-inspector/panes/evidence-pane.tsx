@@ -71,8 +71,8 @@ export function EvidencePane({
         <ProjectionDetails projection={projection} />
         <AutonomyTimelineMarkers events={recentEvents} />
         <EvidenceList title="Event log" empty="No event log entries are attached to this snapshot.">
-          {recentEvents.map((event) => (
-            <DataListItem key={`${event.event_type}:${event.sequence}`}>
+          {recentEvents.map((event, index) => (
+            <DataListItem key={`${event.event_type}:${event.sequence}:${index}`}>
               <DataListLabel>{event.event_type}</DataListLabel>
               <DataListMeta>sequence {event.sequence}</DataListMeta>
             </DataListItem>
@@ -128,8 +128,8 @@ function AutonomyTimelineMarkers({ events }: { events: DashboardState["eventLog"
       title="Autonomy timeline markers"
       empty="No autonomous decision or human intervention markers are in the loaded event window."
     >
-      {markers.map((event) => (
-        <DataListItem key={`${event.event_type}:${event.sequence}`}>
+      {markers.map((event, index) => (
+        <DataListItem key={`${event.event_type}:${event.sequence}:${index}`}>
           <DataListLabel>{event.marker}</DataListLabel>
           <DataListMeta>
             {event.event_type} at sequence {event.sequence}

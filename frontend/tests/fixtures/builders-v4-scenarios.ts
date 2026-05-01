@@ -3,6 +3,7 @@ import type { SseEventEnvelope } from "../../api/sse";
 
 import { makeEnvelope } from "./builders-actions";
 import {
+  makeProviderEvidence,
   makeProjectionHealth,
   makeRuntimeContext,
   makeSessionAggregate,
@@ -43,6 +44,27 @@ export function makeV4ScenarioAggregate(
       stale: degradedCount,
       unavailable: 0,
     },
+    ...(scenarioId === "large-transcript"
+      ? {
+          provider_evidence: makeProviderEvidence({
+            configured_model_name: "gpt-5.4",
+            failed_count: 1,
+            freshness_status: "warning",
+            latest_status: "warning",
+            latest_summary_path: ".glassbox/provider-canary/v11/summary.json",
+            matrix_entry_count: 3,
+            missing_scenarios: ["long-running-stream-reconnect"],
+            model_name: "gpt-5.4",
+            next_actions: ["inspect provider canary evidence before switching models"],
+            passed_count: 2,
+            provider: "openai",
+            scenario_count: 3,
+            stale: false,
+            summary_count: 1,
+            warning_count: 1,
+          }),
+        }
+      : {}),
     queue,
     queue_counts: {
       action_needed: sessions.filter((session) => session.action_needed).length,
@@ -292,9 +314,43 @@ function makeLargeTranscriptSnapshot(base: components["schemas"]["SessionSnapsho
     active_tool_calls: [makeV4ActiveToolCall()],
     pending_approval_id: "approval-1",
     pending_approvals: [makeV4Approval()],
+    recent_tool_attempts: [makeV4StaleToolAttempt()],
     runtime_context: makeRuntimeContext({
       ...makeV4ArtifactRuntimeContext(),
       additional_runtime_note_count: 1,
+      context_compactions: {
+        additional_item_count: 0,
+        items: [
+          {
+            accepted_risk_count: 0,
+            artifact_id: "artifact-compaction-fresh",
+            compaction_id: "compaction-fresh",
+            decision_count: 1,
+            freshness: "fresh",
+            freshness_reason: null,
+            limitations: [],
+            scope: "transcript",
+            source_end_sequence: 6,
+            source_start_sequence: 1,
+            summary: "Fresh transcript compaction for the long-session window.",
+            superseded_by_compaction_id: null,
+            unresolved_question_count: 0,
+          },
+        ],
+        stale_item_count: 1,
+        stale_items: [
+          {
+            artifact_id: "artifact-compaction-stale",
+            compaction_id: "compaction-stale",
+            freshness: "stale",
+            reason: "A newer checkpoint exists after this compaction's source range.",
+            scope: "runtime_context",
+            source_end_sequence: 4,
+            source_start_sequence: 1,
+            superseded_by_compaction_id: "compaction-fresh",
+          },
+        ],
+      },
       runtime_notes: [
         { category: "runtime", inherited: false, message: "Tool output is still streaming." },
         {
@@ -306,5 +362,31 @@ function makeLargeTranscriptSnapshot(base: components["schemas"]["SessionSnapsho
       ],
     }),
     transcript: makeV4LargeTranscript(largeTranscriptSessionId),
+  };
+}
+
+function makeV4StaleToolAttempt(): components["schemas"]["ToolAttemptResponse"] {
+  return {
+    completed_at: null,
+    completed_units: 2,
+    heartbeat_expires_at: "2026-04-23T00:01:00Z",
+    last_heartbeat_at: "2026-04-23T00:00:10Z",
+    last_sequence: 9,
+    message: "Heartbeat expired during long validation output.",
+    output_artifact_id: "artifact-tool-attempt-output",
+    retry_classification: "safe_to_retry",
+    retry_policy_reason: "Command is idempotent and output artifact is retained.",
+    retry_reason: "Tool attempt heartbeat expired before completion.",
+    retry_requires_approval: true,
+    safe_to_retry: true,
+    session_id: largeTranscriptSessionId,
+    started_at: "2026-04-23T00:00:02Z",
+    status: "stale",
+    task_id: "task-1",
+    tool_attempt_id: "attempt-stale",
+    tool_call_id: "tool-1",
+    tool_name: "pnpm test",
+    total_units: 4,
+    turn_id: "turn-1",
   };
 }

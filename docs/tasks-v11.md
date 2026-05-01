@@ -567,7 +567,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1131: Add Browser Long-Session And Reconnect Evidence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1130`
 - Goal: collect retained browser evidence for the long-run cockpit states that
   v10 covered primarily through replay and components

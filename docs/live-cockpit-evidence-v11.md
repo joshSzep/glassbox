@@ -172,6 +172,41 @@ Use this shape for `live-cockpit-summary.md`:
 - List skipped browser, screen-reader, provider, and hosted-service claims.
 ```
 
+## GBX-1131 Evidence Summary
+
+The first v11 automated live cockpit evidence pass is retained locally under:
+
+```text
+.glassbox/releases/gbx-1131-live-cockpit/
+```
+
+Focused command:
+
+```bash
+GBX_V11_LIVE_COCKPIT_EVIDENCE_DIR=.glassbox/releases/gbx-1131-live-cockpit \
+  pnpm --dir frontend exec playwright test e2e/v11-live-cockpit-evidence.spec.ts --reporter=list
+```
+
+Result: passed on Chromium through Playwright. The first sandboxed attempt was
+blocked by macOS browser-launch permissions, then the same command passed when
+Chromium was allowed to launch.
+
+Retained automated scenarios:
+
+| Scenario | Status | Retained Evidence |
+| --- | --- | --- |
+| Long-session inspection | Passed | `automated/playwright/long-session-inspection/summary.json` and `screenshot.png` |
+| Stale verification evidence | Passed | `automated/playwright/stale-verification-evidence/summary.json` and `screenshot.png` |
+| Stream degradation and reconnect | Passed | `automated/playwright/stream-degradation-reconnect/summary.json` and `screenshot.png` |
+| Queue navigation and historical snapshot | Passed | `automated/playwright/queue-navigation-historical-snapshot/summary.json` and `screenshot.png` |
+
+This pass supports the named Chromium, routed-dashboard, desktop, and mobile
+fixture-backed claims only. It does not claim screen-reader coverage,
+cross-browser coverage, live provider reliability, hosted operation, or broad
+performance coverage. During the run, a duplicate React key warning appeared
+when live SSE events repeated fixture event-log rows; `GBX-1131` fixed the
+event-evidence keying so repeated live and retained events remain renderable.
+
 ## Related Documents
 
 - [v11-confidence-adoption-contract.md](./v11-confidence-adoption-contract.md):
