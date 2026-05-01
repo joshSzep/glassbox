@@ -246,6 +246,67 @@ def test_recommend_eval_change_impact_routes_context_changes_to_context_cases(
     assert any("context.artifact" in command for command in report.suggested_commands)
 
 
+def test_recommend_eval_change_impact_distinguishes_release_profiles_from_gates(
+    tmp_path: Path,
+) -> None:
+    _write_profiles(tmp_path)
+    _write_coverage(tmp_path)
+    impact_path = tmp_path / "evals" / "impact.json"
+    impact_path.parent.mkdir(parents=True, exist_ok=True)
+    impact_path.write_text(
+        json.dumps(
+            {
+                "manifest_version": 1,
+                "rules": [
+                    {
+                        "rule_id": "release-path-governance",
+                        "title": "Release paths",
+                        "path_globs": [
+                            "scripts/validate_v*_release_gate.py",
+                            "docs/v*-release-candidate.md",
+                            "scripts/validate_package_contents.py",
+                        ],
+                        "profile_ids": ["release-candidate"],
+                    }
+                ],
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = recommend_eval_change_impact(
+        tmp_path,
+        touched_paths=[
+            "scripts/validate_v10_release_gate.py",
+            "docs/v10-release-candidate.md",
+            "scripts/validate_package_contents.py",
+        ],
+    )
+
+    release_surface = next(
+        surface
+        for surface in report.release_surfaces
+        if surface.verification_stage == "release-candidate"
+    )
+
+    assert report.matched_rule_ids == ["release-path-governance"]
+    assert report.unmatched_paths == []
+    assert [profile.profile_id for profile in report.profiles] == ["release-candidate"]
+    assert report.suggested_commands == [
+        "uv run glassbox eval run --profile release-candidate --cwd ."
+    ]
+    assert release_surface.recommended_profile_ids == ["release-candidate"]
+    assert release_surface.release_gate_commands == [
+        "uv run python scripts/validate_v10_release_gate.py --cwd .",
+        "uv run python scripts/validate_package_contents.py",
+    ]
+    assert any(
+        "do not replace the gate" in note for note in release_surface.release_gate_notes
+    )
+
+
 def test_recommend_eval_change_impact_routes_policy_changes_to_approval_case(
     tmp_path: Path,
 ) -> None:

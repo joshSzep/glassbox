@@ -793,6 +793,8 @@ def test_cli_eval_recommend_reports_cases_profiles_and_reasons(
         "profile_budget_notes": [
             "commit-smoke: case limit 2; advisory cases disallowed"
         ],
+        "release_gate_commands": [],
+        "release_gate_notes": [],
     }
     assert payload["release_surfaces"][2]["impacted"] is False
     assert payload["release_surfaces"][3]["impacted"] is False
@@ -811,6 +813,84 @@ def test_cli_eval_recommend_reports_cases_profiles_and_reasons(
     ] == ["commit-smoke", "push-confirmation", None]
     assert payload["verification_plan_entries"][2]["eval_case_id"] == "smoke.readme"
     assert payload["skipped_verification_checks"] == []
+
+
+def test_cli_eval_recommend_distinguishes_release_profiles_from_full_gates(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "release-candidate",
+                "title": "Release candidate",
+                "verification_stage": "release-candidate",
+                "blocking": True,
+            }
+        ],
+    )
+    _write_eval_coverage(tmp_path, profiles=[])
+    _write_eval_impact(
+        tmp_path,
+        rules=[
+            {
+                "rule_id": "release-path-governance",
+                "title": "Release paths",
+                "path_globs": [
+                    "scripts/validate_v*_release_gate.py",
+                    "docs/v*-release-candidate.md",
+                    "scripts/validate_package_contents.py",
+                ],
+                "profile_ids": ["release-candidate"],
+            }
+        ],
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "recommend",
+            "scripts/validate_v10_release_gate.py",
+            "docs/v10-release-candidate.md",
+            "scripts/validate_package_contents.py",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    release_surface = payload["release_surfaces"][2]
+
+    assert exit_code == 0
+    assert [profile["profile_id"] for profile in payload["profiles"]] == [
+        "release-candidate"
+    ]
+    assert payload["suggested_commands"] == [
+        "uv run glassbox eval run --profile release-candidate --cwd ."
+    ]
+    assert release_surface["recommended_profile_ids"] == ["release-candidate"]
+    assert release_surface["release_gate_commands"] == [
+        "uv run python scripts/validate_v10_release_gate.py --cwd .",
+        "uv run python scripts/validate_package_contents.py",
+    ]
+
+    exit_code = main(
+        [
+            "eval",
+            "recommend",
+            "scripts/validate_v10_release_gate.py",
+            "--cwd",
+            str(tmp_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Full gates:" in captured.out
+    assert "uv run python scripts/validate_v10_release_gate.py --cwd ." in captured.out
 
 
 def test_cli_eval_recommend_reports_live_provider_canary_as_skipped_check(

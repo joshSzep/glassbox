@@ -199,10 +199,13 @@ The recommendation steps are:
 `commit-time`, `push-time`, `release-candidate`, and `advisory`. Each row shows
 whether that surface is impacted, which profiles and cases are recommended,
 which blocking profiles are involved, and any profile-budget notes that matter
-for local verification scope. Advisory rows may include deterministic advisory
-profiles or live-provider canary profiles, but live-provider checks are skipped
-from the executable verification plan unless the operator explicitly includes
-that canary surface.
+for local verification scope. Release-candidate rows can also include
+`release_gate_commands`; those are full sign-off gates such as
+`uv run python scripts/validate_v10_release_gate.py --cwd .` or package-content
+validation, not replay/eval profiles. Advisory rows may include deterministic
+advisory profiles or live-provider canary profiles, but live-provider checks are
+skipped from the executable verification plan unless the operator explicitly
+includes that canary surface.
 
 For long-running work, the same command also emits `long_run_surfaces` for
 `immediate`, `checkpoint`, `pre-resume`, `pre-merge`, and `release-candidate`
@@ -225,6 +228,11 @@ Practical operator expectations:
 - changes to `evals/cases/*.json` should recommend the touched case directly plus any deterministic profiles that include its verification stages
 - changes to `evals/profiles.json` should recommend the affected profiles themselves and explain that the change is profile-governance metadata, not a behavior-specific product signal
 - changes to `evals/coverage.json` should recommend `eval audit` plus the deterministic profiles or cases named by the affected capabilities
+- changes to `scripts/validate_v*_release_gate.py`,
+  `docs/v*-release-gate.md`, `docs/v*-release-candidate.md`,
+  `docs/release-packaging.md`, or `scripts/validate_package_contents.py`
+  should recommend the deterministic `release-candidate` eval profile and
+  separately name the applicable full gate command
 - changes to runtime, tool, CLI, dashboard, task, memory, repository-index, provider, or branch-search code should resolve through impact rules into owners and capabilities first, then expand outward to cases and profiles
 - provider readiness changes may recommend `live-provider-canary`, but that profile remains advisory and skipped unless explicitly selected
 - documentation-only changes outside replay or eval governance surfaces may legitimately produce no strong replay recommendation

@@ -148,6 +148,7 @@ def recommend_eval_change_impact(
         coverage_audit_recommended=coverage_audit_recommended,
     )
     release_surfaces = build_release_surface_recommendations(
+        touched_paths=normalized_paths,
         case_recommendations=case_recommendations,
         profile_recommendations=profile_recommendations,
         profiles_by_id=profiles_by_id,

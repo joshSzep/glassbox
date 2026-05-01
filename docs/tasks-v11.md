@@ -439,7 +439,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1112: Close The v10 Release-Path Recommendation Gap
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1101`
 - Goal: ensure release-gate scripts and release-candidate docs receive confident
   eval or gate recommendations

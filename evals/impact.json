@@ -359,6 +359,19 @@
             "notes": "Provider diagnostics and recommendation changes should review deterministic tests first; live-provider canary evidence remains advisory and requires explicit operator selection."
         },
         {
+            "rule_id": "release-path-governance",
+            "title": "Release gate, candidate, and packaging paths",
+            "path_globs": [
+                "scripts/validate_v*_release_gate.py",
+                "scripts/validate_package_contents.py",
+                "docs/v*-release-gate.md",
+                "docs/v*-release-candidate.md",
+                "docs/release-packaging.md"
+            ],
+            "profile_ids": ["release-candidate"],
+            "notes": "Release-gate scripts, release-candidate docs, and packaging gate docs should recommend the deterministic release-candidate eval profile while separately naming the full gate script or package validation command."
+        },
+        {
             "rule_id": "eval-profile-governance",
             "title": "Eval profile governance metadata",
             "path_globs": ["evals/profiles.json"],

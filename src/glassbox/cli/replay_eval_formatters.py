@@ -341,6 +341,14 @@ def _print_release_surface_recommendations(
             print("    Budget notes:")
             for note in surface.profile_budget_notes:
                 print("      - " + note)
+        if surface.release_gate_commands:
+            print("    Full gates:")
+            for command in surface.release_gate_commands:
+                print("      - " + command)
+        if surface.release_gate_notes:
+            print("    Gate notes:")
+            for note in surface.release_gate_notes:
+                print("      - " + note)
 
 
 def _print_long_run_surface_recommendations(

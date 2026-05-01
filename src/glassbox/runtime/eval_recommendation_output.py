@@ -100,6 +100,7 @@ def build_suggested_commands(
 
 def build_release_surface_recommendations(
     *,
+    touched_paths: list[str],
     case_recommendations: list[EvalCaseRecommendation],
     profile_recommendations: list[EvalProfileRecommendation],
     profiles_by_id: dict[str, EvalProfileDefinition],
@@ -107,6 +108,7 @@ def build_release_surface_recommendations(
     return [
         _build_release_surface_recommendation(
             stage,
+            touched_paths=touched_paths,
             case_recommendations=case_recommendations,
             profile_recommendations=profile_recommendations,
             profiles_by_id=profiles_by_id,
@@ -163,6 +165,7 @@ def _strongest_confidence(
 def _build_release_surface_recommendation(
     stage: EvalVerificationStage,
     *,
+    touched_paths: list[str],
     case_recommendations: list[EvalCaseRecommendation],
     profile_recommendations: list[EvalProfileRecommendation],
     profiles_by_id: dict[str, EvalProfileDefinition],
@@ -191,6 +194,8 @@ def _build_release_surface_recommendation(
             stage_profiles,
             profiles_by_id=profiles_by_id,
         ),
+        release_gate_commands=_release_gate_commands(stage, touched_paths),
+        release_gate_notes=_release_gate_notes(stage, touched_paths),
     )
 
 
@@ -239,6 +244,71 @@ def _stage_profile_budget_notes(
         if fragments:
             notes.append(f"{profile.profile_id}: " + "; ".join(fragments))
     return notes
+
+
+def _release_gate_commands(
+    stage: EvalVerificationStage,
+    touched_paths: list[str],
+) -> list[str]:
+    if stage != "release-candidate":
+        return []
+    commands: list[str] = []
+    for major in _release_gate_majors(touched_paths):
+        script = f"scripts/validate_v{major}_release_gate.py"
+        commands.append(f"uv run python {script} --cwd .")
+    if _touches_package_content_gate(touched_paths):
+        commands.append("uv run python scripts/validate_package_contents.py")
+    return dedupe_strings(commands)
+
+
+def _release_gate_notes(
+    stage: EvalVerificationStage,
+    touched_paths: list[str],
+) -> list[str]:
+    if stage != "release-candidate":
+        return []
+    notes: list[str] = []
+    if _release_gate_majors(touched_paths):
+        notes.append(
+            "Full release gate scripts are sign-off checks; eval profiles are "
+            "deterministic replay proof and do not replace the gate."
+        )
+    if _touches_package_content_gate(touched_paths):
+        notes.append(
+            "Package-content validation is a packaging gate; run it in addition "
+            "to any recommended eval profile."
+        )
+    return dedupe_strings(notes)
+
+
+def _release_gate_majors(touched_paths: list[str]) -> list[int]:
+    majors: list[int] = []
+    for path in touched_paths:
+        for major in (10, 9, 8, 7, 6, 5):
+            if _touches_major_release_gate(path, major):
+                if major not in majors:
+                    majors.append(major)
+    return majors
+
+
+def _touches_major_release_gate(path: str, major: int) -> bool:
+    return path in {
+        f"scripts/validate_v{major}_release_gate.py",
+        f"docs/v{major}-release-gate.md",
+        f"docs/v{major}-release-candidate.md",
+    }
+
+
+def _touches_package_content_gate(touched_paths: list[str]) -> bool:
+    return any(
+        path
+        in {
+            "docs/release-packaging.md",
+            "scripts/validate_package_contents.py",
+            "tests/unit/test_packaging_metadata.py",
+        }
+        for path in touched_paths
+    )
 
 
 def _build_long_run_surface_recommendation(

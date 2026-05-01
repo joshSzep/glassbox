@@ -104,6 +104,8 @@ class EvalReleaseSurfaceRecommendation(BaseModel):
     impacted_capability_ids: list[str] = Field(default_factory=list)
     owner_ids: list[str] = Field(default_factory=list)
     profile_budget_notes: list[str] = Field(default_factory=list)
+    release_gate_commands: list[str] = Field(default_factory=list)
+    release_gate_notes: list[str] = Field(default_factory=list)
 
 
 class EvalLongRunSurfaceRecommendation(BaseModel):
