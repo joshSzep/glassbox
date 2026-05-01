@@ -9,6 +9,8 @@ from glassbox.cli.tui.commands import filter_command_items
 from glassbox.cli.tui.conversation import conversation_state_from_snapshot
 from glassbox.cli.tui.conversation import reduce_events
 from glassbox.cli.tui.conversation import with_composer_draft
+from glassbox.cli.tui.keybindings import TUI_KEY_BINDINGS
+from glassbox.cli.tui.widgets import ComposerWidget
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import UserQuestionAsked
@@ -40,6 +42,40 @@ def test_command_registry_exposes_expected_palette_actions() -> None:
     assert TerminalCommandId.INTERRUPT in command_ids
     assert TerminalCommandId.CLEAR_TRANSCRIPT in command_ids
     assert TerminalCommandId.QUIT in command_ids
+
+
+def test_terminal_keybindings_route_core_app_actions() -> None:
+    expected = {
+        ("ctrl+escape", "quit"),
+        ("ctrl+l", "latest"),
+        ("ctrl+p", "command_palette"),
+        ("ctrl+g", "focus_composer"),
+        ("pageup", "transcript_page_up"),
+        ("pagedown", "transcript_page_down"),
+        ("ctrl+e", "toggle_details"),
+        ("ctrl+d", "open_dashboard"),
+        ("alt+d", "copy_dashboard_url"),
+        ("alt+a", "approve"),
+        ("alt+x", "deny"),
+        ("ctrl+r", "submit_answer"),
+        ("ctrl+c", "interrupt"),
+        ("escape", "cancel_transient"),
+    }
+
+    assert expected.issubset(
+        {(binding.key, binding.action) for binding in TUI_KEY_BINDINGS}
+    )
+
+
+def test_composer_keybindings_submit_and_insert_newline() -> None:
+    assert any(
+        binding.key == "enter" and binding.action == "submit_prompt"
+        for binding in ComposerWidget.BINDINGS
+    )
+    assert any(
+        binding.key == "ctrl+enter" and binding.action == "insert_newline"
+        for binding in ComposerWidget.BINDINGS
+    )
 
 
 def test_command_registry_filters_by_title_description_and_slash_alias() -> None:

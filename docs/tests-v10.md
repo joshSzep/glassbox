@@ -591,7 +591,7 @@ Validation evidence:
 
 ### GBX-T931: Separate Pure TUI State Tests From App-Driver Tests
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-T930`
 - Goal: avoid launching a Textual app for behavior that can be tested through
   pure reducers, selectors, command handlers, or widget formatting helpers
@@ -608,6 +608,26 @@ Validation evidence:
   - `uv run pytest tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_conversation.py tests/unit/test_cli_tui_commands.py tests/unit/test_cli_tui_widgets.py -q`
 - Done when:
   - app-driver tests are reserved for behavior that truly needs the app driver
+
+Validation evidence:
+
+- Moved pure terminal keybinding coverage from `test_cli_tui_app.py` to
+  `test_cli_tui_commands.py`, alongside the command registry and slash command
+  checks.
+- Moved `session_dashboard_url` selector coverage from the app-driver file to
+  `test_cli_tui_conversation.py`.
+- Kept mounted app-driver coverage for app creation, lifecycle, focus,
+  keyboard integration, palette execution, streaming, markdown rendering,
+  scrolling, and runtime feedback behavior.
+- `uv run pytest tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_conversation.py tests/unit/test_cli_tui_commands.py tests/unit/test_cli_tui_widgets.py -q`:
+  76 passed in 6.34s
+- `uv run pytest tests/unit/test_cli_tui_app.py --durations=40 --durations-min=0.01 -q`:
+  31 passed in 6.06s
+- `uv run ruff format --check tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_conversation.py tests/unit/test_cli_tui_commands.py tests/unit/test_cli_tui_widgets.py`:
+  4 files already formatted
+- `uv run ruff check tests/unit/test_cli_tui_app.py tests/unit/test_cli_tui_conversation.py tests/unit/test_cli_tui_commands.py tests/unit/test_cli_tui_widgets.py`:
+  all checks passed
+- `uv run ty check`: all checks passed
 
 ---
 

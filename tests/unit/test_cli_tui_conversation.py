@@ -18,6 +18,7 @@ from glassbox.cli.tui.conversation import with_composer_draft
 from glassbox.cli.tui.conversation import with_runtime_owner
 from glassbox.cli.tui.conversation import with_stream_status
 from glassbox.cli.tui.conversation import with_tool_expanded
+from glassbox.cli.tui.state import session_dashboard_url
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import AssistantMessageCompleted
@@ -94,6 +95,21 @@ def test_reducer_builds_normal_conversation_from_events() -> None:
     assert state.turns[0].completed_outcome == "completed"
     assert state.header.mode == TerminalMode.READY
     assert state.header.last_sequence == 4
+
+
+def test_session_dashboard_url_adds_or_replaces_session_query() -> None:
+    session_id = new_session_id()
+
+    assert session_dashboard_url("http://127.0.0.1:8765/", session_id) == (
+        f"http://127.0.0.1:8765/?session={session_id}"
+    )
+    assert (
+        session_dashboard_url(
+            "http://127.0.0.1:8765/?view=operator&session=old",
+            session_id,
+        )
+        == f"http://127.0.0.1:8765/?view=operator&session={session_id}"
+    )
 
 
 def test_reducer_tracks_live_assistant_streaming_text() -> None:

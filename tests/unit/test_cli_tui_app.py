@@ -20,8 +20,6 @@ from glassbox.cli.tui import create_tui_app
 from glassbox.cli.tui.commands import TerminalCommandId
 from glassbox.cli.tui.conversation import TerminalStreamStatus
 from glassbox.cli.tui.conversation import with_stream_status
-from glassbox.cli.tui.keybindings import TUI_KEY_BINDINGS
-from glassbox.cli.tui.state import session_dashboard_url
 from glassbox.cli.tui.widgets import CommandPaletteWidget
 from glassbox.cli.tui.widgets import ComposerFeedbackLine
 from glassbox.cli.tui.widgets import ComposerWidget
@@ -93,21 +91,6 @@ def test_tui_app_factory_builds_app_with_fake_client() -> None:
     )
 
 
-def test_session_dashboard_url_adds_or_replaces_session_query() -> None:
-    session_id = new_session_id()
-
-    assert session_dashboard_url("http://127.0.0.1:8765/", session_id) == (
-        f"http://127.0.0.1:8765/?session={session_id}"
-    )
-    assert (
-        session_dashboard_url(
-            "http://127.0.0.1:8765/?view=operator&session=old",
-            session_id,
-        )
-        == f"http://127.0.0.1:8765/?view=operator&session={session_id}"
-    )
-
-
 def test_create_session_tui_app_fetches_snapshot_and_preserves_dashboard_url() -> None:
     asyncio.run(_run_lifecycle_test())
 
@@ -122,52 +105,6 @@ def test_tui_app_mounts_across_release_review_sizes() -> None:
 
 def test_tui_app_ingests_live_events_into_transcript() -> None:
     asyncio.run(_run_live_event_test())
-
-
-def test_tui_app_declares_latest_activity_keybinding() -> None:
-    assert any(
-        binding.key == "ctrl+l" and binding.action == "latest"
-        for binding in TUI_KEY_BINDINGS
-    )
-
-
-def test_tui_app_declares_prompt_submit_keybinding() -> None:
-    assert any(
-        binding.key == "enter" and binding.action == "submit_prompt"
-        for binding in ComposerWidget.BINDINGS
-    )
-    assert any(
-        binding.key == "ctrl+enter" and binding.action == "insert_newline"
-        for binding in ComposerWidget.BINDINGS
-    )
-
-
-def test_tui_app_declares_command_palette_keybinding() -> None:
-    assert any(
-        binding.key == "ctrl+p" and binding.action == "command_palette"
-        for binding in TUI_KEY_BINDINGS
-    )
-
-
-def test_tui_app_declares_keyboard_navigation_keybindings() -> None:
-    expected = {
-        ("ctrl+escape", "quit"),
-        ("ctrl+g", "focus_composer"),
-        ("pageup", "transcript_page_up"),
-        ("pagedown", "transcript_page_down"),
-        ("ctrl+e", "toggle_details"),
-        ("ctrl+d", "open_dashboard"),
-        ("alt+d", "copy_dashboard_url"),
-        ("alt+a", "approve"),
-        ("alt+x", "deny"),
-        ("ctrl+r", "submit_answer"),
-        ("ctrl+c", "interrupt"),
-        ("escape", "cancel_transient"),
-    }
-
-    assert expected.issubset(
-        {(binding.key, binding.action) for binding in TUI_KEY_BINDINGS}
-    )
 
 
 def test_tui_app_submits_multiline_prompt_and_clears_draft() -> None:
