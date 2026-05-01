@@ -1003,7 +1003,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R453: Split Task And Background Projection Application By Event Family
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R400`
 - Goal: reduce broad projection modules such as
   [sqlite_projection_tasks.py](../src/glassbox/store/sqlite_projection_tasks.py)
@@ -1029,6 +1029,24 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - task and background projection behavior remains stable while event-family
     handlers are easier to review
+- Completed notes:
+  - `sqlite_projection_tasks.py` is now a thin coordinator over task plan,
+    step, verification, lifecycle, and shared SQL helper modules.
+  - `sqlite_projection_background_jobs.py` is now a thin coordinator over
+    background-job creation, lifecycle/progress/failure, pause/cancel,
+    retry/recovery, and shared SQL helper modules.
+  - Projection table names, columns, migration order, and coordinator imports
+    remain unchanged; the extracted helpers stay below runtime, CLI, and web
+    layers.
+  - Guardrails now cap the new projection-family helpers and preserve store
+    dependency direction.
+  - Validation: `uv run pytest tests/integration/test_sqlite_projections.py`,
+    `uv run pytest tests/integration/test_projection_rebuild.py`,
+    `uv run pytest tests/integration/test_background_jobs.py`,
+    `uv run pytest tests/integration/test_web_task_routes.py`,
+    `uv run pytest tests/unit/test_architecture_guardrails.py`,
+    `uv run ruff format --check ...`, `uv run ruff check ...`, and
+    `uv run ty check ...` for the touched projection and guardrail modules.
 
 ---
 

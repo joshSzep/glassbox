@@ -2447,6 +2447,7 @@ src/glassbox/
         __init__.py
         sqlite_events.py
         sqlite_fork.py
+        sqlite_projection_*.py
         sqlite_projections.py
         sqlite_queries.py
         sqlite_query_*.py

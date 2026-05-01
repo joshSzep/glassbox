@@ -1616,18 +1616,77 @@ V11_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
     (
         SRC_ROOT / "store" / "sqlite_projection_tasks.py",
-        630,
+        80,
         (
-            "v11 task projection handlers should move new event-family "
-            "behavior into focused projection helpers"
+            "v11 task projection coordinator should stay a thin facade over "
+            "event-family projection helpers"
         ),
     ),
     (
-        SRC_ROOT / "store" / "sqlite_background_jobs.py",
-        580,
+        SRC_ROOT / "store" / "sqlite_projection_task_common.py",
+        260,
+        "v11 shared task projection SQL helpers should stay focused",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_task_plan.py",
+        90,
+        "v11 task-plan projection behavior should stay owned by its helper",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_task_steps.py",
+        140,
+        "v11 task-step projection behavior should stay owned by its helper",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_task_verifications.py",
+        230,
+        ("v11 task-verification projection behavior should stay owned by its helper"),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_task_lifecycle.py",
+        100,
         (
-            "v11 background-job projection handlers should move new "
-            "event-family behavior into focused projection helpers"
+            "v11 task pause, resume, and terminal-state projections should "
+            "stay owned by their helper"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_background_jobs.py",
+        80,
+        (
+            "v11 background-job projection coordinator should stay a thin "
+            "facade over event-family projection helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_background_job_common.py",
+        80,
+        "v11 shared background-job projection SQL helpers should stay focused",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_background_job_creation.py",
+        90,
+        "v11 background-job creation projections should stay owned by their helper",
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_background_job_lifecycle.py",
+        160,
+        ("v11 background-job lifecycle projections should stay owned by their helper"),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_background_job_control.py",
+        90,
+        (
+            "v11 background-job pause and cancellation projections should stay "
+            "owned by their helper"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_background_job_recovery.py",
+        100,
+        (
+            "v11 background-job retry and recovery projections should stay "
+            "owned by their helper"
         ),
     ),
 )
@@ -2087,10 +2146,75 @@ V11_PYTHON_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
         ("v11 task projection handlers must stay below runtime and transport layers"),
     ),
     (
-        SRC_ROOT / "store" / "sqlite_background_jobs.py",
+        SRC_ROOT / "store" / "sqlite_projection_task_common.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        ("v11 task projection helpers must stay below runtime and transport layers"),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_task_plan.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        ("v11 task projection helpers must stay below runtime and transport layers"),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_task_steps.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        ("v11 task projection helpers must stay below runtime and transport layers"),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_task_verifications.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        ("v11 task projection helpers must stay below runtime and transport layers"),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_task_lifecycle.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        ("v11 task projection helpers must stay below runtime and transport layers"),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_background_jobs.py",
         ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
         (
             "v11 background-job projection handlers must stay below runtime "
+            "and transport layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_background_job_common.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        (
+            "v11 background-job projection helpers must stay below runtime "
+            "and transport layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_background_job_creation.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        (
+            "v11 background-job projection helpers must stay below runtime "
+            "and transport layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_background_job_lifecycle.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        (
+            "v11 background-job projection helpers must stay below runtime "
+            "and transport layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_background_job_control.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        (
+            "v11 background-job projection helpers must stay below runtime "
+            "and transport layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_background_job_recovery.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        (
+            "v11 background-job projection helpers must stay below runtime "
             "and transport layers"
         ),
     ),

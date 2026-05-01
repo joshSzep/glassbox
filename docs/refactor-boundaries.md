@@ -247,10 +247,13 @@ packaging concerns now sit next to one another:
   `turn_tool_attempt_heartbeats.py` own context/tool-output artifact side
   effects, replay capture forwarding, and classified tool-attempt heartbeat
   construction.
-- `src/glassbox/store/sqlite_projection_tasks.py` and
-  `src/glassbox/store/sqlite_background_jobs.py` are rebuildable and coherent,
-  but should move high-pressure event-family handlers into focused helpers if
-  v11 follow-on changes add more task or background-job projection cues.
+- The v11 projection split keeps
+  `src/glassbox/store/sqlite_projection_tasks.py` and
+  `src/glassbox/store/sqlite_projection_background_jobs.py` as stable
+  projection coordinators. Task plan, step, verification, and lifecycle SQL
+  handlers now live in focused `sqlite_projection_task_*` helpers, while
+  background-job creation, lifecycle, pause/cancel, retry, and recovery SQL
+  handlers live in focused `sqlite_projection_background_job_*` helpers.
 
 Large files that are primarily model-heavy and should not be split just for
 line count include core event/model/type modules, generated frontend API types,
@@ -532,14 +535,17 @@ The `store` package should not own runtime orchestration, CLI formatting, or web
 #### V11 Projection Sub-Boundaries
 
 - Task projection application should remain rebuildable from canonical task,
-  task-step, pause/resume, budget, and verification events. If handlers split,
-  task plan, step, pause/resume, and verification projection helpers should sit
-  below repository adapters and preserve coordinator imports.
+  task-step, pause/resume, budget, and verification events. The
+  `sqlite_projection_tasks.py` coordinator should preserve the compatibility
+  import used by `sqlite_projections.py`, while task plan, step,
+  pause/resume/terminal-state, and verification helpers sit below repository
+  adapters.
 - Background-job projection application should remain rebuildable from canonical
   job creation, lifecycle, retry, pause/cancel, progress, and recovery events.
-  Creation, lifecycle, retry, pause/cancel, and recovery handler helpers may
-  split only if table shape, migration order, and rebuild outcomes stay
-  unchanged.
+  The `sqlite_projection_background_jobs.py` coordinator should preserve the
+  compatibility import used by `sqlite_projections.py`, while creation,
+  lifecycle/progress, pause/cancel, retry, and recovery helpers keep table
+  shape, migration order, and rebuild outcomes unchanged.
 - Projection helper extraction should not introduce abstract projection
   frameworks, dynamic handler discovery, runtime service imports, HTTP models,
   CLI formatters, or frontend state.
