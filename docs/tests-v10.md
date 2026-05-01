@@ -675,7 +675,7 @@ Validation evidence:
 
 ### GBX-T941: Cache OpenAPI Schema Construction Where Tests Only Inspect Shape
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-T900`
 - Goal: reduce repeated FastAPI/OpenAPI construction costs in schema tests
 - Deliverables:
@@ -691,6 +691,22 @@ Validation evidence:
   - `uv run pytest tests/integration/test_openapi_schema.py --durations=20 --durations-min=0.01 -q`
 - Done when:
   - schema tests retain coverage while avoiding unnecessary repeated app setup
+
+Validation evidence:
+
+- Added a module-scoped `openapi_schema` fixture for the two shape-inspection
+  tests in `test_openapi_schema.py`.
+- Kept `test_openapi_schema_export_is_deterministic` building the schema twice
+  so determinism coverage remains independent of fixture caching.
+- Before: `uv run pytest tests/integration/test_openapi_schema.py --durations=20 --durations-min=0.01 -q`:
+  3 passed in 2.36s
+- After: `uv run pytest tests/integration/test_openapi_schema.py --durations=20 --durations-min=0.01 -q`:
+  3 passed in 1.93s
+- `uv run ruff format --check tests/integration/test_openapi_schema.py`:
+  1 file already formatted
+- `uv run ruff check tests/integration/test_openapi_schema.py`:
+  all checks passed
+- `uv run ty check`: all checks passed
 
 ---
 

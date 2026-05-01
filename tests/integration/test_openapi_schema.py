@@ -1,8 +1,16 @@
 """Integration checks for the exported FastAPI OpenAPI schema."""
 
 import json
+from typing import Any
+
+import pytest
 
 from glassbox.web.openapi_schema import build_openapi_schema
+
+
+@pytest.fixture(scope="module")
+def openapi_schema() -> dict[str, Any]:
+    return build_openapi_schema()
 
 
 def test_openapi_schema_export_is_deterministic() -> None:
@@ -12,8 +20,10 @@ def test_openapi_schema_export_is_deterministic() -> None:
     assert json.dumps(first, sort_keys=True) == json.dumps(second, sort_keys=True)
 
 
-def test_openapi_schema_includes_browser_transport_contracts() -> None:
-    schema = build_openapi_schema()
+def test_openapi_schema_includes_browser_transport_contracts(
+    openapi_schema: dict[str, Any],
+) -> None:
+    schema = openapi_schema
     paths = schema["paths"]
     components = schema["components"]["schemas"]
 
@@ -69,8 +79,10 @@ def test_openapi_schema_includes_browser_transport_contracts() -> None:
     assert "HTTPValidationError" in components
 
 
-def test_openapi_schema_documents_action_error_responses() -> None:
-    schema = build_openapi_schema()
+def test_openapi_schema_documents_action_error_responses(
+    openapi_schema: dict[str, Any],
+) -> None:
+    schema = openapi_schema
     approval_responses = schema["paths"][
         "/sessions/{session_id}/approvals/{approval_id}"
     ]["post"]["responses"]
