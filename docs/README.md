@@ -229,6 +229,9 @@ path.
 - [live-cockpit-evidence-v11.md](./live-cockpit-evidence-v11.md): v11 live
   dashboard evidence protocol, scenario matrix, `.glassbox/releases/`
   directory convention, manual and automated evidence split, and non-claims
+- [accessibility-review-v11.md](./accessibility-review-v11.md): v11 named
+  terminal keyboard/plain-mode and dashboard keyboard pairing evidence,
+  supported claims, screen-reader non-claims, and follow-ups
 - [manual-v9-release-validation.md](./manual-v9-release-validation.md): retained
   GBX-992 manual validation pass for first-run, dashboard cockpit, recovery,
   provider, package, accessibility, residual-risk, and go/no-go evidence

@@ -473,6 +473,35 @@ def test_v11_live_cockpit_evidence_protocol_covers_scenarios_and_non_claims() ->
     assert "live-cockpit-evidence-v11.md" in docs_readme
 
 
+def test_v11_accessibility_review_records_named_pairings_and_non_claims() -> None:
+    content = (REPO_ROOT / "docs" / "accessibility-review-v11.md").read_text(
+        encoding="utf-8"
+    )
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Environment",
+        "## Named Pairings",
+        "Terminal keyboard pairing",
+        "Terminal plain-mode pairing",
+        "Dashboard keyboard pairing",
+        "macOS VoiceOver",
+        "Not executed",
+        "54 passed",
+        "5 passed",
+        "4 passed",
+        "## Supported Claims",
+        "## Non-Claims And Follow-Ups",
+        "not formal WCAG, VPAT, or screen-reader certification",
+        "live-cockpit-evidence-v11.md",
+        "terminal-accessibility-review-v7.md",
+        "dashboard-accessibility-review-v8.md",
+    ):
+        assert required_text in content
+
+    assert "accessibility-review-v11.md" in docs_readme
+
+
 def test_v9_dashboard_cockpit_contract_covers_operator_priority_model() -> None:
     content = (REPO_ROOT / "docs" / "dashboard-cockpit-contract.md").read_text(
         encoding="utf-8"

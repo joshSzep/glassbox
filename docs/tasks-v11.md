@@ -593,7 +593,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1132: Execute Named Accessibility Pairings
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1130`
 - Goal: replace broad accessibility non-claims with named, bounded evidence
 - Deliverables:
