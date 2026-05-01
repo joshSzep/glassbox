@@ -122,6 +122,13 @@ def test_observability_status_json_reports_health_lag_and_verification(
     assert any(
         cue["key"] == "repository-index" for cue in payload["knowledge_posture"]["cues"]
     )
+    repository_cue = next(
+        cue
+        for cue in payload["knowledge_posture"]["cues"]
+        if cue["key"] == "repository-index"
+    )
+    assert repository_cue["provenance"][0]["source_kind"] == "repository-index"
+    assert repository_cue["provenance"][0]["path"].endswith("repository-index.json")
     assert "glassbox projection rebuild --all" in payload["next_actions"]
 
 
@@ -160,6 +167,7 @@ def test_observability_status_text_reports_next_actions(
     assert "Artifacts:" in captured.out
     assert "Verification: not run" in captured.out
     assert "Knowledge posture:" in captured.out
+    assert "provenance:" in captured.out
     assert "Safe workflow summary:" in captured.out
     assert "Daemon: glassbox daemon status --cwd ." in captured.out
     assert "Projections: glassbox projection check --all --cwd ." in captured.out

@@ -54,6 +54,8 @@ def test_openapi_schema_includes_browser_transport_contracts(
     assert "SessionAggregateResponse" in components
     assert "WorkspaceKnowledgePosture" in components
     assert "KnowledgePostureCue" in components
+    assert "KnowledgeCueProvenance" in components
+    assert "KnowledgeCueSourceKind" in components
     assert "SessionCheckpointPageResponse" in components
     assert "SessionSnapshotResponse" in components
     assert "TaskCheckpointResponse" in components
@@ -84,6 +86,10 @@ def test_openapi_schema_includes_browser_transport_contracts(
             "anyOf"
         ][0]["$ref"]
         == "#/components/schemas/WorkspaceKnowledgePosture"
+    )
+    assert (
+        components["KnowledgePostureCue"]["properties"]["provenance"]["items"]["$ref"]
+        == "#/components/schemas/KnowledgeCueProvenance"
     )
 
 

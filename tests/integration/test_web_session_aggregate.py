@@ -336,6 +336,15 @@ def test_get_sessions_aggregate_returns_priority_counts_and_runtime_summary(
                 "glassbox repo index status --cwd ."
                 in body["knowledge_posture"]["next_actions"]
             )
+            repository_cue = next(
+                cue
+                for cue in body["knowledge_posture"]["cues"]
+                if cue["key"] == "repository-index"
+            )
+            assert repository_cue["provenance"][0]["source_kind"] == "repository-index"
+            assert repository_cue["provenance"][0]["path"].endswith(
+                "repository-index.json"
+            )
             assert [item["session_id"] for item in body["sessions"]] == [
                 str(approval_state.session_id),
                 str(question_state.session_id),

@@ -1938,6 +1938,46 @@ export interface components {
       freshness_reason: string;
     };
     /**
+     * KnowledgeCueProvenance
+     * @description Bounded source reference behind one knowledge posture cue.
+     */
+    KnowledgeCueProvenance: {
+      /** Artifact Id */
+      artifact_id?: string | null;
+      /** Detail */
+      detail?: string | null;
+      /** Freshness */
+      freshness?: string | null;
+      /** Label */
+      label: string;
+      /** Last Sequence */
+      last_sequence?: number | null;
+      /** Path */
+      path?: string | null;
+      /** Session Id */
+      session_id?: string | null;
+      /** Source End Sequence */
+      source_end_sequence?: number | null;
+      /** Source Id */
+      source_id?: string | null;
+      source_kind: components["schemas"]["KnowledgeCueSourceKind"];
+      /** Source Start Sequence */
+      source_start_sequence?: number | null;
+      /** Task Id */
+      task_id?: string | null;
+      /** Timestamp */
+      timestamp?: string | null;
+    };
+    /** @enum {string} */
+    KnowledgeCueSourceKind:
+      | "workspace-memory"
+      | "repository-index"
+      | "checkpoint"
+      | "context-compaction"
+      | "verification-summary"
+      | "provider-evidence"
+      | "session";
+    /**
      * KnowledgePostureCue
      * @description One derived freshness cue for a local knowledge source.
      */
@@ -1948,6 +1988,8 @@ export interface components {
       inspect_commands?: string[];
       /** Key */
       key: string;
+      /** Provenance */
+      provenance?: components["schemas"]["KnowledgeCueProvenance"][];
       /**
        * Source Count
        * @default 0

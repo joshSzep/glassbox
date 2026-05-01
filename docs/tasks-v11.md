@@ -839,7 +839,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1162: Add Provenance Drill-Down For Knowledge Cues
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1161`
 - Goal: make knowledge posture auditable rather than decorative
 - Deliverables:
@@ -858,6 +858,14 @@ Each phase below corresponds to one concrete milestone.
   - frontend detail tests if dashboard changes
 - Done when:
   - a stale or advisory knowledge cue can be traced back to local evidence
+- Completed:
+  - added bounded provenance references to each knowledge cue for memory,
+    repository index, checkpoint, compaction, verification, provider evidence,
+    and active sessions without checkpoints
+  - surfaced the top provenance reference in `observability status` text output
+    while preserving full JSON/API drill-down data
+  - regenerated OpenAPI/frontend types and documented stale knowledge
+    investigation examples
 
 ---
 

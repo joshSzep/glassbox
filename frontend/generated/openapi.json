@@ -2133,6 +2133,158 @@
         "title": "InvalidateContextCompactionResponse",
         "type": "object"
       },
+      "KnowledgeCueProvenance": {
+        "additionalProperties": false,
+        "description": "Bounded source reference behind one knowledge posture cue.",
+        "properties": {
+          "artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifact Id"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "freshness": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Freshness"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "last_sequence": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Sequence"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          },
+          "source_end_sequence": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source End Sequence"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "source_kind": {
+            "$ref": "#/components/schemas/KnowledgeCueSourceKind"
+          },
+          "source_start_sequence": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Start Sequence"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "timestamp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timestamp"
+          }
+        },
+        "required": ["label", "source_kind"],
+        "title": "KnowledgeCueProvenance",
+        "type": "object"
+      },
+      "KnowledgeCueSourceKind": {
+        "enum": [
+          "workspace-memory",
+          "repository-index",
+          "checkpoint",
+          "context-compaction",
+          "verification-summary",
+          "provider-evidence",
+          "session"
+        ],
+        "type": "string"
+      },
       "KnowledgePostureCue": {
         "additionalProperties": false,
         "description": "One derived freshness cue for a local knowledge source.",
@@ -2151,6 +2303,13 @@
           "key": {
             "title": "Key",
             "type": "string"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeCueProvenance"
+            },
+            "title": "Provenance",
+            "type": "array"
           },
           "source_count": {
             "default": 0,

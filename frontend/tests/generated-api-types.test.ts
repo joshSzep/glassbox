@@ -19,7 +19,24 @@ describe("generated OpenAPI types", () => {
     const snapshotId: keyof SnapshotResponse = "session_id";
     const aggregateKnowledgeKey: keyof AggregateResponse = "knowledge_posture";
     const posture: components["schemas"]["WorkspaceKnowledgePosture"] = {
-      cues: [],
+      cues: [
+        {
+          authoritative_source: "repository-index.json",
+          inspect_commands: ["glassbox repo index status --cwd ."],
+          key: "repository-index",
+          provenance: [
+            {
+              label: "Repository index snapshot",
+              path: ".glassbox/repository-index.json",
+              source_kind: "repository-index",
+            },
+          ],
+          source_count: 1,
+          status: "fresh",
+          summary: "Repository index is fresh.",
+          title: "Repository Index",
+        },
+      ],
       next_actions: [],
       overall_status: "missing",
     };
@@ -30,6 +47,7 @@ describe("generated OpenAPI types", () => {
     expect(snapshotId).toBe("session_id");
     expect(aggregateKnowledgeKey).toBe("knowledge_posture");
     expect(posture.overall_status).toBe("missing");
+    expect(posture.cues[0]?.provenance?.[0]?.source_kind).toBe("repository-index");
     expect(taskPageKey).toBe("items");
   });
 });

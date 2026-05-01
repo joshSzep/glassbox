@@ -47,9 +47,39 @@ authority.
 `glassbox observability status --cwd .` prints the overall knowledge posture and
 the highest-signal cues next to runtime, projection, artifact, verification, and
 provider health. `--json` includes a `knowledge_posture` object with the same
-cue list and safe inspection commands.
+cue list, safe inspection commands, and bounded provenance references.
 
 The dashboard workspace overview rail shows the aggregate posture as a compact
 cue. Live blockers, approvals, questions, failed sessions, and degraded
 projections still keep priority; knowledge posture is a trust signal operators
 can inspect before relying on local context for continuation.
+
+## Provenance Drill-Down
+
+Each cue can include a `provenance` list. These references name local evidence
+without duplicating raw artifact contents:
+
+- memory cues include memory IDs, source session IDs, source sequences, and
+  artifact IDs when the memory was artifact-backed
+- repository-index cues include the retained index path, freshness, and build
+  timestamp when available
+- checkpoint and compaction cues include session IDs, task IDs, artifact IDs,
+  source event ranges, last projected sequence, and freshness
+- verification cues include the retained eval summary path and profile ID
+- provider evidence cues include retained summary path, freshness policy state,
+  provider, model, and generation timestamp
+
+For a stale repository cue, inspect the path and freshness first:
+
+```bash
+uv run glassbox observability status --cwd . --json
+uv run glassbox repo index status --cwd . --json
+```
+
+For stale compaction or missing checkpoint provenance, use the referenced
+session ID and source event range to inspect the session before mutating state:
+
+```bash
+uv run glassbox session status SESSION_ID --cwd .
+uv run glassbox session compactions SESSION_ID --cwd .
+```

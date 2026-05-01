@@ -6,6 +6,7 @@ from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.daemon import inspect_runtime_owner
+from glassbox.runtime.knowledge_posture import KnowledgeCueProvenance
 from glassbox.runtime.knowledge_posture import WorkspaceKnowledgePosture
 from glassbox.runtime.knowledge_posture import build_workspace_knowledge_posture
 from glassbox.runtime.observability import WorkspaceObservabilityReport
@@ -141,6 +142,10 @@ def _print_observability_report(
         print(f"Knowledge posture: {knowledge_posture.overall_status}")
         for cue in knowledge_posture.cues[:4]:
             print(f"  - {cue.title}: {cue.status}; {cue.summary}")
+            if cue.provenance:
+                print(
+                    f"    provenance: {_format_knowledge_provenance(cue.provenance[0])}"
+                )
     for line in _format_observability_safe_workflow_lines(report):
         print(line)
     if not report.next_actions:
@@ -187,3 +192,25 @@ def _format_observability_safe_workflow_lines(
             f"{report.branch_searches.latest_needs_review_search_id} --cwd ."
         )
     return lines
+
+
+def _format_knowledge_provenance(provenance: KnowledgeCueProvenance) -> str:
+    parts = [provenance.label, provenance.source_kind]
+    if provenance.source_id is not None:
+        parts.append(f"id {provenance.source_id}")
+    if provenance.session_id is not None:
+        parts.append(f"session {provenance.session_id}")
+    if provenance.source_start_sequence is not None:
+        end_sequence = (
+            provenance.source_end_sequence or provenance.source_start_sequence
+        )
+        parts.append(f"events {provenance.source_start_sequence}-{end_sequence}")
+    if provenance.artifact_id is not None:
+        parts.append(f"artifact {provenance.artifact_id}")
+    if provenance.path is not None:
+        parts.append(provenance.path)
+    if provenance.timestamp is not None:
+        parts.append(provenance.timestamp)
+    if provenance.freshness is not None:
+        parts.append(f"freshness {provenance.freshness}")
+    return "; ".join(parts)
