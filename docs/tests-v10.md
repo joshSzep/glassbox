@@ -445,7 +445,7 @@ Validation evidence:
 
 ### GBX-T920: Split Real Daemon Smoke From CLI Formatting And Guard Tests
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-T911`
 - Goal: keep daemon process confidence while avoiding full daemon startup for
   assertions that can run against records, fakes, or in-process helpers
@@ -468,6 +468,27 @@ Validation evidence:
 - Done when:
   - the daemon file no longer pays a real process lifecycle for every nearby CLI
     assertion
+
+Validation evidence:
+
+- Converted daemon status JSON shape coverage to an in-process
+  `RuntimeOwnerStatus` fixture instead of starting a daemon only to inspect
+  formatting.
+- Converted the TUI attach daemon-routing assertion to a mocked healthy runtime
+  owner plus mocked TUI handoff; it still verifies the daemon dashboard URL is
+  passed through.
+- Kept the real daemon smoke set for daemon ownership, stale recovery,
+  port-conflict handling, background job execution, live attach, observation,
+  cancellation, and historical-session rejection.
+- `uv run pytest tests/integration/test_daemon_runtime.py -q`:
+  21 passed in 16.01s
+- `uv run pytest -m daemon --durations=40 --durations-min=0.01 -q`:
+  9 passed, 1116 deselected in 15.67s
+- `uv run ruff format --check tests/integration/test_daemon_runtime.py`:
+  1 file already formatted
+- `uv run ruff check tests/integration/test_daemon_runtime.py`:
+  all checks passed
+- `uv run ty check`: all checks passed
 
 ### GBX-T921: Add Shared Daemon Smoke Fixture With Strong Cleanup
 

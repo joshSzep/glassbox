@@ -18,6 +18,8 @@ from glassbox.core.events import EventEnvelope
 from glassbox.core.events import SessionCompleted
 from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import BackgroundJobState
+from glassbox.runtime.daemon import RuntimeOwnerRecord
+from glassbox.runtime.daemon import RuntimeOwnerStatus
 from glassbox.runtime.daemon import stop_runtime_owner
 from glassbox.store.repositories import SQLiteSessionRepository
 from glassbox.store.sqlite import open_database
@@ -196,56 +198,65 @@ def test_daemon_start_status_duplicate_rejection_and_stop(
         _stop_daemon_if_running(tmp_path)
 
 
-@pytest.mark.daemon
 def test_daemon_status_json_reports_discovery_and_health(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     port = _reserve_port()
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
 
-    try:
-        exit_code = main(
-            [
-                "daemon",
-                "start",
-                "--cwd",
-                str(tmp_path),
-                "--port",
-                str(port),
-            ]
-        )
-        _ = capsys.readouterr()
+    monkeypatch.setattr(
+        "glassbox.cli.daemon_commands.inspect_runtime_owner",
+        lambda cwd, db_path=None: RuntimeOwnerStatus(
+            state="running",
+            record=RuntimeOwnerRecord(
+                pid=12345,
+                workspace_root=tmp_path.resolve(),
+                database_path=db_path or tmp_path / ".glassbox" / "glassbox.sqlite3",
+                host="127.0.0.1",
+                port=port,
+                dashboard_url=f"http://127.0.0.1:{port}/",
+                started_at=datetime(2025, 1, 1, tzinfo=UTC),
+            ),
+            health="ok",
+        ),
+    )
 
-        assert exit_code == 0
+    exit_code = main(
+        [
+            "daemon",
+            "status",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
 
-        exit_code = main(["daemon", "status", "--cwd", str(tmp_path), "--json"])
-        captured = capsys.readouterr()
-        payload = json.loads(captured.out)
-
-        assert exit_code == 0
-        assert payload["state"] == "running"
-        assert payload["health"] == "ok"
-        assert payload["workspace_root"] == str(tmp_path.resolve())
-        assert payload["dashboard_url"] == f"http://127.0.0.1:{port}/"
-        assert payload["health_url"] == f"http://127.0.0.1:{port}/healthz"
-        assert payload["detail"] == (
-            "Daemon owns live workspace mutations and is healthy."
-        )
-        assert payload["next_actions"][0].startswith(
-            "glassbox session attach SESSION_ID --cwd "
-        )
-        assert payload["metadata_path"].endswith(".glassbox/runtime-owner.json")
-        assert payload["stdout_log_path"].endswith(".glassbox/runtime-owner.stdout.log")
-        assert payload["stderr_log_path"].endswith(".glassbox/runtime-owner.stderr.log")
-        assert payload["commands"]["attach"].startswith(
-            "glassbox session attach SESSION_ID --cwd "
-        )
-        assert payload["commands"]["cancel"].startswith(
-            "glassbox session cancel SESSION_ID --cwd "
-        )
-        assert payload["commands"]["status_json"].endswith(" --json")
-    finally:
-        _stop_daemon_if_running(tmp_path)
+    assert exit_code == 0
+    assert payload["state"] == "running"
+    assert payload["health"] == "ok"
+    assert payload["workspace_root"] == str(tmp_path.resolve())
+    assert payload["dashboard_url"] == f"http://127.0.0.1:{port}/"
+    assert payload["health_url"] == f"http://127.0.0.1:{port}/healthz"
+    assert payload["detail"] == "Daemon owns live workspace mutations and is healthy."
+    assert payload["next_actions"][0].startswith(
+        "glassbox session attach SESSION_ID --cwd "
+    )
+    assert payload["metadata_path"].endswith(".glassbox/runtime-owner.json")
+    assert payload["stdout_log_path"].endswith(".glassbox/runtime-owner.stdout.log")
+    assert payload["stderr_log_path"].endswith(".glassbox/runtime-owner.stderr.log")
+    assert payload["commands"]["attach"].startswith(
+        "glassbox session attach SESSION_ID --cwd "
+    )
+    assert payload["commands"]["cancel"].startswith(
+        "glassbox session cancel SESSION_ID --cwd "
+    )
+    assert payload["commands"]["status_json"].endswith(" --json")
 
 
 @pytest.mark.daemon
@@ -710,14 +721,32 @@ def test_cli_cancel_routes_to_daemon_and_reports_idle_conflict(
         _stop_daemon_if_running(tmp_path)
 
 
-@pytest.mark.daemon
 def test_cli_attach_tui_routes_live_session_through_daemon(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    db_path, session_id = _run_baseline_session(tmp_path)
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = uuid4()
     dashboard_urls: list[str] = []
+    port = _reserve_port()
+
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_commands.inspect_runtime_owner",
+        lambda cwd, db_path=None: RuntimeOwnerStatus(
+            state="running",
+            record=RuntimeOwnerRecord(
+                pid=12345,
+                workspace_root=tmp_path.resolve(),
+                database_path=db_path or tmp_path / ".glassbox" / "glassbox.sqlite3",
+                host="127.0.0.1",
+                port=port,
+                dashboard_url=f"http://127.0.0.1:{port}/",
+                started_at=datetime(2025, 1, 1, tzinfo=UTC),
+            ),
+            health="ok",
+        ),
+    )
 
     monkeypatch.setattr(
         "glassbox.cli.interactive_commands.interactive_launch_options_from_args",
@@ -743,41 +772,22 @@ def test_cli_attach_tui_routes_live_session_through_daemon(
         fake_attach_tui_via_daemon,
     )
 
-    port = _reserve_port()
-    try:
-        exit_code = main(
-            [
-                "daemon",
-                "start",
-                "--cwd",
-                str(tmp_path),
-                "--db-path",
-                str(db_path),
-                "--port",
-                str(port),
-            ]
-        )
-        _ = capsys.readouterr()
-        assert exit_code == 0
+    exit_code = main(
+        [
+            "session",
+            "attach",
+            str(session_id),
+            "--tui",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    _ = capsys.readouterr()
 
-        exit_code = main(
-            [
-                "session",
-                "attach",
-                str(session_id),
-                "--tui",
-                "--cwd",
-                str(tmp_path),
-                "--db-path",
-                str(db_path),
-            ]
-        )
-        _ = capsys.readouterr()
-
-        assert exit_code == 0
-        assert dashboard_urls == [f"http://127.0.0.1:{port}/"]
-    finally:
-        _stop_daemon_if_running(tmp_path)
+    assert exit_code == 0
+    assert dashboard_urls == [f"http://127.0.0.1:{port}/"]
 
 
 def test_cli_attach_reports_live_runtime_unavailable(
