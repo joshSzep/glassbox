@@ -457,7 +457,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R421: Split Branch Decision Support Into Evidence, Verification, Cost, Risk, And Follow-Up Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R400`
 - Goal: reduce
   [branch_decision_support.py](../src/glassbox/runtime/branch_decision_support.py)
@@ -485,6 +485,19 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - candidate decision support remains stable while evidence, verification,
     cost, risk, and follow-up logic are separately owned
+- Completed notes:
+  - `branch_decision_support.py` is now a compatibility facade over focused
+    evidence, changed-file, verification, cost, risk, follow-up, and model
+    helpers.
+  - Guardrails now cap the facade and helper modules so branch decision-support
+    expansion lands in the intended owner.
+  - Validation: `uv run pytest tests/unit/test_branch_search.py`,
+    `uv run pytest tests/unit/test_architecture_guardrails.py`,
+    `uv run pytest tests/integration/test_cli_branch_search_commands.py`,
+    `uv run pytest tests/integration/test_web_branch_search_routes.py`,
+    `uv run ruff format --check src/glassbox/runtime/branch_decision*.py tests/unit/test_architecture_guardrails.py tests/unit/test_branch_search.py`,
+    `uv run ruff check src/glassbox/runtime/branch_decision*.py tests/unit/test_architecture_guardrails.py tests/unit/test_branch_search.py`,
+    and `uv run ty check src/glassbox/runtime/branch_decision_support.py src/glassbox/runtime/branch_decision_models.py src/glassbox/runtime/branch_decision_evidence.py src/glassbox/runtime/branch_decision_files.py src/glassbox/runtime/branch_decision_verification.py src/glassbox/runtime/branch_decision_cost.py src/glassbox/runtime/branch_decision_risk.py src/glassbox/runtime/branch_decision_followup.py`.
 
 ### GBX-R422: Split Frontend Knowledge And Branch Sections Into Summary, Detail, Action, And Evidence Modules
 

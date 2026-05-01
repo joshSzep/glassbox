@@ -1220,10 +1220,64 @@ V11_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
     (
         SRC_ROOT / "runtime" / "branch_decision_support.py",
-        430,
+        140,
         (
-            "v11 branch decision support should move new evidence, "
-            "verification, cost, risk, and follow-up behavior into helpers"
+            "v11 branch_decision_support should stay a thin compatibility "
+            "facade over decision evidence, verification, cost, risk, and "
+            "follow-up helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "branch_decision_models.py",
+        120,
+        "v11 branch decision support API models should stay owned by models.py",
+    ),
+    (
+        SRC_ROOT / "runtime" / "branch_decision_evidence.py",
+        80,
+        (
+            "v11 branch decision retained evidence extraction should stay "
+            "owned by branch_decision_evidence.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "branch_decision_files.py",
+        40,
+        (
+            "v11 branch decision changed-file posture should stay owned by "
+            "branch_decision_files.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "branch_decision_verification.py",
+        140,
+        (
+            "v11 branch decision verification recommendations should stay "
+            "owned by branch_decision_verification.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "branch_decision_cost.py",
+        40,
+        (
+            "v11 branch decision cost estimates should stay owned by "
+            "branch_decision_cost.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "branch_decision_risk.py",
+        70,
+        (
+            "v11 branch decision risk and accepted-risk posture should stay "
+            "owned by branch_decision_risk.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "branch_decision_followup.py",
+        60,
+        (
+            "v11 branch decision follow-up guidance should stay owned by "
+            "branch_decision_followup.py"
         ),
     ),
     (
@@ -1430,6 +1484,62 @@ V11_PYTHON_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
         (
             "v11 branch decision helpers must derive evidence without CLI or "
             "web presentation imports"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "branch_decision_models.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 branch decision models must stay independent from CLI and "
+            "web presentation imports"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "branch_decision_evidence.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 branch decision evidence helpers must stay independent from "
+            "CLI and web presentation imports"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "branch_decision_files.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 branch decision changed-file helpers must stay independent "
+            "from CLI and web presentation imports"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "branch_decision_verification.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 branch decision verification helpers must stay independent "
+            "from CLI and web presentation imports"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "branch_decision_cost.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 branch decision cost helpers must stay independent from CLI "
+            "and web presentation imports"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "branch_decision_risk.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 branch decision risk helpers must stay independent from CLI "
+            "and web presentation imports"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "branch_decision_followup.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 branch decision follow-up helpers must stay independent from "
+            "CLI and web presentation imports"
         ),
     ),
     (

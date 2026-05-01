@@ -40,6 +40,16 @@ Branch search remains decision support, not automatic integration. Selecting a
 candidate records operator intent and retained evidence; it does not merge,
 cherry-pick, rebase, or otherwise mutate the parent session history.
 
+## Implementation Boundary
+
+`glassbox.runtime.branch_decision_support` remains the stable facade consumed by
+CLI, API, dashboard, and handoff code. Candidate evidence, changed-file
+summaries, verification recommendations, cost estimates, risk and accepted-risk
+labels, follow-up guidance, and decision-support models live in focused
+`branch_decision_*` helpers. Those helpers derive from persisted
+branch-search/session/evidence records and existing eval recommendation rules;
+they do not merge, rebase, or infer unavailable diff state.
+
 Inspect searches:
 
 ```bash

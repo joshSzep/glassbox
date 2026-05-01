@@ -394,6 +394,14 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   verification recommendation delegation, cost estimates, risk/accepted-risk
   posture, and follow-up actions should be separate helpers over persisted
   branch-search/session/evidence records.
+- The v11 branch-decision split now keeps
+  `runtime/branch_decision_support.py` as the compatibility facade while
+  `branch_decision_evidence.py`, `branch_decision_files.py`,
+  `branch_decision_verification.py`, `branch_decision_cost.py`,
+  `branch_decision_risk.py`, `branch_decision_followup.py`, and
+  `branch_decision_models.py` own retained evidence pointers, changed-file
+  summaries, eval-recommendation delegation, cost estimates, risk and
+  accepted-risk labels, follow-up guidance, and API models.
 - Session export should keep package JSON and import compatibility stable while
   package metadata/event/projection collection, artifact manifests, handoff
   summary assembly, and deterministic redaction move into owned helpers.
