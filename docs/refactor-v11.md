@@ -671,7 +671,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R440: Split Status Formatters Into Session, Task, Observability, Policy, And Knowledge Modules
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R400`
 - Goal: reduce
   [status_formatters.py](../src/glassbox/cli/status_formatters.py) by
@@ -699,6 +699,22 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - status output remains behavior-compatible while each operator surface owns
     its formatting
+- Completed notes:
+  - `status_formatters.py` is now a compatibility facade over session status
+    formatting in `status_session.py`, while task status rendering lives in
+    `status_task.py`, observability status rendering lives in
+    `status_observability.py`, and knowledge provenance formatting lives in
+    `status_knowledge.py`.
+  - `task_commands.py` and `observability_commands.py` now keep command flow
+    separate from terminal status rendering without changing JSON output shape
+    or terminal copy.
+  - Guardrails now cap the status facade and new operator-surface helpers so
+    future CLI status behavior lands in the intended owner.
+  - Validation: `uv run pytest tests/unit/test_cli_renderer.py tests/unit/test_cli_facade_characterization.py tests/unit/test_architecture_guardrails.py`,
+    `uv run pytest tests/integration/test_cli_session_commands.py tests/integration/test_cli_task_commands.py tests/integration/test_observability_status.py`,
+    `uv run ruff format --check src/glassbox/cli/status_formatters.py src/glassbox/cli/status_session.py src/glassbox/cli/status_task.py src/glassbox/cli/status_observability.py src/glassbox/cli/status_knowledge.py src/glassbox/cli/task_commands.py src/glassbox/cli/observability_commands.py tests/unit/test_architecture_guardrails.py`,
+    `uv run ruff check src/glassbox/cli/status_formatters.py src/glassbox/cli/status_session.py src/glassbox/cli/status_task.py src/glassbox/cli/status_observability.py src/glassbox/cli/status_knowledge.py src/glassbox/cli/task_commands.py src/glassbox/cli/observability_commands.py tests/unit/test_architecture_guardrails.py`,
+    and `uv run ty check src/glassbox/cli/status_formatters.py src/glassbox/cli/status_session.py src/glassbox/cli/status_task.py src/glassbox/cli/status_observability.py src/glassbox/cli/status_knowledge.py src/glassbox/cli/task_commands.py src/glassbox/cli/observability_commands.py`.
 
 ### GBX-R441: Split Command Guide Data From Rendering And Workflow Grouping
 

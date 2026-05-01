@@ -206,9 +206,11 @@ packaging concerns now sit next to one another:
   today, but should split only along stable domain contracts if export,
   background-job, memory, task, branch-search, and session protocols keep
   growing together.
-- `src/glassbox/cli/status_formatters.py` and
-  `src/glassbox/cli/command_guide.py` own terminal and JSON presentation, but
-  should not duplicate runtime-derived safe-command or evidence posture logic.
+- `src/glassbox/cli/status_formatters.py` is now a compatibility facade over
+  session, task, observability, policy, and knowledge status helpers.
+  `src/glassbox/cli/command_guide.py` still owns broad terminal and JSON
+  guidance presentation and should not duplicate runtime-derived safe-command
+  or evidence posture logic.
 - `src/glassbox/cli/interactive_commands.py` and
   `src/glassbox/cli/parser_sessions.py` mix launch, daemon forwarding, local
   actions, autonomy option resolution, and parser wiring.
@@ -582,7 +584,13 @@ The `cli` package should not build its own parallel session-query logic when the
 - the CLI entry split now keeps parser registration and argument helpers in `src/glassbox/cli/parser.py`, top-level dispatch and error handling in `cli/entry.py`, shared runtime/rendering helpers in `cli/runtime_runner.py`, and preserves `glassbox.cli:main` as a thin compatibility wrapper
 - workflow-family command handlers now live in `cli/interactive_commands.py`, `session_state_commands.py`, `replay_eval_commands.py`, and `server_commands.py`, with shared path resolution in `cli/path_helpers.py` and direct imports from their owning CLI modules
 - long-lived terminal prompt routing, blocked-state messaging, prompt redraw context, and attach-session gating now live in `cli/interactive_session.py`, which owns the interactive input seams directly
-- status/runtime-context rendering now lives in `cli/status_formatters.py`, replay/eval report rendering and replay JSON/exit-code helpers live in `cli/replay_eval_formatters.py`, and CLI internals no longer route through `cli/__init__.py` for those helpers
+- status/runtime-context rendering now lives in `cli/status_session.py`, with
+  `cli/status_formatters.py` retained as a thin compatibility facade; task
+  status rendering lives in `cli/status_task.py`, observability status
+  rendering lives in `cli/status_observability.py`, knowledge provenance
+  formatting lives in `cli/status_knowledge.py`, replay/eval report rendering
+  and replay JSON/exit-code helpers live in `cli/replay_eval_formatters.py`,
+  and CLI internals no longer route through `cli/__init__.py` for those helpers
 
 #### V11 CLI Operator-Surface Sub-Boundaries
 

@@ -2338,6 +2338,10 @@ src/glassbox/
         server_commands.py
         session_state_commands.py
         status_formatters.py
+        status_knowledge.py
+        status_observability.py
+        status_session.py
+        status_task.py
         tui/
             app.py
             app_commands.py

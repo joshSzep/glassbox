@@ -1362,11 +1362,34 @@ V11_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
     (
         SRC_ROOT / "cli" / "status_formatters.py",
-        780,
+        90,
         (
-            "v11 status formatters should move new session, task, "
-            "observability, policy, and knowledge formatting into owned helpers"
+            "v11 status_formatters should stay a thin compatibility facade over "
+            "session, task, observability, policy, and knowledge helpers"
         ),
+    ),
+    (
+        SRC_ROOT / "cli" / "status_session.py",
+        760,
+        ("v11 session status formatting should stay owned by status_session.py"),
+    ),
+    (
+        SRC_ROOT / "cli" / "status_task.py",
+        180,
+        ("v11 task status formatting should stay owned by status_task.py"),
+    ),
+    (
+        SRC_ROOT / "cli" / "status_observability.py",
+        190,
+        (
+            "v11 observability status formatting should stay owned by "
+            "status_observability.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "status_knowledge.py",
+        60,
+        ("v11 knowledge status formatting should stay owned by status_knowledge.py"),
     ),
     (
         SRC_ROOT / "cli" / "command_guide.py",
