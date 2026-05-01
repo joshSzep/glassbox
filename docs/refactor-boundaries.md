@@ -367,6 +367,15 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   matching, owner/capability expansion, profile/stage expansion, release-gate
   command recommendation, and fallback/manual-guidance labeling to focused
   helpers. Live-provider canary guidance remains advisory and opt-in.
+- The v11 recommendation-engine split now keeps
+  `runtime/eval_recommendation_engine.py` as the orchestration owner and
+  `runtime/eval_recommendation_matching.py` as a compatibility facade while
+  `eval_recommendation_path_matching.py`,
+  `eval_recommendation_case_expansion.py`,
+  `eval_recommendation_profile_expansion.py`, and
+  `eval_recommendation_matching_common.py` own path/rule matching,
+  owner/capability expansion, profile/fallback expansion, and shared match
+  types.
 - Knowledge posture should derive only from canonical events, projection rows,
   retained artifacts/evidence, repository index data, checkpoint/compaction
   state, provider evidence, and active session records. Source collectors,

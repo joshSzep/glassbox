@@ -227,6 +227,20 @@ PYTHON_FACADE_RULES: tuple[
         ),
     ),
     (
+        SRC_ROOT / "runtime" / "eval_recommendation_matching.py",
+        (
+            "glassbox.runtime.eval_recommendation_case_expansion",
+            "glassbox.runtime.eval_recommendation_matching_common",
+            "glassbox.runtime.eval_recommendation_path_matching",
+            "glassbox.runtime.eval_recommendation_profile_expansion",
+        ),
+        80,
+        (
+            "eval_recommendation_matching should stay a thin compatibility "
+            "facade over v11 recommendation matching helpers"
+        ),
+    ),
+    (
         SRC_ROOT / "runtime" / "background_jobs.py",
         (
             "asyncio",
@@ -1109,6 +1123,43 @@ V11_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
         (
             "v11 eval recommendation engine should move new matching, "
             "capability expansion, release, and fallback behavior into helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "eval_recommendation_matching.py",
+        80,
+        (
+            "v11 eval recommendation matching should stay a thin compatibility "
+            "facade over matching helper modules"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "eval_recommendation_matching_common.py",
+        60,
+        "v11 eval recommendation matching shared types should stay small",
+    ),
+    (
+        SRC_ROOT / "runtime" / "eval_recommendation_path_matching.py",
+        180,
+        (
+            "v11 eval recommendation path and impact-rule matching should stay "
+            "owned by path_matching.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "eval_recommendation_case_expansion.py",
+        150,
+        (
+            "v11 eval recommendation owner and capability expansion should "
+            "stay owned by case_expansion.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "eval_recommendation_profile_expansion.py",
+        130,
+        (
+            "v11 eval recommendation stage and fallback expansion should stay "
+            "owned by profile_expansion.py"
         ),
     ),
     (

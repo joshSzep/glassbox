@@ -6,33 +6,35 @@ from glassbox.runtime.eval_coverage import DEFAULT_EVAL_COVERAGE_PATH
 from glassbox.runtime.eval_coverage import EvalCapabilityDefinition
 from glassbox.runtime.eval_coverage import load_eval_coverage_manifest
 from glassbox.runtime.eval_impact_rules import maybe_load_eval_impact_manifest
+from glassbox.runtime.eval_recommendation_case_expansion import (
+    add_capability_derived_case_recommendations,
+)
+from glassbox.runtime.eval_recommendation_case_expansion import (
+    add_owner_derived_case_recommendations,
+)
+from glassbox.runtime.eval_recommendation_case_expansion import build_impacted_stages
 from glassbox.runtime.eval_recommendation_common import dedupe_strings
 from glassbox.runtime.eval_recommendation_long_run_surfaces import (
     build_long_run_surface_recommendations,
 )
-from glassbox.runtime.eval_recommendation_matching import (
-    add_capability_derived_case_recommendations,
-)
-from glassbox.runtime.eval_recommendation_matching import (
-    add_direct_path_recommendations,
-)
-from glassbox.runtime.eval_recommendation_matching import (
-    add_fallback_profile_recommendations,
-)
-from glassbox.runtime.eval_recommendation_matching import (
-    add_owner_derived_case_recommendations,
-)
-from glassbox.runtime.eval_recommendation_matching import add_rule_match_recommendations
-from glassbox.runtime.eval_recommendation_matching import (
-    add_stage_derived_profile_recommendations,
-)
-from glassbox.runtime.eval_recommendation_matching import build_impacted_stages
-from glassbox.runtime.eval_recommendation_matching import match_rules
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReason
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReport
+from glassbox.runtime.eval_recommendation_path_matching import (
+    add_direct_path_recommendations,
+)
+from glassbox.runtime.eval_recommendation_path_matching import (
+    add_rule_match_recommendations,
+)
+from glassbox.runtime.eval_recommendation_path_matching import match_rules
 from glassbox.runtime.eval_recommendation_plans import build_cheapest_next_command
 from glassbox.runtime.eval_recommendation_plans import build_fallback_policy_commands
 from glassbox.runtime.eval_recommendation_plans import build_suggested_commands
+from glassbox.runtime.eval_recommendation_profile_expansion import (
+    add_fallback_profile_recommendations,
+)
+from glassbox.runtime.eval_recommendation_profile_expansion import (
+    add_stage_derived_profile_recommendations,
+)
 from glassbox.runtime.eval_recommendation_reason_groups import build_reason_groups
 from glassbox.runtime.eval_recommendation_recipes import build_recipe_recommendations
 from glassbox.runtime.eval_recommendation_release_surfaces import (

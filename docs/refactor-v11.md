@@ -356,7 +356,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R411: Split Eval Recommendation Engine Matching From Release And Capability Expansion
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R410`
 - Goal: keep
   [eval_recommendation_engine.py](../src/glassbox/runtime/eval_recommendation_engine.py)
