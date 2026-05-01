@@ -27,6 +27,7 @@ from glassbox.web import build_web_server
 _OWNER_FILENAME = "runtime-owner.json"
 _STDOUT_LOG_FILENAME = "runtime-owner.stdout.log"
 _STDERR_LOG_FILENAME = "runtime-owner.stderr.log"
+DEFAULT_RUNTIME_OWNER_POLL_INTERVAL_SECONDS = 0.05
 
 
 @dataclass(frozen=True, slots=True)
@@ -134,6 +135,7 @@ def start_runtime_owner(
     port: int,
     db_path: Path | None = None,
     startup_timeout_seconds: float = 5.0,
+    poll_interval_seconds: float | None = None,
 ) -> RuntimeOwnerRecord:
     """Spawn the persistent runtime owner and wait for a healthy startup."""
 
@@ -177,6 +179,7 @@ def start_runtime_owner(
         db_path=db_path,
         process=process,
         startup_timeout_seconds=startup_timeout_seconds,
+        poll_interval_seconds=poll_interval_seconds,
     )
 
 
@@ -185,6 +188,7 @@ def stop_runtime_owner(
     *,
     db_path: Path | None = None,
     shutdown_timeout_seconds: float = 5.0,
+    poll_interval_seconds: float | None = None,
 ) -> RuntimeOwnerStatus:
     """Stop the active persistent runtime owner for a workspace."""
 
@@ -199,6 +203,7 @@ def stop_runtime_owner(
     assert status.record is not None
     os.kill(status.record.pid, signal.SIGTERM)
 
+    poll_interval_seconds = _resolve_poll_interval_seconds(poll_interval_seconds)
     deadline = time.monotonic() + shutdown_timeout_seconds
     while time.monotonic() < deadline:
         if not paths.metadata_path.exists():
@@ -208,7 +213,7 @@ def stop_runtime_owner(
         if not _process_is_alive(status.record.pid):
             _clear_stale_runtime_owner_paths(paths)
             return status
-        time.sleep(0.05)
+        time.sleep(poll_interval_seconds)
 
     raise ValueError(
         f"daemon pid {status.record.pid} did not shut down within "
@@ -278,8 +283,10 @@ def _wait_for_healthy_runtime_owner(
     db_path: Path | None,
     process: subprocess.Popen[bytes],
     startup_timeout_seconds: float,
+    poll_interval_seconds: float | None,
 ) -> RuntimeOwnerRecord:
     paths = resolve_runtime_owner_paths(cwd, db_path=db_path)
+    poll_interval_seconds = _resolve_poll_interval_seconds(poll_interval_seconds)
     deadline = time.monotonic() + startup_timeout_seconds
     while time.monotonic() < deadline:
         status = _inspect_runtime_owner_paths(paths)
@@ -292,9 +299,20 @@ def _wait_for_healthy_runtime_owner(
             return status.record
         if process.poll() is not None:
             raise ValueError(_startup_failure_message(cwd, db_path=db_path))
-        time.sleep(0.05)
+        time.sleep(poll_interval_seconds)
 
     raise ValueError(_startup_failure_message(cwd, db_path=db_path))
+
+
+def _resolve_poll_interval_seconds(poll_interval_seconds: float | None) -> float:
+    interval = (
+        DEFAULT_RUNTIME_OWNER_POLL_INTERVAL_SECONDS
+        if poll_interval_seconds is None
+        else poll_interval_seconds
+    )
+    if interval <= 0:
+        raise ValueError("daemon poll interval must be positive")
+    return interval
 
 
 def _startup_failure_message(cwd: Path, *, db_path: Path | None) -> str:

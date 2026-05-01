@@ -404,7 +404,7 @@ Validation evidence:
 
 ### GBX-T911: Tighten Daemon Polling In Tests Without Weakening Production Defaults
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-T900`
 - Goal: reduce repeated 50 ms polling costs in daemon tests
 - Deliverables:
@@ -422,6 +422,22 @@ Validation evidence:
   - `uv run pytest -m daemon --durations=40 --durations-min=0.01 -q`
 - Done when:
   - daemon tests have lower average duration without increased flake risk
+
+Validation evidence:
+
+- Added `DEFAULT_RUNTIME_OWNER_POLL_INTERVAL_SECONDS` with injectable startup
+  and shutdown poll intervals; production callers keep the 50 ms default.
+- The daemon integration file uses a 5 ms autouse test interval and keeps the
+  background-job completion poll local to the test at 10 ms.
+- `uv run pytest tests/integration/test_daemon_runtime.py -q`:
+  21 passed in 18.34s
+- `uv run pytest -m daemon --durations=40 --durations-min=0.01 -q`:
+  11 passed, 1114 deselected in 18.21s
+- `uv run ruff format --check src/glassbox/runtime/daemon.py tests/integration/test_daemon_runtime.py`:
+  2 files already formatted
+- `uv run ruff check src/glassbox/runtime/daemon.py tests/integration/test_daemon_runtime.py`:
+  all checks passed
+- `uv run ty check`: all checks passed
 
 ---
 

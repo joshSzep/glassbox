@@ -23,6 +23,8 @@ from glassbox.store.repositories import SQLiteSessionRepository
 from glassbox.store.sqlite import open_database
 from tests.integration.cli_test_support import _run_baseline_session
 
+_DAEMON_TEST_POLL_INTERVAL_SECONDS = 0.005
+
 
 def _reserve_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as handle:
@@ -64,6 +66,14 @@ def _write_owner_metadata(
         )
         + "\n",
         encoding="utf-8",
+    )
+
+
+@pytest.fixture(autouse=True)
+def _tight_daemon_polling(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "glassbox.runtime.daemon.DEFAULT_RUNTIME_OWNER_POLL_INTERVAL_SECONDS",
+        _DAEMON_TEST_POLL_INTERVAL_SECONDS,
     )
 
 
@@ -282,7 +292,7 @@ def test_daemon_executes_read_only_background_job(tmp_path: Path) -> None:
                 connection.close()
             if updated is not None and updated.state == BackgroundJobState.COMPLETED:
                 break
-            time.sleep(0.05)
+            time.sleep(0.01)
         else:
             raise AssertionError("daemon did not complete read-only background job")
 
@@ -477,7 +487,11 @@ def test_daemon_stop_timeout_reports_pid_and_keeps_metadata(
     monkeypatch.setattr("glassbox.runtime.daemon.os.kill", lambda pid, signum: None)
 
     with pytest.raises(ValueError, match="daemon pid 12345 did not shut down"):
-        stop_runtime_owner(tmp_path, shutdown_timeout_seconds=0.01)
+        stop_runtime_owner(
+            tmp_path,
+            shutdown_timeout_seconds=0.01,
+            poll_interval_seconds=0.001,
+        )
 
     assert _runtime_owner_path(tmp_path).exists()
 
