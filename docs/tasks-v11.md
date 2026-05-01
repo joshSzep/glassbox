@@ -689,7 +689,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1142: Add Optional v11 Provider Evidence Collection
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1141`
 - Goal: provide a clean path for operators who want live provider confidence
   beside deterministic release evidence

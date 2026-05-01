@@ -51,6 +51,9 @@ v11 confidence and adoption contract is the active implementation track for the
 - [v10-release-gate.md](./v10-release-gate.md): v10 automated release gate that
   composes inherited v9 evidence with deterministic long-run recovery,
   compaction, tool-attempt, provider, package, and cockpit evidence
+- [v11-release-gate.md](./v11-release-gate.md): v11 release-gate scaffold with
+  optional advisory provider evidence collection, freshness reporting, and
+  explicit skipped-provider posture
 - [v10-release-candidate.md](./v10-release-candidate.md): v10
   release-candidate guide for the supported long-running-task model,
   validation path, evidence expectations, residual risks, and decision
@@ -142,6 +145,8 @@ v11 confidence and adoption contract is the active implementation track for the
 - [v10-release-gate.md](./v10-release-gate.md): automated v10 release evidence
   command, stage map, retained summary shape, advisory provider policy, and
   pass/fail rules
+- [v11-release-gate.md](./v11-release-gate.md): v11 provider-evidence release
+  scaffold for opt-in canary evidence and aligned freshness summaries
 - [v10-release-candidate.md](./v10-release-candidate.md): release-candidate
   narrative tying the v10 contract, gate, dogfooding, package, provider, and
   residual-risk evidence together
