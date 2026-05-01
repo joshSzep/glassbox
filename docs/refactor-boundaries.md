@@ -38,6 +38,11 @@ decision support, handoff, CLI guidance, frontend evidence, recovery, and
 projection modules that accumulated richer derivation and formatting behavior
 during the confidence-and-adoption milestone.
 
+The v11 map is now implemented through Phase 73 task `GBX-R430`.
+Recommendation output, recommendation matching, release-gate summaries,
+knowledge posture, branch-search decision support, frontend knowledge/branch
+sections, and session export follow the helper boundaries described below.
+
 ## Scope
 
 This refactor pass is about implementation structure, not product behavior.
@@ -415,6 +420,12 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   verification, accepted risks, pending actions, lineage, knowledge posture,
   and safe commands, but must not expose secrets or make imported packages
   resumable.
+- The v11 session-export split now keeps `runtime/session_export.py` as the
+  compatibility facade while `session_export_package.py`,
+  `session_export_handoff.py`, `session_export_manifest.py`,
+  `session_export_redaction.py`, and `session_export_utils.py` own package
+  assembly, reviewer handoff summaries, artifact/policy/task/event references,
+  deterministic redaction, and small shared formatting utilities.
 - Session import should validate packages separately from inspection-only
   session creation, transcript/runtime-note import, and handoff-note
   construction. Older packages remain readable, and imported sessions remain

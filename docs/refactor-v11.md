@@ -543,7 +543,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R430: Split Session Export Into Package Assembly, Handoff Summary, Artifact Manifest, And Redaction Modules
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-R400`
 - Goal: reduce
   [session_export.py](../src/glassbox/runtime/session_export.py) by separating
@@ -569,6 +569,19 @@ Each phase below corresponds to one concrete refactor milestone.
 - Done when:
   - export behavior remains stable while package assembly, handoff summary,
     artifact manifest, and redaction can evolve independently
+- Completed notes:
+  - `session_export.py` is now a compatibility facade over
+    `session_export_package.py`, `session_export_handoff.py`,
+    `session_export_manifest.py`, and `session_export_redaction.py`.
+  - Redaction is covered by focused unit tests, and guardrails now cap the
+    facade plus the new package, handoff, manifest, and redaction helpers.
+  - Validation: `uv run pytest tests/unit/test_session_export_redaction.py`,
+    `uv run pytest tests/unit/test_architecture_guardrails.py`,
+    `uv run pytest tests/integration/test_cli_session_export.py`,
+    `uv run pytest tests/integration/test_cli_session_import.py`,
+    `uv run ruff format --check src/glassbox/runtime/session_export*.py tests/unit/test_session_export_redaction.py tests/unit/test_architecture_guardrails.py`,
+    `uv run ruff check src/glassbox/runtime/session_export*.py tests/unit/test_session_export_redaction.py tests/unit/test_architecture_guardrails.py`,
+    and `uv run ty check src/glassbox/runtime/session_export.py src/glassbox/runtime/session_export_package.py src/glassbox/runtime/session_export_handoff.py src/glassbox/runtime/session_export_manifest.py src/glassbox/runtime/session_export_redaction.py src/glassbox/runtime/session_export_utils.py`.
 
 ### GBX-R431: Split Session Import Handoff Note Handling From Package Validation
 

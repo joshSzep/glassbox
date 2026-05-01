@@ -1282,10 +1282,42 @@ V11_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
     (
         SRC_ROOT / "runtime" / "session_export.py",
-        1150,
+        80,
         (
-            "v11 session export should move new package assembly, handoff, "
-            "artifact manifest, and redaction behavior into helpers"
+            "v11 session_export should stay a thin compatibility facade over "
+            "package assembly, handoff, manifest, and redaction helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_export_package.py",
+        240,
+        (
+            "v11 session export package assembly should stay owned by "
+            "session_export_package.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_export_handoff.py",
+        430,
+        (
+            "v11 session export handoff summary behavior should stay owned by "
+            "session_export_handoff.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_export_manifest.py",
+        340,
+        (
+            "v11 session export artifact, policy, task, and event references "
+            "should stay owned by session_export_manifest.py"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_export_redaction.py",
+        190,
+        (
+            "v11 session export redaction behavior should stay owned by "
+            "session_export_redaction.py"
         ),
     ),
     (
@@ -1597,6 +1629,38 @@ V11_PYTHON_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
         (
             "v11 session export helpers must keep package and handoff "
             "assembly independent from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_export_package.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 session export package assembly must stay independent from "
+            "CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_export_handoff.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 session export handoff helpers must stay independent from "
+            "CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_export_manifest.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 session export manifest helpers must stay independent from "
+            "CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "session_export_redaction.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v11 session export redaction helpers must stay independent from "
+            "CLI and web presentation layers"
         ),
     ),
     (
