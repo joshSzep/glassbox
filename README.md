@@ -88,10 +88,10 @@ Glassbox team workflows remain local-first. A foreground `session chat` process 
 ## Current Baseline
 
 The current package line is `0.10.0`. It publishes the v10 long-running-task
-operating model while v11 is the active confidence-and-adoption milestone for
-residual-risk closure, verification recommendations, live cockpit evidence,
-provider maturity, knowledge posture, branch-search decision support, and
-handoff polish.
+operating model and the v11 confidence-and-adoption milestone. The active v12
+implementation track evolves that baseline into reviewable local changesets
+with evidence-backed review briefs, verification readiness, commit readiness,
+worktree isolation, topology, and command evidence.
 
 Start with
 [docs/v10-long-running-task-contract.md](docs/v10-long-running-task-contract.md)
@@ -105,7 +105,9 @@ The inherited v10 release-candidate evidence is summarized in
 scope is defined in
 [docs/v11-confidence-adoption-contract.md](docs/v11-confidence-adoption-contract.md),
 with the v11 release-candidate guide in
-[docs/v11-release-candidate.md](docs/v11-release-candidate.md).
+[docs/v11-release-candidate.md](docs/v11-release-candidate.md). Active v12
+scope is defined in
+[docs/v12-reviewable-change-contract.md](docs/v12-reviewable-change-contract.md).
 
 ## Documentation
 
@@ -118,6 +120,7 @@ Start here based on what you need:
 - [docs/v9-public-baseline.md](docs/v9-public-baseline.md)
 - [docs/v10-long-running-task-contract.md](docs/v10-long-running-task-contract.md)
 - [docs/v11-confidence-adoption-contract.md](docs/v11-confidence-adoption-contract.md)
+- [docs/v12-reviewable-change-contract.md](docs/v12-reviewable-change-contract.md)
 - [docs/v11-release-candidate.md](docs/v11-release-candidate.md)
 - [docs/v10-release-candidate.md](docs/v10-release-candidate.md)
 - [docs/v9-vocabulary.md](docs/v9-vocabulary.md)
@@ -147,6 +150,7 @@ Release evidence and milestone history remain available when you need them:
 - [docs/v6-release-candidate.md](docs/v6-release-candidate.md)
 - [docs/v2-release-candidate.md](docs/v2-release-candidate.md)
 - [docs/tasks-v10.md](docs/tasks-v10.md)
+- [docs/tasks-v12.md](docs/tasks-v12.md)
 - [docs/tasks-v9.md](docs/tasks-v9.md)
 - [docs/tasks-v8.md](docs/tasks-v8.md)
 - [docs/tasks-v7.md](docs/tasks-v7.md)

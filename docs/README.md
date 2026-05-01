@@ -10,8 +10,8 @@ Glassbox has two documentation layers:
 Use this page by audience. Start with the current `0.10.0` package line and
 v10 long-running-task model for the product story, then follow the daily
 workflow guides before diving into release evidence or milestone history. The
-v11 confidence and adoption contract is the active implementation track for the
-`0.10.0` milestone.
+v12 reviewable-change contract is the active implementation track after the
+v11 confidence and adoption release candidate.
 
 ## Start Here
 
@@ -21,9 +21,13 @@ v11 confidence and adoption contract is the active implementation track for the
   compactions, resumable attempts, heartbeats, verification, recovery, and
   release evidence
 - [v11-confidence-adoption-contract.md](./v11-confidence-adoption-contract.md):
-  active v11 contract for confidence, verification recommendations, live
-  cockpit evidence, provider maturity, knowledge posture, branch-search
-  decision support, handoff, and the `0.10.0` version target
+  v11 contract for confidence, verification recommendations, live cockpit
+  evidence, provider maturity, knowledge posture, branch-search decision
+  support, handoff, and the `0.10.0` version target
+- [v12-reviewable-change-contract.md](./v12-reviewable-change-contract.md):
+  active v12 contract for local changesets, review briefs, verification
+  readiness, commit readiness, worktree isolation, topology, command evidence,
+  and reviewable-change release authority
 - [v11-residual-risk-audit.md](./v11-residual-risk-audit.md): source-linked
   audit of inherited v10 residual risks, current evidence, missing coverage,
   and v11 dispositions
@@ -166,6 +170,10 @@ v11 confidence and adoption contract is the active implementation track for the
 - [v11-release-candidate.md](./v11-release-candidate.md): release-candidate
   narrative tying the v11 contract, gate, dogfooding, package, provider,
   accessibility, live cockpit, and residual-risk evidence together
+- [v12-reviewable-change-contract.md](./v12-reviewable-change-contract.md):
+  active v12 reviewable-change contract for changesets, review briefs,
+  verification readiness, commit readiness, worktree isolation, topology, and
+  command evidence
 - [v10-release-candidate.md](./v10-release-candidate.md): release-candidate
   narrative tying the v10 contract, gate, dogfooding, package, provider, and
   residual-risk evidence together
@@ -345,6 +353,9 @@ but they are not the first-run operator path.
 - [tasks-v11.md](./tasks-v11.md): v11 confidence, adoption, residual-risk
   closure, verification recommendations, live cockpit evidence, provider,
   knowledge posture, branch-search, handoff, package, and release task graph
+- [tasks-v12.md](./tasks-v12.md): v12 reviewable-change lifecycle task graph
+  for changesets, inventories, review briefs, commit readiness, worktree
+  isolation, topology, command evidence, evals, dogfooding, and release signoff
 - [tasks-v10.md](./tasks-v10.md): v10 long-running task reliability,
   checkpoint, compaction, resumable-tool, cockpit, budget, verification,
   provider-recovery, eval, dogfooding, and release task graph

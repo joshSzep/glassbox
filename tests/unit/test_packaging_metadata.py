@@ -137,6 +137,11 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     )
     assert "sdist missing required file: docs/v11-residual-risk-audit.md" in problems
     assert "sdist missing required file: docs/tasks-v11.md" in problems
+    assert (
+        "sdist missing required file: docs/v12-reviewable-change-contract.md"
+        in problems
+    )
+    assert "sdist missing required file: docs/tasks-v12.md" in problems
     assert "sdist missing required file: docs/workspace-profiles.md" in problems
     assert "sdist missing required file: docs/manual-qa-evidence-v7.md" in problems
     assert (
@@ -304,6 +309,8 @@ def _write_sdist(
                 "docs/v11-confidence-adoption-contract.md",
                 "docs/v11-residual-risk-audit.md",
                 "docs/tasks-v11.md",
+                "docs/v12-reviewable-change-contract.md",
+                "docs/tasks-v12.md",
             ):
                 _add_tar_text(sdist, f"glassbox-0.10.0/{doc_path}", "# docs\n")
             _add_tar_text(

@@ -326,7 +326,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1200: Define The v12 Reviewable Change Lifecycle Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: none
 - Goal: publish the v12 product contract before changing behavior
 - Deliverables:

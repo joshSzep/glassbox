@@ -401,6 +401,44 @@ def test_v11_confidence_adoption_contract_covers_scope_and_residual_risks() -> N
     assert "v11-confidence-adoption-contract.md" in docs_readme
 
 
+def test_v12_reviewable_change_contract_covers_product_boundary() -> None:
+    content = (REPO_ROOT / "docs" / "v12-reviewable-change-contract.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Scope",
+        "## Product Model",
+        "## Supported Workflow Set",
+        "## Evidence Expectations",
+        "## Release Authority",
+        "## Non-Goals",
+        "## Safety Rules",
+        "changesets",
+        "review briefs",
+        "verification readiness",
+        "commit readiness",
+        "worktree isolation",
+        "branch-search candidate",
+        "monorepo topology",
+        "command evidence",
+        "automatic commits",
+        "automatic pushes",
+        "automatic pull request creation",
+        "automatic branch-search merging",
+        "Deterministic replay, eval, package, migration, unit, integration",
+        "tasks-v12.md",
+    ):
+        assert required_text in content
+
+    assert "docs/v12-reviewable-change-contract.md" in root_readme
+    assert "v12-reviewable-change-contract.md" in docs_readme
+    assert "docs/tasks-v12.md" in root_readme
+    assert "tasks-v12.md" in docs_readme
+
+
 def test_v11_residual_risk_audit_covers_current_source_and_evidence() -> None:
     content = (REPO_ROOT / "docs" / "v11-residual-risk-audit.md").read_text(
         encoding="utf-8"
