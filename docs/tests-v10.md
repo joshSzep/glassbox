@@ -65,6 +65,21 @@ uv run pytest --durations=100 --durations-min=0.05 -q
 uv run pytest -n auto --dist loadfile --durations=100 --durations-min=0.05 -q
 ```
 
+For routine speed-watch evidence, use the helper script:
+
+```bash
+uv run python scripts/record_test_speed.py
+```
+
+The helper runs the full pytest suite with top-duration reporting and writes
+the captured output to `.glassbox/test-speed/pytest-durations-<timestamp>.txt`.
+Pass pytest arguments after `--` to record a focused slice, for example:
+
+```bash
+uv run python scripts/record_test_speed.py --durations 50 -- tests/unit
+uv run python scripts/record_test_speed.py -- -m "daemon or subprocess or timeout or tui"
+```
+
 Current local baseline ranges:
 
 - collection: about 1.5s to 2.3s
@@ -113,6 +128,21 @@ Refresh procedure:
 6. Use `--dist loadfile` for xdist runs. The default xdist scheduler can fan
    daemon tests across workers and is not the documented parallel strategy for
    this suite.
+
+Suite-speed review practice:
+
+- When a new or changed test appears above roughly 0.50s in local
+  `--durations` output, review whether the cost is intrinsic to the behavior
+  under test or an avoidable wait/setup pattern.
+- When a new or changed test appears above roughly 1.00s, record the reason in
+  the relevant task evidence or PR notes. Prefer deterministic seams or fixture
+  reuse before accepting the wall-clock cost.
+- Add `daemon`, `subprocess`, `timeout`, `tui`, or `slow` when the reason for
+  the cost matches the marker taxonomy. Use `release_gate` only for smoke
+  coverage that release confidence intentionally depends on.
+- Do not fail CI on these advisory thresholds until timing variance is tracked
+  across more machines. The speed-watch output is a review prompt, not a
+  release blocker.
 
 Collection is not the bottleneck. Test-body execution is the bottleneck, and it
 is concentrated in process-heavy integration tests, intentional timeout tests,
@@ -846,7 +876,7 @@ Validation evidence:
 
 ### GBX-T961: Add A Suite-Speed Regression Watch
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-T901`
 - Goal: make future test-speed regressions visible during normal maintenance
 - Deliverables:
@@ -862,3 +892,24 @@ Validation evidence:
 - Done when:
   - expensive tests become a conscious review decision instead of accumulated
     drag
+
+Validation evidence:
+
+- Added `scripts/record_test_speed.py`, which runs pytest with duration
+  reporting, echoes pytest output, and writes a timestamped record under
+  `.glassbox/test-speed/`.
+- Documented the speed-watch command, focused-slice usage, advisory review
+  thresholds, and marker decision practice in this roadmap and the
+  getting-started validation guide.
+- `uv run pytest tests/unit/test_record_test_speed.py -q`:
+  4 passed in 0.02s
+- `uv run pytest tests/unit/test_record_test_speed.py tests/unit/test_architecture_guardrails.py::test_python_modules_do_not_enable_future_annotations -q`:
+  5 passed in 0.62s
+- `uv run python scripts/record_test_speed.py --output /private/tmp/glassbox-test-speed-record.txt -- tests/unit/test_record_test_speed.py`:
+  4 passed in 0.01s; wrote a record with command, exit code, stdout, stderr,
+  and pytest slow-duration output.
+- `uv run ruff format --check scripts/record_test_speed.py tests/unit/test_record_test_speed.py`:
+  2 files already formatted
+- `uv run ruff check scripts/record_test_speed.py tests/unit/test_record_test_speed.py`:
+  all checks passed
+- `uv run ty check`: all checks passed

@@ -205,6 +205,16 @@ uv run ty check src/glassbox/cli/__init__.py
 uv run glassbox eval run --tag smoke --cwd .
 ```
 
+When adding or changing tests with noticeable setup, capture top-duration
+evidence with:
+
+```bash
+uv run python scripts/record_test_speed.py
+```
+
+The record is written under `.glassbox/test-speed/` and is a review aid rather
+than a release-blocking threshold.
+
 Release-candidate validation adds packaged-dashboard, installed-wheel,
 deterministic eval, dependency/toolchain, provider-canary, and manual QA
 evidence. Use the v10 release gate and evidence guides when preparing the
