@@ -59,6 +59,7 @@ def derive_changeset_verification_readiness(
     *,
     inventory: ChangeInventoryArtifact | None,
     inventory_freshness: ChangesetInventoryFreshness,
+    inventory_sequence: int | None = None,
     task_ledger: Sequence[TaskVerificationLedgerRecord] = (),
     eval_recommendation: EvalRecommendationReport | None = None,
     workspace_profile: WorkspaceProfile | None = None,
@@ -130,6 +131,7 @@ def derive_changeset_verification_readiness(
                 eval_recommendation,
                 task_ledger=task_ledger,
                 command_evidence=command_evidence,
+                inventory_sequence=inventory_sequence,
             )
         )
         if (
@@ -140,6 +142,7 @@ def derive_changeset_verification_readiness(
                 _workspace_profile_requirement(
                     workspace_profile.verification.eval_profile,
                     task_ledger=task_ledger,
+                    inventory_sequence=inventory_sequence,
                 )
             )
         if not _has_non_inventory_requirement(requirements):
@@ -148,6 +151,7 @@ def derive_changeset_verification_readiness(
                     inventory,
                     task_ledger=task_ledger,
                     command_evidence=command_evidence,
+                    inventory_sequence=inventory_sequence,
                 )
             )
 
@@ -183,6 +187,7 @@ def _requirements_from_eval_recommendation(
     *,
     task_ledger: Sequence[TaskVerificationLedgerRecord],
     command_evidence: Sequence[str],
+    inventory_sequence: int | None,
 ) -> list[ChangesetVerificationRequirement]:
     if recommendation is None:
         return []
@@ -199,6 +204,8 @@ def _requirements_from_eval_recommendation(
                 reason="eval recommendation selected this command for changed paths",
                 task_ledger=task_ledger,
                 command_evidence=command_evidence,
+                changed_paths=recommendation.touched_paths,
+                inventory_sequence=inventory_sequence,
             )
         )
     for recipe in recommendation.recipes:
@@ -218,6 +225,7 @@ def _requirements_from_eval_recommendation(
                     changed_paths=recipe.matched_paths,
                     task_ledger=task_ledger,
                     command_evidence=command_evidence,
+                    inventory_sequence=inventory_sequence,
                 )
             )
     for profile in recommendation.profiles:
@@ -228,6 +236,7 @@ def _requirements_from_eval_recommendation(
                 source=VerificationPlanSource.EVAL_RECOMMENDATION,
                 reason="eval recommendation selected this profile",
                 task_ledger=task_ledger,
+                inventory_sequence=inventory_sequence,
             )
         )
     return requirements
@@ -237,6 +246,7 @@ def _workspace_profile_requirement(
     profile_id: str,
     *,
     task_ledger: Sequence[TaskVerificationLedgerRecord],
+    inventory_sequence: int | None,
 ) -> ChangesetVerificationRequirement:
     return _requirement_for_eval_profile(
         profile_id,
@@ -244,6 +254,7 @@ def _workspace_profile_requirement(
         source=VerificationPlanSource.WORKSPACE_PROFILE,
         reason="workspace profile declares a default eval profile",
         task_ledger=task_ledger,
+        inventory_sequence=inventory_sequence,
     )
 
 
@@ -252,6 +263,7 @@ def _changed_path_requirement(
     *,
     task_ledger: Sequence[TaskVerificationLedgerRecord],
     command_evidence: Sequence[str],
+    inventory_sequence: int | None,
 ) -> ChangesetVerificationRequirement:
     paths = _inventory_paths(inventory)
     matching = _latest_path_ledger_entry(task_ledger, paths)
@@ -260,6 +272,8 @@ def _changed_path_requirement(
             matching,
             requirement_id="changed-path-ledger",
             reason="task verification ledger targets changed inventory paths",
+            inventory_sequence=inventory_sequence,
+            current_changed_paths=paths,
         )
     command = _eval_recommend_command(inventory)
     state = (
@@ -297,6 +311,7 @@ def _requirement_for_command(
     task_ledger: Sequence[TaskVerificationLedgerRecord],
     command_evidence: Sequence[str],
     changed_paths: Sequence[str] = (),
+    inventory_sequence: int | None,
 ) -> ChangesetVerificationRequirement:
     matching = _latest_command_ledger_entry(task_ledger, command)
     if matching is not None:
@@ -304,6 +319,8 @@ def _requirement_for_command(
             matching,
             requirement_id=requirement_id,
             reason=reason,
+            inventory_sequence=inventory_sequence,
+            current_changed_paths=changed_paths,
         )
     command_text = " ".join(command)
     state = (
@@ -331,6 +348,7 @@ def _requirement_for_eval_profile(
     source: VerificationPlanSource,
     reason: str,
     task_ledger: Sequence[TaskVerificationLedgerRecord],
+    inventory_sequence: int | None,
 ) -> ChangesetVerificationRequirement:
     matching = _latest_profile_ledger_entry(task_ledger, profile_id)
     if matching is not None:
@@ -338,6 +356,8 @@ def _requirement_for_eval_profile(
             matching,
             requirement_id=f"eval-profile:{profile_id}",
             reason=reason,
+            inventory_sequence=inventory_sequence,
+            current_changed_paths=[],
         )
     command = ["uv", "run", "glassbox", "eval", "run", profile_id, "--cwd", "."]
     return ChangesetVerificationRequirement(
@@ -357,8 +377,18 @@ def _requirement_from_ledger(
     *,
     requirement_id: str,
     reason: str,
+    inventory_sequence: int | None,
+    current_changed_paths: Sequence[str],
 ) -> ChangesetVerificationRequirement:
     state = _state_for_ledger_status(entry.status)
+    stale_reason = _stale_reason(
+        entry,
+        inventory_sequence=inventory_sequence,
+        current_changed_paths=current_changed_paths,
+    )
+    if state == ChangesetVerificationState.PASSED and stale_reason is not None:
+        state = ChangesetVerificationState.STALE
+        reason = stale_reason
     return ChangesetVerificationRequirement(
         requirement_id=requirement_id,
         state=state,
@@ -374,6 +404,27 @@ def _requirement_from_ledger(
         safe_next_actions=[]
         if state == ChangesetVerificationState.PASSED
         else ["inspect retained verification output before retrying"],
+    )
+
+
+def _stale_reason(
+    entry: TaskVerificationLedgerRecord,
+    *,
+    inventory_sequence: int | None,
+    current_changed_paths: Sequence[str],
+) -> str | None:
+    if inventory_sequence is None or not current_changed_paths:
+        return None
+    evidence_sequence = entry.last_success_sequence or entry.last_sequence
+    if evidence_sequence >= inventory_sequence:
+        return None
+    changed_path_set = set(current_changed_paths)
+    ledger_paths = {_path_to_string(path) for path in entry.changed_paths}
+    if not changed_path_set.intersection(ledger_paths):
+        return None
+    return (
+        "passed verification predates the latest inventory refresh for overlapping "
+        "changed paths"
     )
 
 

@@ -50,6 +50,19 @@ Missing inputs degrade honestly. If inventory is missing, readiness is
 `missing`. If inventory freshness is `unknown`, readiness names that gap and
 starts with `glassbox changeset refresh <changeset-id> --cwd .`.
 
+## Stale Verification
+
+The first stale-verification boundary is sequence- and path-aware. When a
+passed task-ledger check predates the latest inventory refresh and the check's
+recorded `changed_paths` overlap the current inventory paths, readiness marks
+that requirement as `stale`. This prevents a check that passed before a relevant
+file changed from making the changeset look review-ready.
+
+When precise path mapping is unavailable, the model does not invent staleness.
+Profile-level checks or command evidence without changed-path links remain
+lower-confidence evidence until later v12 tasks add richer file digest or
+source-range mapping.
+
 ## Readiness Versus Proof
 
 Readiness answers whether the retained local evidence is enough to support
@@ -57,6 +70,7 @@ review posture. It does not prove that:
 
 - a passing check covers every changed line
 - a check is fresh when the inventory is stale
+- a profile-level check without path links is fresh for every changed path
 - a recommended command was safe to run
 - skipped or accepted-risk evidence makes the change safe
 - the changeset is ready to commit

@@ -736,7 +736,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1231: Detect Stale Verification Against Changed Paths
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1230`
 - Goal: prevent stale checks from making a change look review-ready
 - Deliverables:
@@ -753,6 +753,18 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - readiness cannot silently rely on verification that predates relevant
     changes
+- Completion evidence:
+  - Extended the changeset verification readiness model with
+    `inventory_sequence` so passed ledger checks become `stale` when they
+    predate the latest inventory refresh and overlap current changed paths.
+  - Preserved lower-confidence behavior for profile-level or command evidence
+    without changed-path links instead of overclaiming staleness or freshness.
+  - Updated [changeset-verification-readiness.md](./changeset-verification-readiness.md)
+    to document stale-verification boundaries, next-action posture, and
+    non-claims.
+  - Added unit coverage for stale passed checks after inventory refresh and
+    non-overlapping path evidence.
+  - Verified with focused readiness tests, docs guardrail tests, ruff, and ty.
 
 ### GBX-1232: Add Verification Plan Preview And Evidence Capture
 

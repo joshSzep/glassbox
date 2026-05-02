@@ -63,6 +63,51 @@ def test_readiness_marks_stale_inventory_before_old_checks() -> None:
     )
 
 
+def test_readiness_marks_passed_check_stale_when_inventory_is_newer() -> None:
+    inventory = _inventory("src/glassbox/runtime/changesets.py")
+    ledger = [
+        _ledger(
+            status=TaskVerificationStatus.PASSED,
+            changed_paths=["src/glassbox/runtime/changesets.py"],
+            last_success_sequence=4,
+            last_sequence=5,
+        )
+    ]
+
+    readiness = derive_changeset_verification_readiness(
+        inventory=inventory,
+        inventory_freshness=ChangesetInventoryFreshness.FRESH,
+        inventory_sequence=10,
+        task_ledger=ledger,
+    )
+
+    assert readiness.state == ChangesetVerificationState.STALE
+    assert readiness.stale_count == 1
+    assert "predates the latest inventory" in readiness.requirements[0].reason
+
+
+def test_readiness_keeps_passed_check_fresh_for_non_overlapping_paths() -> None:
+    inventory = _inventory("src/glassbox/runtime/changesets.py")
+    ledger = [
+        _ledger(
+            status=TaskVerificationStatus.PASSED,
+            changed_paths=["docs/change-inventory.md"],
+            last_success_sequence=4,
+            last_sequence=5,
+        )
+    ]
+
+    readiness = derive_changeset_verification_readiness(
+        inventory=inventory,
+        inventory_freshness=ChangesetInventoryFreshness.FRESH,
+        inventory_sequence=10,
+        task_ledger=ledger,
+    )
+
+    assert readiness.state == ChangesetVerificationState.MISSING
+    assert readiness.missing_count == 1
+
+
 def test_readiness_uses_eval_recipe_recommendations_and_passed_ledger() -> None:
     command_parts = [
         "uv",
@@ -185,6 +230,8 @@ def _ledger(
     kind: VerificationCheckKind = VerificationCheckKind.TEST,
     source: VerificationPlanSource = VerificationPlanSource.CHANGED_PATHS,
     latest_failed_summary: str | None = None,
+    last_success_sequence: int | None = None,
+    last_sequence: int = 10,
 ) -> TaskVerificationLedgerRecord:
     return TaskVerificationLedgerRecord(
         session_id=new_session_id(),
@@ -196,7 +243,8 @@ def _ledger(
         source=source,
         command=command or ["uv", "run", "pytest"],
         changed_paths=[Path(path) for path in changed_paths or []],
+        last_success_sequence=last_success_sequence,
         latest_failed_summary=latest_failed_summary,
         updated_at=datetime.now(UTC),
-        last_sequence=10,
+        last_sequence=last_sequence,
     )
