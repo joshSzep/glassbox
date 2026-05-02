@@ -143,6 +143,9 @@ v11 confidence and adoption release candidate.
 - [reviewer-evidence-bundles.md](./reviewer-evidence-bundles.md): prepare
   local handoff, eval, replay, release, and manual evidence for reviewers
   without committing raw `.glassbox` state
+- [review-briefs.md](./review-briefs.md): understand the v12 reviewer-safe
+  changeset brief artifact shape, redaction policy, render targets, and
+  non-claims
 
 ## Reference
 
@@ -188,6 +191,9 @@ v11 confidence and adoption release candidate.
 - [changeset-verification-readiness.md](./changeset-verification-readiness.md):
   v12 advisory verification readiness model for local changesets, including
   state aggregation, inputs, stale inventory handling, and non-claims
+- [review-briefs.md](./review-briefs.md): v12 reviewer-safe brief artifact
+  contract for changeset summaries, evidence references, Markdown/JSON render
+  targets, redaction, retention, and non-claims
 - [v10-release-candidate.md](./v10-release-candidate.md): release-candidate
   narrative tying the v10 contract, gate, dogfooding, package, provider, and
   residual-risk evidence together

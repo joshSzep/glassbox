@@ -851,7 +851,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1240: Define The Review Brief Artifact Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1233`
 - Goal: create a reviewer-safe artifact that summarizes a local change without
   exposing raw `.glassbox` state
@@ -873,6 +873,18 @@ Each phase below corresponds to one concrete milestone.
   - docs examples
 - Done when:
   - review briefs have a stable, redacted artifact shape
+- Completion evidence:
+  - Added `src/glassbox/runtime/review_briefs.py` with the
+    `changeset_review_brief` artifact schema, required reviewer sections,
+    evidence-reference model, JSON serialization, Markdown rendering, raw-log
+    exclusion flags, and local-only posture.
+  - Added deterministic redaction for local absolute paths, `.glassbox/`
+    artifact paths, common secret assignments, and provider-key-like tokens.
+  - Added [review-briefs.md](./review-briefs.md) and linked it from the docs
+    hub to document schema fields, evidence references, render targets,
+    redaction, retention, and non-claims.
+  - Added unit coverage for artifact shape, Markdown/JSON render targets, and
+    redaction behavior.
 
 ### GBX-1241: Generate Review Briefs From Changeset Evidence
 
