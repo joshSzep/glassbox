@@ -144,8 +144,8 @@ v11 confidence and adoption release candidate.
   local handoff, eval, replay, release, and manual evidence for reviewers
   without committing raw `.glassbox` state
 - [review-briefs.md](./review-briefs.md): understand the v12 reviewer-safe
-  changeset brief artifact shape, redaction policy, render targets, and
-  non-claims
+  changeset brief generation command/API, artifact shape, redaction policy,
+  render targets, readiness posture, and non-claims
 
 ## Reference
 

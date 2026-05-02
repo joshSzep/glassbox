@@ -111,6 +111,10 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                     f"/changesets/{changeset_id}/record-verification",
                     json={"verification_id": str(verification_id)},
                 )
+                brief_response = await client.post(
+                    f"/changesets/{changeset_id}/brief",
+                    json={"actor": "qa", "include_markdown": True},
+                )
                 (tmp_path / "app.py").write_text(
                     "print('changed again')\n",
                     encoding="utf-8",
@@ -141,6 +145,23 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             assert record_response.status_code == 200
             assert record_response.json()["readiness"]["state"] == "passed"
             assert record_response.json()["retained_artifact_ids"] == [str(artifact_id)]
+            assert brief_response.status_code == 200
+            assert (
+                brief_response.json()["brief"]["artifact_kind"]
+                == "changeset_review_brief"
+            )
+            assert brief_response.json()["markdown"].startswith("# Review Brief:")
+            assert (
+                brief_response.json()["detail"]["changeset"][
+                    "latest_review_brief_artifact_id"
+                ]
+                == brief_response.json()["artifact_id"]
+            )
+            assert (
+                brief_response.json()["detail"]["readiness"][0]["readiness_kind"]
+                == "review"
+            )
+            assert brief_response.json()["detail"]["readiness"][0]["state"] == "ready"
             assert stale_response.status_code == 200
             assert stale_response.json()["inventory_status"]["stale"] is True
             assert stale_response.json()["inventory"]["freshness"] == "stale"

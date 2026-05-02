@@ -2126,6 +2126,89 @@
         "title": "ChangesetRefreshRequest",
         "type": "object"
       },
+      "ChangesetReviewBriefGenerateResponse": {
+        "properties": {
+          "artifact_id": {
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "artifact_path": {
+            "title": "Artifact Path",
+            "type": "string"
+          },
+          "brief": {
+            "additionalProperties": true,
+            "title": "Brief",
+            "type": "object"
+          },
+          "changeset_id": {
+            "title": "Changeset Id",
+            "type": "string"
+          },
+          "detail": {
+            "$ref": "#/components/schemas/ChangesetDetailResponse"
+          },
+          "event_sequence": {
+            "title": "Event Sequence",
+            "type": "integer"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "markdown": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Markdown"
+          },
+          "readiness_event_sequence": {
+            "title": "Readiness Event Sequence",
+            "type": "integer"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "changeset_id",
+          "session_id",
+          "artifact_id",
+          "artifact_path",
+          "event_sequence",
+          "readiness_event_sequence",
+          "brief",
+          "limitations",
+          "detail"
+        ],
+        "title": "ChangesetReviewBriefGenerateResponse",
+        "type": "object"
+      },
+      "ChangesetReviewBriefRequest": {
+        "properties": {
+          "actor": {
+            "default": "operator",
+            "title": "Actor",
+            "type": "string"
+          },
+          "include_markdown": {
+            "default": false,
+            "title": "Include Markdown",
+            "type": "boolean"
+          }
+        },
+        "title": "ChangesetReviewBriefRequest",
+        "type": "object"
+      },
       "ChangesetReviewBriefResponse": {
         "properties": {
           "artifact_id": {
@@ -10833,6 +10916,67 @@
           }
         },
         "summary": "Archive Changeset"
+      }
+    },
+    "/changesets/{changeset_id}/brief": {
+      "post": {
+        "description": "Generate a reviewer-safe brief artifact for a changeset.",
+        "operationId": "generate_changeset_review_brief_changesets__changeset_id__brief_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "changeset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Changeset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangesetReviewBriefRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangesetReviewBriefGenerateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Generate Changeset Review Brief"
       }
     },
     "/changesets/{changeset_id}/record-verification": {

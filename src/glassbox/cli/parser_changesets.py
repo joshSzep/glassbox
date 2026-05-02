@@ -108,6 +108,25 @@ def _add_changeset_parsers(
     record_verification_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(record_verification_parser)
 
+    brief_parser = changeset_subparsers.add_parser(
+        "brief",
+        help="generate a reviewer-safe brief for a changeset",
+        description=(
+            "Generate or refresh a deterministic reviewer-safe brief artifact "
+            "from retained changeset evidence."
+        ),
+    )
+    brief_parser.add_argument("changeset_id", type=_parse_uuid)
+    brief_parser.add_argument("--actor", default="operator")
+    brief_parser.add_argument(
+        "--format",
+        choices=("summary", "markdown"),
+        default="summary",
+        help="text output format when --json is not used",
+    )
+    brief_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(brief_parser)
+
     archive_parser = changeset_subparsers.add_parser(
         "archive",
         help="archive a changeset",

@@ -168,6 +168,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/changesets/{changeset_id}/brief": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Generate Changeset Review Brief
+     * @description Generate a reviewer-safe brief artifact for a changeset.
+     */
+    post: operations["generate_changeset_review_brief_changesets__changeset_id__brief_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/changesets/{changeset_id}/record-verification": {
     parameters: {
       query?: never;
@@ -1992,6 +2012,43 @@ export interface components {
        * @default operator
        */
       actor: string;
+    };
+    /** ChangesetReviewBriefGenerateResponse */
+    ChangesetReviewBriefGenerateResponse: {
+      /** Artifact Id */
+      artifact_id: string;
+      /** Artifact Path */
+      artifact_path: string;
+      /** Brief */
+      brief: {
+        [key: string]: unknown;
+      };
+      /** Changeset Id */
+      changeset_id: string;
+      detail: components["schemas"]["ChangesetDetailResponse"];
+      /** Event Sequence */
+      event_sequence: number;
+      /** Limitations */
+      limitations: string[];
+      /** Markdown */
+      markdown?: string | null;
+      /** Readiness Event Sequence */
+      readiness_event_sequence: number;
+      /** Session Id */
+      session_id: string;
+    };
+    /** ChangesetReviewBriefRequest */
+    ChangesetReviewBriefRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /**
+       * Include Markdown
+       * @default false
+       */
+      include_markdown: boolean;
     };
     /** ChangesetReviewBriefResponse */
     ChangesetReviewBriefResponse: {
@@ -4989,6 +5046,50 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ChangesetActionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  generate_changeset_review_brief_changesets__changeset_id__brief_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        changeset_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ChangesetReviewBriefRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ChangesetReviewBriefGenerateResponse"];
         };
       };
       /** @description Not Found */

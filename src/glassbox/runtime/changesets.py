@@ -23,8 +23,12 @@ from glassbox.core import ChangesetId
 from glassbox.core import ChangesetInventoryFreshness
 from glassbox.core import ChangesetInventoryRecord
 from glassbox.core import ChangesetInventoryRefreshed
+from glassbox.core import ChangesetReadinessDecided
+from glassbox.core import ChangesetReadinessKind
 from glassbox.core import ChangesetReadinessRecord
+from glassbox.core import ChangesetReadinessState
 from glassbox.core import ChangesetRecord
+from glassbox.core import ChangesetReviewBriefCreated
 from glassbox.core import ChangesetReviewBriefRecord
 from glassbox.core import ChangesetRiskLevel
 from glassbox.core import ChangesetSourceAttached
@@ -32,6 +36,7 @@ from glassbox.core import ChangesetSourceKind
 from glassbox.core import ChangesetSourceRecord
 from glassbox.core import ChangesetVerificationPostureRecord
 from glassbox.core import ChangesetVerificationPostureUpdated
+from glassbox.core import ChangesetVerificationState
 from glassbox.core import EventEnvelope
 from glassbox.core import EventPayloadType
 from glassbox.core import ProjectionHealth
@@ -58,6 +63,12 @@ from glassbox.runtime.changeset_verification_readiness import (
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReasonGroup
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReport
 from glassbox.runtime.eval_recommendations import recommend_eval_change_impact
+from glassbox.runtime.review_briefs import REVIEW_BRIEF_ARTIFACT_SCHEMA_VERSION
+from glassbox.runtime.review_briefs import ReviewBriefArtifact
+from glassbox.runtime.review_briefs import ReviewBriefEvidenceRef
+from glassbox.runtime.review_briefs import ReviewBriefSection
+from glassbox.runtime.review_briefs import review_brief_artifact_json
+from glassbox.runtime.review_briefs import review_brief_markdown
 from glassbox.runtime.workspace_profile import load_workspace_profile
 from glassbox.services import ArtifactRepository
 from glassbox.services import StoredArtifact
@@ -253,6 +264,21 @@ class ChangesetVerificationEvidenceRecordResult(BaseModel):
     retained_artifact_ids: list[ArtifactId] = Field(default_factory=list)
     readiness: ChangesetVerificationReadiness
     event: EventEnvelope
+
+
+class ChangesetReviewBriefGenerationResult(BaseModel):
+    """Result of generating one deterministic review brief artifact."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
+
+    changeset_id: ChangesetId
+    session_id: SessionId
+    artifact: StoredArtifact
+    brief: ReviewBriefArtifact
+    markdown: str
+    event: EventEnvelope
+    readiness_event: EventEnvelope
+    limitations: list[str] = Field(default_factory=list)
 
 
 class ChangesetDerivationService:
@@ -741,6 +767,176 @@ class ChangesetVerificationService:
         return self._repository.list_task_verification_ledger(
             changeset.session_id,
             changeset.task_id,
+        )
+
+    def _load_inventory_artifact(
+        self,
+        session_id: SessionId,
+        inventory_record: ChangesetInventoryRecord | None,
+    ) -> tuple[ChangeInventoryArtifact | None, list[str]]:
+        if inventory_record is None:
+            return None, ["no structured change inventory is attached yet"]
+        if self._artifact_repository is None:
+            return None, ["artifact repository is unavailable"]
+        try:
+            content = self._artifact_repository.read_text_artifact(
+                _changeset_inventory_artifact_path(
+                    session_id,
+                    inventory_record.artifact_id,
+                )
+            )
+            return ChangeInventoryArtifact.model_validate_json(content), []
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            return None, [f"change inventory artifact could not be read: {exc}"]
+
+    def _require_changeset(self, changeset_id: ChangesetId) -> ChangesetRecord:
+        changeset = self._repository.get_changeset(changeset_id)
+        if changeset is None:
+            raise ValueError(f"unknown changeset: {changeset_id}")
+        return changeset
+
+
+class ChangesetReviewBriefService:
+    """Generate reviewer-safe briefs from deterministic changeset evidence."""
+
+    def __init__(
+        self,
+        repository: ChangesetRepository,
+        artifact_repository: ArtifactRepository | None = None,
+    ) -> None:
+        self._repository = repository
+        self._artifact_repository = artifact_repository
+
+    def generate(
+        self,
+        changeset_id: ChangesetId,
+        workspace_root: Path,
+        *,
+        created_by: str = "operator",
+    ) -> ChangesetReviewBriefGenerationResult:
+        """Generate and retain one redacted review brief for a changeset."""
+
+        if self._artifact_repository is None:
+            raise ValueError("artifact repository is required for review briefs")
+        changeset = self._require_changeset(changeset_id)
+        sources = self._repository.list_changeset_sources(
+            changeset.session_id,
+            changeset.changeset_id,
+        )
+        inventory_record = self._repository.get_changeset_inventory(
+            changeset.session_id,
+            changeset.changeset_id,
+        )
+        verification_posture = self._repository.get_changeset_verification_posture(
+            changeset.session_id,
+            changeset.changeset_id,
+        )
+        inventory, inventory_limitations = self._load_inventory_artifact(
+            changeset.session_id,
+            inventory_record,
+        )
+        inventory_status = _inventory_status(
+            changeset,
+            inventory_record,
+            workspace_root=workspace_root,
+        )
+        verification_plan = ChangesetVerificationService(
+            self._repository,
+            self._artifact_repository,
+        ).preview_plan(changeset.changeset_id, workspace_root)
+        limitations = _review_brief_limitations(
+            sources=sources,
+            inventory=inventory,
+            inventory_status=inventory_status,
+            inventory_limitations=inventory_limitations,
+            verification_plan=verification_plan,
+        )
+        review_state, blockers = _review_readiness_state(
+            inventory_status=inventory_status,
+            verification_plan=verification_plan,
+            changeset=changeset,
+        )
+        brief = _review_brief_artifact(
+            changeset=changeset,
+            sources=sources,
+            inventory_record=inventory_record,
+            inventory=inventory,
+            inventory_status=inventory_status,
+            verification_posture=verification_posture,
+            verification_plan=verification_plan,
+            limitations=limitations,
+        )
+        content = review_brief_artifact_json(brief)
+        artifact = self._artifact_repository.write_text_artifact(
+            changeset.session_id,
+            content,
+            suffix=".changeset-review-brief.json",
+        )
+        stored = self._repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=changeset.session_id,
+                    sequence=0,
+                    payload=ChangesetReviewBriefCreated(
+                        changeset_id=changeset.changeset_id,
+                        artifact_id=artifact.artifact_id,
+                        artifact_schema_version=REVIEW_BRIEF_ARTIFACT_SCHEMA_VERSION,
+                        render_targets=brief.render_targets,
+                        inventory_artifact_id=(
+                            inventory_record.artifact_id
+                            if inventory_record is not None
+                            else None
+                        ),
+                        verification_id=(
+                            verification_posture.verification_id
+                            if verification_posture is not None
+                            else None
+                        ),
+                        task_id=changeset.task_id,
+                        turn_id=changeset.turn_id,
+                        created_by=created_by,
+                        redacted=brief.redacted,
+                        local_only=brief.local_only,
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=changeset.session_id,
+                    sequence=0,
+                    payload=ChangesetReadinessDecided(
+                        changeset_id=changeset.changeset_id,
+                        readiness_kind=ChangesetReadinessKind.REVIEW,
+                        state=review_state,
+                        reason=_review_readiness_reason(review_state, blockers),
+                        blockers=blockers,
+                        safe_next_actions=brief.safe_inspection_commands,
+                        inventory_artifact_id=(
+                            inventory_record.artifact_id
+                            if inventory_record is not None
+                            else None
+                        ),
+                        review_brief_artifact_id=artifact.artifact_id,
+                        verification_id=(
+                            verification_posture.verification_id
+                            if verification_posture is not None
+                            else None
+                        ),
+                        task_id=changeset.task_id,
+                        turn_id=changeset.turn_id,
+                        accepted_risk_count=changeset.accepted_risk_count,
+                        decided_by=created_by,
+                    ),
+                ),
+            ]
+        )
+        return ChangesetReviewBriefGenerationResult(
+            changeset_id=changeset.changeset_id,
+            session_id=changeset.session_id,
+            artifact=artifact,
+            brief=brief,
+            markdown=review_brief_markdown(brief),
+            event=stored[0],
+            readiness_event=stored[1],
+            limitations=limitations,
         )
 
     def _load_inventory_artifact(
@@ -1468,6 +1664,390 @@ def _detail_safe_next_actions(
     return list(dict.fromkeys(actions))
 
 
+def _review_brief_artifact(
+    *,
+    changeset: ChangesetRecord,
+    sources: list[ChangesetSourceRecord],
+    inventory_record: ChangesetInventoryRecord | None,
+    inventory: ChangeInventoryArtifact | None,
+    inventory_status: ChangesetInventoryStatus,
+    verification_posture: ChangesetVerificationPostureRecord | None,
+    verification_plan: ChangesetVerificationPlanPreview,
+    limitations: list[str],
+) -> ReviewBriefArtifact:
+    return ReviewBriefArtifact(
+        changeset_id=changeset.changeset_id,
+        session_id=changeset.session_id,
+        task_id=changeset.task_id,
+        branch_search_id=changeset.branch_search_id,
+        branch_candidate_id=changeset.branch_candidate_id,
+        local_only=_review_brief_local_only(
+            sources,
+            inventory_record,
+            verification_posture,
+        ),
+        objective=changeset.objective,
+        change_summary=_review_brief_change_summary(changeset),
+        changed_file_inventory=_review_brief_inventory_section(
+            inventory_record,
+            inventory,
+            inventory_status,
+        ),
+        provenance=_review_brief_provenance_section(sources, inventory),
+        verification=_review_brief_verification_section(
+            verification_posture,
+            verification_plan,
+        ),
+        branch_candidate_rationale=_review_brief_branch_candidate_section(
+            changeset,
+            sources,
+        ),
+        risks=_review_brief_risk_section(changeset, inventory),
+        non_claims=[
+            "review brief is a deterministic summary, not proof",
+            "raw command output is not included",
+            "raw diffs and file contents are not included",
+            "commit, push, PR, and merge remain explicit operator actions",
+        ],
+        reviewer_checklist=_reviewer_checklist(changeset, verification_plan),
+        safe_inspection_commands=_review_brief_safe_commands(
+            changeset,
+            verification_plan,
+        ),
+        limitations=limitations,
+    )
+
+
+def _review_brief_change_summary(
+    changeset: ChangesetRecord,
+) -> ReviewBriefSection:
+    summary = changeset.summary or "No operator-written changeset summary is attached."
+    body = (
+        f"{summary} Status is {changeset.status}. Risk is "
+        f"{changeset.risk_level.value} with "
+        f"{changeset.unresolved_risk_count} unresolved and "
+        f"{changeset.accepted_risk_count} accepted risk item(s)."
+    )
+    return ReviewBriefSection(
+        title="Change Summary",
+        body=body,
+        evidence_refs=[
+            ReviewBriefEvidenceRef(
+                kind="changeset",
+                identifier=str(changeset.changeset_id),
+                summary="changeset projection supplied objective, summary, and risk",
+            )
+        ],
+    )
+
+
+def _review_brief_inventory_section(
+    inventory_record: ChangesetInventoryRecord | None,
+    inventory: ChangeInventoryArtifact | None,
+    inventory_status: ChangesetInventoryStatus,
+) -> ReviewBriefSection:
+    if inventory_record is None:
+        return ReviewBriefSection(
+            title="Changed-File Inventory",
+            body="No structured change inventory is attached yet.",
+        )
+    if inventory is None:
+        body = (
+            f"Inventory artifact {inventory_record.artifact_id} is projected with "
+            f"{inventory_record.changed_path_count} changed path(s), but the "
+            "artifact could not be loaded for path details."
+        )
+    else:
+        paths = ", ".join(entry.path for entry in inventory.paths[:10])
+        if len(inventory.paths) > 10:
+            paths = f"{paths}, and {len(inventory.paths) - 10} more"
+        body = (
+            f"Inventory records {inventory.summary.changed_path_count} changed "
+            f"path(s), {inventory.summary.test_path_count} test path(s), "
+            f"{inventory.summary.docs_path_count} docs path(s), and "
+            f"{inventory.summary.policy_sensitive_path_count} policy-sensitive "
+            f"path(s). Freshness is {inventory_status.freshness.value}."
+        )
+        if paths:
+            body = f"{body} Included paths: {paths}."
+    if inventory_status.reason is not None:
+        body = f"{body} Freshness note: {inventory_status.reason}."
+    return ReviewBriefSection(
+        title="Changed-File Inventory",
+        body=body,
+        evidence_refs=[
+            ReviewBriefEvidenceRef(
+                kind="inventory",
+                identifier=str(inventory_record.artifact_id),
+                artifact_id=inventory_record.artifact_id,
+                summary=(
+                    f"latest inventory has {inventory_record.changed_path_count} "
+                    f"path(s) and freshness {inventory_status.freshness.value}"
+                ),
+                local_only=True,
+            )
+        ],
+    )
+
+
+def _review_brief_provenance_section(
+    sources: list[ChangesetSourceRecord],
+    inventory: ChangeInventoryArtifact | None,
+) -> ReviewBriefSection:
+    source_summary = "; ".join(
+        f"{source.source_kind.value}: {source.reason}" for source in sources[:8]
+    )
+    if not source_summary:
+        source_summary = "No changeset source records are attached."
+    provenance_body = source_summary
+    if inventory is not None:
+        provenance_body = (
+            f"{provenance_body} Path provenance counts: "
+            f"{inventory.summary.provenance_direct_path_count} direct, "
+            f"{inventory.summary.provenance_inferred_path_count} inferred, "
+            f"{inventory.summary.provenance_unknown_path_count} unknown."
+        )
+    return ReviewBriefSection(
+        title="Provenance",
+        body=provenance_body,
+        evidence_refs=[
+            ReviewBriefEvidenceRef(
+                kind="provenance",
+                identifier=f"source-sequence-{source.last_sequence}",
+                summary=f"{source.source_kind.value}: {source.reason}",
+                artifact_id=source.artifact_id,
+                local_only=source.artifact_id is not None,
+            )
+            for source in sources[:8]
+        ],
+    )
+
+
+def _review_brief_verification_section(
+    verification_posture: ChangesetVerificationPostureRecord | None,
+    verification_plan: ChangesetVerificationPlanPreview,
+) -> ReviewBriefSection:
+    readiness = verification_plan.readiness
+    body = (
+        f"Readiness is {readiness.state.value}: {readiness.summary}. "
+        f"Counts are {readiness.failed_count} failed, {readiness.stale_count} stale, "
+        f"{readiness.missing_count} missing, and "
+        f"{readiness.accepted_risk_count} accepted risk."
+    )
+    if verification_posture is None:
+        body = f"{body} No retained changeset verification posture is attached yet."
+    else:
+        body = (
+            f"{body} Latest retained posture is "
+            f"{verification_posture.state.value}: {verification_posture.summary}."
+        )
+    refs = []
+    if verification_posture is not None:
+        refs.append(
+            ReviewBriefEvidenceRef(
+                kind="verification",
+                identifier=str(
+                    verification_posture.verification_id
+                    or verification_posture.last_sequence
+                ),
+                verification_id=verification_posture.verification_id,
+                artifact_id=verification_posture.artifact_id,
+                summary=verification_posture.summary,
+                local_only=verification_posture.artifact_id is not None,
+            )
+        )
+    refs.extend(
+        ReviewBriefEvidenceRef(
+            kind="verification",
+            identifier=requirement.requirement_id,
+            verification_id=requirement.verification_id,
+            artifact_id=requirement.artifact_id,
+            summary=f"{requirement.state.value}: {requirement.reason}",
+            local_only=requirement.artifact_id is not None,
+        )
+        for requirement in readiness.requirements[:8]
+    )
+    return ReviewBriefSection(title="Verification", body=body, evidence_refs=refs)
+
+
+def _review_brief_branch_candidate_section(
+    changeset: ChangesetRecord,
+    sources: list[ChangesetSourceRecord],
+) -> ReviewBriefSection | None:
+    if changeset.branch_search_id is None and changeset.branch_candidate_id is None:
+        return None
+    candidate_sources = [
+        source
+        for source in sources
+        if source.source_kind == ChangesetSourceKind.BRANCH_SEARCH_CANDIDATE
+    ]
+    body = (
+        f"Branch search {changeset.branch_search_id} selected candidate "
+        f"{changeset.branch_candidate_id}. No workspace mutation is claimed by "
+        "this review brief."
+    )
+    return ReviewBriefSection(
+        title="Branch-Candidate Rationale",
+        body=body,
+        evidence_refs=[
+            ReviewBriefEvidenceRef(
+                kind="branch_candidate",
+                identifier=str(source.branch_candidate_id or source.last_sequence),
+                artifact_id=source.artifact_id,
+                summary=source.reason,
+                local_only=source.artifact_id is not None,
+            )
+            for source in candidate_sources
+        ],
+    )
+
+
+def _review_brief_risk_section(
+    changeset: ChangesetRecord,
+    inventory: ChangeInventoryArtifact | None,
+) -> ReviewBriefSection:
+    body = (
+        f"Changeset risk is {changeset.risk_level.value}. "
+        f"{changeset.unresolved_risk_count} unresolved and "
+        f"{changeset.accepted_risk_count} accepted risk item(s) are projected."
+    )
+    if changeset.risk_summary is not None:
+        body = f"{body} Summary: {changeset.risk_summary}."
+    if inventory is not None:
+        body = (
+            f"{body} Inventory risk counts: "
+            f"{inventory.summary.high_risk_path_count} high, "
+            f"{inventory.summary.medium_risk_path_count} medium, "
+            f"{inventory.summary.low_risk_path_count} low."
+        )
+    return ReviewBriefSection(
+        title="Risks",
+        body=body,
+        evidence_refs=[
+            ReviewBriefEvidenceRef(
+                kind="risk",
+                identifier=str(changeset.changeset_id),
+                summary=body,
+            )
+        ],
+    )
+
+
+def _reviewer_checklist(
+    changeset: ChangesetRecord,
+    verification_plan: ChangesetVerificationPlanPreview,
+) -> list[str]:
+    checklist = [
+        "Inspect the changed-file inventory before reviewing implementation details",
+        "Review provenance confidence for changed paths with unknown source evidence",
+        "Inspect verification readiness and retained evidence references",
+    ]
+    if verification_plan.readiness.state != ChangesetVerificationState.PASSED:
+        checklist.append("Resolve missing, stale, failed, or accepted-risk checks")
+    if changeset.unresolved_risk_count > 0:
+        checklist.append("Review unresolved risk classification before commit prep")
+    return checklist
+
+
+def _review_brief_safe_commands(
+    changeset: ChangesetRecord,
+    verification_plan: ChangesetVerificationPlanPreview,
+) -> list[str]:
+    commands = [
+        f"glassbox changeset show {changeset.changeset_id} --cwd .",
+        f"glassbox changeset verification-plan {changeset.changeset_id} --cwd .",
+        f"glassbox changeset brief {changeset.changeset_id} --cwd . --json",
+    ]
+    commands.extend(verification_plan.safe_next_actions)
+    return list(dict.fromkeys(commands))
+
+
+def _review_brief_local_only(
+    sources: list[ChangesetSourceRecord],
+    inventory_record: ChangesetInventoryRecord | None,
+    verification_posture: ChangesetVerificationPostureRecord | None,
+) -> bool:
+    return (
+        inventory_record is not None
+        or verification_posture is not None
+        or any(source.artifact_id is not None for source in sources)
+    )
+
+
+def _review_brief_limitations(
+    *,
+    sources: list[ChangesetSourceRecord],
+    inventory: ChangeInventoryArtifact | None,
+    inventory_status: ChangesetInventoryStatus,
+    inventory_limitations: list[str],
+    verification_plan: ChangesetVerificationPlanPreview,
+) -> list[str]:
+    limitations = [
+        source.limitation for source in sources if source.limitation is not None
+    ]
+    limitations.extend(inventory_limitations)
+    if inventory_status.reason is not None:
+        limitations.append(inventory_status.reason)
+    if inventory is not None:
+        limitations.extend(inventory.limitations)
+    limitations.extend(verification_plan.limitations)
+    if verification_plan.readiness.state != ChangesetVerificationState.PASSED:
+        limitations.append(
+            f"verification readiness is {verification_plan.readiness.state.value}"
+        )
+    return list(dict.fromkeys(limitations))
+
+
+def _review_readiness_state(
+    *,
+    inventory_status: ChangesetInventoryStatus,
+    verification_plan: ChangesetVerificationPlanPreview,
+    changeset: ChangesetRecord,
+) -> tuple[ChangesetReadinessState, list[str]]:
+    blockers: list[str] = []
+    readiness = verification_plan.readiness
+    if inventory_status.stale:
+        blockers.append(
+            inventory_status.reason
+            or "structured change inventory is stale against the current workspace"
+        )
+        return ChangesetReadinessState.STALE_INVENTORY, blockers
+    if inventory_status.freshness == ChangesetInventoryFreshness.UNKNOWN:
+        blockers.append(
+            inventory_status.reason
+            or "structured change inventory freshness is unknown"
+        )
+        return ChangesetReadinessState.STALE_INVENTORY, blockers
+    if readiness.state == ChangesetVerificationState.FAILED:
+        blockers.append(readiness.summary)
+        return ChangesetReadinessState.FAILED_CHECKS, blockers
+    if readiness.state == ChangesetVerificationState.STALE:
+        blockers.append(readiness.summary)
+        return ChangesetReadinessState.STALE_INVENTORY, blockers
+    if readiness.state in {
+        ChangesetVerificationState.MISSING,
+        ChangesetVerificationState.PLANNED,
+        ChangesetVerificationState.RUNNING,
+        ChangesetVerificationState.SKIPPED,
+    }:
+        blockers.append(readiness.summary)
+        return ChangesetReadinessState.NEEDS_VERIFICATION, blockers
+    if readiness.state == ChangesetVerificationState.ACCEPTED_WITH_RISK:
+        return ChangesetReadinessState.ACCEPTED_WITH_RISK, [readiness.summary]
+    return ChangesetReadinessState.READY, blockers
+
+
+def _review_readiness_reason(
+    state: ChangesetReadinessState,
+    blockers: list[str],
+) -> str:
+    if blockers:
+        return "; ".join(blockers)
+    if state == ChangesetReadinessState.READY:
+        return "deterministic changeset evidence is ready for reviewer inspection"
+    return f"review readiness is {state.value}"
+
+
 __all__ = [
     "ChangesetActionService",
     "ChangesetDetailView",
@@ -1478,6 +2058,8 @@ __all__ = [
     "ChangesetInventoryStatus",
     "ChangesetQueryService",
     "ChangesetRepository",
+    "ChangesetReviewBriefGenerationResult",
+    "ChangesetReviewBriefService",
     "ChangesetVerificationEvidenceRecordResult",
     "ChangesetVerificationPlanPreview",
     "ChangesetVerificationRecipePreview",

@@ -132,6 +132,32 @@ def test_changeset_create_list_show_refresh_and_archive(
         ]
     )
     recorded = json.loads(capsys.readouterr().out)
+    brief_exit = main(
+        [
+            "changeset",
+            "brief",
+            changeset_id,
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    brief = json.loads(capsys.readouterr().out)
+    brief_show_exit = main(
+        [
+            "changeset",
+            "show",
+            changeset_id,
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    brief_detail = json.loads(capsys.readouterr().out)
     (tmp_path / "app.py").write_text("print('changed again')\n", encoding="utf-8")
 
     stale_show_exit = main(
@@ -180,6 +206,19 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert record_exit == 0
     assert recorded["readiness"]["state"] == "passed"
     assert recorded["retained_artifact_ids"] == [str(artifact_id)]
+    assert brief_exit == 0
+    assert brief["brief"]["artifact_kind"] == "changeset_review_brief"
+    assert brief["brief"]["verification"]["body"].startswith("Readiness is passed")
+    assert brief["event"]["payload"]["event_type"] == "ChangesetReviewBriefCreated"
+    assert brief["readiness_event"]["payload"]["state"] == "ready"
+    assert Path(tmp_path / brief["artifact_path"]).exists()
+    assert brief_show_exit == 0
+    assert (
+        brief_detail["changeset"]["latest_review_brief_artifact_id"]
+        == (brief["artifact_id"])
+    )
+    assert brief_detail["review_briefs"][0]["artifact_id"] == brief["artifact_id"]
+    assert brief_detail["readiness"][0]["readiness_kind"] == "review"
     assert stale_show_exit == 0
     assert stale_detail["inventory"]["freshness"] == "stale"
     assert stale_detail["verification_posture"]["state"] == "passed"

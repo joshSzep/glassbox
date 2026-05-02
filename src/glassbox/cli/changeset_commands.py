@@ -14,6 +14,8 @@ from glassbox.runtime.changesets import ChangesetDerivationService
 from glassbox.runtime.changesets import ChangesetDetailView
 from glassbox.runtime.changesets import ChangesetQueryService
 from glassbox.runtime.changesets import ChangesetRepository
+from glassbox.runtime.changesets import ChangesetReviewBriefGenerationResult
+from glassbox.runtime.changesets import ChangesetReviewBriefService
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.changesets import ChangesetVerificationService
 
@@ -32,6 +34,8 @@ def _changeset_command(args: argparse.Namespace) -> int:
         return _changeset_verification_plan_command(args)
     if command == "record-verification":
         return _changeset_record_verification_command(args)
+    if command == "brief":
+        return _changeset_brief_command(args)
     if command == "archive":
         return _changeset_archive_command(args)
     raise ValueError("specify a changeset subcommand")
@@ -182,6 +186,31 @@ def _changeset_record_verification_command(args: argparse.Namespace) -> int:
             print("Retained artifacts:")
             for artifact_id in result.retained_artifact_ids:
                 print(f"  - {artifact_id}")
+    return 0
+
+
+def _changeset_brief_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        result = ChangesetReviewBriefService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions),
+            runtime_context.repositories.artifacts,
+        ).generate(
+            args.changeset_id,
+            cwd,
+            created_by=args.actor,
+        )
+
+    if args.json:
+        print_json_output(_review_brief_payload(result))
+    elif args.format == "markdown":
+        print(result.markdown, end="")
+    else:
+        print(f"Generated review brief for changeset {args.changeset_id}")
+        print(f"Artifact: {result.artifact.relative_path.as_posix()}")
+        print(f"Event sequence: {result.event.sequence}")
+        print(f"Review readiness sequence: {result.readiness_event.sequence}")
+        _print_limitations(result.limitations)
     return 0
 
 
@@ -370,6 +399,22 @@ def _print_limitations(limitations: list[str]) -> None:
     print("Limitations:")
     for limitation in limitations:
         print(f"  - {limitation}")
+
+
+def _review_brief_payload(
+    result: ChangesetReviewBriefGenerationResult,
+) -> dict[str, object]:
+    return {
+        "changeset_id": str(result.changeset_id),
+        "session_id": str(result.session_id),
+        "artifact_id": str(result.artifact.artifact_id),
+        "artifact_path": result.artifact.relative_path.as_posix(),
+        "brief": result.brief.model_dump(mode="json"),
+        "markdown": result.markdown,
+        "event": result.event.model_dump(mode="json"),
+        "readiness_event": result.readiness_event.model_dump(mode="json"),
+        "limitations": result.limitations,
+    }
 
 
 __all__ = ["_changeset_command"]

@@ -13,6 +13,7 @@ from glassbox.core.models import ChangesetReviewBriefRecord
 from glassbox.core.models import ChangesetSourceRecord
 from glassbox.core.models import ChangesetVerificationPostureRecord
 from glassbox.runtime.changesets import ChangesetDetailView
+from glassbox.runtime.changesets import ChangesetReviewBriefGenerationResult
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 
 
@@ -273,6 +274,24 @@ class ChangesetRecordVerificationResponse(BaseModel):
     event_sequence: int
 
 
+class ChangesetReviewBriefRequest(BaseModel):
+    actor: str = "operator"
+    include_markdown: bool = False
+
+
+class ChangesetReviewBriefGenerateResponse(BaseModel):
+    changeset_id: str
+    session_id: str
+    artifact_id: str
+    artifact_path: str
+    event_sequence: int
+    readiness_event_sequence: int
+    brief: dict[str, object]
+    markdown: str | None = None
+    limitations: list[str]
+    detail: ChangesetDetailResponse
+
+
 def build_changeset_summary_response(
     changeset: ChangesetRecord,
 ) -> ChangesetSummaryResponse:
@@ -427,6 +446,26 @@ def build_changeset_verification_readiness_response(
         accepted_risk_count=readiness.accepted_risk_count,
         safe_next_actions=readiness.safe_next_actions,
         non_claims=readiness.non_claims,
+    )
+
+
+def build_changeset_review_brief_generate_response(
+    result: ChangesetReviewBriefGenerationResult,
+    detail: ChangesetDetailView,
+    *,
+    include_markdown: bool = False,
+) -> ChangesetReviewBriefGenerateResponse:
+    return ChangesetReviewBriefGenerateResponse(
+        changeset_id=str(result.changeset_id),
+        session_id=str(result.session_id),
+        artifact_id=str(result.artifact.artifact_id),
+        artifact_path=result.artifact.relative_path.as_posix(),
+        event_sequence=result.event.sequence,
+        readiness_event_sequence=result.readiness_event.sequence,
+        brief=result.brief.model_dump(mode="json"),
+        markdown=result.markdown if include_markdown else None,
+        limitations=result.limitations,
+        detail=build_changeset_detail_response(detail),
     )
 
 

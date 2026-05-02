@@ -12,6 +12,7 @@ from glassbox.runtime.changesets import ChangesetActionService
 from glassbox.runtime.changesets import ChangesetDerivationService
 from glassbox.runtime.changesets import ChangesetQueryService
 from glassbox.runtime.changesets import ChangesetRepository
+from glassbox.runtime.changesets import ChangesetReviewBriefService
 from glassbox.runtime.changesets import ChangesetVerificationService
 from glassbox.web.app import RuntimeContextDep
 from glassbox.web.changeset_api import ChangesetActionResponse
@@ -23,8 +24,11 @@ from glassbox.web.changeset_api import ChangesetListPageResponse
 from glassbox.web.changeset_api import ChangesetRecordVerificationRequest
 from glassbox.web.changeset_api import ChangesetRecordVerificationResponse
 from glassbox.web.changeset_api import ChangesetRefreshRequest
+from glassbox.web.changeset_api import ChangesetReviewBriefGenerateResponse
+from glassbox.web.changeset_api import ChangesetReviewBriefRequest
 from glassbox.web.changeset_api import ChangesetVerificationPlanPreviewResponse
 from glassbox.web.changeset_api import build_changeset_detail_response
+from glassbox.web.changeset_api import build_changeset_review_brief_generate_response
 from glassbox.web.changeset_api import build_changeset_summary_responses
 from glassbox.web.changeset_api import build_changeset_verification_plan_response
 from glassbox.web.changeset_api import build_changeset_verification_readiness_response
@@ -238,6 +242,42 @@ async def record_changeset_verification(
         ],
         readiness=build_changeset_verification_readiness_response(result.readiness),
         event_sequence=result.event.sequence,
+    )
+
+
+@router.post(
+    "/{changeset_id}/brief",
+    response_model=ChangesetReviewBriefGenerateResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def generate_changeset_review_brief(
+    changeset_id: UUID,
+    request: ChangesetReviewBriefRequest,
+    context: RuntimeContextDep,
+) -> ChangesetReviewBriefGenerateResponse:
+    """Generate a reviewer-safe brief artifact for a changeset."""
+
+    repository = _repository(context)
+    try:
+        workspace_root = _workspace_root_for_changeset(repository, changeset_id)
+        result = ChangesetReviewBriefService(
+            repository,
+            context.repositories.artifacts,
+        ).generate(
+            changeset_id,
+            workspace_root,
+            created_by=request.actor,
+        )
+        detail = ChangesetQueryService(repository).get_detail(
+            changeset_id,
+            workspace_root=workspace_root,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return build_changeset_review_brief_generate_response(
+        result,
+        detail,
+        include_markdown=request.include_markdown,
     )
 
 

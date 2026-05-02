@@ -5,9 +5,11 @@ designed to summarize what a reviewer needs to inspect without copying raw
 `.glassbox` state, provider transcripts, raw command logs, raw diffs, or local
 workspace files.
 
-The first contract is intentionally schema-first. Later tasks generate briefs
-from changeset evidence and attach them to projections; this task defines the
-artifact shape those generators must produce.
+Briefs are generated deterministically from retained changeset evidence. The
+generator writes a redacted JSON artifact, appends a
+`ChangesetReviewBriefCreated` event, and updates the changeset projection with
+the latest brief artifact ID. It also records an advisory review readiness
+decision so "ready to review" is backed by the same local evidence.
 
 ## Artifact Shape
 
@@ -73,6 +75,50 @@ redaction label, and local-only posture. It then renders the required sections,
 evidence references, reviewer checklist, safe commands, non-claims, and any
 limitations. Markdown is for reviewer convenience; the JSON artifact remains the
 stable contract for later tooling.
+
+## Generating A Brief
+
+Use the changeset command after creating or refreshing the changeset evidence:
+
+```bash
+glassbox changeset brief <changeset-id> --cwd .
+```
+
+For structured output:
+
+```bash
+glassbox changeset brief <changeset-id> --cwd . --json
+```
+
+For reviewer-friendly Markdown on stdout:
+
+```bash
+glassbox changeset brief <changeset-id> --cwd . --format markdown
+```
+
+The dashboard/API equivalent is:
+
+```http
+POST /changesets/{changeset_id}/brief
+```
+
+with an optional body:
+
+```json
+{"actor": "operator", "include_markdown": true}
+```
+
+The action does not run verification commands. It summarizes current inventory
+freshness, changed-file classifications, provenance confidence, retained
+verification posture, verification readiness, branch-candidate evidence when
+present, risks, limitations, and safe inspection commands. Missing inventory,
+unloaded artifacts, stale workspace digests, missing verification, failed
+checks, and accepted-risk evidence are rendered as limitations instead of being
+smoothed over.
+
+Review readiness is advisory. A brief can be ready for review while still
+showing unresolved review risks; later commit-readiness work decides whether
+those risks block commit preparation.
 
 ## Non-Claims
 

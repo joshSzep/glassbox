@@ -888,7 +888,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1241: Generate Review Briefs From Changeset Evidence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1240`
 - Goal: produce useful reviewer summaries from recorded local evidence
 - Deliverables:
@@ -908,6 +908,24 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - a local changeset can produce a reviewer-safe brief from deterministic
     evidence
+- Completion evidence:
+  - Added `ChangesetReviewBriefService` to generate deterministic
+    `changeset_review_brief` JSON artifacts from changeset projections,
+    structured inventories, provenance sources, retained verification posture,
+    verification readiness, branch-candidate references, and risk counts.
+  - Added `glassbox changeset brief <changeset-id>` with JSON, summary, and
+    Markdown output, plus `POST /changesets/{changeset_id}/brief` for dashboard
+    and API clients.
+  - The generator appends `ChangesetReviewBriefCreated` and advisory
+    `ChangesetReadinessDecided` events so latest brief and review-readiness
+    state rebuild from canonical evidence.
+  - Missing or stale inventory, missing verification, failed checks, accepted
+    risk, unreadable inventory artifacts, and source limitations are rendered
+    as limitations instead of model-smoothed prose.
+  - Updated [review-briefs.md](./review-briefs.md) with generation commands,
+    API shape, readiness behavior, graceful degradation, and non-claims.
+  - Verified with focused unit, CLI integration, web integration, ruff, and ty
+    checks.
 
 ### GBX-1242: Add Dashboard Review Surface
 
