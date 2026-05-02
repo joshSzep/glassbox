@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 
+from glassbox.core import ArtifactId
 from glassbox.core import ChangesetInventoryFreshness
 from glassbox.core import ChangesetVerificationState
 from glassbox.core import TaskVerificationId
@@ -34,6 +35,7 @@ class ChangesetVerificationRequirement(BaseModel):
     command: list[str] = Field(default_factory=list, max_length=64)
     changed_paths: list[str] = Field(default_factory=list, max_length=100)
     verification_id: TaskVerificationId | None = None
+    artifact_id: ArtifactId | None = None
     blocking: bool = True
     evidence_summary: str | None = Field(default=None, max_length=2000)
     safe_next_actions: list[str] = Field(default_factory=list, max_length=10)
@@ -399,6 +401,7 @@ def _requirement_from_ledger(
         command=[str(part) for part in entry.command],
         changed_paths=[_path_to_string(path) for path in entry.changed_paths],
         verification_id=entry.verification_id,
+        artifact_id=entry.latest_artifact_id or entry.latest_failed_artifact_id,
         blocking=entry.blocking,
         evidence_summary=entry.summary or entry.latest_failed_summary,
         safe_next_actions=[]

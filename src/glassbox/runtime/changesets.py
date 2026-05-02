@@ -1,6 +1,7 @@
 """Runtime service for deriving and inspecting reviewable changesets."""
 
 import hashlib
+import json
 import subprocess
 from pathlib import Path
 from typing import Protocol
@@ -9,6 +10,7 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 
+from glassbox.core import ArtifactId
 from glassbox.core import BranchCandidateId
 from glassbox.core import BranchCandidateRecord
 from glassbox.core import BranchCandidateStatus
@@ -29,6 +31,7 @@ from glassbox.core import ChangesetSourceAttached
 from glassbox.core import ChangesetSourceKind
 from glassbox.core import ChangesetSourceRecord
 from glassbox.core import ChangesetVerificationPostureRecord
+from glassbox.core import ChangesetVerificationPostureUpdated
 from glassbox.core import EventEnvelope
 from glassbox.core import EventPayloadType
 from glassbox.core import ProjectionHealth
@@ -39,11 +42,23 @@ from glassbox.core import SessionStatus
 from glassbox.core import TaskId
 from glassbox.core import TaskPlanStatus
 from glassbox.core import TaskRecord
+from glassbox.core import TaskVerificationId
+from glassbox.core import TaskVerificationLedgerRecord
 from glassbox.core import new_changeset_id
 from glassbox.runtime.change_inventory import CHANGE_INVENTORY_ARTIFACT_SCHEMA_VERSION
 from glassbox.runtime.change_inventory import ChangeInventoryArtifact
 from glassbox.runtime.change_inventory import change_inventory_artifact_json
 from glassbox.runtime.change_inventory import change_inventory_from_diff_summary
+from glassbox.runtime.changeset_verification_readiness import (
+    ChangesetVerificationReadiness,
+)
+from glassbox.runtime.changeset_verification_readiness import (
+    derive_changeset_verification_readiness,
+)
+from glassbox.runtime.eval_recommendation_models import EvalRecommendationReasonGroup
+from glassbox.runtime.eval_recommendation_models import EvalRecommendationReport
+from glassbox.runtime.eval_recommendations import recommend_eval_change_impact
+from glassbox.runtime.workspace_profile import load_workspace_profile
 from glassbox.services import ArtifactRepository
 from glassbox.services import StoredArtifact
 from glassbox.tools.workflow import DiffSummaryArgs
@@ -127,6 +142,12 @@ class ChangesetRepository(ChangesetDerivationRepository, Protocol):
         changeset_id: ChangesetId,
     ) -> list[ChangesetReadinessRecord]: ...
 
+    def list_task_verification_ledger(
+        self,
+        session_id: SessionId,
+        task_id: TaskId,
+    ) -> list[TaskVerificationLedgerRecord]: ...
+
     def read_session_events(self, session_id: SessionId) -> list[EventEnvelope]: ...
 
 
@@ -183,6 +204,55 @@ class ChangesetInventoryRefreshResult(BaseModel):
     superseded_event: EventEnvelope | None = None
     freshness: ChangesetInventoryFreshness
     source_digest: str | None = None
+
+
+class ChangesetVerificationRecipePreview(BaseModel):
+    """One recipe row in a changeset verification plan preview."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    recipe_id: str
+    title: str
+    matched_paths: list[str] = Field(default_factory=list)
+    commands: list[str] = Field(default_factory=list)
+    profile_ids: list[str] = Field(default_factory=list)
+    case_ids: list[str] = Field(default_factory=list)
+    notes: str | None = None
+
+
+class ChangesetVerificationPlanPreview(BaseModel):
+    """Preview-only verification plan for one changeset."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    changeset_id: ChangesetId
+    session_id: SessionId
+    inventory_artifact_id: ArtifactId | None = None
+    inventory_freshness: ChangesetInventoryFreshness
+    changed_paths: list[str] = Field(default_factory=list)
+    recommended_commands: list[str] = Field(default_factory=list)
+    eval_profiles: list[str] = Field(default_factory=list)
+    recipes: list[ChangesetVerificationRecipePreview] = Field(default_factory=list)
+    reason_groups: list[EvalRecommendationReasonGroup] = Field(default_factory=list)
+    expected_scope: list[str] = Field(default_factory=list)
+    retained_artifact_ids: list[ArtifactId] = Field(default_factory=list)
+    readiness: ChangesetVerificationReadiness
+    limitations: list[str] = Field(default_factory=list)
+    safe_next_actions: list[str] = Field(default_factory=list)
+    non_claims: list[str] = Field(default_factory=list)
+
+
+class ChangesetVerificationEvidenceRecordResult(BaseModel):
+    """Result of recording selected retained verification evidence."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    changeset_id: ChangesetId
+    session_id: SessionId
+    selected_verification_ids: list[TaskVerificationId] = Field(default_factory=list)
+    retained_artifact_ids: list[ArtifactId] = Field(default_factory=list)
+    readiness: ChangesetVerificationReadiness
+    event: EventEnvelope
 
 
 class ChangesetDerivationService:
@@ -486,6 +556,207 @@ class ChangesetQueryService:
             ),
             safe_next_actions=_detail_safe_next_actions(changeset, inventory_status),
         )
+
+
+class ChangesetVerificationService:
+    """Preview and record changeset verification posture from retained evidence."""
+
+    def __init__(
+        self,
+        repository: ChangesetRepository,
+        artifact_repository: ArtifactRepository | None = None,
+    ) -> None:
+        self._repository = repository
+        self._artifact_repository = artifact_repository
+
+    def preview_plan(
+        self,
+        changeset_id: ChangesetId,
+        workspace_root: Path,
+    ) -> ChangesetVerificationPlanPreview:
+        changeset = self._require_changeset(changeset_id)
+        inventory_record = self._repository.get_changeset_inventory(
+            changeset.session_id,
+            changeset.changeset_id,
+        )
+        inventory, inventory_limitations = self._load_inventory_artifact(
+            changeset.session_id,
+            inventory_record,
+        )
+        changed_paths = _inventory_paths_for_preview(inventory)
+        recommendation, recommendation_limitations = _recommendation_for_preview(
+            workspace_root,
+            changed_paths,
+        )
+        limitations = [*inventory_limitations, *recommendation_limitations]
+        ledger = self._task_ledger_for_changeset(changeset)
+        inventory_freshness = (
+            inventory_record.freshness
+            if inventory_record is not None
+            else ChangesetInventoryFreshness.UNKNOWN
+        )
+        readiness = derive_changeset_verification_readiness(
+            inventory=inventory,
+            inventory_freshness=inventory_freshness,
+            inventory_sequence=(
+                inventory_record.last_sequence if inventory_record is not None else None
+            ),
+            task_ledger=ledger,
+            eval_recommendation=recommendation,
+            workspace_profile=load_workspace_profile(workspace_root),
+        )
+        retained_artifact_ids = _artifact_ids_from_readiness(readiness)
+        return ChangesetVerificationPlanPreview(
+            changeset_id=changeset.changeset_id,
+            session_id=changeset.session_id,
+            inventory_artifact_id=(
+                inventory_record.artifact_id if inventory_record is not None else None
+            ),
+            inventory_freshness=inventory_freshness,
+            changed_paths=changed_paths,
+            recommended_commands=_preview_commands(
+                readiness,
+                recommendation,
+            ),
+            eval_profiles=_eval_profile_ids_for_preview(recommendation),
+            recipes=_recipe_previews(recommendation),
+            reason_groups=(
+                recommendation.reason_groups if recommendation is not None else []
+            ),
+            expected_scope=changed_paths,
+            retained_artifact_ids=retained_artifact_ids,
+            readiness=readiness,
+            limitations=limitations,
+            safe_next_actions=readiness.safe_next_actions,
+            non_claims=[
+                *readiness.non_claims,
+                "verification plan preview does not run commands",
+                (
+                    "publish, deploy, push, and upload commands are not "
+                    "recommended as verification"
+                ),
+            ],
+        )
+
+    def record_existing_evidence(
+        self,
+        changeset_id: ChangesetId,
+        workspace_root: Path,
+        *,
+        task_id: TaskId | None = None,
+        verification_id: TaskVerificationId | None = None,
+    ) -> ChangesetVerificationEvidenceRecordResult:
+        changeset = self._require_changeset(changeset_id)
+        resolved_task_id = task_id or changeset.task_id
+        if resolved_task_id is None:
+            raise ValueError(
+                "task_id is required when the changeset is not task-backed"
+            )
+        ledger = self._repository.list_task_verification_ledger(
+            changeset.session_id,
+            resolved_task_id,
+        )
+        if verification_id is not None:
+            ledger = [
+                entry for entry in ledger if entry.verification_id == verification_id
+            ]
+        if not ledger:
+            raise ValueError("no retained task verification evidence matched")
+        inventory_record = self._repository.get_changeset_inventory(
+            changeset.session_id,
+            changeset.changeset_id,
+        )
+        inventory, _limitations = self._load_inventory_artifact(
+            changeset.session_id,
+            inventory_record,
+        )
+        recommendation, _limitations = _recommendation_for_preview(
+            workspace_root,
+            _inventory_paths_for_preview(inventory),
+        )
+        readiness = derive_changeset_verification_readiness(
+            inventory=inventory,
+            inventory_freshness=(
+                inventory_record.freshness
+                if inventory_record is not None
+                else ChangesetInventoryFreshness.UNKNOWN
+            ),
+            inventory_sequence=(
+                inventory_record.last_sequence if inventory_record is not None else None
+            ),
+            task_ledger=ledger,
+            eval_recommendation=recommendation,
+            workspace_profile=load_workspace_profile(workspace_root),
+        )
+        selected = sorted(ledger, key=lambda entry: entry.last_sequence)
+        primary = selected[-1]
+        retained_artifact_ids = _artifact_ids_from_readiness(readiness)
+        stored = self._repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=changeset.session_id,
+                    sequence=0,
+                    payload=ChangesetVerificationPostureUpdated(
+                        changeset_id=changeset.changeset_id,
+                        state=readiness.state,
+                        summary=readiness.summary,
+                        verification_id=primary.verification_id,
+                        artifact_id=primary.latest_artifact_id
+                        or primary.latest_failed_artifact_id,
+                        task_id=resolved_task_id,
+                        stale_count=readiness.stale_count,
+                        missing_count=readiness.missing_count,
+                        failed_count=readiness.failed_count,
+                        accepted_risk_count=readiness.accepted_risk_count,
+                    ),
+                )
+            ]
+        )
+        return ChangesetVerificationEvidenceRecordResult(
+            changeset_id=changeset.changeset_id,
+            session_id=changeset.session_id,
+            selected_verification_ids=[entry.verification_id for entry in selected],
+            retained_artifact_ids=retained_artifact_ids,
+            readiness=readiness,
+            event=stored[0],
+        )
+
+    def _task_ledger_for_changeset(
+        self,
+        changeset: ChangesetRecord,
+    ) -> list[TaskVerificationLedgerRecord]:
+        if changeset.task_id is None:
+            return []
+        return self._repository.list_task_verification_ledger(
+            changeset.session_id,
+            changeset.task_id,
+        )
+
+    def _load_inventory_artifact(
+        self,
+        session_id: SessionId,
+        inventory_record: ChangesetInventoryRecord | None,
+    ) -> tuple[ChangeInventoryArtifact | None, list[str]]:
+        if inventory_record is None:
+            return None, ["no structured change inventory is attached yet"]
+        if self._artifact_repository is None:
+            return None, ["artifact repository is unavailable"]
+        try:
+            content = self._artifact_repository.read_text_artifact(
+                _changeset_inventory_artifact_path(
+                    session_id,
+                    inventory_record.artifact_id,
+                )
+            )
+            return ChangeInventoryArtifact.model_validate_json(content), []
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            return None, [f"change inventory artifact could not be read: {exc}"]
+
+    def _require_changeset(self, changeset_id: ChangesetId) -> ChangesetRecord:
+        changeset = self._repository.get_changeset(changeset_id)
+        if changeset is None:
+            raise ValueError(f"unknown changeset: {changeset_id}")
+        return changeset
 
 
 class ChangesetActionService:
@@ -978,6 +1249,152 @@ def _inventory_with_status_freshness(
     return inventory.model_copy(update={"freshness": inventory_status.freshness})
 
 
+def _changeset_inventory_artifact_path(
+    session_id: SessionId,
+    artifact_id: ArtifactId,
+) -> Path:
+    return (
+        Path(".glassbox")
+        / "sessions"
+        / str(session_id)
+        / "artifacts"
+        / f"{artifact_id}.changeset-inventory.json"
+    )
+
+
+def _inventory_paths_for_preview(
+    inventory: ChangeInventoryArtifact | None,
+) -> list[str]:
+    if inventory is None:
+        return []
+    return [entry.path for entry in inventory.paths[:100]]
+
+
+def _safe_eval_recommendation(
+    recommendation: EvalRecommendationReport | None,
+) -> EvalRecommendationReport | None:
+    if recommendation is None:
+        return None
+    recipes = [
+        recipe.model_copy(
+            update={
+                "commands": [
+                    command
+                    for command in recipe.commands
+                    if _is_safe_verification_command(command)
+                ]
+            }
+        )
+        for recipe in recommendation.recipes
+    ]
+    return recommendation.model_copy(
+        update={
+            "suggested_commands": [
+                command
+                for command in recommendation.suggested_commands
+                if _is_safe_verification_command(command)
+            ],
+            "fallback_policy_commands": [
+                command
+                for command in recommendation.fallback_policy_commands
+                if _is_safe_verification_command(command)
+            ],
+            "recipes": recipes,
+        }
+    )
+
+
+def _recommendation_for_preview(
+    workspace_root: Path,
+    changed_paths: list[str],
+) -> tuple[EvalRecommendationReport | None, list[str]]:
+    if not changed_paths:
+        return None, []
+    try:
+        return (
+            _safe_eval_recommendation(
+                recommend_eval_change_impact(
+                    workspace_root,
+                    touched_paths=changed_paths,
+                )
+            ),
+            [],
+        )
+    except ValueError as exc:
+        return None, [f"eval recommendation unavailable: {exc}"]
+
+
+def _preview_commands(
+    readiness: ChangesetVerificationReadiness,
+    recommendation: EvalRecommendationReport | None,
+) -> list[str]:
+    commands = (
+        list(recommendation.suggested_commands) if recommendation is not None else []
+    )
+    for requirement in readiness.requirements:
+        if requirement.command:
+            commands.append(" ".join(requirement.command))
+    return [
+        command
+        for command in dict.fromkeys(commands)
+        if _is_safe_verification_command(command)
+    ]
+
+
+def _is_safe_verification_command(command: str) -> bool:
+    tokens = {part.lower() for part in command.replace(";", " ").split()}
+    blocked = {
+        "deploy",
+        "publish",
+        "push",
+        "upload",
+        "release",
+        "release:publish",
+    }
+    return not tokens.intersection(blocked)
+
+
+def _eval_profile_ids_for_preview(
+    recommendation: EvalRecommendationReport | None,
+) -> list[str]:
+    if recommendation is None:
+        return []
+    profile_ids = [profile.profile_id for profile in recommendation.profiles]
+    for recipe in recommendation.recipes:
+        profile_ids.extend(recipe.profile_ids)
+    return list(dict.fromkeys(profile_ids))
+
+
+def _recipe_previews(
+    recommendation: EvalRecommendationReport | None,
+) -> list[ChangesetVerificationRecipePreview]:
+    if recommendation is None:
+        return []
+    return [
+        ChangesetVerificationRecipePreview(
+            recipe_id=recipe.recipe_id,
+            title=recipe.title,
+            matched_paths=recipe.matched_paths,
+            commands=recipe.commands,
+            profile_ids=recipe.profile_ids,
+            case_ids=recipe.case_ids,
+            notes=recipe.notes,
+        )
+        for recipe in recommendation.recipes
+    ]
+
+
+def _artifact_ids_from_readiness(
+    readiness: ChangesetVerificationReadiness,
+) -> list[ArtifactId]:
+    artifact_ids = [
+        requirement.artifact_id
+        for requirement in readiness.requirements
+        if requirement.artifact_id is not None
+    ]
+    return list(dict.fromkeys(artifact_ids))
+
+
 def _workspace_diff_reason(diff: _WorkspaceDiffSnapshot) -> str:
     if diff.error is not None:
         return "created from workspace diff request with unavailable git status"
@@ -1050,4 +1467,8 @@ __all__ = [
     "ChangesetInventoryStatus",
     "ChangesetQueryService",
     "ChangesetRepository",
+    "ChangesetVerificationEvidenceRecordResult",
+    "ChangesetVerificationPlanPreview",
+    "ChangesetVerificationRecipePreview",
+    "ChangesetVerificationService",
 ]

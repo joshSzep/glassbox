@@ -2044,6 +2044,77 @@
         "title": "ChangesetReadinessResponse",
         "type": "object"
       },
+      "ChangesetRecordVerificationRequest": {
+        "properties": {
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "verification_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verification Id"
+          }
+        },
+        "title": "ChangesetRecordVerificationRequest",
+        "type": "object"
+      },
+      "ChangesetRecordVerificationResponse": {
+        "properties": {
+          "changeset_id": {
+            "title": "Changeset Id",
+            "type": "string"
+          },
+          "event_sequence": {
+            "title": "Event Sequence",
+            "type": "integer"
+          },
+          "readiness": {
+            "$ref": "#/components/schemas/ChangesetVerificationReadinessResponse"
+          },
+          "retained_artifact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Retained Artifact Ids",
+            "type": "array"
+          },
+          "selected_verification_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Selected Verification Ids",
+            "type": "array"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "changeset_id",
+          "session_id",
+          "selected_verification_ids",
+          "retained_artifact_ids",
+          "readiness",
+          "event_sequence"
+        ],
+        "title": "ChangesetRecordVerificationResponse",
+        "type": "object"
+      },
       "ChangesetRefreshRequest": {
         "properties": {
           "actor": {
@@ -2485,6 +2556,124 @@
         "title": "ChangesetSummaryResponse",
         "type": "object"
       },
+      "ChangesetVerificationPlanPreviewResponse": {
+        "properties": {
+          "changed_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Changed Paths",
+            "type": "array"
+          },
+          "changeset_id": {
+            "title": "Changeset Id",
+            "type": "string"
+          },
+          "eval_profiles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Eval Profiles",
+            "type": "array"
+          },
+          "expected_scope": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Expected Scope",
+            "type": "array"
+          },
+          "inventory_artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inventory Artifact Id"
+          },
+          "inventory_freshness": {
+            "title": "Inventory Freshness",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Non Claims",
+            "type": "array"
+          },
+          "readiness": {
+            "$ref": "#/components/schemas/ChangesetVerificationReadinessResponse"
+          },
+          "reason_groups": {
+            "items": {
+              "$ref": "#/components/schemas/ChangesetVerificationReasonGroupResponse"
+            },
+            "title": "Reason Groups",
+            "type": "array"
+          },
+          "recipes": {
+            "items": {
+              "$ref": "#/components/schemas/ChangesetVerificationRecipePreviewResponse"
+            },
+            "title": "Recipes",
+            "type": "array"
+          },
+          "recommended_commands": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recommended Commands",
+            "type": "array"
+          },
+          "retained_artifact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Retained Artifact Ids",
+            "type": "array"
+          },
+          "safe_next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safe Next Actions",
+            "type": "array"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "changeset_id",
+          "session_id",
+          "inventory_freshness",
+          "changed_paths",
+          "recommended_commands",
+          "eval_profiles",
+          "recipes",
+          "reason_groups",
+          "expected_scope",
+          "retained_artifact_ids",
+          "readiness",
+          "limitations",
+          "safe_next_actions",
+          "non_claims"
+        ],
+        "title": "ChangesetVerificationPlanPreviewResponse",
+        "type": "object"
+      },
       "ChangesetVerificationPostureResponse": {
         "properties": {
           "accepted_risk_count": {
@@ -2586,6 +2775,300 @@
           "last_sequence"
         ],
         "title": "ChangesetVerificationPostureResponse",
+        "type": "object"
+      },
+      "ChangesetVerificationReadinessResponse": {
+        "properties": {
+          "accepted_risk_count": {
+            "title": "Accepted Risk Count",
+            "type": "integer"
+          },
+          "failed_count": {
+            "title": "Failed Count",
+            "type": "integer"
+          },
+          "missing_count": {
+            "title": "Missing Count",
+            "type": "integer"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Non Claims",
+            "type": "array"
+          },
+          "requirements": {
+            "items": {
+              "$ref": "#/components/schemas/ChangesetVerificationRequirementResponse"
+            },
+            "title": "Requirements",
+            "type": "array"
+          },
+          "safe_next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safe Next Actions",
+            "type": "array"
+          },
+          "stale_count": {
+            "title": "Stale Count",
+            "type": "integer"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "summary",
+          "requirements",
+          "stale_count",
+          "missing_count",
+          "failed_count",
+          "accepted_risk_count",
+          "safe_next_actions",
+          "non_claims"
+        ],
+        "title": "ChangesetVerificationReadinessResponse",
+        "type": "object"
+      },
+      "ChangesetVerificationReasonGroupResponse": {
+        "properties": {
+          "group": {
+            "title": "Group",
+            "type": "string"
+          },
+          "matched_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Matched Paths",
+            "type": "array"
+          },
+          "recommended_case_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recommended Case Ids",
+            "type": "array"
+          },
+          "recommended_profile_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recommended Profile Ids",
+            "type": "array"
+          },
+          "release_gate_commands": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Release Gate Commands",
+            "type": "array"
+          },
+          "rule_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Rule Ids",
+            "type": "array"
+          },
+          "summaries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Summaries",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "group",
+          "title",
+          "summaries",
+          "matched_paths",
+          "rule_ids",
+          "recommended_case_ids",
+          "recommended_profile_ids",
+          "release_gate_commands"
+        ],
+        "title": "ChangesetVerificationReasonGroupResponse",
+        "type": "object"
+      },
+      "ChangesetVerificationRecipePreviewResponse": {
+        "properties": {
+          "case_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Case Ids",
+            "type": "array"
+          },
+          "commands": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Commands",
+            "type": "array"
+          },
+          "matched_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Matched Paths",
+            "type": "array"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "profile_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Profile Ids",
+            "type": "array"
+          },
+          "recipe_id": {
+            "title": "Recipe Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": ["recipe_id", "title", "matched_paths", "commands", "profile_ids", "case_ids"],
+        "title": "ChangesetVerificationRecipePreviewResponse",
+        "type": "object"
+      },
+      "ChangesetVerificationRequirementResponse": {
+        "properties": {
+          "artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifact Id"
+          },
+          "blocking": {
+            "title": "Blocking",
+            "type": "boolean"
+          },
+          "changed_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Changed Paths",
+            "type": "array"
+          },
+          "check_name": {
+            "title": "Check Name",
+            "type": "string"
+          },
+          "command": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Command",
+            "type": "array"
+          },
+          "evidence_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Summary"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "requirement_id": {
+            "title": "Requirement Id",
+            "type": "string"
+          },
+          "safe_next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safe Next Actions",
+            "type": "array"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "verification_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verification Id"
+          }
+        },
+        "required": [
+          "requirement_id",
+          "state",
+          "check_name",
+          "reason",
+          "command",
+          "changed_paths",
+          "blocking",
+          "safe_next_actions"
+        ],
+        "title": "ChangesetVerificationRequirementResponse",
         "type": "object"
       },
       "CheckpointAbsenceResponse": {
@@ -10352,6 +10835,67 @@
         "summary": "Archive Changeset"
       }
     },
+    "/changesets/{changeset_id}/record-verification": {
+      "post": {
+        "description": "Record changeset verification posture from existing task evidence.",
+        "operationId": "record_changeset_verification_changesets__changeset_id__record_verification_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "changeset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Changeset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangesetRecordVerificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangesetRecordVerificationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Changeset Verification"
+      }
+    },
     "/changesets/{changeset_id}/refresh": {
       "post": {
         "description": "Refresh structured inventory evidence for a changeset.",
@@ -10411,6 +10955,57 @@
           }
         },
         "summary": "Refresh Changeset"
+      }
+    },
+    "/changesets/{changeset_id}/verification-plan": {
+      "get": {
+        "description": "Preview verification commands and retained evidence for a changeset.",
+        "operationId": "preview_changeset_verification_plan_changesets__changeset_id__verification_plan_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "changeset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Changeset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangesetVerificationPlanPreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Changeset Verification Plan"
       }
     },
     "/healthz": {

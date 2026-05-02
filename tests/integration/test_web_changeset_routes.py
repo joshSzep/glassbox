@@ -9,7 +9,19 @@ import httpx
 
 from glassbox.core import EventEnvelope
 from glassbox.core import SessionStarted
+from glassbox.core import TaskCreated
+from glassbox.core import TaskPlanStatus
+from glassbox.core import TaskStatusChanged
+from glassbox.core import TaskVerificationCompleted
+from glassbox.core import TaskVerificationPlanned
+from glassbox.core import TaskVerificationStatus
+from glassbox.core import VerificationCheckKind
+from glassbox.core import VerificationPlanEntry
+from glassbox.core import VerificationPlanSource
+from glassbox.core import new_artifact_id
 from glassbox.core import new_session_id
+from glassbox.core import new_task_id
+from glassbox.core import new_task_verification_id
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.store import SQLiteSessionRepository
 from glassbox.store.sqlite import initialize_database
@@ -24,17 +36,37 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             _init_git_repo(tmp_path)
             app = _make_app(tmp_path, connection)
             session_id = new_session_id()
+            task_id = new_task_id()
             repository = SQLiteSessionRepository(connection)
-            repository.append_event(
-                EventEnvelope(
-                    session_id=session_id,
-                    sequence=0,
-                    payload=SessionStarted(
-                        cwd=str(tmp_path),
-                        model_name="openai:gpt-5.4",
-                        approval_mode="confirm",
+            repository.append_events(
+                [
+                    EventEnvelope(
+                        session_id=session_id,
+                        sequence=0,
+                        payload=SessionStarted(
+                            cwd=str(tmp_path),
+                            model_name="openai:gpt-5.4",
+                            approval_mode="confirm",
+                        ),
                     ),
-                )
+                    EventEnvelope(
+                        session_id=session_id,
+                        sequence=0,
+                        payload=TaskCreated(
+                            task_id=task_id,
+                            title="API changeset task",
+                            goal="Review API changeset verification",
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=session_id,
+                        sequence=0,
+                        payload=TaskStatusChanged(
+                            task_id=task_id,
+                            status=TaskPlanStatus.COMPLETED,
+                        ),
+                    ),
+                ]
             )
 
             async with httpx.AsyncClient(
@@ -44,8 +76,8 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                 create_response = await client.post(
                     "/changesets",
                     json={
-                        "source_kind": "session",
-                        "session_id": str(session_id),
+                        "source_kind": "task",
+                        "task_id": str(task_id),
                         "objective": "Review session evidence",
                     },
                 )
@@ -59,6 +91,25 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                 refresh_response = await client.post(
                     f"/changesets/{changeset_id}/refresh",
                     json={"actor": "qa"},
+                )
+                plan_response = await client.get(
+                    f"/changesets/{changeset_id}/verification-plan"
+                )
+                verification_command = plan_response.json()["recommended_commands"][0]
+                verification_id = new_task_verification_id()
+                artifact_id = new_artifact_id()
+                repository.append_events(
+                    _verification_events(
+                        session_id,
+                        task_id,
+                        verification_id,
+                        command=verification_command.split(),
+                        artifact_id=artifact_id,
+                    )
+                )
+                record_response = await client.post(
+                    f"/changesets/{changeset_id}/record-verification",
+                    json={"verification_id": str(verification_id)},
                 )
                 (tmp_path / "app.py").write_text(
                     "print('changed again')\n",
@@ -75,7 +126,7 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             assert list_response.status_code == 200
             assert list_response.json()["items"][0]["changeset_id"] == changeset_id
             assert detail_response.status_code == 200
-            assert detail_response.json()["sources"][0]["source_kind"] == "session"
+            assert detail_response.json()["sources"][0]["source_kind"] == "task"
             assert (
                 "glassbox changeset show"
                 in detail_response.json()["safe_next_actions"][0]
@@ -85,9 +136,15 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             assert (
                 refresh_response.json()["detail"]["inventory"]["freshness"] == "fresh"
             )
+            assert plan_response.status_code == 200
+            assert plan_response.json()["expected_scope"] == ["app.py"]
+            assert record_response.status_code == 200
+            assert record_response.json()["readiness"]["state"] == "passed"
+            assert record_response.json()["retained_artifact_ids"] == [str(artifact_id)]
             assert stale_response.status_code == 200
             assert stale_response.json()["inventory_status"]["stale"] is True
             assert stale_response.json()["inventory"]["freshness"] == "stale"
+            assert stale_response.json()["verification_posture"]["state"] == "passed"
             assert archive_response.status_code == 200
             assert (
                 archive_response.json()["detail"]["changeset"]["status"] == "archived"
@@ -131,3 +188,42 @@ def _open_initialized_db(tmp_path: Path) -> sqlite3.Connection:
 def _make_app(tmp_path: Path, connection: sqlite3.Connection):
     runtime_context = _build_runtime_context(connection, tmp_path)
     return create_app(runtime_context)
+
+
+def _verification_events(
+    session_id,
+    task_id,
+    verification_id,
+    *,
+    command: list[str],
+    artifact_id,
+) -> list[EventEnvelope]:
+    return [
+        EventEnvelope(
+            session_id=session_id,
+            sequence=0,
+            payload=TaskVerificationPlanned(
+                task_id=task_id,
+                verification=VerificationPlanEntry(
+                    verification_id=verification_id,
+                    check_name="changeset api verification",
+                    kind=VerificationCheckKind.COMMAND,
+                    command=command,
+                    source=VerificationPlanSource.EVAL_RECOMMENDATION,
+                    rationale="operator selected API plan command",
+                    changed_paths=[Path("app.py")],
+                ),
+            ),
+        ),
+        EventEnvelope(
+            session_id=session_id,
+            sequence=0,
+            payload=TaskVerificationCompleted(
+                task_id=task_id,
+                verification_id=verification_id,
+                status=TaskVerificationStatus.PASSED,
+                summary="selected verification passed",
+                artifact_id=artifact_id,
+            ),
+        ),
+    ]

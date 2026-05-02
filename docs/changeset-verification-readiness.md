@@ -50,6 +50,34 @@ Missing inputs degrade honestly. If inventory is missing, readiness is
 `missing`. If inventory freshness is `unknown`, readiness names that gap and
 starts with `glassbox changeset refresh <changeset-id> --cwd .`.
 
+## Plan Preview And Evidence Capture
+
+Operators can preview the intended verification plan without running anything:
+
+```bash
+glassbox changeset verification-plan <changeset-id> --cwd .
+```
+
+The preview names recommended commands, eval profiles, matching recipes,
+reason groups, expected changed-path scope, retained verification artifact IDs,
+and safe next actions. Commands are previews only; execution remains an
+explicit shell or existing Glassbox workflow action. Publish, deploy, push, and
+upload commands are filtered out of the changeset verification plan.
+
+When a task verification ledger already contains the operator-selected evidence,
+the posture can be recorded on the changeset:
+
+```bash
+glassbox changeset record-verification <changeset-id> \
+  --verification <verification-id> --cwd .
+```
+
+This records a `ChangesetVerificationPostureUpdated` event from existing task
+verification evidence. It does not run commands, stage files, commit, push, or
+rewrite the verification ledger. Retained task output artifacts stay referenced
+by artifact ID so later review surfaces can cite them without flattening raw
+logs into the changeset summary.
+
 ## Stale Verification
 
 The first stale-verification boundary is sequence- and path-aware. When a
@@ -75,5 +103,5 @@ review posture. It does not prove that:
 - skipped or accepted-risk evidence makes the change safe
 - the changeset is ready to commit
 
-Later v12 tasks attach stale-verification detection, plan preview, evidence
-capture, CLI/API/dashboard surfacing, and commit readiness to this model.
+Later v12 tasks attach dashboard-ready review posture, review briefs, and commit
+readiness to this model.

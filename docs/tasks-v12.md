@@ -768,7 +768,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1232: Add Verification Plan Preview And Evidence Capture
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1231`
 - Goal: let operators preview and record verification plans for a changeset
   without auto-running arbitrary commands
@@ -789,6 +789,24 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - a reviewer can see the intended verification plan before deciding whether
     to run or trust it
+- Completion evidence:
+  - Added changeset verification plan preview models and service logic that
+    loads the latest inventory artifact, derives eval recommendations, recipes,
+    reason groups, expected path scope, readiness, and retained verification
+    artifact IDs without running commands.
+  - Added explicit evidence recording from existing task verification ledger
+    entries via `ChangesetVerificationPostureUpdated`, preserving selected
+    verification IDs and artifact references while avoiding command execution,
+    staging, commits, pushes, or PR behavior.
+  - Added CLI commands `glassbox changeset verification-plan` and
+    `glassbox changeset record-verification`, plus API routes
+    `/changesets/{id}/verification-plan` and
+    `/changesets/{id}/record-verification`.
+  - Updated [changeset-verification-readiness.md](./changeset-verification-readiness.md)
+    with preview and evidence-capture behavior, safe next actions, command
+    non-execution, and publish/deploy filtering.
+  - Verified with focused readiness, CLI, API, OpenAPI, ruff, ty, generated
+    API type, frontend typecheck, frontend lint, and frontend build checks.
 
 ### GBX-1233: Surface Ready-To-Review Verification Posture
 

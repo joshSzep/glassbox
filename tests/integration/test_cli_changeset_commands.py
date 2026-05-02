@@ -10,8 +10,16 @@ from glassbox.core import SessionStarted
 from glassbox.core import TaskCreated
 from glassbox.core import TaskPlanStatus
 from glassbox.core import TaskStatusChanged
+from glassbox.core import TaskVerificationCompleted
+from glassbox.core import TaskVerificationPlanned
+from glassbox.core import TaskVerificationStatus
+from glassbox.core import VerificationCheckKind
+from glassbox.core import VerificationPlanEntry
+from glassbox.core import VerificationPlanSource
+from glassbox.core import new_artifact_id
 from glassbox.core import new_session_id
 from glassbox.core import new_task_id
+from glassbox.core import new_task_verification_id
 from glassbox.store import SQLiteSessionRepository
 from glassbox.store import initialize_database
 from glassbox.store import open_database
@@ -85,6 +93,45 @@ def test_changeset_create_list_show_refresh_and_archive(
         ]
     )
     refresh_output = capsys.readouterr().out
+    plan_exit = main(
+        [
+            "changeset",
+            "verification-plan",
+            changeset_id,
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    plan = json.loads(capsys.readouterr().out)
+    verification_command = plan["recommended_commands"][0]
+    verification_id = new_task_verification_id()
+    artifact_id = new_artifact_id()
+    _seed_verification(
+        db_path,
+        session_id,
+        task_id,
+        verification_id,
+        command=verification_command.split(),
+        artifact_id=artifact_id,
+    )
+    record_exit = main(
+        [
+            "changeset",
+            "record-verification",
+            changeset_id,
+            "--verification",
+            str(verification_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    recorded = json.loads(capsys.readouterr().out)
     (tmp_path / "app.py").write_text("print('changed again')\n", encoding="utf-8")
 
     stale_show_exit = main(
@@ -127,8 +174,15 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert "glassbox changeset refresh" in detail["safe_next_actions"][1]
     assert refresh_exit == 0
     assert "Refreshed change inventory" in refresh_output
+    assert plan_exit == 0
+    assert plan["expected_scope"] == ["app.py"]
+    assert plan["readiness"]["state"] == "missing"
+    assert record_exit == 0
+    assert recorded["readiness"]["state"] == "passed"
+    assert recorded["retained_artifact_ids"] == [str(artifact_id)]
     assert stale_show_exit == 0
     assert stale_detail["inventory"]["freshness"] == "stale"
+    assert stale_detail["verification_posture"]["state"] == "passed"
     assert stale_detail["inventory_status"]["stale"] is True
     assert "source digest changed" in stale_detail["inventory_status"]["reason"]
     assert archive_exit == 0
@@ -190,6 +244,53 @@ def _seed_task(db_path: Path, tmp_path: Path, session_id, task_id) -> None:
                     payload=TaskStatusChanged(
                         task_id=task_id,
                         status=TaskPlanStatus.COMPLETED,
+                    ),
+                ),
+            ]
+        )
+    finally:
+        connection.close()
+
+
+def _seed_verification(
+    db_path: Path,
+    session_id,
+    task_id,
+    verification_id,
+    *,
+    command: list[str],
+    artifact_id,
+) -> None:
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskVerificationPlanned(
+                        task_id=task_id,
+                        verification=VerificationPlanEntry(
+                            verification_id=verification_id,
+                            check_name="changeset verification",
+                            kind=VerificationCheckKind.COMMAND,
+                            command=command,
+                            source=VerificationPlanSource.EVAL_RECOMMENDATION,
+                            rationale="operator selected changeset plan command",
+                            changed_paths=[Path("app.py")],
+                        ),
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskVerificationCompleted(
+                        task_id=task_id,
+                        verification_id=verification_id,
+                        status=TaskVerificationStatus.PASSED,
+                        summary="selected verification passed",
+                        artifact_id=artifact_id,
                     ),
                 ),
             ]

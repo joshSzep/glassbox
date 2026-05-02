@@ -13,6 +13,7 @@ from glassbox.core.models import ChangesetReviewBriefRecord
 from glassbox.core.models import ChangesetSourceRecord
 from glassbox.core.models import ChangesetVerificationPostureRecord
 from glassbox.runtime.changesets import ChangesetDetailView
+from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 
 
 class ChangesetSummaryResponse(BaseModel):
@@ -191,6 +192,87 @@ class ChangesetActionResponse(BaseModel):
     detail: ChangesetDetailResponse
 
 
+class ChangesetVerificationRecipePreviewResponse(BaseModel):
+    recipe_id: str
+    title: str
+    matched_paths: list[str]
+    commands: list[str]
+    profile_ids: list[str]
+    case_ids: list[str]
+    notes: str | None = None
+
+
+class ChangesetVerificationReasonGroupResponse(BaseModel):
+    group: str
+    title: str
+    summaries: list[str]
+    matched_paths: list[str]
+    rule_ids: list[str]
+    recommended_case_ids: list[str]
+    recommended_profile_ids: list[str]
+    release_gate_commands: list[str]
+
+
+class ChangesetVerificationRequirementResponse(BaseModel):
+    requirement_id: str
+    state: str
+    check_name: str
+    reason: str
+    source: str | None = None
+    kind: str | None = None
+    command: list[str]
+    changed_paths: list[str]
+    verification_id: str | None = None
+    artifact_id: str | None = None
+    blocking: bool
+    evidence_summary: str | None = None
+    safe_next_actions: list[str]
+
+
+class ChangesetVerificationReadinessResponse(BaseModel):
+    state: str
+    summary: str
+    requirements: list[ChangesetVerificationRequirementResponse]
+    stale_count: int
+    missing_count: int
+    failed_count: int
+    accepted_risk_count: int
+    safe_next_actions: list[str]
+    non_claims: list[str]
+
+
+class ChangesetVerificationPlanPreviewResponse(BaseModel):
+    changeset_id: str
+    session_id: str
+    inventory_artifact_id: str | None = None
+    inventory_freshness: str
+    changed_paths: list[str]
+    recommended_commands: list[str]
+    eval_profiles: list[str]
+    recipes: list[ChangesetVerificationRecipePreviewResponse]
+    reason_groups: list[ChangesetVerificationReasonGroupResponse]
+    expected_scope: list[str]
+    retained_artifact_ids: list[str]
+    readiness: ChangesetVerificationReadinessResponse
+    limitations: list[str]
+    safe_next_actions: list[str]
+    non_claims: list[str]
+
+
+class ChangesetRecordVerificationRequest(BaseModel):
+    task_id: str | None = None
+    verification_id: str | None = None
+
+
+class ChangesetRecordVerificationResponse(BaseModel):
+    changeset_id: str
+    session_id: str
+    selected_verification_ids: list[str]
+    retained_artifact_ids: list[str]
+    readiness: ChangesetVerificationReadinessResponse
+    event_sequence: int
+
+
 def build_changeset_summary_response(
     changeset: ChangesetRecord,
 ) -> ChangesetSummaryResponse:
@@ -263,6 +345,88 @@ def build_changeset_detail_response(
         ],
         limitations=detail.limitations,
         safe_next_actions=detail.safe_next_actions,
+    )
+
+
+def build_changeset_verification_plan_response(
+    preview: ChangesetVerificationPlanPreview,
+) -> ChangesetVerificationPlanPreviewResponse:
+    return ChangesetVerificationPlanPreviewResponse(
+        changeset_id=str(preview.changeset_id),
+        session_id=str(preview.session_id),
+        inventory_artifact_id=_optional_str(preview.inventory_artifact_id),
+        inventory_freshness=preview.inventory_freshness.value,
+        changed_paths=preview.changed_paths,
+        recommended_commands=preview.recommended_commands,
+        eval_profiles=preview.eval_profiles,
+        recipes=[
+            ChangesetVerificationRecipePreviewResponse(
+                recipe_id=recipe.recipe_id,
+                title=recipe.title,
+                matched_paths=recipe.matched_paths,
+                commands=recipe.commands,
+                profile_ids=recipe.profile_ids,
+                case_ids=recipe.case_ids,
+                notes=recipe.notes,
+            )
+            for recipe in preview.recipes
+        ],
+        reason_groups=[
+            ChangesetVerificationReasonGroupResponse(
+                group=group.group,
+                title=group.title,
+                summaries=group.summaries,
+                matched_paths=group.matched_paths,
+                rule_ids=group.rule_ids,
+                recommended_case_ids=group.recommended_case_ids,
+                recommended_profile_ids=group.recommended_profile_ids,
+                release_gate_commands=group.release_gate_commands,
+            )
+            for group in preview.reason_groups
+        ],
+        expected_scope=preview.expected_scope,
+        retained_artifact_ids=[
+            str(artifact_id) for artifact_id in preview.retained_artifact_ids
+        ],
+        readiness=build_changeset_verification_readiness_response(preview.readiness),
+        limitations=preview.limitations,
+        safe_next_actions=preview.safe_next_actions,
+        non_claims=preview.non_claims,
+    )
+
+
+def build_changeset_verification_readiness_response(
+    readiness,
+) -> ChangesetVerificationReadinessResponse:
+    return ChangesetVerificationReadinessResponse(
+        state=readiness.state.value,
+        summary=readiness.summary,
+        requirements=[
+            ChangesetVerificationRequirementResponse(
+                requirement_id=requirement.requirement_id,
+                state=requirement.state.value,
+                check_name=requirement.check_name,
+                reason=requirement.reason,
+                source=(
+                    requirement.source.value if requirement.source is not None else None
+                ),
+                kind=requirement.kind.value if requirement.kind is not None else None,
+                command=requirement.command,
+                changed_paths=requirement.changed_paths,
+                verification_id=_optional_str(requirement.verification_id),
+                artifact_id=_optional_str(requirement.artifact_id),
+                blocking=requirement.blocking,
+                evidence_summary=requirement.evidence_summary,
+                safe_next_actions=requirement.safe_next_actions,
+            )
+            for requirement in readiness.requirements
+        ],
+        stale_count=readiness.stale_count,
+        missing_count=readiness.missing_count,
+        failed_count=readiness.failed_count,
+        accepted_risk_count=readiness.accepted_risk_count,
+        safe_next_actions=readiness.safe_next_actions,
+        non_claims=readiness.non_claims,
     )
 
 

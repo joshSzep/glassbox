@@ -168,6 +168,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/changesets/{changeset_id}/record-verification": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Record Changeset Verification
+     * @description Record changeset verification posture from existing task evidence.
+     */
+    post: operations["record_changeset_verification_changesets__changeset_id__record_verification_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/changesets/{changeset_id}/refresh": {
     parameters: {
       query?: never;
@@ -182,6 +202,26 @@ export interface paths {
      * @description Refresh structured inventory evidence for a changeset.
      */
     post: operations["refresh_changeset_changesets__changeset_id__refresh_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/changesets/{changeset_id}/verification-plan": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Preview Changeset Verification Plan
+     * @description Preview verification commands and retained evidence for a changeset.
+     */
+    get: operations["preview_changeset_verification_plan_changesets__changeset_id__verification_plan_get"];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -1924,6 +1964,27 @@ export interface components {
       /** Verification Id */
       verification_id?: string | null;
     };
+    /** ChangesetRecordVerificationRequest */
+    ChangesetRecordVerificationRequest: {
+      /** Task Id */
+      task_id?: string | null;
+      /** Verification Id */
+      verification_id?: string | null;
+    };
+    /** ChangesetRecordVerificationResponse */
+    ChangesetRecordVerificationResponse: {
+      /** Changeset Id */
+      changeset_id: string;
+      /** Event Sequence */
+      event_sequence: number;
+      readiness: components["schemas"]["ChangesetVerificationReadinessResponse"];
+      /** Retained Artifact Ids */
+      retained_artifact_ids: string[];
+      /** Selected Verification Ids */
+      selected_verification_ids: string[];
+      /** Session Id */
+      session_id: string;
+    };
     /** ChangesetRefreshRequest */
     ChangesetRefreshRequest: {
       /**
@@ -2055,6 +2116,38 @@ export interface components {
        */
       updated_at: string;
     };
+    /** ChangesetVerificationPlanPreviewResponse */
+    ChangesetVerificationPlanPreviewResponse: {
+      /** Changed Paths */
+      changed_paths: string[];
+      /** Changeset Id */
+      changeset_id: string;
+      /** Eval Profiles */
+      eval_profiles: string[];
+      /** Expected Scope */
+      expected_scope: string[];
+      /** Inventory Artifact Id */
+      inventory_artifact_id?: string | null;
+      /** Inventory Freshness */
+      inventory_freshness: string;
+      /** Limitations */
+      limitations: string[];
+      /** Non Claims */
+      non_claims: string[];
+      readiness: components["schemas"]["ChangesetVerificationReadinessResponse"];
+      /** Reason Groups */
+      reason_groups: components["schemas"]["ChangesetVerificationReasonGroupResponse"][];
+      /** Recipes */
+      recipes: components["schemas"]["ChangesetVerificationRecipePreviewResponse"][];
+      /** Recommended Commands */
+      recommended_commands: string[];
+      /** Retained Artifact Ids */
+      retained_artifact_ids: string[];
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+      /** Session Id */
+      session_id: string;
+    };
     /** ChangesetVerificationPostureResponse */
     ChangesetVerificationPostureResponse: {
       /** Accepted Risk Count */
@@ -2086,6 +2179,92 @@ export interface components {
        * Format: date-time
        */
       updated_at: string;
+      /** Verification Id */
+      verification_id?: string | null;
+    };
+    /** ChangesetVerificationReadinessResponse */
+    ChangesetVerificationReadinessResponse: {
+      /** Accepted Risk Count */
+      accepted_risk_count: number;
+      /** Failed Count */
+      failed_count: number;
+      /** Missing Count */
+      missing_count: number;
+      /** Non Claims */
+      non_claims: string[];
+      /** Requirements */
+      requirements: components["schemas"]["ChangesetVerificationRequirementResponse"][];
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+      /** Stale Count */
+      stale_count: number;
+      /** State */
+      state: string;
+      /** Summary */
+      summary: string;
+    };
+    /** ChangesetVerificationReasonGroupResponse */
+    ChangesetVerificationReasonGroupResponse: {
+      /** Group */
+      group: string;
+      /** Matched Paths */
+      matched_paths: string[];
+      /** Recommended Case Ids */
+      recommended_case_ids: string[];
+      /** Recommended Profile Ids */
+      recommended_profile_ids: string[];
+      /** Release Gate Commands */
+      release_gate_commands: string[];
+      /** Rule Ids */
+      rule_ids: string[];
+      /** Summaries */
+      summaries: string[];
+      /** Title */
+      title: string;
+    };
+    /** ChangesetVerificationRecipePreviewResponse */
+    ChangesetVerificationRecipePreviewResponse: {
+      /** Case Ids */
+      case_ids: string[];
+      /** Commands */
+      commands: string[];
+      /** Matched Paths */
+      matched_paths: string[];
+      /** Notes */
+      notes?: string | null;
+      /** Profile Ids */
+      profile_ids: string[];
+      /** Recipe Id */
+      recipe_id: string;
+      /** Title */
+      title: string;
+    };
+    /** ChangesetVerificationRequirementResponse */
+    ChangesetVerificationRequirementResponse: {
+      /** Artifact Id */
+      artifact_id?: string | null;
+      /** Blocking */
+      blocking: boolean;
+      /** Changed Paths */
+      changed_paths: string[];
+      /** Check Name */
+      check_name: string;
+      /** Command */
+      command: string[];
+      /** Evidence Summary */
+      evidence_summary?: string | null;
+      /** Kind */
+      kind?: string | null;
+      /** Reason */
+      reason: string;
+      /** Requirement Id */
+      requirement_id: string;
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+      /** Source */
+      source?: string | null;
+      /** State */
+      state: string;
       /** Verification Id */
       verification_id?: string | null;
     };
@@ -4832,6 +5011,50 @@ export interface operations {
       };
     };
   };
+  record_changeset_verification_changesets__changeset_id__record_verification_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        changeset_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ChangesetRecordVerificationRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ChangesetRecordVerificationResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   refresh_changeset_changesets__changeset_id__refresh_post: {
     parameters: {
       query?: never;
@@ -4854,6 +5077,46 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ChangesetActionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  preview_changeset_verification_plan_changesets__changeset_id__verification_plan_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        changeset_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
         };
       };
       /** @description Not Found */

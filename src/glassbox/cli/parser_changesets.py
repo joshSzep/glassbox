@@ -78,6 +78,36 @@ def _add_changeset_parsers(
     refresh_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(refresh_parser)
 
+    verification_plan_parser = changeset_subparsers.add_parser(
+        "verification-plan",
+        help="preview verification plan for a changeset",
+        description=(
+            "Preview recommended verification commands, eval profiles, recipes, "
+            "and retained evidence without running commands."
+        ),
+    )
+    verification_plan_parser.add_argument("changeset_id", type=_parse_uuid)
+    verification_plan_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(verification_plan_parser)
+
+    record_verification_parser = changeset_subparsers.add_parser(
+        "record-verification",
+        help="record retained verification evidence for a changeset",
+        description=(
+            "Record changeset verification posture from existing task verification "
+            "ledger evidence without running commands."
+        ),
+    )
+    record_verification_parser.add_argument("changeset_id", type=_parse_uuid)
+    record_verification_parser.add_argument("--task", dest="task_id", type=_parse_uuid)
+    record_verification_parser.add_argument(
+        "--verification",
+        dest="verification_id",
+        type=_parse_uuid,
+    )
+    record_verification_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(record_verification_parser)
+
     archive_parser = changeset_subparsers.add_parser(
         "archive",
         help="archive a changeset",

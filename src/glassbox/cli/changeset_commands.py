@@ -14,6 +14,8 @@ from glassbox.runtime.changesets import ChangesetDerivationService
 from glassbox.runtime.changesets import ChangesetDetailView
 from glassbox.runtime.changesets import ChangesetQueryService
 from glassbox.runtime.changesets import ChangesetRepository
+from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
+from glassbox.runtime.changesets import ChangesetVerificationService
 
 
 def _changeset_command(args: argparse.Namespace) -> int:
@@ -26,6 +28,10 @@ def _changeset_command(args: argparse.Namespace) -> int:
         return _changeset_show_command(args)
     if command == "refresh":
         return _changeset_refresh_command(args)
+    if command == "verification-plan":
+        return _changeset_verification_plan_command(args)
+    if command == "record-verification":
+        return _changeset_record_verification_command(args)
     if command == "archive":
         return _changeset_archive_command(args)
     raise ValueError("specify a changeset subcommand")
@@ -127,6 +133,50 @@ def _changeset_refresh_command(args: argparse.Namespace) -> int:
         print(f"Freshness: {result.freshness.value}")
         print(f"Artifact: {result.artifact.relative_path.as_posix()}")
         print(f"Event sequence: {result.event.sequence}")
+    return 0
+
+
+def _changeset_verification_plan_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        service = ChangesetVerificationService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions),
+            runtime_context.repositories.artifacts,
+        )
+        preview = service.preview_plan(args.changeset_id, cwd)
+
+    if args.json:
+        print_json_output(preview.model_dump(mode="json"))
+    else:
+        _print_verification_plan(preview)
+    return 0
+
+
+def _changeset_record_verification_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        service = ChangesetVerificationService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions),
+            runtime_context.repositories.artifacts,
+        )
+        result = service.record_existing_evidence(
+            args.changeset_id,
+            cwd,
+            task_id=args.task_id,
+            verification_id=args.verification_id,
+        )
+
+    if args.json:
+        print_json_output(result.model_dump(mode="json"))
+    else:
+        print(f"Recorded verification posture for changeset {args.changeset_id}")
+        print(f"State: {result.readiness.state.value}")
+        print(f"Summary: {result.readiness.summary}")
+        print(f"Event sequence: {result.event.sequence}")
+        if result.retained_artifact_ids:
+            print("Retained artifacts:")
+            for artifact_id in result.retained_artifact_ids:
+                print(f"  - {artifact_id}")
     return 0
 
 
@@ -255,6 +305,38 @@ def _print_changeset_detail(detail: ChangesetDetailView) -> None:
     _print_limitations(detail.limitations)
     print("Safe next actions:")
     for action in detail.safe_next_actions:
+        print(f"  - {action}")
+
+
+def _print_verification_plan(preview: ChangesetVerificationPlanPreview) -> None:
+    print(f"Verification plan for changeset {preview.changeset_id}")
+    print(f"Inventory: {preview.inventory_freshness.value}")
+    print(f"Readiness: {preview.readiness.state.value} - {preview.readiness.summary}")
+    if preview.changed_paths:
+        print("Expected scope:")
+        for path in preview.changed_paths[:20]:
+            print(f"  - {path}")
+    if preview.recommended_commands:
+        print("Recommended commands:")
+        for command in preview.recommended_commands:
+            print(f"  - {command}")
+    if preview.eval_profiles:
+        print("Eval profiles:")
+        for profile_id in preview.eval_profiles:
+            print(f"  - {profile_id}")
+    if preview.recipes:
+        print("Recipes:")
+        for recipe in preview.recipes:
+            print(f"  - {recipe.title} ({recipe.recipe_id})")
+            for command in recipe.commands:
+                print(f"    command: {command}")
+    if preview.retained_artifact_ids:
+        print("Retained verification artifacts:")
+        for artifact_id in preview.retained_artifact_ids:
+            print(f"  - {artifact_id}")
+    _print_limitations(preview.limitations)
+    print("Safe next actions:")
+    for action in preview.safe_next_actions:
         print(f"  - {action}")
 
 

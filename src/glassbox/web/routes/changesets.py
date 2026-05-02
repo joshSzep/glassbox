@@ -12,6 +12,7 @@ from glassbox.runtime.changesets import ChangesetActionService
 from glassbox.runtime.changesets import ChangesetDerivationService
 from glassbox.runtime.changesets import ChangesetQueryService
 from glassbox.runtime.changesets import ChangesetRepository
+from glassbox.runtime.changesets import ChangesetVerificationService
 from glassbox.web.app import RuntimeContextDep
 from glassbox.web.changeset_api import ChangesetActionResponse
 from glassbox.web.changeset_api import ChangesetArchiveRequest
@@ -19,9 +20,14 @@ from glassbox.web.changeset_api import ChangesetCreateRequest
 from glassbox.web.changeset_api import ChangesetCreateResponse
 from glassbox.web.changeset_api import ChangesetDetailResponse
 from glassbox.web.changeset_api import ChangesetListPageResponse
+from glassbox.web.changeset_api import ChangesetRecordVerificationRequest
+from glassbox.web.changeset_api import ChangesetRecordVerificationResponse
 from glassbox.web.changeset_api import ChangesetRefreshRequest
+from glassbox.web.changeset_api import ChangesetVerificationPlanPreviewResponse
 from glassbox.web.changeset_api import build_changeset_detail_response
 from glassbox.web.changeset_api import build_changeset_summary_responses
+from glassbox.web.changeset_api import build_changeset_verification_plan_response
+from glassbox.web.changeset_api import build_changeset_verification_readiness_response
 from glassbox.web.session_api import ErrorDetailResponse
 
 router = APIRouter(prefix="/changesets")
@@ -164,6 +170,74 @@ async def refresh_changeset(
         status="refreshed",
         event_sequence=result.event.sequence,
         detail=build_changeset_detail_response(detail),
+    )
+
+
+@router.get(
+    "/{changeset_id}/verification-plan",
+    response_model=ChangesetVerificationPlanPreviewResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def preview_changeset_verification_plan(
+    changeset_id: UUID,
+    context: RuntimeContextDep,
+) -> ChangesetVerificationPlanPreviewResponse:
+    """Preview verification commands and retained evidence for a changeset."""
+
+    repository = _repository(context)
+    try:
+        preview = ChangesetVerificationService(
+            repository,
+            context.repositories.artifacts,
+        ).preview_plan(
+            changeset_id,
+            _workspace_root_for_changeset(repository, changeset_id),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return build_changeset_verification_plan_response(preview)
+
+
+@router.post(
+    "/{changeset_id}/record-verification",
+    response_model=ChangesetRecordVerificationResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def record_changeset_verification(
+    changeset_id: UUID,
+    request: ChangesetRecordVerificationRequest,
+    context: RuntimeContextDep,
+) -> ChangesetRecordVerificationResponse:
+    """Record changeset verification posture from existing task evidence."""
+
+    repository = _repository(context)
+    try:
+        result = ChangesetVerificationService(
+            repository,
+            context.repositories.artifacts,
+        ).record_existing_evidence(
+            changeset_id,
+            _workspace_root_for_changeset(repository, changeset_id),
+            task_id=UUID(request.task_id) if request.task_id is not None else None,
+            verification_id=(
+                UUID(request.verification_id)
+                if request.verification_id is not None
+                else None
+            ),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return ChangesetRecordVerificationResponse(
+        changeset_id=str(result.changeset_id),
+        session_id=str(result.session_id),
+        selected_verification_ids=[
+            str(verification_id) for verification_id in result.selected_verification_ids
+        ],
+        retained_artifact_ids=[
+            str(artifact_id) for artifact_id in result.retained_artifact_ids
+        ],
+        readiness=build_changeset_verification_readiness_response(result.readiness),
+        event_sequence=result.event.sequence,
     )
 
 
