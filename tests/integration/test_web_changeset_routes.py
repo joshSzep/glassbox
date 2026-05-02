@@ -115,6 +115,9 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                     f"/changesets/{changeset_id}/brief",
                     json={"actor": "qa", "include_markdown": True},
                 )
+                commit_message_response = await client.get(
+                    f"/changesets/{changeset_id}/commit-message"
+                )
                 (tmp_path / "app.py").write_text(
                     "print('changed again')\n",
                     encoding="utf-8",
@@ -162,6 +165,15 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                 == "review"
             )
             assert brief_response.json()["detail"]["readiness"][0]["state"] == "ready"
+            assert commit_message_response.status_code == 200
+            assert (
+                commit_message_response.json()["suggestion_label"]
+                == "suggestion_only_not_committed"
+            )
+            assert (
+                commit_message_response.json()["subject"] == "Review session evidence"
+            )
+            assert "Commit readiness:" in commit_message_response.json()["message"]
             assert stale_response.status_code == 200
             assert stale_response.json()["inventory_status"]["stale"] is True
             assert stale_response.json()["inventory"]["freshness"] == "stale"

@@ -150,6 +150,9 @@ v11 confidence and adoption release candidate.
   advisory model for staged changes, dirty worktree ambiguity, verification,
   review brief freshness, provenance, path-risk cues, and accepted risk before
   preparing a commit
+- [commit-message-suggestions.md](./commit-message-suggestions.md): draft
+  deterministic, evidence-backed changeset commit messages while preserving
+  operator editing and never taking the commit action
 
 ## Reference
 
@@ -201,6 +204,9 @@ v11 confidence and adoption release candidate.
 - [commit-readiness.md](./commit-readiness.md): v12 advisory commit-readiness
   model that explains whether local changeset evidence and git status look
   coherent enough for deliberate commit preparation
+- [commit-message-suggestions.md](./commit-message-suggestions.md): v12
+  non-mutating commit message suggestion contract for CLI/API output, evidence
+  lines, limitations, templates, and non-claims
 - [v10-release-candidate.md](./v10-release-candidate.md): release-candidate
   narrative tying the v10 contract, gate, dogfooding, package, provider, and
   residual-risk evidence together

@@ -44,6 +44,7 @@ def test_openapi_schema_includes_browser_transport_contracts(
     assert "/changesets" in paths
     assert "/changesets/{changeset_id}" in paths
     assert "/changesets/{changeset_id}/refresh" in paths
+    assert "/changesets/{changeset_id}/commit-message" in paths
     assert "/changesets/{changeset_id}/archive" in paths
     assert "/memory" in paths
     assert "/memory/candidates" in paths
@@ -76,6 +77,7 @@ def test_openapi_schema_includes_browser_transport_contracts(
     assert "ChangesetListPageResponse" in components
     assert "ChangesetDetailResponse" in components
     assert "ChangesetActionResponse" in components
+    assert "CommitMessageSuggestionResponse" in components
     assert "WorkspaceMemoryListPageResponse" in components
     assert "WorkspaceMemoryDetailResponse" in components
     assert "WorkspaceMemoryCandidateListPageResponse" in components

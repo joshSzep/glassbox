@@ -14,6 +14,7 @@ from glassbox.runtime.changesets import ChangesetQueryService
 from glassbox.runtime.changesets import ChangesetRepository
 from glassbox.runtime.changesets import ChangesetReviewBriefService
 from glassbox.runtime.changesets import ChangesetVerificationService
+from glassbox.runtime.commit_messages import ChangesetCommitMessageSuggestionService
 from glassbox.web.app import RuntimeContextDep
 from glassbox.web.changeset_api import ChangesetActionResponse
 from glassbox.web.changeset_api import ChangesetArchiveRequest
@@ -27,11 +28,13 @@ from glassbox.web.changeset_api import ChangesetRefreshRequest
 from glassbox.web.changeset_api import ChangesetReviewBriefGenerateResponse
 from glassbox.web.changeset_api import ChangesetReviewBriefRequest
 from glassbox.web.changeset_api import ChangesetVerificationPlanPreviewResponse
+from glassbox.web.changeset_api import CommitMessageSuggestionResponse
 from glassbox.web.changeset_api import build_changeset_detail_response
 from glassbox.web.changeset_api import build_changeset_review_brief_generate_response
 from glassbox.web.changeset_api import build_changeset_summary_responses
 from glassbox.web.changeset_api import build_changeset_verification_plan_response
 from glassbox.web.changeset_api import build_changeset_verification_readiness_response
+from glassbox.web.changeset_api import build_commit_message_suggestion_response
 from glassbox.web.session_api import ErrorDetailResponse
 
 router = APIRouter(prefix="/changesets")
@@ -279,6 +282,33 @@ async def generate_changeset_review_brief(
         detail,
         include_markdown=request.include_markdown,
     )
+
+
+@router.get(
+    "/{changeset_id}/commit-message",
+    response_model=CommitMessageSuggestionResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def suggest_changeset_commit_message(
+    changeset_id: UUID,
+    context: RuntimeContextDep,
+    style: str = Query(default="plain", pattern="^(plain|conventional)$"),
+) -> CommitMessageSuggestionResponse:
+    """Suggest a deterministic commit message without committing."""
+
+    repository = _repository(context)
+    try:
+        suggestion = await ChangesetCommitMessageSuggestionService(
+            repository,
+            context.repositories.artifacts,
+        ).suggest(
+            changeset_id,
+            _workspace_root_for_changeset(repository, changeset_id),
+            style=style,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return build_commit_message_suggestion_response(suggestion)
 
 
 @router.post(

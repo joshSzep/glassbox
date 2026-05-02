@@ -20,6 +20,8 @@ from glassbox.runtime.changesets import ChangesetReviewBriefGenerationResult
 from glassbox.runtime.changesets import ChangesetReviewBriefService
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.changesets import ChangesetVerificationService
+from glassbox.runtime.commit_messages import ChangesetCommitMessageSuggestionService
+from glassbox.runtime.commit_messages import CommitMessageSuggestion
 
 
 def _changeset_command(args: argparse.Namespace) -> int:
@@ -40,6 +42,8 @@ def _changeset_command(args: argparse.Namespace) -> int:
         return _changeset_brief_command(args)
     if command == "export":
         return _changeset_export_command(args)
+    if command == "commit-message":
+        return _changeset_commit_message_command(args)
     if command == "archive":
         return _changeset_archive_command(args)
     raise ValueError("specify a changeset subcommand")
@@ -264,6 +268,27 @@ def _changeset_export_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def _changeset_commit_message_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        suggestion = asyncio.run(
+            ChangesetCommitMessageSuggestionService(
+                cast(ChangesetRepository, runtime_context.repositories.sessions),
+                runtime_context.repositories.artifacts,
+            ).suggest(
+                args.changeset_id,
+                cwd,
+                style=args.style,
+            )
+        )
+
+    if args.json:
+        print_json_output(suggestion.model_dump(mode="json"))
+    else:
+        _print_commit_message_suggestion(suggestion)
+    return 0
+
+
 def _create_changeset_from_args(
     service: ChangesetDerivationService,
     args: argparse.Namespace,
@@ -420,6 +445,18 @@ def _print_verification_plan(preview: ChangesetVerificationPlanPreview) -> None:
     print("Safe next actions:")
     for action in preview.safe_next_actions:
         print(f"  - {action}")
+
+
+def _print_commit_message_suggestion(
+    suggestion: CommitMessageSuggestion,
+) -> None:
+    print("Commit message suggestion (not committed):")
+    print(suggestion.message)
+    if suggestion.limitations:
+        _print_limitations(suggestion.limitations)
+    print("Non-claims:")
+    for non_claim in suggestion.non_claims:
+        print(f"  - {non_claim}")
 
 
 def _print_limitations(limitations: list[str]) -> None:

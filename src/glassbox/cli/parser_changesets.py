@@ -140,6 +140,23 @@ def _add_changeset_parsers(
     export_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(export_parser)
 
+    commit_message_parser = changeset_subparsers.add_parser(
+        "commit-message",
+        help="suggest a commit message for a changeset",
+        description=(
+            "Draft a deterministic evidence-backed commit message suggestion "
+            "without staging files or committing."
+        ),
+    )
+    commit_message_parser.add_argument("changeset_id", type=_parse_uuid)
+    commit_message_parser.add_argument(
+        "--style",
+        choices=("plain", "conventional"),
+        default="plain",
+    )
+    commit_message_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(commit_message_parser)
+
     archive_parser = changeset_subparsers.add_parser(
         "archive",
         help="archive a changeset",

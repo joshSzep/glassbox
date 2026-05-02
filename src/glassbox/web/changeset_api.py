@@ -15,6 +15,7 @@ from glassbox.core.models import ChangesetVerificationPostureRecord
 from glassbox.runtime.changesets import ChangesetDetailView
 from glassbox.runtime.changesets import ChangesetReviewBriefGenerationResult
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
+from glassbox.runtime.commit_messages import CommitMessageSuggestion
 
 
 class ChangesetSummaryResponse(BaseModel):
@@ -292,6 +293,29 @@ class ChangesetReviewBriefGenerateResponse(BaseModel):
     detail: ChangesetDetailResponse
 
 
+class CommitMessageEvidenceLineResponse(BaseModel):
+    kind: str
+    summary: str
+    references: list[str]
+
+
+class CommitMessageSuggestionResponse(BaseModel):
+    suggestion_kind: str
+    schema_version: int
+    suggestion_label: str
+    changeset_id: str
+    session_id: str
+    style: str
+    subject: str
+    body: list[str]
+    message: str
+    deterministic: bool
+    commit_readiness_state: str
+    evidence: list[CommitMessageEvidenceLineResponse]
+    limitations: list[str]
+    non_claims: list[str]
+
+
 def build_changeset_summary_response(
     changeset: ChangesetRecord,
 ) -> ChangesetSummaryResponse:
@@ -466,6 +490,34 @@ def build_changeset_review_brief_generate_response(
         markdown=result.markdown if include_markdown else None,
         limitations=result.limitations,
         detail=build_changeset_detail_response(detail),
+    )
+
+
+def build_commit_message_suggestion_response(
+    suggestion: CommitMessageSuggestion,
+) -> CommitMessageSuggestionResponse:
+    return CommitMessageSuggestionResponse(
+        suggestion_kind=suggestion.suggestion_kind,
+        schema_version=suggestion.schema_version,
+        suggestion_label=suggestion.suggestion_label,
+        changeset_id=str(suggestion.changeset_id),
+        session_id=str(suggestion.session_id),
+        style=suggestion.style,
+        subject=suggestion.subject,
+        body=suggestion.body,
+        message=suggestion.message,
+        deterministic=suggestion.deterministic,
+        commit_readiness_state=suggestion.commit_readiness_state,
+        evidence=[
+            CommitMessageEvidenceLineResponse(
+                kind=line.kind,
+                summary=line.summary,
+                references=line.references,
+            )
+            for line in suggestion.evidence
+        ],
+        limitations=suggestion.limitations,
+        non_claims=suggestion.non_claims,
     )
 
 

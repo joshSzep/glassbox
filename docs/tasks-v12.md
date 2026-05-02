@@ -1048,7 +1048,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1251: Generate Evidence-Backed Commit Message Suggestions
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1250`
 - Goal: draft commit messages from changeset evidence without committing
 - Deliverables:
@@ -1067,6 +1067,21 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - operators get a useful commit message draft without Glassbox taking the
     commit action
+- Completion evidence:
+  - Added `src/glassbox/runtime/commit_messages.py` with deterministic
+    `CommitMessageSuggestion` payloads and `ChangesetCommitMessageSuggestionService`.
+  - Drafts are assembled only from changeset objective/summary, task title and
+    status, changed-path summary, verification readiness, commit readiness, and
+    risk counts; no model call, raw diff, file content, command output, staging,
+    commit, or push action is involved.
+  - Added `glassbox changeset commit-message CHANGESET_ID --cwd .` with
+    `--json` and optional `--style plain|conventional`, plus
+    `GET /changesets/{changeset_id}/commit-message`.
+  - Labeled every payload as `suggestion_only_not_committed` and included
+    evidence lines, limitations, and non-claims so operator editing remains
+    explicit.
+  - Added formatter, CLI, web-route, and OpenAPI coverage, plus
+    [commit-message-suggestions.md](./commit-message-suggestions.md).
 
 ### GBX-1252: Capture Pre-Commit Evidence Against Changesets
 

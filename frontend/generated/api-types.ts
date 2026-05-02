@@ -188,6 +188,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/changesets/{changeset_id}/commit-message": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Suggest Changeset Commit Message
+     * @description Suggest a deterministic commit message without committing.
+     */
+    get: operations["suggest_changeset_commit_message_changesets__changeset_id__commit_message_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/changesets/{changeset_id}/record-verification": {
     parameters: {
       query?: never;
@@ -2403,6 +2423,46 @@ export interface components {
        * Format: date-time
        */
       updated_at: string;
+    };
+    /** CommitMessageEvidenceLineResponse */
+    CommitMessageEvidenceLineResponse: {
+      /** Kind */
+      kind: string;
+      /** References */
+      references: string[];
+      /** Summary */
+      summary: string;
+    };
+    /** CommitMessageSuggestionResponse */
+    CommitMessageSuggestionResponse: {
+      /** Body */
+      body: string[];
+      /** Changeset Id */
+      changeset_id: string;
+      /** Commit Readiness State */
+      commit_readiness_state: string;
+      /** Deterministic */
+      deterministic: boolean;
+      /** Evidence */
+      evidence: components["schemas"]["CommitMessageEvidenceLineResponse"][];
+      /** Limitations */
+      limitations: string[];
+      /** Message */
+      message: string;
+      /** Non Claims */
+      non_claims: string[];
+      /** Schema Version */
+      schema_version: number;
+      /** Session Id */
+      session_id: string;
+      /** Style */
+      style: string;
+      /** Subject */
+      subject: string;
+      /** Suggestion Kind */
+      suggestion_kind: string;
+      /** Suggestion Label */
+      suggestion_label: string;
     };
     /**
      * ContextCompactionContextItemSnapshot
@@ -5090,6 +5150,48 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ChangesetReviewBriefGenerateResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  suggest_changeset_commit_message_changesets__changeset_id__commit_message_get: {
+    parameters: {
+      query?: {
+        style?: string;
+      };
+      header?: never;
+      path: {
+        changeset_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CommitMessageSuggestionResponse"];
         };
       };
       /** @description Not Found */

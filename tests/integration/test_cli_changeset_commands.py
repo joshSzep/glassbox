@@ -158,6 +158,19 @@ def test_changeset_create_list_show_refresh_and_archive(
         ]
     )
     brief_detail = json.loads(capsys.readouterr().out)
+    commit_message_exit = main(
+        [
+            "changeset",
+            "commit-message",
+            changeset_id,
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    commit_message = json.loads(capsys.readouterr().out)
     export_path = tmp_path / "changeset-export.json"
     export_exit = main(
         [
@@ -235,6 +248,11 @@ def test_changeset_create_list_show_refresh_and_archive(
     )
     assert brief_detail["review_briefs"][0]["artifact_id"] == brief["artifact_id"]
     assert brief_detail["readiness"][0]["readiness_kind"] == "review"
+    assert commit_message_exit == 0
+    assert commit_message["suggestion_label"] == "suggestion_only_not_committed"
+    assert commit_message["subject"] == "Review task: Add changeset command"
+    assert "Commit readiness:" in commit_message["message"]
+    assert commit_message["deterministic"] is True
     assert export_exit == 0
     assert exported["status"] == "exported"
     assert export_payload["export_kind"] == "changeset_review_export"

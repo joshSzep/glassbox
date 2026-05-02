@@ -3391,6 +3391,118 @@
         "title": "ChildSessionSummaryResponse",
         "type": "object"
       },
+      "CommitMessageEvidenceLineResponse": {
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "references": {
+            "items": {
+              "type": "string"
+            },
+            "title": "References",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": ["kind", "summary", "references"],
+        "title": "CommitMessageEvidenceLineResponse",
+        "type": "object"
+      },
+      "CommitMessageSuggestionResponse": {
+        "properties": {
+          "body": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Body",
+            "type": "array"
+          },
+          "changeset_id": {
+            "title": "Changeset Id",
+            "type": "string"
+          },
+          "commit_readiness_state": {
+            "title": "Commit Readiness State",
+            "type": "string"
+          },
+          "deterministic": {
+            "title": "Deterministic",
+            "type": "boolean"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/CommitMessageEvidenceLineResponse"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Non Claims",
+            "type": "array"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "style": {
+            "title": "Style",
+            "type": "string"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "suggestion_kind": {
+            "title": "Suggestion Kind",
+            "type": "string"
+          },
+          "suggestion_label": {
+            "title": "Suggestion Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "suggestion_kind",
+          "schema_version",
+          "suggestion_label",
+          "changeset_id",
+          "session_id",
+          "style",
+          "subject",
+          "body",
+          "message",
+          "deterministic",
+          "commit_readiness_state",
+          "evidence",
+          "limitations",
+          "non_claims"
+        ],
+        "title": "CommitMessageSuggestionResponse",
+        "type": "object"
+      },
       "ContextCompactionContextItemSnapshot": {
         "additionalProperties": false,
         "description": "Fresh compaction selected for prompt context.",
@@ -10977,6 +11089,68 @@
           }
         },
         "summary": "Generate Changeset Review Brief"
+      }
+    },
+    "/changesets/{changeset_id}/commit-message": {
+      "get": {
+        "description": "Suggest a deterministic commit message without committing.",
+        "operationId": "suggest_changeset_commit_message_changesets__changeset_id__commit_message_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "changeset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Changeset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "style",
+            "required": false,
+            "schema": {
+              "default": "plain",
+              "pattern": "^(plain|conventional)$",
+              "title": "Style",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommitMessageSuggestionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Suggest Changeset Commit Message"
       }
     },
     "/changesets/{changeset_id}/record-verification": {
