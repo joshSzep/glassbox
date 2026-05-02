@@ -146,6 +146,10 @@ v11 confidence and adoption release candidate.
 - [review-briefs.md](./review-briefs.md): understand the v12 reviewer-safe
   changeset brief generation command/API, artifact shape, redaction policy,
   render targets, readiness posture, and non-claims
+- [commit-readiness.md](./commit-readiness.md): understand the v12 read-only
+  advisory model for staged changes, dirty worktree ambiguity, verification,
+  review brief freshness, provenance, path-risk cues, and accepted risk before
+  preparing a commit
 
 ## Reference
 
@@ -194,6 +198,9 @@ v11 confidence and adoption release candidate.
 - [review-briefs.md](./review-briefs.md): v12 reviewer-safe brief artifact
   contract for changeset summaries, evidence references, Markdown/JSON render
   targets, redaction, retention, and non-claims
+- [commit-readiness.md](./commit-readiness.md): v12 advisory commit-readiness
+  model that explains whether local changeset evidence and git status look
+  coherent enough for deliberate commit preparation
 - [v10-release-candidate.md](./v10-release-candidate.md): release-candidate
   narrative tying the v10 contract, gate, dogfooding, package, provider, and
   residual-risk evidence together

@@ -1008,7 +1008,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1250: Define Commit Readiness Model
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1233`
 - Goal: answer whether a changeset is ready to commit using local evidence
   rather than optimism
@@ -1029,6 +1029,22 @@ Each phase below corresponds to one concrete milestone.
   - git status fixture tests
 - Done when:
   - Glassbox can explain why a change is or is not ready to commit
+- Completion evidence:
+  - Added `src/glassbox/runtime/commit_readiness.py` with a read-only
+    `ChangesetCommitReadinessService.preview()` and deterministic
+    `derive_commit_readiness()` assessment model.
+  - Mapped staged, unstaged, untracked, clean-workspace, stale-inventory,
+    verification, review-brief freshness, provenance, policy-sensitive path,
+    generated-file, branch-behind, and accepted-risk signals into advisory
+    `ChangesetReadinessKind.COMMIT` states.
+  - Kept the model non-mutating: it uses git status and summary-only diff
+    inspection and does not stage files, run `git commit`, push, or include raw
+    diffs or file contents.
+  - Added focused commit-readiness unit coverage for ready, dirty/untracked,
+    failed-check, missing/stale review, policy-sensitive, and accepted-risk
+    paths.
+  - Added [commit-readiness.md](./commit-readiness.md) and linked it from the
+    documentation index.
 
 ### GBX-1251: Generate Evidence-Backed Commit Message Suggestions
 
