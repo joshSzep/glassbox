@@ -183,6 +183,8 @@ v11 confidence and adoption release candidate.
 - [v12-change-lifecycle-audit.md](./v12-change-lifecycle-audit.md):
   source-linked v12 audit separating existing session evidence from the
   reviewable-change lifecycle gaps
+- [change-inventory.md](./change-inventory.md): v12 summary-only changed-file
+  artifact contract, including path fields, limits, redaction, and non-claims
 - [v10-release-candidate.md](./v10-release-candidate.md): release-candidate
   narrative tying the v10 contract, gate, dogfooding, package, provider, and
   residual-risk evidence together

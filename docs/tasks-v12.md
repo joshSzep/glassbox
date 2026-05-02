@@ -526,7 +526,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1220: Define The Change Inventory Artifact Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1212`
 - Goal: record changed-file inventory as review evidence with provenance,
   redaction, and size limits
@@ -550,6 +550,15 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - change inventory has a stable artifact shape before review readiness uses
     it
+- Completion evidence:
+  - Added `src/glassbox/runtime/change_inventory.py` with the
+    `changeset_change_inventory` artifact schema, path entries, aggregate
+    summary, source-reference placeholders, redaction labels, and size/path
+    limit handling.
+  - Added unit coverage for schema shape, artifact-payload preference, path
+    truncation, unsafe path redaction, and byte-limit reduction.
+  - Added [change-inventory.md](./change-inventory.md) and linked it from the
+    docs hub.
 
 ### GBX-1221: Attach File Provenance To Changed Paths
 

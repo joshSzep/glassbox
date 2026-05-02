@@ -123,6 +123,9 @@ dashboard `/app/changesets` shell. This first surface supports basic creation,
 inspection, source refresh, and archival. Structured inventories, review briefs,
 verification readiness, commit readiness, exports, topology, and command
 evidence remain later v12 phases and must not be implied by the basic shell.
+After GBX-1220, the summary-only `changeset_change_inventory` artifact shape is
+defined in [change-inventory.md](./change-inventory.md), but refresh workflows
+and provenance attachment remain later tasks.
 
 ## Evidence Expectations
 
