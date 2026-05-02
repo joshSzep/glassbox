@@ -1316,7 +1316,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1270: Define Workspace Topology Model
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1201`
 - Goal: make multi-package and monorepo structure explicit enough for
   verification and review readiness
@@ -1336,6 +1336,14 @@ Each phase below corresponds to one concrete milestone.
   - fixture repositories for Python-only, frontend-only, and mixed workspaces
 - Done when:
   - Glassbox has a typed local model for workspace structure
+- Completion notes:
+  - Added `src/glassbox/runtime/workspace_topology.py` with typed topology
+    snapshots, components, manifests, lockfiles, dependency edges, provenance,
+    freshness states, degradation posture, and path-to-component lookup.
+  - Added model tests for Python-only, frontend-only, and mixed workspaces,
+    including stale/failed degradation and invalid shape checks.
+  - Added [workspace-topology.md](./workspace-topology.md) and linked it from
+    repository intelligence docs and the docs hub.
 
 ### GBX-1271: Build Topology From Repository Index And Manifests
 

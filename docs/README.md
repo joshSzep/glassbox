@@ -133,6 +133,9 @@ v11 confidence and adoption release candidate.
   and prune local workspace memory
 - [repository-intelligence-index.md](./repository-intelligence-index.md): build,
   inspect, and refresh rebuildable local repository intelligence
+- [workspace-topology.md](./workspace-topology.md): understand the v12 typed
+  topology model for packages, apps, libraries, roots, generated outputs,
+  ownership hints, dependencies, provenance, and freshness
 - [knowledge-posture.md](./knowledge-posture.md): understand the unified v11
   freshness categories before continuation or handoff
 - [background-jobs.md](./background-jobs.md): inspect and recover daemon-owned
@@ -223,6 +226,9 @@ v11 confidence and adoption release candidate.
 - [worktree-isolation.md](./worktree-isolation.md): v12 local worktree
   isolation contract for temporary candidate checkouts, custody evidence,
   safe cleanup previews, and branch-candidate adoption boundaries
+- [workspace-topology.md](./workspace-topology.md): v12 local topology
+  contract for path-aware verification, review readiness, component
+  provenance, and stale-topology degradation
 - [v10-release-candidate.md](./v10-release-candidate.md): release-candidate
   narrative tying the v10 contract, gate, dogfooding, package, provider, and
   residual-risk evidence together

@@ -4,6 +4,12 @@ The repository intelligence index is a local, rebuildable orientation layer for 
 
 The index is not a second source of truth. Source files, manifests, docs, eval fixtures, task events, artifacts, and operator-reviewed memory remain authoritative. Index entries must cite provenance and freshness so prompt context can explain where an indexed claim came from and when it was last rebuilt.
 
+The v12 [workspace topology contract](./workspace-topology.md) is a structured
+consumer of this same local intelligence. Topology groups index and manifest
+signals into packages, apps, libraries, roots, generated outputs, ownership
+hints, and dependency edges while retaining its own freshness and degradation
+posture.
+
 ## Scope
 
 The first index should cover signals that can be gathered locally and deterministically:
