@@ -127,6 +127,19 @@ def _add_changeset_parsers(
     brief_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(brief_parser)
 
+    export_parser = changeset_subparsers.add_parser(
+        "export",
+        help="write a reviewer-safe changeset evidence package",
+        description=(
+            "Write a changeset-centered evidence package with redacted summaries, "
+            "artifact references, verification posture, and non-claims."
+        ),
+    )
+    export_parser.add_argument("changeset_id", type=_parse_uuid)
+    export_parser.add_argument("output_path")
+    export_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(export_parser)
+
     archive_parser = changeset_subparsers.add_parser(
         "archive",
         help="archive a changeset",

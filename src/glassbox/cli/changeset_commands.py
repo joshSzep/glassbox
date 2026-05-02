@@ -2,12 +2,14 @@
 
 import argparse
 import asyncio
+from pathlib import Path
 from typing import cast
 
 from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.core import ChangesetRecord
 from glassbox.runtime.bootstrap import open_runtime_context
+from glassbox.runtime.changeset_export import export_changeset_package
 from glassbox.runtime.changesets import ChangesetActionService
 from glassbox.runtime.changesets import ChangesetDerivationResult
 from glassbox.runtime.changesets import ChangesetDerivationService
@@ -36,6 +38,8 @@ def _changeset_command(args: argparse.Namespace) -> int:
         return _changeset_record_verification_command(args)
     if command == "brief":
         return _changeset_brief_command(args)
+    if command == "export":
+        return _changeset_export_command(args)
     if command == "archive":
         return _changeset_archive_command(args)
     raise ValueError("specify a changeset subcommand")
@@ -232,6 +236,31 @@ def _changeset_archive_command(args: argparse.Namespace) -> int:
     else:
         print(f"Archived changeset {args.changeset_id}")
         print(f"Reason: {args.reason}")
+    return 0
+
+
+def _changeset_export_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    output_path = Path(args.output_path)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        resolved_output = export_changeset_package(
+            args.changeset_id,
+            output_path,
+            repository=cast(ChangesetRepository, runtime_context.repositories.sessions),
+            artifact_repository=runtime_context.repositories.artifacts,
+            workspace_root=cwd,
+        )
+
+    payload = {
+        "changeset_id": str(args.changeset_id),
+        "output_path": str(resolved_output),
+        "status": "exported",
+    }
+    if args.json:
+        print_json_output(payload)
+    else:
+        print(f"Exported changeset package for {args.changeset_id}")
+        print(f"Output: {resolved_output}")
     return 0
 
 

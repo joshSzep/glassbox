@@ -158,6 +158,22 @@ def test_changeset_create_list_show_refresh_and_archive(
         ]
     )
     brief_detail = json.loads(capsys.readouterr().out)
+    export_path = tmp_path / "changeset-export.json"
+    export_exit = main(
+        [
+            "changeset",
+            "export",
+            changeset_id,
+            str(export_path),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    exported = json.loads(capsys.readouterr().out)
+    export_payload = json.loads(export_path.read_text(encoding="utf-8"))
     (tmp_path / "app.py").write_text("print('changed again')\n", encoding="utf-8")
 
     stale_show_exit = main(
@@ -219,6 +235,16 @@ def test_changeset_create_list_show_refresh_and_archive(
     )
     assert brief_detail["review_briefs"][0]["artifact_id"] == brief["artifact_id"]
     assert brief_detail["readiness"][0]["readiness_kind"] == "review"
+    assert export_exit == 0
+    assert exported["status"] == "exported"
+    assert export_payload["export_kind"] == "changeset_review_export"
+    assert export_payload["changeset"]["changeset_id"] == changeset_id
+    assert export_payload["review_brief"]["artifact_id"] == brief["artifact_id"]
+    assert (
+        "raw .glassbox database state is not included"
+        in (export_payload["redaction_report"])
+    )
+    assert export_payload["artifact_references"][0]["local_only"] is True
     assert stale_show_exit == 0
     assert stale_detail["inventory"]["freshness"] == "stale"
     assert stale_detail["verification_posture"]["state"] == "passed"

@@ -967,7 +967,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1243: Add Reviewer-Safe Export Package For Changesets
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1241`
 - Goal: make ordinary code-review handoff centered on the change rather than
   raw local runtime state
@@ -987,6 +987,20 @@ Each phase below corresponds to one concrete milestone.
   - docs/package contents validation
 - Done when:
   - a reviewer can receive a change-centered evidence bundle safely
+- Completion evidence:
+  - Added `src/glassbox/runtime/changeset_export.py` with a
+    `changeset_review_export` JSON package containing changeset summary,
+    source provenance, inventory summary, verification readiness, latest review
+    brief metadata, readiness decisions, artifact references, redaction report,
+    non-claims, and safe inspection commands.
+  - Added `glassbox changeset export CHANGESET_ID OUTPUT.json --cwd .` with
+    scriptable JSON output and no raw `.glassbox` database, raw command output,
+    provider transcript, raw diff, or file-content inclusion.
+  - Extended CLI integration coverage to generate a brief, export the changeset
+    package, and assert reviewer-safe package fields.
+  - Updated [reviewer-evidence-bundles.md](./reviewer-evidence-bundles.md) with
+    the changeset-centered handoff command and review guidance.
+  - Verified with focused CLI integration, ruff, ty, and pre-commit checks.
 
 ---
 
