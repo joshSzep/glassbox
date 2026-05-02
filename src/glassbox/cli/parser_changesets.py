@@ -157,6 +157,30 @@ def _add_changeset_parsers(
     commit_message_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(commit_message_parser)
 
+    record_precommit_parser = changeset_subparsers.add_parser(
+        "record-precommit",
+        help="record retained pre-commit or eval evidence for a changeset",
+        description=(
+            "Record a summary-only pre-commit or eval evidence artifact and "
+            "update advisory commit readiness without running hooks or committing."
+        ),
+    )
+    record_precommit_parser.add_argument("changeset_id", type=_parse_uuid)
+    record_precommit_parser.add_argument("--summary", required=True)
+    record_precommit_parser.add_argument(
+        "--kind",
+        choices=("pre-commit", "eval-report"),
+        default="pre-commit",
+    )
+    record_precommit_parser.add_argument(
+        "--state",
+        choices=("passed", "failed", "stale", "missing"),
+        default=None,
+    )
+    record_precommit_parser.add_argument("--actor", default="operator")
+    record_precommit_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(record_precommit_parser)
+
     archive_parser = changeset_subparsers.add_parser(
         "archive",
         help="archive a changeset",

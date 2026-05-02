@@ -171,6 +171,34 @@ def test_changeset_create_list_show_refresh_and_archive(
         ]
     )
     commit_message = json.loads(capsys.readouterr().out)
+    precommit_summary_path = tmp_path / "precommit-summary.json"
+    precommit_summary_path.write_text(
+        json.dumps(
+            {
+                "status": "passed",
+                "profile_id": "commit-smoke",
+                "passed": 3,
+                "failed": 0,
+                "total": 3,
+            }
+        ),
+        encoding="utf-8",
+    )
+    precommit_exit = main(
+        [
+            "changeset",
+            "record-precommit",
+            changeset_id,
+            "--summary",
+            str(precommit_summary_path),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    precommit = json.loads(capsys.readouterr().out)
     export_path = tmp_path / "changeset-export.json"
     export_exit = main(
         [
@@ -253,6 +281,16 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert commit_message["subject"] == "Review task: Add changeset command"
     assert "Commit readiness:" in commit_message["message"]
     assert commit_message["deterministic"] is True
+    assert precommit_exit == 0
+    assert precommit["evidence"]["artifact_kind"] == "changeset_precommit_evidence"
+    assert precommit["evidence"]["state"] == "passed"
+    assert precommit["readiness_event"]["payload"]["readiness_kind"] == "commit"
+    assert precommit["readiness_event"]["payload"]["state"] == "ready"
+    assert Path(tmp_path / precommit["artifact_path"]).exists()
+    assert any(
+        signal["signal_id"] == "retained-precommit-evidence"
+        for signal in precommit["commit_readiness"]["signals"]
+    )
     assert export_exit == 0
     assert exported["status"] == "exported"
     assert export_payload["export_kind"] == "changeset_review_export"

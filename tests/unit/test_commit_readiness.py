@@ -226,6 +226,43 @@ def test_commit_readiness_surfaces_policy_sensitive_paths_and_accepted_risk() ->
     assert any(signal.signal_id == "generated-paths" for signal in assessment.signals)
 
 
+def test_commit_readiness_cites_failed_retained_precommit_evidence() -> None:
+    fixture = _fixture()
+
+    assessment = derive_commit_readiness(
+        changeset=fixture.changeset,
+        inventory=fixture.inventory,
+        inventory_status=_fresh_inventory_status(),
+        verification_plan=_verification_plan(
+            fixture.changeset.changeset_id,
+            fixture.changeset.session_id,
+            state=ChangesetVerificationState.PASSED,
+            verification_id=fixture.verification_id,
+        ),
+        review_briefs=[
+            _review_brief(
+                fixture,
+                inventory_artifact_id=fixture.inventory.artifact_id,
+                verification_id=fixture.verification_id,
+            )
+        ],
+        readiness=[
+            _review_readiness(fixture, ChangesetReadinessState.READY),
+            _commit_readiness_record(fixture, ChangesetReadinessState.FAILED_CHECKS),
+        ],
+        git_status=GitStatusResult(branch="main", staged=["src/app.py"]),
+        workspace_diff=_diff(["src/app.py"]),
+        staged_diff=_diff(["src/app.py"], scope=DiffSummaryScope.STAGED),
+    )
+
+    assert assessment.state == ChangesetReadinessState.FAILED_CHECKS
+    assert any(
+        signal.signal_id == "retained-precommit-evidence"
+        for signal in assessment.signals
+    )
+    assert "pre-commit failed" in assessment.reason
+
+
 class _Fixture:
     def __init__(self, *, accepted_risk_count: int = 0) -> None:
         now = datetime.now(UTC)
@@ -336,6 +373,25 @@ def _review_readiness(
         decided_by="operator",
         updated_at=now,
         last_sequence=13,
+    )
+
+
+def _commit_readiness_record(
+    fixture: _Fixture,
+    state: ChangesetReadinessState,
+) -> ChangesetReadinessRecord:
+    now = datetime.now(UTC)
+    return ChangesetReadinessRecord(
+        session_id=fixture.changeset.session_id,
+        changeset_id=fixture.changeset.changeset_id,
+        readiness_kind=ChangesetReadinessKind.COMMIT,
+        state=state,
+        reason="pre-commit failed",
+        blockers=["pre-commit failed"],
+        accepted_risk_count=0,
+        decided_by="operator",
+        updated_at=now,
+        last_sequence=14,
     )
 
 

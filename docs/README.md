@@ -153,6 +153,9 @@ v11 confidence and adoption release candidate.
 - [commit-message-suggestions.md](./commit-message-suggestions.md): draft
   deterministic, evidence-backed changeset commit messages while preserving
   operator editing and never taking the commit action
+- [precommit-evidence.md](./precommit-evidence.md): retain summary-only local
+  pre-commit or eval evidence against a changeset without running hooks,
+  staging files, or changing repository pre-commit behavior
 
 ## Reference
 
@@ -207,6 +210,8 @@ v11 confidence and adoption release candidate.
 - [commit-message-suggestions.md](./commit-message-suggestions.md): v12
   non-mutating commit message suggestion contract for CLI/API output, evidence
   lines, limitations, templates, and non-claims
+- [precommit-evidence.md](./precommit-evidence.md): v12 summary-only
+  pre-commit/eval evidence recording contract and readiness mapping
 - [v10-release-candidate.md](./v10-release-candidate.md): release-candidate
   narrative tying the v10 contract, gate, dogfooding, package, provider, and
   residual-risk evidence together

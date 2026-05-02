@@ -155,6 +155,7 @@ def derive_commit_readiness(
     signals.extend(_provenance_signals(changeset, inventory))
     signals.extend(_verification_signals(verification_plan))
     signals.extend(_review_signals(changeset, inventory, review_briefs, readiness))
+    signals.extend(_recorded_commit_evidence_signals(readiness))
     signals.extend(_path_risk_signals(workspace_diff))
     signals.extend(_accepted_risk_signals(changeset, verification_plan))
 
@@ -407,6 +408,26 @@ def _review_signals(
             )
         )
     return signals
+
+
+def _recorded_commit_evidence_signals(
+    readiness: Sequence[ChangesetReadinessRecord],
+) -> list[CommitReadinessSignal]:
+    commit_decision = _latest_readiness(readiness, ChangesetReadinessKind.COMMIT)
+    if commit_decision is None:
+        return []
+    blocking = commit_decision.state not in {
+        ChangesetReadinessState.READY,
+        ChangesetReadinessState.ACCEPTED_WITH_RISK,
+    }
+    return [
+        CommitReadinessSignal(
+            signal_id="retained-precommit-evidence",
+            state=commit_decision.state,
+            summary=f"retained commit evidence: {commit_decision.reason}",
+            blocking=blocking,
+        )
+    ]
 
 
 def _path_risk_signals(

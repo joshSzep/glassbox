@@ -1085,7 +1085,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1252: Capture Pre-Commit Evidence Against Changesets
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1250`
 - Goal: connect local pre-commit and eval evidence to commit readiness
 - Deliverables:
@@ -1104,6 +1104,21 @@ Each phase below corresponds to one concrete milestone.
   - readiness transition tests
 - Done when:
   - commit readiness can cite retained local pre-commit or eval evidence
+- Completion evidence:
+  - Added `src/glassbox/runtime/precommit_evidence.py` with summary-only
+    `changeset_precommit_evidence` artifacts for local pre-commit and eval
+    report summaries.
+  - Added `glassbox changeset record-precommit CHANGESET_ID --summary PATH`
+    with `--kind pre-commit|eval-report`, explicit or inferred
+    `--state passed|failed|stale|missing`, and scriptable JSON output.
+  - Recording evidence appends existing changeset verification-posture and
+    `ChangesetReadinessKind.COMMIT` readiness events without running hooks,
+    staging files, committing, pushing, or changing repository pre-commit
+    behavior.
+  - Commit readiness now cites retained commit evidence while still allowing
+    live git-boundary blockers such as dirty or untracked files to win.
+  - Added unit coverage for readiness transitions, CLI integration coverage
+    with a fixture summary JSON, and [precommit-evidence.md](./precommit-evidence.md).
 
 ### GBX-1253: Add Commit-Preparation CLI And Dashboard Guidance
 

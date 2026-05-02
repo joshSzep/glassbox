@@ -22,6 +22,8 @@ from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.changesets import ChangesetVerificationService
 from glassbox.runtime.commit_messages import ChangesetCommitMessageSuggestionService
 from glassbox.runtime.commit_messages import CommitMessageSuggestion
+from glassbox.runtime.precommit_evidence import ChangesetPreCommitEvidenceService
+from glassbox.runtime.precommit_evidence import PreCommitEvidenceRecordResult
 
 
 def _changeset_command(args: argparse.Namespace) -> int:
@@ -44,6 +46,8 @@ def _changeset_command(args: argparse.Namespace) -> int:
         return _changeset_export_command(args)
     if command == "commit-message":
         return _changeset_commit_message_command(args)
+    if command == "record-precommit":
+        return _changeset_record_precommit_command(args)
     if command == "archive":
         return _changeset_archive_command(args)
     raise ValueError("specify a changeset subcommand")
@@ -289,6 +293,36 @@ def _changeset_commit_message_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def _changeset_record_precommit_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    summary_path = Path(args.summary)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        result = asyncio.run(
+            ChangesetPreCommitEvidenceService(
+                cast(ChangesetRepository, runtime_context.repositories.sessions),
+                runtime_context.repositories.artifacts,
+            ).record_summary(
+                args.changeset_id,
+                summary_path,
+                cwd,
+                evidence_kind=args.kind,
+                state=args.state,
+                recorded_by=args.actor,
+            )
+        )
+
+    if args.json:
+        print_json_output(_precommit_evidence_payload(result))
+    else:
+        print(f"Recorded {result.evidence.evidence_kind} evidence")
+        print(f"Changeset: {result.changeset_id}")
+        print(f"State: {result.evidence.state}")
+        print(f"Summary: {result.evidence.summary}")
+        print(f"Artifact: {result.artifact.relative_path.as_posix()}")
+        print(f"Commit readiness: {result.commit_readiness.state.value}")
+    return 0
+
+
 def _create_changeset_from_args(
     service: ChangesetDerivationService,
     args: argparse.Namespace,
@@ -480,6 +514,21 @@ def _review_brief_payload(
         "event": result.event.model_dump(mode="json"),
         "readiness_event": result.readiness_event.model_dump(mode="json"),
         "limitations": result.limitations,
+    }
+
+
+def _precommit_evidence_payload(
+    result: PreCommitEvidenceRecordResult,
+) -> dict[str, object]:
+    return {
+        "changeset_id": str(result.changeset_id),
+        "session_id": str(result.session_id),
+        "artifact_id": str(result.artifact.artifact_id),
+        "artifact_path": result.artifact.relative_path.as_posix(),
+        "evidence": result.evidence.model_dump(mode="json"),
+        "verification_event": result.verification_event.model_dump(mode="json"),
+        "readiness_event": result.readiness_event.model_dump(mode="json"),
+        "commit_readiness": result.commit_readiness.model_dump(mode="json"),
     }
 
 
