@@ -93,3 +93,38 @@ inspect a selected candidate in a separate checkout. The safety contract for
 those checkouts lives in [worktree-isolation.md](./worktree-isolation.md):
 worktree creation and cleanup are explicit local actions, and candidate
 selection still does not merge, rebase, commit, push, or mutate parent history.
+
+Preview selected-candidate adoption before creating changeset evidence:
+
+```bash
+uv run glassbox changeset adoption-preview \
+  --branch-search BRANCH_SEARCH_ID \
+  --candidate CANDIDATE_ID \
+  --cwd .
+```
+
+When a temporary worktree exists, include it so the preview can report dirty or
+missing worktree state:
+
+```bash
+uv run glassbox changeset adoption-preview \
+  --branch-search BRANCH_SEARCH_ID \
+  --candidate CANDIDATE_ID \
+  --worktree WORKTREE_ID \
+  --cwd .
+```
+
+After reviewing the preview, explicitly adopt the selected candidate into a
+changeset:
+
+```bash
+uv run glassbox changeset adopt-candidate \
+  --branch-search BRANCH_SEARCH_ID \
+  --candidate CANDIDATE_ID \
+  --confirm \
+  --cwd .
+```
+
+Adoption appends changeset evidence and a `ChangesetCandidateAdopted` event. It
+does not merge, rebase, cherry-pick, stage, commit, push, open a pull request,
+or mutate parent history.

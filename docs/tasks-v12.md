@@ -1241,7 +1241,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1262: Adopt A Selected Branch Candidate Into A Changeset
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1212`, `GBX-1261`, `GBX-1172`
 - Goal: convert selected branch-search work into a reviewable changeset without
   automatic merging
@@ -1262,6 +1262,27 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - selected candidates can become reviewable changesets through an explicit
     adoption workflow
+- Completion evidence:
+  - Added `src/glassbox/runtime/branch_candidate_adoption.py` with preview-only
+    adoption posture for selected branch-search candidates, including changed
+    file summary, verification posture, risk posture, accepted risks, stale or
+    missing evidence, optional worktree state, conflicts, safe next actions,
+    and non-claims.
+  - Added `glassbox changeset adoption-preview` and
+    `glassbox changeset adopt-candidate --confirm` so candidate adoption
+    requires safe inspection before recording changeset evidence.
+  - Reused existing changeset derivation to append `ChangesetCreated` and
+    `ChangesetCandidateAdopted` while preserving
+    `workspace_mutation_performed=false`; Glassbox still does not merge,
+    rebase, stage, commit, push, or open a PR.
+  - Added degraded preview behavior for missing candidate diff inventory,
+    missing verification, missing worktree state, and dirty worktree conflicts.
+  - Updated [branch-search.md](./branch-search.md) and
+    [worktree-isolation.md](./worktree-isolation.md) with the preview,
+    confirmation, and non-mutation workflow.
+  - Verified with `uv run pytest
+    tests/integration/test_cli_branch_candidate_adoption.py -q`, focused ruff
+    checks, and focused ty checks for the touched adoption files.
 
 ### GBX-1263: Surface Candidate Adoption In Dashboard Review
 

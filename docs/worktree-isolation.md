@@ -206,6 +206,20 @@ review brief. It must not merge the candidate into parent history as a side
 effect of selection. Any actual git mutation remains an explicit operator
 decision after the preview.
 
+The v12 adoption preview command can cite a worktree:
+
+```bash
+uv run glassbox changeset adoption-preview \
+  --branch-search BRANCH_SEARCH_ID \
+  --candidate CANDIDATE_ID \
+  --worktree WORKTREE_ID \
+  --cwd .
+```
+
+If the worktree is dirty, missing, or not inspectable, the preview reports that
+state as conflict or degraded evidence. Confirmed adoption records changeset
+evidence only; worktree cleanup remains a separate explicit command.
+
 ## Reviewer And Export Posture
 
 Reviewer-facing artifacts should treat worktree paths as local-only evidence.

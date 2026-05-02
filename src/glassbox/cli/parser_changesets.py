@@ -45,6 +45,65 @@ def _add_changeset_parsers(
     create_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(create_parser)
 
+    adoption_preview_parser = changeset_subparsers.add_parser(
+        "adoption-preview",
+        help="preview adopting a selected branch-search candidate",
+        description=(
+            "Preview candidate diff, verification, risk, worktree state, and "
+            "limitations before adopting branch-search evidence into a changeset."
+        ),
+    )
+    adoption_preview_parser.add_argument(
+        "--branch-search",
+        dest="branch_search_id",
+        type=_parse_uuid,
+        required=True,
+    )
+    adoption_preview_parser.add_argument(
+        "--candidate",
+        dest="candidate_id",
+        type=_parse_uuid,
+        required=True,
+    )
+    adoption_preview_parser.add_argument(
+        "--worktree", dest="worktree_id", type=_parse_uuid
+    )
+    adoption_preview_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(adoption_preview_parser)
+
+    adopt_candidate_parser = changeset_subparsers.add_parser(
+        "adopt-candidate",
+        help="adopt a selected branch-search candidate into a changeset",
+        description=(
+            "Record selected branch-search candidate adoption as changeset "
+            "evidence after explicit confirmation. This does not merge, commit, "
+            "push, or open a PR."
+        ),
+    )
+    adopt_candidate_parser.add_argument(
+        "--branch-search",
+        dest="branch_search_id",
+        type=_parse_uuid,
+        required=True,
+    )
+    adopt_candidate_parser.add_argument(
+        "--candidate",
+        dest="candidate_id",
+        type=_parse_uuid,
+        required=True,
+    )
+    adopt_candidate_parser.add_argument(
+        "--worktree", dest="worktree_id", type=_parse_uuid
+    )
+    adopt_candidate_parser.add_argument("--objective")
+    adopt_candidate_parser.add_argument(
+        "--confirm",
+        action="store_true",
+        help="confirm adoption after reviewing adoption-preview output",
+    )
+    adopt_candidate_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(adopt_candidate_parser)
+
     list_parser = changeset_subparsers.add_parser(
         "list",
         help="list changesets",
