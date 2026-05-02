@@ -1161,7 +1161,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1260: Define Local Worktree Isolation Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1201`
 - Goal: make branch/candidate experimentation safer without introducing remote
   or automatic merge semantics
@@ -1180,6 +1180,21 @@ Each phase below corresponds to one concrete milestone.
   - git fixture design notes
 - Done when:
   - worktree isolation has a product and safety contract before implementation
+- Completion evidence:
+  - Added [worktree-isolation.md](./worktree-isolation.md) with the v12 safety
+    contract for temporary local git worktrees, candidate branch naming,
+    custody evidence, creation/degradation rules, cleanup confirmation,
+    reviewer/export posture, branch-candidate adoption boundaries, and git
+    fixture design notes.
+  - Linked the worktree isolation guide from the docs hub and branch-search
+    guide so candidate selection remains clearly separate from merge, rebase,
+    commit, push, and PR behavior.
+  - Added a documentation guardrail in
+    `tests/unit/test_release_candidate_docs.py` for the worktree isolation
+    safety boundary and docs links.
+  - Verified with `uv run pytest tests/unit/test_release_candidate_docs.py -q`,
+    `uv run ruff check tests/unit/test_release_candidate_docs.py`, and
+    `uv run ty check tests/unit/test_release_candidate_docs.py`.
 
 ### GBX-1261: Add Temporary Worktree Creation And Cleanup Workflows
 

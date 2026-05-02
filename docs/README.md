@@ -126,6 +126,9 @@ v11 confidence and adoption release candidate.
   branches, and understand lineage fields
 - [branch-search.md](./branch-search.md): compare bounded branch-search
   candidates without mutating parent session history
+- [worktree-isolation.md](./worktree-isolation.md): understand the v12 safety
+  contract for temporary local git worktrees, candidate branch naming,
+  cleanup confirmation, custody evidence, and non-automatic adoption
 - [workspace-memory.md](./workspace-memory.md): review, confirm, invalidate,
   and prune local workspace memory
 - [repository-intelligence-index.md](./repository-intelligence-index.md): build,
@@ -217,6 +220,9 @@ v11 confidence and adoption release candidate.
   pre-commit/eval evidence recording contract and readiness mapping
 - [commit-preparation.md](./commit-preparation.md): v12 read-only
   commit-preparation CLI and dashboard guidance contract
+- [worktree-isolation.md](./worktree-isolation.md): v12 local worktree
+  isolation contract for temporary candidate checkouts, custody evidence,
+  safe cleanup previews, and branch-candidate adoption boundaries
 - [v10-release-candidate.md](./v10-release-candidate.md): release-candidate
   narrative tying the v10 contract, gate, dogfooding, package, provider, and
   residual-risk evidence together

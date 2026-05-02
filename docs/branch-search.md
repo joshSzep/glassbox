@@ -87,3 +87,9 @@ Selection is handoff metadata. `select`, `reject`, and `needs-review` update the
 candidate projection while preserving every candidate as historical evidence.
 Session export includes branch-search summaries and selected candidate evidence
 so an operator can continue from the winning branch intentionally.
+
+Temporary local worktrees may be used by the v12 candidate-adoption workflow to
+inspect a selected candidate in a separate checkout. The safety contract for
+those checkouts lives in [worktree-isolation.md](./worktree-isolation.md):
+worktree creation and cleanup are explicit local actions, and candidate
+selection still does not merge, rebase, commit, push, or mutate parent history.

@@ -484,6 +484,40 @@ def test_v12_change_lifecycle_audit_covers_current_boundaries() -> None:
     assert "v12-change-lifecycle-audit.md" in docs_readme
 
 
+def test_v12_worktree_isolation_contract_covers_safety_boundary() -> None:
+    content = (REPO_ROOT / "docs" / "worktree-isolation.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+    branch_search = (REPO_ROOT / "docs" / "branch-search.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "## Scope",
+        "## Worktree Custody Model",
+        "## Naming",
+        "## Creation Rules",
+        "## Cleanup Rules",
+        "## Candidate Adoption Boundary",
+        "## Reviewer And Export Posture",
+        "## Git Fixture Design Notes",
+        "temporary local git worktrees",
+        "candidate branch name",
+        "cleanup confirmation",
+        "custody evidence",
+        "automatic merge, rebase, cherry-pick",
+        "automatic staging, committing, pushing",
+        "remote or multi-user locking",
+        "explicit destructive confirmation",
+        "git worktree list --porcelain",
+        "source changeset or branch-search candidate",
+        "worktree paths as local-only evidence",
+    ):
+        assert required_text in content
+
+    assert "worktree-isolation.md" in docs_readme
+    assert "worktree-isolation.md" in branch_search
+
+
 def test_v11_residual_risk_audit_covers_current_source_and_evidence() -> None:
     content = (REPO_ROOT / "docs" / "v11-residual-risk-audit.md").read_text(
         encoding="utf-8"
