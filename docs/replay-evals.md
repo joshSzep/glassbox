@@ -213,6 +213,16 @@ provider posture, and packaging. Recipe commands are shown as guidance only;
 `eval recommend --execute` still executes only planned deterministic eval cases
 or profiles, never arbitrary recipe commands.
 
+When `.glassbox/workspace-topology.json` exists, `eval recommend` also adds
+topology-derived recipe rows for affected local components. Fresh topology can
+name package-level checks such as related Python tests, `ruff`, `ty`, frontend
+lint/typecheck/test/build commands, and docs guardrails from discovered
+manifests, source roots, test roots, and package managers. Stale topology is
+still shown, but those rows use degraded confidence and include rebuild
+guidance; missing topology simply means no topology-derived rows are added.
+These rows are advisory like repository recipes and are not executed by
+`eval recommend --execute`.
+
 The stable v11 recommendation contract has focused deterministic fixtures in
 `evals/fixtures/recommendation_cases.json`. Those fixtures cover release-path
 recommendation, frontend dashboard recommendation, provider-posture
@@ -249,6 +259,12 @@ Recommendation confidence should be visible in output:
 - `capability-derived`: the touched path mapped to one capability and the case came from coverage expectations or case capability metadata
 - `stage-derived`: the profile was recommended because impacted capabilities or cases participate in that verification stage
 - `fallback`: no stronger deterministic mapping was available
+
+Verification recipes have their own source and confidence:
+
+- `direct`: repository-owned `evals/recipes.json` matched the changed path
+- `topology`: a fresh workspace topology snapshot matched the changed path to a local component
+- `degraded`: topology matched the path, but the snapshot is stale or otherwise degraded
 
 Reason groups make the same signal easier to scan:
 

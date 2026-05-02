@@ -9,6 +9,7 @@ from glassbox.runtime.eval_verification import build_eval_verification_plan
 from glassbox.runtime.eval_verification_recipes import (
     load_eval_verification_recipe_manifest,
 )
+from glassbox.runtime.workspace_topology import build_and_write_workspace_topology
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -724,6 +725,107 @@ def test_recommend_eval_change_impact_includes_matching_recipes(
         "pnpm --dir frontend lint",
         "pnpm --dir frontend test",
     ]
+
+
+def test_recommend_eval_change_impact_adds_topology_component_recipes(
+    tmp_path: Path,
+) -> None:
+    _write_profiles(tmp_path)
+    _write_coverage(tmp_path)
+    _write_impact(tmp_path)
+    _write_mixed_workspace(tmp_path)
+    build_and_write_workspace_topology(tmp_path)
+
+    report = recommend_eval_change_impact(
+        tmp_path,
+        touched_paths=[
+            "src/demo/widget.py",
+            "frontend/components/console/widget.tsx",
+        ],
+    )
+
+    topology_recipes = [
+        recipe for recipe in report.recipes if recipe.source == "topology"
+    ]
+    assert [recipe.recipe_id for recipe in topology_recipes] == [
+        "topology-app-frontend",
+        "topology-package-demo",
+    ]
+    frontend_recipe = topology_recipes[0]
+    assert frontend_recipe.confidence == "topology"
+    assert frontend_recipe.component_ids == ["app:frontend"]
+    assert frontend_recipe.commands == [
+        "pnpm --dir frontend lint",
+        "pnpm --dir frontend typecheck",
+        "pnpm --dir frontend test",
+        "pnpm --dir frontend build",
+    ]
+
+    python_recipe = topology_recipes[1]
+    assert python_recipe.component_ids == ["package:demo"]
+    assert python_recipe.commands == [
+        "uv run ruff check src/demo/widget.py",
+        "uv run ty check src/demo/widget.py",
+        "uv run pytest tests/unit/test_widget.py -q",
+    ]
+    assert python_recipe.limitations == []
+
+
+def test_recommend_eval_change_impact_degrades_stale_topology_guidance(
+    tmp_path: Path,
+) -> None:
+    _write_profiles(tmp_path)
+    _write_coverage(tmp_path)
+    _write_impact(tmp_path)
+    _write_mixed_workspace(tmp_path)
+    build_and_write_workspace_topology(tmp_path)
+    (tmp_path / "src" / "demo" / "extra.py").write_text("VALUE = 1\n", encoding="utf-8")
+
+    report = recommend_eval_change_impact(
+        tmp_path,
+        touched_paths=["src/demo/widget.py"],
+    )
+
+    topology_recipe = next(
+        recipe for recipe in report.recipes if recipe.source == "topology"
+    )
+    assert topology_recipe.confidence == "degraded"
+    assert "Topology inputs changed" in topology_recipe.limitations[0]
+    assert any("topology is stale" in warning for warning in report.warnings)
+
+
+def _write_mixed_workspace(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "demo"\nversion = "0.1.0"\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "uv.lock").write_text("", encoding="utf-8")
+    (tmp_path / "src" / "demo").mkdir(parents=True)
+    (tmp_path / "src" / "demo" / "widget.py").write_text(
+        "VALUE = 1\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "tests" / "unit").mkdir(parents=True)
+    (tmp_path / "tests" / "unit" / "test_widget.py").write_text(
+        "def test_widget() -> None:\n    assert True\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "frontend").mkdir()
+    (tmp_path / "frontend" / "package.json").write_text(
+        json.dumps({"name": "frontend", "scripts": {}}),
+        encoding="utf-8",
+    )
+    (tmp_path / "frontend" / "pnpm-lock.yaml").write_text("", encoding="utf-8")
+    (tmp_path / "frontend" / "components" / "console").mkdir(parents=True)
+    (tmp_path / "frontend" / "components" / "console" / "widget.tsx").write_text(
+        "export function Widget() { return null; }\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "frontend" / "tests").mkdir()
+    (tmp_path / "frontend" / "tests" / "widget.test.ts").write_text(
+        "test('widget', () => {});\n",
+        encoding="utf-8",
+    )
 
 
 def test_repository_recommendation_fixture_cases_stay_stable() -> None:

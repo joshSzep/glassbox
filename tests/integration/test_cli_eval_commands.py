@@ -1100,7 +1100,10 @@ def test_cli_eval_recommend_reports_verification_recipes(
         {
             "recipe_id": "frontend-dashboard",
             "title": "Frontend dashboard",
+            "confidence": "direct",
+            "source": "recipe",
             "matched_paths": ["frontend/components/console/workspace-overview.tsx"],
+            "component_ids": [],
             "commands": [
                 "pnpm --dir frontend lint",
                 "pnpm --dir frontend test",
@@ -1108,6 +1111,7 @@ def test_cli_eval_recommend_reports_verification_recipes(
             "profile_ids": ["commit-smoke"],
             "case_ids": [],
             "notes": None,
+            "limitations": [],
         }
     ]
 

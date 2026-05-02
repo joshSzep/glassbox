@@ -329,12 +329,22 @@ def _print_eval_recommendations(result: EvalRecommendationReport) -> None:
     if result.recipes:
         print("Verification recipes:")
         for recipe in result.recipes:
-            print(f"  - {recipe.recipe_id}: {recipe.title}")
+            print(
+                f"  - {recipe.recipe_id}: {recipe.title} "
+                f"({recipe.confidence}, {recipe.source})"
+            )
             _print_optional_joined_line("Paths", recipe.matched_paths, indent="    ")
+            _print_optional_joined_line(
+                "Components", recipe.component_ids, indent="    "
+            )
             _print_optional_joined_line("Profiles", recipe.profile_ids, indent="    ")
             _print_optional_joined_line("Cases", recipe.case_ids, indent="    ")
             if recipe.notes:
                 print(f"    Notes: {recipe.notes}")
+            if recipe.limitations:
+                print("    Limitations:")
+                for limitation in recipe.limitations:
+                    print("      - " + limitation)
             if recipe.commands:
                 print("    Commands:")
                 for command in recipe.commands:

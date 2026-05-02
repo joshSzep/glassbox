@@ -1378,7 +1378,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1272: Improve Path-To-Test And Recipe Recommendations
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1271`, `GBX-1121`
 - Goal: make verification recommendations more precise for changed files in
   multi-package workspaces
@@ -1399,6 +1399,28 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - changed files receive better targeted verification advice from local
     topology
+- Completion notes:
+  - Added topology-derived verification recipe rows to `glassbox eval
+    recommend` when `.glassbox/workspace-topology.json` is available, including
+    affected component IDs, matched paths, source, confidence, commands, and
+    limitations.
+  - Python components now suggest focused `ruff`, `ty`, and related `pytest`
+    commands from source/test roots; frontend/node components suggest package
+    lint, typecheck, test, and build commands from discovered package roots;
+    docs components retain docs guardrail guidance.
+  - Stale topology degrades recommendation confidence and names the rebuild
+    action instead of treating old package/test mapping as current.
+  - Extended repository-owned impact rules and verification recipes for
+    workspace topology changes without making topology commands executable via
+    `eval recommend --execute`.
+  - Updated [replay-evals.md](./replay-evals.md) and
+    [workspace-topology.md](./workspace-topology.md) with topology-aware
+    recommendation behavior.
+  - Verified with `uv run pytest tests/unit/test_eval_recommendations.py
+    tests/unit/test_workspace_topology.py -q`, focused `ruff`, focused `ty`,
+    `uv run pytest tests/unit/test_release_candidate_docs.py -q`, and
+    `uv run glassbox eval recommend
+    src/glassbox/runtime/workspace_topology.py --cwd . --json`.
 
 ### GBX-1273: Feed Topology Into Changeset Readiness And Review Briefs
 

@@ -18,9 +18,11 @@ from glassbox.runtime.eval_recommendation_models import (
 )
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReport
 from glassbox.runtime.eval_recommendation_models import EvalReleaseSurfaceRecommendation
+from glassbox.runtime.eval_recommendation_models import EvalVerificationRecipeConfidence
 from glassbox.runtime.eval_recommendation_models import (
     EvalVerificationRecipeRecommendation,
 )
+from glassbox.runtime.eval_recommendation_models import EvalVerificationRecipeSource
 from glassbox.runtime.eval_recommendation_models import LongRunVerificationSurface
 from glassbox.runtime.eval_verification_recipes import (
     DEFAULT_EVAL_VERIFICATION_RECIPES_PATH,
@@ -52,8 +54,10 @@ __all__ = [
     "EvalRecommendationReport",
     "EvalReleaseSurfaceRecommendation",
     "EvalVerificationRecipe",
+    "EvalVerificationRecipeConfidence",
     "EvalVerificationRecipeManifest",
     "EvalVerificationRecipeRecommendation",
+    "EvalVerificationRecipeSource",
     "DEFAULT_EVAL_VERIFICATION_RECIPES_PATH",
     "EVAL_VERIFICATION_RECIPE_MANIFEST_VERSION",
     "LongRunVerificationSurface",

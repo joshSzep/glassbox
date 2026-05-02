@@ -199,6 +199,7 @@
             "path_globs": [
                 "src/glassbox/runtime/workspace_memory*.py",
                 "src/glassbox/runtime/repository_index.py",
+                "src/glassbox/runtime/workspace_topology.py",
                 "src/glassbox/runtime/context*.py",
                 "src/glassbox/cli/memory_commands.py",
                 "src/glassbox/cli/repository_commands.py",
@@ -206,10 +207,12 @@
                 "src/glassbox/web/routes/repository_index.py",
                 "tests/unit/test_workspace_memory*.py",
                 "tests/unit/test_repository_index.py",
+                "tests/unit/test_workspace_topology.py",
                 "tests/integration/test_cli_memory_commands.py",
                 "tests/integration/test_cli_repository_commands.py",
                 "docs/workspace-memory.md",
-                "docs/repository-intelligence-index.md"
+                "docs/repository-intelligence-index.md",
+                "docs/workspace-topology.md"
             ],
             "owners": ["runtime.memory", "runtime.repository-index"],
             "capabilities": [

@@ -42,6 +42,9 @@ from glassbox.runtime.eval_recommendation_release_surfaces import (
 )
 from glassbox.runtime.eval_recommendation_rows import build_case_recommendations
 from glassbox.runtime.eval_recommendation_rows import build_profile_recommendations
+from glassbox.runtime.eval_recommendation_topology import (
+    build_topology_recipe_recommendations,
+)
 from glassbox.runtime.eval_verification_recipes import (
     maybe_load_eval_verification_recipe_manifest,
 )
@@ -182,6 +185,14 @@ def recommend_eval_change_impact(
         normalized_paths=normalized_paths,
         recipes=recipes,
     )
+    topology_recipe_recommendations, topology_warnings = (
+        build_topology_recipe_recommendations(
+            workspace_root=resolved_workspace_root,
+            normalized_paths=normalized_paths,
+        )
+    )
+    recipe_recommendations.extend(topology_recipe_recommendations)
+    recipe_recommendations.sort(key=lambda recommendation: recommendation.recipe_id)
 
     return EvalRecommendationReport(
         workspace_root=resolved_workspace_root,
@@ -189,7 +200,7 @@ def recommend_eval_change_impact(
         matched_rule_ids=sorted(matched_rule_ids),
         unmatched_paths=unmatched_paths,
         coverage_audit_recommended=coverage_audit_recommended,
-        warnings=dedupe_strings(warnings),
+        warnings=dedupe_strings([*warnings, *topology_warnings]),
         release_surfaces=release_surfaces,
         long_run_surfaces=long_run_surfaces,
         cases=case_recommendations,

@@ -115,6 +115,21 @@
             "notes": "Live-provider canaries remain advisory and require explicit operator selection."
         },
         {
+            "recipe_id": "workspace-topology",
+            "title": "Workspace topology checks",
+            "path_globs": [
+                "src/glassbox/runtime/workspace_topology.py",
+                "tests/unit/test_workspace_topology.py",
+                "docs/workspace-topology.md"
+            ],
+            "commands": [
+                "uv run pytest tests/unit/test_workspace_topology.py tests/unit/test_eval_recommendations.py -q",
+                "uv run glassbox repo topology build --cwd . --json"
+            ],
+            "case_ids": ["repository-index.context-drift"],
+            "notes": "Topology changes should prove the builder and the topology-aware recommendation layer; the build command only refreshes local .glassbox topology evidence."
+        },
+        {
             "recipe_id": "packaging",
             "title": "Packaging and installed smoke checks",
             "path_globs": [

@@ -25,6 +25,8 @@ type EvalRecommendationReasonGroupKind = Literal[
     "release-gate-recommendation",
     "fallback-policy",
 ]
+type EvalVerificationRecipeConfidence = Literal["direct", "topology", "degraded"]
+type EvalVerificationRecipeSource = Literal["recipe", "topology"]
 
 _CONFIDENCE_PRIORITY: dict[EvalRecommendationConfidence, int] = {
     "direct": 5,
@@ -122,11 +124,15 @@ class EvalVerificationRecipeRecommendation(BaseModel):
 
     recipe_id: str
     title: str
+    confidence: EvalVerificationRecipeConfidence = "direct"
+    source: EvalVerificationRecipeSource = "recipe"
     matched_paths: list[str] = Field(default_factory=list)
+    component_ids: list[str] = Field(default_factory=list)
     commands: list[str] = Field(default_factory=list)
     profile_ids: list[str] = Field(default_factory=list)
     case_ids: list[str] = Field(default_factory=list)
     notes: str | None = None
+    limitations: list[str] = Field(default_factory=list)
 
 
 class EvalReleaseSurfaceRecommendation(BaseModel):

@@ -60,6 +60,23 @@ Stale or failed topology must never be presented as fact. It should lower
 confidence, add limitations, and produce safe next actions such as rebuilding
 topology before relying on package or ownership recommendations.
 
+## Verification Recommendations
+
+`glassbox eval recommend PATH --cwd .` consumes the persisted topology when it
+is available. The command adds topology-derived verification recipe rows for
+affected components:
+
+- Python package components can suggest focused `ruff`, `ty`, and related
+  `pytest` commands from discovered source and test roots.
+- Node or frontend app components can suggest package-manager checks such as
+  lint, typecheck, test, and build commands from the component root.
+- Docs components can suggest the existing documentation guardrail test.
+
+These recommendations are preview guidance. They are printed with
+`source=topology`, component IDs, matched paths, confidence, and any
+limitations. Stale topology uses degraded confidence and tells the operator to
+rebuild the local snapshot before treating the guidance as current.
+
 ## Single-Package Repositories
 
 Small repositories should not be noisy. A Python-only or frontend-only project
