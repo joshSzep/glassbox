@@ -420,6 +420,8 @@ describe("createGlassboxApiClient", () => {
       jsonResponse({ items: [] }),
       jsonResponse({ changeset: { changeset_id: "changeset/1" } }),
       jsonResponse({ readiness: { state: "missing" } }),
+      jsonResponse({ state: "needs_verification" }),
+      jsonResponse({ suggestion_label: "suggestion_only_not_committed" }),
       jsonResponse({ detail: { changeset: { changeset_id: "changeset/1" } } }),
       jsonResponse({ detail: { changeset: { changeset_id: "changeset/1" } } }),
     ]);
@@ -428,6 +430,8 @@ describe("createGlassboxApiClient", () => {
     await client.getChangesetPage({ limit: 10, session_id: "session/1" });
     await client.getChangesetDetail("changeset/1");
     await client.getChangesetVerificationPlan("changeset/1");
+    await client.getChangesetCommitReadiness("changeset/1");
+    await client.getChangesetCommitMessage("changeset/1");
     await client.generateChangesetReviewBrief({
       changesetId: "changeset/1",
       includeMarkdown: true,
@@ -438,11 +442,13 @@ describe("createGlassboxApiClient", () => {
       "/changesets?limit=10&session_id=session%2F1",
       "/changesets/changeset%2F1",
       "/changesets/changeset%2F1/verification-plan",
+      "/changesets/changeset%2F1/commit-readiness",
+      "/changesets/changeset%2F1/commit-message",
       "/changesets/changeset%2F1/brief",
       "/changesets/changeset%2F1/refresh",
     ]);
-    expect(calls[3].init?.body).toBe(JSON.stringify({ actor: "operator", include_markdown: true }));
-    expect(calls[4].init?.body).toBe(JSON.stringify({ actor: "operator" }));
+    expect(calls[5].init?.body).toBe(JSON.stringify({ actor: "operator", include_markdown: true }));
+    expect(calls[6].init?.body).toBe(JSON.stringify({ actor: "operator" }));
   });
 
   it("normalizes FastAPI validation errors", async () => {

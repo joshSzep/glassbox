@@ -26,6 +26,9 @@ export type BranchSearchListPageResponse = components["schemas"]["BranchSearchLi
 export type ChangesetDetailResponse = components["schemas"]["ChangesetDetailResponse"];
 export type ChangesetListPageResponse = components["schemas"]["ChangesetListPageResponse"];
 export type ChangesetActionResponse = components["schemas"]["ChangesetActionResponse"];
+export type CommitReadinessResponse = components["schemas"]["CommitReadinessResponse"];
+export type CommitMessageSuggestionResponse =
+  components["schemas"]["CommitMessageSuggestionResponse"];
 export type ChangesetReviewBriefGenerateResponse =
   components["schemas"]["ChangesetReviewBriefGenerateResponse"];
 export type ChangesetVerificationPlanPreviewResponse =
@@ -529,6 +532,20 @@ export function createGlassboxApiClient(options: GlassboxApiClientOptions = {}) 
       requestJson<ChangesetVerificationPlanPreviewResponse>(
         "GET",
         `/changesets/${encodeURIComponent(changesetId)}/verification-plan`,
+        requestOptions,
+      ),
+
+    getChangesetCommitReadiness: (changesetId: string, requestOptions?: RequestOptions) =>
+      requestJson<CommitReadinessResponse>(
+        "GET",
+        `/changesets/${encodeURIComponent(changesetId)}/commit-readiness`,
+        requestOptions,
+      ),
+
+    getChangesetCommitMessage: (changesetId: string, requestOptions?: RequestOptions) =>
+      requestJson<CommitMessageSuggestionResponse>(
+        "GET",
+        `/changesets/${encodeURIComponent(changesetId)}/commit-message`,
         requestOptions,
       ),
 

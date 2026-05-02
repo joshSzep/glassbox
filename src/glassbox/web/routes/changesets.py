@@ -15,6 +15,7 @@ from glassbox.runtime.changesets import ChangesetRepository
 from glassbox.runtime.changesets import ChangesetReviewBriefService
 from glassbox.runtime.changesets import ChangesetVerificationService
 from glassbox.runtime.commit_messages import ChangesetCommitMessageSuggestionService
+from glassbox.runtime.commit_readiness import ChangesetCommitReadinessService
 from glassbox.web.app import RuntimeContextDep
 from glassbox.web.changeset_api import ChangesetActionResponse
 from glassbox.web.changeset_api import ChangesetArchiveRequest
@@ -29,12 +30,14 @@ from glassbox.web.changeset_api import ChangesetReviewBriefGenerateResponse
 from glassbox.web.changeset_api import ChangesetReviewBriefRequest
 from glassbox.web.changeset_api import ChangesetVerificationPlanPreviewResponse
 from glassbox.web.changeset_api import CommitMessageSuggestionResponse
+from glassbox.web.changeset_api import CommitReadinessResponse
 from glassbox.web.changeset_api import build_changeset_detail_response
 from glassbox.web.changeset_api import build_changeset_review_brief_generate_response
 from glassbox.web.changeset_api import build_changeset_summary_responses
 from glassbox.web.changeset_api import build_changeset_verification_plan_response
 from glassbox.web.changeset_api import build_changeset_verification_readiness_response
 from glassbox.web.changeset_api import build_commit_message_suggestion_response
+from glassbox.web.changeset_api import build_commit_readiness_response
 from glassbox.web.session_api import ErrorDetailResponse
 
 router = APIRouter(prefix="/changesets")
@@ -309,6 +312,31 @@ async def suggest_changeset_commit_message(
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return build_commit_message_suggestion_response(suggestion)
+
+
+@router.get(
+    "/{changeset_id}/commit-readiness",
+    response_model=CommitReadinessResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def preview_changeset_commit_readiness(
+    changeset_id: UUID,
+    context: RuntimeContextDep,
+) -> CommitReadinessResponse:
+    """Preview commit readiness without staging or committing."""
+
+    repository = _repository(context)
+    try:
+        readiness = await ChangesetCommitReadinessService(
+            repository,
+            context.repositories.artifacts,
+        ).preview(
+            changeset_id,
+            _workspace_root_for_changeset(repository, changeset_id),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return build_commit_readiness_response(readiness)
 
 
 @router.post(

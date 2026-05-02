@@ -27,6 +27,8 @@ type BranchSearchSummary = components["schemas"]["BranchSearchSummaryResponse"];
 type ChangesetDetail = components["schemas"]["ChangesetDetailResponse"];
 type ChangesetSummary = components["schemas"]["ChangesetSummaryResponse"];
 type ChangesetVerificationPlan = components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
+type CommitMessageSuggestion = components["schemas"]["CommitMessageSuggestionResponse"];
+type CommitReadiness = components["schemas"]["CommitReadinessResponse"];
 type RepositoryEntry = components["schemas"]["RepositoryIndexEntryResponse"];
 type TaskDetail = components["schemas"]["TaskDetailResponse"];
 type TaskEvent = components["schemas"]["TaskEventResponse"];
@@ -384,6 +386,14 @@ async function installAutonomyConsoleRoutes(page: Page, state: GlassboxApiFixtur
     }
     if (path === `/changesets/${changeset.changeset_id}/verification-plan`) {
       await route.fulfill({ json: makeChangesetVerificationPlan(changeset.changeset_id) });
+      return;
+    }
+    if (path === `/changesets/${changeset.changeset_id}/commit-readiness`) {
+      await route.fulfill({ json: makeCommitReadiness(changeset.changeset_id) });
+      return;
+    }
+    if (path === `/changesets/${changeset.changeset_id}/commit-message`) {
+      await route.fulfill({ json: makeCommitMessageSuggestion(changeset.changeset_id) });
       return;
     }
     if (path === `/changesets/${changeset.changeset_id}`) {
@@ -926,6 +936,63 @@ function makeChangesetVerificationPlan(changesetId: string): ChangesetVerificati
     retained_artifact_ids: ["artifact-1"],
     safe_next_actions: ["pnpm run test"],
     session_id: defaultSessionId,
+  };
+}
+
+function makeCommitReadiness(changesetId: string): CommitReadiness {
+  return {
+    accepted_risk_count: 1,
+    blockers: [],
+    changeset_id: changesetId,
+    git: {
+      ahead: 0,
+      behind: 0,
+      branch: "main",
+      clean: false,
+      error: null,
+      generated_paths: ["frontend/generated/api-types.ts"],
+      policy_sensitive_paths: [],
+      staged_path_count: 2,
+      staged_paths: [
+        "frontend/components/console/changeset-console.tsx",
+        "frontend/stores/changeset-store.ts",
+      ],
+      untracked_paths: [],
+      unstaged_paths: [],
+      workspace_path_count: 2,
+    },
+    inventory_artifact_id: "artifact-inventory",
+    non_claims: ["this model does not stage files or run git commit"],
+    readiness_kind: "commit",
+    reason: "changeset has staged changes, fresh evidence, review, and verification",
+    review_brief_artifact_id: "brief-artifact-1",
+    safe_next_actions: ["git status --short"],
+    session_id: defaultSessionId,
+    signals: [],
+    state: "accepted_with_risk",
+    verification_id: "verification-1",
+  };
+}
+
+function makeCommitMessageSuggestion(changesetId: string): CommitMessageSuggestion {
+  return {
+    body: [
+      "Changeset: changeset-1",
+      "Commit readiness: accepted_with_risk - changeset has staged changes",
+    ],
+    changeset_id: changesetId,
+    commit_readiness_state: "accepted_with_risk",
+    deterministic: true,
+    evidence: [],
+    limitations: [],
+    message: "Review dashboard changeset evidence\n\n- Commit readiness: accepted_with_risk",
+    non_claims: ["commit message is a deterministic suggestion, not a commit action"],
+    schema_version: 1,
+    session_id: defaultSessionId,
+    style: "plain",
+    subject: "Review dashboard changeset evidence",
+    suggestion_kind: "changeset_commit_message_suggestion",
+    suggestion_label: "suggestion_only_not_committed",
   };
 }
 

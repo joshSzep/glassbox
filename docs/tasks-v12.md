@@ -1122,7 +1122,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1253: Add Commit-Preparation CLI And Dashboard Guidance
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1251`, `GBX-1252`
 - Goal: make commit preparation ergonomic while keeping final git mutation
   explicit
@@ -1143,6 +1143,17 @@ Each phase below corresponds to one concrete milestone.
   - docs update
 - Done when:
   - Glassbox can prepare an operator to commit without performing the commit
+- Completion evidence:
+  - Added `glassbox changeset commit-prep CHANGESET_ID --cwd .` with JSON and
+    summary output combining commit readiness, suggested commit message,
+    blockers, risky/ambiguous paths, and safe next commands.
+  - Added `GET /changesets/{changeset_id}/commit-readiness` and surfaced commit
+    readiness plus commit-message suggestions in the dashboard changeset
+    console's Commit Preparation panel.
+  - Kept all copy explicitly read-only: Glassbox did not stage, commit, push, or
+    open a PR.
+  - Updated frontend API/store/component coverage, OpenAPI coverage, and
+    [commit-preparation.md](./commit-preparation.md).
 
 ---
 

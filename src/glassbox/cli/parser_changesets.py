@@ -181,6 +181,23 @@ def _add_changeset_parsers(
     record_precommit_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(record_precommit_parser)
 
+    commit_prep_parser = changeset_subparsers.add_parser(
+        "commit-prep",
+        help="show read-only commit preparation guidance for a changeset",
+        description=(
+            "Show commit readiness, suggested message, blockers, risky files, "
+            "and safe next commands without staging files or committing."
+        ),
+    )
+    commit_prep_parser.add_argument("changeset_id", type=_parse_uuid)
+    commit_prep_parser.add_argument(
+        "--style",
+        choices=("plain", "conventional"),
+        default="plain",
+    )
+    commit_prep_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(commit_prep_parser)
+
     archive_parser = changeset_subparsers.add_parser(
         "archive",
         help="archive a changeset",

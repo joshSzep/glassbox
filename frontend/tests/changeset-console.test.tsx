@@ -8,6 +8,8 @@ import type { components } from "@/generated/api-types";
 type ChangesetDetail = components["schemas"]["ChangesetDetailResponse"];
 type ChangesetSummary = components["schemas"]["ChangesetSummaryResponse"];
 type ChangesetVerificationPlan = components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
+type CommitMessageSuggestion = components["schemas"]["CommitMessageSuggestionResponse"];
+type CommitReadiness = components["schemas"]["CommitReadinessResponse"];
 
 describe("changeset console", () => {
   it("renders verification readiness states and safe next actions", () => {
@@ -18,6 +20,8 @@ describe("changeset console", () => {
         detail: {
           detail,
           error: null,
+          commitMessage: makeCommitMessageSuggestion("changeset-1"),
+          commitReadiness: makeCommitReadiness("changeset-1"),
           loadState: "loaded",
           selectedChangesetId: "changeset-1",
           verificationPlan: makeVerificationPlan("changeset-1"),
@@ -44,6 +48,10 @@ describe("changeset console", () => {
     expect(markup).toContain("brief-artifact-1");
     expect(markup).toContain("Changed Files");
     expect(markup).toContain("3 changed paths");
+    expect(markup).toContain("Commit Preparation");
+    expect(markup).toContain("needs verification");
+    expect(markup).toContain("Suggested message");
+    expect(markup).toContain("Glassbox did not stage");
   });
 });
 
@@ -210,5 +218,64 @@ function makeVerificationPlan(changesetId: string): ChangesetVerificationPlan {
     retained_artifact_ids: ["artifact-1"],
     safe_next_actions: ["uv run pytest tests/unit"],
     session_id: "session-1",
+  };
+}
+
+function makeCommitReadiness(changesetId: string): CommitReadiness {
+  return {
+    accepted_risk_count: 1,
+    blockers: ["verification readiness is missing"],
+    changeset_id: changesetId,
+    git: {
+      ahead: 0,
+      behind: 0,
+      branch: "main",
+      clean: false,
+      error: null,
+      generated_paths: ["frontend/generated/api-types.ts"],
+      policy_sensitive_paths: ["docs/tasks-v12.md"],
+      staged_path_count: 1,
+      staged_paths: ["src/glassbox/runtime/changesets.py"],
+      untracked_paths: ["notes.txt"],
+      unstaged_paths: ["docs/tasks-v12.md"],
+      workspace_path_count: 3,
+    },
+    inventory_artifact_id: "artifact-inventory",
+    non_claims: ["this model does not stage files or run git commit"],
+    readiness_kind: "commit",
+    reason: "verification readiness is missing",
+    review_brief_artifact_id: "brief-artifact-1",
+    safe_next_actions: ["git status --short"],
+    session_id: "session-1",
+    signals: [
+      {
+        blocking: true,
+        paths: [],
+        signal_id: "verification-readiness",
+        state: "needs_verification",
+        summary: "verification readiness is missing",
+      },
+    ],
+    state: "needs_verification",
+    verification_id: "verification-1",
+  };
+}
+
+function makeCommitMessageSuggestion(changesetId: string): CommitMessageSuggestion {
+  return {
+    body: ["Commit readiness: needs_verification"],
+    changeset_id: changesetId,
+    commit_readiness_state: "needs_verification",
+    deterministic: true,
+    evidence: [],
+    limitations: [],
+    message: "Review verification posture\n\n- Commit readiness: needs_verification",
+    non_claims: ["commit message is a deterministic suggestion, not a commit action"],
+    schema_version: 1,
+    session_id: "session-1",
+    style: "plain",
+    subject: "Review verification posture",
+    suggestion_kind: "changeset_commit_message_suggestion",
+    suggestion_label: "suggestion_only_not_committed",
   };
 }

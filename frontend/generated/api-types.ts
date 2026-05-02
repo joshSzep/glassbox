@@ -208,6 +208,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/changesets/{changeset_id}/commit-readiness": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Preview Changeset Commit Readiness
+     * @description Preview commit readiness without staging or committing.
+     */
+    get: operations["preview_changeset_commit_readiness_changesets__changeset_id__commit_readiness_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/changesets/{changeset_id}/record-verification": {
     parameters: {
       query?: never;
@@ -2463,6 +2483,76 @@ export interface components {
       suggestion_kind: string;
       /** Suggestion Label */
       suggestion_label: string;
+    };
+    /** CommitReadinessGitSummaryResponse */
+    CommitReadinessGitSummaryResponse: {
+      /** Ahead */
+      ahead: number;
+      /** Behind */
+      behind: number;
+      /** Branch */
+      branch?: string | null;
+      /** Clean */
+      clean: boolean;
+      /** Error */
+      error?: string | null;
+      /** Generated Paths */
+      generated_paths: string[];
+      /** Policy Sensitive Paths */
+      policy_sensitive_paths: string[];
+      /** Staged Path Count */
+      staged_path_count: number;
+      /** Staged Paths */
+      staged_paths: string[];
+      /** Unstaged Paths */
+      unstaged_paths: string[];
+      /** Untracked Paths */
+      untracked_paths: string[];
+      /** Workspace Path Count */
+      workspace_path_count: number;
+    };
+    /** CommitReadinessResponse */
+    CommitReadinessResponse: {
+      /** Accepted Risk Count */
+      accepted_risk_count: number;
+      /** Blockers */
+      blockers: string[];
+      /** Changeset Id */
+      changeset_id: string;
+      git: components["schemas"]["CommitReadinessGitSummaryResponse"];
+      /** Inventory Artifact Id */
+      inventory_artifact_id?: string | null;
+      /** Non Claims */
+      non_claims: string[];
+      /** Readiness Kind */
+      readiness_kind: string;
+      /** Reason */
+      reason: string;
+      /** Review Brief Artifact Id */
+      review_brief_artifact_id?: string | null;
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+      /** Session Id */
+      session_id: string;
+      /** Signals */
+      signals: components["schemas"]["CommitReadinessSignalResponse"][];
+      /** State */
+      state: string;
+      /** Verification Id */
+      verification_id?: string | null;
+    };
+    /** CommitReadinessSignalResponse */
+    CommitReadinessSignalResponse: {
+      /** Blocking */
+      blocking: boolean;
+      /** Paths */
+      paths: string[];
+      /** Signal Id */
+      signal_id: string;
+      /** State */
+      state: string;
+      /** Summary */
+      summary: string;
     };
     /**
      * ContextCompactionContextItemSnapshot
@@ -5192,6 +5282,46 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["CommitMessageSuggestionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  preview_changeset_commit_readiness_changesets__changeset_id__commit_readiness_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        changeset_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CommitReadinessResponse"];
         };
       };
       /** @description Not Found */

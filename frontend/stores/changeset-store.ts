@@ -4,6 +4,8 @@ import type {
   ChangesetDetailResponse,
   ChangesetListPageResponse,
   ChangesetVerificationPlanPreviewResponse,
+  CommitMessageSuggestionResponse,
+  CommitReadinessResponse,
   GlassboxApiClient,
 } from "@/api/client";
 import {
@@ -30,6 +32,8 @@ export type ChangesetPageState = {
 export type ChangesetDetailState = {
   detail: ChangesetDetailResponse | null;
   error: string | null;
+  commitMessage: CommitMessageSuggestionResponse | null;
+  commitReadiness: CommitReadinessResponse | null;
   loadState: LoadState;
   selectedChangesetId: string | null;
   verificationPlan: ChangesetVerificationPlanPreviewResponse | null;
@@ -63,9 +67,15 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
           changesetId: selectedChangesetId,
         });
         const verificationPlan = await apiClient.getChangesetVerificationPlan(selectedChangesetId);
+        const [commitReadiness, commitMessage] = await Promise.all([
+          apiClient.getChangesetCommitReadiness(selectedChangesetId),
+          apiClient.getChangesetCommitMessage(selectedChangesetId),
+        ]);
         set({
           action: createSucceededActionStatus("generate-brief"),
           detail: {
+            commitMessage,
+            commitReadiness,
             detail: response.detail,
             error: null,
             loadState: "loaded",
@@ -108,9 +118,15 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
       try {
         const response = await apiClient.refreshChangeset({ changesetId: selectedChangesetId });
         const verificationPlan = await apiClient.getChangesetVerificationPlan(selectedChangesetId);
+        const [commitReadiness, commitMessage] = await Promise.all([
+          apiClient.getChangesetCommitReadiness(selectedChangesetId),
+          apiClient.getChangesetCommitMessage(selectedChangesetId),
+        ]);
         set({
           action: createSucceededActionStatus("refresh-changeset"),
           detail: {
+            commitMessage,
+            commitReadiness,
             detail: response.detail,
             error: null,
             loadState: "loaded",
@@ -136,6 +152,8 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
       const currentRequestId = detailRequests.next();
       set({
         detail: {
+          commitMessage: null,
+          commitReadiness: null,
           detail: null,
           error: null,
           loadState: "loading",
@@ -144,15 +162,19 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
         },
       });
       try {
-        const [detail, verificationPlan] = await Promise.all([
+        const [detail, verificationPlan, commitReadiness, commitMessage] = await Promise.all([
           apiClient.getChangesetDetail(changesetId),
           apiClient.getChangesetVerificationPlan(changesetId),
+          apiClient.getChangesetCommitReadiness(changesetId),
+          apiClient.getChangesetCommitMessage(changesetId),
         ]);
         if (!detailRequests.isCurrent(currentRequestId)) {
           return;
         }
         set({
           detail: {
+            commitMessage,
+            commitReadiness,
             detail,
             error: null,
             loadState: "loaded",
@@ -166,6 +188,8 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
         }
         set({
           detail: {
+            commitMessage: null,
+            commitReadiness: null,
             detail: null,
             error: errorMessage(error),
             loadState: "failed",
@@ -184,6 +208,8 @@ function createIdleChangesetPageState(): ChangesetPageState {
 
 function createIdleChangesetDetailState(): ChangesetDetailState {
   return {
+    commitMessage: null,
+    commitReadiness: null,
     detail: null,
     error: null,
     loadState: "idle",

@@ -16,6 +16,7 @@ from glassbox.runtime.changesets import ChangesetDetailView
 from glassbox.runtime.changesets import ChangesetReviewBriefGenerationResult
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.commit_messages import CommitMessageSuggestion
+from glassbox.runtime.commit_readiness import CommitReadinessAssessment
 
 
 class ChangesetSummaryResponse(BaseModel):
@@ -316,6 +317,46 @@ class CommitMessageSuggestionResponse(BaseModel):
     non_claims: list[str]
 
 
+class CommitReadinessSignalResponse(BaseModel):
+    signal_id: str
+    state: str
+    summary: str
+    blocking: bool
+    paths: list[str]
+
+
+class CommitReadinessGitSummaryResponse(BaseModel):
+    branch: str | None = None
+    ahead: int
+    behind: int
+    staged_paths: list[str]
+    unstaged_paths: list[str]
+    untracked_paths: list[str]
+    workspace_path_count: int
+    staged_path_count: int
+    policy_sensitive_paths: list[str]
+    generated_paths: list[str]
+    clean: bool
+    error: str | None = None
+
+
+class CommitReadinessResponse(BaseModel):
+    changeset_id: str
+    session_id: str
+    readiness_kind: str
+    state: str
+    reason: str
+    blockers: list[str]
+    safe_next_actions: list[str]
+    inventory_artifact_id: str | None = None
+    review_brief_artifact_id: str | None = None
+    verification_id: str | None = None
+    accepted_risk_count: int
+    git: CommitReadinessGitSummaryResponse
+    signals: list[CommitReadinessSignalResponse]
+    non_claims: list[str]
+
+
 def build_changeset_summary_response(
     changeset: ChangesetRecord,
 ) -> ChangesetSummaryResponse:
@@ -518,6 +559,49 @@ def build_commit_message_suggestion_response(
         ],
         limitations=suggestion.limitations,
         non_claims=suggestion.non_claims,
+    )
+
+
+def build_commit_readiness_response(
+    readiness: CommitReadinessAssessment,
+) -> CommitReadinessResponse:
+    return CommitReadinessResponse(
+        changeset_id=str(readiness.changeset_id),
+        session_id=str(readiness.session_id),
+        readiness_kind=readiness.readiness_kind.value,
+        state=readiness.state.value,
+        reason=readiness.reason,
+        blockers=readiness.blockers,
+        safe_next_actions=readiness.safe_next_actions,
+        inventory_artifact_id=_optional_str(readiness.inventory_artifact_id),
+        review_brief_artifact_id=_optional_str(readiness.review_brief_artifact_id),
+        verification_id=_optional_str(readiness.verification_id),
+        accepted_risk_count=readiness.accepted_risk_count,
+        git=CommitReadinessGitSummaryResponse(
+            branch=readiness.git.branch,
+            ahead=readiness.git.ahead,
+            behind=readiness.git.behind,
+            staged_paths=readiness.git.staged_paths,
+            unstaged_paths=readiness.git.unstaged_paths,
+            untracked_paths=readiness.git.untracked_paths,
+            workspace_path_count=readiness.git.workspace_path_count,
+            staged_path_count=readiness.git.staged_path_count,
+            policy_sensitive_paths=readiness.git.policy_sensitive_paths,
+            generated_paths=readiness.git.generated_paths,
+            clean=readiness.git.clean,
+            error=readiness.git.error,
+        ),
+        signals=[
+            CommitReadinessSignalResponse(
+                signal_id=signal.signal_id,
+                state=signal.state.value,
+                summary=signal.summary,
+                blocking=signal.blocking,
+                paths=signal.paths,
+            )
+            for signal in readiness.signals
+        ],
+        non_claims=readiness.non_claims,
     )
 
 

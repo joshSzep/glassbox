@@ -157,6 +157,8 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
     getBranchSearchDetail: async (searchId) => makeBranchSearchDetail(searchId),
     getBranchSearchPage: async () => ({ items: [makeBranchSearchSummary("search-1")] }),
     getChangesetDetail: async (changesetId) => makeChangesetDetail(changesetId),
+    getChangesetCommitMessage: async (changesetId) => makeCommitMessageSuggestion(changesetId),
+    getChangesetCommitReadiness: async (changesetId) => makeCommitReadiness(changesetId),
     getChangesetPage: async () => ({ items: [makeChangesetSummary("changeset-1")] }),
     getChangesetVerificationPlan: async (changesetId) => makeChangesetVerificationPlan(changesetId),
     getRepositoryIndexEntryDetail: async (entryId) => ({ entry: makeRepositoryEntry(entryId) }),
@@ -800,6 +802,10 @@ describe("changeset store", () => {
       "brief-artifact-1",
     );
     expect(store.getState().detail.verificationPlan?.readiness.state).toBe("missing");
+    expect(store.getState().detail.commitReadiness?.state).toBe("needs_verification");
+    expect(store.getState().detail.commitMessage?.suggestion_label).toBe(
+      "suggestion_only_not_committed",
+    );
     expect(store.getState().action.state).toBe("succeeded");
     expect(store.getState().action.kind).toBe("generate-brief");
   });
@@ -1273,6 +1279,8 @@ type BranchSearchDetail = components["schemas"]["BranchSearchDetailResponse"];
 type BranchSearchDecisionSupport = components["schemas"]["BranchSearchDecisionSupportResponse"];
 type BranchSearchSummary = components["schemas"]["BranchSearchSummaryResponse"];
 type ChangesetDetail = components["schemas"]["ChangesetDetailResponse"];
+type CommitMessageSuggestion = components["schemas"]["CommitMessageSuggestionResponse"];
+type CommitReadiness = components["schemas"]["CommitReadinessResponse"];
 type ChangesetVerificationPlan = components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
 type ChangesetSummary = components["schemas"]["ChangesetSummaryResponse"];
 type RepositoryEntry = components["schemas"]["RepositoryIndexEntryResponse"];
@@ -1517,6 +1525,65 @@ function makeChangesetVerificationPlan(changesetId: string): ChangesetVerificati
     retained_artifact_ids: [],
     safe_next_actions: ["uv run glassbox eval run commit-smoke --cwd ."],
     session_id: "session-1",
+  };
+}
+
+function makeCommitReadiness(changesetId: string): CommitReadiness {
+  return {
+    accepted_risk_count: 0,
+    blockers: ["verification readiness is missing"],
+    changeset_id: changesetId,
+    git: {
+      ahead: 0,
+      behind: 0,
+      branch: "main",
+      clean: false,
+      error: null,
+      generated_paths: [],
+      policy_sensitive_paths: [],
+      staged_path_count: 0,
+      staged_paths: [],
+      untracked_paths: [],
+      unstaged_paths: ["src/glassbox/runtime/changesets.py"],
+      workspace_path_count: 1,
+    },
+    inventory_artifact_id: "artifact-inventory",
+    non_claims: ["this model does not stage files or run git commit"],
+    readiness_kind: "commit",
+    reason: "verification readiness is missing",
+    review_brief_artifact_id: null,
+    safe_next_actions: ["uv run glassbox eval run commit-smoke --cwd ."],
+    session_id: "session-1",
+    signals: [
+      {
+        blocking: true,
+        paths: [],
+        signal_id: "verification-readiness",
+        state: "needs_verification",
+        summary: "verification readiness is missing",
+      },
+    ],
+    state: "needs_verification",
+    verification_id: null,
+  };
+}
+
+function makeCommitMessageSuggestion(changesetId: string): CommitMessageSuggestion {
+  return {
+    body: ["Changeset: changeset-1", "Commit readiness: needs_verification"],
+    changeset_id: changesetId,
+    commit_readiness_state: "needs_verification",
+    deterministic: true,
+    evidence: [],
+    limitations: [],
+    message: "Review changeset evidence\n\n- Commit readiness: needs_verification",
+    non_claims: ["commit message is a deterministic suggestion, not a commit action"],
+    schema_version: 1,
+    session_id: "session-1",
+    style: "plain",
+    subject: "Review changeset evidence",
+    suggestion_kind: "changeset_commit_message_suggestion",
+    suggestion_label: "suggestion_only_not_committed",
   };
 }
 

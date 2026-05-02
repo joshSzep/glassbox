@@ -156,6 +156,9 @@ v11 confidence and adoption release candidate.
 - [precommit-evidence.md](./precommit-evidence.md): retain summary-only local
   pre-commit or eval evidence against a changeset without running hooks,
   staging files, or changing repository pre-commit behavior
+- [commit-preparation.md](./commit-preparation.md): combine readiness,
+  suggested commit messages, risky paths, and safe next commands without
+  staging, committing, pushing, or opening a PR
 
 ## Reference
 
@@ -212,6 +215,8 @@ v11 confidence and adoption release candidate.
   lines, limitations, templates, and non-claims
 - [precommit-evidence.md](./precommit-evidence.md): v12 summary-only
   pre-commit/eval evidence recording contract and readiness mapping
+- [commit-preparation.md](./commit-preparation.md): v12 read-only
+  commit-preparation CLI and dashboard guidance contract
 - [v10-release-candidate.md](./v10-release-candidate.md): release-candidate
   narrative tying the v10 contract, gate, dogfooding, package, provider, and
   residual-risk evidence together

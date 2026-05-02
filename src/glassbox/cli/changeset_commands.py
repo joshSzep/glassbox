@@ -22,6 +22,8 @@ from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.changesets import ChangesetVerificationService
 from glassbox.runtime.commit_messages import ChangesetCommitMessageSuggestionService
 from glassbox.runtime.commit_messages import CommitMessageSuggestion
+from glassbox.runtime.commit_readiness import ChangesetCommitReadinessService
+from glassbox.runtime.commit_readiness import CommitReadinessAssessment
 from glassbox.runtime.precommit_evidence import ChangesetPreCommitEvidenceService
 from glassbox.runtime.precommit_evidence import PreCommitEvidenceRecordResult
 
@@ -48,6 +50,8 @@ def _changeset_command(args: argparse.Namespace) -> int:
         return _changeset_commit_message_command(args)
     if command == "record-precommit":
         return _changeset_record_precommit_command(args)
+    if command == "commit-prep":
+        return _changeset_commit_prep_command(args)
     if command == "archive":
         return _changeset_archive_command(args)
     raise ValueError("specify a changeset subcommand")
@@ -323,6 +327,41 @@ def _changeset_record_precommit_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def _changeset_commit_prep_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        repository = cast(ChangesetRepository, runtime_context.repositories.sessions)
+        artifacts = runtime_context.repositories.artifacts
+        readiness = asyncio.run(
+            ChangesetCommitReadinessService(repository, artifacts).preview(
+                args.changeset_id,
+                cwd,
+            )
+        )
+        suggestion = asyncio.run(
+            ChangesetCommitMessageSuggestionService(repository, artifacts).suggest(
+                args.changeset_id,
+                cwd,
+                style=args.style,
+            )
+        )
+
+    payload = {
+        "changeset_id": str(args.changeset_id),
+        "commit_readiness": readiness.model_dump(mode="json"),
+        "commit_message": suggestion.model_dump(mode="json"),
+        "safe_copy": (
+            "Glassbox prepared local commit guidance only; it did not stage, "
+            "commit, push, or open a PR."
+        ),
+    }
+    if args.json:
+        print_json_output(payload)
+    else:
+        _print_commit_prep(readiness, suggestion)
+    return 0
+
+
 def _create_changeset_from_args(
     service: ChangesetDerivationService,
     args: argparse.Namespace,
@@ -491,6 +530,37 @@ def _print_commit_message_suggestion(
     print("Non-claims:")
     for non_claim in suggestion.non_claims:
         print(f"  - {non_claim}")
+
+
+def _print_commit_prep(
+    readiness: CommitReadinessAssessment,
+    suggestion: CommitMessageSuggestion,
+) -> None:
+    print("Commit preparation (read-only):")
+    print(f"Readiness: {readiness.state.value} - {readiness.reason}")
+    if readiness.blockers:
+        print("Blockers:")
+        for blocker in readiness.blockers:
+            print(f"  - {blocker}")
+    print("Suggested message:")
+    print(suggestion.message)
+    risky_paths = list(
+        dict.fromkeys(
+            readiness.git.policy_sensitive_paths
+            + readiness.git.generated_paths
+            + readiness.git.untracked_paths
+            + readiness.git.unstaged_paths
+        )
+    )
+    if risky_paths:
+        print("Risky or ambiguous paths:")
+        for path in risky_paths[:20]:
+            print(f"  - {path}")
+    if readiness.safe_next_actions:
+        print("Safe next commands:")
+        for action in readiness.safe_next_actions:
+            print(f"  - {action}")
+    print("Glassbox did not stage, commit, push, or open a PR.")
 
 
 def _print_limitations(limitations: list[str]) -> None:

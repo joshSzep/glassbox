@@ -199,6 +199,19 @@ def test_changeset_create_list_show_refresh_and_archive(
         ]
     )
     precommit = json.loads(capsys.readouterr().out)
+    commit_prep_exit = main(
+        [
+            "changeset",
+            "commit-prep",
+            changeset_id,
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    commit_prep = json.loads(capsys.readouterr().out)
     export_path = tmp_path / "changeset-export.json"
     export_exit = main(
         [
@@ -291,6 +304,16 @@ def test_changeset_create_list_show_refresh_and_archive(
         signal["signal_id"] == "retained-precommit-evidence"
         for signal in precommit["commit_readiness"]["signals"]
     )
+    assert commit_prep_exit == 0
+    assert commit_prep["commit_message"]["suggestion_label"] == (
+        "suggestion_only_not_committed"
+    )
+    assert "did not stage" in commit_prep["safe_copy"]
+    assert commit_prep["commit_readiness"]["state"] in {
+        "dirty_untracked_risk",
+        "ready",
+        "stale_inventory",
+    }
     assert export_exit == 0
     assert exported["status"] == "exported"
     assert export_payload["export_kind"] == "changeset_review_export"

@@ -3503,6 +3503,238 @@
         "title": "CommitMessageSuggestionResponse",
         "type": "object"
       },
+      "CommitReadinessGitSummaryResponse": {
+        "properties": {
+          "ahead": {
+            "title": "Ahead",
+            "type": "integer"
+          },
+          "behind": {
+            "title": "Behind",
+            "type": "integer"
+          },
+          "branch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch"
+          },
+          "clean": {
+            "title": "Clean",
+            "type": "boolean"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "generated_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Generated Paths",
+            "type": "array"
+          },
+          "policy_sensitive_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Policy Sensitive Paths",
+            "type": "array"
+          },
+          "staged_path_count": {
+            "title": "Staged Path Count",
+            "type": "integer"
+          },
+          "staged_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Staged Paths",
+            "type": "array"
+          },
+          "unstaged_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unstaged Paths",
+            "type": "array"
+          },
+          "untracked_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Untracked Paths",
+            "type": "array"
+          },
+          "workspace_path_count": {
+            "title": "Workspace Path Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ahead",
+          "behind",
+          "staged_paths",
+          "unstaged_paths",
+          "untracked_paths",
+          "workspace_path_count",
+          "staged_path_count",
+          "policy_sensitive_paths",
+          "generated_paths",
+          "clean"
+        ],
+        "title": "CommitReadinessGitSummaryResponse",
+        "type": "object"
+      },
+      "CommitReadinessResponse": {
+        "properties": {
+          "accepted_risk_count": {
+            "title": "Accepted Risk Count",
+            "type": "integer"
+          },
+          "blockers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "changeset_id": {
+            "title": "Changeset Id",
+            "type": "string"
+          },
+          "git": {
+            "$ref": "#/components/schemas/CommitReadinessGitSummaryResponse"
+          },
+          "inventory_artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inventory Artifact Id"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Non Claims",
+            "type": "array"
+          },
+          "readiness_kind": {
+            "title": "Readiness Kind",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "review_brief_artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Brief Artifact Id"
+          },
+          "safe_next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safe Next Actions",
+            "type": "array"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "signals": {
+            "items": {
+              "$ref": "#/components/schemas/CommitReadinessSignalResponse"
+            },
+            "title": "Signals",
+            "type": "array"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "verification_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verification Id"
+          }
+        },
+        "required": [
+          "changeset_id",
+          "session_id",
+          "readiness_kind",
+          "state",
+          "reason",
+          "blockers",
+          "safe_next_actions",
+          "accepted_risk_count",
+          "git",
+          "signals",
+          "non_claims"
+        ],
+        "title": "CommitReadinessResponse",
+        "type": "object"
+      },
+      "CommitReadinessSignalResponse": {
+        "properties": {
+          "blocking": {
+            "title": "Blocking",
+            "type": "boolean"
+          },
+          "paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Paths",
+            "type": "array"
+          },
+          "signal_id": {
+            "title": "Signal Id",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": ["signal_id", "state", "summary", "blocking", "paths"],
+        "title": "CommitReadinessSignalResponse",
+        "type": "object"
+      },
       "ContextCompactionContextItemSnapshot": {
         "additionalProperties": false,
         "description": "Fresh compaction selected for prompt context.",
@@ -11151,6 +11383,57 @@
           }
         },
         "summary": "Suggest Changeset Commit Message"
+      }
+    },
+    "/changesets/{changeset_id}/commit-readiness": {
+      "get": {
+        "description": "Preview commit readiness without staging or committing.",
+        "operationId": "preview_changeset_commit_readiness_changesets__changeset_id__commit_readiness_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "changeset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Changeset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommitReadinessResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Changeset Commit Readiness"
       }
     },
     "/changesets/{changeset_id}/record-verification": {
