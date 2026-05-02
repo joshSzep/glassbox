@@ -18,10 +18,13 @@ from glassbox.core import ChangesetArchived
 from glassbox.core import ChangesetCandidateAdopted
 from glassbox.core import ChangesetCreated
 from glassbox.core import ChangesetId
+from glassbox.core import ChangesetInventoryFreshness
 from glassbox.core import ChangesetInventoryRecord
+from glassbox.core import ChangesetInventoryRefreshed
 from glassbox.core import ChangesetReadinessRecord
 from glassbox.core import ChangesetRecord
 from glassbox.core import ChangesetReviewBriefRecord
+from glassbox.core import ChangesetRiskLevel
 from glassbox.core import ChangesetSourceAttached
 from glassbox.core import ChangesetSourceKind
 from glassbox.core import ChangesetSourceRecord
@@ -37,6 +40,17 @@ from glassbox.core import TaskId
 from glassbox.core import TaskPlanStatus
 from glassbox.core import TaskRecord
 from glassbox.core import new_changeset_id
+from glassbox.runtime.change_inventory import CHANGE_INVENTORY_ARTIFACT_SCHEMA_VERSION
+from glassbox.runtime.change_inventory import ChangeInventoryArtifact
+from glassbox.runtime.change_inventory import change_inventory_artifact_json
+from glassbox.runtime.change_inventory import change_inventory_from_diff_summary
+from glassbox.services import ArtifactRepository
+from glassbox.services import StoredArtifact
+from glassbox.tools.workflow import DiffSummaryArgs
+from glassbox.tools.workflow import DiffSummaryArtifact
+from glassbox.tools.workflow import DiffSummaryResult
+from glassbox.tools.workflow import DiffSummaryScope
+from glassbox.tools.workflow import DiffSummaryTool
 
 
 class ChangesetDerivationRepository(Protocol):
@@ -113,6 +127,8 @@ class ChangesetRepository(ChangesetDerivationRepository, Protocol):
         changeset_id: ChangesetId,
     ) -> list[ChangesetReadinessRecord]: ...
 
+    def read_session_events(self, session_id: SessionId) -> list[EventEnvelope]: ...
+
 
 class ChangesetDerivationResult(BaseModel):
     """Result of explicitly deriving one changeset."""
@@ -125,6 +141,19 @@ class ChangesetDerivationResult(BaseModel):
     stored_events: list[EventEnvelope] = Field(default_factory=list)
 
 
+class ChangesetInventoryStatus(BaseModel):
+    """Current workspace comparison for the latest changeset inventory."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    freshness: ChangesetInventoryFreshness
+    stale: bool = False
+    reason: str | None = Field(default=None, max_length=2000)
+    recorded_source_digest: str | None = Field(default=None, max_length=256)
+    current_source_digest: str | None = Field(default=None, max_length=256)
+    safe_next_actions: list[str] = Field(default_factory=list)
+
+
 class ChangesetDetailView(BaseModel):
     """Read model for one changeset and its currently retained evidence refs."""
 
@@ -134,10 +163,26 @@ class ChangesetDetailView(BaseModel):
     sources: list[ChangesetSourceRecord] = Field(default_factory=list)
     inventory: ChangesetInventoryRecord | None = None
     verification_posture: ChangesetVerificationPostureRecord | None = None
+    inventory_status: ChangesetInventoryStatus
     review_briefs: list[ChangesetReviewBriefRecord] = Field(default_factory=list)
     readiness: list[ChangesetReadinessRecord] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)
     safe_next_actions: list[str] = Field(default_factory=list)
+
+
+class ChangesetInventoryRefreshResult(BaseModel):
+    """Result of explicitly refreshing one structured changeset inventory."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
+
+    changeset_id: ChangesetId
+    session_id: SessionId
+    artifact: StoredArtifact
+    inventory: ChangeInventoryArtifact
+    event: EventEnvelope
+    superseded_event: EventEnvelope | None = None
+    freshness: ChangesetInventoryFreshness
+    source_digest: str | None = None
 
 
 class ChangesetDerivationService:
@@ -387,7 +432,12 @@ class ChangesetQueryService:
             limit=limit,
         )
 
-    def get_detail(self, changeset_id: ChangesetId) -> ChangesetDetailView:
+    def get_detail(
+        self,
+        changeset_id: ChangesetId,
+        *,
+        workspace_root: Path | None = None,
+    ) -> ChangesetDetailView:
         changeset = self._repository.get_changeset(changeset_id)
         if changeset is None:
             raise ValueError(f"unknown changeset: {changeset_id}")
@@ -411,23 +461,43 @@ class ChangesetQueryService:
             changeset.session_id,
             changeset.changeset_id,
         )
+        inventory_status = _inventory_status(
+            changeset,
+            inventory,
+            workspace_root=workspace_root,
+        )
+        inventory_for_detail = _inventory_with_status_freshness(
+            inventory,
+            inventory_status,
+        )
         return ChangesetDetailView(
             changeset=changeset,
             sources=sources,
-            inventory=inventory,
+            inventory=inventory_for_detail,
             verification_posture=verification_posture,
+            inventory_status=inventory_status,
             review_briefs=review_briefs,
             readiness=readiness,
-            limitations=_detail_limitations(changeset, sources, inventory),
-            safe_next_actions=_detail_safe_next_actions(changeset),
+            limitations=_detail_limitations(
+                changeset,
+                sources,
+                inventory_for_detail,
+                inventory_status,
+            ),
+            safe_next_actions=_detail_safe_next_actions(changeset, inventory_status),
         )
 
 
 class ChangesetActionService:
     """Explicit operator actions against an existing changeset."""
 
-    def __init__(self, repository: ChangesetRepository) -> None:
+    def __init__(
+        self,
+        repository: ChangesetRepository,
+        artifact_repository: ArtifactRepository | None = None,
+    ) -> None:
         self._repository = repository
+        self._artifact_repository = artifact_repository
 
     def archive_changeset(
         self,
@@ -493,6 +563,115 @@ class ChangesetActionService:
         )
         return stored[0]
 
+    async def refresh_inventory(
+        self,
+        changeset_id: ChangesetId,
+        workspace_root: Path,
+        *,
+        refreshed_by: str = "operator",
+    ) -> ChangesetInventoryRefreshResult:
+        """Record a fresh structured inventory artifact for one changeset."""
+
+        if self._artifact_repository is None:
+            raise ValueError("artifact repository is required for inventory refresh")
+        changeset = self._require_changeset(changeset_id)
+        previous_inventory = self._repository.get_changeset_inventory(
+            changeset.session_id,
+            changeset.changeset_id,
+        )
+        events = self._repository.read_session_events(changeset.session_id)
+        diff_summary = await DiffSummaryTool(workspace_root).execute(
+            DiffSummaryArgs(
+                scope=DiffSummaryScope.WORKSPACE,
+                max_files=1000,
+                inline_file_limit=200,
+            )
+        )
+        diff_summary = _diff_summary_without_local_state(diff_summary)
+        inventory = change_inventory_from_diff_summary(
+            diff_summary,
+            changeset_id=changeset.changeset_id,
+            provenance_events=events,
+        )
+        source_digest = _workspace_diff_source_digest(workspace_root)
+        content = change_inventory_artifact_json(inventory)
+        artifact = self._artifact_repository.write_text_artifact(
+            changeset.session_id,
+            content,
+            suffix=".changeset-inventory.json",
+        )
+        freshness = (
+            ChangesetInventoryFreshness.UNKNOWN
+            if source_digest.error is not None
+            else ChangesetInventoryFreshness.FRESH
+        )
+        payloads: list[EventPayloadType] = []
+        if previous_inventory is not None:
+            payloads.append(
+                ChangesetInventoryRefreshed(
+                    changeset_id=changeset.changeset_id,
+                    artifact_id=previous_inventory.artifact_id,
+                    artifact_schema_version=previous_inventory.artifact_schema_version,
+                    freshness=ChangesetInventoryFreshness.SUPERSEDED,
+                    changed_path_count=previous_inventory.changed_path_count,
+                    source_digest=previous_inventory.source_digest,
+                    previous_artifact_id=previous_inventory.previous_artifact_id,
+                    refreshed_by=refreshed_by,
+                    risk_level=previous_inventory.risk_level,
+                    risk_summary=previous_inventory.risk_summary,
+                    unresolved_risk_count=previous_inventory.unresolved_risk_count,
+                    accepted_risk_count=previous_inventory.accepted_risk_count,
+                    task_id=previous_inventory.task_id,
+                    turn_id=previous_inventory.turn_id,
+                    branch_search_id=previous_inventory.branch_search_id,
+                    branch_candidate_id=previous_inventory.branch_candidate_id,
+                )
+            )
+        payloads.append(
+            ChangesetInventoryRefreshed(
+                changeset_id=changeset.changeset_id,
+                artifact_id=artifact.artifact_id,
+                artifact_schema_version=CHANGE_INVENTORY_ARTIFACT_SCHEMA_VERSION,
+                freshness=freshness,
+                changed_path_count=inventory.summary.changed_path_count,
+                source_digest=source_digest.digest,
+                previous_artifact_id=(
+                    previous_inventory.artifact_id
+                    if previous_inventory is not None
+                    else None
+                ),
+                refreshed_by=refreshed_by,
+                risk_level=ChangesetRiskLevel(inventory.summary.risk_level),
+                risk_summary=inventory.summary.risk_summary,
+                unresolved_risk_count=inventory.summary.unresolved_risk_count,
+                accepted_risk_count=inventory.summary.accepted_risk_count,
+                task_id=changeset.task_id,
+                turn_id=changeset.turn_id,
+                branch_search_id=changeset.branch_search_id,
+                branch_candidate_id=changeset.branch_candidate_id,
+            )
+        )
+        stored = self._repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=changeset.session_id,
+                    sequence=0,
+                    payload=payload,
+                )
+                for payload in payloads
+            ]
+        )
+        return ChangesetInventoryRefreshResult(
+            changeset_id=changeset.changeset_id,
+            session_id=changeset.session_id,
+            artifact=artifact,
+            inventory=inventory,
+            event=stored[-1],
+            superseded_event=stored[0] if len(stored) > 1 else None,
+            freshness=freshness,
+            source_digest=source_digest.digest,
+        )
+
     def _require_changeset(self, changeset_id: ChangesetId) -> ChangesetRecord:
         changeset = self._repository.get_changeset(changeset_id)
         if changeset is None:
@@ -518,6 +697,13 @@ class _WorkspaceDiffSnapshot(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     changed_paths: list[str] = Field(default_factory=list)
+    digest: str | None = None
+    error: str | None = None
+
+
+class _WorkspaceSourceDigest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     digest: str | None = None
     error: str | None = None
 
@@ -576,6 +762,222 @@ def _changed_path_digest(paths: list[str]) -> str | None:
     return digest.hexdigest()
 
 
+def _workspace_diff_source_digest(workspace_root: Path) -> _WorkspaceSourceDigest:
+    digest = hashlib.sha256()
+    try:
+        status = subprocess.run(
+            ["git", "status", "--porcelain=v1", "-z", "--untracked-files=all"],
+            cwd=workspace_root,
+            check=False,
+            capture_output=True,
+            timeout=10,
+        )
+    except FileNotFoundError:
+        return _WorkspaceSourceDigest(error="git executable not found")
+    except subprocess.TimeoutExpired:
+        return _WorkspaceSourceDigest(error="git status timed out")
+    if status.returncode != 0:
+        return _WorkspaceSourceDigest(
+            error=status.stderr.decode("utf-8", errors="replace").strip()
+            or "git status failed"
+        )
+    digest.update(b"status\0")
+    digest.update(_filter_status_porcelain_z(status.stdout))
+    for label, command in (
+        (
+            b"unstaged-diff\0",
+            ["git", "diff", "--no-ext-diff", "--binary", "--"],
+        ),
+        (
+            b"staged-diff\0",
+            ["git", "diff", "--cached", "--no-ext-diff", "--binary", "--"],
+        ),
+    ):
+        result = _run_git_bytes(workspace_root, command)
+        if result.error is not None:
+            return _WorkspaceSourceDigest(error=result.error)
+        digest.update(label)
+        digest.update(result.digest_payload)
+    untracked = _run_git_bytes(
+        workspace_root,
+        ["git", "ls-files", "--others", "--exclude-standard", "-z"],
+    )
+    if untracked.error is not None:
+        return _WorkspaceSourceDigest(error=untracked.error)
+    digest.update(b"untracked-content\0")
+    for path_text in sorted(
+        path.decode("utf-8", errors="replace")
+        for path in untracked.digest_payload.split(b"\0")
+        if path and not _is_local_state_path(path.decode("utf-8", errors="replace"))
+    ):
+        digest.update(path_text.encode("utf-8", errors="replace"))
+        digest.update(b"\0")
+        file_path = (workspace_root / path_text).resolve(strict=False)
+        try:
+            if file_path.is_file():
+                digest.update(
+                    hashlib.sha256(file_path.read_bytes()).hexdigest().encode()
+                )
+        except OSError as exc:
+            digest.update(f"unreadable:{exc}".encode("utf-8", errors="replace"))
+        digest.update(b"\0")
+    return _WorkspaceSourceDigest(digest=f"sha256:{digest.hexdigest()}")
+
+
+def _diff_summary_without_local_state(
+    diff_summary: DiffSummaryResult,
+) -> DiffSummaryResult:
+    files = [
+        file_summary
+        for file_summary in diff_summary.files
+        if not _is_local_state_path(file_summary.path)
+    ]
+    artifact_payload = diff_summary.artifact_payload
+    if artifact_payload is not None:
+        artifact_payload = DiffSummaryArtifact(
+            artifact_kind=artifact_payload.artifact_kind,
+            scope=artifact_payload.scope,
+            path_filters=artifact_payload.path_filters,
+            risk_summary=artifact_payload.risk_summary,
+            files=[
+                file_summary
+                for file_summary in artifact_payload.files
+                if not _is_local_state_path(file_summary.path)
+            ],
+            redaction=artifact_payload.redaction,
+        )
+    return diff_summary.model_copy(
+        update={
+            "files": files,
+            "artifact_payload": artifact_payload,
+            "clean": not files and artifact_payload is None,
+        }
+    )
+
+
+def _filter_status_porcelain_z(output: bytes) -> bytes:
+    filtered_entries = []
+    for entry in output.split(b"\0"):
+        if not entry:
+            continue
+        path_text = entry[3:].decode("utf-8", errors="replace")
+        if not _is_local_state_path(path_text):
+            filtered_entries.append(entry)
+    return b"\0".join(filtered_entries) + (b"\0" if filtered_entries else b"")
+
+
+def _is_local_state_path(path: str) -> bool:
+    normalized = path.replace("\\", "/")
+    return normalized == ".glassbox" or normalized.startswith(".glassbox/")
+
+
+class _GitBytesResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    digest_payload: bytes = b""
+    digest: str | None = None
+    error: str | None = None
+
+
+def _run_git_bytes(workspace_root: Path, command: list[str]) -> _GitBytesResult:
+    try:
+        result = subprocess.run(
+            command,
+            cwd=workspace_root,
+            check=False,
+            capture_output=True,
+            timeout=10,
+        )
+    except FileNotFoundError:
+        return _GitBytesResult(error="git executable not found")
+    except subprocess.TimeoutExpired:
+        return _GitBytesResult(error=f"{' '.join(command[:3])} timed out")
+    if result.returncode != 0:
+        return _GitBytesResult(
+            error=result.stderr.decode("utf-8", errors="replace").strip()
+            or f"{' '.join(command[:3])} failed"
+        )
+    return _GitBytesResult(digest_payload=result.stdout)
+
+
+def _inventory_status(
+    changeset: ChangesetRecord,
+    inventory: ChangesetInventoryRecord | None,
+    *,
+    workspace_root: Path | None,
+) -> ChangesetInventoryStatus:
+    refresh_action = f"glassbox changeset refresh {changeset.changeset_id} --cwd ."
+    if inventory is None:
+        return ChangesetInventoryStatus(
+            freshness=ChangesetInventoryFreshness.UNKNOWN,
+            stale=False,
+            reason="no structured change inventory is attached yet",
+            safe_next_actions=[refresh_action],
+        )
+    if workspace_root is None:
+        return ChangesetInventoryStatus(
+            freshness=inventory.freshness,
+            stale=inventory.freshness
+            in {
+                ChangesetInventoryFreshness.STALE,
+                ChangesetInventoryFreshness.SUPERSEDED,
+            },
+            recorded_source_digest=inventory.source_digest,
+            safe_next_actions=[refresh_action],
+        )
+    current = _workspace_diff_source_digest(workspace_root)
+    if current.error is not None:
+        return ChangesetInventoryStatus(
+            freshness=ChangesetInventoryFreshness.UNKNOWN,
+            stale=False,
+            reason=f"workspace source digest unavailable: {current.error}",
+            recorded_source_digest=inventory.source_digest,
+            current_source_digest=current.digest,
+            safe_next_actions=[refresh_action],
+        )
+    if inventory.source_digest is None:
+        return ChangesetInventoryStatus(
+            freshness=ChangesetInventoryFreshness.UNKNOWN,
+            stale=False,
+            reason="latest inventory has no recorded workspace source digest",
+            recorded_source_digest=None,
+            current_source_digest=current.digest,
+            safe_next_actions=[refresh_action],
+        )
+    source_digest_changed = (
+        inventory.source_digest is not None
+        and inventory.source_digest != current.digest
+    )
+    if source_digest_changed:
+        return ChangesetInventoryStatus(
+            freshness=ChangesetInventoryFreshness.STALE,
+            stale=True,
+            reason=(
+                "workspace diff source digest changed since the latest inventory "
+                "artifact was recorded"
+            ),
+            recorded_source_digest=inventory.source_digest,
+            current_source_digest=current.digest,
+            safe_next_actions=[refresh_action],
+        )
+    return ChangesetInventoryStatus(
+        freshness=inventory.freshness,
+        stale=inventory.freshness == ChangesetInventoryFreshness.STALE,
+        recorded_source_digest=inventory.source_digest,
+        current_source_digest=current.digest,
+        safe_next_actions=[refresh_action],
+    )
+
+
+def _inventory_with_status_freshness(
+    inventory: ChangesetInventoryRecord | None,
+    inventory_status: ChangesetInventoryStatus,
+) -> ChangesetInventoryRecord | None:
+    if inventory is None or inventory.freshness == inventory_status.freshness:
+        return inventory
+    return inventory.model_copy(update={"freshness": inventory_status.freshness})
+
+
 def _workspace_diff_reason(diff: _WorkspaceDiffSnapshot) -> str:
     if diff.error is not None:
         return "created from workspace diff request with unavailable git status"
@@ -601,6 +1003,7 @@ def _detail_limitations(
     changeset: ChangesetRecord,
     sources: list[ChangesetSourceRecord],
     inventory: ChangesetInventoryRecord | None,
+    inventory_status: ChangesetInventoryStatus,
 ) -> list[str]:
     limitations = [
         source.limitation for source in sources if source.limitation is not None
@@ -609,20 +1012,32 @@ def _detail_limitations(
         limitations.append(
             "no structured change inventory is attached yet; inspect sources first"
         )
+    if inventory_status.stale:
+        limitations.append(
+            inventory_status.reason
+            or "structured change inventory is stale against the current workspace"
+        )
+    elif inventory_status.reason is not None and inventory_status.freshness == (
+        ChangesetInventoryFreshness.UNKNOWN
+    ):
+        limitations.append(inventory_status.reason)
     if changeset.risk_level.value == "high":
         summary = changeset.risk_summary or "path classification marked high risk"
         limitations.append(f"high review risk: {summary}")
     return limitations
 
 
-def _detail_safe_next_actions(changeset: ChangesetRecord) -> list[str]:
+def _detail_safe_next_actions(
+    changeset: ChangesetRecord,
+    inventory_status: ChangesetInventoryStatus,
+) -> list[str]:
     actions = [f"glassbox changeset show {changeset.changeset_id} --cwd ."]
     if changeset.status != "archived":
-        actions.append(f"glassbox changeset refresh {changeset.changeset_id} --cwd .")
+        actions.extend(inventory_status.safe_next_actions)
         actions.append(
             "glassbox eval recommend PATH --cwd .  # inspect verification options"
         )
-    return actions
+    return list(dict.fromkeys(actions))
 
 
 __all__ = [
@@ -631,6 +1046,8 @@ __all__ = [
     "ChangesetDerivationRepository",
     "ChangesetDerivationResult",
     "ChangesetDerivationService",
+    "ChangesetInventoryRefreshResult",
+    "ChangesetInventoryStatus",
     "ChangesetQueryService",
     "ChangesetRepository",
 ]

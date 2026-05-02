@@ -654,7 +654,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1223: Refresh Change Inventory Safely
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1222`
 - Goal: keep changeset inventory current without hiding workspace drift
 - Deliverables:
@@ -673,6 +673,22 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - reviewers can tell whether a changeset summary matches the current
     workspace
+- Completion evidence:
+  - `glassbox changeset refresh` now writes a new
+    `changeset_change_inventory` JSON artifact, records
+    `ChangesetInventoryRefreshed`, and links the previous artifact when one is
+    superseded.
+  - CLI and API changeset detail responses include `inventory_status` with
+    recorded/current source digests, stale/unknown reasons, and safe refresh
+    commands.
+  - Workspace freshness compares git status and diff/source digest while
+    excluding `.glassbox/` runtime evidence files so artifact writes do not
+    create false drift.
+  - Updated [change-inventory.md](./change-inventory.md) to document explicit
+    refresh, superseded artifacts, stale detection, and non-claims.
+  - Verified with focused CLI/API/projection tests, ruff, ty, generated
+    OpenAPI/frontend API types, frontend typecheck/lint/tests, and frontend
+    build.
 
 ---
 

@@ -2,6 +2,7 @@
 
 import asyncio
 import sqlite3
+import subprocess
 from pathlib import Path
 
 import httpx
@@ -20,6 +21,7 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
     async def scenario() -> None:
         connection = _open_initialized_db(tmp_path)
         try:
+            _init_git_repo(tmp_path)
             app = _make_app(tmp_path, connection)
             session_id = new_session_id()
             repository = SQLiteSessionRepository(connection)
@@ -50,10 +52,19 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                 changeset_id = create_response.json()["changeset_id"]
                 list_response = await client.get("/changesets")
                 detail_response = await client.get(f"/changesets/{changeset_id}")
+                (tmp_path / "app.py").write_text(
+                    "print('changed')\n",
+                    encoding="utf-8",
+                )
                 refresh_response = await client.post(
                     f"/changesets/{changeset_id}/refresh",
                     json={"actor": "qa"},
                 )
+                (tmp_path / "app.py").write_text(
+                    "print('changed again')\n",
+                    encoding="utf-8",
+                )
+                stale_response = await client.get(f"/changesets/{changeset_id}")
                 archive_response = await client.post(
                     f"/changesets/{changeset_id}/archive",
                     json={"actor": "qa", "reason": "superseded"},
@@ -71,6 +82,12 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             )
             assert refresh_response.status_code == 200
             assert refresh_response.json()["status"] == "refreshed"
+            assert (
+                refresh_response.json()["detail"]["inventory"]["freshness"] == "fresh"
+            )
+            assert stale_response.status_code == 200
+            assert stale_response.json()["inventory_status"]["stale"] is True
+            assert stale_response.json()["inventory"]["freshness"] == "stale"
             assert archive_response.status_code == 200
             assert (
                 archive_response.json()["detail"]["changeset"]["status"] == "archived"
@@ -81,8 +98,32 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
     asyncio.run(scenario())
 
 
+def _init_git_repo(tmp_path: Path) -> None:
+    subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.com"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Test User"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+    (tmp_path / "app.py").write_text("print('base')\n", encoding="utf-8")
+    subprocess.run(["git", "add", "app.py"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "commit", "-m", "initial"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+
+
 def _open_initialized_db(tmp_path: Path) -> sqlite3.Connection:
-    connection = open_database(tmp_path / "glassbox.sqlite3")
+    connection = open_database(tmp_path / ".glassbox" / "glassbox.sqlite3")
     initialize_database(connection)
     return connection
 

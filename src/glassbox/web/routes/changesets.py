@@ -120,8 +120,12 @@ async def get_changeset_detail(
 ) -> ChangesetDetailResponse:
     """Return one changeset with source and evidence references."""
 
+    repository = _repository(context)
     try:
-        detail = ChangesetQueryService(_repository(context)).get_detail(changeset_id)
+        detail = ChangesetQueryService(repository).get_detail(
+            changeset_id,
+            workspace_root=_workspace_root_for_changeset(repository, changeset_id),
+        )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return build_changeset_detail_response(detail)
@@ -137,22 +141,28 @@ async def refresh_changeset(
     request: ChangesetRefreshRequest,
     context: RuntimeContextDep,
 ) -> ChangesetActionResponse:
-    """Refresh basic source evidence for a changeset."""
+    """Refresh structured inventory evidence for a changeset."""
 
     repository = _repository(context)
     try:
-        event = ChangesetActionService(repository).refresh_source_evidence(
+        result = await ChangesetActionService(
+            repository,
+            context.repositories.artifacts,
+        ).refresh_inventory(
             changeset_id,
             _workspace_root_for_changeset(repository, changeset_id),
             refreshed_by=request.actor,
         )
-        detail = ChangesetQueryService(repository).get_detail(changeset_id)
+        detail = ChangesetQueryService(repository).get_detail(
+            changeset_id,
+            workspace_root=_workspace_root_for_changeset(repository, changeset_id),
+        )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return ChangesetActionResponse(
         changeset_id=str(changeset_id),
         status="refreshed",
-        event_sequence=event.sequence,
+        event_sequence=result.event.sequence,
         detail=build_changeset_detail_response(detail),
     )
 
@@ -181,7 +191,10 @@ async def archive_changeset(
                 else None
             ),
         )
-        detail = ChangesetQueryService(repository).get_detail(changeset_id)
+        detail = ChangesetQueryService(repository).get_detail(
+            changeset_id,
+            workspace_root=_workspace_root_for_changeset(repository, changeset_id),
+        )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return ChangesetActionResponse(

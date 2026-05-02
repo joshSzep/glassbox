@@ -221,3 +221,85 @@ def test_changeset_projection_rebuilds_from_canonical_events(tmp_path: Path) -> 
 
     assert changeset is not None
     assert changeset.objective == "restore projection"
+
+
+def test_changeset_projection_tracks_latest_inventory_after_supersede(
+    tmp_path: Path,
+) -> None:
+    session_id = new_session_id()
+    changeset_id = new_changeset_id()
+    first_artifact_id = new_artifact_id()
+    second_artifact_id = new_artifact_id()
+    connection = _open_initialized_database(tmp_path)
+    try:
+        append_events(
+            connection,
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=SessionStarted(
+                        cwd="/tmp/glassbox",
+                        model_name="openai:gpt-5.4",
+                        approval_mode="confirm",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ChangesetCreated(
+                        changeset_id=changeset_id,
+                        objective="refresh inventory",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ChangesetInventoryRefreshed(
+                        changeset_id=changeset_id,
+                        artifact_id=first_artifact_id,
+                        freshness=ChangesetInventoryFreshness.FRESH,
+                        changed_path_count=1,
+                        source_digest="sha256:first",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ChangesetInventoryRefreshed(
+                        changeset_id=changeset_id,
+                        artifact_id=first_artifact_id,
+                        freshness=ChangesetInventoryFreshness.SUPERSEDED,
+                        changed_path_count=1,
+                        source_digest="sha256:first",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ChangesetInventoryRefreshed(
+                        changeset_id=changeset_id,
+                        artifact_id=second_artifact_id,
+                        freshness=ChangesetInventoryFreshness.FRESH,
+                        changed_path_count=2,
+                        source_digest="sha256:second",
+                        previous_artifact_id=first_artifact_id,
+                    ),
+                ),
+            ],
+        )
+        inventory = SQLiteSessionRepository(connection).get_changeset_inventory(
+            session_id,
+            changeset_id,
+        )
+        changeset = SQLiteSessionRepository(connection).get_changeset(changeset_id)
+    finally:
+        connection.close()
+
+    assert inventory is not None
+    assert inventory.artifact_id == second_artifact_id
+    assert inventory.previous_artifact_id == first_artifact_id
+    assert inventory.freshness == ChangesetInventoryFreshness.FRESH
+    assert inventory.changed_path_count == 2
+    assert changeset is not None
+    assert changeset.latest_inventory_artifact_id == second_artifact_id

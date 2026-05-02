@@ -179,7 +179,7 @@ export interface paths {
     put?: never;
     /**
      * Refresh Changeset
-     * @description Refresh basic source evidence for a changeset.
+     * @description Refresh structured inventory evidence for a changeset.
      */
     post: operations["refresh_changeset_changesets__changeset_id__refresh_post"];
     delete?: never;
@@ -1809,6 +1809,7 @@ export interface components {
     ChangesetDetailResponse: {
       changeset: components["schemas"]["ChangesetSummaryResponse"];
       inventory?: components["schemas"]["ChangesetInventoryResponse"] | null;
+      inventory_status: components["schemas"]["ChangesetInventoryStatusResponse"];
       /** Limitations */
       limitations: string[];
       /** Readiness */
@@ -1864,6 +1865,21 @@ export interface components {
        * Format: date-time
        */
       updated_at: string;
+    };
+    /** ChangesetInventoryStatusResponse */
+    ChangesetInventoryStatusResponse: {
+      /** Current Source Digest */
+      current_source_digest?: string | null;
+      /** Freshness */
+      freshness: string;
+      /** Reason */
+      reason?: string | null;
+      /** Recorded Source Digest */
+      recorded_source_digest?: string | null;
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+      /** Stale */
+      stale: boolean;
     };
     /** ChangesetListPageResponse */
     ChangesetListPageResponse: {

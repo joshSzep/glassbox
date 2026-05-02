@@ -136,6 +136,8 @@ function ChangesetDetail({
   }
   const { changeset } = detail.detail;
   const highRisk = changeset.risk_level === "high";
+  const inventoryStatus = detail.detail.inventory_status;
+  const staleInventory = inventoryStatus.stale || inventoryStatus.freshness === "stale";
   return (
     <article className="rounded-md border border-border/80 bg-card p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -149,6 +151,9 @@ function ChangesetDetail({
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Badge variant={highRisk ? "warning" : "muted"}>Risk {changeset.risk_level}</Badge>
+            <Badge variant={staleInventory ? "warning" : "muted"}>
+              Inventory {inventoryStatus.freshness}
+            </Badge>
             {changeset.unresolved_risk_count > 0 ? (
               <Badge variant="outline">{changeset.unresolved_risk_count} unresolved</Badge>
             ) : null}
@@ -175,9 +180,12 @@ function ChangesetDetail({
         <Fact label="Session" value={changeset.session_id} />
         <Fact label="Task" value={changeset.task_id ?? "None"} />
         <Fact label="Branch search" value={changeset.branch_search_id ?? "None"} />
-        <Fact label="Inventory" value={detail.detail.inventory?.freshness ?? "None attached"} />
+        <Fact label="Inventory" value={inventoryStatus.freshness} />
         <Fact label="Risk" value={changeset.risk_summary ?? changeset.risk_level} />
       </dl>
+      {inventoryStatus.reason ? (
+        <StateLine tone={staleInventory ? "destructive" : "muted"} value={inventoryStatus.reason} />
+      ) : null}
       <Section title="Sources">
         {detail.detail.sources.length === 0 ? (
           <p className="text-sm text-muted-foreground">No source records attached.</p>

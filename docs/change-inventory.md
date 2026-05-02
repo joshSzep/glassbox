@@ -67,6 +67,27 @@ The artifact summary rolls those path classifications into `risk_level`,
 `accepted_risk_count`. New inventory artifacts set accepted risk to `0`; later
 readiness and review flows can record explicit accepted-risk evidence.
 
+## Refresh And Freshness
+
+`glassbox changeset refresh <changeset-id> --cwd .` records a new
+`changeset_change_inventory` artifact and a `ChangesetInventoryRefreshed` event.
+Refresh is explicit: Glassbox does not stage files, commit files, or overwrite
+the previous artifact. When a changeset already has inventory, the refresh
+records a `superseded` inventory event for the previous artifact and links the
+new event with `previous_artifact_id`.
+
+The projected inventory stores a workspace source digest for the latest
+refresh. `changeset show` and the dashboard compare that recorded digest with
+the current workspace digest. If paths, git status, or summarized diff/source
+evidence changed after refresh, the inventory is shown as `stale` and the safe
+next action starts with the refresh command above. Glassbox runtime state under
+`.glassbox/` is excluded from this comparison so writing evidence artifacts does
+not make the reviewed code inventory stale by itself.
+
+If git status or digest inspection is unavailable, inventory freshness degrades
+to `unknown` with the exact reason. That is a non-claim, not a failure: inspect
+the workspace and refresh again once source evidence is available.
+
 ## Limits And Redaction
 
 The default path limit is `500` entries and the default JSON byte limit is
@@ -85,9 +106,9 @@ A change inventory does not prove that:
 - a file was changed by Glassbox rather than by a person or another tool
 - a file with direct or inferred provenance has no additional manual edits
 - a high-risk path is unsafe, or a low-risk path is safe
-- verification is fresh for the current workspace
+- a `fresh` inventory means verification is fresh for the current workspace
 - the changeset is ready for review or commit
 - raw diff hunks, secrets, command output, or file contents are safe to share
 
-Later v12 tasks attach risk, freshness, verification readiness, and review-brief
-generation to this artifact shape.
+Later v12 tasks attach verification readiness and review-brief generation to
+this artifact shape.

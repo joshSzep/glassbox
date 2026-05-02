@@ -80,6 +80,15 @@ class ChangesetInventoryResponse(BaseModel):
     last_sequence: int
 
 
+class ChangesetInventoryStatusResponse(BaseModel):
+    freshness: str
+    stale: bool
+    reason: str | None = None
+    recorded_source_digest: str | None = None
+    current_source_digest: str | None = None
+    safe_next_actions: list[str]
+
+
 class ChangesetVerificationPostureResponse(BaseModel):
     session_id: str
     changeset_id: str
@@ -141,6 +150,7 @@ class ChangesetDetailResponse(BaseModel):
     changeset: ChangesetSummaryResponse
     sources: list[ChangesetSourceResponse]
     inventory: ChangesetInventoryResponse | None = None
+    inventory_status: ChangesetInventoryStatusResponse
     verification_posture: ChangesetVerificationPostureResponse | None = None
     review_briefs: list[ChangesetReviewBriefResponse]
     readiness: list[ChangesetReadinessResponse]
@@ -231,6 +241,14 @@ def build_changeset_detail_response(
             build_changeset_inventory_response(detail.inventory)
             if detail.inventory is not None
             else None
+        ),
+        inventory_status=ChangesetInventoryStatusResponse(
+            freshness=detail.inventory_status.freshness.value,
+            stale=detail.inventory_status.stale,
+            reason=detail.inventory_status.reason,
+            recorded_source_digest=detail.inventory_status.recorded_source_digest,
+            current_source_digest=detail.inventory_status.current_source_digest,
+            safe_next_actions=detail.inventory_status.safe_next_actions,
         ),
         verification_posture=(
             build_changeset_verification_posture_response(detail.verification_posture)

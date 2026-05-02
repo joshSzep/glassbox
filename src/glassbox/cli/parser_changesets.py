@@ -67,10 +67,10 @@ def _add_changeset_parsers(
 
     refresh_parser = changeset_subparsers.add_parser(
         "refresh",
-        help="refresh basic source evidence for a changeset",
+        help="refresh structured change inventory for a changeset",
         description=(
-            "Refresh basic workspace-diff source evidence without making inventory "
-            "or review-readiness claims."
+            "Refresh structured workspace-diff inventory evidence without staging "
+            "files or making review-readiness claims."
         ),
     )
     refresh_parser.add_argument("changeset_id", type=_parse_uuid)

@@ -1415,6 +1415,14 @@ function makeChangesetDetail(changesetId: string): ChangesetDetail {
   return {
     changeset: makeChangesetSummary(changesetId),
     inventory: null,
+    inventory_status: {
+      current_source_digest: null,
+      freshness: "unknown",
+      reason: "no structured change inventory is attached yet",
+      recorded_source_digest: null,
+      safe_next_actions: [`glassbox changeset refresh ${changesetId} --cwd .`],
+      stale: false,
+    },
     limitations: ["no structured change inventory is attached yet; inspect sources first"],
     readiness: [],
     review_briefs: [],

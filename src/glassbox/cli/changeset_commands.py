@@ -1,6 +1,7 @@
 """CLI command handlers for changeset inspection."""
 
 import argparse
+import asyncio
 from typing import cast
 
 from glassbox.cli.json_output import print_json_output
@@ -80,7 +81,7 @@ def _changeset_show_command(args: argparse.Namespace) -> int:
         service = ChangesetQueryService(
             cast(ChangesetRepository, runtime_context.repositories.sessions)
         )
-        detail = service.get_detail(args.changeset_id)
+        detail = service.get_detail(args.changeset_id, workspace_root=cwd)
 
     if args.json:
         print_json_output(detail.model_dump(mode="json"))
@@ -93,20 +94,39 @@ def _changeset_refresh_command(args: argparse.Namespace) -> int:
     cwd, db_path = resolve_runtime_location(args)
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
         service = ChangesetActionService(
-            cast(ChangesetRepository, runtime_context.repositories.sessions)
+            cast(ChangesetRepository, runtime_context.repositories.sessions),
+            runtime_context.repositories.artifacts,
         )
-        event = service.refresh_source_evidence(
-            args.changeset_id,
-            cwd,
-            refreshed_by=args.actor,
+        result = asyncio.run(
+            service.refresh_inventory(
+                args.changeset_id,
+                cwd,
+                refreshed_by=args.actor,
+            )
         )
 
-    payload = event.model_dump(mode="json")
+    payload = {
+        "changeset_id": str(result.changeset_id),
+        "session_id": str(result.session_id),
+        "artifact_id": str(result.artifact.artifact_id),
+        "artifact_path": result.artifact.relative_path.as_posix(),
+        "freshness": result.freshness.value,
+        "source_digest": result.source_digest,
+        "event": result.event.model_dump(mode="json"),
+        "superseded_event": (
+            result.superseded_event.model_dump(mode="json")
+            if result.superseded_event is not None
+            else None
+        ),
+    }
     if args.json:
         print_json_output(payload)
     else:
-        print(f"Refreshed basic source evidence for changeset {args.changeset_id}")
-        print(f"Event sequence: {event.sequence}")
+        print(f"Refreshed change inventory for changeset {args.changeset_id}")
+        print(f"Inventory: {result.inventory.summary.changed_path_count} paths")
+        print(f"Freshness: {result.freshness.value}")
+        print(f"Artifact: {result.artifact.relative_path.as_posix()}")
+        print(f"Event sequence: {result.event.sequence}")
     return 0
 
 
@@ -215,6 +235,16 @@ def _print_changeset_detail(detail: ChangesetDetailView) -> None:
             f"{detail.inventory.changed_path_count} paths "
             f"[{detail.inventory.freshness.value}]"
         )
+        if detail.inventory.previous_artifact_id is not None:
+            print(f"  Previous artifact: {detail.inventory.previous_artifact_id}")
+    if detail.inventory_status.reason is not None:
+        print(
+            "Inventory freshness: "
+            f"{detail.inventory_status.freshness.value} - "
+            f"{detail.inventory_status.reason}"
+        )
+    elif detail.inventory_status.current_source_digest is not None:
+        print(f"Inventory freshness: {detail.inventory_status.freshness.value}")
     if detail.verification_posture is None:
         print("Verification posture: none attached yet")
     else:

@@ -1643,6 +1643,9 @@
               }
             ]
           },
+          "inventory_status": {
+            "$ref": "#/components/schemas/ChangesetInventoryStatusResponse"
+          },
           "limitations": {
             "items": {
               "type": "string"
@@ -1692,6 +1695,7 @@
         "required": [
           "changeset",
           "sources",
+          "inventory_status",
           "review_briefs",
           "readiness",
           "limitations",
@@ -1844,6 +1848,61 @@
           "last_sequence"
         ],
         "title": "ChangesetInventoryResponse",
+        "type": "object"
+      },
+      "ChangesetInventoryStatusResponse": {
+        "properties": {
+          "current_source_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Source Digest"
+          },
+          "freshness": {
+            "title": "Freshness",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "recorded_source_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorded Source Digest"
+          },
+          "safe_next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safe Next Actions",
+            "type": "array"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          }
+        },
+        "required": ["freshness", "stale", "safe_next_actions"],
+        "title": "ChangesetInventoryStatusResponse",
         "type": "object"
       },
       "ChangesetListPageResponse": {
@@ -10295,7 +10354,7 @@
     },
     "/changesets/{changeset_id}/refresh": {
       "post": {
-        "description": "Refresh basic source evidence for a changeset.",
+        "description": "Refresh structured inventory evidence for a changeset.",
         "operationId": "refresh_changeset_changesets__changeset_id__refresh_post",
         "parameters": [
           {

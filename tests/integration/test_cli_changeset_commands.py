@@ -1,6 +1,7 @@
 """CLI coverage for changeset inspection commands."""
 
 import json
+import subprocess
 from pathlib import Path
 
 from glassbox.cli import main
@@ -23,6 +24,7 @@ def test_changeset_create_list_show_refresh_and_archive(
     db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
     session_id = new_session_id()
     task_id = new_task_id()
+    _init_git_repo(tmp_path)
     _seed_task(db_path, tmp_path, session_id, task_id)
 
     create_exit = main(
@@ -69,6 +71,8 @@ def test_changeset_create_list_show_refresh_and_archive(
     )
     detail = json.loads(capsys.readouterr().out)
 
+    (tmp_path / "app.py").write_text("print('changed')\n", encoding="utf-8")
+
     refresh_exit = main(
         [
             "changeset",
@@ -81,6 +85,21 @@ def test_changeset_create_list_show_refresh_and_archive(
         ]
     )
     refresh_output = capsys.readouterr().out
+    (tmp_path / "app.py").write_text("print('changed again')\n", encoding="utf-8")
+
+    stale_show_exit = main(
+        [
+            "changeset",
+            "show",
+            changeset_id,
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    stale_detail = json.loads(capsys.readouterr().out)
 
     archive_exit = main(
         [
@@ -107,9 +126,37 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert detail["sources"][0]["source_kind"] == "task"
     assert "glassbox changeset refresh" in detail["safe_next_actions"][1]
     assert refresh_exit == 0
-    assert "Refreshed basic source evidence" in refresh_output
+    assert "Refreshed change inventory" in refresh_output
+    assert stale_show_exit == 0
+    assert stale_detail["inventory"]["freshness"] == "stale"
+    assert stale_detail["inventory_status"]["stale"] is True
+    assert "source digest changed" in stale_detail["inventory_status"]["reason"]
     assert archive_exit == 0
     assert archived["payload"]["event_type"] == "ChangesetArchived"
+
+
+def _init_git_repo(tmp_path: Path) -> None:
+    subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.com"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Test User"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+    (tmp_path / "app.py").write_text("print('base')\n", encoding="utf-8")
+    subprocess.run(["git", "add", "app.py"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "commit", "-m", "initial"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
 
 
 def _seed_task(db_path: Path, tmp_path: Path, session_id, task_id) -> None:
