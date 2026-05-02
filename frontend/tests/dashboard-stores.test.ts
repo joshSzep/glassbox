@@ -1572,6 +1572,7 @@ function makeChangesetVerificationPlan(changesetId: string): ChangesetVerificati
     reason_groups: [],
     recommended_commands: ["uv run glassbox eval run commit-smoke --cwd ."],
     recipes: [],
+    topology_impacts: [],
     retained_artifact_ids: [],
     safe_next_actions: ["uv run glassbox eval run commit-smoke --cwd ."],
     session_id: "session-1",

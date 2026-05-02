@@ -50,6 +50,9 @@ describe("changeset console", () => {
     expect(markup).toContain("brief-artifact-1");
     expect(markup).toContain("Changed Files");
     expect(markup).toContain("3 changed paths");
+    expect(markup).toContain("Affected Subsystems");
+    expect(markup).toContain("glassbox - package");
+    expect(markup).toContain("runtime dependency: pydantic");
     expect(markup).toContain("Commit Preparation");
     expect(markup).toContain("needs verification");
     expect(markup).toContain("Suggested message");
@@ -346,6 +349,21 @@ function makeVerificationPlan(changesetId: string): ChangesetVerificationPlan {
     reason_groups: [],
     recommended_commands: ["uv run pytest tests/unit"],
     recipes: [],
+    topology_impacts: [
+      {
+        component_id: "package:glassbox",
+        dependency_hints: ["runtime dependency: pydantic"],
+        kind: "package",
+        limitations: [],
+        matched_paths: ["src/glassbox/runtime/changesets.py"],
+        name: "glassbox",
+        ownership_hints: ["runtime"],
+        recommendation_posture: "fresh",
+        root_path: ".",
+        test_roots: ["tests"],
+        topology_freshness: "fresh",
+      },
+    ],
     retained_artifact_ids: ["artifact-1"],
     safe_next_actions: ["uv run pytest tests/unit"],
     session_id: "session-1",

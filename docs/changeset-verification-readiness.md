@@ -60,9 +60,16 @@ glassbox changeset verification-plan <changeset-id> --cwd .
 
 The preview names recommended commands, eval profiles, matching recipes,
 reason groups, expected changed-path scope, retained verification artifact IDs,
-and safe next actions. Commands are previews only; execution remains an
-explicit shell or existing Glassbox workflow action. Publish, deploy, push, and
-upload commands are filtered out of the changeset verification plan.
+affected topology components, and safe next actions. Commands are previews only;
+execution remains an explicit shell or existing Glassbox workflow action.
+Publish, deploy, push, and upload commands are filtered out of the changeset
+verification plan.
+
+When workspace topology has been built, the preview also includes
+`topology_impacts`: affected component IDs, package/app/docs names, matched
+paths, test roots, owner hints, dependency hints, topology freshness, and any
+limitations. Stale topology remains visible with degraded posture and rebuild
+guidance instead of being presented as current subsystem authority.
 
 When a task verification ledger already contains the operator-selected evidence,
 the posture can be recorded on the changeset:
@@ -90,10 +97,12 @@ API.
 The dashboard changeset detail view renders a verification panel from
 `/changesets/{id}/verification-plan`. The panel keeps failed, stale, missing,
 and accepted-risk states visible together with safe inspection or verification
-commands. Inventory freshness is checked against the current workspace before
-rendering readiness, so a workspace diff that changes after a recorded
-verification can make the displayed readiness stale even when the latest
-recorded posture was previously `passed`.
+commands. It also renders affected subsystems when topology evidence is
+available, so reviewers can see which package, app, test roots, owners, or
+dependency hints are implicated before choosing checks. Inventory freshness is
+checked against the current workspace before rendering readiness, so a workspace
+diff that changes after a recorded verification can make the displayed
+readiness stale even when the latest recorded posture was previously `passed`.
 
 ## Stale Verification
 

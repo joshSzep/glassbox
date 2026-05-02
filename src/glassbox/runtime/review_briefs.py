@@ -102,6 +102,7 @@ class ReviewBriefArtifact(BaseModel):
     objective: str = Field(min_length=1, max_length=1000)
     change_summary: ReviewBriefSection
     changed_file_inventory: ReviewBriefSection
+    affected_subsystems: ReviewBriefSection | None = None
     provenance: ReviewBriefSection
     verification: ReviewBriefSection
     branch_candidate_rationale: ReviewBriefSection | None = None
@@ -156,9 +157,20 @@ def review_brief_markdown(artifact: ReviewBriefArtifact) -> str:
         ("Objective", artifact.objective),
         ("Change Summary", _section_markdown(artifact.change_summary)),
         ("Changed-File Inventory", _section_markdown(artifact.changed_file_inventory)),
-        ("Provenance", _section_markdown(artifact.provenance)),
-        ("Verification", _section_markdown(artifact.verification)),
     ]
+    if artifact.affected_subsystems is not None:
+        sections.append(
+            (
+                "Affected Subsystems",
+                _section_markdown(artifact.affected_subsystems),
+            )
+        )
+    sections.extend(
+        [
+            ("Provenance", _section_markdown(artifact.provenance)),
+            ("Verification", _section_markdown(artifact.verification)),
+        ]
+    )
     if artifact.branch_candidate_rationale is not None:
         sections.append(
             (

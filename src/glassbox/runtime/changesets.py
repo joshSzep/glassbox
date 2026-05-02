@@ -54,6 +54,8 @@ from glassbox.runtime.change_inventory import CHANGE_INVENTORY_ARTIFACT_SCHEMA_V
 from glassbox.runtime.change_inventory import ChangeInventoryArtifact
 from glassbox.runtime.change_inventory import change_inventory_artifact_json
 from glassbox.runtime.change_inventory import change_inventory_from_diff_summary
+from glassbox.runtime.changeset_topology import ChangesetTopologyImpact
+from glassbox.runtime.changeset_topology import derive_changeset_topology_impacts
 from glassbox.runtime.changeset_verification_readiness import (
     ChangesetVerificationReadiness,
 )
@@ -224,11 +226,15 @@ class ChangesetVerificationRecipePreview(BaseModel):
 
     recipe_id: str
     title: str
+    confidence: str = "direct"
+    source: str = "recipe"
     matched_paths: list[str] = Field(default_factory=list)
+    component_ids: list[str] = Field(default_factory=list)
     commands: list[str] = Field(default_factory=list)
     profile_ids: list[str] = Field(default_factory=list)
     case_ids: list[str] = Field(default_factory=list)
     notes: str | None = None
+    limitations: list[str] = Field(default_factory=list)
 
 
 class ChangesetVerificationPlanPreview(BaseModel):
@@ -244,6 +250,7 @@ class ChangesetVerificationPlanPreview(BaseModel):
     recommended_commands: list[str] = Field(default_factory=list)
     eval_profiles: list[str] = Field(default_factory=list)
     recipes: list[ChangesetVerificationRecipePreview] = Field(default_factory=list)
+    topology_impacts: list[ChangesetTopologyImpact] = Field(default_factory=list)
     reason_groups: list[EvalRecommendationReasonGroup] = Field(default_factory=list)
     expected_scope: list[str] = Field(default_factory=list)
     retained_artifact_ids: list[ArtifactId] = Field(default_factory=list)
@@ -619,9 +626,14 @@ class ChangesetVerificationService:
             workspace_root,
             changed_paths,
         )
+        topology_impacts, topology_limitations = derive_changeset_topology_impacts(
+            workspace_root=workspace_root,
+            changed_paths=changed_paths,
+        )
         limitations = [
             *inventory_limitations,
             *recommendation_limitations,
+            *topology_limitations,
             *(
                 [inventory_status.reason]
                 if inventory_status.reason is not None
@@ -656,6 +668,7 @@ class ChangesetVerificationService:
             ),
             eval_profiles=_eval_profile_ids_for_preview(recommendation),
             recipes=_recipe_previews(recommendation),
+            topology_impacts=topology_impacts,
             reason_groups=(
                 recommendation.reason_groups if recommendation is not None else []
             ),
@@ -1581,11 +1594,15 @@ def _recipe_previews(
         ChangesetVerificationRecipePreview(
             recipe_id=recipe.recipe_id,
             title=recipe.title,
+            confidence=recipe.confidence,
+            source=recipe.source,
             matched_paths=recipe.matched_paths,
+            component_ids=recipe.component_ids,
             commands=recipe.commands,
             profile_ids=recipe.profile_ids,
             case_ids=recipe.case_ids,
             notes=recipe.notes,
+            limitations=recipe.limitations,
         )
         for recipe in recommendation.recipes
     ]
@@ -1693,6 +1710,7 @@ def _review_brief_artifact(
             inventory,
             inventory_status,
         ),
+        affected_subsystems=_review_brief_topology_section(verification_plan),
         provenance=_review_brief_provenance_section(sources, inventory),
         verification=_review_brief_verification_section(
             verification_posture,
@@ -1820,6 +1838,49 @@ def _review_brief_provenance_section(
             )
             for source in sources[:8]
         ],
+    )
+
+
+def _review_brief_topology_section(
+    verification_plan: ChangesetVerificationPlanPreview,
+) -> ReviewBriefSection | None:
+    impacts = verification_plan.topology_impacts
+    if not impacts:
+        return None
+    lines = []
+    refs = []
+    for impact in impacts[:8]:
+        owners = (
+            f"; owners {', '.join(impact.ownership_hints)}"
+            if impact.ownership_hints
+            else ""
+        )
+        tests = f"; tests {', '.join(impact.test_roots)}" if impact.test_roots else ""
+        deps = (
+            f"; dependencies {', '.join(impact.dependency_hints[:4])}"
+            if impact.dependency_hints
+            else ""
+        )
+        lines.append(
+            f"{impact.name} ({impact.kind}, {impact.root_path}) matched "
+            f"{len(impact.matched_paths)} path(s); topology is "
+            f"{impact.topology_freshness}{owners}{tests}{deps}."
+        )
+        refs.append(
+            ReviewBriefEvidenceRef(
+                kind="provenance",
+                identifier=impact.component_id,
+                summary=(
+                    f"{impact.name} matched {len(impact.matched_paths)} "
+                    f"path(s) with {impact.recommendation_posture} topology posture"
+                ),
+            )
+        )
+    body = " ".join(lines)
+    return ReviewBriefSection(
+        title="Affected Subsystems",
+        body=body,
+        evidence_refs=refs,
     )
 
 

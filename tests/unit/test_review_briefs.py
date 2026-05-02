@@ -48,6 +48,8 @@ def test_review_brief_artifact_contract_and_render_targets() -> None:
     assert payload["schema_version"] == 1
     assert "Change Summary" in markdown
     assert "Changed-File Inventory" in markdown
+    assert "Affected Subsystems" in markdown
+    assert "runtime package" in markdown
     assert "Verification" in markdown
     assert "Reviewer Checklist" in markdown
     assert "Safe Inspection Commands" in markdown
@@ -143,6 +145,10 @@ def _brief(
                     summary="Summary-only inventory artifact.",
                 )
             ],
+        ),
+        affected_subsystems=ReviewBriefSection(
+            title="Affected Subsystems",
+            body="runtime package has fresh topology and tests/unit coverage.",
         ),
         provenance=ReviewBriefSection(
             title="Provenance",

@@ -28,6 +28,7 @@ Required sections are:
 - objective
 - change summary
 - changed-file inventory
+- affected subsystems when topology evidence is available
 - provenance
 - verification
 - risks
@@ -109,12 +110,13 @@ with an optional body:
 ```
 
 The action does not run verification commands. It summarizes current inventory
-freshness, changed-file classifications, provenance confidence, retained
-verification posture, verification readiness, branch-candidate evidence when
-present, risks, limitations, and safe inspection commands. Missing inventory,
-unloaded artifacts, stale workspace digests, missing verification, failed
-checks, and accepted-risk evidence are rendered as limitations instead of being
-smoothed over.
+freshness, changed-file classifications, affected packages/apps/docs roots from
+topology when available, topology freshness, owner and dependency hints,
+provenance confidence, retained verification posture, verification readiness,
+branch-candidate evidence when present, risks, limitations, and safe inspection
+commands. Missing inventory, unloaded artifacts, stale workspace digests, stale
+topology, missing verification, failed checks, and accepted-risk evidence are
+rendered as limitations instead of being smoothed over.
 
 Review readiness is advisory. A brief can be ready for review while still
 showing unresolved review risks; later commit-readiness work decides whether

@@ -2273,6 +2273,31 @@ export interface components {
        */
       updated_at: string;
     };
+    /** ChangesetTopologyImpactResponse */
+    ChangesetTopologyImpactResponse: {
+      /** Component Id */
+      component_id: string;
+      /** Dependency Hints */
+      dependency_hints: string[];
+      /** Kind */
+      kind: string;
+      /** Limitations */
+      limitations: string[];
+      /** Matched Paths */
+      matched_paths: string[];
+      /** Name */
+      name: string;
+      /** Ownership Hints */
+      ownership_hints: string[];
+      /** Recommendation Posture */
+      recommendation_posture: string;
+      /** Root Path */
+      root_path: string;
+      /** Test Roots */
+      test_roots: string[];
+      /** Topology Freshness */
+      topology_freshness: string;
+    };
     /** ChangesetVerificationPlanPreviewResponse */
     ChangesetVerificationPlanPreviewResponse: {
       /** Changed Paths */
@@ -2304,6 +2329,8 @@ export interface components {
       safe_next_actions: string[];
       /** Session Id */
       session_id: string;
+      /** Topology Impacts */
+      topology_impacts: components["schemas"]["ChangesetTopologyImpactResponse"][];
     };
     /** ChangesetVerificationPostureResponse */
     ChangesetVerificationPostureResponse: {
@@ -2385,6 +2412,12 @@ export interface components {
       case_ids: string[];
       /** Commands */
       commands: string[];
+      /** Component Ids */
+      component_ids: string[];
+      /** Confidence */
+      confidence: string;
+      /** Limitations */
+      limitations: string[];
       /** Matched Paths */
       matched_paths: string[];
       /** Notes */
@@ -2393,6 +2426,8 @@ export interface components {
       profile_ids: string[];
       /** Recipe Id */
       recipe_id: string;
+      /** Source */
+      source: string;
       /** Title */
       title: string;
     };

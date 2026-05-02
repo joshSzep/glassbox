@@ -198,11 +198,29 @@ class ChangesetActionResponse(BaseModel):
 class ChangesetVerificationRecipePreviewResponse(BaseModel):
     recipe_id: str
     title: str
+    confidence: str
+    source: str
     matched_paths: list[str]
+    component_ids: list[str]
     commands: list[str]
     profile_ids: list[str]
     case_ids: list[str]
     notes: str | None = None
+    limitations: list[str]
+
+
+class ChangesetTopologyImpactResponse(BaseModel):
+    component_id: str
+    name: str
+    kind: str
+    root_path: str
+    matched_paths: list[str]
+    test_roots: list[str]
+    ownership_hints: list[str]
+    dependency_hints: list[str]
+    topology_freshness: str
+    recommendation_posture: str
+    limitations: list[str]
 
 
 class ChangesetVerificationReasonGroupResponse(BaseModel):
@@ -253,6 +271,7 @@ class ChangesetVerificationPlanPreviewResponse(BaseModel):
     recommended_commands: list[str]
     eval_profiles: list[str]
     recipes: list[ChangesetVerificationRecipePreviewResponse]
+    topology_impacts: list[ChangesetTopologyImpactResponse]
     reason_groups: list[ChangesetVerificationReasonGroupResponse]
     expected_scope: list[str]
     retained_artifact_ids: list[str]
@@ -447,13 +466,33 @@ def build_changeset_verification_plan_response(
             ChangesetVerificationRecipePreviewResponse(
                 recipe_id=recipe.recipe_id,
                 title=recipe.title,
+                confidence=recipe.confidence,
+                source=recipe.source,
                 matched_paths=recipe.matched_paths,
+                component_ids=recipe.component_ids,
                 commands=recipe.commands,
                 profile_ids=recipe.profile_ids,
                 case_ids=recipe.case_ids,
                 notes=recipe.notes,
+                limitations=recipe.limitations,
             )
             for recipe in preview.recipes
+        ],
+        topology_impacts=[
+            ChangesetTopologyImpactResponse(
+                component_id=impact.component_id,
+                name=impact.name,
+                kind=impact.kind,
+                root_path=impact.root_path,
+                matched_paths=impact.matched_paths,
+                test_roots=impact.test_roots,
+                ownership_hints=impact.ownership_hints,
+                dependency_hints=impact.dependency_hints,
+                topology_freshness=impact.topology_freshness,
+                recommendation_posture=impact.recommendation_posture,
+                limitations=impact.limitations,
+            )
+            for impact in preview.topology_impacts
         ],
         reason_groups=[
             ChangesetVerificationReasonGroupResponse(

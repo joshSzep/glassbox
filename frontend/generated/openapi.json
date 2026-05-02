@@ -2639,6 +2639,84 @@
         "title": "ChangesetSummaryResponse",
         "type": "object"
       },
+      "ChangesetTopologyImpactResponse": {
+        "properties": {
+          "component_id": {
+            "title": "Component Id",
+            "type": "string"
+          },
+          "dependency_hints": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Dependency Hints",
+            "type": "array"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "matched_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Matched Paths",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "ownership_hints": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ownership Hints",
+            "type": "array"
+          },
+          "recommendation_posture": {
+            "title": "Recommendation Posture",
+            "type": "string"
+          },
+          "root_path": {
+            "title": "Root Path",
+            "type": "string"
+          },
+          "test_roots": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Test Roots",
+            "type": "array"
+          },
+          "topology_freshness": {
+            "title": "Topology Freshness",
+            "type": "string"
+          }
+        },
+        "required": [
+          "component_id",
+          "name",
+          "kind",
+          "root_path",
+          "matched_paths",
+          "test_roots",
+          "ownership_hints",
+          "dependency_hints",
+          "topology_freshness",
+          "recommendation_posture",
+          "limitations"
+        ],
+        "title": "ChangesetTopologyImpactResponse",
+        "type": "object"
+      },
       "ChangesetVerificationPlanPreviewResponse": {
         "properties": {
           "changed_paths": {
@@ -2736,6 +2814,13 @@
           "session_id": {
             "title": "Session Id",
             "type": "string"
+          },
+          "topology_impacts": {
+            "items": {
+              "$ref": "#/components/schemas/ChangesetTopologyImpactResponse"
+            },
+            "title": "Topology Impacts",
+            "type": "array"
           }
         },
         "required": [
@@ -2746,6 +2831,7 @@
           "recommended_commands",
           "eval_profiles",
           "recipes",
+          "topology_impacts",
           "reason_groups",
           "expected_scope",
           "retained_artifact_ids",
@@ -3004,6 +3090,24 @@
             "title": "Commands",
             "type": "array"
           },
+          "component_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Component Ids",
+            "type": "array"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
           "matched_paths": {
             "items": {
               "type": "string"
@@ -3033,12 +3137,27 @@
             "title": "Recipe Id",
             "type": "string"
           },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
           "title": {
             "title": "Title",
             "type": "string"
           }
         },
-        "required": ["recipe_id", "title", "matched_paths", "commands", "profile_ids", "case_ids"],
+        "required": [
+          "recipe_id",
+          "title",
+          "confidence",
+          "source",
+          "matched_paths",
+          "component_ids",
+          "commands",
+          "profile_ids",
+          "case_ids",
+          "limitations"
+        ],
         "title": "ChangesetVerificationRecipePreviewResponse",
         "type": "object"
       },

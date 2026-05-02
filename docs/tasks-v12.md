@@ -1424,7 +1424,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1273: Feed Topology Into Changeset Readiness And Review Briefs
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1241`, `GBX-1272`
 - Goal: use topology to improve changeset risk, verification readiness, and
   reviewer summaries
@@ -1442,6 +1442,26 @@ Each phase below corresponds to one concrete milestone.
   - frontend tests if display changes
 - Done when:
   - review readiness understands which local subsystem a change affects
+- Completion notes:
+  - Added `ChangesetTopologyImpact` derivation from retained workspace topology,
+    including affected component IDs, names, kinds, matched paths, test roots,
+    owner hints, dependency hints, topology freshness, and degraded limitations.
+  - Extended changeset verification plan previews and API responses with
+    topology impacts and topology-aware recipe metadata, while preserving
+    preview-only execution semantics.
+  - Added review brief affected-subsystems sections when topology evidence is
+    available, including stale-topology posture in limitations rather than
+    presenting old topology as fact.
+  - Added the dashboard affected-subsystems panel for package/app/docs
+    components, test roots, owner hints, dependency hints, and topology
+    freshness.
+  - Regenerated OpenAPI schema and frontend API types for the new response
+    fields and refreshed the static dashboard export.
+  - Updated [changeset-verification-readiness.md](./changeset-verification-readiness.md),
+    [review-briefs.md](./review-briefs.md), and [dashboard.md](./dashboard.md).
+  - Verified with focused backend topology/review/route tests, focused
+    `ruff`, focused `ty`, OpenAPI schema tests, frontend lint/typecheck,
+    frontend changeset/generated-type tests, and `pnpm --dir frontend build`.
 
 ---
 

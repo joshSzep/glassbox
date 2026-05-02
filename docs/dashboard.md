@@ -73,10 +73,13 @@ The dashboard shell exposes the operator surfaces backed by the snapshot and SSE
 
 The changeset surface at `/app/changesets` is the v12 review panel for local
 changesets. It shows review readiness, changed-file inventory summaries,
-verification readiness and retained artifacts, candidate-adoption comparisons
-when a branch-search candidate is attached, generated review brief artifacts,
-source evidence, limitations, and safe inspection commands. The adoption panel
-shows the selected candidate, rejected alternatives, retained rationale,
+verification readiness and retained artifacts, affected topology subsystems
+when available, candidate-adoption comparisons when a branch-search candidate
+is attached, generated review brief artifacts, source evidence, limitations,
+and safe inspection commands. The affected-subsystems panel names package/app
+components, topology freshness, matched paths, test roots, owner hints, and
+dependency hints without treating stale topology as current fact. The adoption
+panel shows the selected candidate, rejected alternatives, retained rationale,
 verification and risk posture, accepted risks, and follow-up actions while
 stating that Glassbox did not merge, rebase, stage, commit, push, or open a PR.
 The `Brief` action calls the local review-brief API and refreshes the panel with

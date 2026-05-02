@@ -225,6 +225,7 @@ function ChangesetDetail({
         readiness={reviewReadiness}
       />
       <InventoryPanel detail={detail.detail} />
+      <TopologyPanel verificationPlan={verificationPlan} />
       <VerificationPanel
         posture={detail.detail.verification_posture}
         verificationPlan={verificationPlan}
@@ -563,6 +564,48 @@ function InventoryPanel({ detail }: { detail: NonNullable<ChangesetDetailState["
             {inventory.last_sequence}
           </DataListMeta>
         </DataListItem>
+      </DataList>
+    </Section>
+  );
+}
+
+function TopologyPanel({
+  verificationPlan,
+}: {
+  verificationPlan: ChangesetDetailState["verificationPlan"];
+}) {
+  const impacts = verificationPlan?.topology_impacts ?? [];
+  if (impacts.length === 0) {
+    return null;
+  }
+  return (
+    <Section title="Affected Subsystems">
+      <DataList density="compact">
+        {impacts.slice(0, 6).map((impact) => (
+          <DataListItem key={impact.component_id}>
+            <DataListLabel>
+              {impact.name} - {impact.kind}
+            </DataListLabel>
+            <DataListMeta>
+              {impact.root_path} - topology {impact.topology_freshness} -{" "}
+              {impact.recommendation_posture}
+            </DataListMeta>
+            {impact.test_roots.length > 0 ? (
+              <DataListMeta>Tests: {impact.test_roots.join(", ")}</DataListMeta>
+            ) : null}
+            {impact.ownership_hints.length > 0 ? (
+              <DataListMeta>Owners: {impact.ownership_hints.join(", ")}</DataListMeta>
+            ) : null}
+            {impact.dependency_hints.length > 0 ? (
+              <DataListMeta>
+                Dependencies: {impact.dependency_hints.slice(0, 4).join("; ")}
+              </DataListMeta>
+            ) : null}
+            {impact.limitations.length > 0 ? (
+              <DataListMeta>{impact.limitations.join("; ")}</DataListMeta>
+            ) : null}
+          </DataListItem>
+        ))}
       </DataList>
     </Section>
   );
