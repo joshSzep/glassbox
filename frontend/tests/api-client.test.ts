@@ -415,6 +415,36 @@ describe("createGlassboxApiClient", () => {
     );
   });
 
+  it("shapes changeset review requests", async () => {
+    const { calls, fetch } = createMockFetch([
+      jsonResponse({ items: [] }),
+      jsonResponse({ changeset: { changeset_id: "changeset/1" } }),
+      jsonResponse({ readiness: { state: "missing" } }),
+      jsonResponse({ detail: { changeset: { changeset_id: "changeset/1" } } }),
+      jsonResponse({ detail: { changeset: { changeset_id: "changeset/1" } } }),
+    ]);
+    const client = createGlassboxApiClient({ fetch });
+
+    await client.getChangesetPage({ limit: 10, session_id: "session/1" });
+    await client.getChangesetDetail("changeset/1");
+    await client.getChangesetVerificationPlan("changeset/1");
+    await client.generateChangesetReviewBrief({
+      changesetId: "changeset/1",
+      includeMarkdown: true,
+    });
+    await client.refreshChangeset({ changesetId: "changeset/1" });
+
+    expect(calls.map((call) => call.input)).toEqual([
+      "/changesets?limit=10&session_id=session%2F1",
+      "/changesets/changeset%2F1",
+      "/changesets/changeset%2F1/verification-plan",
+      "/changesets/changeset%2F1/brief",
+      "/changesets/changeset%2F1/refresh",
+    ]);
+    expect(calls[3].init?.body).toBe(JSON.stringify({ actor: "operator", include_markdown: true }));
+    expect(calls[4].init?.body).toBe(JSON.stringify({ actor: "operator" }));
+  });
+
   it("normalizes FastAPI validation errors", async () => {
     const { fetch } = createMockFetch([
       jsonResponse(

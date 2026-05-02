@@ -17,7 +17,7 @@ import {
   type StoreActionStatus,
 } from "@/stores/store-actions";
 
-export type ChangesetActionKind = "refresh-changeset";
+export type ChangesetActionKind = "generate-brief" | "refresh-changeset";
 
 export type ChangesetActionStatus = StoreActionStatus<ChangesetActionKind>;
 
@@ -38,6 +38,7 @@ export type ChangesetDetailState = {
 export type ChangesetStoreState = {
   action: ChangesetActionStatus;
   detail: ChangesetDetailState;
+  generateReviewBrief: (changesetId?: string) => Promise<void>;
   loadChangesetPage: (query?: { sessionId?: string | null }) => Promise<void>;
   page: ChangesetPageState;
   refreshChangeset: (changesetId?: string) => Promise<void>;
@@ -54,6 +55,29 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
   return createStore<ChangesetStoreState>((set, get) => ({
     action: createIdleActionStatus(),
     detail: createIdleChangesetDetailState(),
+    generateReviewBrief: async (changesetId) => {
+      const selectedChangesetId = changesetId ?? requireSelectedChangesetId(get().detail);
+      set({ action: createPendingActionStatus("generate-brief") });
+      try {
+        const response = await apiClient.generateChangesetReviewBrief({
+          changesetId: selectedChangesetId,
+        });
+        const verificationPlan = await apiClient.getChangesetVerificationPlan(selectedChangesetId);
+        set({
+          action: createSucceededActionStatus("generate-brief"),
+          detail: {
+            detail: response.detail,
+            error: null,
+            loadState: "loaded",
+            selectedChangesetId,
+            verificationPlan,
+          },
+        });
+        await get().loadChangesetPage();
+      } catch (error) {
+        set({ action: createFailedActionStatus("generate-brief", error) });
+      }
+    },
     loadChangesetPage: async (query = {}) => {
       const currentRequestId = listRequests.next();
       set((state) => ({

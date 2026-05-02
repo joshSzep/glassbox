@@ -38,6 +38,12 @@ describe("changeset console", () => {
     expect(markup).toContain("pytest unit");
     expect(markup).toContain("uv run pytest tests/unit");
     expect(markup).toContain("artifact-1");
+    expect(markup).toContain("Review Readiness");
+    expect(markup).toContain("ready");
+    expect(markup).toContain("Brief Artifacts");
+    expect(markup).toContain("brief-artifact-1");
+    expect(markup).toContain("Changed Files");
+    expect(markup).toContain("3 changed paths");
   });
 });
 
@@ -53,7 +59,7 @@ function makeChangesetSummary(changesetId: string): ChangesetSummary {
     created_by: "operator",
     last_sequence: 8,
     latest_inventory_artifact_id: "artifact-inventory",
-    latest_review_brief_artifact_id: null,
+    latest_review_brief_artifact_id: "brief-artifact-1",
     latest_verification_id: "verification-1",
     objective: "Review verification posture",
     replacement_changeset_id: null,
@@ -72,7 +78,27 @@ function makeChangesetSummary(changesetId: string): ChangesetSummary {
 function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
   return {
     changeset,
-    inventory: null,
+    inventory: {
+      accepted_risk_count: 1,
+      artifact_id: "artifact-inventory",
+      artifact_schema_version: 1,
+      branch_candidate_id: null,
+      branch_search_id: null,
+      changed_path_count: 3,
+      changeset_id: changeset.changeset_id,
+      freshness: "fresh",
+      last_sequence: 7,
+      previous_artifact_id: null,
+      refreshed_by: "operator",
+      risk_level: "medium",
+      risk_summary: "runtime and tests changed",
+      session_id: "session-1",
+      source_digest: "sha256:current",
+      task_id: "task-1",
+      turn_id: null,
+      unresolved_risk_count: 1,
+      updated_at: "2026-05-01T00:02:00Z",
+    },
     inventory_status: {
       current_source_digest: "sha256:current",
       freshness: "fresh",
@@ -82,8 +108,44 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
       stale: false,
     },
     limitations: [],
-    readiness: [],
-    review_briefs: [],
+    readiness: [
+      {
+        accepted_risk_count: 1,
+        blockers: [],
+        changeset_id: changeset.changeset_id,
+        decided_by: "operator",
+        inventory_artifact_id: "artifact-inventory",
+        last_sequence: 9,
+        readiness_kind: "review",
+        reason: "deterministic changeset evidence is ready for reviewer inspection",
+        review_brief_artifact_id: "brief-artifact-1",
+        safe_next_actions: [`glassbox changeset show ${changeset.changeset_id} --cwd .`],
+        session_id: "session-1",
+        state: "ready",
+        task_id: "task-1",
+        turn_id: null,
+        updated_at: "2026-05-01T00:03:00Z",
+        verification_id: "verification-1",
+      },
+    ],
+    review_briefs: [
+      {
+        artifact_id: "brief-artifact-1",
+        artifact_schema_version: 1,
+        changeset_id: changeset.changeset_id,
+        created_at: "2026-05-01T00:03:00Z",
+        created_by: "operator",
+        inventory_artifact_id: "artifact-inventory",
+        last_sequence: 8,
+        local_only: true,
+        redacted: true,
+        render_targets: ["markdown", "json"],
+        session_id: "session-1",
+        task_id: "task-1",
+        turn_id: null,
+        verification_id: "verification-1",
+      },
+    ],
     safe_next_actions: [`glassbox changeset show ${changeset.changeset_id} --cwd .`],
     sources: [],
     verification_posture: {

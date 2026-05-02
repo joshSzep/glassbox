@@ -212,6 +212,20 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
       event_sequence: 5,
       status: "refreshed",
     }),
+    generateChangesetReviewBrief: async (input) => ({
+      artifact_id: "brief-artifact-1",
+      artifact_path: ".glassbox/sessions/session-1/artifacts/brief-artifact-1.json",
+      brief: { artifact_kind: "changeset_review_brief" },
+      changeset_id: input.changesetId,
+      detail: makeChangesetDetail(input.changesetId, {
+        latest_review_brief_artifact_id: "brief-artifact-1",
+      }),
+      event_sequence: 6,
+      limitations: [],
+      markdown: null,
+      readiness_event_sequence: 7,
+      session_id: "session-1",
+    }),
     confirmWorkspaceMemory: async (input) => ({ entry: makeMemoryEntry(input.memoryId) }),
     continueTask: async () => ({
       job: {
@@ -778,11 +792,16 @@ describe("changeset store", () => {
     await store.getState().loadChangesetPage();
     await store.getState().selectChangeset("changeset-1");
     await store.getState().refreshChangeset();
+    await store.getState().generateReviewBrief();
 
     expect(store.getState().page.items[0].changeset_id).toBe("changeset-1");
     expect(store.getState().detail.detail?.changeset.changeset_id).toBe("changeset-1");
+    expect(store.getState().detail.detail?.changeset.latest_review_brief_artifact_id).toBe(
+      "brief-artifact-1",
+    );
     expect(store.getState().detail.verificationPlan?.readiness.state).toBe("missing");
     expect(store.getState().action.state).toBe("succeeded");
+    expect(store.getState().action.kind).toBe("generate-brief");
   });
 });
 
@@ -1414,9 +1433,12 @@ function makeChangesetSummary(
   };
 }
 
-function makeChangesetDetail(changesetId: string): ChangesetDetail {
+function makeChangesetDetail(
+  changesetId: string,
+  changesetOverrides: Partial<ChangesetSummary> = {},
+): ChangesetDetail {
   return {
-    changeset: makeChangesetSummary(changesetId),
+    changeset: makeChangesetSummary(changesetId, changesetOverrides),
     inventory: null,
     inventory_status: {
       current_source_digest: null,

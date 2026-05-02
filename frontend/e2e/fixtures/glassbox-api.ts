@@ -24,6 +24,9 @@ type BranchCandidateDecisionSupport =
   components["schemas"]["BranchCandidateDecisionSupportResponse"];
 type BranchSearchDecisionSupport = components["schemas"]["BranchSearchDecisionSupportResponse"];
 type BranchSearchSummary = components["schemas"]["BranchSearchSummaryResponse"];
+type ChangesetDetail = components["schemas"]["ChangesetDetailResponse"];
+type ChangesetSummary = components["schemas"]["ChangesetSummaryResponse"];
+type ChangesetVerificationPlan = components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
 type RepositoryEntry = components["schemas"]["RepositoryIndexEntryResponse"];
 type TaskDetail = components["schemas"]["TaskDetailResponse"];
 type TaskEvent = components["schemas"]["TaskEventResponse"];
@@ -170,6 +173,7 @@ async function installAutonomyConsoleRoutes(page: Page, state: GlassboxApiFixtur
   const branchSearch = makeBranchSearchSummary("search-1");
   const branchCandidate = makeBranchCandidate("candidate-1");
   const branchDecisionSupport = makeBranchSearchDecisionSupport(branchSearch.search_id);
+  const changeset = makeChangesetSummary("changeset-1");
 
   await page.route("**/tasks**", async (route) => {
     const request = route.request();
@@ -334,6 +338,56 @@ async function installAutonomyConsoleRoutes(page: Page, state: GlassboxApiFixtur
           search: branchSearch,
         },
       });
+      return;
+    }
+    await route.fulfill({ json: { detail: "not found" }, status: 404 });
+  });
+
+  await page.route("**/changesets**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (!path.startsWith("/changesets")) {
+      await route.fallback();
+      return;
+    }
+    if (request.method() === "POST" && path === `/changesets/${changeset.changeset_id}/brief`) {
+      await recordAction(route, state, {
+        artifact_id: "brief-artifact-2",
+        artifact_path: ".glassbox/sessions/session-1/artifacts/brief-artifact-2.json",
+        brief: { artifact_kind: "changeset_review_brief" },
+        changeset_id: changeset.changeset_id,
+        detail: makeChangesetDetail(
+          makeChangesetSummary(changeset.changeset_id, {
+            latest_review_brief_artifact_id: "brief-artifact-2",
+          }),
+        ),
+        event_sequence: 10,
+        limitations: [],
+        markdown: null,
+        readiness_event_sequence: 11,
+        session_id: defaultSessionId,
+      });
+      return;
+    }
+    if (request.method() === "POST" && path === `/changesets/${changeset.changeset_id}/refresh`) {
+      await recordAction(route, state, {
+        changeset_id: changeset.changeset_id,
+        detail: makeChangesetDetail(changeset),
+        event_sequence: 9,
+        status: "refreshed",
+      });
+      return;
+    }
+    if (path === "/changesets") {
+      await route.fulfill({ json: { items: [changeset] } });
+      return;
+    }
+    if (path === `/changesets/${changeset.changeset_id}/verification-plan`) {
+      await route.fulfill({ json: makeChangesetVerificationPlan(changeset.changeset_id) });
+      return;
+    }
+    if (path === `/changesets/${changeset.changeset_id}`) {
+      await route.fulfill({ json: makeChangesetDetail(changeset) });
       return;
     }
     await route.fulfill({ json: { detail: "not found" }, status: 404 });
@@ -678,6 +732,200 @@ function makeBranchSearchDecisionSupport(searchId: string): BranchSearchDecision
     objective: "Compare repair options",
     search_id: searchId,
     selected_candidate_id: null,
+  };
+}
+
+function makeChangesetSummary(
+  changesetId: string,
+  overrides: Partial<ChangesetSummary> = {},
+): ChangesetSummary {
+  return {
+    accepted_risk_count: 1,
+    archived_by: null,
+    archived_reason: null,
+    branch_candidate_id: "candidate-1",
+    branch_search_id: "search-1",
+    changeset_id: changesetId,
+    created_at: timestamp(0),
+    created_by: "operator",
+    last_sequence: 8,
+    latest_inventory_artifact_id: "artifact-inventory",
+    latest_review_brief_artifact_id: "brief-artifact-1",
+    latest_verification_id: "verification-1",
+    objective: "Review dashboard changeset evidence",
+    replacement_changeset_id: null,
+    risk_level: "medium",
+    risk_summary: "Runtime, frontend, and tests changed.",
+    session_id: defaultSessionId,
+    status: "active",
+    summary: "Reviewer evidence is assembled for dashboard inspection.",
+    task_id: "task-1",
+    turn_id: null,
+    unresolved_risk_count: 1,
+    updated_at: timestamp(4),
+    ...overrides,
+  };
+}
+
+function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
+  const latestBriefId = changeset.latest_review_brief_artifact_id ?? null;
+  return {
+    changeset,
+    inventory: {
+      accepted_risk_count: 1,
+      artifact_id: "artifact-inventory",
+      artifact_schema_version: 1,
+      branch_candidate_id: changeset.branch_candidate_id,
+      branch_search_id: changeset.branch_search_id,
+      changed_path_count: 4,
+      changeset_id: changeset.changeset_id,
+      freshness: "fresh",
+      last_sequence: 6,
+      previous_artifact_id: null,
+      refreshed_by: "operator",
+      risk_level: "medium",
+      risk_summary: "Runtime, frontend, and tests changed.",
+      session_id: defaultSessionId,
+      source_digest: "sha256:current",
+      task_id: "task-1",
+      turn_id: null,
+      unresolved_risk_count: 1,
+      updated_at: timestamp(3),
+    },
+    inventory_status: {
+      current_source_digest: "sha256:current",
+      freshness: "fresh",
+      reason: null,
+      recorded_source_digest: "sha256:current",
+      safe_next_actions: [`glassbox changeset refresh ${changeset.changeset_id} --cwd .`],
+      stale: false,
+    },
+    limitations: [],
+    readiness: [
+      {
+        accepted_risk_count: 1,
+        blockers: [],
+        changeset_id: changeset.changeset_id,
+        decided_by: "operator",
+        inventory_artifact_id: "artifact-inventory",
+        last_sequence: 8,
+        readiness_kind: "review",
+        reason: "deterministic changeset evidence is ready for reviewer inspection",
+        review_brief_artifact_id: latestBriefId,
+        safe_next_actions: [`glassbox changeset show ${changeset.changeset_id} --cwd .`],
+        session_id: defaultSessionId,
+        state: "ready",
+        task_id: "task-1",
+        turn_id: null,
+        updated_at: timestamp(4),
+        verification_id: "verification-1",
+      },
+    ],
+    review_briefs:
+      latestBriefId === null
+        ? []
+        : [
+            {
+              artifact_id: latestBriefId,
+              artifact_schema_version: 1,
+              changeset_id: changeset.changeset_id,
+              created_at: timestamp(4),
+              created_by: "operator",
+              inventory_artifact_id: "artifact-inventory",
+              last_sequence: 7,
+              local_only: true,
+              redacted: true,
+              render_targets: ["markdown", "json"],
+              session_id: defaultSessionId,
+              task_id: "task-1",
+              turn_id: null,
+              verification_id: "verification-1",
+            },
+          ],
+    safe_next_actions: [`glassbox changeset show ${changeset.changeset_id} --cwd .`],
+    sources: [
+      {
+        artifact_id: null,
+        branch_candidate_id: "candidate-1",
+        branch_search_id: "search-1",
+        changeset_id: changeset.changeset_id,
+        created_at: timestamp(1),
+        last_sequence: 2,
+        limitation: null,
+        reason: "created from selected branch-search candidate",
+        session_id: defaultSessionId,
+        source_kind: "branch_search_candidate",
+        source_session_id: defaultChildSessionId,
+        task_id: "task-1",
+        turn_id: null,
+        verification_id: "verification-1",
+      },
+    ],
+    verification_posture: {
+      accepted_risk_count: 1,
+      artifact_id: "artifact-1",
+      changeset_id: changeset.changeset_id,
+      failed_count: 0,
+      last_sequence: 7,
+      missing_count: 0,
+      session_id: defaultSessionId,
+      stale_count: 0,
+      state: "passed",
+      summary: "Targeted dashboard checks passed.",
+      task_id: "task-1",
+      turn_id: null,
+      updated_at: timestamp(4),
+      verification_id: "verification-1",
+    },
+  };
+}
+
+function makeChangesetVerificationPlan(changesetId: string): ChangesetVerificationPlan {
+  return {
+    changed_paths: [
+      "frontend/components/console/changeset-console.tsx",
+      "frontend/stores/changeset-store.ts",
+    ],
+    changeset_id: changesetId,
+    eval_profiles: ["commit-smoke"],
+    expected_scope: ["frontend/components/console/changeset-console.tsx"],
+    inventory_artifact_id: "artifact-inventory",
+    inventory_freshness: "fresh",
+    limitations: [],
+    non_claims: ["verification plan preview does not run commands"],
+    readiness: {
+      accepted_risk_count: 1,
+      failed_count: 0,
+      missing_count: 0,
+      non_claims: ["verification readiness is advisory review posture, not proof"],
+      requirements: [
+        {
+          artifact_id: "artifact-1",
+          blocking: true,
+          changed_paths: ["frontend/components/console/changeset-console.tsx"],
+          check_name: "frontend checks",
+          command: ["pnpm", "run", "test"],
+          evidence_summary: "component tests passed",
+          kind: "test",
+          reason: "retained verification passed",
+          requirement_id: "frontend-tests",
+          safe_next_actions: ["pnpm run test"],
+          source: "changed_paths",
+          state: "passed",
+          verification_id: "verification-1",
+        },
+      ],
+      safe_next_actions: ["pnpm run test"],
+      stale_count: 0,
+      state: "passed",
+      summary: "verification readiness passed with accepted risk",
+    },
+    reason_groups: [],
+    recommended_commands: ["pnpm run test"],
+    recipes: [],
+    retained_artifact_ids: ["artifact-1"],
+    safe_next_actions: ["pnpm run test"],
+    session_id: defaultSessionId,
   };
 }
 

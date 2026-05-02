@@ -196,6 +196,12 @@ export function changesetConsoleActions({
       }
       void changesetStore.getState().refreshChangeset();
     },
+    onGenerateReviewBrief: () => {
+      if (!confirmAction("Generate a reviewer-safe brief for this changeset?")) {
+        return;
+      }
+      void changesetStore.getState().generateReviewBrief();
+    },
     onSelectChangeset: (changesetId: string) => {
       navigate(selectChangesetRoute(route, changesetId));
       void changesetStore.getState().selectChangeset(changesetId);

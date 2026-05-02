@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, RefreshCcw } from "lucide-react";
+import { ChevronLeft, FileText, RefreshCcw } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import type {
 export type ChangesetConsoleProps = {
   action?: ChangesetActionStatus;
   detail: ChangesetDetailState;
+  onGenerateReviewBrief?: () => void;
   onRefresh?: () => void;
   onRefreshChangeset?: () => void;
   onSelectChangeset?: (changesetId: string) => void;
@@ -26,6 +27,7 @@ export type ChangesetConsoleProps = {
 export function ChangesetConsole({
   action = { error: null, kind: null, state: "idle" },
   detail,
+  onGenerateReviewBrief,
   onRefresh,
   onRefreshChangeset,
   onSelectChangeset,
@@ -65,6 +67,7 @@ export function ChangesetConsole({
           <ChangesetDetail
             action={action}
             detail={detail}
+            onGenerateReviewBrief={onGenerateReviewBrief}
             onRefreshChangeset={onRefreshChangeset}
             onShowList={onShowList}
           />
@@ -117,11 +120,13 @@ function ChangesetList({
 function ChangesetDetail({
   action,
   detail,
+  onGenerateReviewBrief,
   onRefreshChangeset,
   onShowList,
 }: {
   action: ChangesetActionStatus;
   detail: ChangesetDetailState;
+  onGenerateReviewBrief?: () => void;
   onRefreshChangeset?: () => void;
   onShowList?: () => void;
 }) {
@@ -140,6 +145,11 @@ function ChangesetDetail({
   const staleInventory = inventoryStatus.stale || inventoryStatus.freshness === "stale";
   const verificationPlan = detail.verificationPlan;
   const verificationState = verificationPlan?.readiness.state ?? "missing";
+  const reviewReadiness = detail.detail.readiness.find(
+    (readiness) => readiness.readiness_kind === "review",
+  );
+  const branchCandidate = changeset.branch_search_id ?? changeset.branch_candidate_id;
+  const briefCount = detail.detail.review_briefs.length;
   return (
     <article className="rounded-md border border-border/80 bg-card p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -171,6 +181,16 @@ function ChangesetDetail({
           </Button>
           <Button
             disabled={action.state === "pending"}
+            onClick={onGenerateReviewBrief}
+            size="sm"
+            type="button"
+            variant={briefCount > 0 ? "outline" : "default"}
+          >
+            <FileText className={operatorIconSizeClass} aria-hidden="true" />
+            Brief
+          </Button>
+          <Button
+            disabled={action.state === "pending"}
             onClick={onRefreshChangeset}
             size="sm"
             type="button"
@@ -199,10 +219,48 @@ function ChangesetDetail({
       {inventoryStatus.reason ? (
         <StateLine tone={staleInventory ? "destructive" : "muted"} value={inventoryStatus.reason} />
       ) : null}
+      <ReviewPanel
+        briefCount={briefCount}
+        latestBriefId={changeset.latest_review_brief_artifact_id ?? null}
+        readiness={reviewReadiness}
+      />
+      <InventoryPanel detail={detail.detail} />
       <VerificationPanel
         posture={detail.detail.verification_posture}
         verificationPlan={verificationPlan}
       />
+      {branchCandidate ? (
+        <Section title="Branch Candidate">
+          <DataList density="compact">
+            <DataListItem>
+              <DataListLabel>{changeset.branch_candidate_id ?? "Candidate pending"}</DataListLabel>
+              <DataListMeta>
+                Search {changeset.branch_search_id ?? "unknown"} - rationale is retained through
+                source evidence and brief references.
+              </DataListMeta>
+            </DataListItem>
+          </DataList>
+        </Section>
+      ) : null}
+      <Section title="Brief Artifacts">
+        {detail.detail.review_briefs.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No reviewer-safe brief artifact is attached yet.
+          </p>
+        ) : (
+          <DataList density="compact">
+            {detail.detail.review_briefs.map((brief) => (
+              <DataListItem key={brief.artifact_id}>
+                <DataListLabel className="break-all">{brief.artifact_id}</DataListLabel>
+                <DataListMeta>
+                  {brief.render_targets.join(", ")} - local only {String(brief.local_only)} -
+                  sequence {brief.last_sequence}
+                </DataListMeta>
+              </DataListItem>
+            ))}
+          </DataList>
+        )}
+      </Section>
       <Section title="Sources">
         {detail.detail.sources.length === 0 ? (
           <p className="text-sm text-muted-foreground">No source records attached.</p>
@@ -237,6 +295,78 @@ function ChangesetDetail({
         </Section>
       ) : null}
     </article>
+  );
+}
+
+function ReviewPanel({
+  briefCount,
+  latestBriefId,
+  readiness,
+}: {
+  briefCount: number;
+  latestBriefId: string | null;
+  readiness: NonNullable<ChangesetDetailState["detail"]>["readiness"][number] | undefined;
+}) {
+  const state = readiness?.state ?? "needs_review";
+  const blockers = readiness?.blockers ?? [];
+  return (
+    <Section title="Review Readiness">
+      <div className="grid gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={readinessBadgeVariant(state)}>{state.replaceAll("_", " ")}</Badge>
+          <Badge variant={briefCount > 0 ? "success" : "warning"}>{briefCount} brief</Badge>
+          {latestBriefId ? <Badge variant="outline">Latest brief attached</Badge> : null}
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {readiness?.reason ??
+            "Generate a brief after inventory and verification evidence settle."}
+        </p>
+        {latestBriefId ? (
+          <p className="break-all text-console text-muted-foreground">{latestBriefId}</p>
+        ) : null}
+        {blockers.length > 0 ? (
+          <DataList density="compact">
+            {blockers.map((blocker) => (
+              <DataListItem key={blocker}>
+                <DataListLabel>Blocker</DataListLabel>
+                <DataListMeta>{blocker}</DataListMeta>
+              </DataListItem>
+            ))}
+          </DataList>
+        ) : null}
+      </div>
+    </Section>
+  );
+}
+
+function InventoryPanel({ detail }: { detail: NonNullable<ChangesetDetailState["detail"]> }) {
+  const inventory = detail.inventory;
+  if (inventory == null) {
+    return (
+      <Section title="Changed Files">
+        <p className="text-sm text-muted-foreground">No structured inventory is attached yet.</p>
+      </Section>
+    );
+  }
+  return (
+    <Section title="Changed Files">
+      <DataList density="compact">
+        <DataListItem>
+          <DataListLabel>{inventory.changed_path_count} changed paths</DataListLabel>
+          <DataListMeta>
+            Risk {inventory.risk_level} - {inventory.unresolved_risk_count} unresolved -{" "}
+            {inventory.accepted_risk_count} accepted
+          </DataListMeta>
+        </DataListItem>
+        <DataListItem>
+          <DataListLabel>{inventory.artifact_id}</DataListLabel>
+          <DataListMeta>
+            Inventory artifact - freshness {detail.inventory_status.freshness} - sequence{" "}
+            {inventory.last_sequence}
+          </DataListMeta>
+        </DataListItem>
+      </DataList>
+    </Section>
   );
 }
 
@@ -334,6 +464,24 @@ function verificationBadgeVariant(
   }
   if (state === "accepted_with_risk" || state === "skipped") {
     return "outline";
+  }
+  return "muted";
+}
+
+function readinessBadgeVariant(
+  state: string,
+): "destructive" | "muted" | "outline" | "success" | "warning" {
+  if (state === "ready") {
+    return "success";
+  }
+  if (state === "failed_checks" || state === "not_ready") {
+    return "destructive";
+  }
+  if (state === "accepted_with_risk") {
+    return "outline";
+  }
+  if (state === "needs_verification" || state === "stale_inventory") {
+    return "warning";
   }
   return "muted";
 }

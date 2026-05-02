@@ -27,6 +27,10 @@ describe("Next.js development proxy configuration", () => {
         destination: "/",
       },
       {
+        source: "/changesets/:path*",
+        destination: "/",
+      },
+      {
         source: "/queues/:path*",
         destination: "/",
       },
@@ -47,6 +51,16 @@ describe("Next.js development proxy configuration", () => {
       {
         source: "/sessions/:path*",
         destination: "http://127.0.0.1:9000/sessions/:path*",
+        basePath: false,
+      },
+      {
+        source: "/changesets",
+        destination: "http://127.0.0.1:9000/changesets",
+        basePath: false,
+      },
+      {
+        source: "/changesets/:path*",
+        destination: "http://127.0.0.1:9000/changesets/:path*",
         basePath: false,
       },
     ]);

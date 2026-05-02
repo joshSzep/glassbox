@@ -929,7 +929,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1242: Add Dashboard Review Surface
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1241`
 - Goal: make the dashboard a practical place to review the resulting change
 - Deliverables:
@@ -950,6 +950,20 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - a reviewer can inspect a changeset in the dashboard without jumping across
     unrelated session panes
+- Completion evidence:
+  - Upgraded the existing `/app/changesets` dashboard surface with review
+    readiness, changed-file inventory summary, verification posture, blocker
+    badges, branch-candidate rationale, brief artifacts, source evidence,
+    limitations, and safe inspection commands in one changeset-centered panel.
+  - Added a dashboard `Brief` action wired through the frontend API client and
+    changeset store to `POST /changesets/{changeset_id}/brief`, refreshing
+    detail, readiness, and latest brief artifact state after generation.
+  - Extended API client, store, component, fixture, and Playwright coverage for
+    the review flow and generated-brief action.
+  - Updated [dashboard.md](./dashboard.md) with the changeset review-surface
+    behavior and non-mutation boundary.
+  - Verified with frontend format, lint, typecheck, component/unit tests,
+    production build/static export, and Playwright review-flow smoke.
 
 ### GBX-1243: Add Reviewer-Safe Export Package For Changesets
 

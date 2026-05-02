@@ -269,6 +269,32 @@ test("operator can review memory and repository inspectors from the keyboard", a
   ]);
 });
 
+test("reviewer can inspect a changeset and generate a brief", async ({ page }) => {
+  const fixture = await installGlassboxApiFixture(page);
+  page.on("dialog", (dialog) => dialog.accept());
+
+  await openClientRoute(page, "/app/changesets/changeset-1");
+
+  await expect(
+    page.getByRole("heading", { name: "Review dashboard changeset evidence" }),
+  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Review Readiness" })).toBeVisible();
+  await expect(page.getByText("deterministic changeset evidence is ready")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Changed Files" })).toBeVisible();
+  await expect(page.getByText("4 changed paths")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Verification" })).toBeVisible();
+  await expect(page.getByText("verification readiness passed")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Branch Candidate" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Brief Artifacts" })).toBeVisible();
+  await expect(page.getByText("brief-artifact-1").first()).toBeVisible();
+
+  await page.getByRole("button", { name: "Brief" }).click();
+  await expect
+    .poll(() => fixture.actions.map((action) => action.url))
+    .toContain("/changesets/changeset-1/brief");
+  await expect(page.getByText("brief-artifact-2").first()).toBeVisible();
+});
+
 test("mobile operator can select a branch-search candidate from the keyboard", async ({ page }) => {
   const fixture = await installGlassboxApiFixture(page);
   page.on("dialog", (dialog) => dialog.accept());
