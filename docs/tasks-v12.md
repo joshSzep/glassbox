@@ -696,7 +696,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1230: Define Changeset Verification Readiness Model
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1223`
 - Goal: turn verification recommendations and ledgers into one readiness
   posture for a local change
@@ -717,6 +717,22 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - a changeset can say what verification it needs and what evidence already
     exists
+- Completion evidence:
+  - Added `src/glassbox/runtime/changeset_verification_readiness.py` with a
+    deterministic readiness derivation model for planned, missing, running,
+    passed, failed, stale, skipped, accepted-with-risk, and not-applicable
+    states.
+  - The model maps change inventory freshness, changed paths, advisory risk,
+    task verification ledger entries, eval recommendations, workspace profile
+    defaults, verification recipes, and retained command evidence into
+    requirement-level and aggregate readiness posture.
+  - Added [changeset-verification-readiness.md](./changeset-verification-readiness.md)
+    and linked it from the docs hub to explain readiness versus proof and
+    current non-claims.
+  - Added unit coverage for missing inventory, stale inventory, eval recipe
+    recommendations, passed/failed ledger evidence, workspace-profile defaults,
+    and no-changed-path not-applicable posture.
+  - Verified with focused unit tests, docs link/guardrail tests, ruff, and ty.
 
 ### GBX-1231: Detect Stale Verification Against Changed Paths
 

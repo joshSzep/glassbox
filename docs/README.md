@@ -185,6 +185,9 @@ v11 confidence and adoption release candidate.
   reviewable-change lifecycle gaps
 - [change-inventory.md](./change-inventory.md): v12 summary-only changed-file
   artifact contract, including path fields, limits, redaction, and non-claims
+- [changeset-verification-readiness.md](./changeset-verification-readiness.md):
+  v12 advisory verification readiness model for local changesets, including
+  state aggregation, inputs, stale inventory handling, and non-claims
 - [v10-release-candidate.md](./v10-release-candidate.md): release-candidate
   narrative tying the v10 contract, gate, dogfooding, package, provider, and
   residual-risk evidence together
