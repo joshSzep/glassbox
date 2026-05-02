@@ -1347,7 +1347,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1271: Build Topology From Repository Index And Manifests
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1270`
 - Goal: derive topology from existing repository intelligence and deterministic
   local manifests
@@ -1366,6 +1366,15 @@ Each phase below corresponds to one concrete milestone.
   - CLI/API tests
 - Done when:
   - topology can be rebuilt and inspected locally
+- Completion notes:
+  - Added deterministic topology build/load/write helpers that reuse repository
+    index discovery bounds and inspect `pyproject.toml`, `package.json`,
+    lockfiles, docs roots, test roots, generated roots, and dependency
+    declarations.
+  - Added `glassbox repo topology build/status/show` and `/repo/topology`
+    status/detail/rebuild API routes for local inspection.
+  - Covered builder freshness, CLI commands, and web routes with focused
+    topology fixtures.
 
 ### GBX-1272: Improve Path-To-Test And Recipe Recommendations
 

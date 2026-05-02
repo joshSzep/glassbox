@@ -9571,6 +9571,127 @@
         "title": "ToolCallResponse",
         "type": "object"
       },
+      "TopologyManifestResponse": {
+        "properties": {
+          "ecosystem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ecosystem"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "package_manager": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Package Manager"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/TopologyProvenanceResponse"
+            },
+            "title": "Provenance",
+            "type": "array"
+          }
+        },
+        "required": ["path", "kind", "provenance"],
+        "title": "TopologyManifestResponse",
+        "type": "object"
+      },
+      "TopologyProvenanceResponse": {
+        "properties": {
+          "content_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Sha256"
+          },
+          "line_end": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line End"
+          },
+          "line_start": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Start"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "source_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Label"
+          }
+        },
+        "required": ["source"],
+        "title": "TopologyProvenanceResponse",
+        "type": "object"
+      },
       "TranscriptMessageResponse": {
         "properties": {
           "created_at": {
@@ -10695,6 +10816,374 @@
           "started_at"
         ],
         "title": "WorkspaceRuntimeSummaryResponse",
+        "type": "object"
+      },
+      "WorkspaceTopologyComponentResponse": {
+        "properties": {
+          "component_id": {
+            "title": "Component Id",
+            "type": "string"
+          },
+          "docs_roots": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Docs Roots",
+            "type": "array"
+          },
+          "ecosystem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ecosystem"
+          },
+          "generated_output_roots": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Generated Output Roots",
+            "type": "array"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "lockfiles": {
+            "items": {
+              "$ref": "#/components/schemas/TopologyManifestResponse"
+            },
+            "title": "Lockfiles",
+            "type": "array"
+          },
+          "manifests": {
+            "items": {
+              "$ref": "#/components/schemas/TopologyManifestResponse"
+            },
+            "title": "Manifests",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "ownership_hints": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ownership Hints",
+            "type": "array"
+          },
+          "package_manager": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Package Manager"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/TopologyProvenanceResponse"
+            },
+            "title": "Provenance",
+            "type": "array"
+          },
+          "root_path": {
+            "title": "Root Path",
+            "type": "string"
+          },
+          "source_roots": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Roots",
+            "type": "array"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "test_roots": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Test Roots",
+            "type": "array"
+          }
+        },
+        "required": [
+          "component_id",
+          "kind",
+          "name",
+          "root_path",
+          "manifests",
+          "lockfiles",
+          "source_roots",
+          "test_roots",
+          "docs_roots",
+          "generated_output_roots",
+          "ownership_hints",
+          "tags",
+          "provenance"
+        ],
+        "title": "WorkspaceTopologyComponentResponse",
+        "type": "object"
+      },
+      "WorkspaceTopologyDependencyResponse": {
+        "properties": {
+          "dependency_id": {
+            "title": "Dependency Id",
+            "type": "string"
+          },
+          "external_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Name"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "manifest_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manifest Path"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/TopologyProvenanceResponse"
+            },
+            "title": "Provenance",
+            "type": "array"
+          },
+          "source_component_id": {
+            "title": "Source Component Id",
+            "type": "string"
+          },
+          "target_component_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Component Id"
+          },
+          "version_constraint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Constraint"
+          }
+        },
+        "required": ["dependency_id", "source_component_id", "kind", "provenance"],
+        "title": "WorkspaceTopologyDependencyResponse",
+        "type": "object"
+      },
+      "WorkspaceTopologyDetailResponse": {
+        "properties": {
+          "components": {
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceTopologyComponentResponse"
+            },
+            "title": "Components",
+            "type": "array"
+          },
+          "dependencies": {
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceTopologyDependencyResponse"
+            },
+            "title": "Dependencies",
+            "type": "array"
+          },
+          "topology": {
+            "$ref": "#/components/schemas/WorkspaceTopologyStatusResponse"
+          }
+        },
+        "required": ["topology", "components", "dependencies"],
+        "title": "WorkspaceTopologyDetailResponse",
+        "type": "object"
+      },
+      "WorkspaceTopologyRebuildRequest": {
+        "properties": {
+          "requested_by": {
+            "default": "operator",
+            "title": "Requested By",
+            "type": "string"
+          }
+        },
+        "title": "WorkspaceTopologyRebuildRequest",
+        "type": "object"
+      },
+      "WorkspaceTopologyRebuildResponse": {
+        "properties": {
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "topology": {
+            "$ref": "#/components/schemas/WorkspaceTopologyStatusResponse"
+          }
+        },
+        "required": ["status", "topology"],
+        "title": "WorkspaceTopologyRebuildResponse",
+        "type": "object"
+      },
+      "WorkspaceTopologyStatusResponse": {
+        "properties": {
+          "builder_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Builder Version"
+          },
+          "built_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Built At"
+          },
+          "component_count": {
+            "title": "Component Count",
+            "type": "integer"
+          },
+          "dependency_count": {
+            "title": "Dependency Count",
+            "type": "integer"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "failure_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Reason"
+          },
+          "freshness": {
+            "title": "Freshness",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Next Actions",
+            "type": "array"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "recommendation_posture": {
+            "title": "Recommendation Posture",
+            "type": "string"
+          },
+          "schema_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schema Version"
+          },
+          "source_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Digest"
+          }
+        },
+        "required": [
+          "freshness",
+          "path",
+          "component_count",
+          "dependency_count",
+          "recommendation_posture",
+          "limitations",
+          "next_actions"
+        ],
+        "title": "WorkspaceTopologyStatusResponse",
         "type": "object"
       }
     }
@@ -12479,6 +12968,86 @@
           }
         },
         "summary": "Get Repository Index Status",
+        "tags": ["repo"]
+      }
+    },
+    "/repo/topology": {
+      "get": {
+        "description": "Return retained workspace topology components and dependencies.",
+        "operationId": "get_workspace_topology_detail_repo_topology_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceTopologyDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Workspace Topology Detail",
+        "tags": ["repo"]
+      }
+    },
+    "/repo/topology/rebuild": {
+      "post": {
+        "description": "Refresh workspace topology synchronously.",
+        "operationId": "rebuild_workspace_topology_repo_topology_rebuild_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceTopologyRebuildRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceTopologyRebuildResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rebuild Workspace Topology",
+        "tags": ["repo"]
+      }
+    },
+    "/repo/topology/status": {
+      "get": {
+        "description": "Return workspace topology freshness and size.",
+        "operationId": "get_workspace_topology_status_repo_topology_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceTopologyStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Workspace Topology Status",
         "tags": ["repo"]
       }
     },

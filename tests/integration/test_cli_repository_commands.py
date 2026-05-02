@@ -107,6 +107,65 @@ def test_repo_index_status_reports_missing_snapshot(tmp_path: Path, capsys) -> N
     ]
 
 
+def test_repo_topology_build_status_and_show_commands(tmp_path: Path, capsys) -> None:
+    _seed_repository(tmp_path)
+    (tmp_path / "frontend").mkdir()
+    (tmp_path / "frontend" / "package.json").write_text(
+        '{"name":"fixture-dashboard","dependencies":{"react":"latest"}}',
+        encoding="utf-8",
+    )
+    (tmp_path / "frontend" / "pnpm-lock.yaml").write_text("", encoding="utf-8")
+
+    build_exit = main(
+        [
+            "repo",
+            "topology",
+            "build",
+            "--cwd",
+            str(tmp_path),
+            "--json",
+        ]
+    )
+    build_payload = json.loads(capsys.readouterr().out)
+
+    status_exit = main(
+        [
+            "repo",
+            "topology",
+            "status",
+            "--cwd",
+            str(tmp_path),
+            "--json",
+        ]
+    )
+    status_payload = json.loads(capsys.readouterr().out)
+
+    show_exit = main(
+        [
+            "repo",
+            "topology",
+            "show",
+            "--cwd",
+            str(tmp_path),
+            "--json",
+        ]
+    )
+    show_payload = json.loads(capsys.readouterr().out)
+
+    assert build_exit == 0
+    assert build_payload["freshness"] == "fresh"
+    assert {component["component_id"] for component in build_payload["components"]} >= {
+        "package:fixture",
+        "app:fixture-dashboard",
+    }
+    assert status_exit == 0
+    assert status_payload["freshness"] == "fresh"
+    assert status_payload["recommendation_posture"] == "fresh"
+    assert status_payload["component_count"] == len(build_payload["components"])
+    assert show_exit == 0
+    assert show_payload["dependencies"][0]["external_name"] == "react"
+
+
 def test_repo_index_status_human_output_explains_stale_snapshot(
     tmp_path: Path,
     capsys,

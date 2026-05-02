@@ -75,6 +75,33 @@ builder added in a later task should reuse repository-index scan exclusions and
 provenance where possible, then retain topology-specific freshness and
 dependency edges.
 
+## Build And Inspect
+
+Use the local CLI commands:
+
+```bash
+glassbox repo topology build --cwd .
+glassbox repo topology status --cwd .
+glassbox repo topology show --cwd .
+```
+
+The retained snapshot is stored at `.glassbox/workspace-topology.json`. The
+builder uses the same bounded file discovery and exclusion rules as the
+repository intelligence index, then inspects supported manifests such as
+`pyproject.toml`, `package.json`, and lockfiles. The first builder intentionally
+avoids expensive semantic analysis; it records deterministic package/app/docs
+components, known roots, generated-output roots, external dependencies, and
+freshness metadata.
+
+The local web API exposes:
+
+- `GET /repo/topology/status`
+- `GET /repo/topology`
+- `POST /repo/topology/rebuild`
+
+If source inputs change after a build, `load_workspace_topology()` marks the
+snapshot `stale` and consumers must treat recommendations as degraded.
+
 ## Validation Fixtures
 
 The model test matrix covers:

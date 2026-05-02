@@ -14,19 +14,30 @@ from glassbox.runtime.repository_index import get_repository_index_entry
 from glassbox.runtime.repository_index import load_repository_index
 from glassbox.runtime.repository_index import repository_index_path
 from glassbox.runtime.repository_index import search_repository_index
+from glassbox.runtime.workspace_topology import WorkspaceTopologyNotFoundError
+from glassbox.runtime.workspace_topology import build_and_write_workspace_topology
+from glassbox.runtime.workspace_topology import load_workspace_topology
+from glassbox.runtime.workspace_topology import workspace_topology_path
 from glassbox.web.app import RuntimeContextDep
 from glassbox.web.repository_index_api import RepositoryIndexEntryDetailResponse
 from glassbox.web.repository_index_api import RepositoryIndexRebuildRequest
 from glassbox.web.repository_index_api import RepositoryIndexRebuildResponse
 from glassbox.web.repository_index_api import RepositoryIndexSearchPageResponse
 from glassbox.web.repository_index_api import RepositoryIndexStatusResponse
+from glassbox.web.repository_index_api import WorkspaceTopologyDetailResponse
+from glassbox.web.repository_index_api import WorkspaceTopologyRebuildRequest
+from glassbox.web.repository_index_api import WorkspaceTopologyRebuildResponse
+from glassbox.web.repository_index_api import WorkspaceTopologyStatusResponse
 from glassbox.web.repository_index_api import build_repository_index_entry_response
 from glassbox.web.repository_index_api import build_repository_index_entry_responses
 from glassbox.web.repository_index_api import build_repository_index_status_response
+from glassbox.web.repository_index_api import build_workspace_topology_detail_response
+from glassbox.web.repository_index_api import build_workspace_topology_status_response
 from glassbox.web.session_api import PageInfoResponse
 from glassbox.web.task_api import build_background_job_response
 
 router = APIRouter(prefix="/repo/index", tags=["repo"])
+topology_router = APIRouter(prefix="/repo/topology", tags=["repo"])
 
 
 @router.get("/status", response_model=RepositoryIndexStatusResponse)
@@ -142,5 +153,75 @@ def rebuild_repository_index(
             "was supplied"
             if request.background and owner_status.state == "running"
             else None
+        ),
+    )
+
+
+@topology_router.get("/status", response_model=WorkspaceTopologyStatusResponse)
+def get_workspace_topology_status(
+    context: RuntimeContextDep,
+) -> WorkspaceTopologyStatusResponse:
+    """Return workspace topology freshness and size."""
+
+    workspace_root = context.infrastructure.artifacts_root
+    path = workspace_topology_path(workspace_root)
+    try:
+        snapshot = load_workspace_topology(workspace_root)
+    except WorkspaceTopologyNotFoundError:
+        return WorkspaceTopologyStatusResponse(
+            freshness="missing",
+            path=str(path),
+            component_count=0,
+            dependency_count=0,
+            recommendation_posture="unavailable",
+            limitations=[],
+            detail="workspace topology has not been built",
+            next_actions=[
+                f"glassbox repo topology build --cwd {workspace_root.resolve()}",
+            ],
+        )
+    next_actions = (
+        [f"glassbox repo topology build --cwd {workspace_root.resolve()}"]
+        if snapshot.freshness != "fresh"
+        else []
+    )
+    return build_workspace_topology_status_response(
+        snapshot,
+        path=str(path),
+        next_actions=next_actions,
+    )
+
+
+@topology_router.get("", response_model=WorkspaceTopologyDetailResponse)
+def get_workspace_topology_detail(
+    context: RuntimeContextDep,
+) -> WorkspaceTopologyDetailResponse:
+    """Return retained workspace topology components and dependencies."""
+
+    workspace_root = context.infrastructure.artifacts_root
+    try:
+        snapshot = load_workspace_topology(workspace_root)
+    except WorkspaceTopologyNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    return build_workspace_topology_detail_response(
+        snapshot,
+        path=str(workspace_topology_path(workspace_root)),
+    )
+
+
+@topology_router.post("/rebuild", response_model=WorkspaceTopologyRebuildResponse)
+def rebuild_workspace_topology(
+    _request: WorkspaceTopologyRebuildRequest,
+    context: RuntimeContextDep,
+) -> WorkspaceTopologyRebuildResponse:
+    """Refresh workspace topology synchronously."""
+
+    workspace_root = context.infrastructure.artifacts_root
+    snapshot = build_and_write_workspace_topology(workspace_root)
+    return WorkspaceTopologyRebuildResponse(
+        status=snapshot.freshness,
+        topology=build_workspace_topology_status_response(
+            snapshot,
+            path=str(workspace_topology_path(workspace_root)),
         ),
     )

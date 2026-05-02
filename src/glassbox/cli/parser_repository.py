@@ -76,5 +76,39 @@ def _add_repository_parsers(
     show_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(show_parser)
 
+    topology_parser = repo_subparsers.add_parser(
+        "topology",
+        help="build and inspect workspace topology",
+        description="Build and inspect deterministic local workspace topology.",
+    )
+    topology_subparsers = topology_parser.add_subparsers(
+        dest="repo_topology_command",
+        required=True,
+    )
+
+    topology_build_parser = topology_subparsers.add_parser(
+        "build",
+        help="build workspace topology",
+        description="Build and persist deterministic local workspace topology.",
+    )
+    topology_build_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(topology_build_parser)
+
+    topology_status_parser = topology_subparsers.add_parser(
+        "status",
+        help="show workspace topology status",
+        description="Show workspace topology freshness and component counts.",
+    )
+    topology_status_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(topology_status_parser)
+
+    topology_show_parser = topology_subparsers.add_parser(
+        "show",
+        help="show workspace topology",
+        description="Show the retained workspace topology snapshot.",
+    )
+    topology_show_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(topology_show_parser)
+
 
 __all__ = ["_add_repository_parsers"]

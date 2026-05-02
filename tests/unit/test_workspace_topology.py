@@ -14,6 +14,9 @@ from glassbox.runtime.workspace_topology import TopologyProvenanceSource
 from glassbox.runtime.workspace_topology import WorkspaceTopologyComponent
 from glassbox.runtime.workspace_topology import WorkspaceTopologyDependency
 from glassbox.runtime.workspace_topology import WorkspaceTopologySnapshot
+from glassbox.runtime.workspace_topology import build_workspace_topology
+from glassbox.runtime.workspace_topology import load_workspace_topology
+from glassbox.runtime.workspace_topology import write_workspace_topology
 
 
 def test_python_only_topology_snapshot_names_package_and_tests() -> None:
@@ -223,6 +226,37 @@ def test_topology_rejects_ambiguous_or_invalid_shapes() -> None:
         _component("package:absolute", "package", "absolute", "/tmp/repo/src")
 
 
+def test_topology_builder_derives_components_dependencies_and_stale_status(
+    tmp_path: Path,
+) -> None:
+    _seed_mixed_workspace(tmp_path)
+
+    snapshot = build_workspace_topology(tmp_path)
+    write_workspace_topology(tmp_path, snapshot)
+    loaded = load_workspace_topology(tmp_path)
+
+    component_ids = {component.component_id for component in loaded.components}
+    dependency_names = {dependency.external_name for dependency in loaded.dependencies}
+    assert loaded.freshness == "fresh"
+    assert "package:glassbox-fixture" in component_ids
+    assert "app:fixture-dashboard" in component_ids
+    assert "docs:docs" in component_ids
+    assert {"pydantic", "react", "vitest"}.issubset(dependency_names)
+    assert loaded.component_ids_for_path("frontend/components/app.tsx") == [
+        "app:fixture-dashboard",
+        "package:glassbox-fixture",
+    ]
+
+    (tmp_path / "src" / "glassbox_fixture" / "new.py").write_text(
+        "VALUE = 1\n",
+        encoding="utf-8",
+    )
+
+    stale = load_workspace_topology(tmp_path)
+    assert stale.freshness == "stale"
+    assert stale.recommendation_posture == "degraded"
+
+
 def _component(
     component_id: str,
     kind: TopologyComponentKind,
@@ -249,3 +283,32 @@ def _provenance(path: str, source: TopologyProvenanceSource) -> TopologyProvenan
 
 def _now() -> datetime:
     return datetime(2026, 5, 2, tzinfo=UTC)
+
+
+def _seed_mixed_workspace(root: Path) -> None:
+    (root / "src" / "glassbox_fixture").mkdir(parents=True)
+    (root / "src" / "glassbox_fixture" / "__init__.py").write_text("", encoding="utf-8")
+    (root / "tests").mkdir()
+    (root / "tests" / "test_fixture.py").write_text(
+        "def test_ok(): pass\n", encoding="utf-8"
+    )
+    (root / "docs").mkdir()
+    (root / "docs" / "index.md").write_text("# Docs\n", encoding="utf-8")
+    (root / "frontend" / "components").mkdir(parents=True)
+    (root / "frontend" / "components" / "app.tsx").write_text(
+        "export function App() { return null; }\n",
+        encoding="utf-8",
+    )
+    (root / "frontend" / "tests").mkdir()
+    (root / "frontend" / "tests" / "app.test.tsx").write_text("test('ok', () => {})\n")
+    (root / "pyproject.toml").write_text(
+        '[project]\nname = "glassbox-fixture"\ndependencies = ["pydantic>=2"]\n',
+        encoding="utf-8",
+    )
+    (root / "uv.lock").write_text("", encoding="utf-8")
+    (root / "frontend" / "package.json").write_text(
+        '{"name":"fixture-dashboard","dependencies":{"react":"latest"},'
+        '"devDependencies":{"vitest":"latest"}}',
+        encoding="utf-8",
+    )
+    (root / "frontend" / "pnpm-lock.yaml").write_text("", encoding="utf-8")

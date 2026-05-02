@@ -19,12 +19,19 @@ from glassbox.runtime.repository_index_status import RepositoryIndexStatusSummar
 from glassbox.runtime.repository_index_status import (
     build_repository_index_status_summary,
 )
+from glassbox.runtime.workspace_topology import WorkspaceTopologyNotFoundError
+from glassbox.runtime.workspace_topology import WorkspaceTopologySnapshot
+from glassbox.runtime.workspace_topology import build_and_write_workspace_topology
+from glassbox.runtime.workspace_topology import load_workspace_topology
+from glassbox.runtime.workspace_topology import workspace_topology_path
 
 
 def _repo_command(args: argparse.Namespace) -> int:
     repo_command = getattr(args, "repo_command", None)
     if repo_command == "index":
         return _repo_index_command(args)
+    if repo_command == "topology":
+        return _repo_topology_command(args)
     raise ValueError(f"unsupported repo subcommand: {repo_command}")
 
 
@@ -39,6 +46,17 @@ def _repo_index_command(args: argparse.Namespace) -> int:
     if index_command == "show":
         return _repo_index_show_command(args)
     raise ValueError(f"unsupported repo index subcommand: {index_command}")
+
+
+def _repo_topology_command(args: argparse.Namespace) -> int:
+    topology_command = getattr(args, "repo_topology_command", None)
+    if topology_command == "build":
+        return _repo_topology_build_command(args)
+    if topology_command == "status":
+        return _repo_topology_status_command(args)
+    if topology_command == "show":
+        return _repo_topology_show_command(args)
+    raise ValueError(f"unsupported repo topology subcommand: {topology_command}")
 
 
 def _repo_index_build_command(args: argparse.Namespace) -> int:
@@ -97,6 +115,59 @@ def _repo_index_show_command(args: argparse.Namespace) -> int:
         print_json_output(entry.model_dump(mode="json"))
     else:
         _print_index_entry(entry)
+    return 0
+
+
+def _repo_topology_build_command(args: argparse.Namespace) -> int:
+    cwd, _ = resolve_runtime_location(args)
+    snapshot = build_and_write_workspace_topology(cwd)
+    if args.json:
+        print_json_output(snapshot.model_dump(mode="json"))
+    else:
+        _print_topology_snapshot(snapshot, workspace_topology_path(cwd))
+    return 0
+
+
+def _repo_topology_status_command(args: argparse.Namespace) -> int:
+    cwd, _ = resolve_runtime_location(args)
+    path = workspace_topology_path(cwd)
+    try:
+        snapshot = load_workspace_topology(cwd)
+    except WorkspaceTopologyNotFoundError:
+        if args.json:
+            print_json_output(
+                {
+                    "freshness": "missing",
+                    "path": str(path),
+                    "component_count": 0,
+                    "dependency_count": 0,
+                    "recommendation_posture": "unavailable",
+                    "detail": "workspace topology has not been built",
+                    "next_actions": [
+                        f"glassbox repo topology build --cwd {cwd.resolve()}"
+                    ],
+                }
+            )
+        else:
+            print("Workspace topology: missing")
+            print(f"Path: {path}")
+            print(f"Next action: glassbox repo topology build --cwd {cwd.resolve()}")
+        return 0
+    payload = _topology_status_payload(snapshot, path)
+    if args.json:
+        print_json_output(payload)
+    else:
+        _print_topology_status(snapshot, path)
+    return 0
+
+
+def _repo_topology_show_command(args: argparse.Namespace) -> int:
+    cwd, _ = resolve_runtime_location(args)
+    snapshot = load_workspace_topology(cwd)
+    if args.json:
+        print_json_output(snapshot.model_dump(mode="json"))
+    else:
+        _print_topology_snapshot(snapshot, workspace_topology_path(cwd))
     return 0
 
 
@@ -180,6 +251,55 @@ def _print_index_entry(entry: RepositoryIndexEntry) -> None:
     for provenance in entry.provenance:
         source_path = provenance.path.as_posix() if provenance.path else "operator hint"
         print(f"Source: {provenance.source_type.value} {source_path}")
+
+
+def _topology_status_payload(
+    snapshot: WorkspaceTopologySnapshot,
+    path: Path,
+) -> dict[str, object]:
+    return {
+        "freshness": snapshot.freshness,
+        "path": str(path),
+        "component_count": len(snapshot.components),
+        "dependency_count": len(snapshot.dependencies),
+        "recommendation_posture": snapshot.recommendation_posture,
+        "built_at": snapshot.built_at.isoformat() if snapshot.built_at else None,
+        "builder_version": snapshot.builder_version,
+        "source_digest": snapshot.source_digest,
+        "limitations": snapshot.limitations,
+        "failure_reason": snapshot.failure_reason,
+        "next_actions": (
+            [f"glassbox repo topology build --cwd {path.parent.parent.resolve()}"]
+            if snapshot.freshness != "fresh"
+            else []
+        ),
+    }
+
+
+def _print_topology_status(snapshot: WorkspaceTopologySnapshot, path: Path) -> None:
+    print(f"Workspace topology: {snapshot.freshness}")
+    print(f"Path: {path}")
+    print(f"Components: {len(snapshot.components)}")
+    print(f"Dependencies: {len(snapshot.dependencies)}")
+    print(f"Recommendation posture: {snapshot.recommendation_posture}")
+    if snapshot.built_at is not None:
+        print(f"Built: {snapshot.built_at.isoformat()}")
+    for limitation in snapshot.limitations:
+        print(f"Limitation: {limitation}")
+
+
+def _print_topology_snapshot(snapshot: WorkspaceTopologySnapshot, path: Path) -> None:
+    _print_topology_status(snapshot, path)
+    for component in snapshot.components:
+        print(
+            f"{component.component_id}  {component.kind:<9}  "
+            f"{component.name}  {component.root_path.as_posix()}"
+        )
+    if snapshot.dependencies:
+        print("Dependencies:")
+        for dependency in snapshot.dependencies[:20]:
+            target = dependency.target_component_id or dependency.external_name
+            print(f"- {dependency.source_component_id} -> {target} ({dependency.kind})")
 
 
 def _print_background_job(job: BackgroundJobRecord) -> None:

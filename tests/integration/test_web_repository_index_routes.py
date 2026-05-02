@@ -106,6 +106,49 @@ def test_repository_index_route_rebuilds_snapshot(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
+def test_workspace_topology_routes_rebuild_status_and_detail(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        _seed_repository(tmp_path)
+        (tmp_path / "frontend").mkdir()
+        (tmp_path / "frontend" / "package.json").write_text(
+            '{"name":"fixture-dashboard","dependencies":{"react":"latest"}}',
+            encoding="utf-8",
+        )
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app = _make_app(tmp_path, connection)
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                missing_response = await client.get("/repo/topology/status")
+                rebuild_response = await client.post(
+                    "/repo/topology/rebuild",
+                    json={"requested_by": "qa"},
+                )
+                status_response = await client.get("/repo/topology/status")
+                detail_response = await client.get("/repo/topology")
+
+            assert missing_response.status_code == 200
+            assert missing_response.json()["freshness"] == "missing"
+            assert rebuild_response.status_code == 200
+            assert rebuild_response.json()["topology"]["freshness"] == "fresh"
+            assert status_response.status_code == 200
+            assert status_response.json()["component_count"] >= 2
+            assert detail_response.status_code == 200
+            component_ids = {
+                component["component_id"]
+                for component in detail_response.json()["components"]
+            }
+            assert "package:fixture" in component_ids
+            assert "app:fixture-dashboard" in component_ids
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
 def _open_initialized_db(tmp_path: Path) -> sqlite3.Connection:
     connection = open_database(tmp_path / "glassbox.sqlite3")
     initialize_database(connection)

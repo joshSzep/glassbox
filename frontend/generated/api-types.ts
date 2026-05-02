@@ -592,6 +592,66 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/repo/topology": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Workspace Topology Detail
+     * @description Return retained workspace topology components and dependencies.
+     */
+    get: operations["get_workspace_topology_detail_repo_topology_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/repo/topology/rebuild": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Rebuild Workspace Topology
+     * @description Refresh workspace topology synchronously.
+     */
+    post: operations["rebuild_workspace_topology_repo_topology_rebuild_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/repo/topology/status": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Workspace Topology Status
+     * @description Return workspace topology freshness and size.
+     */
+    get: operations["get_workspace_topology_status_repo_topology_status_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/sessions": {
     parameters: {
       query?: never;
@@ -4462,6 +4522,36 @@ export interface components {
       /** Turn Id */
       turn_id: string;
     };
+    /** TopologyManifestResponse */
+    TopologyManifestResponse: {
+      /** Ecosystem */
+      ecosystem?: string | null;
+      /** Kind */
+      kind: string;
+      /** Package Manager */
+      package_manager?: string | null;
+      /** Path */
+      path: string;
+      /** Provenance */
+      provenance: components["schemas"]["TopologyProvenanceResponse"][];
+    };
+    /** TopologyProvenanceResponse */
+    TopologyProvenanceResponse: {
+      /** Content Sha256 */
+      content_sha256?: string | null;
+      /** Line End */
+      line_end?: number | null;
+      /** Line Start */
+      line_start?: number | null;
+      /** Note */
+      note?: string | null;
+      /** Path */
+      path?: string | null;
+      /** Source */
+      source: string;
+      /** Source Label */
+      source_label?: string | null;
+    };
     /** TranscriptMessageResponse */
     TranscriptMessageResponse: {
       /**
@@ -4851,6 +4941,111 @@ export interface components {
       state: string;
       /** Workspace Root */
       workspace_root: string;
+    };
+    /** WorkspaceTopologyComponentResponse */
+    WorkspaceTopologyComponentResponse: {
+      /** Component Id */
+      component_id: string;
+      /** Docs Roots */
+      docs_roots: string[];
+      /** Ecosystem */
+      ecosystem?: string | null;
+      /** Generated Output Roots */
+      generated_output_roots: string[];
+      /** Kind */
+      kind: string;
+      /** Language */
+      language?: string | null;
+      /** Lockfiles */
+      lockfiles: components["schemas"]["TopologyManifestResponse"][];
+      /** Manifests */
+      manifests: components["schemas"]["TopologyManifestResponse"][];
+      /** Name */
+      name: string;
+      /** Ownership Hints */
+      ownership_hints: string[];
+      /** Package Manager */
+      package_manager?: string | null;
+      /** Provenance */
+      provenance: components["schemas"]["TopologyProvenanceResponse"][];
+      /** Root Path */
+      root_path: string;
+      /** Source Roots */
+      source_roots: string[];
+      /** Tags */
+      tags: string[];
+      /** Test Roots */
+      test_roots: string[];
+    };
+    /** WorkspaceTopologyDependencyResponse */
+    WorkspaceTopologyDependencyResponse: {
+      /** Dependency Id */
+      dependency_id: string;
+      /** External Name */
+      external_name?: string | null;
+      /** Kind */
+      kind: string;
+      /** Manifest Path */
+      manifest_path?: string | null;
+      /** Provenance */
+      provenance: components["schemas"]["TopologyProvenanceResponse"][];
+      /** Source Component Id */
+      source_component_id: string;
+      /** Target Component Id */
+      target_component_id?: string | null;
+      /** Version Constraint */
+      version_constraint?: string | null;
+    };
+    /** WorkspaceTopologyDetailResponse */
+    WorkspaceTopologyDetailResponse: {
+      /** Components */
+      components: components["schemas"]["WorkspaceTopologyComponentResponse"][];
+      /** Dependencies */
+      dependencies: components["schemas"]["WorkspaceTopologyDependencyResponse"][];
+      topology: components["schemas"]["WorkspaceTopologyStatusResponse"];
+    };
+    /** WorkspaceTopologyRebuildRequest */
+    WorkspaceTopologyRebuildRequest: {
+      /**
+       * Requested By
+       * @default operator
+       */
+      requested_by: string;
+    };
+    /** WorkspaceTopologyRebuildResponse */
+    WorkspaceTopologyRebuildResponse: {
+      /** Status */
+      status: string;
+      topology: components["schemas"]["WorkspaceTopologyStatusResponse"];
+    };
+    /** WorkspaceTopologyStatusResponse */
+    WorkspaceTopologyStatusResponse: {
+      /** Builder Version */
+      builder_version?: string | null;
+      /** Built At */
+      built_at?: string | null;
+      /** Component Count */
+      component_count: number;
+      /** Dependency Count */
+      dependency_count: number;
+      /** Detail */
+      detail?: string | null;
+      /** Failure Reason */
+      failure_reason?: string | null;
+      /** Freshness */
+      freshness: string;
+      /** Limitations */
+      limitations: string[];
+      /** Next Actions */
+      next_actions: string[];
+      /** Path */
+      path: string;
+      /** Recommendation Posture */
+      recommendation_posture: string;
+      /** Schema Version */
+      schema_version?: number | null;
+      /** Source Digest */
+      source_digest?: string | null;
     };
   };
   responses: never;
@@ -6063,6 +6258,79 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["RepositoryIndexStatusResponse"];
+        };
+      };
+    };
+  };
+  get_workspace_topology_detail_repo_topology_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkspaceTopologyDetailResponse"];
+        };
+      };
+    };
+  };
+  rebuild_workspace_topology_repo_topology_rebuild_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["WorkspaceTopologyRebuildRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkspaceTopologyRebuildResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_workspace_topology_status_repo_topology_status_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkspaceTopologyStatusResponse"];
         };
       };
     };
