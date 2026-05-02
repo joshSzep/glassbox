@@ -1286,7 +1286,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1263: Surface Candidate Adoption In Dashboard Review
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1242`, `GBX-1262`
 - Goal: make branch-candidate adoption understandable from the review surface
 - Deliverables:
@@ -1301,6 +1301,14 @@ Each phase below corresponds to one concrete milestone.
   - Playwright branch-candidate review scenario
 - Done when:
   - reviewers can understand why a candidate was adopted into a changeset
+- Completion notes:
+  - Extended the dashboard changeset store to load branch-search decision
+    support for changesets created from adopted candidates.
+  - Replaced the one-line branch candidate note with a candidate-adoption panel
+    showing selected candidate posture, rejected alternatives, retained
+    rationale, accepted risks, follow-up actions, and explicit no-merge copy.
+  - Updated [dashboard.md](./dashboard.md) with the review-surface contract for
+    candidate adoption.
 
 ---
 

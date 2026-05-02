@@ -284,7 +284,11 @@ test("reviewer can inspect a changeset and generate a brief", async ({ page }) =
   await expect(page.getByText("4 changed paths")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Verification" })).toBeVisible();
   await expect(page.getByText("verification readiness passed")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Branch Candidate" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Candidate Adoption" })).toBeVisible();
+  await expect(page.getByText("Workspace mutation performed: false")).toBeVisible();
+  await expect(page.getByText("Glassbox did not merge").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Rejected Alternatives" })).toBeVisible();
+  await expect(page.getByText("Try broader refactor")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Brief Artifacts" })).toBeVisible();
   await expect(page.getByText("brief-artifact-1").first()).toBeVisible();
 

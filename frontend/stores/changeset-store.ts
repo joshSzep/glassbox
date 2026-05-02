@@ -1,6 +1,7 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
 
 import type {
+  BranchSearchDetailResponse,
   ChangesetDetailResponse,
   ChangesetListPageResponse,
   ChangesetVerificationPlanPreviewResponse,
@@ -30,6 +31,7 @@ export type ChangesetPageState = {
 };
 
 export type ChangesetDetailState = {
+  branchSearchDetail: BranchSearchDetailResponse | null;
   detail: ChangesetDetailResponse | null;
   error: string | null;
   commitMessage: CommitMessageSuggestionResponse | null;
@@ -66,6 +68,7 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
         const response = await apiClient.generateChangesetReviewBrief({
           changesetId: selectedChangesetId,
         });
+        const branchSearchDetail = await loadBranchSearchForChangeset(apiClient, response.detail);
         const verificationPlan = await apiClient.getChangesetVerificationPlan(selectedChangesetId);
         const [commitReadiness, commitMessage] = await Promise.all([
           apiClient.getChangesetCommitReadiness(selectedChangesetId),
@@ -74,6 +77,7 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
         set({
           action: createSucceededActionStatus("generate-brief"),
           detail: {
+            branchSearchDetail,
             commitMessage,
             commitReadiness,
             detail: response.detail,
@@ -117,6 +121,7 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
       set({ action: createPendingActionStatus("refresh-changeset") });
       try {
         const response = await apiClient.refreshChangeset({ changesetId: selectedChangesetId });
+        const branchSearchDetail = await loadBranchSearchForChangeset(apiClient, response.detail);
         const verificationPlan = await apiClient.getChangesetVerificationPlan(selectedChangesetId);
         const [commitReadiness, commitMessage] = await Promise.all([
           apiClient.getChangesetCommitReadiness(selectedChangesetId),
@@ -125,6 +130,7 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
         set({
           action: createSucceededActionStatus("refresh-changeset"),
           detail: {
+            branchSearchDetail,
             commitMessage,
             commitReadiness,
             detail: response.detail,
@@ -152,6 +158,7 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
       const currentRequestId = detailRequests.next();
       set({
         detail: {
+          branchSearchDetail: null,
           commitMessage: null,
           commitReadiness: null,
           detail: null,
@@ -162,17 +169,20 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
         },
       });
       try {
-        const [detail, verificationPlan, commitReadiness, commitMessage] = await Promise.all([
-          apiClient.getChangesetDetail(changesetId),
-          apiClient.getChangesetVerificationPlan(changesetId),
-          apiClient.getChangesetCommitReadiness(changesetId),
-          apiClient.getChangesetCommitMessage(changesetId),
-        ]);
+        const detail = await apiClient.getChangesetDetail(changesetId);
+        const [verificationPlan, commitReadiness, commitMessage, branchSearchDetail] =
+          await Promise.all([
+            apiClient.getChangesetVerificationPlan(changesetId),
+            apiClient.getChangesetCommitReadiness(changesetId),
+            apiClient.getChangesetCommitMessage(changesetId),
+            loadBranchSearchForChangeset(apiClient, detail),
+          ]);
         if (!detailRequests.isCurrent(currentRequestId)) {
           return;
         }
         set({
           detail: {
+            branchSearchDetail,
             commitMessage,
             commitReadiness,
             detail,
@@ -188,6 +198,7 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
         }
         set({
           detail: {
+            branchSearchDetail: null,
             commitMessage: null,
             commitReadiness: null,
             detail: null,
@@ -208,6 +219,7 @@ function createIdleChangesetPageState(): ChangesetPageState {
 
 function createIdleChangesetDetailState(): ChangesetDetailState {
   return {
+    branchSearchDetail: null,
     commitMessage: null,
     commitReadiness: null,
     detail: null,
@@ -216,6 +228,21 @@ function createIdleChangesetDetailState(): ChangesetDetailState {
     selectedChangesetId: null,
     verificationPlan: null,
   };
+}
+
+async function loadBranchSearchForChangeset(
+  apiClient: GlassboxApiClient,
+  detail: ChangesetDetailResponse,
+): Promise<BranchSearchDetailResponse | null> {
+  const searchId = detail.changeset.branch_search_id;
+  if (searchId === null || searchId === undefined) {
+    return null;
+  }
+  try {
+    return await apiClient.getBranchSearchDetail(searchId);
+  } catch {
+    return null;
+  }
 }
 
 function requireSelectedChangesetId(detail: ChangesetDetailState): string {

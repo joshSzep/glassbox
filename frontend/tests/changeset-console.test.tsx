@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { ChangesetConsole } from "@/components/console/changeset-console";
 import type { components } from "@/generated/api-types";
 
+type BranchSearchDetail = components["schemas"]["BranchSearchDetailResponse"];
 type ChangesetDetail = components["schemas"]["ChangesetDetailResponse"];
 type ChangesetSummary = components["schemas"]["ChangesetSummaryResponse"];
 type ChangesetVerificationPlan = components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
@@ -18,6 +19,7 @@ describe("changeset console", () => {
     const markup = renderToStaticMarkup(
       React.createElement(ChangesetConsole, {
         detail: {
+          branchSearchDetail: makeBranchSearchDetail(),
           detail,
           error: null,
           commitMessage: makeCommitMessageSuggestion("changeset-1"),
@@ -52,6 +54,13 @@ describe("changeset console", () => {
     expect(markup).toContain("needs verification");
     expect(markup).toContain("Suggested message");
     expect(markup).toContain("Glassbox did not stage");
+    expect(markup).toContain("Candidate Adoption");
+    expect(markup).toContain("targeted fix");
+    expect(markup).toContain("Rejected Alternatives");
+    expect(markup).toContain("broad refactor");
+    expect(markup).toContain("Workspace mutation performed: false");
+    expect(markup).toContain("Glassbox did not merge");
+    expect(markup).toContain("created from selected branch-search candidate");
   });
 });
 
@@ -60,8 +69,8 @@ function makeChangesetSummary(changesetId: string): ChangesetSummary {
     accepted_risk_count: 1,
     archived_by: null,
     archived_reason: null,
-    branch_candidate_id: null,
-    branch_search_id: null,
+    branch_candidate_id: "candidate-1",
+    branch_search_id: "search-1",
     changeset_id: changesetId,
     created_at: "2026-05-01T00:00:00Z",
     created_by: "operator",
@@ -90,8 +99,8 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
       accepted_risk_count: 1,
       artifact_id: "artifact-inventory",
       artifact_schema_version: 1,
-      branch_candidate_id: null,
-      branch_search_id: null,
+      branch_candidate_id: changeset.branch_candidate_id,
+      branch_search_id: changeset.branch_search_id,
       changed_path_count: 3,
       changeset_id: changeset.changeset_id,
       freshness: "fresh",
@@ -155,7 +164,24 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
       },
     ],
     safe_next_actions: [`glassbox changeset show ${changeset.changeset_id} --cwd .`],
-    sources: [],
+    sources: [
+      {
+        artifact_id: null,
+        branch_candidate_id: changeset.branch_candidate_id,
+        branch_search_id: changeset.branch_search_id,
+        changeset_id: changeset.changeset_id,
+        created_at: "2026-05-01T00:03:00Z",
+        last_sequence: 8,
+        limitation: "candidate adoption does not merge parent history",
+        reason: "created from selected branch-search candidate",
+        session_id: "session-1",
+        source_kind: "branch_search_candidate",
+        source_session_id: "candidate-session-1",
+        task_id: "task-1",
+        turn_id: null,
+        verification_id: "verification-1",
+      },
+    ],
     verification_posture: {
       accepted_risk_count: 1,
       changeset_id: changeset.changeset_id,
@@ -171,6 +197,111 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
       turn_id: null,
       updated_at: "2026-05-01T00:02:00Z",
       verification_id: "verification-1",
+    },
+  };
+}
+
+function makeBranchSearchDetail(): BranchSearchDetail {
+  return {
+    candidates: [
+      {
+        artifact_id: "candidate-artifact-1",
+        candidate_id: "candidate-1",
+        candidate_session_id: "candidate-session-1",
+        changed_files: ["src/glassbox/runtime/changesets.py"],
+        created_at: "2026-05-01T00:01:00Z",
+        last_sequence: 5,
+        parent_session_id: "session-1",
+        patch_summary: "focused changeset adoption path",
+        policy_budget_summary: null,
+        residual_risks: ["manual review still required"],
+        search_id: "search-1",
+        selection_state: "selected",
+        status: "completed",
+        strategy_label: "targeted fix",
+        updated_at: "2026-05-01T00:02:00Z",
+        verification_id: "verification-1",
+        verification_status: "passed",
+        verification_summary: "unit coverage retained",
+      },
+      {
+        artifact_id: "candidate-artifact-2",
+        candidate_id: "candidate-2",
+        candidate_session_id: "candidate-session-2",
+        changed_files: ["src/glassbox/runtime/changesets.py", "frontend/app/page.tsx"],
+        created_at: "2026-05-01T00:01:00Z",
+        last_sequence: 5,
+        parent_session_id: "session-1",
+        patch_summary: "larger implementation sweep",
+        policy_budget_summary: null,
+        residual_risks: ["broader review surface"],
+        search_id: "search-1",
+        selection_state: "rejected",
+        status: "completed",
+        strategy_label: "broad refactor",
+        updated_at: "2026-05-01T00:02:00Z",
+        verification_id: null,
+        verification_status: "not_run",
+        verification_summary: "no verification retained",
+      },
+    ],
+    decision_support: {
+      automatic_merge: false,
+      candidates: [
+        {
+          accepted_risks: ["manual review still required"],
+          candidate_id: "candidate-1",
+          candidate_session_id: "candidate-session-1",
+          changed_files: ["src/glassbox/runtime/changesets.py"],
+          changed_files_summary: "1 focused runtime path changed",
+          cost_estimate: "low",
+          evidence: [],
+          objective: "Review verification posture",
+          recommended_follow_up_action: "refresh inventory after adoption",
+          risk_posture: "review",
+          search_id: "search-1",
+          selection_state: "selected",
+          status: "completed",
+          strategy_label: "targeted fix",
+          verification_posture: "passed",
+          verification_recommendations: [],
+        },
+        {
+          accepted_risks: [],
+          candidate_id: "candidate-2",
+          candidate_session_id: "candidate-session-2",
+          changed_files: ["src/glassbox/runtime/changesets.py", "frontend/app/page.tsx"],
+          changed_files_summary: "runtime and frontend paths changed",
+          cost_estimate: "medium",
+          evidence: [],
+          objective: "Review verification posture",
+          recommended_follow_up_action: "inspect diff before reconsidering",
+          risk_posture: "higher",
+          search_id: "search-1",
+          selection_state: "rejected",
+          status: "completed",
+          strategy_label: "broad refactor",
+          verification_posture: "missing",
+          verification_recommendations: [],
+        },
+      ],
+      non_goal: "Branch search does not automatically merge candidates.",
+      objective: "Review verification posture",
+      search_id: "search-1",
+    },
+    search: {
+      abandoned_reason: null,
+      candidate_count: 2,
+      created_at: "2026-05-01T00:00:00Z",
+      last_sequence: 5,
+      objective: "Review verification posture",
+      parent_session_id: "session-1",
+      search_id: "search-1",
+      selected_candidate_id: "candidate-1",
+      session_id: "session-1",
+      status: "completed",
+      task_id: "task-1",
+      updated_at: "2026-05-01T00:02:00Z",
     },
   };
 }

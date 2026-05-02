@@ -73,11 +73,15 @@ The dashboard shell exposes the operator surfaces backed by the snapshot and SSE
 
 The changeset surface at `/app/changesets` is the v12 review panel for local
 changesets. It shows review readiness, changed-file inventory summaries,
-verification readiness and retained artifacts, branch-candidate rationale when
-present, generated review brief artifacts, source evidence, limitations, and
-safe inspection commands. The `Brief` action calls the local review-brief API
-and refreshes the panel with the latest redacted artifact reference; it does not
-stage, commit, push, or run verification commands.
+verification readiness and retained artifacts, candidate-adoption comparisons
+when a branch-search candidate is attached, generated review brief artifacts,
+source evidence, limitations, and safe inspection commands. The adoption panel
+shows the selected candidate, rejected alternatives, retained rationale,
+verification and risk posture, accepted risks, and follow-up actions while
+stating that Glassbox did not merge, rebase, stage, commit, push, or open a PR.
+The `Brief` action calls the local review-brief API and refreshes the panel with
+the latest redacted artifact reference; it does not stage, commit, push, or run
+verification commands.
 
 The browser first reads `GET /sessions/{session_id}` and then subscribes to `GET /sessions/{session_id}/events`.
 Session summary and snapshot responses include a `long_run_status` read model

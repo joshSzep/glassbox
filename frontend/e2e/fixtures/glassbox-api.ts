@@ -174,6 +174,16 @@ async function installAutonomyConsoleRoutes(page: Page, state: GlassboxApiFixtur
   const repositoryEntry = makeRepositoryEntry("repo-entry-1");
   const branchSearch = makeBranchSearchSummary("search-1");
   const branchCandidate = makeBranchCandidate("candidate-1");
+  const rejectedBranchCandidate = makeBranchCandidate("candidate-2", {
+    candidate_session_id: "session-child-2",
+    patch_summary: "Refactored a wider dashboard review path.",
+    residual_risks: ["Broader review surface."],
+    selection_state: "rejected",
+    strategy_label: "Try broader refactor",
+    verification_id: null,
+    verification_status: "not_run",
+    verification_summary: "No retained verification.",
+  });
   const branchDecisionSupport = makeBranchSearchDecisionSupport(branchSearch.search_id);
   const changeset = makeChangesetSummary("changeset-1");
 
@@ -335,7 +345,7 @@ async function installAutonomyConsoleRoutes(page: Page, state: GlassboxApiFixtur
     if (path === `/branch-searches/${branchSearch.search_id}`) {
       await route.fulfill({
         json: {
-          candidates: [branchCandidate],
+          candidates: [branchCandidate, rejectedBranchCandidate],
           decision_support: branchDecisionSupport,
           search: branchSearch,
         },
@@ -655,7 +665,7 @@ function makeRepositoryEntry(entryId: string): RepositoryEntry {
 function makeBranchSearchSummary(searchId: string): BranchSearchSummary {
   return {
     abandoned_reason: null,
-    candidate_count: 1,
+    candidate_count: 2,
     created_at: timestamp(0),
     last_sequence: 6,
     objective: "Compare repair options",
@@ -669,7 +679,10 @@ function makeBranchSearchSummary(searchId: string): BranchSearchSummary {
   };
 }
 
-function makeBranchCandidate(candidateId: string): BranchCandidate {
+function makeBranchCandidate(
+  candidateId: string,
+  overrides: Partial<BranchCandidate> = {},
+): BranchCandidate {
   return {
     artifact_id: "artifact-1",
     candidate_id: candidateId,
@@ -689,10 +702,14 @@ function makeBranchCandidate(candidateId: string): BranchCandidate {
     verification_id: "verification-1",
     verification_status: "passed",
     verification_summary: "Targeted checks passed.",
+    ...overrides,
   };
 }
 
-function makeBranchCandidateDecisionSupport(candidateId: string): BranchCandidateDecisionSupport {
+function makeBranchCandidateDecisionSupport(
+  candidateId: string,
+  overrides: Partial<BranchCandidateDecisionSupport> = {},
+): BranchCandidateDecisionSupport {
   return {
     accepted_risks: [],
     candidate_id: candidateId,
@@ -730,13 +747,27 @@ function makeBranchCandidateDecisionSupport(candidateId: string): BranchCandidat
         source: "changed-files",
       },
     ],
+    ...overrides,
   };
 }
 
 function makeBranchSearchDecisionSupport(searchId: string): BranchSearchDecisionSupport {
   return {
     automatic_merge: false,
-    candidates: [makeBranchCandidateDecisionSupport("candidate-1")],
+    candidates: [
+      makeBranchCandidateDecisionSupport("candidate-1"),
+      makeBranchCandidateDecisionSupport("candidate-2", {
+        accepted_risks: ["Broader review surface."],
+        candidate_session_id: "session-child-2",
+        cost_estimate: "medium",
+        recommended_follow_up_action: "Inspect the wider diff before reconsidering.",
+        risk_posture: "review",
+        selection_state: "rejected",
+        strategy_label: "Try broader refactor",
+        verification_posture: "missing",
+        verification_recommendations: [],
+      }),
+    ],
     non_goal:
       "Branch search records candidate evidence and operator decisions; it does not automatically merge or mutate parent history.",
     objective: "Compare repair options",

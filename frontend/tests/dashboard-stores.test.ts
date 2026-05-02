@@ -809,6 +809,56 @@ describe("changeset store", () => {
     expect(store.getState().action.state).toBe("succeeded");
     expect(store.getState().action.kind).toBe("generate-brief");
   });
+
+  it("loads branch-search decision support for adopted candidates", async () => {
+    const calls: string[] = [];
+    const store = createChangesetStore(
+      createApiClient({
+        getBranchSearchDetail: async (searchId) => {
+          calls.push(`branch:${searchId}`);
+          return makeBranchSearchDetail(searchId);
+        },
+        getChangesetDetail: async (changesetId) =>
+          makeChangesetDetail(changesetId, {
+            branch_candidate_id: "candidate-1",
+            branch_search_id: "search-1",
+          }),
+      }),
+    );
+
+    await store.getState().selectChangeset("changeset-branch");
+
+    expect(calls).toEqual(["branch:search-1"]);
+    expect(store.getState().detail.branchSearchDetail?.search.search_id).toBe("search-1");
+    expect(store.getState().detail.branchSearchDetail?.decision_support.automatic_merge).toBe(
+      false,
+    );
+  });
+
+  it("keeps adopted changesets inspectable when branch-search detail is unavailable", async () => {
+    const store = createChangesetStore(
+      createApiClient({
+        getBranchSearchDetail: async () => {
+          throw new GlassboxApiError({
+            kind: "not_found",
+            message: "branch search missing",
+            status: 404,
+          });
+        },
+        getChangesetDetail: async (changesetId) =>
+          makeChangesetDetail(changesetId, {
+            branch_candidate_id: "candidate-1",
+            branch_search_id: "search-1",
+          }),
+      }),
+    );
+
+    await store.getState().selectChangeset("changeset-branch");
+
+    expect(store.getState().detail.loadState).toBe("loaded");
+    expect(store.getState().detail.branchSearchDetail).toBeNull();
+    expect(store.getState().detail.detail?.changeset.branch_candidate_id).toBe("candidate-1");
+  });
 });
 
 describe("knowledge store", () => {
