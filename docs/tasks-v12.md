@@ -562,7 +562,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1221: Attach File Provenance To Changed Paths
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1220`
 - Goal: connect changed files to the Glassbox evidence that caused or explained
   them
@@ -581,6 +581,28 @@ Each phase below corresponds to one concrete milestone.
   - integration tests with mixed Glassbox and manual edits
 - Done when:
   - changed files can be reviewed with source evidence or honest unknowns
+- Completion evidence:
+  - Added event-derived path provenance to `change_inventory_from_diff_summary`,
+    including direct evidence from file-mutating tool calls and checkpoints,
+    inferred evidence from command output, verification plans, artifacts, task
+    steps, and branch-candidate summaries, and explicit unknown/manual posture
+    for paths with no retained Glassbox evidence.
+  - Added source-reference event metadata, direct/inferred/unknown provenance
+    summary counts, and externally modified path counts to the inventory
+    artifact shape.
+  - Added unit coverage for direct, inferred, text-derived, and unknown
+    provenance plus SQLite-backed integration coverage for mixed Glassbox and
+    manual edits.
+  - Updated [change-inventory.md](./change-inventory.md) to document
+    provenance confidence, non-claims, and manual/external edit handling.
+  - Verified with `uv run pytest tests/unit/test_change_inventory.py
+    tests/integration/test_change_inventory_provenance.py`, `uv run ruff
+    check src/glassbox/runtime/change_inventory.py
+    tests/unit/test_change_inventory.py
+    tests/integration/test_change_inventory_provenance.py`, and `uv run ty
+    check src/glassbox/runtime/change_inventory.py
+    tests/unit/test_change_inventory.py
+    tests/integration/test_change_inventory_provenance.py`.
 
 ### GBX-1222: Add Change Risk And Sensitivity Classification
 

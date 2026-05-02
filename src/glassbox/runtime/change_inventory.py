@@ -2,12 +2,22 @@
 
 import json
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 
+from glassbox.core.events import EventEnvelope
+from glassbox.core.events import ModelToolCallRequested
+from glassbox.core.events import ReplayArtifactRecorded
+from glassbox.core.events import TaskCheckpointCreated
+from glassbox.core.events import TaskStepCompleted
+from glassbox.core.events import TaskVerificationPlanned
+from glassbox.core.events import ToolArtifactRecorded
+from glassbox.core.events import ToolExecutionCompleted
+from glassbox.core.events import ToolOutputChunk
 from glassbox.core.ids import ChangesetId
 from glassbox.tools.workflow import DiffFileSummary
 from glassbox.tools.workflow import DiffSummaryResult
@@ -48,6 +58,8 @@ class ChangeInventorySourceRef(BaseModel):
     kind: str = Field(min_length=1, max_length=100)
     identifier: str = Field(min_length=1, max_length=200)
     confidence: ChangeInventoryProvenanceConfidence = "unknown"
+    event_sequence: int | None = Field(default=None, ge=0)
+    event_type: str | None = Field(default=None, max_length=120)
     summary: str | None = Field(default=None, max_length=500)
 
 
@@ -87,6 +99,10 @@ class ChangeInventorySummary(BaseModel):
     binary_path_count: int = Field(ge=0)
     policy_sensitive_path_count: int = Field(ge=0)
     untracked_path_count: int = Field(ge=0)
+    provenance_direct_path_count: int = Field(ge=0)
+    provenance_inferred_path_count: int = Field(ge=0)
+    provenance_unknown_path_count: int = Field(ge=0)
+    externally_modified_path_count: int = Field(ge=0)
 
 
 class ChangeInventoryArtifact(BaseModel):
@@ -118,13 +134,29 @@ def change_inventory_from_diff_summary(
     *,
     changeset_id: ChangesetId | None = None,
     limits: ChangeInventoryLimits | None = None,
+    provenance_events: Sequence[EventEnvelope] | None = None,
 ) -> ChangeInventoryArtifact:
     """Build a bounded change inventory artifact from workspace diff evidence."""
 
     resolved_limits = limits or ChangeInventoryLimits()
     source_files = _source_files(diff_summary)
+    provenance_index = (
+        change_inventory_provenance_from_events(
+            provenance_events,
+            candidate_paths=[file_summary.path for file_summary in source_files],
+        )
+        if provenance_events is not None
+        else {}
+    )
     entries = [
-        change_inventory_entry_from_diff_file(file_summary)
+        change_inventory_entry_from_diff_file(
+            file_summary,
+            source_evidence_refs=provenance_index.get(
+                _redacted_relative_path(file_summary.path),
+                [],
+            ),
+            provenance_index_available=provenance_events is not None,
+        )
         for file_summary in source_files[: resolved_limits.max_paths]
     ]
     artifact = ChangeInventoryArtifact(
@@ -148,10 +180,15 @@ def change_inventory_from_diff_summary(
 
 def change_inventory_entry_from_diff_file(
     file_summary: DiffFileSummary,
+    *,
+    source_evidence_refs: Sequence[ChangeInventorySourceRef] | None = None,
+    provenance_index_available: bool = False,
 ) -> ChangeInventoryPathEntry:
     """Convert a diff file summary into the stable inventory path shape."""
 
     path = _redacted_relative_path(file_summary.path)
+    evidence_refs = _dedupe_source_refs(source_evidence_refs or [])
+    confidence = _path_provenance_confidence(evidence_refs)
     return ChangeInventoryPathEntry(
         path=path,
         change_kind=file_summary.change_kind,
@@ -163,8 +200,127 @@ def change_inventory_entry_from_diff_file(
         binary_posture="binary" if file_summary.binary else "text",
         policy_sensitive=file_summary.policy_sensitive,
         staged_state=_stage_state_for_change_kind(file_summary.change_kind),
-        provenance_note="file provenance is not attached until GBX-1221",
+        source_evidence_refs=evidence_refs,
+        provenance_confidence=confidence,
+        provenance_note=_provenance_note(
+            path,
+            confidence,
+            provenance_index_available=provenance_index_available,
+        ),
     )
+
+
+def change_inventory_provenance_from_events(
+    events: Sequence[EventEnvelope],
+    *,
+    candidate_paths: Sequence[str] = (),
+) -> dict[str, list[ChangeInventorySourceRef]]:
+    """Derive path-level provenance references from retained session events."""
+
+    refs_by_path: dict[str, list[ChangeInventorySourceRef]] = {}
+    known_paths = set(_normalized_candidate_paths(candidate_paths))
+    verification_paths: dict[str, list[str]] = {}
+
+    for event in events:
+        payload = event.payload
+        event_type = payload.event_type
+        if isinstance(payload, ModelToolCallRequested):
+            refs = _refs_from_tool_call_request(event, payload)
+        elif isinstance(payload, ToolOutputChunk):
+            refs = _refs_from_text_event(
+                event,
+                paths=sorted(known_paths),
+                kind="tool_output",
+                identifier=_identifier(event.tool_call_id, fallback=event.event_id),
+                confidence="inferred",
+                summary="tool output mentioned this path",
+            )
+        elif isinstance(payload, ToolExecutionCompleted):
+            refs = _refs_from_text_event(
+                event,
+                paths=sorted(known_paths),
+                kind="tool_execution",
+                identifier=_identifier(event.tool_call_id, fallback=event.event_id),
+                confidence="inferred",
+                summary="tool completion summary mentioned this path",
+            )
+        elif isinstance(payload, ToolArtifactRecorded | ReplayArtifactRecorded):
+            refs = _refs_from_artifact_event(event, payload)
+        elif isinstance(payload, TaskStepCompleted):
+            refs = _refs_from_text_event(
+                event,
+                paths=sorted(known_paths),
+                kind="task_step",
+                identifier=_identifier(event.task_id, fallback=event.event_id),
+                confidence="inferred",
+                summary="task step summary mentioned this path",
+            )
+        elif isinstance(payload, TaskCheckpointCreated):
+            refs = _refs_from_explicit_paths(
+                event,
+                payload.touched_files,
+                kind="task_checkpoint",
+                identifier=_identifier(event.checkpoint_id, fallback=event.event_id),
+                confidence="direct",
+                summary="checkpoint recorded this path as touched",
+            )
+        elif isinstance(payload, TaskVerificationPlanned):
+            changed_paths = [
+                _path_to_string(path) for path in payload.verification.changed_paths
+            ]
+            verification_paths[str(payload.verification.verification_id)] = [
+                _redacted_relative_path(path) for path in changed_paths
+            ]
+            refs = _refs_from_explicit_paths(
+                event,
+                changed_paths,
+                kind="verification_plan",
+                identifier=_identifier(payload.verification.verification_id),
+                confidence="inferred",
+                summary="verification plan targeted this path",
+            )
+        elif event_type in {
+            "TaskVerificationStarted",
+            "TaskVerificationStreamed",
+            "TaskVerificationFailed",
+            "TaskVerificationSkipped",
+            "TaskVerificationCompleted",
+            "TaskVerificationResidualRiskAccepted",
+        }:
+            refs = _refs_from_explicit_paths(
+                event,
+                verification_paths.get(str(event.verification_id), []),
+                kind="verification_record",
+                identifier=_identifier(event.verification_id, fallback=event.event_id),
+                confidence="inferred",
+                summary="verification record is linked to this path",
+            )
+        elif event_type in {
+            "BranchCandidateExecuted",
+            "BranchCandidateVerified",
+            "BranchCandidatesCompared",
+            "BranchCandidateSelected",
+        }:
+            refs = _refs_from_text_event(
+                event,
+                paths=sorted(known_paths),
+                kind="branch_candidate",
+                identifier=_identifier(event.candidate_id, fallback=event.event_id),
+                confidence="inferred",
+                summary="branch candidate evidence mentioned this path",
+            )
+        else:
+            refs = {}
+
+        for path, path_refs in refs.items():
+            refs_by_path.setdefault(path, []).extend(path_refs)
+            known_paths.add(path)
+
+    return {
+        path: _dedupe_source_refs(refs)
+        for path, refs in refs_by_path.items()
+        if path != "<redacted-path>"
+    }
 
 
 def change_inventory_artifact_json(artifact: ChangeInventoryArtifact) -> str:
@@ -203,6 +359,21 @@ def _summary_for_entries(
         untracked_path_count=sum(
             1 for entry in entries if entry.change_kind == "untracked"
         ),
+        provenance_direct_path_count=sum(
+            1 for entry in entries if entry.provenance_confidence == "direct"
+        ),
+        provenance_inferred_path_count=sum(
+            1 for entry in entries if entry.provenance_confidence == "inferred"
+        ),
+        provenance_unknown_path_count=sum(
+            1 for entry in entries if entry.provenance_confidence == "unknown"
+        ),
+        externally_modified_path_count=sum(
+            1
+            for entry in entries
+            if entry.provenance_confidence == "unknown"
+            and entry.staged_state != "untracked"
+        ),
     )
 
 
@@ -213,8 +384,12 @@ def _limitations(
 ) -> list[str]:
     limitations = [
         "inventory is summary-only and does not include raw diffs or file contents",
-        "file provenance is unknown until provenance derivation is attached",
     ]
+    if any(entry.provenance_confidence == "unknown" for entry in entries):
+        limitations.append(
+            "some files have no matching Glassbox provenance and may be manual "
+            "or externally modified"
+        )
     if diff_summary.error is not None:
         limitations.append(f"source diff summary error: {diff_summary.error}")
     if diff_summary.truncated or len(source_files) > len(entries):
@@ -272,10 +447,261 @@ def _redacted_relative_path(path: str) -> str:
     return normalized or "<unknown-path>"
 
 
+def _dedupe_source_refs(
+    source_refs: Sequence[ChangeInventorySourceRef],
+    *,
+    max_refs: int = 8,
+) -> list[ChangeInventorySourceRef]:
+    deduped: list[ChangeInventorySourceRef] = []
+    seen: set[tuple[str, str, int | None]] = set()
+    for source_ref in sorted(source_refs, key=_source_ref_sort_key):
+        key = (
+            source_ref.kind,
+            source_ref.identifier,
+            source_ref.event_sequence,
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(source_ref)
+        if len(deduped) >= max_refs:
+            break
+    return deduped
+
+
+def _source_ref_sort_key(
+    source_ref: ChangeInventorySourceRef,
+) -> tuple[int, int, str, str]:
+    confidence_rank = {
+        "direct": 0,
+        "inferred": 1,
+        "unknown": 2,
+    }
+    return (
+        confidence_rank[source_ref.confidence],
+        source_ref.event_sequence or 0,
+        source_ref.kind,
+        source_ref.identifier,
+    )
+
+
+def _path_provenance_confidence(
+    source_refs: Sequence[ChangeInventorySourceRef],
+) -> ChangeInventoryProvenanceConfidence:
+    if any(source_ref.confidence == "direct" for source_ref in source_refs):
+        return "direct"
+    if any(source_ref.confidence == "inferred" for source_ref in source_refs):
+        return "inferred"
+    return "unknown"
+
+
+def _provenance_note(
+    path: str,
+    confidence: ChangeInventoryProvenanceConfidence,
+    *,
+    provenance_index_available: bool,
+) -> str:
+    if confidence == "direct":
+        return "matched to retained Glassbox evidence that directly names this path"
+    if confidence == "inferred":
+        return (
+            "matched to retained Glassbox evidence that mentions or targets this path"
+        )
+    if not provenance_index_available:
+        return "file provenance was not derived because no event evidence was provided"
+    if path == "<redacted-path>":
+        return "file provenance is unknown because the path was redacted"
+    return (
+        "no retained Glassbox event names this path; treat it as manual or "
+        "externally modified until inspected"
+    )
+
+
 def _stage_state_for_change_kind(change_kind: str) -> ChangeInventoryStageState:
     if change_kind == "untracked":
         return "untracked"
     return "unknown"
+
+
+def _refs_from_tool_call_request(
+    event: EventEnvelope,
+    payload: ModelToolCallRequested,
+) -> dict[str, list[ChangeInventorySourceRef]]:
+    try:
+        arguments = json.loads(payload.arguments_json)
+    except TypeError, json.JSONDecodeError:
+        arguments = payload.arguments_json
+    candidate_paths = _extract_review_paths(arguments)
+    if not candidate_paths:
+        return {}
+    tool_name = str(payload.tool_name)
+    confidence: ChangeInventoryProvenanceConfidence = (
+        "direct" if _tool_directly_mutates_files(tool_name) else "inferred"
+    )
+    return _refs_from_explicit_paths(
+        event,
+        candidate_paths,
+        kind="tool_call",
+        identifier=_identifier(event.tool_call_id, fallback=event.event_id),
+        confidence=confidence,
+        summary=f"{tool_name} call referenced this path",
+    )
+
+
+def _refs_from_artifact_event(
+    event: EventEnvelope,
+    payload: ToolArtifactRecorded | ReplayArtifactRecorded,
+) -> dict[str, list[ChangeInventorySourceRef]]:
+    if payload.path is None:
+        return {}
+    return _refs_from_explicit_paths(
+        event,
+        [payload.path],
+        kind="artifact",
+        identifier=_identifier(event.artifact_id, fallback=event.event_id),
+        confidence="inferred",
+        summary="artifact evidence path matched this changed path",
+    )
+
+
+def _refs_from_text_event(
+    event: EventEnvelope,
+    *,
+    paths: Sequence[str],
+    kind: str,
+    identifier: str,
+    confidence: ChangeInventoryProvenanceConfidence,
+    summary: str,
+) -> dict[str, list[ChangeInventorySourceRef]]:
+    text = event.payload.model_dump_json()
+    refs: dict[str, list[ChangeInventorySourceRef]] = {}
+    for path in paths:
+        if path != "<redacted-path>" and path in text:
+            refs.setdefault(path, []).append(
+                _source_ref(
+                    event,
+                    kind=kind,
+                    identifier=identifier,
+                    confidence=confidence,
+                    summary=summary,
+                )
+            )
+    return refs
+
+
+def _refs_from_explicit_paths(
+    event: EventEnvelope,
+    paths: Sequence[object],
+    *,
+    kind: str,
+    identifier: str,
+    confidence: ChangeInventoryProvenanceConfidence,
+    summary: str,
+) -> dict[str, list[ChangeInventorySourceRef]]:
+    refs: dict[str, list[ChangeInventorySourceRef]] = {}
+    for raw_path in paths:
+        path = _redacted_relative_path(_path_to_string(raw_path))
+        if path == "<redacted-path>":
+            continue
+        refs.setdefault(path, []).append(
+            _source_ref(
+                event,
+                kind=kind,
+                identifier=identifier,
+                confidence=confidence,
+                summary=summary,
+            )
+        )
+    return refs
+
+
+def _source_ref(
+    event: EventEnvelope,
+    *,
+    kind: str,
+    identifier: str,
+    confidence: ChangeInventoryProvenanceConfidence,
+    summary: str,
+) -> ChangeInventorySourceRef:
+    return ChangeInventorySourceRef(
+        kind=kind,
+        identifier=identifier,
+        confidence=confidence,
+        event_sequence=event.sequence,
+        event_type=event.payload.event_type,
+        summary=summary,
+    )
+
+
+def _normalized_candidate_paths(paths: Sequence[str]) -> list[str]:
+    return [
+        path
+        for path in (_redacted_relative_path(candidate) for candidate in paths)
+        if path != "<redacted-path>"
+    ]
+
+
+def _identifier(value: object | None, *, fallback: object | None = None) -> str:
+    resolved = value if value is not None else fallback
+    return str(resolved) if resolved is not None else "unknown"
+
+
+def _path_to_string(path: object) -> str:
+    if isinstance(path, Path):
+        return path.as_posix()
+    return str(path)
+
+
+def _extract_review_paths(value: object) -> list[str]:
+    paths: list[str] = []
+    for text in _extract_strings(value):
+        normalized = _redacted_relative_path(text)
+        if _looks_like_review_path(normalized):
+            paths.append(normalized)
+    return sorted(dict.fromkeys(paths))
+
+
+def _extract_strings(value: object) -> list[str]:
+    if isinstance(value, str):
+        return [value, *_split_path_tokens(value)]
+    if isinstance(value, dict):
+        strings: list[str] = []
+        for item in value.values():
+            strings.extend(_extract_strings(item))
+        return strings
+    if isinstance(value, list | tuple | set):
+        strings = []
+        for item in value:
+            strings.extend(_extract_strings(item))
+        return strings
+    return []
+
+
+def _split_path_tokens(value: str) -> list[str]:
+    separators = "\n\t ,;:'\"`()[]{}"
+    translation = str.maketrans({separator: " " for separator in separators})
+    return [
+        token.strip() for token in value.translate(translation).split() if token.strip()
+    ]
+
+
+def _looks_like_review_path(path: str) -> bool:
+    if path in {"<redacted-path>", "<unknown-path>"}:
+        return False
+    if "/" in path:
+        return True
+    return "." in path and not path.startswith(".")
+
+
+def _tool_directly_mutates_files(tool_name: str) -> bool:
+    normalized = tool_name.lower().replace("-", "_")
+    return normalized in {
+        "apply_patch",
+        "patch",
+        "write_file",
+        "edit_file",
+        "replace_file",
+    }
 
 
 __all__ = [
@@ -290,4 +716,5 @@ __all__ = [
     "change_inventory_artifact_json",
     "change_inventory_entry_from_diff_file",
     "change_inventory_from_diff_summary",
+    "change_inventory_provenance_from_events",
 ]
