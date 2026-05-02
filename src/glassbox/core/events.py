@@ -34,6 +34,7 @@ from glassbox.core.ids import ToolAttemptId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.ids import WorkspaceMemoryId
+from glassbox.core.ids import WorktreeId
 from glassbox.core.ids import new_event_id
 from glassbox.core.models import AutonomyBudget
 from glassbox.core.models import AutonomyBudgetRemaining
@@ -79,6 +80,8 @@ from glassbox.core.types import ToolAttemptStatus
 from glassbox.core.types import TurnStatus
 from glassbox.core.types import WorkspaceMemoryKind
 from glassbox.core.types import WorkspaceMemoryState
+from glassbox.core.types import WorktreeSourceKind
+from glassbox.core.types import WorktreeState
 
 ToolOutputStream = Literal["stdout", "stderr", "structured"]
 TurnOutcome = Literal[
@@ -1123,6 +1126,48 @@ class ChangesetArchived(EventPayload):
     replacement_changeset_id: ChangesetId | None = None
 
 
+class WorktreeCreated(EventPayload):
+    event_type: Literal["WorktreeCreated"] = "WorktreeCreated"
+    worktree_id: WorktreeId
+    path: str = Field(min_length=1, max_length=2000)
+    branch_name: str = Field(min_length=1, max_length=500)
+    base_revision: str = Field(min_length=1, max_length=200)
+    source_kind: WorktreeSourceKind
+    source_id: str | None = Field(default=None, max_length=200)
+    changeset_id: ChangesetId | None = None
+    branch_search_id: BranchSearchId | None = None
+    branch_candidate_id: BranchCandidateId | None = None
+    owner_process: str = Field(min_length=1, max_length=200)
+    state: WorktreeState = WorktreeState.ACTIVE
+    created_by: str = Field(default="operator", min_length=1, max_length=200)
+
+
+class WorktreeStatusRecorded(EventPayload):
+    event_type: Literal["WorktreeStatusRecorded"] = "WorktreeStatusRecorded"
+    worktree_id: WorktreeId
+    state: WorktreeState
+    path_exists: bool
+    dirty: bool
+    current_branch: str | None = Field(default=None, max_length=500)
+    head_revision: str | None = Field(default=None, max_length=200)
+    git_status_short: list[str] = Field(default_factory=list, max_length=200)
+    inspected_by: str = Field(default="operator", min_length=1, max_length=200)
+    safe_next_actions: list[str] = Field(default_factory=list, max_length=20)
+
+
+class WorktreeCleanupRecorded(EventPayload):
+    event_type: Literal["WorktreeCleanupRecorded"] = "WorktreeCleanupRecorded"
+    worktree_id: WorktreeId
+    state: WorktreeState
+    path: str = Field(min_length=1, max_length=2000)
+    confirmed_by: str = Field(min_length=1, max_length=200)
+    dirty: bool
+    forced: bool = False
+    removed: bool = False
+    reason: str = Field(min_length=1, max_length=2000)
+    safe_next_actions: list[str] = Field(default_factory=list, max_length=20)
+
+
 class WorkspaceMemoryCreated(EventPayload):
     event_type: Literal["WorkspaceMemoryCreated"] = "WorkspaceMemoryCreated"
     memory_id: WorkspaceMemoryId
@@ -1308,6 +1353,9 @@ EventPayloadType = Annotated[
     | ChangesetReadinessDecided
     | ChangesetCandidateAdopted
     | ChangesetArchived
+    | WorktreeCreated
+    | WorktreeStatusRecorded
+    | WorktreeCleanupRecorded
     | WorkspaceMemoryCreated
     | WorkspaceMemoryConfirmed
     | WorkspaceMemoryUpdated

@@ -69,6 +69,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
     from glassbox.cli.session_state_commands import _projection_command
     from glassbox.cli.session_state_commands import _session_command
     from glassbox.cli.task_commands import _task_command
+    from glassbox.cli.worktree_commands import _worktree_command
 
     command_handlers: dict[str, CommandHandler] = {
         "command": _command_command,
@@ -78,6 +79,8 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
         "task": _task_command,
         "changeset": _changeset_command,
         "changesets": _changeset_command,
+        "worktree": _worktree_command,
+        "worktrees": _worktree_command,
         "branch-search": _branch_search_command,
         "replay": _replay_command,
         "eval": _eval_command,

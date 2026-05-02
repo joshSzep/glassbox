@@ -25,6 +25,7 @@ type ContextCompactionId = UUID
 type ToolAttemptId = UUID
 type RecoveryDecisionId = UUID
 type PauseWindowId = UUID
+type WorktreeId = UUID
 
 
 def new_session_id() -> SessionId:
@@ -134,4 +135,9 @@ def new_recovery_decision_id() -> RecoveryDecisionId:
 
 def new_pause_window_id() -> PauseWindowId:
     """Create a new pause-window identifier."""
+    return uuid4()
+
+
+def new_worktree_id() -> WorktreeId:
+    """Create a new worktree identifier."""
     return uuid4()

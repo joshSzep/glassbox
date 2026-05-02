@@ -252,6 +252,28 @@ class ChangesetReadinessState(StrEnum):
     NOT_READY = "not_ready"
 
 
+class WorktreeState(StrEnum):
+    """Lifecycle and inspection states for a local temporary worktree."""
+
+    ACTIVE = "active"
+    MISSING = "missing"
+    DIRTY = "dirty"
+    CLEANUP_READY = "cleanup_ready"
+    CLEANUP_BLOCKED = "cleanup_blocked"
+    CLEANED = "cleaned"
+    UNSUPPORTED = "unsupported"
+
+
+class WorktreeSourceKind(StrEnum):
+    """Sources that can explain why a temporary worktree exists."""
+
+    BRANCH_SEARCH_CANDIDATE = "branch_search_candidate"
+    CHANGESET = "changeset"
+    TASK = "task"
+    SESSION = "session"
+    MANUAL = "manual"
+
+
 class BranchSearchStatus(StrEnum):
     """Lifecycle states for a bounded branch-search workflow."""
 

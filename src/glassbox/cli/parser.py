@@ -17,6 +17,7 @@ from glassbox.cli.parser_storage import _add_backup_parsers
 from glassbox.cli.parser_tasks import _add_task_parsers
 from glassbox.cli.parser_tree import CommandTreeColorTheme
 from glassbox.cli.parser_tree import format_command_tree
+from glassbox.cli.parser_worktrees import _add_worktree_parsers
 
 __all__ = ["CommandTreeColorTheme", "build_parser", "format_command_tree"]
 
@@ -40,6 +41,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_session_workflow_parsers(subparsers)
     _add_task_parsers(subparsers)
     _add_changeset_parsers(subparsers)
+    _add_worktree_parsers(subparsers)
     _add_branch_search_parsers(subparsers)
     _add_memory_parsers(subparsers)
     _add_repository_parsers(subparsers)

@@ -113,6 +113,9 @@ from glassbox.core.events import WorkspaceMemoryInvalidated
 from glassbox.core.events import WorkspaceMemoryPruned
 from glassbox.core.events import WorkspaceMemoryUpdated
 from glassbox.core.events import WorkspaceMemoryUsedInContext
+from glassbox.core.events import WorktreeCleanupRecorded
+from glassbox.core.events import WorktreeCreated
+from glassbox.core.events import WorktreeStatusRecorded
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import ArtifactId
 from glassbox.core.ids import BackgroundJobId
@@ -135,6 +138,7 @@ from glassbox.core.ids import ToolAttemptId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.ids import WorkspaceMemoryId
+from glassbox.core.ids import WorktreeId
 from glassbox.core.ids import new_approval_id
 from glassbox.core.ids import new_artifact_id
 from glassbox.core.ids import new_background_job_id
@@ -157,6 +161,7 @@ from glassbox.core.ids import new_tool_attempt_id
 from glassbox.core.ids import new_tool_call_id
 from glassbox.core.ids import new_turn_id
 from glassbox.core.ids import new_workspace_memory_id
+from glassbox.core.ids import new_worktree_id
 from glassbox.core.models import AutonomyBudget
 from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import AutonomyBudgetRemaining
@@ -254,6 +259,8 @@ from glassbox.core.types import VerificationPlanSource
 from glassbox.core.types import WorkspaceMemoryKind
 from glassbox.core.types import WorkspaceMemorySourceType
 from glassbox.core.types import WorkspaceMemoryState
+from glassbox.core.types import WorktreeSourceKind
+from glassbox.core.types import WorktreeState
 
 __all__ = [
     "ApprovalMode",
@@ -474,6 +481,12 @@ __all__ = [
     "VerificationPlan",
     "VerificationPlanEntry",
     "VerificationPlanSource",
+    "WorktreeCleanupRecorded",
+    "WorktreeCreated",
+    "WorktreeId",
+    "WorktreeSourceKind",
+    "WorktreeState",
+    "WorktreeStatusRecorded",
     "WorkspaceMemoryConfirmed",
     "WorkspaceMemoryCandidateRejected",
     "WorkspaceMemoryCreated",
@@ -509,5 +522,6 @@ __all__ = [
     "new_tool_attempt_id",
     "new_tool_call_id",
     "new_turn_id",
+    "new_worktree_id",
     "new_workspace_memory_id",
 ]

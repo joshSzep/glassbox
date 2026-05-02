@@ -102,6 +102,11 @@ from glassbox.core import WorkspaceMemorySourceType
 from glassbox.core import WorkspaceMemoryState
 from glassbox.core import WorkspaceMemoryUpdated
 from glassbox.core import WorkspaceMemoryUsedInContext
+from glassbox.core import WorktreeCleanupRecorded
+from glassbox.core import WorktreeCreated
+from glassbox.core import WorktreeSourceKind
+from glassbox.core import WorktreeState
+from glassbox.core import WorktreeStatusRecorded
 from glassbox.core import new_approval_id
 from glassbox.core import new_artifact_id
 from glassbox.core import new_background_job_id
@@ -121,6 +126,7 @@ from glassbox.core import new_tool_attempt_id
 from glassbox.core import new_tool_call_id
 from glassbox.core import new_turn_id
 from glassbox.core import new_workspace_memory_id
+from glassbox.core import new_worktree_id
 
 
 def test_event_envelope_round_trip() -> None:
@@ -314,6 +320,59 @@ def test_event_payload_union_rejects_unknown_event_type() -> None:
 
     with pytest.raises(ValidationError):
         adapter.validate_python({"event_type": "UnknownEvent"})
+
+
+def test_worktree_payloads_round_trip_through_event_union() -> None:
+    adapter = TypeAdapter(EventPayloadType)
+    worktree_id = new_worktree_id()
+    changeset_id = new_changeset_id()
+
+    created = adapter.validate_python(
+        {
+            "event_type": "WorktreeCreated",
+            "worktree_id": worktree_id,
+            "path": "/tmp/repo/.glassbox/worktrees/wt",
+            "branch_name": "glassbox/worktree/wt",
+            "base_revision": "abc123",
+            "source_kind": "changeset",
+            "source_id": str(changeset_id),
+            "changeset_id": changeset_id,
+            "owner_process": "pid:123",
+            "state": "active",
+            "created_by": "operator",
+        }
+    )
+    status = adapter.validate_python(
+        {
+            "event_type": "WorktreeStatusRecorded",
+            "worktree_id": worktree_id,
+            "state": "dirty",
+            "path_exists": True,
+            "dirty": True,
+            "current_branch": "glassbox/worktree/wt",
+            "head_revision": "abc123",
+            "git_status_short": [" M app.py"],
+            "safe_next_actions": ["git worktree list --porcelain"],
+        }
+    )
+    cleanup = adapter.validate_python(
+        {
+            "event_type": "WorktreeCleanupRecorded",
+            "worktree_id": worktree_id,
+            "state": "cleanup_blocked",
+            "path": "/tmp/repo/.glassbox/worktrees/wt",
+            "confirmed_by": "operator",
+            "dirty": True,
+            "removed": False,
+            "reason": "cleanup blocked because the worktree has local changes",
+        }
+    )
+
+    assert isinstance(created, WorktreeCreated)
+    assert isinstance(status, WorktreeStatusRecorded)
+    assert isinstance(cleanup, WorktreeCleanupRecorded)
+    assert created.source_kind == WorktreeSourceKind.CHANGESET
+    assert status.state == WorktreeState.DIRTY
 
 
 def test_turn_status_changed_uses_shared_turn_status_type() -> None:

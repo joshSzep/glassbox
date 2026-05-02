@@ -1198,7 +1198,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1261: Add Temporary Worktree Creation And Cleanup Workflows
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1260`
 - Goal: let Glassbox create inspectable local candidate workspaces for bounded
   experimentation
@@ -1218,6 +1218,26 @@ Each phase below corresponds to one concrete milestone.
   - policy tests for cleanup confirmation
 - Done when:
   - operators can manage temporary local candidate worktrees safely
+- Completion evidence:
+  - Added canonical worktree event payloads for `WorktreeCreated`,
+    `WorktreeStatusRecorded`, and `WorktreeCleanupRecorded`, plus worktree IDs,
+    source kinds, and lifecycle states.
+  - Added `src/glassbox/runtime/worktree_isolation.py` with conservative local
+    `git worktree` create/list/status/cleanup workflows, safe-root path
+    validation, live dirty-state inspection, cleanup blocking for local
+    changes, and explicit `--discard-user-changes` handling.
+  - Added top-level `glassbox worktree` / `glassbox worktrees` CLI commands for
+    `create`, `list`, `status`, and `cleanup` with scriptable JSON output and
+    copy that says Glassbox did not merge, commit, push, or open a PR.
+  - Updated [worktree-isolation.md](./worktree-isolation.md) with the command
+    workflow, canonical event posture, safe local root, cleanup confirmation,
+    and dirty-worktree behavior.
+  - Added core event union coverage and CLI integration coverage for create,
+    list, status, cleanup block, forced cleanup, retained events, and safe-root
+    rejection.
+  - Verified with `uv run pytest tests/unit/test_core_events.py
+    tests/integration/test_cli_worktree_commands.py -q`, `uv run ruff check
+    ...`, and `uv run ty check ...` for the touched Python files.
 
 ### GBX-1262: Adopt A Selected Branch Candidate Into A Changeset
 

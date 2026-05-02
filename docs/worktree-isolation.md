@@ -108,6 +108,37 @@ or local-only details, such as absolute paths and raw command output, should be
 kept in managed artifacts with redaction rather than copied into portable
 review briefs.
 
+Create a temporary worktree:
+
+```bash
+uv run glassbox worktree create \
+  --session SESSION_ID \
+  --source branch-search-candidate \
+  --branch-search BRANCH_SEARCH_ID \
+  --candidate CANDIDATE_ID \
+  --base HEAD \
+  --cwd .
+```
+
+The command writes a `WorktreeCreated` event with the worktree ID, local path,
+candidate branch name, base revision, source identifiers, owner process, and
+created-by actor. The default destination is a sibling local directory named
+`<repo>.glassbox-worktrees/WORKTREE_ID`, outside the main checkout so the
+temporary worktree does not nest under the repository's `.glassbox/` runtime
+state. Custom paths are rejected unless they remain under that safe local root.
+
+Inspect worktrees:
+
+```bash
+uv run glassbox worktree list --cwd .
+uv run glassbox worktree status WORKTREE_ID --cwd .
+```
+
+`status` records a `WorktreeStatusRecorded` event with path existence, dirty
+posture, current branch, HEAD revision, bounded `git status --short` lines, and
+safe next actions. `list` rebuilds custody from canonical events and live git
+inspection; it does not append new evidence.
+
 ## Cleanup Rules
 
 Explicit cleanup confirmation is mandatory because removing a worktree can discard
@@ -140,6 +171,27 @@ than a mutation. For example:
 git -C <worktree-path> status --short
 git worktree list --porcelain
 ```
+
+Clean up a worktree:
+
+```bash
+uv run glassbox worktree cleanup WORKTREE_ID --confirm --cwd .
+```
+
+Dirty worktrees are blocked by default and record a `WorktreeCleanupRecorded`
+event with `cleanup_blocked`. Removing a dirty worktree requires the additional
+explicit flag:
+
+```bash
+uv run glassbox worktree cleanup WORKTREE_ID \
+  --confirm \
+  --discard-user-changes \
+  --cwd .
+```
+
+That flag is destructive and should be used only after inspecting the risk
+summary. The cleanup command never merges, rebases, commits, pushes, or opens a
+pull request.
 
 ## Candidate Adoption Boundary
 
