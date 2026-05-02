@@ -418,7 +418,7 @@ class ChangesetQueryService:
             verification_posture=verification_posture,
             review_briefs=review_briefs,
             readiness=readiness,
-            limitations=_detail_limitations(sources, inventory),
+            limitations=_detail_limitations(changeset, sources, inventory),
             safe_next_actions=_detail_safe_next_actions(changeset),
         )
 
@@ -598,6 +598,7 @@ def _limitations_summary(limitations: list[str]) -> str | None:
 
 
 def _detail_limitations(
+    changeset: ChangesetRecord,
     sources: list[ChangesetSourceRecord],
     inventory: ChangesetInventoryRecord | None,
 ) -> list[str]:
@@ -608,6 +609,9 @@ def _detail_limitations(
         limitations.append(
             "no structured change inventory is attached yet; inspect sources first"
         )
+    if changeset.risk_level.value == "high":
+        summary = changeset.risk_summary or "path classification marked high risk"
+        limitations.append(f"high review risk: {summary}")
     return limitations
 
 

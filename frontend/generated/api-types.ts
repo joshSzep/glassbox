@@ -1823,6 +1823,8 @@ export interface components {
     };
     /** ChangesetInventoryResponse */
     ChangesetInventoryResponse: {
+      /** Accepted Risk Count */
+      accepted_risk_count: number;
       /** Artifact Id */
       artifact_id: string;
       /** Artifact Schema Version */
@@ -1843,6 +1845,10 @@ export interface components {
       previous_artifact_id?: string | null;
       /** Refreshed By */
       refreshed_by: string;
+      /** Risk Level */
+      risk_level: string;
+      /** Risk Summary */
+      risk_summary?: string | null;
       /** Session Id */
       session_id: string;
       /** Source Digest */
@@ -1851,6 +1857,8 @@ export interface components {
       task_id?: string | null;
       /** Turn Id */
       turn_id?: string | null;
+      /** Unresolved Risk Count */
+      unresolved_risk_count: number;
       /**
        * Updated At
        * Format: date-time
@@ -1978,6 +1986,8 @@ export interface components {
     };
     /** ChangesetSummaryResponse */
     ChangesetSummaryResponse: {
+      /** Accepted Risk Count */
+      accepted_risk_count: number;
       /** Archived By */
       archived_by?: string | null;
       /** Archived Reason */
@@ -2007,6 +2017,10 @@ export interface components {
       objective: string;
       /** Replacement Changeset Id */
       replacement_changeset_id?: string | null;
+      /** Risk Level */
+      risk_level: string;
+      /** Risk Summary */
+      risk_summary?: string | null;
       /** Session Id */
       session_id: string;
       /** Status */
@@ -2017,6 +2031,8 @@ export interface components {
       task_id?: string | null;
       /** Turn Id */
       turn_id?: string | null;
+      /** Unresolved Risk Count */
+      unresolved_risk_count: number;
       /**
        * Updated At
        * Format: date-time

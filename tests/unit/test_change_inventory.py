@@ -67,8 +67,13 @@ def test_change_inventory_artifact_contract_from_diff_summary() -> None:
     assert artifact.summary.included_path_count == 3
     assert artifact.summary.test_path_count == 1
     assert artifact.summary.policy_sensitive_path_count == 1
+    assert artifact.summary.risk_level == "high"
+    assert artifact.summary.high_risk_path_count == 2
+    assert artifact.summary.unresolved_risk_count == 3
     assert artifact.paths[1].staged_state == "untracked"
     assert artifact.paths[1].provenance_confidence == "unknown"
+    assert "missing_provenance" in artifact.paths[1].risk_tags
+    assert "policy_sensitive" in artifact.paths[2].risk_tags
     assert artifact.summary.provenance_unknown_path_count == 3
     assert artifact.summary.externally_modified_path_count == 2
     assert "raw diffs" in artifact.limitations[0]
@@ -195,6 +200,12 @@ def test_change_inventory_attaches_direct_and_inferred_provenance() -> None:
     assert artifact.summary.provenance_direct_path_count == 2
     assert artifact.summary.provenance_inferred_path_count == 1
     assert artifact.summary.provenance_unknown_path_count == 1
+    assert artifact.summary.risk_level == "high"
+    assert (
+        "runtime_schema"
+        in by_path["src/glassbox/runtime/change_inventory.py"].risk_tags
+    )
+    assert "missing_provenance" in by_path["README.md"].risk_tags
 
 
 def test_change_inventory_provenance_index_uses_candidate_paths_for_text_evidence() -> (
@@ -223,6 +234,47 @@ def test_change_inventory_provenance_index_uses_candidate_paths_for_text_evidenc
     refs = provenance["src/glassbox/runtime/change_inventory.py"]
     assert refs[0].confidence == "inferred"
     assert refs[0].event_sequence == 7
+
+
+def test_change_inventory_classifies_path_risk_from_patterns() -> None:
+    artifact = change_inventory_from_diff_summary(
+        DiffSummaryResult(
+            scope=DiffSummaryScope.WORKSPACE,
+            files=[
+                DiffFileSummary(
+                    path="docs/change-inventory.md",
+                    change_kind="modified",
+                    insertions=3,
+                    deletions=1,
+                    docs_file=True,
+                ),
+                DiffFileSummary(
+                    path="uv.lock",
+                    change_kind="modified",
+                    insertions=900,
+                    deletions=10,
+                    generated=True,
+                ),
+                DiffFileSummary(
+                    path="src/glassbox/llm/provider_config.py",
+                    change_kind="modified",
+                    insertions=4,
+                    deletions=0,
+                ),
+            ],
+        )
+    )
+    by_path = {entry.path: entry for entry in artifact.paths}
+
+    assert artifact.summary.risk_level == "high"
+    assert "docs" in by_path["docs/change-inventory.md"].risk_tags
+    assert by_path["uv.lock"].risk_level == "high"
+    assert {"generated", "large_change", "packaging_release"}.issubset(
+        set(by_path["uv.lock"].risk_tags)
+    )
+    assert (
+        "provider_security" in by_path["src/glassbox/llm/provider_config.py"].risk_tags
+    )
 
 
 def test_change_inventory_prefers_artifact_payload_and_path_limit() -> None:

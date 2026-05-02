@@ -26,8 +26,9 @@ def _apply_changeset_projection(
             insert into changesets (
                 session_id, changeset_id, objective, summary, status, created_by,
                 task_id, turn_id, branch_search_id, branch_candidate_id,
-                created_at, updated_at, last_sequence
-            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                risk_level, risk_summary, unresolved_risk_count,
+                accepted_risk_count, created_at, updated_at, last_sequence
+            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             on conflict(session_id, changeset_id) do update set
                 objective = excluded.objective,
                 summary = excluded.summary,
@@ -37,6 +38,10 @@ def _apply_changeset_projection(
                 turn_id = excluded.turn_id,
                 branch_search_id = excluded.branch_search_id,
                 branch_candidate_id = excluded.branch_candidate_id,
+                risk_level = excluded.risk_level,
+                risk_summary = excluded.risk_summary,
+                unresolved_risk_count = excluded.unresolved_risk_count,
+                accepted_risk_count = excluded.accepted_risk_count,
                 updated_at = excluded.updated_at,
                 last_sequence = excluded.last_sequence
             """,
@@ -51,6 +56,10 @@ def _apply_changeset_projection(
                 _optional_str(payload.turn_id),
                 _optional_str(payload.branch_search_id),
                 _optional_str(payload.branch_candidate_id),
+                "unknown",
+                None,
+                0,
+                0,
                 event.created_at.isoformat(),
                 event.created_at.isoformat(),
                 event.sequence,
@@ -81,9 +90,10 @@ def _apply_changeset_projection(
             insert into changeset_inventories (
                 session_id, changeset_id, artifact_id, artifact_schema_version,
                 freshness, changed_path_count, source_digest, previous_artifact_id,
-                refreshed_by, task_id, turn_id, branch_search_id,
+                refreshed_by, risk_level, risk_summary, unresolved_risk_count,
+                accepted_risk_count, task_id, turn_id, branch_search_id,
                 branch_candidate_id, updated_at, last_sequence
-            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             on conflict(session_id, changeset_id) do update set
                 artifact_id = excluded.artifact_id,
                 artifact_schema_version = excluded.artifact_schema_version,
@@ -92,6 +102,10 @@ def _apply_changeset_projection(
                 source_digest = excluded.source_digest,
                 previous_artifact_id = excluded.previous_artifact_id,
                 refreshed_by = excluded.refreshed_by,
+                risk_level = excluded.risk_level,
+                risk_summary = excluded.risk_summary,
+                unresolved_risk_count = excluded.unresolved_risk_count,
+                accepted_risk_count = excluded.accepted_risk_count,
                 task_id = excluded.task_id,
                 turn_id = excluded.turn_id,
                 branch_search_id = excluded.branch_search_id,
@@ -109,6 +123,10 @@ def _apply_changeset_projection(
                 payload.source_digest,
                 _optional_str(payload.previous_artifact_id),
                 payload.refreshed_by,
+                payload.risk_level.value,
+                payload.risk_summary,
+                payload.unresolved_risk_count,
+                payload.accepted_risk_count,
                 _optional_str(payload.task_id),
                 _optional_str(payload.turn_id),
                 _optional_str(payload.branch_search_id),
@@ -126,6 +144,10 @@ def _apply_changeset_projection(
             turn_id=_optional_str(payload.turn_id),
             branch_search_id=_optional_str(payload.branch_search_id),
             branch_candidate_id=_optional_str(payload.branch_candidate_id),
+            risk_level=payload.risk_level.value,
+            risk_summary=payload.risk_summary,
+            unresolved_risk_count=payload.unresolved_risk_count,
+            accepted_risk_count=payload.accepted_risk_count,
         )
         return
     if isinstance(payload, ChangesetVerificationPostureUpdated):
@@ -280,6 +302,7 @@ def _apply_changeset_projection(
             ),
             task_id=_optional_str(payload.task_id),
             turn_id=_optional_str(payload.turn_id),
+            accepted_risk_count=payload.accepted_risk_count,
         )
         return
     if isinstance(payload, ChangesetCandidateAdopted):
@@ -378,7 +401,7 @@ def _update_changeset(
     connection: sqlite3.Connection,
     event: EventEnvelope,
     changeset_id: str,
-    **optional_values: str | None,
+    **optional_values: object | None,
 ) -> None:
     assignments = ["updated_at = ?", "last_sequence = ?"]
     parameters: list[object] = [event.created_at.isoformat(), event.sequence]

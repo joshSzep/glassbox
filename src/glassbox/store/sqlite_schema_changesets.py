@@ -2,6 +2,8 @@
 
 import sqlite3
 
+from glassbox.store.sqlite_schema_helpers import column_names
+
 
 def ensure_changeset_projection_schema(connection: sqlite3.Connection) -> None:
     connection.execute(
@@ -23,6 +25,10 @@ def ensure_changeset_projection_schema(connection: sqlite3.Connection) -> None:
             latest_inventory_artifact_id text,
             latest_verification_id text,
             latest_review_brief_artifact_id text,
+            risk_level text not null default 'unknown',
+            risk_summary text,
+            unresolved_risk_count integer not null default 0,
+            accepted_risk_count integer not null default 0,
             created_at text not null,
             updated_at text not null,
             last_sequence integer not null,
@@ -84,6 +90,10 @@ def ensure_changeset_projection_schema(connection: sqlite3.Connection) -> None:
             source_digest text,
             previous_artifact_id text,
             refreshed_by text not null,
+            risk_level text not null default 'unknown',
+            risk_summary text,
+            unresolved_risk_count integer not null default 0,
+            accepted_risk_count integer not null default 0,
             task_id text,
             turn_id text,
             branch_search_id text,
@@ -96,6 +106,7 @@ def ensure_changeset_projection_schema(connection: sqlite3.Connection) -> None:
         )
         """
     )
+    _ensure_changeset_risk_columns(connection)
     connection.execute(
         """
         create table if not exists changeset_verification_posture (
@@ -173,6 +184,22 @@ def ensure_changeset_projection_schema(connection: sqlite3.Connection) -> None:
         )
         """
     )
+
+
+def _ensure_changeset_risk_columns(connection: sqlite3.Connection) -> None:
+    for table_name in ("changesets", "changeset_inventories"):
+        existing_columns = column_names(connection, table_name)
+        columns = {
+            "risk_level": "text not null default 'unknown'",
+            "risk_summary": "text",
+            "unresolved_risk_count": "integer not null default 0",
+            "accepted_risk_count": "integer not null default 0",
+        }
+        for column_name, column_type in columns.items():
+            if column_name not in existing_columns:
+                connection.execute(
+                    f"alter table {table_name} add column {column_name} {column_type}"
+                )
 
 
 __all__ = ["ensure_changeset_projection_schema"]

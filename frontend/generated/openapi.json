@@ -1702,6 +1702,10 @@
       },
       "ChangesetInventoryResponse": {
         "properties": {
+          "accepted_risk_count": {
+            "title": "Accepted Risk Count",
+            "type": "integer"
+          },
           "artifact_id": {
             "title": "Artifact Id",
             "type": "string"
@@ -1763,6 +1767,21 @@
             "title": "Refreshed By",
             "type": "string"
           },
+          "risk_level": {
+            "title": "Risk Level",
+            "type": "string"
+          },
+          "risk_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Summary"
+          },
           "session_id": {
             "title": "Session Id",
             "type": "string"
@@ -1800,6 +1819,10 @@
             ],
             "title": "Turn Id"
           },
+          "unresolved_risk_count": {
+            "title": "Unresolved Risk Count",
+            "type": "integer"
+          },
           "updated_at": {
             "format": "date-time",
             "title": "Updated At",
@@ -1814,6 +1837,9 @@
           "freshness",
           "changed_path_count",
           "refreshed_by",
+          "risk_level",
+          "unresolved_risk_count",
+          "accepted_risk_count",
           "updated_at",
           "last_sequence"
         ],
@@ -2205,6 +2231,10 @@
       },
       "ChangesetSummaryResponse": {
         "properties": {
+          "accepted_risk_count": {
+            "title": "Accepted Risk Count",
+            "type": "integer"
+          },
           "archived_by": {
             "anyOf": [
               {
@@ -2314,6 +2344,21 @@
             ],
             "title": "Replacement Changeset Id"
           },
+          "risk_level": {
+            "title": "Risk Level",
+            "type": "string"
+          },
+          "risk_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Summary"
+          },
           "session_id": {
             "title": "Session Id",
             "type": "string"
@@ -2355,6 +2400,10 @@
             ],
             "title": "Turn Id"
           },
+          "unresolved_risk_count": {
+            "title": "Unresolved Risk Count",
+            "type": "integer"
+          },
           "updated_at": {
             "format": "date-time",
             "title": "Updated At",
@@ -2367,6 +2416,9 @@
           "objective",
           "status",
           "created_by",
+          "risk_level",
+          "unresolved_risk_count",
+          "accepted_risk_count",
           "created_at",
           "updated_at",
           "last_sequence"

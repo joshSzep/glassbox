@@ -39,6 +39,7 @@ ChangeInventoryStageState = Literal[
 ]
 ChangeInventoryBinaryPosture = Literal["binary", "text", "unknown"]
 ChangeInventoryProvenanceConfidence = Literal["direct", "inferred", "unknown"]
+ChangeInventoryRiskLevel = Literal["low", "medium", "high", "unknown"]
 
 
 class ChangeInventoryLimits(BaseModel):
@@ -63,6 +64,16 @@ class ChangeInventorySourceRef(BaseModel):
     summary: str | None = Field(default=None, max_length=500)
 
 
+class _PathRisk(BaseModel):
+    """Internal advisory risk classification for one changed path."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    level: ChangeInventoryRiskLevel
+    tags: list[str] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list)
+
+
 class ChangeInventoryPathEntry(BaseModel):
     """One path entry in a change inventory artifact."""
 
@@ -81,6 +92,9 @@ class ChangeInventoryPathEntry(BaseModel):
     source_evidence_refs: list[ChangeInventorySourceRef] = Field(default_factory=list)
     provenance_confidence: ChangeInventoryProvenanceConfidence = "unknown"
     provenance_note: str | None = Field(default=None, max_length=500)
+    risk_level: ChangeInventoryRiskLevel = "unknown"
+    risk_tags: list[str] = Field(default_factory=list, max_length=20)
+    risk_reasons: list[str] = Field(default_factory=list, max_length=20)
 
 
 class ChangeInventorySummary(BaseModel):
@@ -103,6 +117,13 @@ class ChangeInventorySummary(BaseModel):
     provenance_inferred_path_count: int = Field(ge=0)
     provenance_unknown_path_count: int = Field(ge=0)
     externally_modified_path_count: int = Field(ge=0)
+    risk_level: ChangeInventoryRiskLevel = "unknown"
+    risk_summary: str | None = Field(default=None, max_length=4000)
+    high_risk_path_count: int = Field(ge=0)
+    medium_risk_path_count: int = Field(ge=0)
+    low_risk_path_count: int = Field(ge=0)
+    unresolved_risk_count: int = Field(ge=0)
+    accepted_risk_count: int = Field(ge=0)
 
 
 class ChangeInventoryArtifact(BaseModel):
@@ -189,6 +210,11 @@ def change_inventory_entry_from_diff_file(
     path = _redacted_relative_path(file_summary.path)
     evidence_refs = _dedupe_source_refs(source_evidence_refs or [])
     confidence = _path_provenance_confidence(evidence_refs)
+    risk = _risk_for_diff_file(
+        file_summary,
+        path=path,
+        provenance_confidence=confidence,
+    )
     return ChangeInventoryPathEntry(
         path=path,
         change_kind=file_summary.change_kind,
@@ -207,6 +233,9 @@ def change_inventory_entry_from_diff_file(
             confidence,
             provenance_index_available=provenance_index_available,
         ),
+        risk_level=risk.level,
+        risk_tags=risk.tags,
+        risk_reasons=risk.reasons,
     )
 
 
@@ -341,6 +370,10 @@ def _summary_for_entries(
     changed_path_count: int,
     omitted_path_count: int,
 ) -> ChangeInventorySummary:
+    risk_level = _aggregate_risk_level(entries)
+    unresolved_risk_count = sum(
+        1 for entry in entries if entry.risk_level in {"high", "medium"}
+    )
     return ChangeInventorySummary(
         changed_path_count=changed_path_count,
         included_path_count=len(entries),
@@ -374,6 +407,15 @@ def _summary_for_entries(
             if entry.provenance_confidence == "unknown"
             and entry.staged_state != "untracked"
         ),
+        risk_level=risk_level,
+        risk_summary=_risk_summary(entries, risk_level),
+        high_risk_path_count=sum(1 for entry in entries if entry.risk_level == "high"),
+        medium_risk_path_count=sum(
+            1 for entry in entries if entry.risk_level == "medium"
+        ),
+        low_risk_path_count=sum(1 for entry in entries if entry.risk_level == "low"),
+        unresolved_risk_count=unresolved_risk_count,
+        accepted_risk_count=0,
     )
 
 
@@ -514,6 +556,154 @@ def _provenance_note(
     return (
         "no retained Glassbox event names this path; treat it as manual or "
         "externally modified until inspected"
+    )
+
+
+def _risk_for_diff_file(
+    file_summary: DiffFileSummary,
+    *,
+    path: str,
+    provenance_confidence: ChangeInventoryProvenanceConfidence,
+) -> _PathRisk:
+    tags: list[str] = []
+    reasons: list[str] = []
+    levels: list[ChangeInventoryRiskLevel] = []
+
+    if path == "<redacted-path>":
+        tags.append("redacted_path")
+        reasons.append("path was redacted, so review sensitivity is unknown")
+        levels.append("high")
+    if file_summary.policy_sensitive:
+        tags.append("policy_sensitive")
+        reasons.append("policy-sensitive path changed")
+        levels.append("high")
+    if file_summary.binary:
+        tags.append("binary")
+        reasons.append("binary path changed and cannot be summarized by text diff")
+        levels.append("high")
+    if _change_size(file_summary) >= 500:
+        tags.append("large_change")
+        reasons.append("large insertion/deletion count needs focused review")
+        levels.append("high")
+    if _is_provider_or_security_path(path):
+        tags.append("provider_security")
+        reasons.append(
+            "provider, credential, security, or policy-adjacent path changed"
+        )
+        levels.append("high")
+    if _is_runtime_or_schema_path(path):
+        tags.append("runtime_schema")
+        reasons.append("runtime, store, schema, or projection path changed")
+        levels.append("high")
+    if _is_packaging_or_release_path(path):
+        tags.append("packaging_release")
+        reasons.append("packaging, dependency, script, or release path changed")
+        levels.append("high")
+    if file_summary.generated:
+        tags.append("generated")
+        reasons.append("generated path changed; source regeneration should be reviewed")
+        levels.append("medium")
+    if provenance_confidence == "unknown":
+        tags.append("missing_provenance")
+        reasons.append("no retained Glassbox provenance names this changed path")
+        levels.append("medium")
+    if file_summary.test_file:
+        tags.append("test")
+    if file_summary.docs_file:
+        tags.append("docs")
+    if not levels:
+        levels.append("low")
+        if file_summary.docs_file:
+            reasons.append("docs-only path changed")
+        elif file_summary.test_file:
+            reasons.append("test path changed")
+        else:
+            reasons.append("no high-risk path pattern matched")
+
+    return _PathRisk(
+        level=_max_risk(levels),
+        tags=sorted(dict.fromkeys(tags)),
+        reasons=list(dict.fromkeys(reasons)),
+    )
+
+
+def _aggregate_risk_level(
+    entries: Sequence[ChangeInventoryPathEntry],
+) -> ChangeInventoryRiskLevel:
+    if not entries:
+        return "unknown"
+    return _max_risk([entry.risk_level for entry in entries])
+
+
+def _risk_summary(
+    entries: Sequence[ChangeInventoryPathEntry],
+    risk_level: ChangeInventoryRiskLevel,
+) -> str | None:
+    if not entries:
+        return "no changed paths were included in the inventory"
+    top_tags: list[str] = []
+    for entry in entries:
+        if entry.risk_level == risk_level:
+            top_tags.extend(entry.risk_tags[:3])
+    tags = ", ".join(sorted(dict.fromkeys(top_tags))[:5])
+    if risk_level == "high":
+        return f"high review risk from {tags or 'path classifications'}"
+    if risk_level == "medium":
+        return f"medium review risk from {tags or 'path classifications'}"
+    if risk_level == "low":
+        return "low review risk from changed-path classifications"
+    return "risk is unknown because no path classification was available"
+
+
+def _max_risk(
+    levels: Sequence[ChangeInventoryRiskLevel],
+) -> ChangeInventoryRiskLevel:
+    rank: dict[ChangeInventoryRiskLevel, int] = {
+        "low": 0,
+        "medium": 1,
+        "high": 2,
+        "unknown": -1,
+    }
+    return max(levels, key=lambda level: rank[level], default="unknown")
+
+
+def _change_size(file_summary: DiffFileSummary) -> int:
+    return (file_summary.insertions or 0) + (file_summary.deletions or 0)
+
+
+def _is_runtime_or_schema_path(path: str) -> bool:
+    normalized = path.lower()
+    return (
+        normalized.startswith("src/glassbox/runtime/")
+        or normalized.startswith("src/glassbox/store/")
+        or "sqlite_schema" in normalized
+        or "sqlite_projection" in normalized
+        or normalized.endswith("database.md")
+    )
+
+
+def _is_provider_or_security_path(path: str) -> bool:
+    normalized = path.lower()
+    sensitive_fragments = (
+        "provider",
+        "policy",
+        "security",
+        "secret",
+        "credential",
+        "auth",
+        ".env",
+    )
+    return any(fragment in normalized for fragment in sensitive_fragments)
+
+
+def _is_packaging_or_release_path(path: str) -> bool:
+    normalized = path.lower()
+    return (
+        normalized in {"pyproject.toml", "uv.lock", "package.json", "pnpm-lock.yaml"}
+        or normalized.startswith("scripts/")
+        or normalized.startswith("frontend/package")
+        or normalized.startswith("frontend/pnpm-lock")
+        or "release" in normalized
     )
 
 

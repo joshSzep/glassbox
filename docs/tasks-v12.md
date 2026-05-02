@@ -606,7 +606,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1222: Add Change Risk And Sensitivity Classification
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1221`
 - Goal: summarize review risk from changed paths without replacing human
   judgment
@@ -626,6 +626,31 @@ Each phase below corresponds to one concrete milestone.
   - frontend tests if dashboard risk UI changes
 - Done when:
   - a changeset can explain which parts of the change deserve extra review
+- Completion evidence:
+  - Added advisory path risk classification to the change inventory artifact
+    for generated files, policy-sensitive paths, docs/tests, runtime/store/schema
+    changes, provider/security/policy-adjacent changes, packaging/release
+    changes, large changes, binary changes, redacted paths, and missing
+    provenance.
+  - Added inventory summary risk fields (`risk_level`, `risk_summary`,
+    high/medium/low counts, `unresolved_risk_count`, and
+    `accepted_risk_count`) and projected latest risk posture onto changeset
+    summaries and inventory records.
+  - Surfaced risk fields through CLI list/show output, changeset API responses,
+    generated frontend API types, and dashboard changeset copy.
+  - Updated [change-inventory.md](./change-inventory.md) to document advisory
+    risk tags, non-claims, unresolved risk, and accepted-risk posture.
+  - Added unit and integration coverage for path risk classification,
+    projection rebuild/readback, CLI/API responses, and generated API
+    freshness.
+  - Verified with `uv run pytest tests/unit/test_change_inventory.py
+    tests/integration/test_change_inventory_provenance.py
+    tests/integration/test_changeset_projection.py
+    tests/integration/test_cli_changeset_commands.py
+    tests/integration/test_web_changeset_routes.py
+    tests/integration/test_openapi_schema.py`, `uv run ruff check ...`, `uv
+    run ty check ...`, `pnpm run typecheck`, `pnpm run lint`, `pnpm run test --
+    dashboard-stores generated-api-types`, and `pnpm run format:check`.
 
 ### GBX-1223: Refresh Change Inventory Safely
 

@@ -207,6 +207,15 @@ class ChangesetInventoryFreshness(StrEnum):
     UNKNOWN = "unknown"
 
 
+class ChangesetRiskLevel(StrEnum):
+    """Advisory review risk levels for a changeset or changed path."""
+
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    UNKNOWN = "unknown"
+
+
 class ChangesetVerificationState(StrEnum):
     """Review-time verification posture for a changeset."""
 

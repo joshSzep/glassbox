@@ -105,7 +105,7 @@ function ChangesetList({
           >
             <DataListLabel className="truncate">{changeset.objective}</DataListLabel>
             <DataListMeta className="truncate">
-              {changeset.status} - {changeset.changeset_id}
+              {changeset.status} - risk {changeset.risk_level} - {changeset.changeset_id}
             </DataListMeta>
           </button>
         </DataListItem>
@@ -135,6 +135,7 @@ function ChangesetDetail({
     return <StateLine value="Loading changeset evidence." />;
   }
   const { changeset } = detail.detail;
+  const highRisk = changeset.risk_level === "high";
   return (
     <article className="rounded-md border border-border/80 bg-card p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -146,6 +147,12 @@ function ChangesetDetail({
           <p className="mt-1 break-all text-console text-muted-foreground">
             {changeset.changeset_id}
           </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Badge variant={highRisk ? "warning" : "muted"}>Risk {changeset.risk_level}</Badge>
+            {changeset.unresolved_risk_count > 0 ? (
+              <Badge variant="outline">{changeset.unresolved_risk_count} unresolved</Badge>
+            ) : null}
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button onClick={onShowList} size="sm" type="button" variant="ghost">
@@ -169,6 +176,7 @@ function ChangesetDetail({
         <Fact label="Task" value={changeset.task_id ?? "None"} />
         <Fact label="Branch search" value={changeset.branch_search_id ?? "None"} />
         <Fact label="Inventory" value={detail.detail.inventory?.freshness ?? "None attached"} />
+        <Fact label="Risk" value={changeset.risk_summary ?? changeset.risk_level} />
       </dl>
       <Section title="Sources">
         {detail.detail.sources.length === 0 ? (

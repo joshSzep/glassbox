@@ -59,6 +59,7 @@ from glassbox.core.types import BranchCandidateVerificationStatus
 from glassbox.core.types import ChangesetInventoryFreshness
 from glassbox.core.types import ChangesetReadinessKind
 from glassbox.core.types import ChangesetReadinessState
+from glassbox.core.types import ChangesetRiskLevel
 from glassbox.core.types import ChangesetSourceKind
 from glassbox.core.types import ChangesetVerificationState
 from glassbox.core.types import ContextCompactionFreshness
@@ -1036,6 +1037,10 @@ class ChangesetInventoryRefreshed(EventPayload):
     source_digest: str | None = Field(default=None, max_length=256)
     previous_artifact_id: ArtifactId | None = None
     refreshed_by: str = Field(default="operator", min_length=1, max_length=200)
+    risk_level: ChangesetRiskLevel = ChangesetRiskLevel.UNKNOWN
+    risk_summary: str | None = Field(default=None, max_length=4000)
+    unresolved_risk_count: int = Field(default=0, ge=0)
+    accepted_risk_count: int = Field(default=0, ge=0)
     task_id: TaskId | None = None
     turn_id: TurnId | None = None
     branch_search_id: BranchSearchId | None = None

@@ -222,6 +222,7 @@ from glassbox.core.types import BranchSearchStatus
 from glassbox.core.types import ChangesetInventoryFreshness
 from glassbox.core.types import ChangesetReadinessKind
 from glassbox.core.types import ChangesetReadinessState
+from glassbox.core.types import ChangesetRiskLevel
 from glassbox.core.types import ChangesetSourceKind
 from glassbox.core.types import ChangesetVerificationState
 from glassbox.core.types import CheckpointAbsenceReason
@@ -329,6 +330,7 @@ __all__ = [
     "ChangesetReadinessRecord",
     "ChangesetReadinessState",
     "ChangesetRecord",
+    "ChangesetRiskLevel",
     "ChangesetReviewBriefRecord",
     "ChangesetReviewBriefCreated",
     "ChangesetSourceAttached",

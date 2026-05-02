@@ -32,6 +32,10 @@ class ChangesetSummaryResponse(BaseModel):
     latest_inventory_artifact_id: str | None = None
     latest_verification_id: str | None = None
     latest_review_brief_artifact_id: str | None = None
+    risk_level: str
+    risk_summary: str | None = None
+    unresolved_risk_count: int
+    accepted_risk_count: int
     created_at: datetime
     updated_at: datetime
     last_sequence: int
@@ -68,6 +72,10 @@ class ChangesetInventoryResponse(BaseModel):
     turn_id: str | None = None
     branch_search_id: str | None = None
     branch_candidate_id: str | None = None
+    risk_level: str
+    risk_summary: str | None = None
+    unresolved_risk_count: int
+    accepted_risk_count: int
     updated_at: datetime
     last_sequence: int
 
@@ -197,6 +205,10 @@ def build_changeset_summary_response(
         latest_review_brief_artifact_id=_optional_str(
             changeset.latest_review_brief_artifact_id
         ),
+        risk_level=changeset.risk_level.value,
+        risk_summary=changeset.risk_summary,
+        unresolved_risk_count=changeset.unresolved_risk_count,
+        accepted_risk_count=changeset.accepted_risk_count,
         created_at=changeset.created_at,
         updated_at=changeset.updated_at,
         last_sequence=changeset.last_sequence,
@@ -274,6 +286,10 @@ def build_changeset_inventory_response(
         turn_id=_optional_str(inventory.turn_id),
         branch_search_id=_optional_str(inventory.branch_search_id),
         branch_candidate_id=_optional_str(inventory.branch_candidate_id),
+        risk_level=inventory.risk_level.value,
+        risk_summary=inventory.risk_summary,
+        unresolved_risk_count=inventory.unresolved_risk_count,
+        accepted_risk_count=inventory.accepted_risk_count,
         updated_at=inventory.updated_at,
         last_sequence=inventory.last_sequence,
     )

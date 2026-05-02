@@ -23,7 +23,8 @@ Each artifact contains:
 - `limits`, `truncated`, and `size_limited`
 - aggregate `summary` counts for changed, included, omitted, generated, test,
   docs, binary, policy-sensitive, untracked, direct provenance, inferred
-  provenance, unknown provenance, and externally modified paths
+  provenance, unknown provenance, externally modified paths, and advisory
+  low/medium/high review risk
 - `paths`, with one entry per included changed path
 - `limitations`, naming non-claims such as missing provenance or truncation
 
@@ -36,6 +37,7 @@ Each path entry contains:
 - `binary_posture`
 - `staged_state`
 - `source_evidence_refs`, `provenance_confidence`, and `provenance_note`
+- `risk_level`, `risk_tags`, and `risk_reasons`
 
 ## Provenance
 
@@ -51,6 +53,19 @@ Unknown provenance is intentional and review-safe. A changed path can be manual,
 external, or produced by evidence Glassbox did not retain. Inventory entries
 with unknown provenance say so in `provenance_note`, and the summary counts them
 as unknown rather than implying Glassbox ownership.
+
+## Advisory Risk
+
+Inventory risk is an explainable review cue, not a blocker and not a substitute
+for human judgment. Path entries are tagged for generated files,
+policy-sensitive paths, docs and tests, runtime/store/schema/projection changes,
+provider/security/policy-adjacent changes, packaging/release/dependency changes,
+large changes, binary changes, redacted paths, and missing provenance.
+
+The artifact summary rolls those path classifications into `risk_level`,
+`risk_summary`, high/medium/low path counts, `unresolved_risk_count`, and
+`accepted_risk_count`. New inventory artifacts set accepted risk to `0`; later
+readiness and review flows can record explicit accepted-risk evidence.
 
 ## Limits And Redaction
 
@@ -69,6 +84,7 @@ A change inventory does not prove that:
 
 - a file was changed by Glassbox rather than by a person or another tool
 - a file with direct or inferred provenance has no additional manual edits
+- a high-risk path is unsafe, or a low-risk path is safe
 - verification is fresh for the current workspace
 - the changeset is ready for review or commit
 - raw diff hunks, secrets, command output, or file contents are safe to share

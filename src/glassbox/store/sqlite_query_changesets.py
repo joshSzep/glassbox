@@ -15,6 +15,7 @@ from glassbox.core.models import ChangesetVerificationPostureRecord
 from glassbox.core.types import ChangesetInventoryFreshness
 from glassbox.core.types import ChangesetReadinessKind
 from glassbox.core.types import ChangesetReadinessState
+from glassbox.core.types import ChangesetRiskLevel
 from glassbox.core.types import ChangesetSourceKind
 from glassbox.core.types import ChangesetVerificationState
 
@@ -84,7 +85,8 @@ def get_changeset_inventory(
         select
             session_id, changeset_id, artifact_id, artifact_schema_version,
             freshness, changed_path_count, source_digest, previous_artifact_id,
-            refreshed_by, task_id, turn_id, branch_search_id,
+            refreshed_by, risk_level, risk_summary, unresolved_risk_count,
+            accepted_risk_count, task_id, turn_id, branch_search_id,
             branch_candidate_id, updated_at, last_sequence
         from changeset_inventories
         where session_id = ? and changeset_id = ?
@@ -166,7 +168,9 @@ def _changeset_select_sql() -> str:
             archived_by, archived_reason, replacement_changeset_id, task_id,
             turn_id, branch_search_id, branch_candidate_id,
             latest_inventory_artifact_id, latest_verification_id,
-            latest_review_brief_artifact_id, created_at, updated_at, last_sequence
+            latest_review_brief_artifact_id, risk_level, risk_summary,
+            unresolved_risk_count, accepted_risk_count, created_at, updated_at,
+            last_sequence
         from changesets
     """
 
@@ -189,6 +193,10 @@ def _changeset_record_from_row(row: sqlite3.Row) -> ChangesetRecord:
         latest_inventory_artifact_id=row["latest_inventory_artifact_id"],
         latest_verification_id=row["latest_verification_id"],
         latest_review_brief_artifact_id=row["latest_review_brief_artifact_id"],
+        risk_level=ChangesetRiskLevel(row["risk_level"]),
+        risk_summary=row["risk_summary"],
+        unresolved_risk_count=row["unresolved_risk_count"],
+        accepted_risk_count=row["accepted_risk_count"],
         created_at=datetime.fromisoformat(row["created_at"]),
         updated_at=datetime.fromisoformat(row["updated_at"]),
         last_sequence=row["last_sequence"],
@@ -227,6 +235,10 @@ def _changeset_inventory_record_from_row(
         source_digest=row["source_digest"],
         previous_artifact_id=row["previous_artifact_id"],
         refreshed_by=row["refreshed_by"],
+        risk_level=ChangesetRiskLevel(row["risk_level"]),
+        risk_summary=row["risk_summary"],
+        unresolved_risk_count=row["unresolved_risk_count"],
+        accepted_risk_count=row["accepted_risk_count"],
         task_id=row["task_id"],
         turn_id=row["turn_id"],
         branch_search_id=row["branch_search_id"],

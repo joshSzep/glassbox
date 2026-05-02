@@ -173,10 +173,13 @@ def _print_changeset_list(changesets: list[ChangesetRecord]) -> None:
     for changeset in changesets:
         print(
             f"{changeset.changeset_id}  {changeset.status}  "
+            f"risk {changeset.risk_level.value}  "
             f"updated {changeset.updated_at.isoformat()}"
         )
         print(f"  Session: {changeset.session_id}")
         print(f"  Objective: {changeset.objective}")
+        if changeset.risk_summary is not None:
+            print(f"  Risk: {changeset.risk_summary}")
         if changeset.task_id is not None:
             print(f"  Task: {changeset.task_id}")
         if changeset.branch_search_id is not None:
@@ -191,6 +194,14 @@ def _print_changeset_detail(detail: ChangesetDetailView) -> None:
     print(f"Objective: {changeset.objective}")
     if changeset.summary:
         print(f"Summary: {changeset.summary}")
+    print(
+        "Risk: "
+        f"{changeset.risk_level.value} "
+        f"({changeset.unresolved_risk_count} unresolved, "
+        f"{changeset.accepted_risk_count} accepted)"
+    )
+    if changeset.risk_summary is not None:
+        print(f"Risk summary: {changeset.risk_summary}")
     print(f"Sources: {len(detail.sources)}")
     for source in detail.sources:
         print(f"  {source.source_kind.value}: {source.reason}")

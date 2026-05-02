@@ -42,6 +42,7 @@ from glassbox.core.types import BranchSearchStatus
 from glassbox.core.types import ChangesetInventoryFreshness
 from glassbox.core.types import ChangesetReadinessKind
 from glassbox.core.types import ChangesetReadinessState
+from glassbox.core.types import ChangesetRiskLevel
 from glassbox.core.types import ChangesetSourceKind
 from glassbox.core.types import ChangesetVerificationState
 from glassbox.core.types import CheckpointAbsenceReason
@@ -1017,6 +1018,10 @@ class ChangesetRecord(BaseModel):
     latest_inventory_artifact_id: ArtifactId | None = None
     latest_verification_id: TaskVerificationId | None = None
     latest_review_brief_artifact_id: ArtifactId | None = None
+    risk_level: ChangesetRiskLevel = ChangesetRiskLevel.UNKNOWN
+    risk_summary: str | None = Field(default=None, max_length=4000)
+    unresolved_risk_count: int = Field(default=0, ge=0)
+    accepted_risk_count: int = Field(default=0, ge=0)
     created_at: datetime
     updated_at: datetime
     last_sequence: int = Field(ge=0)
@@ -1061,6 +1066,10 @@ class ChangesetInventoryRecord(BaseModel):
     turn_id: TurnId | None = None
     branch_search_id: BranchSearchId | None = None
     branch_candidate_id: BranchCandidateId | None = None
+    risk_level: ChangesetRiskLevel = ChangesetRiskLevel.UNKNOWN
+    risk_summary: str | None = Field(default=None, max_length=4000)
+    unresolved_risk_count: int = Field(default=0, ge=0)
+    accepted_risk_count: int = Field(default=0, ge=0)
     updated_at: datetime
     last_sequence: int = Field(ge=0)
 

@@ -10,6 +10,7 @@ from glassbox.core import ChangesetReadinessDecided
 from glassbox.core import ChangesetReadinessKind
 from glassbox.core import ChangesetReadinessState
 from glassbox.core import ChangesetReviewBriefCreated
+from glassbox.core import ChangesetRiskLevel
 from glassbox.core import ChangesetSourceAttached
 from glassbox.core import ChangesetSourceKind
 from glassbox.core import ChangesetVerificationPostureUpdated
@@ -90,6 +91,9 @@ def test_changeset_projection_queries_current_state_and_references(
                         artifact_id=inventory_artifact_id,
                         changed_path_count=3,
                         source_digest="sha256:inventory",
+                        risk_level=ChangesetRiskLevel.HIGH,
+                        risk_summary="runtime schema changed",
+                        unresolved_risk_count=2,
                     ),
                 ),
                 EventEnvelope(
@@ -153,6 +157,10 @@ def test_changeset_projection_queries_current_state_and_references(
     assert changeset.latest_inventory_artifact_id == inventory_artifact_id
     assert changeset.latest_verification_id == verification_id
     assert changeset.latest_review_brief_artifact_id == brief_artifact_id
+    assert changeset.risk_level == ChangesetRiskLevel.HIGH
+    assert changeset.risk_summary == "runtime schema changed"
+    assert changeset.unresolved_risk_count == 2
+    assert changeset.accepted_risk_count == 0
     assert len(sources) == 1
     assert sources[0].source_kind == ChangesetSourceKind.SESSION
     assert sources[0].source_session_id == source_session_id
@@ -160,6 +168,8 @@ def test_changeset_projection_queries_current_state_and_references(
     assert inventory is not None
     assert inventory.freshness == ChangesetInventoryFreshness.FRESH
     assert inventory.changed_path_count == 3
+    assert inventory.risk_level == ChangesetRiskLevel.HIGH
+    assert inventory.unresolved_risk_count == 2
     assert verification is not None
     assert verification.state == ChangesetVerificationState.FAILED
     assert verification.failed_count == 1
