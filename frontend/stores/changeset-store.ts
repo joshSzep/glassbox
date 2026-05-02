@@ -3,6 +3,7 @@ import { createStore, type StoreApi } from "zustand/vanilla";
 import type {
   ChangesetDetailResponse,
   ChangesetListPageResponse,
+  ChangesetVerificationPlanPreviewResponse,
   GlassboxApiClient,
 } from "@/api/client";
 import {
@@ -31,6 +32,7 @@ export type ChangesetDetailState = {
   error: string | null;
   loadState: LoadState;
   selectedChangesetId: string | null;
+  verificationPlan: ChangesetVerificationPlanPreviewResponse | null;
 };
 
 export type ChangesetStoreState = {
@@ -81,6 +83,7 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
       set({ action: createPendingActionStatus("refresh-changeset") });
       try {
         const response = await apiClient.refreshChangeset({ changesetId: selectedChangesetId });
+        const verificationPlan = await apiClient.getChangesetVerificationPlan(selectedChangesetId);
         set({
           action: createSucceededActionStatus("refresh-changeset"),
           detail: {
@@ -88,6 +91,7 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
             error: null,
             loadState: "loaded",
             selectedChangesetId,
+            verificationPlan,
           },
         });
         await get().loadChangesetPage();
@@ -112,15 +116,25 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
           error: null,
           loadState: "loading",
           selectedChangesetId: changesetId,
+          verificationPlan: null,
         },
       });
       try {
-        const detail = await apiClient.getChangesetDetail(changesetId);
+        const [detail, verificationPlan] = await Promise.all([
+          apiClient.getChangesetDetail(changesetId),
+          apiClient.getChangesetVerificationPlan(changesetId),
+        ]);
         if (!detailRequests.isCurrent(currentRequestId)) {
           return;
         }
         set({
-          detail: { detail, error: null, loadState: "loaded", selectedChangesetId: changesetId },
+          detail: {
+            detail,
+            error: null,
+            loadState: "loaded",
+            selectedChangesetId: changesetId,
+            verificationPlan,
+          },
         });
       } catch (error) {
         if (!detailRequests.isCurrent(currentRequestId)) {
@@ -132,6 +146,7 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
             error: errorMessage(error),
             loadState: "failed",
             selectedChangesetId: changesetId,
+            verificationPlan: null,
           },
         });
       }
@@ -144,7 +159,13 @@ function createIdleChangesetPageState(): ChangesetPageState {
 }
 
 function createIdleChangesetDetailState(): ChangesetDetailState {
-  return { detail: null, error: null, loadState: "idle", selectedChangesetId: null };
+  return {
+    detail: null,
+    error: null,
+    loadState: "idle",
+    selectedChangesetId: null,
+    verificationPlan: null,
+  };
 }
 
 function requireSelectedChangesetId(detail: ChangesetDetailState): string {

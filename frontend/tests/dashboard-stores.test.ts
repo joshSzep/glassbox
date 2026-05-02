@@ -158,6 +158,7 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
     getBranchSearchPage: async () => ({ items: [makeBranchSearchSummary("search-1")] }),
     getChangesetDetail: async (changesetId) => makeChangesetDetail(changesetId),
     getChangesetPage: async () => ({ items: [makeChangesetSummary("changeset-1")] }),
+    getChangesetVerificationPlan: async (changesetId) => makeChangesetVerificationPlan(changesetId),
     getRepositoryIndexEntryDetail: async (entryId) => ({ entry: makeRepositoryEntry(entryId) }),
     getRepositoryIndexStatus: async () => ({
       built_at: "2026-04-23T00:00:00Z",
@@ -780,6 +781,7 @@ describe("changeset store", () => {
 
     expect(store.getState().page.items[0].changeset_id).toBe("changeset-1");
     expect(store.getState().detail.detail?.changeset.changeset_id).toBe("changeset-1");
+    expect(store.getState().detail.verificationPlan?.readiness.state).toBe("missing");
     expect(store.getState().action.state).toBe("succeeded");
   });
 });
@@ -1252,6 +1254,7 @@ type BranchSearchDetail = components["schemas"]["BranchSearchDetailResponse"];
 type BranchSearchDecisionSupport = components["schemas"]["BranchSearchDecisionSupportResponse"];
 type BranchSearchSummary = components["schemas"]["BranchSearchSummaryResponse"];
 type ChangesetDetail = components["schemas"]["ChangesetDetailResponse"];
+type ChangesetVerificationPlan = components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
 type ChangesetSummary = components["schemas"]["ChangesetSummaryResponse"];
 type RepositoryEntry = components["schemas"]["RepositoryIndexEntryResponse"];
 type TaskDetail = components["schemas"]["TaskDetailResponse"];
@@ -1446,6 +1449,52 @@ function makeChangesetDetail(changesetId: string): ChangesetDetail {
       },
     ],
     verification_posture: null,
+  };
+}
+
+function makeChangesetVerificationPlan(changesetId: string): ChangesetVerificationPlan {
+  return {
+    changed_paths: ["src/glassbox/runtime/changesets.py"],
+    changeset_id: changesetId,
+    eval_profiles: ["commit-smoke"],
+    expected_scope: ["src/glassbox/runtime/changesets.py"],
+    inventory_artifact_id: "artifact-inventory",
+    inventory_freshness: "fresh",
+    limitations: [],
+    non_claims: ["verification plan preview does not run commands"],
+    readiness: {
+      accepted_risk_count: 0,
+      failed_count: 0,
+      missing_count: 1,
+      non_claims: ["verification readiness is advisory review posture, not proof"],
+      requirements: [
+        {
+          artifact_id: null,
+          blocking: true,
+          changed_paths: ["src/glassbox/runtime/changesets.py"],
+          check_name: "Eval recommendation",
+          command: ["uv", "run", "glassbox", "eval", "run", "commit-smoke"],
+          evidence_summary: null,
+          kind: "eval",
+          reason: "eval recommendation selected this profile",
+          requirement_id: "eval-profile:commit-smoke",
+          safe_next_actions: ["uv run glassbox eval run commit-smoke --cwd ."],
+          source: "eval_recommendation",
+          state: "missing",
+          verification_id: null,
+        },
+      ],
+      safe_next_actions: ["uv run glassbox eval run commit-smoke --cwd ."],
+      stale_count: 0,
+      state: "missing",
+      summary: "verification readiness is missing: 1 missing",
+    },
+    reason_groups: [],
+    recommended_commands: ["uv run glassbox eval run commit-smoke --cwd ."],
+    recipes: [],
+    retained_artifact_ids: [],
+    safe_next_actions: ["uv run glassbox eval run commit-smoke --cwd ."],
+    session_id: "session-1",
   };
 }
 

@@ -84,15 +84,20 @@ def _changeset_list_command(args: argparse.Namespace) -> int:
 def _changeset_show_command(args: argparse.Namespace) -> int:
     cwd, db_path = resolve_runtime_location(args)
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
-        service = ChangesetQueryService(
-            cast(ChangesetRepository, runtime_context.repositories.sessions)
-        )
+        repository = cast(ChangesetRepository, runtime_context.repositories.sessions)
+        service = ChangesetQueryService(repository)
         detail = service.get_detail(args.changeset_id, workspace_root=cwd)
+        verification_plan = ChangesetVerificationService(
+            repository,
+            runtime_context.repositories.artifacts,
+        ).preview_plan(args.changeset_id, cwd)
 
     if args.json:
-        print_json_output(detail.model_dump(mode="json"))
+        payload = detail.model_dump(mode="json")
+        payload["verification_plan"] = verification_plan.model_dump(mode="json")
+        print_json_output(payload)
     else:
-        _print_changeset_detail(detail)
+        _print_changeset_detail(detail, verification_plan=verification_plan)
     return 0
 
 
@@ -256,7 +261,11 @@ def _print_changeset_list(changesets: list[ChangesetRecord]) -> None:
             print(f"  Branch search: {changeset.branch_search_id}")
 
 
-def _print_changeset_detail(detail: ChangesetDetailView) -> None:
+def _print_changeset_detail(
+    detail: ChangesetDetailView,
+    *,
+    verification_plan: ChangesetVerificationPlanPreview | None = None,
+) -> None:
     changeset = detail.changeset
     print(f"Changeset {changeset.changeset_id}")
     print(f"Status: {changeset.status}")
@@ -300,6 +309,21 @@ def _print_changeset_detail(detail: ChangesetDetailView) -> None:
     else:
         posture = detail.verification_posture
         print(f"Verification posture: {posture.state.value} - {posture.summary}")
+    if verification_plan is not None:
+        readiness = verification_plan.readiness
+        print(f"Verification readiness: {readiness.state.value} - {readiness.summary}")
+        print(
+            "Verification counts: "
+            f"{readiness.failed_count} failed, "
+            f"{readiness.stale_count} stale, "
+            f"{readiness.missing_count} missing, "
+            f"{readiness.accepted_risk_count} accepted risk"
+        )
+        for requirement in readiness.requirements[:5]:
+            print(
+                f"  {requirement.state.value}: {requirement.check_name} - "
+                f"{requirement.reason}"
+            )
     print(f"Review briefs: {len(detail.review_briefs)}")
     print(f"Readiness decisions: {len(detail.readiness)}")
     _print_limitations(detail.limitations)

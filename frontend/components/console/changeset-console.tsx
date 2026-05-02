@@ -138,6 +138,8 @@ function ChangesetDetail({
   const highRisk = changeset.risk_level === "high";
   const inventoryStatus = detail.detail.inventory_status;
   const staleInventory = inventoryStatus.stale || inventoryStatus.freshness === "stale";
+  const verificationPlan = detail.verificationPlan;
+  const verificationState = verificationPlan?.readiness.state ?? "missing";
   return (
     <article className="rounded-md border border-border/80 bg-card p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -153,6 +155,9 @@ function ChangesetDetail({
             <Badge variant={highRisk ? "warning" : "muted"}>Risk {changeset.risk_level}</Badge>
             <Badge variant={staleInventory ? "warning" : "muted"}>
               Inventory {inventoryStatus.freshness}
+            </Badge>
+            <Badge variant={verificationBadgeVariant(verificationState)}>
+              Verification {formatVerificationState(verificationState)}
             </Badge>
             {changeset.unresolved_risk_count > 0 ? (
               <Badge variant="outline">{changeset.unresolved_risk_count} unresolved</Badge>
@@ -181,11 +186,23 @@ function ChangesetDetail({
         <Fact label="Task" value={changeset.task_id ?? "None"} />
         <Fact label="Branch search" value={changeset.branch_search_id ?? "None"} />
         <Fact label="Inventory" value={inventoryStatus.freshness} />
+        <Fact
+          label="Verification"
+          value={
+            verificationPlan === null
+              ? (detail.detail.verification_posture?.state ?? "missing")
+              : verificationPlan.readiness.state
+          }
+        />
         <Fact label="Risk" value={changeset.risk_summary ?? changeset.risk_level} />
       </dl>
       {inventoryStatus.reason ? (
         <StateLine tone={staleInventory ? "destructive" : "muted"} value={inventoryStatus.reason} />
       ) : null}
+      <VerificationPanel
+        posture={detail.detail.verification_posture}
+        verificationPlan={verificationPlan}
+      />
       <Section title="Sources">
         {detail.detail.sources.length === 0 ? (
           <p className="text-sm text-muted-foreground">No source records attached.</p>
@@ -221,6 +238,108 @@ function ChangesetDetail({
       ) : null}
     </article>
   );
+}
+
+function VerificationPanel({
+  posture,
+  verificationPlan,
+}: {
+  posture: NonNullable<ChangesetDetailState["detail"]>["verification_posture"];
+  verificationPlan: ChangesetDetailState["verificationPlan"];
+}) {
+  if (verificationPlan === null) {
+    return (
+      <Section title="Verification">
+        <p className="text-sm text-muted-foreground">
+          {posture == null
+            ? "No verification posture is attached yet."
+            : `${posture.state} - ${posture.summary}`}
+        </p>
+      </Section>
+    );
+  }
+  const readiness = verificationPlan.readiness;
+  const visibleRequirements = readiness.requirements.slice(0, 6);
+  return (
+    <Section title="Verification">
+      <div className="grid gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={verificationBadgeVariant(readiness.state)}>
+            {formatVerificationState(readiness.state)}
+          </Badge>
+          {readiness.failed_count > 0 ? (
+            <Badge variant="destructive">{readiness.failed_count} failed</Badge>
+          ) : null}
+          {readiness.stale_count > 0 ? (
+            <Badge variant="warning">{readiness.stale_count} stale</Badge>
+          ) : null}
+          {readiness.missing_count > 0 ? (
+            <Badge variant="warning">{readiness.missing_count} missing</Badge>
+          ) : null}
+          {readiness.accepted_risk_count > 0 ? (
+            <Badge variant="outline">{readiness.accepted_risk_count} accepted risk</Badge>
+          ) : null}
+        </div>
+        <p className="text-sm text-muted-foreground">{readiness.summary}</p>
+        {visibleRequirements.length > 0 ? (
+          <DataList density="compact">
+            {visibleRequirements.map((requirement) => (
+              <DataListItem key={requirement.requirement_id}>
+                <DataListLabel>{requirement.check_name}</DataListLabel>
+                <DataListMeta>
+                  {formatVerificationState(requirement.state)} - {requirement.reason}
+                </DataListMeta>
+                {requirement.evidence_summary ? (
+                  <DataListMeta>{requirement.evidence_summary}</DataListMeta>
+                ) : null}
+              </DataListItem>
+            ))}
+          </DataList>
+        ) : null}
+        {verificationPlan.safe_next_actions.length > 0 ? (
+          <div>
+            <h4 className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+              Safe next actions
+            </h4>
+            <ul className="mt-2 grid gap-2 text-console text-muted-foreground">
+              {verificationPlan.safe_next_actions.map((action) => (
+                <li className="break-all" key={action}>
+                  {action}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {verificationPlan.retained_artifact_ids.length > 0 ? (
+          <p className="break-all text-console text-muted-foreground">
+            Artifacts: {verificationPlan.retained_artifact_ids.join(", ")}
+          </p>
+        ) : null}
+      </div>
+    </Section>
+  );
+}
+
+function verificationBadgeVariant(
+  state: string,
+): "destructive" | "muted" | "outline" | "success" | "warning" {
+  if (state === "failed") {
+    return "destructive";
+  }
+  if (state === "passed" || state === "not_applicable") {
+    return "success";
+  }
+  if (state === "stale" || state === "missing") {
+    return "warning";
+  }
+  if (state === "accepted_with_risk" || state === "skipped") {
+    return "outline";
+  }
+  return "muted";
+}
+
+function formatVerificationState(state: string): string {
+  return state.replaceAll("_", " ");
 }
 
 function Fact({ label, value }: { label: string; value: string }) {

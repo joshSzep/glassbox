@@ -26,6 +26,8 @@ export type BranchSearchListPageResponse = components["schemas"]["BranchSearchLi
 export type ChangesetDetailResponse = components["schemas"]["ChangesetDetailResponse"];
 export type ChangesetListPageResponse = components["schemas"]["ChangesetListPageResponse"];
 export type ChangesetActionResponse = components["schemas"]["ChangesetActionResponse"];
+export type ChangesetVerificationPlanPreviewResponse =
+  components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
 export type WorkspaceMemoryListPageResponse =
   components["schemas"]["WorkspaceMemoryListPageResponse"];
 export type WorkspaceMemoryDetailResponse = components["schemas"]["WorkspaceMemoryDetailResponse"];
@@ -518,6 +520,13 @@ export function createGlassboxApiClient(options: GlassboxApiClientOptions = {}) 
       requestJson<ChangesetDetailResponse>(
         "GET",
         `/changesets/${encodeURIComponent(changesetId)}`,
+        requestOptions,
+      ),
+
+    getChangesetVerificationPlan: (changesetId: string, requestOptions?: RequestOptions) =>
+      requestJson<ChangesetVerificationPlanPreviewResponse>(
+        "GET",
+        `/changesets/${encodeURIComponent(changesetId)}/verification-plan`,
         requestOptions,
       ),
 

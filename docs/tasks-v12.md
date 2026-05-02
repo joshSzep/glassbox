@@ -810,7 +810,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1233: Surface Ready-To-Review Verification Posture
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1232`
 - Goal: make verification readiness visible where operators review changesets
 - Deliverables:
@@ -829,6 +829,21 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - ready-to-review status is backed by verification evidence instead of
     hand-written confidence
+- Completion evidence:
+  - `glassbox changeset show` now prints verification readiness state, counts,
+    requirement summaries, and safe next actions; JSON output includes the
+    verification plan preview payload.
+  - The dashboard changeset store loads `/changesets/{id}/verification-plan`
+    with changeset detail and refresh actions, and the changeset console
+    renders a verification panel for passed, failed, stale, missing, skipped,
+    not-applicable, and accepted-risk posture.
+  - Verification plan preview now uses live inventory freshness against the
+    current workspace so stale inventory cannot render as review-ready after
+    workspace drift.
+  - Updated [changeset-verification-readiness.md](./changeset-verification-readiness.md)
+    with ready-to-review surfacing behavior and current non-claims.
+  - Verified with focused CLI, API, dashboard store/component, frontend
+    typecheck, lint, tests, build, ruff, ty, and pre-commit checks.
 
 ---
 

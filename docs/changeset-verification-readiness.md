@@ -78,6 +78,23 @@ rewrite the verification ledger. Retained task output artifacts stay referenced
 by artifact ID so later review surfaces can cite them without flattening raw
 logs into the changeset summary.
 
+## Ready-To-Review Surfacing
+
+`glassbox changeset show <changeset-id> --cwd .` includes verification
+readiness beside the retained verification posture. Text output lists the
+aggregate state, failed/stale/missing/accepted-risk counts, the first
+requirements, and safe next actions. JSON output includes a
+`verification_plan` object with the same preview payload exposed through the
+API.
+
+The dashboard changeset detail view renders a verification panel from
+`/changesets/{id}/verification-plan`. The panel keeps failed, stale, missing,
+and accepted-risk states visible together with safe inspection or verification
+commands. Inventory freshness is checked against the current workspace before
+rendering readiness, so a workspace diff that changes after a recorded
+verification can make the displayed readiness stale even when the latest
+recorded posture was previously `passed`.
+
 ## Stale Verification
 
 The first stale-verification boundary is sequence- and path-aware. When a

@@ -183,6 +183,7 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert stale_show_exit == 0
     assert stale_detail["inventory"]["freshness"] == "stale"
     assert stale_detail["verification_posture"]["state"] == "passed"
+    assert stale_detail["verification_plan"]["readiness"]["state"] == "stale"
     assert stale_detail["inventory_status"]["stale"] is True
     assert "source digest changed" in stale_detail["inventory_status"]["reason"]
     assert archive_exit == 0

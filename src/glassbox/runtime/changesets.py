@@ -583,18 +583,28 @@ class ChangesetVerificationService:
             changeset.session_id,
             inventory_record,
         )
+        inventory_status = _inventory_status(
+            changeset,
+            inventory_record,
+            workspace_root=workspace_root,
+        )
         changed_paths = _inventory_paths_for_preview(inventory)
         recommendation, recommendation_limitations = _recommendation_for_preview(
             workspace_root,
             changed_paths,
         )
-        limitations = [*inventory_limitations, *recommendation_limitations]
+        limitations = [
+            *inventory_limitations,
+            *recommendation_limitations,
+            *(
+                [inventory_status.reason]
+                if inventory_status.reason is not None
+                and inventory_status.freshness != ChangesetInventoryFreshness.FRESH
+                else []
+            ),
+        ]
         ledger = self._task_ledger_for_changeset(changeset)
-        inventory_freshness = (
-            inventory_record.freshness
-            if inventory_record is not None
-            else ChangesetInventoryFreshness.UNKNOWN
-        )
+        inventory_freshness = inventory_status.freshness
         readiness = derive_changeset_verification_readiness(
             inventory=inventory,
             inventory_freshness=inventory_freshness,
@@ -670,17 +680,18 @@ class ChangesetVerificationService:
             changeset.session_id,
             inventory_record,
         )
+        inventory_status = _inventory_status(
+            changeset,
+            inventory_record,
+            workspace_root=workspace_root,
+        )
         recommendation, _limitations = _recommendation_for_preview(
             workspace_root,
             _inventory_paths_for_preview(inventory),
         )
         readiness = derive_changeset_verification_readiness(
             inventory=inventory,
-            inventory_freshness=(
-                inventory_record.freshness
-                if inventory_record is not None
-                else ChangesetInventoryFreshness.UNKNOWN
-            ),
+            inventory_freshness=inventory_status.freshness,
             inventory_sequence=(
                 inventory_record.last_sequence if inventory_record is not None else None
             ),
