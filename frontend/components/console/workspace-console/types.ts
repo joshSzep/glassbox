@@ -1,5 +1,6 @@
 import type {
   createBranchSearchStore,
+  createChangesetStore,
   createConsoleStore,
   createKnowledgeStore,
   createSessionStore,
@@ -8,6 +9,7 @@ import type {
 
 export type WorkspaceConsoleStores = {
   branchSearchStore: ReturnType<typeof createBranchSearchStore>;
+  changesetStore: ReturnType<typeof createChangesetStore>;
   consoleStore: ReturnType<typeof createConsoleStore>;
   knowledgeStore: ReturnType<typeof createKnowledgeStore>;
   sessionStore: ReturnType<typeof createSessionStore>;

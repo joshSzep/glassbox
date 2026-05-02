@@ -26,7 +26,14 @@ export const inspectorTabs = [
 
 export type InspectorTab = (typeof inspectorTabs)[number];
 
-export const appSurfaces = ["sessions", "tasks", "memory", "repository", "branches"] as const;
+export const appSurfaces = [
+  "sessions",
+  "tasks",
+  "changesets",
+  "memory",
+  "repository",
+  "branches",
+] as const;
 
 export type AppSurface = (typeof appSurfaces)[number];
 
@@ -46,6 +53,7 @@ export type AppRouteState = {
   compareSessionId: string | null;
   queue: AppQueue;
   selectedSessionId: string | null;
+  selectedChangesetId: string | null;
   selectedTaskId: string | null;
   surface: AppSurface;
   tab: InspectorTab;
@@ -56,8 +64,11 @@ export type AppRouteOptions = {
   basePath?: string;
 };
 
-type AppRouteBuildState = Omit<AppRouteState, "selectedTaskId" | "surface" | "taskQueue"> &
-  Partial<Pick<AppRouteState, "selectedTaskId" | "surface" | "taskQueue">>;
+type AppRouteBuildState = Omit<
+  AppRouteState,
+  "selectedChangesetId" | "selectedTaskId" | "surface" | "taskQueue"
+> &
+  Partial<Pick<AppRouteState, "selectedChangesetId" | "selectedTaskId" | "surface" | "taskQueue">>;
 
 const DEFAULT_BASE_PATH = "/app";
 const queueSet = new Set<string>(appQueues);
@@ -68,6 +79,7 @@ export function createDefaultAppRoute(): AppRouteState {
   return {
     compareSessionId: null,
     queue: "all",
+    selectedChangesetId: null,
     selectedSessionId: null,
     selectedTaskId: null,
     surface: "sessions",
@@ -90,9 +102,23 @@ export function parseAppRoute(input: string | URL, options: AppRouteOptions = {}
     return {
       compareSessionId: null,
       queue: "all",
+      selectedChangesetId: null,
       selectedSessionId: null,
       selectedTaskId: segments[1] ? decodePathSegment(segments[1]) : null,
       surface: "tasks",
+      tab: "overview",
+      taskQueue,
+    };
+  }
+
+  if (segments[0] === "changesets") {
+    return {
+      compareSessionId: null,
+      queue: "all",
+      selectedChangesetId: segments[1] ? decodePathSegment(segments[1]) : null,
+      selectedSessionId: null,
+      selectedTaskId: null,
+      surface: "changesets",
       tab: "overview",
       taskQueue,
     };
@@ -102,6 +128,7 @@ export function parseAppRoute(input: string | URL, options: AppRouteOptions = {}
     return {
       compareSessionId: null,
       queue: "all",
+      selectedChangesetId: null,
       selectedSessionId: null,
       selectedTaskId: null,
       surface: "memory",
@@ -114,6 +141,7 @@ export function parseAppRoute(input: string | URL, options: AppRouteOptions = {}
     return {
       compareSessionId: null,
       queue: "all",
+      selectedChangesetId: null,
       selectedSessionId: null,
       selectedTaskId: null,
       surface: "repository",
@@ -126,6 +154,7 @@ export function parseAppRoute(input: string | URL, options: AppRouteOptions = {}
     return {
       compareSessionId: null,
       queue: "all",
+      selectedChangesetId: null,
       selectedSessionId: null,
       selectedTaskId: null,
       surface: "branches",
@@ -138,6 +167,7 @@ export function parseAppRoute(input: string | URL, options: AppRouteOptions = {}
     return {
       compareSessionId,
       queue: queueFromQuery ?? "all",
+      selectedChangesetId: null,
       selectedSessionId: decodePathSegment(segments[1]),
       selectedTaskId: null,
       surface: "sessions",
@@ -150,6 +180,7 @@ export function parseAppRoute(input: string | URL, options: AppRouteOptions = {}
     return {
       compareSessionId,
       queue: queueFromQuery ?? "all",
+      selectedChangesetId: null,
       selectedSessionId: sessionFromQuery,
       selectedTaskId: null,
       surface: "sessions",
@@ -162,6 +193,7 @@ export function parseAppRoute(input: string | URL, options: AppRouteOptions = {}
     return {
       compareSessionId: null,
       queue: parseQueue(segments[1]) ?? "all",
+      selectedChangesetId: null,
       selectedSessionId: null,
       selectedTaskId: null,
       surface: "sessions",
@@ -173,6 +205,7 @@ export function parseAppRoute(input: string | URL, options: AppRouteOptions = {}
   return {
     compareSessionId: null,
     queue: queueFromQuery ?? "all",
+    selectedChangesetId: null,
     selectedSessionId: null,
     selectedTaskId: null,
     surface: "sessions",
@@ -187,6 +220,7 @@ export function buildAppRoute(state: AppRouteBuildState, options: AppRouteOption
   let pathname = basePath;
   const surface = state.surface ?? "sessions";
   const taskQueue = state.taskQueue ?? "active";
+  const selectedChangesetId = state.selectedChangesetId ?? null;
   const selectedTaskId = state.selectedTaskId ?? null;
 
   if (surface === "tasks") {
@@ -197,6 +231,11 @@ export function buildAppRoute(state: AppRouteBuildState, options: AppRouteOption
     if (taskQueue !== "active") {
       searchParams.set("taskQueue", taskQueue);
     }
+  } else if (surface === "changesets") {
+    pathname =
+      selectedChangesetId === null
+        ? `${basePath}/changesets`
+        : `${basePath}/changesets/${encodePathSegment(selectedChangesetId)}`;
   } else if (surface === "memory") {
     pathname = `${basePath}/memory`;
   } else if (surface === "repository") {
@@ -226,6 +265,7 @@ export function selectQueueRoute(route: AppRouteState, queue: AppQueue): AppRout
   return {
     ...route,
     compareSessionId: null,
+    selectedChangesetId: null,
     queue,
     selectedSessionId: null,
     selectedTaskId: null,
@@ -238,6 +278,7 @@ export function selectSessionRoute(route: AppRouteState, sessionId: string): App
   return {
     ...route,
     compareSessionId: null,
+    selectedChangesetId: null,
     selectedSessionId: sessionId,
     selectedTaskId: null,
     surface: "sessions",
@@ -274,6 +315,7 @@ export function selectTaskQueueRoute(
   return {
     ...route,
     compareSessionId: null,
+    selectedChangesetId: null,
     selectedSessionId: null,
     selectedTaskId: null,
     surface: "tasks",
@@ -286,9 +328,34 @@ export function selectTaskRoute(route: AppRouteState, taskId: string): AppRouteS
   return {
     ...route,
     compareSessionId: null,
+    selectedChangesetId: null,
     selectedSessionId: null,
     selectedTaskId: taskId,
     surface: "tasks",
+    tab: "overview",
+  };
+}
+
+export function selectChangesetRoute(route: AppRouteState, changesetId: string): AppRouteState {
+  return {
+    ...route,
+    compareSessionId: null,
+    selectedChangesetId: changesetId,
+    selectedSessionId: null,
+    selectedTaskId: null,
+    surface: "changesets",
+    tab: "overview",
+  };
+}
+
+export function selectChangesetSurfaceRoute(route: AppRouteState): AppRouteState {
+  return {
+    ...route,
+    compareSessionId: null,
+    selectedChangesetId: null,
+    selectedSessionId: null,
+    selectedTaskId: null,
+    surface: "changesets",
     tab: "overview",
   };
 }
@@ -300,6 +367,7 @@ export function selectKnowledgeRoute(
   return {
     ...route,
     compareSessionId: null,
+    selectedChangesetId: null,
     selectedSessionId: null,
     selectedTaskId: null,
     surface,

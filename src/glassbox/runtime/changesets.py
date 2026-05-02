@@ -1,4 +1,4 @@
-"""Runtime service for deriving reviewable changesets from existing evidence."""
+"""Runtime service for deriving and inspecting reviewable changesets."""
 
 import hashlib
 import subprocess
@@ -14,11 +14,18 @@ from glassbox.core import BranchCandidateRecord
 from glassbox.core import BranchCandidateStatus
 from glassbox.core import BranchSearchId
 from glassbox.core import BranchSearchRecord
+from glassbox.core import ChangesetArchived
 from glassbox.core import ChangesetCandidateAdopted
 from glassbox.core import ChangesetCreated
 from glassbox.core import ChangesetId
+from glassbox.core import ChangesetInventoryRecord
+from glassbox.core import ChangesetReadinessRecord
+from glassbox.core import ChangesetRecord
+from glassbox.core import ChangesetReviewBriefRecord
 from glassbox.core import ChangesetSourceAttached
 from glassbox.core import ChangesetSourceKind
+from glassbox.core import ChangesetSourceRecord
+from glassbox.core import ChangesetVerificationPostureRecord
 from glassbox.core import EventEnvelope
 from glassbox.core import EventPayloadType
 from glassbox.core import ProjectionHealth
@@ -63,6 +70,50 @@ class ChangesetDerivationRepository(Protocol):
     ) -> list[EventEnvelope]: ...
 
 
+class ChangesetRepository(ChangesetDerivationRepository, Protocol):
+    """Repository methods required by changeset query and action services."""
+
+    def list_changesets(
+        self,
+        *,
+        session_id: SessionId | None = None,
+        include_archived: bool = False,
+        limit: int | None = None,
+    ) -> list[ChangesetRecord]: ...
+
+    def get_changeset(self, changeset_id: ChangesetId) -> ChangesetRecord | None: ...
+
+    def list_changeset_sources(
+        self,
+        session_id: SessionId,
+        changeset_id: ChangesetId,
+    ) -> list[ChangesetSourceRecord]: ...
+
+    def get_changeset_inventory(
+        self,
+        session_id: SessionId,
+        changeset_id: ChangesetId,
+    ) -> ChangesetInventoryRecord | None: ...
+
+    def get_changeset_verification_posture(
+        self,
+        session_id: SessionId,
+        changeset_id: ChangesetId,
+    ) -> ChangesetVerificationPostureRecord | None: ...
+
+    def list_changeset_review_briefs(
+        self,
+        session_id: SessionId,
+        changeset_id: ChangesetId,
+    ) -> list[ChangesetReviewBriefRecord]: ...
+
+    def list_changeset_readiness(
+        self,
+        session_id: SessionId,
+        changeset_id: ChangesetId,
+    ) -> list[ChangesetReadinessRecord]: ...
+
+
 class ChangesetDerivationResult(BaseModel):
     """Result of explicitly deriving one changeset."""
 
@@ -72,6 +123,21 @@ class ChangesetDerivationResult(BaseModel):
     session_id: SessionId
     limitations: list[str] = Field(default_factory=list)
     stored_events: list[EventEnvelope] = Field(default_factory=list)
+
+
+class ChangesetDetailView(BaseModel):
+    """Read model for one changeset and its currently retained evidence refs."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    changeset: ChangesetRecord
+    sources: list[ChangesetSourceRecord] = Field(default_factory=list)
+    inventory: ChangesetInventoryRecord | None = None
+    verification_posture: ChangesetVerificationPostureRecord | None = None
+    review_briefs: list[ChangesetReviewBriefRecord] = Field(default_factory=list)
+    readiness: list[ChangesetReadinessRecord] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    safe_next_actions: list[str] = Field(default_factory=list)
 
 
 class ChangesetDerivationService:
@@ -302,6 +368,138 @@ class ChangesetDerivationService:
         raise ValueError(f"unknown branch candidate: {candidate_id}")
 
 
+class ChangesetQueryService:
+    """Read-only changeset query service."""
+
+    def __init__(self, repository: ChangesetRepository) -> None:
+        self._repository = repository
+
+    def list_changesets(
+        self,
+        *,
+        session_id: SessionId | None = None,
+        include_archived: bool = False,
+        limit: int | None = None,
+    ) -> list[ChangesetRecord]:
+        return self._repository.list_changesets(
+            session_id=session_id,
+            include_archived=include_archived,
+            limit=limit,
+        )
+
+    def get_detail(self, changeset_id: ChangesetId) -> ChangesetDetailView:
+        changeset = self._repository.get_changeset(changeset_id)
+        if changeset is None:
+            raise ValueError(f"unknown changeset: {changeset_id}")
+        sources = self._repository.list_changeset_sources(
+            changeset.session_id,
+            changeset.changeset_id,
+        )
+        inventory = self._repository.get_changeset_inventory(
+            changeset.session_id,
+            changeset.changeset_id,
+        )
+        verification_posture = self._repository.get_changeset_verification_posture(
+            changeset.session_id,
+            changeset.changeset_id,
+        )
+        review_briefs = self._repository.list_changeset_review_briefs(
+            changeset.session_id,
+            changeset.changeset_id,
+        )
+        readiness = self._repository.list_changeset_readiness(
+            changeset.session_id,
+            changeset.changeset_id,
+        )
+        return ChangesetDetailView(
+            changeset=changeset,
+            sources=sources,
+            inventory=inventory,
+            verification_posture=verification_posture,
+            review_briefs=review_briefs,
+            readiness=readiness,
+            limitations=_detail_limitations(sources, inventory),
+            safe_next_actions=_detail_safe_next_actions(changeset),
+        )
+
+
+class ChangesetActionService:
+    """Explicit operator actions against an existing changeset."""
+
+    def __init__(self, repository: ChangesetRepository) -> None:
+        self._repository = repository
+
+    def archive_changeset(
+        self,
+        changeset_id: ChangesetId,
+        *,
+        reason: str,
+        archived_by: str = "operator",
+        replacement_changeset_id: ChangesetId | None = None,
+    ) -> EventEnvelope:
+        changeset = self._require_changeset(changeset_id)
+        stored = self._repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=changeset.session_id,
+                    sequence=0,
+                    payload=ChangesetArchived(
+                        changeset_id=changeset.changeset_id,
+                        reason=reason,
+                        archived_by=archived_by,
+                        replacement_changeset_id=replacement_changeset_id,
+                    ),
+                )
+            ]
+        )
+        return stored[0]
+
+    def refresh_source_evidence(
+        self,
+        changeset_id: ChangesetId,
+        workspace_root: Path,
+        *,
+        refreshed_by: str = "operator",
+    ) -> EventEnvelope:
+        changeset = self._require_changeset(changeset_id)
+        diff = _workspace_diff_snapshot(workspace_root)
+        limitation = (
+            "basic source refresh only; structured inventory refresh is added "
+            "by the change inventory phase"
+        )
+        if diff.error is not None:
+            limitation = f"{limitation}; workspace diff unavailable: {diff.error}"
+        stored = self._repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=changeset.session_id,
+                    sequence=0,
+                    payload=ChangesetSourceAttached(
+                        changeset_id=changeset.changeset_id,
+                        source_kind=ChangesetSourceKind.WORKSPACE_DIFF,
+                        source_session_id=changeset.session_id,
+                        reason=(
+                            f"{_workspace_diff_reason(diff)}; "
+                            f"refreshed by {refreshed_by}"
+                        ),
+                        limitation=limitation,
+                        task_id=changeset.task_id,
+                        turn_id=changeset.turn_id,
+                        branch_search_id=changeset.branch_search_id,
+                        branch_candidate_id=changeset.branch_candidate_id,
+                    ),
+                )
+            ]
+        )
+        return stored[0]
+
+    def _require_changeset(self, changeset_id: ChangesetId) -> ChangesetRecord:
+        changeset = self._repository.get_changeset(changeset_id)
+        if changeset is None:
+            raise ValueError(f"unknown changeset: {changeset_id}")
+        return changeset
+
+
 _TERMINAL_SESSION_STATUSES = {
     SessionStatus.COMPLETED,
     SessionStatus.FAILED,
@@ -399,8 +597,36 @@ def _limitations_summary(limitations: list[str]) -> str | None:
     return "Degraded changeset: " + "; ".join(limitations)
 
 
+def _detail_limitations(
+    sources: list[ChangesetSourceRecord],
+    inventory: ChangesetInventoryRecord | None,
+) -> list[str]:
+    limitations = [
+        source.limitation for source in sources if source.limitation is not None
+    ]
+    if inventory is None:
+        limitations.append(
+            "no structured change inventory is attached yet; inspect sources first"
+        )
+    return limitations
+
+
+def _detail_safe_next_actions(changeset: ChangesetRecord) -> list[str]:
+    actions = [f"glassbox changeset show {changeset.changeset_id} --cwd ."]
+    if changeset.status != "archived":
+        actions.append(f"glassbox changeset refresh {changeset.changeset_id} --cwd .")
+        actions.append(
+            "glassbox eval recommend PATH --cwd .  # inspect verification options"
+        )
+    return actions
+
+
 __all__ = [
+    "ChangesetActionService",
+    "ChangesetDetailView",
     "ChangesetDerivationRepository",
     "ChangesetDerivationResult",
     "ChangesetDerivationService",
+    "ChangesetQueryService",
+    "ChangesetRepository",
 ]

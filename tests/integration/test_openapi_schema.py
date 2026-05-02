@@ -41,6 +41,10 @@ def test_openapi_schema_includes_browser_transport_contracts(
     assert "/tasks/{task_id}" in paths
     assert "/tasks/{task_id}/steps" in paths
     assert "/tasks/{task_id}/events" in paths
+    assert "/changesets" in paths
+    assert "/changesets/{changeset_id}" in paths
+    assert "/changesets/{changeset_id}/refresh" in paths
+    assert "/changesets/{changeset_id}/archive" in paths
     assert "/memory" in paths
     assert "/memory/candidates" in paths
     assert "/memory/candidates/{candidate_id}/confirm" in paths
@@ -69,6 +73,9 @@ def test_openapi_schema_includes_browser_transport_contracts(
     assert "TaskDetailResponse" in components
     assert "TaskStepPageResponse" in components
     assert "TaskEventPageResponse" in components
+    assert "ChangesetListPageResponse" in components
+    assert "ChangesetDetailResponse" in components
+    assert "ChangesetActionResponse" in components
     assert "WorkspaceMemoryListPageResponse" in components
     assert "WorkspaceMemoryDetailResponse" in components
     assert "WorkspaceMemoryCandidateListPageResponse" in components

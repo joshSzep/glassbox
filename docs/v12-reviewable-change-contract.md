@@ -117,6 +117,13 @@ v12 supports these operator workflows:
 - classify command evidence by purpose, policy posture, redacted environment,
   toolchain drift, and review relevance
 
+Current implementation note: after GBX-1213, changesets are visible through
+`glassbox changeset` / `glassbox changesets`, `/changesets` API routes, and the
+dashboard `/app/changesets` shell. This first surface supports basic creation,
+inspection, source refresh, and archival. Structured inventories, review briefs,
+verification readiness, commit readiness, exports, topology, and command
+evidence remain later v12 phases and must not be implied by the basic shell.
+
 ## Evidence Expectations
 
 v12 evidence is split into blocking deterministic release evidence and advisory

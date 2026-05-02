@@ -14,6 +14,8 @@ from glassbox.core.events import EventEnvelope
 from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import PauseWindowPolicy
 from glassbox.runtime.bootstrap import open_runtime_context
+from glassbox.runtime.changesets import ChangesetQueryService
+from glassbox.runtime.changesets import ChangesetRepository
 from glassbox.runtime.continuation_windows import active_continuation_window_job
 from glassbox.runtime.continuation_windows import approve_continuation_window
 from glassbox.runtime.pause_windows import cancel_pause_window
@@ -69,11 +71,26 @@ def _task_show_command(args: argparse.Namespace) -> int:
             workspace_root=cwd,
         )
         detail = query_service.get_task_detail(args.task_id)
+        related_changesets = [
+            changeset
+            for changeset in ChangesetQueryService(
+                cast(ChangesetRepository, runtime_context.repositories.sessions)
+            ).list_changesets(session_id=detail.task.session_id)
+            if changeset.task_id == detail.task.task_id
+        ]
 
     if args.json:
-        print_json_output(detail.model_dump(mode="json"))
+        payload = detail.model_dump(mode="json")
+        payload["related_changesets"] = [
+            changeset.model_dump(mode="json") for changeset in related_changesets
+        ]
+        print_json_output(payload)
     else:
         print_task_detail(detail)
+        if related_changesets:
+            print("Related changesets:")
+            for changeset in related_changesets:
+                print(f"  {changeset.changeset_id}  {changeset.status}")
     return 0
 
 

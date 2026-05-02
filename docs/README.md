@@ -177,7 +177,9 @@ v11 confidence and adoption release candidate.
 - [v12-reviewable-change-contract.md](./v12-reviewable-change-contract.md):
   active v12 reviewable-change contract for changesets, review briefs,
   verification readiness, commit readiness, worktree isolation, topology, and
-  command evidence
+  command evidence. The first visible changeset surface is
+  `glassbox changeset`, `/changesets`, and `/app/changesets` for basic local
+  inspection before richer review claims exist.
 - [v12-change-lifecycle-audit.md](./v12-change-lifecycle-audit.md):
   source-linked v12 audit separating existing session evidence from the
   reviewable-change lifecycle gaps

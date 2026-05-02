@@ -5,6 +5,7 @@ import type { SessionEventStreamOptions, SessionStreamState, SseEventEnvelope } 
 import type { components } from "@/generated/api-types";
 import {
   createBranchSearchStore,
+  createChangesetStore,
   createConsoleStore,
   createKnowledgeStore,
   createSessionStore,
@@ -155,6 +156,8 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
     }),
     getBranchSearchDetail: async (searchId) => makeBranchSearchDetail(searchId),
     getBranchSearchPage: async () => ({ items: [makeBranchSearchSummary("search-1")] }),
+    getChangesetDetail: async (changesetId) => makeChangesetDetail(changesetId),
+    getChangesetPage: async () => ({ items: [makeChangesetSummary("changeset-1")] }),
     getRepositoryIndexEntryDetail: async (entryId) => ({ entry: makeRepositoryEntry(entryId) }),
     getRepositoryIndexStatus: async () => ({
       built_at: "2026-04-23T00:00:00Z",
@@ -201,6 +204,12 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
     markBranchCandidate: async (input) => ({
       candidate: makeBranchCandidate(input.candidateId, { selection_state: input.action }),
       status: input.action,
+    }),
+    refreshChangeset: async (input) => ({
+      changeset_id: input.changesetId,
+      detail: makeChangesetDetail(input.changesetId),
+      event_sequence: 5,
+      status: "refreshed",
     }),
     confirmWorkspaceMemory: async (input) => ({ entry: makeMemoryEntry(input.memoryId) }),
     continueTask: async () => ({
@@ -761,6 +770,20 @@ describe("branch search store", () => {
   });
 });
 
+describe("changeset store", () => {
+  it("loads changesets, selects details, and refreshes source evidence", async () => {
+    const store = createChangesetStore(createApiClient());
+
+    await store.getState().loadChangesetPage();
+    await store.getState().selectChangeset("changeset-1");
+    await store.getState().refreshChangeset();
+
+    expect(store.getState().page.items[0].changeset_id).toBe("changeset-1");
+    expect(store.getState().detail.detail?.changeset.changeset_id).toBe("changeset-1");
+    expect(store.getState().action.state).toBe("succeeded");
+  });
+});
+
 describe("knowledge store", () => {
   it("loads memory filters, detail, and curation actions", async () => {
     const calls: string[] = [];
@@ -1228,6 +1251,8 @@ type BranchCandidateDecisionSupport =
 type BranchSearchDetail = components["schemas"]["BranchSearchDetailResponse"];
 type BranchSearchDecisionSupport = components["schemas"]["BranchSearchDecisionSupportResponse"];
 type BranchSearchSummary = components["schemas"]["BranchSearchSummaryResponse"];
+type ChangesetDetail = components["schemas"]["ChangesetDetailResponse"];
+type ChangesetSummary = components["schemas"]["ChangesetSummaryResponse"];
 type RepositoryEntry = components["schemas"]["RepositoryIndexEntryResponse"];
 type TaskDetail = components["schemas"]["TaskDetailResponse"];
 type TaskSummary = components["schemas"]["TaskSummaryResponse"];
@@ -1351,6 +1376,64 @@ function makeBranchSearchDetail(searchId: string): BranchSearchDetail {
     candidates: [makeBranchCandidate("candidate-1", { search_id: searchId })],
     decision_support: makeBranchSearchDecisionSupport(searchId),
     search: makeBranchSearchSummary(searchId),
+  };
+}
+
+function makeChangesetSummary(
+  changesetId: string,
+  overrides: Partial<ChangesetSummary> = {},
+): ChangesetSummary {
+  return {
+    archived_by: null,
+    archived_reason: null,
+    branch_candidate_id: null,
+    branch_search_id: null,
+    changeset_id: changesetId,
+    created_at: timestamp(0),
+    created_by: "operator",
+    last_sequence: 4,
+    latest_inventory_artifact_id: null,
+    latest_review_brief_artifact_id: null,
+    latest_verification_id: null,
+    objective: "Review local changes",
+    replacement_changeset_id: null,
+    session_id: "session-1",
+    status: "active",
+    summary: null,
+    task_id: "task-1",
+    turn_id: null,
+    updated_at: timestamp(2),
+    ...overrides,
+  };
+}
+
+function makeChangesetDetail(changesetId: string): ChangesetDetail {
+  return {
+    changeset: makeChangesetSummary(changesetId),
+    inventory: null,
+    limitations: ["no structured change inventory is attached yet; inspect sources first"],
+    readiness: [],
+    review_briefs: [],
+    safe_next_actions: [`glassbox changeset show ${changesetId} --cwd .`],
+    sources: [
+      {
+        artifact_id: null,
+        branch_candidate_id: null,
+        branch_search_id: null,
+        changeset_id: changesetId,
+        created_at: timestamp(0),
+        last_sequence: 4,
+        limitation: null,
+        reason: "created from task evidence",
+        session_id: "session-1",
+        source_kind: "task",
+        source_session_id: "session-1",
+        task_id: "task-1",
+        turn_id: null,
+        verification_id: null,
+      },
+    ],
+    verification_posture: null,
   };
 }
 

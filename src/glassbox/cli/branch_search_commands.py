@@ -19,6 +19,8 @@ from glassbox.runtime.branch_decision_support import (
 )
 from glassbox.runtime.branch_search import BranchSearchQueryService
 from glassbox.runtime.branch_search import BranchSearchRepository
+from glassbox.runtime.changesets import ChangesetQueryService
+from glassbox.runtime.changesets import ChangesetRepository
 
 
 def _branch_search_command(args: argparse.Namespace) -> int:
@@ -117,6 +119,13 @@ def _branch_search_show_command(args: argparse.Namespace) -> int:
             cast(BranchSearchRepository, runtime_context.repositories.sessions)
         )
         detail = service.get_detail(args.search_id)
+        related_changesets = [
+            changeset
+            for changeset in ChangesetQueryService(
+                cast(ChangesetRepository, runtime_context.repositories.sessions)
+            ).list_changesets(session_id=detail.search.session_id)
+            if changeset.branch_search_id == args.search_id
+        ]
     decision_support = derive_branch_search_decision_support(
         search=detail.search,
         candidates=detail.candidates,
@@ -125,6 +134,9 @@ def _branch_search_show_command(args: argparse.Namespace) -> int:
     if args.json:
         payload = detail.model_dump(mode="json")
         payload["decision_support"] = decision_support.model_dump(mode="json")
+        payload["related_changesets"] = [
+            changeset.model_dump(mode="json") for changeset in related_changesets
+        ]
         print_json_output(payload)
     else:
         search = detail.search
@@ -135,6 +147,10 @@ def _branch_search_show_command(args: argparse.Namespace) -> int:
         print(f"Non-goal: {decision_support.non_goal}")
         if search.selected_candidate_id is not None:
             print(f"Selected: {search.selected_candidate_id}")
+        if related_changesets:
+            print("Related changesets:")
+            for changeset in related_changesets:
+                print(f"  {changeset.changeset_id}  {changeset.status}")
         print(f"Candidates: {len(detail.candidates)}")
         support_by_id = {
             support.candidate_id: support for support in decision_support.candidates

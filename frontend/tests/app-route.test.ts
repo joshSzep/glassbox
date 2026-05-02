@@ -6,6 +6,8 @@ import {
   openLineageTargetRoute,
   parseAppRoute,
   recoverInvalidSessionRoute,
+  selectChangesetRoute,
+  selectChangesetSurfaceRoute,
   selectQueueRoute,
   selectSessionRoute,
   setCompareRoute,
@@ -22,6 +24,7 @@ describe("app route parsing", () => {
     expect(parseAppRoute("/app?session=session-1&queue=approvals")).toEqual({
       compareSessionId: null,
       queue: "approvals",
+      selectedChangesetId: null,
       selectedSessionId: "session-1",
       selectedTaskId: null,
       surface: "sessions",
@@ -34,6 +37,7 @@ describe("app route parsing", () => {
     expect(parseAppRoute("/app/sessions/session%2F1?compare=parent-1&tab=evidence")).toEqual({
       compareSessionId: "parent-1",
       queue: "all",
+      selectedChangesetId: null,
       selectedSessionId: "session/1",
       selectedTaskId: null,
       surface: "sessions",
@@ -46,6 +50,7 @@ describe("app route parsing", () => {
     expect(parseAppRoute("/app/queues/questions?session=&tab=not-real")).toEqual({
       compareSessionId: null,
       queue: "questions",
+      selectedChangesetId: null,
       selectedSessionId: null,
       selectedTaskId: null,
       surface: "sessions",
@@ -67,6 +72,17 @@ describe("app route parsing", () => {
       taskQueue: "failed",
     });
   });
+
+  it("parses changeset list and selected changeset links", () => {
+    expect(parseAppRoute("/app/changesets")).toMatchObject({
+      selectedChangesetId: null,
+      surface: "changesets",
+    });
+    expect(parseAppRoute("/app/changesets/change%2F1")).toMatchObject({
+      selectedChangesetId: "change/1",
+      surface: "changesets",
+    });
+  });
 });
 
 describe("app route building", () => {
@@ -74,6 +90,7 @@ describe("app route building", () => {
     const route: AppRouteState = {
       compareSessionId: null,
       queue: "failures",
+      selectedChangesetId: null,
       selectedSessionId: "session-1",
       selectedTaskId: null,
       surface: "sessions",
@@ -89,6 +106,7 @@ describe("app route building", () => {
     const route: AppRouteState = {
       compareSessionId: "child-1",
       queue: "all",
+      selectedChangesetId: null,
       selectedSessionId: "session/1",
       selectedTaskId: null,
       surface: "sessions",
@@ -109,6 +127,7 @@ describe("app route building", () => {
       buildAppRoute({
         compareSessionId: null,
         queue: "approvals",
+        selectedChangesetId: null,
         selectedSessionId: null,
         tab: "overview",
       }),
@@ -117,6 +136,7 @@ describe("app route building", () => {
       buildAppRoute({
         compareSessionId: null,
         queue: "all",
+        selectedChangesetId: null,
         selectedSessionId: null,
         selectedTaskId: "task/1",
         surface: "tasks",
@@ -124,17 +144,29 @@ describe("app route building", () => {
         taskQueue: "blocked",
       }),
     ).toBe("/app/tasks/task%2F1?taskQueue=blocked");
+    expect(
+      buildAppRoute({
+        compareSessionId: null,
+        queue: "all",
+        selectedChangesetId: "change/1",
+        selectedSessionId: null,
+        surface: "changesets",
+        tab: "overview",
+      }),
+    ).toBe("/app/changesets/change%2F1");
   });
 });
 
 describe("app navigation helpers", () => {
-  it("selects queues, sessions, lineage targets, compare targets, and tabs", () => {
+  it("selects queues, sessions, changesets, lineage targets, compare targets, and tabs", () => {
     const route = createDefaultAppRoute();
     const queued = selectQueueRoute(route, "active");
     const selected = selectSessionRoute(queued, "session-1");
     const compared = setCompareRoute(selected, "parent-1");
     const tabbed = setInspectorTabRoute(compared, "lineage");
     const lineage = openLineageTargetRoute(tabbed, "child-1");
+    const changesetList = selectChangesetSurfaceRoute(lineage);
+    const changeset = selectChangesetRoute(changesetList, "change-1");
 
     expect(queued).toMatchObject({ queue: "active", selectedSessionId: null });
     expect(selected).toMatchObject({ queue: "active", selectedSessionId: "session-1" });
@@ -143,8 +175,19 @@ describe("app navigation helpers", () => {
     expect(lineage).toMatchObject({
       compareSessionId: null,
       queue: "active",
+      selectedChangesetId: null,
       selectedSessionId: "child-1",
       tab: "overview",
+    });
+    expect(changesetList).toMatchObject({
+      selectedChangesetId: null,
+      selectedSessionId: null,
+      surface: "changesets",
+    });
+    expect(changeset).toMatchObject({
+      selectedChangesetId: "change-1",
+      selectedSessionId: null,
+      surface: "changesets",
     });
   });
 
@@ -156,6 +199,7 @@ describe("app navigation helpers", () => {
     expect(recoverInvalidSessionRoute(route)).toEqual({
       compareSessionId: null,
       queue: "degraded",
+      selectedChangesetId: null,
       selectedSessionId: null,
       selectedTaskId: null,
       surface: "sessions",

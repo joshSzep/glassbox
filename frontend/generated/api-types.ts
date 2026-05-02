@@ -104,6 +104,90 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/changesets": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Changesets
+     * @description Return recent changesets for dashboard inspection.
+     */
+    get: operations["list_changesets_changesets_get"];
+    put?: never;
+    /**
+     * Create Changeset
+     * @description Create an explicit local changeset from retained evidence.
+     */
+    post: operations["create_changeset_changesets_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/changesets/{changeset_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Changeset Detail
+     * @description Return one changeset with source and evidence references.
+     */
+    get: operations["get_changeset_detail_changesets__changeset_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/changesets/{changeset_id}/archive": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Archive Changeset
+     * @description Archive a changeset after explicit operator intent.
+     */
+    post: operations["archive_changeset_changesets__changeset_id__archive_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/changesets/{changeset_id}/refresh": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Refresh Changeset
+     * @description Refresh basic source evidence for a changeset.
+     */
+    post: operations["refresh_changeset_changesets__changeset_id__refresh_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/healthz": {
     parameters: {
       query?: never;
@@ -1672,6 +1756,306 @@ export interface components {
       reason?: string | null;
       /** Turn Id */
       turn_id?: string | null;
+    };
+    /** ChangesetActionResponse */
+    ChangesetActionResponse: {
+      /** Changeset Id */
+      changeset_id: string;
+      detail: components["schemas"]["ChangesetDetailResponse"];
+      /** Event Sequence */
+      event_sequence: number;
+      /** Status */
+      status: string;
+    };
+    /** ChangesetArchiveRequest */
+    ChangesetArchiveRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /** Reason */
+      reason: string;
+      /** Replacement Changeset Id */
+      replacement_changeset_id?: string | null;
+    };
+    /** ChangesetCreateRequest */
+    ChangesetCreateRequest: {
+      /** Branch Search Id */
+      branch_search_id?: string | null;
+      /** Candidate Id */
+      candidate_id?: string | null;
+      /** Objective */
+      objective?: string | null;
+      /** Session Id */
+      session_id?: string | null;
+      /** Source Kind */
+      source_kind: string;
+      /** Task Id */
+      task_id?: string | null;
+    };
+    /** ChangesetCreateResponse */
+    ChangesetCreateResponse: {
+      /** Changeset Id */
+      changeset_id: string;
+      /** Event Count */
+      event_count: number;
+      /** Limitations */
+      limitations: string[];
+      /** Session Id */
+      session_id: string;
+    };
+    /** ChangesetDetailResponse */
+    ChangesetDetailResponse: {
+      changeset: components["schemas"]["ChangesetSummaryResponse"];
+      inventory?: components["schemas"]["ChangesetInventoryResponse"] | null;
+      /** Limitations */
+      limitations: string[];
+      /** Readiness */
+      readiness: components["schemas"]["ChangesetReadinessResponse"][];
+      /** Review Briefs */
+      review_briefs: components["schemas"]["ChangesetReviewBriefResponse"][];
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+      /** Sources */
+      sources: components["schemas"]["ChangesetSourceResponse"][];
+      verification_posture?: components["schemas"]["ChangesetVerificationPostureResponse"] | null;
+    };
+    /** ChangesetInventoryResponse */
+    ChangesetInventoryResponse: {
+      /** Artifact Id */
+      artifact_id: string;
+      /** Artifact Schema Version */
+      artifact_schema_version: number;
+      /** Branch Candidate Id */
+      branch_candidate_id?: string | null;
+      /** Branch Search Id */
+      branch_search_id?: string | null;
+      /** Changed Path Count */
+      changed_path_count: number;
+      /** Changeset Id */
+      changeset_id: string;
+      /** Freshness */
+      freshness: string;
+      /** Last Sequence */
+      last_sequence: number;
+      /** Previous Artifact Id */
+      previous_artifact_id?: string | null;
+      /** Refreshed By */
+      refreshed_by: string;
+      /** Session Id */
+      session_id: string;
+      /** Source Digest */
+      source_digest?: string | null;
+      /** Task Id */
+      task_id?: string | null;
+      /** Turn Id */
+      turn_id?: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /** ChangesetListPageResponse */
+    ChangesetListPageResponse: {
+      /** Items */
+      items: components["schemas"]["ChangesetSummaryResponse"][];
+    };
+    /** ChangesetReadinessResponse */
+    ChangesetReadinessResponse: {
+      /** Accepted Risk Count */
+      accepted_risk_count: number;
+      /** Blockers */
+      blockers: string[];
+      /** Changeset Id */
+      changeset_id: string;
+      /** Decided By */
+      decided_by: string;
+      /** Inventory Artifact Id */
+      inventory_artifact_id?: string | null;
+      /** Last Sequence */
+      last_sequence: number;
+      /** Readiness Kind */
+      readiness_kind: string;
+      /** Reason */
+      reason: string;
+      /** Review Brief Artifact Id */
+      review_brief_artifact_id?: string | null;
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+      /** Session Id */
+      session_id: string;
+      /** State */
+      state: string;
+      /** Task Id */
+      task_id?: string | null;
+      /** Turn Id */
+      turn_id?: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Verification Id */
+      verification_id?: string | null;
+    };
+    /** ChangesetRefreshRequest */
+    ChangesetRefreshRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+    };
+    /** ChangesetReviewBriefResponse */
+    ChangesetReviewBriefResponse: {
+      /** Artifact Id */
+      artifact_id: string;
+      /** Artifact Schema Version */
+      artifact_schema_version: number;
+      /** Changeset Id */
+      changeset_id: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Created By */
+      created_by: string;
+      /** Inventory Artifact Id */
+      inventory_artifact_id?: string | null;
+      /** Last Sequence */
+      last_sequence: number;
+      /** Local Only */
+      local_only: boolean;
+      /** Redacted */
+      redacted: boolean;
+      /** Render Targets */
+      render_targets: string[];
+      /** Session Id */
+      session_id: string;
+      /** Task Id */
+      task_id?: string | null;
+      /** Turn Id */
+      turn_id?: string | null;
+      /** Verification Id */
+      verification_id?: string | null;
+    };
+    /** ChangesetSourceResponse */
+    ChangesetSourceResponse: {
+      /** Artifact Id */
+      artifact_id?: string | null;
+      /** Branch Candidate Id */
+      branch_candidate_id?: string | null;
+      /** Branch Search Id */
+      branch_search_id?: string | null;
+      /** Changeset Id */
+      changeset_id: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Last Sequence */
+      last_sequence: number;
+      /** Limitation */
+      limitation?: string | null;
+      /** Reason */
+      reason: string;
+      /** Session Id */
+      session_id: string;
+      /** Source Kind */
+      source_kind: string;
+      /** Source Session Id */
+      source_session_id?: string | null;
+      /** Task Id */
+      task_id?: string | null;
+      /** Turn Id */
+      turn_id?: string | null;
+      /** Verification Id */
+      verification_id?: string | null;
+    };
+    /** ChangesetSummaryResponse */
+    ChangesetSummaryResponse: {
+      /** Archived By */
+      archived_by?: string | null;
+      /** Archived Reason */
+      archived_reason?: string | null;
+      /** Branch Candidate Id */
+      branch_candidate_id?: string | null;
+      /** Branch Search Id */
+      branch_search_id?: string | null;
+      /** Changeset Id */
+      changeset_id: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Created By */
+      created_by: string;
+      /** Last Sequence */
+      last_sequence: number;
+      /** Latest Inventory Artifact Id */
+      latest_inventory_artifact_id?: string | null;
+      /** Latest Review Brief Artifact Id */
+      latest_review_brief_artifact_id?: string | null;
+      /** Latest Verification Id */
+      latest_verification_id?: string | null;
+      /** Objective */
+      objective: string;
+      /** Replacement Changeset Id */
+      replacement_changeset_id?: string | null;
+      /** Session Id */
+      session_id: string;
+      /** Status */
+      status: string;
+      /** Summary */
+      summary?: string | null;
+      /** Task Id */
+      task_id?: string | null;
+      /** Turn Id */
+      turn_id?: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /** ChangesetVerificationPostureResponse */
+    ChangesetVerificationPostureResponse: {
+      /** Accepted Risk Count */
+      accepted_risk_count: number;
+      /** Artifact Id */
+      artifact_id?: string | null;
+      /** Changeset Id */
+      changeset_id: string;
+      /** Failed Count */
+      failed_count: number;
+      /** Last Sequence */
+      last_sequence: number;
+      /** Missing Count */
+      missing_count: number;
+      /** Session Id */
+      session_id: string;
+      /** Stale Count */
+      stale_count: number;
+      /** State */
+      state: string;
+      /** Summary */
+      summary: string;
+      /** Task Id */
+      task_id?: string | null;
+      /** Turn Id */
+      turn_id?: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Verification Id */
+      verification_id?: string | null;
     };
     /** CheckpointAbsenceResponse */
     CheckpointAbsenceResponse: {
@@ -4244,6 +4628,200 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["BranchCandidateActionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_changesets_changesets_get: {
+    parameters: {
+      query?: {
+        session_id?: string | null;
+        include_archived?: boolean;
+        limit?: number | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ChangesetListPageResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_changeset_changesets_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ChangesetCreateRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ChangesetCreateResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_changeset_detail_changesets__changeset_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        changeset_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ChangesetDetailResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  archive_changeset_changesets__changeset_id__archive_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        changeset_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ChangesetArchiveRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ChangesetActionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  refresh_changeset_changesets__changeset_id__refresh_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        changeset_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ChangesetRefreshRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ChangesetActionResponse"];
         };
       };
       /** @description Not Found */

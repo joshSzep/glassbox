@@ -490,7 +490,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1213: Surface Changesets In CLI, API, And Dashboard Shell
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1212`
 - Goal: make local changesets visible and inspectable before adding richer
   review behavior
@@ -510,6 +510,15 @@ Each phase below corresponds to one concrete milestone.
   - frontend store/routing/component tests
 - Done when:
   - changesets are a visible product surface with safe basic inspection
+- Completion evidence:
+  - Added `glassbox changeset` / `glassbox changesets` commands for create,
+    list, show, basic source refresh, and archive with JSON output.
+  - Added `/changesets` FastAPI routes, generated frontend OpenAPI types, and a
+    read-only dashboard changeset shell at `/app/changesets`.
+  - Added related-changeset pointers in task and branch-search CLI detail JSON
+    and text output.
+  - Verified with focused CLI/API/projection tests, OpenAPI schema checks,
+    frontend route/store tests, frontend typecheck, ruff, and ty.
 
 ---
 

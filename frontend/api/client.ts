@@ -23,6 +23,9 @@ export type ActionAcceptedResponse = components["schemas"]["ActionAcceptedRespon
 export type BranchCandidateActionResponse = components["schemas"]["BranchCandidateActionResponse"];
 export type BranchSearchDetailResponse = components["schemas"]["BranchSearchDetailResponse"];
 export type BranchSearchListPageResponse = components["schemas"]["BranchSearchListPageResponse"];
+export type ChangesetDetailResponse = components["schemas"]["ChangesetDetailResponse"];
+export type ChangesetListPageResponse = components["schemas"]["ChangesetListPageResponse"];
+export type ChangesetActionResponse = components["schemas"]["ChangesetActionResponse"];
 export type WorkspaceMemoryListPageResponse =
   components["schemas"]["WorkspaceMemoryListPageResponse"];
 export type WorkspaceMemoryDetailResponse = components["schemas"]["WorkspaceMemoryDetailResponse"];
@@ -66,6 +69,9 @@ export type SessionArtifactPageQuery = NonNullable<
 export type TaskListPageQuery = NonNullable<paths["/tasks"]["get"]["parameters"]["query"]>;
 export type BranchSearchListPageQuery = NonNullable<
   paths["/branch-searches"]["get"]["parameters"]["query"]
+>;
+export type ChangesetListPageQuery = NonNullable<
+  paths["/changesets"]["get"]["parameters"]["query"]
 >;
 export type TaskStepPageQuery = NonNullable<
   paths["/tasks/{task_id}/steps"]["get"]["parameters"]["query"]
@@ -499,6 +505,32 @@ export function createGlassboxApiClient(options: GlassboxApiClientOptions = {}) 
         {
           ...requestOptions,
           body: { actor: input.actor ?? "operator", reason: input.reason },
+        },
+      ),
+
+    getChangesetPage: (query: ChangesetListPageQuery = {}, requestOptions?: RequestOptions) =>
+      requestJson<ChangesetListPageResponse>("GET", "/changesets", {
+        ...requestOptions,
+        query,
+      }),
+
+    getChangesetDetail: (changesetId: string, requestOptions?: RequestOptions) =>
+      requestJson<ChangesetDetailResponse>(
+        "GET",
+        `/changesets/${encodeURIComponent(changesetId)}`,
+        requestOptions,
+      ),
+
+    refreshChangeset: (
+      input: { actor?: string; changesetId: string },
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<ChangesetActionResponse>(
+        "POST",
+        `/changesets/${encodeURIComponent(input.changesetId)}/refresh`,
+        {
+          ...requestOptions,
+          body: { actor: input.actor ?? "operator" },
         },
       ),
 

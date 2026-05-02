@@ -5,12 +5,14 @@ import { useStore } from "zustand";
 
 import { createGlassboxApiClient } from "@/api/client";
 import { BranchSearchConsole } from "@/components/console/branch-search-console";
+import { ChangesetConsole } from "@/components/console/changeset-console";
 import { KnowledgeAutonomyConsole } from "@/components/console/knowledge-autonomy-console";
 import { SessionInspector } from "@/components/console/session-inspector";
 import { TaskAutonomyConsole } from "@/components/console/task-autonomy-console";
 import { WorkspaceOverview } from "@/components/console/workspace-overview";
 import {
   branchSearchConsoleActions,
+  changesetConsoleActions,
   knowledgeConsoleActions,
   sessionInspectorActions,
   taskConsoleActions,
@@ -19,6 +21,7 @@ import {
 import { useWorkspaceConsoleRouting } from "@/components/console/workspace-console/routing";
 import {
   createBranchSearchStore,
+  createChangesetStore,
   createConsoleStore,
   createKnowledgeStore,
   createSessionStore,
@@ -28,17 +31,20 @@ import {
 export function WorkspaceConsole() {
   const apiClient = useMemo(() => createGlassboxApiClient(), []);
   const branchSearchStore = useMemo(() => createBranchSearchStore(apiClient), [apiClient]);
+  const changesetStore = useMemo(() => createChangesetStore(apiClient), [apiClient]);
   const consoleStore = useMemo(() => createConsoleStore(apiClient), [apiClient]);
   const knowledgeStore = useMemo(() => createKnowledgeStore(apiClient), [apiClient]);
   const sessionStore = useMemo(() => createSessionStore({ apiClient }), [apiClient]);
   const taskStore = useMemo(() => createTaskStore(apiClient), [apiClient]);
   const branchSearchState = useStore(branchSearchStore);
+  const changesetState = useStore(changesetStore);
   const consoleState = useStore(consoleStore);
   const knowledgeState = useStore(knowledgeStore);
   const sessionState = useStore(sessionStore);
   const taskState = useStore(taskStore);
   const { navigate, refreshSelectedSession, route } = useWorkspaceConsoleRouting({
     branchSearchStore,
+    changesetStore,
     consoleStore,
     knowledgeStore,
     sessionStore,
@@ -78,6 +84,17 @@ export function WorkspaceConsole() {
         repository={knowledgeState.repository}
         surface={route.surface}
         {...knowledgeConsoleActions({ knowledgeStore, route })}
+      />
+    );
+  }
+
+  if (route.surface === "changesets") {
+    return (
+      <ChangesetConsole
+        action={changesetState.action}
+        detail={changesetState.detail}
+        page={changesetState.page}
+        {...changesetConsoleActions({ changesetStore, navigate, route })}
       />
     );
   }
