@@ -432,7 +432,7 @@ shortcuts are shaped by the review-loop features that precede them.
 
 ### GBX-1302: Define Review-Loop Vocabulary And Operator Language
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1300`, `GBX-1301`
 - Goal: standardize how Glassbox names feedback, requested changes, responses,
   manual evidence, lifecycle briefs, and publication posture before adding

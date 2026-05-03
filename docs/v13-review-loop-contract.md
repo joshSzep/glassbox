@@ -79,6 +79,10 @@ docs, tests, and release evidence.
 | Requested change | Feedback that asks for a specific local fixup or explanation before handoff. | Use only when retained feedback supports the request. |
 | Reviewer question | Feedback that asks for clarification or evidence rather than a code change. | Keep questions visible until answered, accepted with risk, archived, or explicitly resolved locally. |
 | Fixup response | A retained local response that explains what changed, what evidence supports it, and what uncertainty remains. | Do not claim a reviewer accepted the response unless such evidence was separately recorded. |
+| Operator note | A local note recorded by the operator to explain context, judgment, or next steps. It may become feedback only when attached to a review-loop feedback record. | Do not treat every note as a requested change, risk, or verification result. |
+| Task checkpoint | Continuation evidence for task progress, recovery, blockers, touched files, and next action. | Checkpoints may be cited by feedback or responses, but they are not review feedback or complete change inventory. |
+| Changeset risk | A retained uncertainty, sensitive path, stale signal, failed/skipped check, missing provenance, or accepted risk attached to the changeset. | Keep risk beside readiness. Do not hide it under resolved feedback or passing checks. |
+| Verification evidence | Retained evidence from explicit checks, task verification ledger records, evals, or review-relevant command attempts. | Use "verification passed" only for a specific fresh check. Manual evidence can support context but is not Glassbox-run verification evidence. |
 | Manual evidence | Operator-attached evidence from outside retained Glassbox instrumentation, including external commands, observations, screenshots, sanitized logs, or notes. | Label as manual or external. Never backfill it as Glassbox-run command evidence. |
 | Browser evidence | Advisory local evidence from a browser or dashboard walkthrough. | Name environment, scope, skipped cases, local-only references, and non-claims. |
 | Accessibility evidence | Advisory evidence from keyboard, focus, contrast, screen-reader, or paired accessibility checks. | Distinguish covered checks from skipped or untested assistive technology. |
@@ -99,6 +103,41 @@ these distinctions clear:
 - A **lifecycle brief** summarizes the review loop, not approval or
   publication.
 - **Handoff readiness** is advisory local posture, not a git or remote state.
+
+## Operator Language Boundaries
+
+The v9 vocabulary keeps Glassbox nouns stable across CLI help, dashboard copy,
+operator docs, and release evidence. v13 keeps that compatibility rule and adds
+review-loop boundaries for words that can otherwise overclaim.
+
+| If you mean | Use this language | Avoid this language |
+| --- | --- | --- |
+| A reviewer or operator captured a comment, concern, or request. | "review feedback recorded" | "review approved", "remote comment synced" |
+| Feedback asks for a concrete change before handoff. | "requested change captured" | "merge blocked", "PR requested changes" |
+| A reviewer asked for context or evidence. | "reviewer question recorded" | "blocking failure" unless a failing check exists |
+| The operator changed code, docs, tests, or evidence in response. | "fixup response recorded" | "reviewer accepted the fix" without acceptance evidence |
+| The operator attached an external command result or note. | "manual evidence attached" | "command evidence retained" unless Glassbox ran and retained the command attempt |
+| A browser or dashboard walkthrough was retained. | "browser evidence is advisory" or "dashboard evidence is advisory" | "browser validation passed" when only live walkthrough notes exist |
+| Keyboard, focus, contrast, or assistive-technology notes were retained. | "accessibility evidence recorded" with covered and skipped checks | "accessible" as a blanket claim |
+| A summary covers the whole feedback and response lifecycle. | "lifecycle brief generated" | "approval summary" or "PR description" |
+| Local evidence looks coherent enough to hand to another human. | "handoff readiness: handoff-ready" | "published", "merged", "approved", or "ready to deploy" |
+| The next action would mutate git, a remote, a deployment, or a package registry. | "final operator action" | "Glassbox will publish" or "automatic PR" |
+
+Use these distinctions when adding command help, dashboard labels, API
+descriptions, docs, tests, and eval fixtures:
+
+- **Review feedback** is a feedback object with source, scope, disposition, and
+  lifecycle state.
+- **Operator note** is local context. It becomes review feedback only when a
+  feedback record names it as such.
+- **Task checkpoint** is continuation evidence. It may cite touched files or
+  blockers, but it is not review feedback, not a fixup response, and not a full
+  changeset inventory.
+- **Changeset risk** is readiness evidence. It can be unresolved or accepted
+  with risk, but it is not automatically resolved when feedback is answered.
+- **Verification evidence** comes from explicit retained checks. Manual
+  evidence may explain an external check, but should remain labeled manual
+  until Glassbox records a tool attempt or deterministic verification record.
 
 ## Supported Workflow Set
 
