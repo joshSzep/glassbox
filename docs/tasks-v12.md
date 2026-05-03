@@ -1694,7 +1694,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1292: Run v12 Dogfooding Passes
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1291`
 - Goal: validate v12 against real local operator use and record product
   friction before release signoff
@@ -1722,6 +1722,17 @@ Each phase below corresponds to one concrete milestone.
   - focused validation commands chosen from actual touched surfaces
 - Done when:
   - v12 priorities are informed by real reviewable-change use
+- Completion notes:
+  - Added [v12-dogfooding-summary.md](./v12-dogfooding-summary.md) with five
+    focused dogfooding passes plus retained local evidence under
+    `.glassbox/releases/gbx-1292-dogfooding/`.
+  - Exercised real changeset creation, review brief generation, verification
+    readiness, commit preparation, branch-search candidate selection/rejection,
+    confirmed candidate adoption, and mixed backend/frontend/docs recommendation
+    flows.
+  - Recorded follow-up friction for changeset runtime topology impact coverage
+    and sequential refresh/brief/verification/commit-prep guidance; provider and
+    live dashboard evidence remain advisory and were not collected in this pass.
 
 ### GBX-1293: Publish v12 Release-Candidate Guide
 

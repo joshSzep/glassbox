@@ -512,6 +512,38 @@ def test_v12_release_gate_documents_reviewable_change_evidence() -> None:
     assert "v12-release-gate.md" in docs_readme
 
 
+def test_v12_dogfooding_summary_records_real_reviewable_change_passes() -> None:
+    content = (REPO_ROOT / "docs" / "v12-dogfooding-summary.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Passes",
+        "## Findings",
+        "## Disposition",
+        ".glassbox/releases/gbx-1292-dogfooding/",
+        "Changeset from real workspace diff",
+        "Review brief for local change",
+        "Commit preparation with stale or missing verification",
+        "Branch-candidate adoption into changeset",
+        "Topology-aware recommendations for mixed change",
+        "changeset refresh",
+        "changeset brief",
+        "changeset verification-plan",
+        "changeset commit-prep",
+        "dirty_untracked_risk",
+        "src/glassbox/runtime/changesets.py",
+        "no retained command",
+        "no merge, commit, push",
+    ):
+        assert required_text in content
+
+    assert "docs/v12-dogfooding-summary.md" in root_readme
+    assert "v12-dogfooding-summary.md" in docs_readme
+
+
 def test_v12_worktree_isolation_contract_covers_safety_boundary() -> None:
     content = (REPO_ROOT / "docs" / "worktree-isolation.md").read_text(encoding="utf-8")
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")

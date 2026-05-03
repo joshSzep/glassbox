@@ -66,6 +66,10 @@ v11 confidence and adoption release candidate.
   command for inherited v11 checks plus reviewable-change evals, changeset
   lifecycle smoke, package contents, installed smoke, and advisory provider
   evidence
+- [v12-dogfooding-summary.md](./v12-dogfooding-summary.md): sanitized v12
+  dogfooding findings for changeset creation, review briefs, verification
+  readiness, commit preparation, branch-candidate adoption, topology
+  recommendations, command evidence, and release evidence
 - [v11-dogfooding-summary.md](./v11-dogfooding-summary.md): sanitized v11
   dogfooding findings for release recommendations, compaction guidance, live
   cockpit evidence, branch-search review, and candidate follow-ups
@@ -202,6 +206,8 @@ v11 confidence and adoption release candidate.
 - [v12-release-gate.md](./v12-release-gate.md): v12 automated release evidence
   command, inherited v11 stage map, reviewable-change eval stages, retained
   summary shape, advisory provider policy, and pass/fail rules
+- [v12-dogfooding-summary.md](./v12-dogfooding-summary.md): sanitized v12
+  dogfooding evidence and friction findings from local reviewable-change use
 - [v11-release-candidate.md](./v11-release-candidate.md): release-candidate
   narrative tying the v11 contract, gate, dogfooding, package, provider,
   accessibility, live cockpit, and residual-risk evidence together
