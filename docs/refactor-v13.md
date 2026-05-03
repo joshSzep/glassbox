@@ -420,7 +420,7 @@ Completion notes:
 
 ### GBX-R510: Split Changeset Runtime Models And Protocols
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R501
 - Target files:
   - `src/glassbox/runtime/changesets.py`
@@ -441,6 +441,15 @@ Completion notes:
   - `uv run ty check src/glassbox/runtime/changesets.py src/glassbox/runtime/changeset_models.py src/glassbox/runtime/changeset_repository_contracts.py`
   - `uv run pytest tests/unit/test_changeset_derivation.py`
   - `uv run pytest tests/integration/test_changeset_derivation.py`
+
+Completion notes:
+
+- Moved public runtime-only changeset result and view models into
+  `src/glassbox/runtime/changeset_models.py`.
+- Moved `ChangesetDerivationRepository` and `ChangesetRepository` protocols into
+  `src/glassbox/runtime/changeset_repository_contracts.py`.
+- Kept `src/glassbox/runtime/changesets.py` as the compatibility facade by
+  importing and re-exporting the moved public names.
 
 ### GBX-R511: Extract Changeset Source Derivation And Workspace Diff Helpers
 

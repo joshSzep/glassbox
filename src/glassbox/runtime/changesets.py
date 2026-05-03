@@ -8,7 +8,6 @@ from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
 from typing import Literal
-from typing import Protocol
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -29,11 +28,9 @@ from glassbox.core import ChangesetInventoryRecord
 from glassbox.core import ChangesetInventoryRefreshed
 from glassbox.core import ChangesetReadinessDecided
 from glassbox.core import ChangesetReadinessKind
-from glassbox.core import ChangesetReadinessRecord
 from glassbox.core import ChangesetReadinessState
 from glassbox.core import ChangesetRecord
 from glassbox.core import ChangesetReviewBriefCreated
-from glassbox.core import ChangesetReviewBriefRecord
 from glassbox.core import ChangesetRiskLevel
 from glassbox.core import ChangesetSourceAttached
 from glassbox.core import ChangesetSourceKind
@@ -52,7 +49,6 @@ from glassbox.core import ManualEvidenceRedactionStatus
 from glassbox.core import ManualEvidenceRejected
 from glassbox.core import ManualEvidenceState
 from glassbox.core import ManualEvidenceTargetKind
-from glassbox.core import ProjectionHealth
 from glassbox.core import ReviewFeedbackArchived
 from glassbox.core import ReviewFeedbackCreated
 from glassbox.core import ReviewFeedbackDisposition
@@ -72,7 +68,6 @@ from glassbox.core import ReviewFeedbackScopeRecord
 from glassbox.core import ReviewFixupSourceKind
 from glassbox.core import SessionId
 from glassbox.core import SessionRecord
-from glassbox.core import SessionState
 from glassbox.core import SessionStatus
 from glassbox.core import TaskId
 from glassbox.core import TaskPlanStatus
@@ -100,6 +95,24 @@ from glassbox.runtime.change_inventory import CHANGE_INVENTORY_ARTIFACT_SCHEMA_V
 from glassbox.runtime.change_inventory import ChangeInventoryArtifact
 from glassbox.runtime.change_inventory import change_inventory_artifact_json
 from glassbox.runtime.change_inventory import change_inventory_from_diff_summary
+from glassbox.runtime.changeset_models import ChangesetCommandEvidenceItem
+from glassbox.runtime.changeset_models import ChangesetCommandEvidenceSummary
+from glassbox.runtime.changeset_models import ChangesetDerivationResult
+from glassbox.runtime.changeset_models import ChangesetDetailView
+from glassbox.runtime.changeset_models import ChangesetInventoryRefreshResult
+from glassbox.runtime.changeset_models import ChangesetInventoryStatus
+from glassbox.runtime.changeset_models import ChangesetReviewBriefGenerationResult
+from glassbox.runtime.changeset_models import ChangesetVerificationEvidenceRecordResult
+from glassbox.runtime.changeset_models import ChangesetVerificationPlanPreview
+from glassbox.runtime.changeset_models import ChangesetVerificationRecipePreview
+from glassbox.runtime.changeset_models import ChangesetVerificationReviewLoopSummary
+from glassbox.runtime.changeset_models import ManualEvidenceRecordResult
+from glassbox.runtime.changeset_models import ReviewFeedbackFixupInventoryResult
+from glassbox.runtime.changeset_models import ReviewFeedbackRecordResult
+from glassbox.runtime.changeset_repository_contracts import (
+    ChangesetDerivationRepository,
+)
+from glassbox.runtime.changeset_repository_contracts import ChangesetRepository
 from glassbox.runtime.changeset_topology import ChangesetTopologyImpact
 from glassbox.runtime.changeset_topology import derive_changeset_topology_impacts
 from glassbox.runtime.changeset_verification_readiness import (
@@ -108,7 +121,6 @@ from glassbox.runtime.changeset_verification_readiness import (
 from glassbox.runtime.changeset_verification_readiness import (
     derive_changeset_verification_readiness,
 )
-from glassbox.runtime.eval_recommendation_models import EvalRecommendationReasonGroup
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReport
 from glassbox.runtime.eval_recommendations import recommend_eval_change_impact
 from glassbox.runtime.manual_evidence import MANUAL_EVIDENCE_ARTIFACT_SCHEMA_VERSION
@@ -126,7 +138,6 @@ from glassbox.runtime.review_briefs import review_brief_markdown
 from glassbox.runtime.review_responses import REVIEW_FIXUP_INVENTORY_SCHEMA_VERSION
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
 from glassbox.runtime.review_responses import ReviewFeedbackResponseStatus
-from glassbox.runtime.review_responses import ReviewFixupInventoryArtifact
 from glassbox.runtime.review_responses import ReviewFixupInventoryStatus
 from glassbox.runtime.review_responses import changeset_review_response_summary
 from glassbox.runtime.review_responses import review_feedback_response_status
@@ -143,384 +154,6 @@ from glassbox.tools.workflow import DiffSummaryArtifact
 from glassbox.tools.workflow import DiffSummaryResult
 from glassbox.tools.workflow import DiffSummaryScope
 from glassbox.tools.workflow import DiffSummaryTool
-
-
-class ChangesetDerivationRepository(Protocol):
-    """Repository methods required by changeset derivation."""
-
-    def get_session(self, session_id: SessionId) -> SessionRecord | None: ...
-
-    def get_session_state(self, session_id: SessionId) -> SessionState | None: ...
-
-    def inspect_session_projection_health(
-        self,
-        session_id: SessionId,
-    ) -> ProjectionHealth: ...
-
-    def get_task(self, task_id: TaskId) -> TaskRecord | None: ...
-
-    def get_branch_search(
-        self,
-        search_id: BranchSearchId,
-    ) -> BranchSearchRecord | None: ...
-
-    def list_branch_candidates(
-        self,
-        session_id: SessionId,
-        search_id: BranchSearchId,
-    ) -> list[BranchCandidateRecord]: ...
-
-    def append_events(
-        self,
-        events: list[EventEnvelope],
-    ) -> list[EventEnvelope]: ...
-
-
-class ChangesetRepository(ChangesetDerivationRepository, Protocol):
-    """Repository methods required by changeset query and action services."""
-
-    def list_changesets(
-        self,
-        *,
-        session_id: SessionId | None = None,
-        include_archived: bool = False,
-        limit: int | None = None,
-    ) -> list[ChangesetRecord]: ...
-
-    def get_changeset(self, changeset_id: ChangesetId) -> ChangesetRecord | None: ...
-
-    def list_changeset_sources(
-        self,
-        session_id: SessionId,
-        changeset_id: ChangesetId,
-    ) -> list[ChangesetSourceRecord]: ...
-
-    def get_changeset_inventory(
-        self,
-        session_id: SessionId,
-        changeset_id: ChangesetId,
-    ) -> ChangesetInventoryRecord | None: ...
-
-    def get_changeset_verification_posture(
-        self,
-        session_id: SessionId,
-        changeset_id: ChangesetId,
-    ) -> ChangesetVerificationPostureRecord | None: ...
-
-    def list_changeset_review_briefs(
-        self,
-        session_id: SessionId,
-        changeset_id: ChangesetId,
-    ) -> list[ChangesetReviewBriefRecord]: ...
-
-    def list_changeset_readiness(
-        self,
-        session_id: SessionId,
-        changeset_id: ChangesetId,
-    ) -> list[ChangesetReadinessRecord]: ...
-
-    def list_review_feedback(
-        self,
-        *,
-        session_id: SessionId | None = None,
-        changeset_id: ChangesetId | None = None,
-        disposition: ReviewFeedbackDisposition | None = None,
-        include_archived: bool = False,
-        file_path: str | None = None,
-        limit: int | None = None,
-    ) -> list[ReviewFeedbackRecord]: ...
-
-    def get_review_feedback(
-        self,
-        feedback_id: ReviewFeedbackId,
-    ) -> ReviewFeedbackRecord | None: ...
-
-    def list_review_feedback_scopes(
-        self,
-        session_id: SessionId,
-        feedback_id: ReviewFeedbackId,
-    ) -> list[ReviewFeedbackScopeRecord]: ...
-
-    def list_review_feedback_fixup_inventories(
-        self,
-        session_id: SessionId,
-        feedback_id: ReviewFeedbackId,
-    ) -> list[ReviewFeedbackFixupInventoryRecord]: ...
-
-    def list_review_feedback_fixup_paths(
-        self,
-        session_id: SessionId,
-        feedback_id: ReviewFeedbackId,
-        artifact_id: ArtifactId,
-    ) -> list[ReviewFeedbackFixupPathRecord]: ...
-
-    def list_manual_evidence(
-        self,
-        *,
-        session_id: SessionId | None = None,
-        changeset_id: ChangesetId | None = None,
-        target_kind: ManualEvidenceTargetKind | None = None,
-        target_id: str | None = None,
-        state: ManualEvidenceState | None = None,
-        include_archived: bool = False,
-        include_rejected: bool = False,
-        include_superseded: bool = False,
-        limit: int | None = None,
-    ) -> list[ManualEvidenceRecord]: ...
-
-    def get_manual_evidence(
-        self,
-        evidence_id: ManualEvidenceId,
-    ) -> ManualEvidenceRecord | None: ...
-
-    def list_task_verification_ledger(
-        self,
-        session_id: SessionId,
-        task_id: TaskId,
-    ) -> list[TaskVerificationLedgerRecord]: ...
-
-    def list_tool_attempts(
-        self,
-        session_id: SessionId,
-        *,
-        limit: int | None = None,
-        offset: int = 0,
-    ) -> list[ToolAttemptRecord]: ...
-
-    def read_session_events(self, session_id: SessionId) -> list[EventEnvelope]: ...
-
-
-class ChangesetDerivationResult(BaseModel):
-    """Result of explicitly deriving one changeset."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    changeset_id: ChangesetId
-    session_id: SessionId
-    limitations: list[str] = Field(default_factory=list)
-    stored_events: list[EventEnvelope] = Field(default_factory=list)
-
-
-class ChangesetInventoryStatus(BaseModel):
-    """Current workspace comparison for the latest changeset inventory."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    freshness: ChangesetInventoryFreshness
-    stale: bool = False
-    reason: str | None = Field(default=None, max_length=2000)
-    recorded_source_digest: str | None = Field(default=None, max_length=256)
-    current_source_digest: str | None = Field(default=None, max_length=256)
-    safe_next_actions: list[str] = Field(default_factory=list)
-
-
-class ChangesetCommandEvidenceItem(BaseModel):
-    """One bounded command-evidence row relevant to a changeset."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    tool_attempt_id: str
-    turn_id: str
-    task_id: str | None = None
-    tool_name: str
-    status: str
-    purpose: str
-    review_relevance: str
-    supports_verification: bool
-    summary: str
-    output_artifact_id: ArtifactId | None = None
-    environment_captured: bool = False
-    toolchain_count: int = Field(default=0, ge=0)
-    redaction_notes: list[str] = Field(default_factory=list)
-    policy_summary: str | None = None
-    local_only: bool = False
-
-
-class ChangesetCommandEvidenceSummary(BaseModel):
-    """Bounded command-evidence summary for changeset review surfaces."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    total_count: int = Field(default=0, ge=0)
-    verification_count: int = Field(default=0, ge=0)
-    failed_count: int = Field(default=0, ge=0)
-    risky_count: int = Field(default=0, ge=0)
-    environment_captured_count: int = Field(default=0, ge=0)
-    artifact_count: int = Field(default=0, ge=0)
-    items: list[ChangesetCommandEvidenceItem] = Field(default_factory=list)
-    limitations: list[str] = Field(default_factory=list)
-    safe_next_actions: list[str] = Field(default_factory=list)
-
-
-class ChangesetDetailView(BaseModel):
-    """Read model for one changeset and its currently retained evidence refs."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    changeset: ChangesetRecord
-    sources: list[ChangesetSourceRecord] = Field(default_factory=list)
-    inventory: ChangesetInventoryRecord | None = None
-    verification_posture: ChangesetVerificationPostureRecord | None = None
-    inventory_status: ChangesetInventoryStatus
-    review_briefs: list[ChangesetReviewBriefRecord] = Field(default_factory=list)
-    review_feedback: list[ReviewFeedbackRecord] = Field(default_factory=list)
-    manual_evidence: list[ManualEvidenceRecord] = Field(default_factory=list)
-    review_response_summary: ChangesetReviewResponseSummary
-    readiness: list[ChangesetReadinessRecord] = Field(default_factory=list)
-    command_evidence: ChangesetCommandEvidenceSummary
-    limitations: list[str] = Field(default_factory=list)
-    safe_next_actions: list[str] = Field(default_factory=list)
-
-
-class ChangesetInventoryRefreshResult(BaseModel):
-    """Result of explicitly refreshing one structured changeset inventory."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
-
-    changeset_id: ChangesetId
-    session_id: SessionId
-    artifact: StoredArtifact
-    inventory: ChangeInventoryArtifact
-    event: EventEnvelope
-    superseded_event: EventEnvelope | None = None
-    freshness: ChangesetInventoryFreshness
-    source_digest: str | None = None
-
-
-class ChangesetVerificationRecipePreview(BaseModel):
-    """One recipe row in a changeset verification plan preview."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    recipe_id: str
-    title: str
-    confidence: str = "direct"
-    source: str = "recipe"
-    matched_paths: list[str] = Field(default_factory=list)
-    component_ids: list[str] = Field(default_factory=list)
-    commands: list[str] = Field(default_factory=list)
-    profile_ids: list[str] = Field(default_factory=list)
-    case_ids: list[str] = Field(default_factory=list)
-    notes: str | None = None
-    limitations: list[str] = Field(default_factory=list)
-
-
-class ChangesetVerificationReviewLoopSummary(BaseModel):
-    """Review-loop context included in a verification plan preview."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    feedback_count: int = Field(default=0, ge=0)
-    open_feedback_count: int = Field(default=0, ge=0)
-    response_state_counts: dict[str, int] = Field(default_factory=dict)
-    stale_response_count: int = Field(default=0, ge=0)
-    missing_response_verification_count: int = Field(default=0, ge=0)
-    failed_response_verification_count: int = Field(default=0, ge=0)
-    accepted_risk_response_count: int = Field(default=0, ge=0)
-    manual_evidence_count: int = Field(default=0, ge=0)
-    manual_evidence_kind_counts: dict[str, int] = Field(default_factory=dict)
-    browser_evidence_count: int = Field(default=0, ge=0)
-    accessibility_evidence_count: int = Field(default=0, ge=0)
-    stale_check_count: int = Field(default=0, ge=0)
-    topology_impact_count: int = Field(default=0, ge=0)
-    retained_verification_state: ChangesetVerificationState
-    safe_next_actions: list[str] = Field(default_factory=list)
-    limitations: list[str] = Field(default_factory=list)
-    non_claims: list[str] = Field(default_factory=list)
-
-
-class ChangesetVerificationPlanPreview(BaseModel):
-    """Preview-only verification plan for one changeset."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    changeset_id: ChangesetId
-    session_id: SessionId
-    inventory_artifact_id: ArtifactId | None = None
-    inventory_freshness: ChangesetInventoryFreshness
-    changed_paths: list[str] = Field(default_factory=list)
-    recommended_commands: list[str] = Field(default_factory=list)
-    eval_profiles: list[str] = Field(default_factory=list)
-    recipes: list[ChangesetVerificationRecipePreview] = Field(default_factory=list)
-    topology_impacts: list[ChangesetTopologyImpact] = Field(default_factory=list)
-    review_loop_summary: ChangesetVerificationReviewLoopSummary = Field(
-        default_factory=lambda: ChangesetVerificationReviewLoopSummary(
-            retained_verification_state=ChangesetVerificationState.NOT_APPLICABLE
-        )
-    )
-    reason_groups: list[EvalRecommendationReasonGroup] = Field(default_factory=list)
-    expected_scope: list[str] = Field(default_factory=list)
-    retained_artifact_ids: list[ArtifactId] = Field(default_factory=list)
-    readiness: ChangesetVerificationReadiness
-    limitations: list[str] = Field(default_factory=list)
-    safe_next_actions: list[str] = Field(default_factory=list)
-    non_claims: list[str] = Field(default_factory=list)
-
-
-class ChangesetVerificationEvidenceRecordResult(BaseModel):
-    """Result of recording selected retained verification evidence."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    changeset_id: ChangesetId
-    session_id: SessionId
-    selected_verification_ids: list[TaskVerificationId] = Field(default_factory=list)
-    retained_artifact_ids: list[ArtifactId] = Field(default_factory=list)
-    readiness: ChangesetVerificationReadiness
-    event: EventEnvelope
-
-
-class ChangesetReviewBriefGenerationResult(BaseModel):
-    """Result of generating one deterministic review brief artifact."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
-
-    changeset_id: ChangesetId
-    session_id: SessionId
-    artifact: StoredArtifact
-    brief: ReviewBriefArtifact
-    markdown: str
-    event: EventEnvelope
-    readiness_event: EventEnvelope
-    limitations: list[str] = Field(default_factory=list)
-
-
-class ReviewFeedbackRecordResult(BaseModel):
-    """Result of recording or updating one local review-feedback item."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    feedback: ReviewFeedbackRecord
-    scopes: list[ReviewFeedbackScopeRecord] = Field(default_factory=list)
-    events: list[EventEnvelope] = Field(default_factory=list)
-    safe_next_actions: list[str] = Field(default_factory=list)
-    non_claims: list[str] = Field(default_factory=list)
-
-
-class ReviewFeedbackFixupInventoryResult(BaseModel):
-    """Result of recording response-linked fixup inventory evidence."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
-
-    feedback_id: ReviewFeedbackId
-    changeset_id: ChangesetId
-    session_id: SessionId
-    artifact: StoredArtifact
-    inventory: ReviewFixupInventoryArtifact
-    event: EventEnvelope
-    status: ReviewFixupInventoryStatus
-
-
-class ManualEvidenceRecordResult(BaseModel):
-    """Result of attaching or rejecting one manual evidence item."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
-
-    evidence: ManualEvidenceRecord
-    artifact: StoredArtifact | None = None
-    event: EventEnvelope
-    safe_next_actions: list[str] = Field(default_factory=list)
-    non_claims: list[str] = Field(default_factory=list)
 
 
 class ChangesetDerivationService:
