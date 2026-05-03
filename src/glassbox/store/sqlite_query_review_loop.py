@@ -3,15 +3,20 @@
 import sqlite3
 from datetime import datetime
 
+from glassbox.core.ids import ArtifactId
 from glassbox.core.ids import ChangesetId
 from glassbox.core.ids import ReviewFeedbackId
 from glassbox.core.ids import SessionId
+from glassbox.core.models import ReviewFeedbackFixupInventoryRecord
+from glassbox.core.models import ReviewFeedbackFixupPathRecord
 from glassbox.core.models import ReviewFeedbackRecord
 from glassbox.core.models import ReviewFeedbackScopeRecord
+from glassbox.core.types import ChangesetInventoryFreshness
 from glassbox.core.types import ReviewFeedbackDisposition
 from glassbox.core.types import ReviewFeedbackKind
 from glassbox.core.types import ReviewFeedbackProvenance
 from glassbox.core.types import ReviewFeedbackScopeKind
+from glassbox.core.types import ReviewFixupSourceKind
 
 
 def list_review_feedback(
@@ -91,6 +96,50 @@ def list_review_feedback_scopes(
     return [_scope_record_from_row(row) for row in rows]
 
 
+def list_review_feedback_fixup_inventories(
+    connection: sqlite3.Connection,
+    session_id: SessionId,
+    feedback_id: ReviewFeedbackId,
+) -> list[ReviewFeedbackFixupInventoryRecord]:
+    rows = connection.execute(
+        """
+        select
+            session_id, feedback_id, changeset_id, artifact_id,
+            artifact_schema_version, source_kind, source_summary, source_digest,
+            inventory_freshness, changed_path_count, matched_scope_path_count,
+            stale, stale_reason, recorded_by, task_id, turn_id, verification_id,
+            created_at, last_sequence
+        from review_feedback_fixup_inventories
+        where session_id = ? and feedback_id = ?
+        order by created_at desc
+        """,
+        (str(session_id), str(feedback_id)),
+    ).fetchall()
+    return [_fixup_inventory_record_from_row(row) for row in rows]
+
+
+def list_review_feedback_fixup_paths(
+    connection: sqlite3.Connection,
+    session_id: SessionId,
+    feedback_id: ReviewFeedbackId,
+    artifact_id: ArtifactId,
+) -> list[ReviewFeedbackFixupPathRecord]:
+    rows = connection.execute(
+        """
+        select
+            session_id, feedback_id, changeset_id, artifact_id, path,
+            change_kind, generated, test_file, docs_file, policy_sensitive,
+            risk_level, provenance_confidence, matches_feedback_scope,
+            summary, last_sequence
+        from review_feedback_fixup_paths
+        where session_id = ? and feedback_id = ? and artifact_id = ?
+        order by matches_feedback_scope desc, path asc
+        """,
+        (str(session_id), str(feedback_id), str(artifact_id)),
+    ).fetchall()
+    return [_fixup_path_record_from_row(row) for row in rows]
+
+
 def _feedback_select_sql() -> str:
     return """
         select
@@ -163,8 +212,56 @@ def _scope_record_from_row(row: sqlite3.Row) -> ReviewFeedbackScopeRecord:
     )
 
 
+def _fixup_inventory_record_from_row(
+    row: sqlite3.Row,
+) -> ReviewFeedbackFixupInventoryRecord:
+    return ReviewFeedbackFixupInventoryRecord(
+        session_id=row["session_id"],
+        feedback_id=row["feedback_id"],
+        changeset_id=row["changeset_id"],
+        artifact_id=row["artifact_id"],
+        artifact_schema_version=row["artifact_schema_version"],
+        source_kind=ReviewFixupSourceKind(row["source_kind"]),
+        source_summary=row["source_summary"],
+        source_digest=row["source_digest"],
+        inventory_freshness=ChangesetInventoryFreshness(row["inventory_freshness"]),
+        changed_path_count=row["changed_path_count"],
+        matched_scope_path_count=row["matched_scope_path_count"],
+        stale=bool(row["stale"]),
+        stale_reason=row["stale_reason"],
+        recorded_by=row["recorded_by"],
+        task_id=row["task_id"],
+        turn_id=row["turn_id"],
+        verification_id=row["verification_id"],
+        created_at=datetime.fromisoformat(row["created_at"]),
+        last_sequence=row["last_sequence"],
+    )
+
+
+def _fixup_path_record_from_row(row: sqlite3.Row) -> ReviewFeedbackFixupPathRecord:
+    return ReviewFeedbackFixupPathRecord(
+        session_id=row["session_id"],
+        feedback_id=row["feedback_id"],
+        changeset_id=row["changeset_id"],
+        artifact_id=row["artifact_id"],
+        path=row["path"],
+        change_kind=row["change_kind"],
+        generated=bool(row["generated"]),
+        test_file=bool(row["test_file"]),
+        docs_file=bool(row["docs_file"]),
+        policy_sensitive=bool(row["policy_sensitive"]),
+        risk_level=row["risk_level"],
+        provenance_confidence=row["provenance_confidence"],
+        matches_feedback_scope=bool(row["matches_feedback_scope"]),
+        summary=row["summary"],
+        last_sequence=row["last_sequence"],
+    )
+
+
 __all__ = [
     "get_review_feedback",
+    "list_review_feedback_fixup_inventories",
+    "list_review_feedback_fixup_paths",
     "list_review_feedback",
     "list_review_feedback_scopes",
 ]

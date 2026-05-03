@@ -43,6 +43,9 @@ from glassbox.core import ProjectionHealth
 from glassbox.core import ReviewFeedbackArchived
 from glassbox.core import ReviewFeedbackCreated
 from glassbox.core import ReviewFeedbackDisposition
+from glassbox.core import ReviewFeedbackFixupInventoryAttached
+from glassbox.core import ReviewFeedbackFixupInventoryRecord
+from glassbox.core import ReviewFeedbackFixupPathRecord
 from glassbox.core import ReviewFeedbackId
 from glassbox.core import ReviewFeedbackKind
 from glassbox.core import ReviewFeedbackProvenance
@@ -53,6 +56,7 @@ from glassbox.core import ReviewFeedbackRiskAccepted
 from glassbox.core import ReviewFeedbackScopeAttached
 from glassbox.core import ReviewFeedbackScopeKind
 from glassbox.core import ReviewFeedbackScopeRecord
+from glassbox.core import ReviewFixupSourceKind
 from glassbox.core import SessionId
 from glassbox.core import SessionRecord
 from glassbox.core import SessionState
@@ -87,6 +91,14 @@ from glassbox.runtime.review_briefs import ReviewBriefEvidenceRef
 from glassbox.runtime.review_briefs import ReviewBriefSection
 from glassbox.runtime.review_briefs import review_brief_artifact_json
 from glassbox.runtime.review_briefs import review_brief_markdown
+from glassbox.runtime.review_responses import REVIEW_FIXUP_INVENTORY_SCHEMA_VERSION
+from glassbox.runtime.review_responses import ReviewFixupInventoryArtifact
+from glassbox.runtime.review_responses import ReviewFixupInventoryStatus
+from glassbox.runtime.review_responses import review_fixup_inventory_artifact_json
+from glassbox.runtime.review_responses import (
+    review_fixup_inventory_from_change_inventory,
+)
+from glassbox.runtime.review_responses import review_fixup_inventory_status
 from glassbox.runtime.workspace_profile import load_workspace_profile
 from glassbox.services import ArtifactRepository
 from glassbox.services import StoredArtifact
@@ -192,6 +204,19 @@ class ChangesetRepository(ChangesetDerivationRepository, Protocol):
         session_id: SessionId,
         feedback_id: ReviewFeedbackId,
     ) -> list[ReviewFeedbackScopeRecord]: ...
+
+    def list_review_feedback_fixup_inventories(
+        self,
+        session_id: SessionId,
+        feedback_id: ReviewFeedbackId,
+    ) -> list[ReviewFeedbackFixupInventoryRecord]: ...
+
+    def list_review_feedback_fixup_paths(
+        self,
+        session_id: SessionId,
+        feedback_id: ReviewFeedbackId,
+        artifact_id: ArtifactId,
+    ) -> list[ReviewFeedbackFixupPathRecord]: ...
 
     def list_task_verification_ledger(
         self,
@@ -384,6 +409,20 @@ class ReviewFeedbackRecordResult(BaseModel):
     events: list[EventEnvelope] = Field(default_factory=list)
     safe_next_actions: list[str] = Field(default_factory=list)
     non_claims: list[str] = Field(default_factory=list)
+
+
+class ReviewFeedbackFixupInventoryResult(BaseModel):
+    """Result of recording response-linked fixup inventory evidence."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
+
+    feedback_id: ReviewFeedbackId
+    changeset_id: ChangesetId
+    session_id: SessionId
+    artifact: StoredArtifact
+    inventory: ReviewFixupInventoryArtifact
+    event: EventEnvelope
+    status: ReviewFixupInventoryStatus
 
 
 class ChangesetDerivationService:
@@ -664,6 +703,28 @@ class ChangesetQueryService:
         feedback_id: ReviewFeedbackId,
     ) -> list[ReviewFeedbackScopeRecord]:
         return self._repository.list_review_feedback_scopes(session_id, feedback_id)
+
+    def list_review_feedback_fixup_inventories(
+        self,
+        session_id: SessionId,
+        feedback_id: ReviewFeedbackId,
+    ) -> list[ReviewFeedbackFixupInventoryRecord]:
+        return self._repository.list_review_feedback_fixup_inventories(
+            session_id,
+            feedback_id,
+        )
+
+    def list_review_feedback_fixup_paths(
+        self,
+        session_id: SessionId,
+        feedback_id: ReviewFeedbackId,
+        artifact_id: ArtifactId,
+    ) -> list[ReviewFeedbackFixupPathRecord]:
+        return self._repository.list_review_feedback_fixup_paths(
+            session_id,
+            feedback_id,
+            artifact_id,
+        )
 
     def get_detail(
         self,
@@ -974,6 +1035,153 @@ class ReviewFeedbackActionService:
                 "Glassbox did not stage, commit, push, open a PR, or merge",
             ],
         )
+
+
+class ReviewFeedbackFixupInventoryService:
+    """Attach bounded fixup inventory evidence to review feedback."""
+
+    def __init__(
+        self,
+        repository: ChangesetRepository,
+        artifact_repository: ArtifactRepository | None = None,
+    ) -> None:
+        self._repository = repository
+        self._artifact_repository = artifact_repository
+
+    async def record_workspace_inventory(
+        self,
+        feedback_id: ReviewFeedbackId,
+        workspace_root: Path,
+        *,
+        source_kind: ReviewFixupSourceKind = (
+            ReviewFixupSourceKind.MANUAL_WORKSPACE_EDIT
+        ),
+        source_summary: str = "operator recorded response-linked workspace inventory",
+        recorded_by: str = "operator",
+    ) -> ReviewFeedbackFixupInventoryResult:
+        if self._artifact_repository is None:
+            raise ValueError("artifact repository is required for fixup inventory")
+        feedback = self._require_feedback(feedback_id)
+        changeset = self._require_changeset(feedback.changeset_id)
+        scopes = self._repository.list_review_feedback_scopes(
+            feedback.session_id,
+            feedback.feedback_id,
+        )
+        latest_inventory = self._repository.get_changeset_inventory(
+            changeset.session_id,
+            changeset.changeset_id,
+        )
+        diff_summary = await DiffSummaryTool(workspace_root).execute(
+            DiffSummaryArgs(
+                scope=DiffSummaryScope.WORKSPACE,
+                max_files=1000,
+                inline_file_limit=200,
+            )
+        )
+        diff_summary = _diff_summary_without_local_state(diff_summary)
+        inventory = change_inventory_from_diff_summary(
+            diff_summary,
+            changeset_id=changeset.changeset_id,
+            provenance_events=self._repository.read_session_events(
+                changeset.session_id
+            ),
+        )
+        source_digest = _workspace_diff_source_digest(workspace_root)
+        freshness = (
+            ChangesetInventoryFreshness.UNKNOWN
+            if source_digest.error is not None
+            else ChangesetInventoryFreshness.FRESH
+        )
+        fixup_inventory = review_fixup_inventory_from_change_inventory(
+            inventory,
+            feedback=feedback,
+            scopes=scopes,
+            source_kind=source_kind,
+            source_summary=source_summary,
+            source_digest=source_digest.digest,
+            inventory_freshness=freshness,
+            latest_changeset_inventory_artifact_id=(
+                str(latest_inventory.artifact_id)
+                if latest_inventory is not None
+                else None
+            ),
+        )
+        artifact = self._artifact_repository.write_text_artifact(
+            changeset.session_id,
+            review_fixup_inventory_artifact_json(fixup_inventory),
+            suffix=".review-fixup-inventory.json",
+        )
+        status = review_fixup_inventory_status(
+            feedback_id=feedback.feedback_id,
+            changeset_id=changeset.changeset_id,
+            recorded_source_digest=source_digest.digest,
+            current_source_digest=source_digest.digest,
+            current_error=source_digest.error,
+        )
+        stored = self._repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=changeset.session_id,
+                    sequence=0,
+                    payload=ReviewFeedbackFixupInventoryAttached(
+                        feedback_id=feedback.feedback_id,
+                        changeset_id=changeset.changeset_id,
+                        artifact_id=artifact.artifact_id,
+                        artifact_schema_version=REVIEW_FIXUP_INVENTORY_SCHEMA_VERSION,
+                        source_kind=source_kind,
+                        source_summary=source_summary,
+                        source_digest=source_digest.digest,
+                        inventory_freshness=freshness,
+                        changed_path_count=fixup_inventory.changed_path_count,
+                        matched_scope_path_count=(
+                            fixup_inventory.matched_scope_path_count
+                        ),
+                        stale=status.stale,
+                        stale_reason=status.reason,
+                        recorded_by=recorded_by,
+                        paths=fixup_inventory.paths,
+                        task_id=feedback.task_id or changeset.task_id,
+                        turn_id=feedback.turn_id,
+                        verification_id=feedback.verification_id,
+                    ),
+                )
+            ]
+        )
+        return ReviewFeedbackFixupInventoryResult(
+            feedback_id=feedback.feedback_id,
+            changeset_id=changeset.changeset_id,
+            session_id=changeset.session_id,
+            artifact=artifact,
+            inventory=fixup_inventory,
+            event=stored[0],
+            status=status,
+        )
+
+    def assess_record_freshness(
+        self,
+        record: ReviewFeedbackFixupInventoryRecord,
+        workspace_root: Path,
+    ) -> ReviewFixupInventoryStatus:
+        current = _workspace_diff_source_digest(workspace_root)
+        return review_fixup_inventory_status(
+            feedback_id=record.feedback_id,
+            changeset_id=record.changeset_id,
+            recorded_source_digest=record.source_digest,
+            current_source_digest=current.digest,
+            current_error=current.error,
+        )
+
+    def _require_feedback(self, feedback_id: ReviewFeedbackId) -> ReviewFeedbackRecord:
+        feedback = self._repository.get_review_feedback(feedback_id)
+        if feedback is None:
+            raise ValueError(f"unknown review feedback: {feedback_id}")
+        return feedback
+
+    def _require_changeset(self, changeset_id: ChangesetId) -> ChangesetRecord:
+        changeset = self._repository.get_changeset(changeset_id)
+        if changeset is None:
+            raise ValueError(f"unknown changeset: {changeset_id}")
+        return changeset
 
 
 class ChangesetVerificationService:
@@ -2694,5 +2902,7 @@ __all__ = [
     "ChangesetVerificationRecipePreview",
     "ChangesetVerificationService",
     "ReviewFeedbackActionService",
+    "ReviewFeedbackFixupInventoryResult",
+    "ReviewFeedbackFixupInventoryService",
     "ReviewFeedbackRecordResult",
 ]

@@ -88,6 +88,17 @@ A response-linked inventory delta can support "what changed after feedback."
 It cannot prove why every change was made unless source evidence links each
 path to a turn, task step, manual note, candidate, worktree, or artifact.
 
+The GBX-1321 implementation records response-linked inventory as a local
+artifact with kind `review_feedback_fixup_inventory`. The artifact stores
+bounded path rows, changed-path counts, feedback-scope matches, source kind,
+source summary, source digest, limitations, and non-claims. Projection tables
+retain the artifact reference and file-level rows so later CLI, API, and
+dashboard surfaces can answer which files appear to respond to feedback.
+
+The implementation deliberately does not expose a primary dashboard mutation
+control yet. GBX-1322 owns terminal, API, and dashboard status surfaces for
+open feedback, responded feedback, stale responses, and response blockers.
+
 ## Stale Verification Rules
 
 Verification becomes stale for a response when any of these are true:

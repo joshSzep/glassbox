@@ -4,11 +4,14 @@ import sqlite3
 from pathlib import Path
 
 from glassbox.core import ChangesetCreated
+from glassbox.core import ChangesetInventoryFreshness
 from glassbox.core import EventEnvelope
 from glassbox.core import ReviewFeedbackArchived
 from glassbox.core import ReviewFeedbackCreated
 from glassbox.core import ReviewFeedbackDisposition
 from glassbox.core import ReviewFeedbackDispositionUpdated
+from glassbox.core import ReviewFeedbackFixupInventoryAttached
+from glassbox.core import ReviewFeedbackFixupPathSummary
 from glassbox.core import ReviewFeedbackKind
 from glassbox.core import ReviewFeedbackProvenance
 from glassbox.core import ReviewFeedbackReopened
@@ -16,7 +19,9 @@ from glassbox.core import ReviewFeedbackResolved
 from glassbox.core import ReviewFeedbackRiskAccepted
 from glassbox.core import ReviewFeedbackScopeAttached
 from glassbox.core import ReviewFeedbackScopeKind
+from glassbox.core import ReviewFixupSourceKind
 from glassbox.core import SessionStarted
+from glassbox.core import new_artifact_id
 from glassbox.core import new_changeset_id
 from glassbox.core import new_review_feedback_id
 from glassbox.core import new_session_id
@@ -304,3 +309,126 @@ def test_review_feedback_projection_rebuilds_from_canonical_events(
     assert record.disposition == ReviewFeedbackDisposition.OPEN
     assert len(scopes) == 1
     assert scopes[0].scope_kind == ReviewFeedbackScopeKind.CHANGESET
+
+
+def test_review_feedback_fixup_inventory_projection_links_paths(
+    tmp_path: Path,
+) -> None:
+    session_id = new_session_id()
+    changeset_id = new_changeset_id()
+    feedback_id = new_review_feedback_id()
+    artifact_id = new_artifact_id()
+    file_path = "src/glassbox/runtime/changesets.py"
+    connection = _open_initialized_database(tmp_path)
+    try:
+        append_events(
+            connection,
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=SessionStarted(
+                        cwd="/tmp/glassbox",
+                        model_name="openai:gpt-5.4",
+                        approval_mode="confirm",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ChangesetCreated(
+                        changeset_id=changeset_id,
+                        objective="link fixup inventory",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ReviewFeedbackCreated(
+                        feedback_id=feedback_id,
+                        changeset_id=changeset_id,
+                        feedback_kind=ReviewFeedbackKind.REQUESTED_CHANGE,
+                        summary="Attach fixup inventory paths.",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ReviewFeedbackScopeAttached(
+                        feedback_id=feedback_id,
+                        changeset_id=changeset_id,
+                        scope_kind=ReviewFeedbackScopeKind.FILE,
+                        reason="requested change names the runtime path",
+                        file_path=file_path,
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ReviewFeedbackFixupInventoryAttached(
+                        feedback_id=feedback_id,
+                        changeset_id=changeset_id,
+                        artifact_id=artifact_id,
+                        artifact_schema_version=1,
+                        source_kind=ReviewFixupSourceKind.MANUAL_WORKSPACE_EDIT,
+                        source_summary="operator recorded bounded fixup inventory",
+                        source_digest="sha256:abc",
+                        inventory_freshness=ChangesetInventoryFreshness.FRESH,
+                        changed_path_count=2,
+                        matched_scope_path_count=1,
+                        paths=[
+                            ReviewFeedbackFixupPathSummary(
+                                path=file_path,
+                                change_kind="modified",
+                                generated=False,
+                                test_file=False,
+                                docs_file=False,
+                                policy_sensitive=False,
+                                risk_level="high",
+                                provenance_confidence="unknown",
+                                matches_feedback_scope=True,
+                                summary=f"{file_path}: matches feedback scope",
+                            ),
+                            ReviewFeedbackFixupPathSummary(
+                                path="tests/unit/test_changeset.py",
+                                change_kind="modified",
+                                generated=False,
+                                test_file=True,
+                                docs_file=False,
+                                policy_sensitive=False,
+                                risk_level="low",
+                                provenance_confidence="unknown",
+                                matches_feedback_scope=False,
+                                summary="tests/unit/test_changeset.py: test path",
+                            ),
+                        ],
+                    ),
+                ),
+            ],
+        )
+        repository = SQLiteSessionRepository(connection)
+        inventories = repository.list_review_feedback_fixup_inventories(
+            session_id,
+            feedback_id,
+        )
+        paths = repository.list_review_feedback_fixup_paths(
+            session_id,
+            feedback_id,
+            artifact_id,
+        )
+        record = repository.get_review_feedback(feedback_id)
+    finally:
+        connection.close()
+
+    assert record is not None
+    assert record.last_sequence == inventories[0].last_sequence
+    assert inventories[0].source_kind == ReviewFixupSourceKind.MANUAL_WORKSPACE_EDIT
+    assert inventories[0].changed_path_count == 2
+    assert inventories[0].matched_scope_path_count == 1
+    assert inventories[0].source_digest == "sha256:abc"
+    assert [path.path for path in paths] == [
+        file_path,
+        "tests/unit/test_changeset.py",
+    ]
+    assert paths[0].matches_feedback_scope is True
+    assert paths[1].test_file is True

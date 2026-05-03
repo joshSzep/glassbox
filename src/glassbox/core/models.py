@@ -61,6 +61,7 @@ from glassbox.core.types import ReviewFeedbackDisposition
 from glassbox.core.types import ReviewFeedbackKind
 from glassbox.core.types import ReviewFeedbackProvenance
 from glassbox.core.types import ReviewFeedbackScopeKind
+from glassbox.core.types import ReviewFixupSourceKind
 from glassbox.core.types import SessionStatus
 from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
@@ -1238,6 +1239,71 @@ class ReviewFeedbackScopeRecord(BaseModel):
     line_start: int | None = Field(default=None, ge=1)
     line_end: int | None = Field(default=None, ge=1)
     created_at: datetime
+    last_sequence: int = Field(ge=0)
+
+
+class ReviewFeedbackFixupPathSummary(BaseModel):
+    """Bounded path row for response-linked fixup inventory evidence."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    path: str = Field(min_length=1, max_length=300)
+    change_kind: str = Field(min_length=1, max_length=50)
+    generated: bool = False
+    test_file: bool = False
+    docs_file: bool = False
+    policy_sensitive: bool = False
+    risk_level: str = Field(default="unknown", max_length=50)
+    provenance_confidence: str = Field(default="unknown", max_length=50)
+    matches_feedback_scope: bool = False
+    summary: str = Field(min_length=1, max_length=1000)
+
+
+class ReviewFeedbackFixupInventoryRecord(BaseModel):
+    """Projected response-linked inventory evidence for one feedback item."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: SessionId
+    feedback_id: ReviewFeedbackId
+    changeset_id: ChangesetId
+    artifact_id: ArtifactId
+    artifact_schema_version: int = Field(ge=1)
+    source_kind: ReviewFixupSourceKind
+    source_summary: str = Field(min_length=1, max_length=2000)
+    source_digest: str | None = Field(default=None, max_length=256)
+    inventory_freshness: ChangesetInventoryFreshness
+    changed_path_count: int = Field(ge=0)
+    matched_scope_path_count: int = Field(ge=0)
+    stale: bool = False
+    stale_reason: str | None = Field(default=None, max_length=2000)
+    recorded_by: str = Field(min_length=1, max_length=200)
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    verification_id: TaskVerificationId | None = None
+    created_at: datetime
+    last_sequence: int = Field(ge=0)
+
+
+class ReviewFeedbackFixupPathRecord(BaseModel):
+    """Projected file-level link for response-linked fixup inventory."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: SessionId
+    feedback_id: ReviewFeedbackId
+    changeset_id: ChangesetId
+    artifact_id: ArtifactId
+    path: str = Field(min_length=1, max_length=300)
+    change_kind: str = Field(min_length=1, max_length=50)
+    generated: bool
+    test_file: bool
+    docs_file: bool
+    policy_sensitive: bool
+    risk_level: str = Field(max_length=50)
+    provenance_confidence: str = Field(max_length=50)
+    matches_feedback_scope: bool
+    summary: str = Field(min_length=1, max_length=1000)
     last_sequence: int = Field(ge=0)
 
 

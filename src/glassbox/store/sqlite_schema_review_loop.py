@@ -93,6 +93,74 @@ def ensure_review_loop_projection_schema(connection: sqlite3.Connection) -> None
             on review_feedback_scopes (session_id, file_path, last_sequence)
         """
     )
+    connection.execute(
+        """
+        create table if not exists review_feedback_fixup_inventories (
+            session_id text not null,
+            feedback_id text not null,
+            changeset_id text not null,
+            artifact_id text not null,
+            artifact_schema_version integer not null,
+            source_kind text not null,
+            source_summary text not null,
+            source_digest text,
+            inventory_freshness text not null,
+            changed_path_count integer not null,
+            matched_scope_path_count integer not null,
+            stale integer not null,
+            stale_reason text,
+            recorded_by text not null,
+            task_id text,
+            turn_id text,
+            verification_id text,
+            created_at text not null,
+            last_sequence integer not null,
+            primary key (session_id, feedback_id, artifact_id),
+            foreign key (session_id, feedback_id)
+                references review_feedback(session_id, feedback_id)
+        )
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_review_feedback_fixup_latest
+            on review_feedback_fixup_inventories (
+                session_id, feedback_id, created_at desc
+            )
+        """
+    )
+    connection.execute(
+        """
+        create table if not exists review_feedback_fixup_paths (
+            session_id text not null,
+            feedback_id text not null,
+            changeset_id text not null,
+            artifact_id text not null,
+            path text not null,
+            change_kind text not null,
+            generated integer not null,
+            test_file integer not null,
+            docs_file integer not null,
+            policy_sensitive integer not null,
+            risk_level text not null,
+            provenance_confidence text not null,
+            matches_feedback_scope integer not null,
+            summary text not null,
+            last_sequence integer not null,
+            primary key (session_id, feedback_id, artifact_id, path),
+            foreign key (session_id, feedback_id, artifact_id)
+                references review_feedback_fixup_inventories(
+                    session_id, feedback_id, artifact_id
+                )
+        )
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_review_feedback_fixup_paths_file
+            on review_feedback_fixup_paths (session_id, path, last_sequence)
+        """
+    )
 
 
 __all__ = ["ensure_review_loop_projection_schema"]

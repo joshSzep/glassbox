@@ -46,6 +46,7 @@ from glassbox.core.models import PolicyDecisionOutcome
 from glassbox.core.models import PolicyDecisionSourceKind
 from glassbox.core.models import PolicyDecisionTrace
 from glassbox.core.models import PolicyRiskLevel
+from glassbox.core.models import ReviewFeedbackFixupPathSummary
 from glassbox.core.models import TaskPlanSnapshot
 from glassbox.core.models import TaskStepProposal
 from glassbox.core.models import VerificationFailureDigest
@@ -80,6 +81,7 @@ from glassbox.core.types import ReviewFeedbackDisposition
 from glassbox.core.types import ReviewFeedbackKind
 from glassbox.core.types import ReviewFeedbackProvenance
 from glassbox.core.types import ReviewFeedbackScopeKind
+from glassbox.core.types import ReviewFixupSourceKind
 from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskVerificationStatus
@@ -1258,6 +1260,32 @@ class ReviewFeedbackRiskAccepted(EventPayload):
     verification_id: TaskVerificationId | None = None
 
 
+class ReviewFeedbackFixupInventoryAttached(EventPayload):
+    event_type: Literal["ReviewFeedbackFixupInventoryAttached"] = (
+        "ReviewFeedbackFixupInventoryAttached"
+    )
+    feedback_id: ReviewFeedbackId
+    changeset_id: ChangesetId
+    artifact_id: ArtifactId
+    artifact_schema_version: int = Field(ge=1)
+    source_kind: ReviewFixupSourceKind
+    source_summary: str = Field(min_length=1, max_length=2000)
+    source_digest: str | None = Field(default=None, max_length=256)
+    inventory_freshness: ChangesetInventoryFreshness
+    changed_path_count: int = Field(ge=0)
+    matched_scope_path_count: int = Field(ge=0)
+    stale: bool = False
+    stale_reason: str | None = Field(default=None, max_length=2000)
+    recorded_by: str = Field(default="operator", min_length=1, max_length=200)
+    paths: list[ReviewFeedbackFixupPathSummary] = Field(
+        default_factory=list,
+        max_length=100,
+    )
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    verification_id: TaskVerificationId | None = None
+
+
 class WorktreeCreated(EventPayload):
     event_type: Literal["WorktreeCreated"] = "WorktreeCreated"
     worktree_id: WorktreeId
@@ -1492,6 +1520,7 @@ EventPayloadType = Annotated[
     | ReviewFeedbackReopened
     | ReviewFeedbackArchived
     | ReviewFeedbackRiskAccepted
+    | ReviewFeedbackFixupInventoryAttached
     | WorktreeCreated
     | WorktreeStatusRecorded
     | WorktreeCleanupRecorded

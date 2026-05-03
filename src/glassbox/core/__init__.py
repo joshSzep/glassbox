@@ -67,6 +67,7 @@ from glassbox.core.events import ResumeOutcomeRecorded
 from glassbox.core.events import ReviewFeedbackArchived
 from glassbox.core.events import ReviewFeedbackCreated
 from glassbox.core.events import ReviewFeedbackDispositionUpdated
+from glassbox.core.events import ReviewFeedbackFixupInventoryAttached
 from glassbox.core.events import ReviewFeedbackReopened
 from glassbox.core.events import ReviewFeedbackResolved
 from glassbox.core.events import ReviewFeedbackRiskAccepted
@@ -202,6 +203,9 @@ from glassbox.core.models import RepositoryIndexEntry
 from glassbox.core.models import RepositoryIndexProvenance
 from glassbox.core.models import RepositoryIndexSnapshot
 from glassbox.core.models import ResolvedForkPoint
+from glassbox.core.models import ReviewFeedbackFixupInventoryRecord
+from glassbox.core.models import ReviewFeedbackFixupPathRecord
+from glassbox.core.models import ReviewFeedbackFixupPathSummary
 from glassbox.core.models import ReviewFeedbackRecord
 from glassbox.core.models import ReviewFeedbackScopeRecord
 from glassbox.core.models import RuntimeNoteRecord
@@ -262,6 +266,7 @@ from glassbox.core.types import ReviewFeedbackDisposition
 from glassbox.core.types import ReviewFeedbackKind
 from glassbox.core.types import ReviewFeedbackProvenance
 from glassbox.core.types import ReviewFeedbackScopeKind
+from glassbox.core.types import ReviewFixupSourceKind
 from glassbox.core.types import SessionStatus
 from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
@@ -417,6 +422,10 @@ __all__ = [
     "ReviewFeedbackCreated",
     "ReviewFeedbackDisposition",
     "ReviewFeedbackDispositionUpdated",
+    "ReviewFeedbackFixupInventoryAttached",
+    "ReviewFeedbackFixupInventoryRecord",
+    "ReviewFeedbackFixupPathRecord",
+    "ReviewFeedbackFixupPathSummary",
     "ReviewFeedbackId",
     "ReviewFeedbackKind",
     "ReviewFeedbackProvenance",
@@ -427,6 +436,7 @@ __all__ = [
     "ReviewFeedbackScopeAttached",
     "ReviewFeedbackScopeKind",
     "ReviewFeedbackScopeRecord",
+    "ReviewFixupSourceKind",
     "RepositoryIndexEntry",
     "RepositoryIndexEntityKind",
     "RepositoryIndexFreshness",

@@ -74,6 +74,7 @@ from glassbox.core import ReviewFeedbackArchived
 from glassbox.core import ReviewFeedbackCreated
 from glassbox.core import ReviewFeedbackDisposition
 from glassbox.core import ReviewFeedbackDispositionUpdated
+from glassbox.core import ReviewFeedbackFixupInventoryAttached
 from glassbox.core import ReviewFeedbackKind
 from glassbox.core import ReviewFeedbackProvenance
 from glassbox.core import ReviewFeedbackReopened
@@ -81,6 +82,7 @@ from glassbox.core import ReviewFeedbackResolved
 from glassbox.core import ReviewFeedbackRiskAccepted
 from glassbox.core import ReviewFeedbackScopeAttached
 from glassbox.core import ReviewFeedbackScopeKind
+from glassbox.core import ReviewFixupSourceKind
 from glassbox.core import SessionStarted
 from glassbox.core import TaskBlockedReason
 from glassbox.core import TaskCheckpointCreated
@@ -1047,6 +1049,41 @@ def test_review_feedback_payloads_round_trip_through_event_union() -> None:
             "verification_id": verification_id,
         }
     )
+    fixup_inventory = adapter.validate_python(
+        {
+            "event_type": "ReviewFeedbackFixupInventoryAttached",
+            "feedback_id": feedback_id,
+            "changeset_id": changeset_id,
+            "artifact_id": artifact_id,
+            "artifact_schema_version": 1,
+            "source_kind": "manual_workspace_edit",
+            "source_summary": "operator recorded response-linked workspace edits",
+            "source_digest": "sha256:abc",
+            "inventory_freshness": "fresh",
+            "changed_path_count": 1,
+            "matched_scope_path_count": 1,
+            "paths": [
+                {
+                    "path": "src/glassbox/runtime/changesets.py",
+                    "change_kind": "modified",
+                    "generated": False,
+                    "test_file": False,
+                    "docs_file": False,
+                    "policy_sensitive": False,
+                    "risk_level": "high",
+                    "provenance_confidence": "unknown",
+                    "matches_feedback_scope": True,
+                    "summary": (
+                        "src/glassbox/runtime/changesets.py: matches feedback "
+                        "scope, high risk"
+                    ),
+                }
+            ],
+            "task_id": task_id,
+            "turn_id": turn_id,
+            "verification_id": verification_id,
+        }
+    )
     archived = adapter.validate_python(
         {
             "event_type": "ReviewFeedbackArchived",
@@ -1074,6 +1111,9 @@ def test_review_feedback_payloads_round_trip_through_event_union() -> None:
     assert reopened.feedback_id == feedback_id
     assert isinstance(accepted, ReviewFeedbackRiskAccepted)
     assert accepted.verification_id == verification_id
+    assert isinstance(fixup_inventory, ReviewFeedbackFixupInventoryAttached)
+    assert fixup_inventory.source_kind == ReviewFixupSourceKind.MANUAL_WORKSPACE_EDIT
+    assert fixup_inventory.paths[0].matches_feedback_scope is True
     assert isinstance(archived, ReviewFeedbackArchived)
     assert archived.changeset_id == changeset_id
 

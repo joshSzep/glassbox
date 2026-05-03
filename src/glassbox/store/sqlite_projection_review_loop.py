@@ -6,6 +6,7 @@ from glassbox.core.events import EventEnvelope
 from glassbox.core.events import ReviewFeedbackArchived
 from glassbox.core.events import ReviewFeedbackCreated
 from glassbox.core.events import ReviewFeedbackDispositionUpdated
+from glassbox.core.events import ReviewFeedbackFixupInventoryAttached
 from glassbox.core.events import ReviewFeedbackReopened
 from glassbox.core.events import ReviewFeedbackResolved
 from glassbox.core.events import ReviewFeedbackRiskAccepted
@@ -190,6 +191,99 @@ def _apply_review_loop_projection(
             risk_summary=payload.risk_summary,
             acceptance_reason=payload.acceptance_reason,
         )
+        return
+    if isinstance(payload, ReviewFeedbackFixupInventoryAttached):
+        connection.execute(
+            """
+            insert into review_feedback_fixup_inventories (
+                session_id, feedback_id, changeset_id, artifact_id,
+                artifact_schema_version, source_kind, source_summary,
+                source_digest, inventory_freshness, changed_path_count,
+                matched_scope_path_count, stale, stale_reason, recorded_by,
+                task_id, turn_id, verification_id, created_at, last_sequence
+            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            on conflict(session_id, feedback_id, artifact_id) do update set
+                changeset_id = excluded.changeset_id,
+                artifact_schema_version = excluded.artifact_schema_version,
+                source_kind = excluded.source_kind,
+                source_summary = excluded.source_summary,
+                source_digest = excluded.source_digest,
+                inventory_freshness = excluded.inventory_freshness,
+                changed_path_count = excluded.changed_path_count,
+                matched_scope_path_count = excluded.matched_scope_path_count,
+                stale = excluded.stale,
+                stale_reason = excluded.stale_reason,
+                recorded_by = excluded.recorded_by,
+                task_id = excluded.task_id,
+                turn_id = excluded.turn_id,
+                verification_id = excluded.verification_id,
+                created_at = excluded.created_at,
+                last_sequence = excluded.last_sequence
+            """,
+            (
+                str(event.session_id),
+                str(payload.feedback_id),
+                str(payload.changeset_id),
+                str(payload.artifact_id),
+                payload.artifact_schema_version,
+                payload.source_kind.value,
+                payload.source_summary,
+                payload.source_digest,
+                payload.inventory_freshness.value,
+                payload.changed_path_count,
+                payload.matched_scope_path_count,
+                int(payload.stale),
+                payload.stale_reason,
+                payload.recorded_by,
+                _optional_str(payload.task_id),
+                _optional_str(payload.turn_id),
+                _optional_str(payload.verification_id),
+                event.created_at.isoformat(),
+                event.sequence,
+            ),
+        )
+        connection.execute(
+            """
+            delete from review_feedback_fixup_paths
+            where session_id = ? and feedback_id = ? and artifact_id = ?
+            """,
+            (
+                str(event.session_id),
+                str(payload.feedback_id),
+                str(payload.artifact_id),
+            ),
+        )
+        connection.executemany(
+            """
+            insert into review_feedback_fixup_paths (
+                session_id, feedback_id, changeset_id, artifact_id, path,
+                change_kind, generated, test_file, docs_file, policy_sensitive,
+                risk_level, provenance_confidence, matches_feedback_scope,
+                summary, last_sequence
+            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    str(event.session_id),
+                    str(payload.feedback_id),
+                    str(payload.changeset_id),
+                    str(payload.artifact_id),
+                    path.path,
+                    path.change_kind,
+                    int(path.generated),
+                    int(path.test_file),
+                    int(path.docs_file),
+                    int(path.policy_sensitive),
+                    path.risk_level,
+                    path.provenance_confidence,
+                    int(path.matches_feedback_scope),
+                    path.summary,
+                    event.sequence,
+                )
+                for path in payload.paths
+            ],
+        )
+        _touch_feedback(connection, event, str(payload.feedback_id))
 
 
 def _touch_feedback(

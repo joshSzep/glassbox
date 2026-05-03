@@ -566,7 +566,7 @@ shortcuts are shaped by the review-loop features that precede them.
 
 ### GBX-1321: Attach Fixup Inventory Deltas To Review Feedback
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1320`
 - Goal: show what changed after feedback without flattening raw diffs into
   feedback records

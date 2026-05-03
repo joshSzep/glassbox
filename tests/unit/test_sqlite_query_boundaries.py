@@ -51,6 +51,8 @@ DOMAIN_EXPORTS: Mapping[str, set[str]] = {
     },
     "glassbox.store.sqlite_query_review_loop": {
         "get_review_feedback",
+        "list_review_feedback_fixup_inventories",
+        "list_review_feedback_fixup_paths",
         "list_review_feedback",
         "list_review_feedback_scopes",
     },

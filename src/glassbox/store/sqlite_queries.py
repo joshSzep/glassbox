@@ -20,6 +20,10 @@ from glassbox.store.sqlite_query_provider_recovery import get_latest_provider_re
 from glassbox.store.sqlite_query_provider_recovery import list_provider_recovery
 from glassbox.store.sqlite_query_review_loop import get_review_feedback
 from glassbox.store.sqlite_query_review_loop import list_review_feedback
+from glassbox.store.sqlite_query_review_loop import (
+    list_review_feedback_fixup_inventories,
+)
+from glassbox.store.sqlite_query_review_loop import list_review_feedback_fixup_paths
 from glassbox.store.sqlite_query_review_loop import list_review_feedback_scopes
 from glassbox.store.sqlite_query_runtime_notes import list_runtime_notes
 from glassbox.store.sqlite_query_tasks import get_task
@@ -56,6 +60,8 @@ __all__ = [
     "list_open_blocked_tasks",
     "list_provider_recovery",
     "list_review_feedback",
+    "list_review_feedback_fixup_inventories",
+    "list_review_feedback_fixup_paths",
     "list_review_feedback_scopes",
     "list_runtime_notes",
     "list_task_checkpoints",

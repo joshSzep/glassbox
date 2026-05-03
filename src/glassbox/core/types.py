@@ -273,6 +273,19 @@ class ReviewFeedbackDisposition(StrEnum):
     ARCHIVED = "archived"
 
 
+class ReviewFixupSourceKind(StrEnum):
+    """Source categories for response-linked fixup inventory evidence."""
+
+    SESSION_TURN = "session_turn"
+    TASK_STEP = "task_step"
+    MANUAL_WORKSPACE_EDIT = "manual_workspace_edit"
+    BRANCH_CANDIDATE = "branch_candidate"
+    WORKTREE = "worktree"
+    OPERATOR_NOTE = "operator_note"
+    VERIFICATION = "verification"
+    MANUAL_EVIDENCE = "manual_evidence"
+
+
 class ChangesetReadinessKind(StrEnum):
     """Kinds of readiness decisions a changeset can carry."""
 

@@ -4,9 +4,12 @@ import sqlite3
 from typing import TYPE_CHECKING
 
 import glassbox.store.sqlite_queries as query_store
+from glassbox.core.ids import ArtifactId
 from glassbox.core.ids import ChangesetId
 from glassbox.core.ids import ReviewFeedbackId
 from glassbox.core.ids import SessionId
+from glassbox.core.models import ReviewFeedbackFixupInventoryRecord
+from glassbox.core.models import ReviewFeedbackFixupPathRecord
 from glassbox.core.models import ReviewFeedbackRecord
 from glassbox.core.models import ReviewFeedbackScopeRecord
 from glassbox.core.types import ReviewFeedbackDisposition
@@ -51,6 +54,30 @@ class _SQLiteReviewLoopMethods:
             self._connection,
             session_id,
             feedback_id,
+        )
+
+    def list_review_feedback_fixup_inventories(
+        self,
+        session_id: SessionId,
+        feedback_id: ReviewFeedbackId,
+    ) -> list[ReviewFeedbackFixupInventoryRecord]:
+        return query_store.list_review_feedback_fixup_inventories(
+            self._connection,
+            session_id,
+            feedback_id,
+        )
+
+    def list_review_feedback_fixup_paths(
+        self,
+        session_id: SessionId,
+        feedback_id: ReviewFeedbackId,
+        artifact_id: ArtifactId,
+    ) -> list[ReviewFeedbackFixupPathRecord]:
+        return query_store.list_review_feedback_fixup_paths(
+            self._connection,
+            session_id,
+            feedback_id,
+            artifact_id,
         )
 
 
