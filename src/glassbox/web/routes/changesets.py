@@ -8,6 +8,10 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import Query
 
+from glassbox.core import ManualEvidenceFreshness
+from glassbox.core import ManualEvidenceKind
+from glassbox.core import ManualEvidenceState
+from glassbox.core import ManualEvidenceTargetKind
 from glassbox.core import ReviewFeedbackDisposition
 from glassbox.core import ReviewFeedbackKind
 from glassbox.core import ReviewFeedbackProvenance
@@ -18,6 +22,7 @@ from glassbox.runtime.changesets import ChangesetQueryService
 from glassbox.runtime.changesets import ChangesetRepository
 from glassbox.runtime.changesets import ChangesetReviewBriefService
 from glassbox.runtime.changesets import ChangesetVerificationService
+from glassbox.runtime.changesets import ManualEvidenceActionService
 from glassbox.runtime.changesets import ReviewFeedbackActionService
 from glassbox.runtime.commit_messages import ChangesetCommitMessageSuggestionService
 from glassbox.runtime.commit_readiness import ChangesetCommitReadinessService
@@ -36,6 +41,9 @@ from glassbox.web.changeset_api import ChangesetReviewBriefRequest
 from glassbox.web.changeset_api import ChangesetVerificationPlanPreviewResponse
 from glassbox.web.changeset_api import CommitMessageSuggestionResponse
 from glassbox.web.changeset_api import CommitReadinessResponse
+from glassbox.web.changeset_api import ManualEvidenceActionResponse
+from glassbox.web.changeset_api import ManualEvidenceAttachRequest
+from glassbox.web.changeset_api import ManualEvidenceListPageResponse
 from glassbox.web.changeset_api import ReviewFeedbackAcceptRiskRequest
 from glassbox.web.changeset_api import ReviewFeedbackActionResponse
 from glassbox.web.changeset_api import ReviewFeedbackArchiveRequest
@@ -51,6 +59,8 @@ from glassbox.web.changeset_api import build_changeset_verification_plan_respons
 from glassbox.web.changeset_api import build_changeset_verification_readiness_response
 from glassbox.web.changeset_api import build_commit_message_suggestion_response
 from glassbox.web.changeset_api import build_commit_readiness_response
+from glassbox.web.changeset_api import build_manual_evidence_action_response
+from glassbox.web.changeset_api import build_manual_evidence_response
 from glassbox.web.changeset_api import build_review_feedback_action_response
 from glassbox.web.changeset_api import build_review_feedback_detail_response
 from glassbox.web.changeset_api import build_review_feedback_response
@@ -191,6 +201,39 @@ async def list_review_feedback(
 
 
 @router.get(
+    "/manual-evidence",
+    response_model=ManualEvidenceListPageResponse,
+)
+async def list_manual_evidence(
+    context: RuntimeContextDep,
+    session_id: UUID | None = None,
+    changeset_id: UUID | None = None,
+    state: str | None = Query(
+        default=None,
+        pattern="^(attached|superseded|rejected|archived)$",
+    ),
+    include_archived: bool = False,
+    include_rejected: bool = False,
+    include_superseded: bool = False,
+    limit: LimitParam = 100,
+) -> ManualEvidenceListPageResponse:
+    """Return bounded manual evidence rows for dashboard inspection."""
+
+    evidence = ChangesetQueryService(_repository(context)).list_manual_evidence(
+        session_id=session_id,
+        changeset_id=changeset_id,
+        state=ManualEvidenceState(state) if state is not None else None,
+        include_archived=include_archived,
+        include_rejected=include_rejected,
+        include_superseded=include_superseded,
+        limit=limit,
+    )
+    return ManualEvidenceListPageResponse(
+        items=[build_manual_evidence_response(item) for item in evidence]
+    )
+
+
+@router.get(
     "/feedback/{feedback_id}",
     response_model=ReviewFeedbackDetailResponse,
     responses={404: {"model": ErrorDetailResponse}},
@@ -218,6 +261,45 @@ async def get_review_feedback_detail(
         ),
     )
     return build_review_feedback_detail_response(feedback, scopes, response_status)
+
+
+@router.post(
+    "/{changeset_id}/manual-evidence",
+    response_model=ManualEvidenceActionResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def attach_manual_evidence(
+    changeset_id: UUID,
+    request: ManualEvidenceAttachRequest,
+    context: RuntimeContextDep,
+) -> ManualEvidenceActionResponse:
+    """Attach summary-first manual evidence to one local changeset."""
+
+    try:
+        result = ManualEvidenceActionService(
+            _repository(context),
+            context.repositories.artifacts,
+        ).attach(
+            changeset_id,
+            evidence_kind=ManualEvidenceKind(request.evidence_kind),
+            summary=request.summary,
+            source_label=request.source_label,
+            actor=request.actor,
+            target_kind=ManualEvidenceTargetKind(request.target_kind),
+            target_id=request.target_id,
+            feedback_id=(
+                UUID(request.feedback_id) if request.feedback_id is not None else None
+            ),
+            note=request.note,
+            command_text=request.command_text,
+            external_url_label=request.external_url_label,
+            local_file_label=request.local_file_label,
+            local_file_path_hint=request.local_file_path_hint,
+            freshness=ManualEvidenceFreshness(request.freshness),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return build_manual_evidence_action_response(result)
 
 
 @router.get(

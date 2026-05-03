@@ -1532,6 +1532,7 @@ function makeChangesetDetail(
     },
     review_briefs: [],
     review_feedback: [],
+    manual_evidence: [],
     review_response_summary: makeReviewResponseSummary(changesetId),
     safe_next_actions: [`glassbox changeset show ${changesetId} --cwd .`],
     sources: [

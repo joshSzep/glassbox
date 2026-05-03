@@ -48,6 +48,9 @@ describe("changeset console", () => {
     expect(markup).toContain("ready");
     expect(markup).toContain("Review Feedback");
     expect(markup).toContain("Clarify feedback copy");
+    expect(markup).toContain("Manual Evidence Inbox");
+    expect(markup).toContain("operator says external CI passed");
+    expect(markup).toContain("manual evidence is not retained command evidence");
     expect(markup).toContain("1 requested");
     expect(markup).toContain("1 questions");
     expect(markup).toContain("1 accepted risks");
@@ -306,6 +309,39 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
         turn_id: null,
         updated_at: "2026-05-01T00:04:00Z",
         updated_by: null,
+        verification_id: null,
+      },
+    ],
+    manual_evidence: [
+      {
+        archived_reason: null,
+        artifact_id: "manual-evidence-artifact-1",
+        artifact_schema_version: 1,
+        changeset_id: changeset.changeset_id,
+        created_at: "2026-05-01T00:05:00Z",
+        created_by: "operator",
+        evidence_id: "manual-evidence-1",
+        evidence_kind: "external_check",
+        feedback_id: null,
+        freshness: "current",
+        last_sequence: 13,
+        limitations: ["manual evidence is summary-first"],
+        local_only: true,
+        non_claims: ["not retained command evidence"],
+        observed_at: null,
+        redaction_status: "passed",
+        rejected_reason: null,
+        replacement_evidence_id: null,
+        session_id: "session-1",
+        source_label: "external-ci",
+        state: "attached",
+        summary: "operator says external CI passed",
+        superseded_reason: null,
+        target_id: changeset.changeset_id,
+        target_kind: "changeset",
+        task_id: "task-1",
+        turn_id: null,
+        updated_at: "2026-05-01T00:05:00Z",
         verification_id: null,
       },
     ],

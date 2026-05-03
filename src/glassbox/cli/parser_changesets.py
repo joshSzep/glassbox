@@ -271,6 +271,91 @@ def _add_changeset_parsers(
     archive_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(archive_parser)
 
+    evidence_parser = changeset_subparsers.add_parser(
+        "evidence",
+        help="attach and inspect manual review-loop evidence",
+        description=(
+            "Attach local manual evidence to a changeset without claiming "
+            "Glassbox ran the command, check, or observation."
+        ),
+    )
+    evidence_subparsers = evidence_parser.add_subparsers(
+        dest="evidence_command",
+        required=True,
+    )
+
+    evidence_attach_parser = evidence_subparsers.add_parser(
+        "attach",
+        help="attach summary-first manual evidence to a changeset",
+    )
+    evidence_attach_parser.add_argument("changeset_id", type=_parse_uuid)
+    evidence_attach_parser.add_argument(
+        "--kind",
+        choices=(
+            "manual_command",
+            "external_check",
+            "reviewer_note",
+            "screenshot",
+            "browser_observation",
+            "accessibility_note",
+            "local_file_reference",
+            "sanitized_log",
+            "operator_assertion",
+        ),
+        required=True,
+    )
+    evidence_attach_parser.add_argument("--summary", required=True)
+    evidence_attach_parser.add_argument("--source-label", required=True)
+    evidence_attach_parser.add_argument("--note")
+    evidence_attach_parser.add_argument("--command", dest="command_text")
+    evidence_attach_parser.add_argument("--external-url-label")
+    evidence_attach_parser.add_argument("--local-file")
+    evidence_attach_parser.add_argument("--local-file-label")
+    evidence_attach_parser.add_argument(
+        "--feedback", dest="feedback_id", type=_parse_uuid
+    )
+    evidence_attach_parser.add_argument(
+        "--target-kind",
+        choices=(
+            "changeset",
+            "feedback",
+            "response",
+            "verification_requirement",
+            "review_brief",
+            "publication_boundary",
+            "unknown",
+        ),
+        default="changeset",
+    )
+    evidence_attach_parser.add_argument("--target-id")
+    evidence_attach_parser.add_argument(
+        "--freshness",
+        choices=("current", "needs_inspection", "stale", "unknown"),
+        default="unknown",
+    )
+    evidence_attach_parser.add_argument("--actor", default="operator")
+    evidence_attach_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(evidence_attach_parser)
+
+    evidence_list_parser = evidence_subparsers.add_parser(
+        "list",
+        help="list manual evidence for a changeset or target",
+    )
+    evidence_list_parser.add_argument(
+        "--changeset", dest="changeset_id", type=_parse_uuid
+    )
+    evidence_list_parser.add_argument("--session", dest="session_id", type=_parse_uuid)
+    evidence_list_parser.add_argument(
+        "--state",
+        choices=("attached", "superseded", "rejected", "archived"),
+    )
+    evidence_list_parser.add_argument("--include-archived", action="store_true")
+    evidence_list_parser.add_argument("--include-rejected", action="store_true")
+    evidence_list_parser.add_argument("--include-superseded", action="store_true")
+    evidence_list_parser.add_argument("--limit", type=int, default=None)
+    evidence_list_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(evidence_list_parser)
+
     feedback_parser = changeset_subparsers.add_parser(
         "feedback",
         help="record and inspect local review feedback",

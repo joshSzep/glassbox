@@ -12,11 +12,13 @@ from glassbox.core.models import ChangesetRecord
 from glassbox.core.models import ChangesetReviewBriefRecord
 from glassbox.core.models import ChangesetSourceRecord
 from glassbox.core.models import ChangesetVerificationPostureRecord
+from glassbox.core.models import ManualEvidenceRecord
 from glassbox.core.models import ReviewFeedbackRecord
 from glassbox.core.models import ReviewFeedbackScopeRecord
 from glassbox.runtime.changesets import ChangesetDetailView
 from glassbox.runtime.changesets import ChangesetReviewBriefGenerationResult
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
+from glassbox.runtime.changesets import ManualEvidenceRecordResult
 from glassbox.runtime.changesets import ReviewFeedbackRecordResult
 from glassbox.runtime.commit_messages import CommitMessageSuggestion
 from glassbox.runtime.commit_readiness import CommitReadinessAssessment
@@ -272,6 +274,38 @@ class ChangesetReadinessResponse(BaseModel):
     last_sequence: int
 
 
+class ManualEvidenceResponse(BaseModel):
+    session_id: str
+    evidence_id: str
+    evidence_kind: str
+    state: str
+    target_kind: str
+    target_id: str
+    changeset_id: str | None = None
+    feedback_id: str | None = None
+    artifact_id: str | None = None
+    artifact_schema_version: int | None = None
+    summary: str
+    source_label: str
+    observed_at: datetime | None = None
+    created_by: str
+    local_only: bool
+    redaction_status: str
+    freshness: str
+    limitations: list[str]
+    non_claims: list[str]
+    rejected_reason: str | None = None
+    archived_reason: str | None = None
+    superseded_reason: str | None = None
+    replacement_evidence_id: str | None = None
+    task_id: str | None = None
+    turn_id: str | None = None
+    verification_id: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    last_sequence: int
+
+
 class ChangesetListPageResponse(BaseModel):
     items: list[ChangesetSummaryResponse]
 
@@ -284,6 +318,7 @@ class ChangesetDetailResponse(BaseModel):
     verification_posture: ChangesetVerificationPostureResponse | None = None
     review_briefs: list[ChangesetReviewBriefResponse]
     review_feedback: list[ReviewFeedbackResponse]
+    manual_evidence: list[ManualEvidenceResponse]
     review_response_summary: ChangesetReviewResponseSummaryResponse
     readiness: list[ChangesetReadinessResponse]
     command_evidence: ChangesetCommandEvidenceSummaryResponse
@@ -334,6 +369,50 @@ class ReviewFeedbackCreateRequest(BaseModel):
     file_path: str | None = Field(default=None, max_length=2000)
     line_start: int | None = Field(default=None, ge=1)
     line_end: int | None = Field(default=None, ge=1)
+
+
+class ManualEvidenceAttachRequest(BaseModel):
+    evidence_kind: str = Field(
+        pattern=(
+            "^(manual_command|external_check|reviewer_note|screenshot|"
+            "browser_observation|accessibility_note|local_file_reference|"
+            "sanitized_log|operator_assertion)$"
+        )
+    )
+    summary: str = Field(min_length=1, max_length=1000)
+    source_label: str = Field(min_length=1, max_length=200)
+    actor: str = Field(default="operator", min_length=1, max_length=200)
+    target_kind: str = Field(
+        default="changeset",
+        pattern=(
+            "^(changeset|feedback|response|verification_requirement|review_brief|"
+            "publication_boundary|unknown)$"
+        ),
+    )
+    target_id: str | None = Field(default=None, max_length=200)
+    feedback_id: str | None = None
+    note: str | None = Field(default=None, max_length=12000)
+    command_text: str | None = Field(default=None, max_length=500)
+    external_url_label: str | None = Field(default=None, max_length=300)
+    local_file_label: str | None = Field(default=None, max_length=200)
+    local_file_path_hint: str | None = Field(default=None, max_length=500)
+    freshness: str = Field(
+        default="unknown",
+        pattern="^(current|needs_inspection|stale|unknown)$",
+    )
+
+
+class ManualEvidenceListPageResponse(BaseModel):
+    items: list[ManualEvidenceResponse]
+
+
+class ManualEvidenceActionResponse(BaseModel):
+    evidence: ManualEvidenceResponse
+    artifact_id: str | None = None
+    artifact_path: str | None = None
+    event_sequence: int
+    safe_next_actions: list[str]
+    non_claims: list[str]
 
 
 class ReviewFeedbackResolveRequest(BaseModel):
@@ -641,6 +720,9 @@ def build_changeset_detail_response(
         ],
         review_feedback=[
             build_review_feedback_response(item) for item in detail.review_feedback
+        ],
+        manual_evidence=[
+            build_manual_evidence_response(item) for item in detail.manual_evidence
         ],
         review_response_summary=build_review_response_summary_response(
             detail.review_response_summary
@@ -1001,6 +1083,61 @@ def build_review_feedback_response(
         created_at=feedback.created_at,
         updated_at=feedback.updated_at,
         last_sequence=feedback.last_sequence,
+    )
+
+
+def build_manual_evidence_response(
+    evidence: ManualEvidenceRecord,
+) -> ManualEvidenceResponse:
+    return ManualEvidenceResponse(
+        session_id=str(evidence.session_id),
+        evidence_id=str(evidence.evidence_id),
+        evidence_kind=evidence.evidence_kind.value,
+        state=evidence.state.value,
+        target_kind=evidence.target_kind.value,
+        target_id=evidence.target_id,
+        changeset_id=_optional_str(evidence.changeset_id),
+        feedback_id=_optional_str(evidence.feedback_id),
+        artifact_id=_optional_str(evidence.artifact_id),
+        artifact_schema_version=evidence.artifact_schema_version,
+        summary=evidence.summary,
+        source_label=evidence.source_label,
+        observed_at=evidence.observed_at,
+        created_by=evidence.created_by,
+        local_only=evidence.local_only,
+        redaction_status=evidence.redaction_status.value,
+        freshness=evidence.freshness.value,
+        limitations=evidence.limitations,
+        non_claims=evidence.non_claims,
+        rejected_reason=evidence.rejected_reason,
+        archived_reason=evidence.archived_reason,
+        superseded_reason=evidence.superseded_reason,
+        replacement_evidence_id=_optional_str(evidence.replacement_evidence_id),
+        task_id=_optional_str(evidence.task_id),
+        turn_id=_optional_str(evidence.turn_id),
+        verification_id=_optional_str(evidence.verification_id),
+        created_at=evidence.created_at,
+        updated_at=evidence.updated_at,
+        last_sequence=evidence.last_sequence,
+    )
+
+
+def build_manual_evidence_action_response(
+    result: ManualEvidenceRecordResult,
+) -> ManualEvidenceActionResponse:
+    return ManualEvidenceActionResponse(
+        evidence=build_manual_evidence_response(result.evidence),
+        artifact_id=(
+            str(result.artifact.artifact_id) if result.artifact is not None else None
+        ),
+        artifact_path=(
+            result.artifact.relative_path.as_posix()
+            if result.artifact is not None
+            else None
+        ),
+        event_sequence=result.event.sequence,
+        safe_next_actions=result.safe_next_actions,
+        non_claims=result.non_claims,
     )
 
 

@@ -225,6 +225,7 @@ function ChangesetDetail({
         readiness={reviewReadiness}
       />
       <ReviewFeedbackPanel detail={detail.detail} />
+      <ManualEvidencePanel detail={detail.detail} />
       <InventoryPanel detail={detail.detail} />
       <TopologyPanel verificationPlan={verificationPlan} />
       <VerificationPanel
@@ -700,6 +701,58 @@ function ReviewFeedbackPanel({ detail }: { detail: NonNullable<ChangesetDetailSt
           {responseSummary.non_claims.slice(0, 1).map((claim) => (
             <li key={claim}>{claim}</li>
           ))}
+        </ul>
+      </div>
+    </Section>
+  );
+}
+
+function ManualEvidencePanel({ detail }: { detail: NonNullable<ChangesetDetailState["detail"]> }) {
+  const evidence = detail.manual_evidence;
+  const attached = evidence.filter((item) => item.state === "attached");
+  const rejected = evidence.filter((item) => item.state === "rejected");
+  const stale = evidence.filter((item) => item.freshness === "stale");
+  return (
+    <Section title="Manual Evidence Inbox">
+      <div className="grid gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={attached.length > 0 ? "info" : "muted"}>{attached.length} attached</Badge>
+          <Badge variant={rejected.length > 0 ? "warning" : "muted"}>
+            {rejected.length} rejected
+          </Badge>
+          <Badge variant={stale.length > 0 ? "warning" : "muted"}>{stale.length} stale</Badge>
+        </div>
+        {evidence.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No manual evidence is attached to this changeset.
+          </p>
+        ) : (
+          <DataList density="compact">
+            {evidence.slice(0, 8).map((item) => (
+              <DataListItem key={item.evidence_id}>
+                <DataListLabel>{item.summary}</DataListLabel>
+                <DataListMeta>
+                  {item.evidence_kind} - {item.state} - {item.redaction_status} - {item.freshness}
+                </DataListMeta>
+                <DataListMeta>
+                  Target {item.target_kind} {item.target_id} - source {item.source_label}
+                </DataListMeta>
+                {item.artifact_id ? <DataListMeta>Artifact {item.artifact_id}</DataListMeta> : null}
+                {item.rejected_reason ? (
+                  <DataListMeta>Rejected: {item.rejected_reason}</DataListMeta>
+                ) : null}
+                {item.limitations.slice(0, 2).map((limitation) => (
+                  <DataListMeta key={limitation}>Limitation: {limitation}</DataListMeta>
+                ))}
+              </DataListItem>
+            ))}
+          </DataList>
+        )}
+        <ul className="grid gap-2 text-console text-muted-foreground">
+          <li className="break-all">
+            glassbox changeset evidence list --changeset {detail.changeset.changeset_id} --cwd .
+          </li>
+          <li>manual evidence is not retained command evidence or review approval</li>
         </ul>
       </div>
     </Section>

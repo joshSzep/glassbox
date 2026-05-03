@@ -689,7 +689,7 @@ Completed in this slice:
 
 ### GBX-1332: Add Manual Evidence CLI, API, And Review Surface
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1331`
 - Goal: make evidence attachment ergonomic without hiding its manual provenance
 - Deliverables:
@@ -711,6 +711,20 @@ Completed in this slice:
 - Done when:
   - a developer can attach manual review evidence to a changeset and see it in
     the review surface with proper limitations
+
+Completed in this slice:
+
+- Added `glassbox changeset evidence attach` and `glassbox changeset evidence
+  list` for manual command summaries, external checks, reviewer notes,
+  screenshots, browser observations, accessibility notes, local-only file
+  references, sanitized logs, and operator assertions.
+- Added changeset API routes and generated frontend API types for attaching and
+  listing manual evidence while retaining local-only provenance and non-claims.
+- Added a dashboard manual evidence inbox on changeset detail with state,
+  redaction posture, freshness, target, artifact, limitation, and non-claim
+  rows.
+- Added safe next actions that start with inspection, verification-plan review,
+  and brief refresh instead of publication or git mutation.
 
 ---
 

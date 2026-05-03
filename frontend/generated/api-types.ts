@@ -248,6 +248,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/changesets/manual-evidence": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Manual Evidence
+     * @description Return bounded manual evidence rows for dashboard inspection.
+     */
+    get: operations["list_manual_evidence_changesets_manual_evidence_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/changesets/{changeset_id}": {
     parameters: {
       query?: never;
@@ -362,6 +382,26 @@ export interface paths {
      * @description Record local review feedback evidence for one changeset.
      */
     post: operations["add_review_feedback_changesets__changeset_id__feedback_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/changesets/{changeset_id}/manual-evidence": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Attach Manual Evidence
+     * @description Attach summary-first manual evidence to one local changeset.
+     */
+    post: operations["attach_manual_evidence_changesets__changeset_id__manual_evidence_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -2167,6 +2207,8 @@ export interface components {
       inventory_status: components["schemas"]["ChangesetInventoryStatusResponse"];
       /** Limitations */
       limitations: string[];
+      /** Manual Evidence */
+      manual_evidence: components["schemas"]["ManualEvidenceResponse"][];
       /** Readiness */
       readiness: components["schemas"]["ChangesetReadinessResponse"][];
       /** Review Briefs */
@@ -3297,6 +3339,130 @@ export interface components {
       state: string;
       /** Stuck Reason */
       stuck_reason?: string | null;
+    };
+    /** ManualEvidenceActionResponse */
+    ManualEvidenceActionResponse: {
+      /** Artifact Id */
+      artifact_id?: string | null;
+      /** Artifact Path */
+      artifact_path?: string | null;
+      /** Event Sequence */
+      event_sequence: number;
+      evidence: components["schemas"]["ManualEvidenceResponse"];
+      /** Non Claims */
+      non_claims: string[];
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+    };
+    /** ManualEvidenceAttachRequest */
+    ManualEvidenceAttachRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /** Command Text */
+      command_text?: string | null;
+      /** Evidence Kind */
+      evidence_kind: string;
+      /** External Url Label */
+      external_url_label?: string | null;
+      /** Feedback Id */
+      feedback_id?: string | null;
+      /**
+       * Freshness
+       * @default unknown
+       */
+      freshness: string;
+      /** Local File Label */
+      local_file_label?: string | null;
+      /** Local File Path Hint */
+      local_file_path_hint?: string | null;
+      /** Note */
+      note?: string | null;
+      /** Source Label */
+      source_label: string;
+      /** Summary */
+      summary: string;
+      /** Target Id */
+      target_id?: string | null;
+      /**
+       * Target Kind
+       * @default changeset
+       */
+      target_kind: string;
+    };
+    /** ManualEvidenceListPageResponse */
+    ManualEvidenceListPageResponse: {
+      /** Items */
+      items: components["schemas"]["ManualEvidenceResponse"][];
+    };
+    /** ManualEvidenceResponse */
+    ManualEvidenceResponse: {
+      /** Archived Reason */
+      archived_reason?: string | null;
+      /** Artifact Id */
+      artifact_id?: string | null;
+      /** Artifact Schema Version */
+      artifact_schema_version?: number | null;
+      /** Changeset Id */
+      changeset_id?: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Created By */
+      created_by: string;
+      /** Evidence Id */
+      evidence_id: string;
+      /** Evidence Kind */
+      evidence_kind: string;
+      /** Feedback Id */
+      feedback_id?: string | null;
+      /** Freshness */
+      freshness: string;
+      /** Last Sequence */
+      last_sequence: number;
+      /** Limitations */
+      limitations: string[];
+      /** Local Only */
+      local_only: boolean;
+      /** Non Claims */
+      non_claims: string[];
+      /** Observed At */
+      observed_at?: string | null;
+      /** Redaction Status */
+      redaction_status: string;
+      /** Rejected Reason */
+      rejected_reason?: string | null;
+      /** Replacement Evidence Id */
+      replacement_evidence_id?: string | null;
+      /** Session Id */
+      session_id: string;
+      /** Source Label */
+      source_label: string;
+      /** State */
+      state: string;
+      /** Summary */
+      summary: string;
+      /** Superseded Reason */
+      superseded_reason?: string | null;
+      /** Target Id */
+      target_id: string;
+      /** Target Kind */
+      target_kind: string;
+      /** Task Id */
+      task_id?: string | null;
+      /** Turn Id */
+      turn_id?: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Verification Id */
+      verification_id?: string | null;
     };
     /** MessagePartResponse */
     MessagePartResponse: {
@@ -6151,6 +6317,43 @@ export interface operations {
       };
     };
   };
+  list_manual_evidence_changesets_manual_evidence_get: {
+    parameters: {
+      query?: {
+        session_id?: string | null;
+        changeset_id?: string | null;
+        state?: string | null;
+        include_archived?: boolean;
+        include_rejected?: boolean;
+        include_superseded?: boolean;
+        limit?: number | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ManualEvidenceListPageResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   get_changeset_detail_changesets__changeset_id__get: {
     parameters: {
       query?: never;
@@ -6383,6 +6586,50 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ReviewFeedbackActionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  attach_manual_evidence_changesets__changeset_id__manual_evidence_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        changeset_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ManualEvidenceAttachRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ManualEvidenceActionResponse"];
         };
       };
       /** @description Not Found */

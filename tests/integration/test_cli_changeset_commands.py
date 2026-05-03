@@ -81,6 +81,44 @@ def test_changeset_create_list_show_refresh_and_archive(
     )
     feedback_added = json.loads(capsys.readouterr().out)
     feedback_id = feedback_added["feedback"]["feedback_id"]
+    evidence_attach_exit = main(
+        [
+            "changeset",
+            "evidence",
+            "attach",
+            changeset_id,
+            "--kind",
+            "external_check",
+            "--summary",
+            "external CI reported green",
+            "--source-label",
+            "external-ci",
+            "--feedback",
+            feedback_id,
+            "--freshness",
+            "current",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    evidence_attached = json.loads(capsys.readouterr().out)
+    evidence_list_exit = main(
+        [
+            "changeset",
+            "evidence",
+            "list",
+            "--changeset",
+            changeset_id,
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    evidence_list_output = capsys.readouterr().out
     feedback_list_exit = main(
         [
             "changeset",
@@ -407,6 +445,14 @@ def test_changeset_create_list_show_refresh_and_archive(
     )
     assert feedback_added["scopes"][0]["file_path"] == "app.py"
     assert "not approval" in " ".join(feedback_added["non_claims"])
+    assert evidence_attach_exit == 0
+    assert evidence_attached["evidence"]["target_kind"] == "feedback"
+    assert evidence_attached["evidence"]["summary"] == "external CI reported green"
+    assert evidence_attached["artifact_id"] is not None
+    assert "not retained command evidence" in " ".join(evidence_attached["non_claims"])
+    assert evidence_list_exit == 0
+    assert "Manual evidence: 1" in evidence_list_output
+    assert "external CI reported green" in evidence_list_output
     assert feedback_list_exit == 0
     assert "Review feedback: 1" in feedback_list_output
     assert "Clarify the review-feedback list output" in feedback_list_output
@@ -434,6 +480,7 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert show_exit == 0
     assert detail["changeset"]["task_id"] == str(task_id)
     assert detail["review_feedback"][0]["feedback_id"] == feedback_id
+    assert detail["manual_evidence"][0]["evidence_kind"] == "external_check"
     assert detail["review_response_summary"]["total_feedback_count"] == 1
     assert detail["review_response_summary"]["accepted_risk_count"] == 1
     assert detail["sources"][0]["source_kind"] == "task"

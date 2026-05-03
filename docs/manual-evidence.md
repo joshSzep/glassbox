@@ -176,6 +176,44 @@ paths, `.glassbox/` state paths, raw provider snippets, or oversized logs are
 rejected before artifact capture. Rejection records retain only the finding
 class and bounded reason, not the unsafe source text.
 
+## Operator Workflow
+
+Attach summary-first evidence with explicit manual provenance:
+
+```bash
+glassbox changeset evidence attach CHANGESET_ID \
+  --kind external_check \
+  --summary "external CI reported green" \
+  --source-label "external-ci" \
+  --freshness current \
+  --cwd .
+```
+
+Evidence can target a review feedback item:
+
+```bash
+glassbox changeset evidence attach CHANGESET_ID \
+  --kind manual_command \
+  --summary "operator says pytest passed outside Glassbox" \
+  --source-label "operator-shell" \
+  --feedback FEEDBACK_ID \
+  --cwd .
+```
+
+Inspect retained manual evidence before relying on it:
+
+```bash
+glassbox changeset evidence list --changeset CHANGESET_ID --cwd .
+glassbox changeset verification-plan CHANGESET_ID --cwd .
+glassbox changeset brief CHANGESET_ID --cwd .
+```
+
+The dashboard changeset detail view shows a manual evidence inbox alongside
+review feedback. The inbox displays kind, state, redaction posture, freshness,
+target, artifact reference, limitations, and non-claims. It does not mark
+manual evidence as verification proof, reviewer approval, publication
+readiness, or retained command evidence.
+
 ## Non-Claims
 
 Manual evidence does not mean:

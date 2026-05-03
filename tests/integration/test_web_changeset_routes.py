@@ -102,6 +102,23 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                     },
                 )
                 feedback_id = feedback_add_response.json()["feedback"]["feedback_id"]
+                manual_evidence_response = await client.post(
+                    f"/changesets/{changeset_id}/manual-evidence",
+                    json={
+                        "evidence_kind": "external_check",
+                        "summary": "external CI reported green",
+                        "source_label": "external-ci",
+                        "feedback_id": feedback_id,
+                        "freshness": "current",
+                    },
+                )
+                manual_evidence_list_response = await client.get(
+                    "/changesets/manual-evidence",
+                    params={
+                        "changeset_id": changeset_id,
+                        "include_rejected": True,
+                    },
+                )
                 feedback_list_response = await client.get(
                     "/changesets/feedback",
                     params={"changeset_id": changeset_id},
@@ -231,6 +248,22 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             assert "not approval" in " ".join(
                 feedback_add_response.json()["non_claims"]
             )
+            assert manual_evidence_response.status_code == 200
+            assert (
+                manual_evidence_response.json()["evidence"]["summary"]
+                == "external CI reported green"
+            )
+            assert (
+                manual_evidence_response.json()["evidence"]["target_kind"] == "feedback"
+            )
+            assert "not retained command evidence" in " ".join(
+                manual_evidence_response.json()["non_claims"]
+            )
+            assert manual_evidence_list_response.status_code == 200
+            assert (
+                manual_evidence_list_response.json()["items"][0]["evidence_kind"]
+                == "external_check"
+            )
             assert feedback_list_response.status_code == 200
             assert (
                 feedback_list_response.json()["items"][0]["feedback_id"] == feedback_id
@@ -277,6 +310,10 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             assert (
                 detail_response.json()["review_feedback"][0]["feedback_id"]
                 == feedback_id
+            )
+            assert (
+                detail_response.json()["manual_evidence"][0]["evidence_kind"]
+                == "external_check"
             )
             assert (
                 detail_response.json()["review_response_summary"]["accepted_risk_count"]

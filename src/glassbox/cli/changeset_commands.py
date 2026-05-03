@@ -8,6 +8,11 @@ from typing import cast
 from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.core import ChangesetRecord
+from glassbox.core import ManualEvidenceFreshness
+from glassbox.core import ManualEvidenceKind
+from glassbox.core import ManualEvidenceRecord
+from glassbox.core import ManualEvidenceState
+from glassbox.core import ManualEvidenceTargetKind
 from glassbox.core import ReviewFeedbackDisposition
 from glassbox.core import ReviewFeedbackKind
 from glassbox.core import ReviewFeedbackProvenance
@@ -29,6 +34,8 @@ from glassbox.runtime.changesets import ChangesetReviewBriefGenerationResult
 from glassbox.runtime.changesets import ChangesetReviewBriefService
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.changesets import ChangesetVerificationService
+from glassbox.runtime.changesets import ManualEvidenceActionService
+from glassbox.runtime.changesets import ManualEvidenceRecordResult
 from glassbox.runtime.changesets import ReviewFeedbackActionService
 from glassbox.runtime.changesets import ReviewFeedbackRecordResult
 from glassbox.runtime.commit_messages import ChangesetCommitMessageSuggestionService
@@ -71,6 +78,8 @@ def _changeset_command(args: argparse.Namespace) -> int:
         return _changeset_commit_prep_command(args)
     if command == "archive":
         return _changeset_archive_command(args)
+    if command == "evidence":
+        return _changeset_evidence_command(args)
     if command == "feedback":
         return _changeset_feedback_command(args)
     raise ValueError("specify a changeset subcommand")
@@ -321,6 +330,63 @@ def _changeset_archive_command(args: argparse.Namespace) -> int:
     else:
         print(f"Archived changeset {args.changeset_id}")
         print(f"Reason: {args.reason}")
+    return 0
+
+
+def _changeset_evidence_command(args: argparse.Namespace) -> int:
+    command = getattr(args, "evidence_command", None)
+    if command == "attach":
+        return _evidence_attach_command(args)
+    if command == "list":
+        return _evidence_list_command(args)
+    raise ValueError("specify an evidence subcommand")
+
+
+def _evidence_attach_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        result = ManualEvidenceActionService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions),
+            runtime_context.repositories.artifacts,
+        ).attach(
+            args.changeset_id,
+            evidence_kind=ManualEvidenceKind(args.kind),
+            summary=args.summary,
+            source_label=args.source_label,
+            actor=args.actor,
+            target_kind=ManualEvidenceTargetKind(args.target_kind),
+            target_id=args.target_id,
+            feedback_id=args.feedback_id,
+            note=args.note,
+            command_text=args.command_text,
+            external_url_label=args.external_url_label,
+            local_file_label=args.local_file_label,
+            local_file_path_hint=args.local_file,
+            freshness=ManualEvidenceFreshness(args.freshness),
+        )
+    return _print_manual_evidence_result(result, args.json)
+
+
+def _evidence_list_command(args: argparse.Namespace) -> int:
+    if args.limit is not None and args.limit < 1:
+        raise ValueError("--limit must be greater than zero")
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        evidence = ChangesetQueryService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions)
+        ).list_manual_evidence(
+            session_id=args.session_id,
+            changeset_id=args.changeset_id,
+            state=ManualEvidenceState(args.state) if args.state is not None else None,
+            include_archived=args.include_archived,
+            include_rejected=args.include_rejected,
+            include_superseded=args.include_superseded,
+            limit=args.limit,
+        )
+    if args.json:
+        print_json_output([item.model_dump(mode="json") for item in evidence])
+    else:
+        _print_manual_evidence_list(evidence)
     return 0
 
 
@@ -761,6 +827,12 @@ def _print_changeset_detail(
             f"(attempt {item.tool_attempt_id[:8]})"
         )
     print(f"Review briefs: {len(detail.review_briefs)}")
+    print(f"Manual evidence: {len(detail.manual_evidence)}")
+    for item in detail.manual_evidence[:5]:
+        print(
+            f"  {item.evidence_kind.value}/{item.state.value}: "
+            f"{item.summary} ({item.evidence_id})"
+        )
     print(f"Review feedback: {len(detail.review_feedback)}")
     response_summary = detail.review_response_summary
     print(
@@ -914,6 +986,64 @@ def _print_feedback_list(feedback: list[ReviewFeedbackRecord]) -> None:
         print(f"  Summary: {item.summary}")
         if item.reviewer_label is not None:
             print(f"  Reviewer label: {item.reviewer_label}")
+
+
+def _print_manual_evidence_list(evidence: list[ManualEvidenceRecord]) -> None:
+    if not evidence:
+        print("No manual evidence found")
+        return
+    print(f"Manual evidence: {len(evidence)}")
+    for item in evidence:
+        print(
+            f"{item.evidence_id}  {item.evidence_kind.value}  "
+            f"{item.state.value}  updated {item.updated_at.isoformat()}"
+        )
+        if item.changeset_id is not None:
+            print(f"  Changeset: {item.changeset_id}")
+        print(f"  Target: {item.target_kind.value} {item.target_id}")
+        print(f"  Source: {item.source_label}")
+        print(f"  Summary: {item.summary}")
+        print("  Manual provenance: not retained command evidence")
+
+
+def _print_manual_evidence_result(
+    result: ManualEvidenceRecordResult,
+    as_json: bool,
+) -> int:
+    payload = {
+        "evidence": result.evidence.model_dump(mode="json"),
+        "artifact_id": (
+            str(result.artifact.artifact_id) if result.artifact is not None else None
+        ),
+        "artifact_path": (
+            result.artifact.relative_path.as_posix()
+            if result.artifact is not None
+            else None
+        ),
+        "event_sequence": result.event.sequence,
+        "safe_next_actions": result.safe_next_actions,
+        "non_claims": result.non_claims,
+    }
+    if as_json:
+        print_json_output(payload)
+    else:
+        evidence = result.evidence
+        print(f"Manual evidence {evidence.state.value}: {evidence.evidence_id}")
+        print(f"Changeset: {evidence.changeset_id}")
+        print(f"Kind: {evidence.evidence_kind.value}")
+        print(f"Target: {evidence.target_kind.value} {evidence.target_id}")
+        print(f"Source: {evidence.source_label}")
+        print(f"Summary: {evidence.summary}")
+        print("Manual provenance: not retained command evidence")
+        if result.artifact is not None:
+            print(f"Artifact: {result.artifact.relative_path.as_posix()}")
+        print("Safe next actions:")
+        for action in result.safe_next_actions:
+            print(f"  - {action}")
+        print("Non-claims:")
+        for non_claim in result.non_claims:
+            print(f"  - {non_claim}")
+    return 0
 
 
 def _print_feedback_detail(
