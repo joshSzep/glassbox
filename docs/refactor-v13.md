@@ -708,7 +708,7 @@ Completion notes:
 
 ### GBX-R530: Extract Changeset Verification Preview Service
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R512, GBX-R523
 - Target files:
   - `src/glassbox/runtime/changesets.py`
@@ -733,7 +733,7 @@ Completion notes:
 
 ### GBX-R531: Extract Lifecycle Review Brief Assembly
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R512, GBX-R520, GBX-R521, GBX-R522, GBX-R530
 - Target files:
   - `src/glassbox/runtime/changesets.py`
@@ -759,7 +759,7 @@ Completion notes:
 
 ### GBX-R532: Extract Command Evidence And Safe Command Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R512, GBX-R530, GBX-R531
 - Target files:
   - `src/glassbox/runtime/changesets.py`
@@ -783,7 +783,7 @@ Completion notes:
 
 ### GBX-R533: Decouple Handoff And Commit Readiness From Changesets Facade
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R512, GBX-R530, GBX-R532
 - Target files:
   - `src/glassbox/runtime/handoff_readiness.py`

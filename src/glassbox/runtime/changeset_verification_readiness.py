@@ -17,6 +17,7 @@ from glassbox.core import TaskVerificationStatus
 from glassbox.core import VerificationCheckKind
 from glassbox.core import VerificationPlanSource
 from glassbox.runtime.change_inventory import ChangeInventoryArtifact
+from glassbox.runtime.changeset_safe_commands import changeset_refresh_command
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReport
 from glassbox.runtime.workspace_profile import WorkspaceProfile
 
@@ -79,7 +80,7 @@ def derive_changeset_verification_readiness(
                 check_name="Change inventory",
                 reason="verification readiness requires a current change inventory",
                 source=VerificationPlanSource.CHANGED_PATHS,
-                safe_next_actions=["glassbox changeset refresh CHANGESET --cwd ."],
+                safe_next_actions=[changeset_refresh_command("CHANGESET")],
             )
         )
     elif inventory.summary.changed_path_count == 0:
@@ -110,7 +111,7 @@ def derive_changeset_verification_readiness(
                     ),
                     source=VerificationPlanSource.CHANGED_PATHS,
                     changed_paths=_inventory_paths(inventory),
-                    safe_next_actions=["glassbox changeset refresh CHANGESET --cwd ."],
+                    safe_next_actions=[changeset_refresh_command("CHANGESET")],
                 )
             )
         elif inventory_freshness == ChangesetInventoryFreshness.UNKNOWN:
@@ -125,7 +126,7 @@ def derive_changeset_verification_readiness(
                     ),
                     source=VerificationPlanSource.CHANGED_PATHS,
                     changed_paths=_inventory_paths(inventory),
-                    safe_next_actions=["glassbox changeset refresh CHANGESET --cwd ."],
+                    safe_next_actions=[changeset_refresh_command("CHANGESET")],
                 )
             )
         requirements.extend(

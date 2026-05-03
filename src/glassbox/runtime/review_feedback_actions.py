@@ -21,6 +21,8 @@ from glassbox.core import TurnId
 from glassbox.core import new_review_feedback_id
 from glassbox.runtime.changeset_models import ReviewFeedbackRecordResult
 from glassbox.runtime.changeset_repository_contracts import ChangesetRepository
+from glassbox.runtime.changeset_safe_commands import changeset_feedback_show_command
+from glassbox.runtime.changeset_safe_commands import show_changeset_command
 from glassbox.runtime.review_feedback_scopes import default_feedback_scope_reason
 from glassbox.runtime.review_feedback_scopes import resolve_feedback_scope_kind
 
@@ -266,8 +268,8 @@ class ReviewFeedbackActionService:
             scopes=scopes,
             events=events,
             safe_next_actions=[
-                f"glassbox changeset feedback show {feedback_id} --cwd .",
-                f"glassbox changeset show {changeset.changeset_id} --cwd .",
+                changeset_feedback_show_command(feedback_id),
+                show_changeset_command(changeset.changeset_id),
             ],
             non_claims=[
                 "review feedback is local evidence, not approval",

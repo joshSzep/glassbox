@@ -7,6 +7,7 @@ from glassbox.core import ChangesetInventoryRecord
 from glassbox.core import ChangesetRecord
 from glassbox.core import ReviewFeedbackFixupInventoryRecord
 from glassbox.runtime.changeset_models import ChangesetInventoryStatus
+from glassbox.runtime.changeset_safe_commands import changeset_refresh_command
 from glassbox.runtime.changeset_workspace_diff import workspace_diff_source_digest
 from glassbox.runtime.review_responses import ReviewFixupInventoryStatus
 from glassbox.runtime.review_responses import review_fixup_inventory_status
@@ -20,7 +21,7 @@ def inventory_status(
 ) -> ChangesetInventoryStatus:
     """Compare the retained inventory digest with the current workspace."""
 
-    refresh_action = f"glassbox changeset refresh {changeset.changeset_id} --cwd ."
+    refresh_action = changeset_refresh_command(changeset.changeset_id)
     if inventory is None:
         return ChangesetInventoryStatus(
             freshness=ChangesetInventoryFreshness.UNKNOWN,

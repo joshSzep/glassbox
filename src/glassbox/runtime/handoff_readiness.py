@@ -25,11 +25,17 @@ from glassbox.core import ManualEvidenceRecord
 from glassbox.core import ManualEvidenceState
 from glassbox.core import SessionId
 from glassbox.core import TaskVerificationId
-from glassbox.runtime.changesets import ChangesetInventoryStatus
-from glassbox.runtime.changesets import ChangesetQueryService
-from glassbox.runtime.changesets import ChangesetRepository
-from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
-from glassbox.runtime.changesets import ChangesetVerificationService
+from glassbox.runtime.changeset_models import ChangesetInventoryStatus
+from glassbox.runtime.changeset_models import ChangesetVerificationPlanPreview
+from glassbox.runtime.changeset_queries import ChangesetQueryService
+from glassbox.runtime.changeset_repository_contracts import ChangesetRepository
+from glassbox.runtime.changeset_safe_commands import changeset_brief_command
+from glassbox.runtime.changeset_safe_commands import changeset_evidence_list_command
+from glassbox.runtime.changeset_safe_commands import changeset_feedback_status_command
+from glassbox.runtime.changeset_safe_commands import changeset_refresh_command
+from glassbox.runtime.changeset_safe_commands import changeset_verification_plan_command
+from glassbox.runtime.changeset_safe_commands import show_changeset_command
+from glassbox.runtime.changeset_verification import ChangesetVerificationService
 from glassbox.runtime.commit_readiness import ChangesetCommitReadinessService
 from glassbox.runtime.commit_readiness import CommitReadinessAssessment
 from glassbox.runtime.commit_readiness import CommitReadinessGitSummary
@@ -592,27 +598,25 @@ def _safe_next_actions(
     response_actions: Sequence[str],
 ) -> list[str]:
     actions = [
-        f"glassbox changeset show {changeset_id} --cwd .",
+        show_changeset_command(changeset_id),
     ]
     signal_ids = {signal.signal_id for signal in signals}
     if state == "stale_inventory" or "dirty-workspace-ambiguity" in signal_ids:
         actions.append("git status --short")
-        actions.append(f"glassbox changeset refresh {changeset_id} --cwd .")
+        actions.append(changeset_refresh_command(changeset_id))
     if state == "needs_review_response":
-        actions.append(f"glassbox changeset feedback status {changeset_id} --cwd .")
+        actions.append(changeset_feedback_status_command(changeset_id))
         actions.extend(response_actions)
     if state == "needs_verification":
-        actions.append(f"glassbox changeset verification-plan {changeset_id} --cwd .")
+        actions.append(changeset_verification_plan_command(changeset_id))
         actions.extend(verification_actions)
     if "lifecycle-brief-missing" in signal_ids or state == "not_ready":
-        actions.append(f"glassbox changeset brief {changeset_id} --cwd .")
+        actions.append(changeset_brief_command(changeset_id))
     if state in {"handoff_ready", "commit_prep_ready", "accepted_with_risk"}:
         actions.append(f"glassbox changeset handoff-readiness {changeset_id} --cwd .")
         actions.append(f"glassbox changeset commit-prep {changeset_id} --cwd .")
     if "local-only-evidence" in signal_ids:
-        actions.append(
-            f"glassbox changeset evidence list --changeset {changeset_id} --cwd ."
-        )
+        actions.append(changeset_evidence_list_command(changeset_id))
     return list(dict.fromkeys(actions))[:20]
 
 

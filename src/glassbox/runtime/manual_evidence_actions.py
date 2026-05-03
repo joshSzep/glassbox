@@ -17,6 +17,7 @@ from glassbox.core import ReviewFeedbackId
 from glassbox.core import new_manual_evidence_id
 from glassbox.runtime.changeset_models import ManualEvidenceRecordResult
 from glassbox.runtime.changeset_repository_contracts import ChangesetRepository
+from glassbox.runtime.changeset_safe_commands import changeset_brief_command
 from glassbox.runtime.manual_evidence import MANUAL_EVIDENCE_ARTIFACT_SCHEMA_VERSION
 from glassbox.runtime.manual_evidence import ManualEvidenceLocalReference
 from glassbox.runtime.manual_evidence import ManualEvidenceTargetRef
@@ -224,7 +225,7 @@ class ManualEvidenceActionService:
                 f"{changeset.changeset_id} --cwd .",
                 "glassbox changeset verification-plan "
                 f"{changeset.changeset_id} --cwd .",
-                f"glassbox changeset brief {changeset.changeset_id} --cwd .",
+                changeset_brief_command(changeset.changeset_id),
             ],
             non_claims=[
                 "manual evidence is not retained command evidence",

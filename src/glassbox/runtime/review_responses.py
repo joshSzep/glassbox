@@ -26,6 +26,9 @@ from glassbox.core import TaskVerificationLedgerRecord
 from glassbox.core import TaskVerificationStatus
 from glassbox.runtime.change_inventory import ChangeInventoryArtifact
 from glassbox.runtime.change_inventory import ChangeInventoryPathEntry
+from glassbox.runtime.changeset_safe_commands import changeset_feedback_show_command
+from glassbox.runtime.changeset_safe_commands import changeset_verification_plan_command
+from glassbox.runtime.changeset_safe_commands import show_changeset_command
 
 REVIEW_FIXUP_INVENTORY_ARTIFACT_KIND = "review_feedback_fixup_inventory"
 REVIEW_FIXUP_INVENTORY_SCHEMA_VERSION = 1
@@ -232,9 +235,9 @@ def review_feedback_response_status(
         verification_reason=verification_reason,
     )
     safe_next_actions = [
-        f"glassbox changeset feedback show {feedback.feedback_id} --cwd .",
-        f"glassbox changeset show {feedback.changeset_id} --cwd .",
-        f"glassbox changeset verification-plan {feedback.changeset_id} --cwd .",
+        changeset_feedback_show_command(feedback.feedback_id),
+        show_changeset_command(feedback.changeset_id),
+        changeset_verification_plan_command(feedback.changeset_id),
         *verification_actions,
     ]
     return ReviewFeedbackResponseStatus(
@@ -329,7 +332,7 @@ def changeset_review_response_summary(
         blockers=blockers,
         safe_next_actions=[
             f"glassbox changeset feedback list --changeset {changeset_id} --cwd .",
-            f"glassbox changeset show {changeset_id} --cwd .",
+            show_changeset_command(changeset_id),
         ],
         non_claims=_review_response_non_claims(),
     )
@@ -346,8 +349,8 @@ def review_fixup_inventory_status(
     """Compare response-linked inventory evidence against current workspace state."""
 
     safe_next_actions = [
-        f"glassbox changeset feedback show {feedback_id} --cwd .",
-        f"glassbox changeset verification-plan {changeset_id} --cwd .",
+        changeset_feedback_show_command(feedback_id),
+        changeset_verification_plan_command(changeset_id),
     ]
     if current_error is not None:
         return ReviewFixupInventoryStatus(
@@ -467,14 +470,14 @@ def _response_verification_state(
             ChangesetVerificationState.ACCEPTED_WITH_RISK,
             "feedback response is accepted with local risk",
             [],
-            [f"glassbox changeset feedback show {feedback.feedback_id} --cwd ."],
+            [changeset_feedback_show_command(feedback.feedback_id)],
         )
     if latest is None:
         return (
             ChangesetVerificationState.MISSING,
             "feedback has no response-linked fixup inventory to verify",
             [],
-            [f"glassbox changeset verification-plan {feedback.changeset_id} --cwd ."],
+            [changeset_verification_plan_command(feedback.changeset_id)],
         )
     if freshness_stale:
         return (
@@ -482,14 +485,14 @@ def _response_verification_state(
             freshness_reason
             or "response-linked fixup inventory is stale against workspace state",
             [f"fixup-inventory:{latest.artifact_id}"],
-            [f"glassbox changeset verification-plan {feedback.changeset_id} --cwd ."],
+            [changeset_verification_plan_command(feedback.changeset_id)],
         )
     if task_ledger is None:
         return (
             ChangesetVerificationState.NOT_APPLICABLE,
             "verification ledger was not available for this response surface",
             [],
-            [f"glassbox changeset verification-plan {feedback.changeset_id} --cwd ."],
+            [changeset_verification_plan_command(feedback.changeset_id)],
         )
 
     response_paths = {_normalize_path(path.path) for path in paths}
@@ -498,7 +501,7 @@ def _response_verification_state(
             ChangesetVerificationState.MISSING,
             "fixup inventory has no path records, so verification cannot be mapped",
             [f"fixup-inventory:{latest.artifact_id}"],
-            [f"glassbox changeset verification-plan {feedback.changeset_id} --cwd ."],
+            [changeset_verification_plan_command(feedback.changeset_id)],
         )
     matching_entries = [
         entry
@@ -512,7 +515,7 @@ def _response_verification_state(
             ChangesetVerificationState.MISSING,
             "no retained verification check targets response-linked fixup paths",
             [f"fixup-inventory:{latest.artifact_id}"],
-            [f"glassbox changeset verification-plan {feedback.changeset_id} --cwd ."],
+            [changeset_verification_plan_command(feedback.changeset_id)],
         )
     entry = max(matching_entries, key=lambda candidate: candidate.last_sequence)
     state = _verification_state_for_task_status(entry.status)

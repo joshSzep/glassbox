@@ -22,11 +22,15 @@ from glassbox.core import ManualEvidenceRecord
 from glassbox.core import ManualEvidenceState
 from glassbox.core import SessionId
 from glassbox.core import TaskVerificationId
-from glassbox.runtime.changesets import ChangesetInventoryStatus
-from glassbox.runtime.changesets import ChangesetQueryService
-from glassbox.runtime.changesets import ChangesetRepository
-from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
-from glassbox.runtime.changesets import ChangesetVerificationService
+from glassbox.runtime.changeset_models import ChangesetInventoryStatus
+from glassbox.runtime.changeset_models import ChangesetVerificationPlanPreview
+from glassbox.runtime.changeset_queries import ChangesetQueryService
+from glassbox.runtime.changeset_repository_contracts import ChangesetRepository
+from glassbox.runtime.changeset_safe_commands import changeset_brief_command
+from glassbox.runtime.changeset_safe_commands import changeset_evidence_list_command
+from glassbox.runtime.changeset_safe_commands import changeset_feedback_status_command
+from glassbox.runtime.changeset_safe_commands import changeset_refresh_command
+from glassbox.runtime.changeset_verification import ChangesetVerificationService
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
 from glassbox.services import ArtifactRepository
 from glassbox.tools.workflow import DiffSummaryArgs
@@ -677,20 +681,20 @@ def _safe_next_actions(
     actions: list[str] = []
     signal_ids = {signal.signal_id for signal in signals}
     if "inventory-missing" in signal_ids or "inventory-stale" in signal_ids:
-        actions.append("glassbox changeset refresh CHANGESET --cwd .")
+        actions.append(changeset_refresh_command("CHANGESET"))
     if "verification-readiness" in signal_ids:
         actions.extend(verification_actions)
     if any(signal.signal_id.startswith("review-feedback") for signal in signals):
-        actions.append("glassbox changeset feedback status CHANGESET --cwd .")
+        actions.append(changeset_feedback_status_command("CHANGESET"))
     if any(signal.signal_id.startswith("review-response") for signal in signals):
         actions.extend(verification_actions)
-        actions.append("glassbox changeset feedback status CHANGESET --cwd .")
+        actions.append(changeset_feedback_status_command("CHANGESET"))
     if "manual-evidence-needs-inspection" in signal_ids:
-        actions.append("glassbox changeset evidence list --changeset CHANGESET --cwd .")
+        actions.append(changeset_evidence_list_command("CHANGESET"))
     if "review-brief-missing" in signal_ids or any(
         signal.signal_id.startswith("review-brief-stale") for signal in signals
     ):
-        actions.append("glassbox changeset brief CHANGESET --cwd .")
+        actions.append(changeset_brief_command("CHANGESET"))
     if "dirty-worktree" in signal_ids or "staged-empty" in signal_ids:
         actions.append("git status --short")
     if state in {

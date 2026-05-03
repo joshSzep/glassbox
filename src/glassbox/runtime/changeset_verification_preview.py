@@ -11,6 +11,7 @@ from glassbox.core import ManualEvidenceRecord
 from glassbox.runtime.change_inventory import ChangeInventoryArtifact
 from glassbox.runtime.changeset_models import ChangesetVerificationRecipePreview
 from glassbox.runtime.changeset_models import ChangesetVerificationReviewLoopSummary
+from glassbox.runtime.changeset_safe_commands import changeset_verification_plan_command
 from glassbox.runtime.changeset_topology import ChangesetTopologyImpact
 from glassbox.runtime.changeset_verification_readiness import (
     ChangesetVerificationReadiness,
@@ -166,7 +167,7 @@ def review_loop_verification_summary(
             "glassbox changeset evidence list --changeset "
             f"{changeset.changeset_id} --cwd ."
         ),
-        f"glassbox changeset verification-plan {changeset.changeset_id} --cwd .",
+        changeset_verification_plan_command(changeset.changeset_id),
     ]
     limitations: list[str] = []
     if manual_evidence:
