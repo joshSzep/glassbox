@@ -40,6 +40,10 @@ from glassbox.core import ChangesetVerificationState
 from glassbox.core import EventEnvelope
 from glassbox.core import EventPayloadType
 from glassbox.core import ProjectionHealth
+from glassbox.core import ReviewFeedbackDisposition
+from glassbox.core import ReviewFeedbackId
+from glassbox.core import ReviewFeedbackRecord
+from glassbox.core import ReviewFeedbackScopeRecord
 from glassbox.core import SessionId
 from glassbox.core import SessionRecord
 from glassbox.core import SessionState
@@ -155,6 +159,28 @@ class ChangesetRepository(ChangesetDerivationRepository, Protocol):
         session_id: SessionId,
         changeset_id: ChangesetId,
     ) -> list[ChangesetReadinessRecord]: ...
+
+    def list_review_feedback(
+        self,
+        *,
+        session_id: SessionId | None = None,
+        changeset_id: ChangesetId | None = None,
+        disposition: ReviewFeedbackDisposition | None = None,
+        include_archived: bool = False,
+        file_path: str | None = None,
+        limit: int | None = None,
+    ) -> list[ReviewFeedbackRecord]: ...
+
+    def get_review_feedback(
+        self,
+        feedback_id: ReviewFeedbackId,
+    ) -> ReviewFeedbackRecord | None: ...
+
+    def list_review_feedback_scopes(
+        self,
+        session_id: SessionId,
+        feedback_id: ReviewFeedbackId,
+    ) -> list[ReviewFeedbackScopeRecord]: ...
 
     def list_task_verification_ledger(
         self,
@@ -582,6 +608,38 @@ class ChangesetQueryService:
             include_archived=include_archived,
             limit=limit,
         )
+
+    def list_review_feedback(
+        self,
+        *,
+        session_id: SessionId | None = None,
+        changeset_id: ChangesetId | None = None,
+        disposition: ReviewFeedbackDisposition | None = None,
+        include_archived: bool = False,
+        file_path: str | None = None,
+        limit: int | None = None,
+    ) -> list[ReviewFeedbackRecord]:
+        return self._repository.list_review_feedback(
+            session_id=session_id,
+            changeset_id=changeset_id,
+            disposition=disposition,
+            include_archived=include_archived,
+            file_path=file_path,
+            limit=limit,
+        )
+
+    def get_review_feedback(
+        self,
+        feedback_id: ReviewFeedbackId,
+    ) -> ReviewFeedbackRecord | None:
+        return self._repository.get_review_feedback(feedback_id)
+
+    def list_review_feedback_scopes(
+        self,
+        session_id: SessionId,
+        feedback_id: ReviewFeedbackId,
+    ) -> list[ReviewFeedbackScopeRecord]:
+        return self._repository.list_review_feedback_scopes(session_id, feedback_id)
 
     def get_detail(
         self,

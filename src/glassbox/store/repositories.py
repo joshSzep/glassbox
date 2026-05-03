@@ -8,6 +8,7 @@ from glassbox.store.repository_branch_search import _SQLiteBranchSearchMethods
 from glassbox.store.repository_changesets import _SQLiteChangesetMethods
 from glassbox.store.repository_events import _SQLiteEventMethods
 from glassbox.store.repository_projection_reads import _SQLiteProjectionReadMethods
+from glassbox.store.repository_review_loop import _SQLiteReviewLoopMethods
 from glassbox.store.repository_sessions import _SQLiteSessionMethods
 from glassbox.store.repository_tasks import _SQLiteTaskMethods
 from glassbox.store.repository_workspace_memory import _SQLiteWorkspaceMemoryMethods
@@ -22,6 +23,7 @@ class SQLiteSessionRepository(
     _SQLiteTaskMethods,
     _SQLiteBranchSearchMethods,
     _SQLiteChangesetMethods,
+    _SQLiteReviewLoopMethods,
 ):
     """Session repository adapter backed by a SQLite connection."""
 

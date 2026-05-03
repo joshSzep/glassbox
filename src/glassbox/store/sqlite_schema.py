@@ -29,6 +29,9 @@ from glassbox.store.sqlite_schema_long_run import ensure_long_run_event_schema
 from glassbox.store.sqlite_schema_provider_recovery import (
     ensure_provider_recovery_projection_schema,
 )
+from glassbox.store.sqlite_schema_review_loop import (
+    ensure_review_loop_projection_schema,
+)
 from glassbox.store.sqlite_schema_sessions import ensure_runtime_notes_schema
 from glassbox.store.sqlite_schema_sessions import ensure_sessions_lineage_schema
 from glassbox.store.sqlite_schema_statements import BOOTSTRAP_STATEMENTS
@@ -42,7 +45,7 @@ from glassbox.store.sqlite_schema_workspace_memory import (
     ensure_workspace_memory_projection_schema,
 )
 
-SCHEMA_VERSION = 20
+SCHEMA_VERSION = 21
 BASELINE_SCHEMA_VERSION = 3
 BASELINE_MIGRATION_NAME = "baseline event store and projections"
 
@@ -141,6 +144,11 @@ MIGRATIONS = (
         version=20,
         name="add changeset projection tables",
         apply=ensure_changeset_projection_schema,
+    ),
+    SchemaMigration(
+        version=21,
+        name="add review feedback projection tables",
+        apply=ensure_review_loop_projection_schema,
     ),
 )
 

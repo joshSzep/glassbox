@@ -26,6 +26,8 @@ _PROJECTION_TABLES = (
     "changeset_verification_posture",
     "changeset_review_briefs",
     "changeset_readiness",
+    "review_feedback",
+    "review_feedback_scopes",
 )
 
 

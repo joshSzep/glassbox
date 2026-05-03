@@ -19,6 +19,7 @@ from glassbox.core.ids import ChangesetId
 from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import QuestionId
+from glassbox.core.ids import ReviewFeedbackId
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import TaskCheckpointId
 from glassbox.core.ids import TaskId
@@ -56,6 +57,10 @@ from glassbox.core.types import ProviderRecoveryKind
 from glassbox.core.types import RepositoryIndexEntityKind
 from glassbox.core.types import RepositoryIndexFreshness
 from glassbox.core.types import RepositoryIndexSourceType
+from glassbox.core.types import ReviewFeedbackDisposition
+from glassbox.core.types import ReviewFeedbackKind
+from glassbox.core.types import ReviewFeedbackProvenance
+from glassbox.core.types import ReviewFeedbackScopeKind
 from glassbox.core.types import SessionStatus
 from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
@@ -1172,6 +1177,67 @@ class ChangesetReadinessRecord(BaseModel):
     accepted_risk_count: int = Field(ge=0)
     decided_by: str = Field(min_length=1, max_length=200)
     updated_at: datetime
+    last_sequence: int = Field(ge=0)
+
+
+class ReviewFeedbackRecord(BaseModel):
+    """Projected state for one local review feedback record."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: SessionId
+    feedback_id: ReviewFeedbackId
+    changeset_id: ChangesetId
+    feedback_kind: ReviewFeedbackKind
+    provenance: ReviewFeedbackProvenance
+    disposition: ReviewFeedbackDisposition
+    summary: str = Field(min_length=1, max_length=1000)
+    body: str | None = Field(default=None, max_length=4000)
+    source_label: str | None = Field(default=None, max_length=200)
+    reviewer_label: str | None = Field(default=None, max_length=200)
+    created_by: str = Field(min_length=1, max_length=200)
+    updated_by: str | None = Field(default=None, max_length=200)
+    resolved_by: str | None = Field(default=None, max_length=200)
+    archived_by: str | None = Field(default=None, max_length=200)
+    accepted_by: str | None = Field(default=None, max_length=200)
+    source_session_id: SessionId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    artifact_id: ArtifactId | None = None
+    verification_id: TaskVerificationId | None = None
+    resolution_summary: str | None = Field(default=None, max_length=4000)
+    residual_risk: str | None = Field(default=None, max_length=2000)
+    risk_summary: str | None = Field(default=None, max_length=4000)
+    acceptance_reason: str | None = Field(default=None, max_length=2000)
+    archived_reason: str | None = Field(default=None, max_length=2000)
+    replacement_feedback_id: ReviewFeedbackId | None = None
+    reopened_count: int = Field(default=0, ge=0)
+    created_at: datetime
+    updated_at: datetime
+    last_sequence: int = Field(ge=0)
+
+
+class ReviewFeedbackScopeRecord(BaseModel):
+    """Projected scope attachment for one local review feedback record."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: SessionId
+    feedback_id: ReviewFeedbackId
+    changeset_id: ChangesetId
+    scope_kind: ReviewFeedbackScopeKind
+    reason: str = Field(min_length=1, max_length=2000)
+    source_session_id: SessionId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    artifact_id: ArtifactId | None = None
+    verification_id: TaskVerificationId | None = None
+    branch_search_id: BranchSearchId | None = None
+    branch_candidate_id: BranchCandidateId | None = None
+    file_path: str | None = Field(default=None, max_length=2000)
+    line_start: int | None = Field(default=None, ge=1)
+    line_end: int | None = Field(default=None, ge=1)
+    created_at: datetime
     last_sequence: int = Field(ge=0)
 
 

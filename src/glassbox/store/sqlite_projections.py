@@ -23,6 +23,7 @@ from glassbox.store.sqlite_projection_long_run import _apply_long_run_projection
 from glassbox.store.sqlite_projection_provider_recovery import (
     _apply_provider_recovery_projection,
 )
+from glassbox.store.sqlite_projection_review_loop import _apply_review_loop_projection
 from glassbox.store.sqlite_projection_runtime_notes import (
     _apply_runtime_note_projection,
 )
@@ -64,6 +65,8 @@ _PROJECTION_TABLES = (
     "long_run_events",
     "task_checkpoints",
     "context_compactions",
+    "review_feedback_scopes",
+    "review_feedback",
     "changeset_readiness",
     "changeset_review_briefs",
     "changeset_verification_posture",
@@ -95,6 +98,7 @@ def _apply_projection_event(
     _apply_task_checkpoint_projection(connection, event)
     _apply_context_compaction_projection(connection, event)
     _apply_changeset_projection(connection, event)
+    _apply_review_loop_projection(connection, event)
 
 
 def _clear_session_projections(

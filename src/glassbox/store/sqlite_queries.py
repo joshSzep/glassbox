@@ -18,6 +18,9 @@ from glassbox.store.sqlite_query_compactions import list_context_compactions
 from glassbox.store.sqlite_query_metrics import list_turn_metrics
 from glassbox.store.sqlite_query_provider_recovery import get_latest_provider_recovery
 from glassbox.store.sqlite_query_provider_recovery import list_provider_recovery
+from glassbox.store.sqlite_query_review_loop import get_review_feedback
+from glassbox.store.sqlite_query_review_loop import list_review_feedback
+from glassbox.store.sqlite_query_review_loop import list_review_feedback_scopes
 from glassbox.store.sqlite_query_runtime_notes import list_runtime_notes
 from glassbox.store.sqlite_query_tasks import get_task
 from glassbox.store.sqlite_query_tasks import list_open_blocked_tasks
@@ -39,6 +42,7 @@ __all__ = [
     "get_context_compaction",
     "get_latest_task_checkpoint",
     "get_latest_provider_recovery",
+    "get_review_feedback",
     "get_task",
     "get_tool_attempt",
     "list_approvals",
@@ -51,6 +55,8 @@ __all__ = [
     "list_context_compactions",
     "list_open_blocked_tasks",
     "list_provider_recovery",
+    "list_review_feedback",
+    "list_review_feedback_scopes",
     "list_runtime_notes",
     "list_task_checkpoints",
     "list_task_steps",

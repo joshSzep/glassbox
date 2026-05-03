@@ -202,6 +202,8 @@ from glassbox.core.models import RepositoryIndexEntry
 from glassbox.core.models import RepositoryIndexProvenance
 from glassbox.core.models import RepositoryIndexSnapshot
 from glassbox.core.models import ResolvedForkPoint
+from glassbox.core.models import ReviewFeedbackRecord
+from glassbox.core.models import ReviewFeedbackScopeRecord
 from glassbox.core.models import RuntimeNoteRecord
 from glassbox.core.models import SessionConfig
 from glassbox.core.models import SessionRecord
@@ -421,8 +423,10 @@ __all__ = [
     "ReviewFeedbackReopened",
     "ReviewFeedbackResolved",
     "ReviewFeedbackRiskAccepted",
+    "ReviewFeedbackRecord",
     "ReviewFeedbackScopeAttached",
     "ReviewFeedbackScopeKind",
+    "ReviewFeedbackScopeRecord",
     "RepositoryIndexEntry",
     "RepositoryIndexEntityKind",
     "RepositoryIndexFreshness",

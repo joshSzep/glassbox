@@ -487,7 +487,7 @@ shortcuts are shaped by the review-loop features that precede them.
 
 ### GBX-1311: Add Review Feedback Projections And Query Services
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1310`
 - Goal: make local review feedback queryable by changeset, file, state, and
   risk posture
