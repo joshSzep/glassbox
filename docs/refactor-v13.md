@@ -593,7 +593,7 @@ Completion notes:
 
 ### GBX-R521: Extract Manual Evidence Action Service
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R520
 - Target files:
   - `src/glassbox/runtime/changesets.py`
@@ -614,6 +614,19 @@ Completion notes:
   - `uv run pytest tests/unit/test_manual_evidence.py`
   - `uv run pytest tests/integration/test_cli_changeset_commands.py -k evidence`
   - `uv run pytest tests/integration/test_web_changeset_routes.py -k evidence`
+
+Completion notes:
+
+- Moved `ManualEvidenceActionService` into
+  `src/glassbox/runtime/manual_evidence_actions.py` while preserving the
+  `runtime/changesets.py` compatibility import.
+- Kept redaction, artifact schema models, artifact JSON, and validation helpers
+  in `src/glassbox/runtime/manual_evidence.py`.
+- Moved service-level target resolution, rejected-event construction,
+  accepted-event construction, and action result shaping into the action module
+  without changing manual-evidence non-claims or redaction behavior.
+- The documented `-k evidence` selectors currently match no tests, so the full
+  CLI and web changeset route integration files were run instead.
 
 ### GBX-R522: Extract Browser And Accessibility Evidence Actions
 
