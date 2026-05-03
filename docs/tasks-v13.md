@@ -823,7 +823,7 @@ Completed in this slice:
 
 ### GBX-1342: Add Accessibility Evidence Pairing Support
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1340`, `GBX-1341`
 - Goal: retain keyboard and accessibility review evidence in a structured,
   reviewer-safe way
@@ -845,6 +845,25 @@ Completed in this slice:
 - Done when:
   - accessibility observations can participate in the local review loop without
     being flattened into generic notes
+
+Completed in this slice:
+
+- Added structured accessibility evidence helpers for keyboard passes, screen
+  reader notes, focus-order issues, wrapping issues, contrast observations, and
+  responsive reviews.
+- Added `glassbox changeset evidence accessibility` and
+  `POST /changesets/{changeset_id}/accessibility-evidence` with environment,
+  tool, reviewer label, observed issue, severity, disposition, follow-up,
+  paired-tool output, skipped-case, and limitation fields.
+- Retained accessibility observations as `accessibility_note` manual evidence
+  with advisory local-only posture, explicit non-claims, and target links to
+  changesets, feedback, responses, or other review-loop targets.
+- Updated the dashboard manual evidence inbox to keep accessibility
+  observations visible beside other review evidence with advisory copy and
+  severity/disposition limitations.
+- Updated the manual evidence and browser/accessibility protocols plus unit,
+  CLI, API, generated-type, and frontend coverage without claiming broad
+  accessibility certification.
 
 ---
 

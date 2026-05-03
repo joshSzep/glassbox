@@ -137,6 +137,26 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                         "freshness": "needs_inspection",
                     },
                 )
+                accessibility_evidence_response = await client.post(
+                    f"/changesets/{changeset_id}/accessibility-evidence",
+                    json={
+                        "observation_kind": "focus_order_issue",
+                        "summary": "focus leaves the feedback dialog",
+                        "source_label": "keyboard-review",
+                        "environment": "local-dev",
+                        "observed_issue": "Tab moved focus behind the dialog.",
+                        "tool": "manual keyboard",
+                        "route_label": "/console/changesets",
+                        "reviewer_label": "reviewer-a",
+                        "severity": "high",
+                        "disposition": "paired_with_feedback",
+                        "follow_up": "Keep feedback open until focus is fixed.",
+                        "paired_tool_output_label": "playwright keyboard smoke",
+                        "skipped_cases": ["screen reader pairing"],
+                        "feedback_id": feedback_id,
+                        "freshness": "needs_inspection",
+                    },
+                )
                 manual_evidence_list_response = await client.get(
                     "/changesets/manual-evidence",
                     params={
@@ -297,11 +317,24 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                 "not deterministic release authority"
                 in browser_evidence_response.json()["evidence"]["non_claims"]
             )
+            assert accessibility_evidence_response.status_code == 200
+            assert (
+                accessibility_evidence_response.json()["evidence"]["evidence_kind"]
+                == "accessibility_note"
+            )
+            assert (
+                "severity: high"
+                in accessibility_evidence_response.json()["evidence"]["limitations"]
+            )
+            assert (
+                "not accessibility certification"
+                in accessibility_evidence_response.json()["evidence"]["non_claims"]
+            )
             assert manual_evidence_list_response.status_code == 200
             assert {
                 item["evidence_kind"]
                 for item in manual_evidence_list_response.json()["items"]
-            } == {"browser_observation", "external_check"}
+            } == {"accessibility_note", "browser_observation", "external_check"}
             assert feedback_list_response.status_code == 200
             assert (
                 feedback_list_response.json()["items"][0]["feedback_id"] == feedback_id
@@ -352,7 +385,7 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             assert {
                 item["evidence_kind"]
                 for item in detail_response.json()["manual_evidence"]
-            } == {"browser_observation", "external_check"}
+            } == {"accessibility_note", "browser_observation", "external_check"}
             assert (
                 detail_response.json()["review_response_summary"]["accepted_risk_count"]
                 == 1

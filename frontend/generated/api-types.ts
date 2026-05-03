@@ -288,6 +288,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/changesets/{changeset_id}/accessibility-evidence": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Attach Accessibility Evidence
+     * @description Attach advisory accessibility evidence to one local changeset.
+     */
+    post: operations["attach_accessibility_evidence_changesets__changeset_id__accessibility_evidence_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/changesets/{changeset_id}/archive": {
     parameters: {
       query?: never;
@@ -1548,6 +1568,81 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** AccessibilityEvidenceAttachRequest */
+    AccessibilityEvidenceAttachRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /**
+       * Disposition
+       * @default open
+       * @enum {string}
+       */
+      disposition:
+        | "open"
+        | "paired_with_feedback"
+        | "resolved_locally"
+        | "accepted_with_risk"
+        | "needs_follow_up";
+      /** Environment */
+      environment: string;
+      /** Feedback Id */
+      feedback_id?: string | null;
+      /** Follow Up */
+      follow_up?: string | null;
+      /**
+       * Freshness
+       * @default unknown
+       */
+      freshness: string;
+      /** Limitations */
+      limitations?: string[];
+      /**
+       * Observation Kind
+       * @enum {string}
+       */
+      observation_kind:
+        | "keyboard_pass"
+        | "screen_reader_note"
+        | "focus_order_issue"
+        | "wrapping_issue"
+        | "contrast_observation"
+        | "responsive_review";
+      /** Observed Issue */
+      observed_issue: string;
+      /** Paired Tool Output Label */
+      paired_tool_output_label?: string | null;
+      /** Reviewer Label */
+      reviewer_label?: string | null;
+      /** Route Label */
+      route_label?: string | null;
+      /**
+       * Severity
+       * @default medium
+       * @enum {string}
+       */
+      severity: "info" | "low" | "medium" | "high" | "blocker";
+      /** Skipped Cases */
+      skipped_cases?: string[];
+      /** Source Label */
+      source_label: string;
+      /** Summary */
+      summary: string;
+      /** Target Id */
+      target_id?: string | null;
+      /**
+       * Target Kind
+       * @default changeset
+       */
+      target_kind: string;
+      /**
+       * Tool
+       * @default manual
+       */
+      tool: string;
+    };
     /** ActionAcceptedResponse */
     ActionAcceptedResponse: {
       /** Status */
@@ -6467,6 +6562,50 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ChangesetDetailResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  attach_accessibility_evidence_changesets__changeset_id__accessibility_evidence_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        changeset_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AccessibilityEvidenceAttachRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ManualEvidenceActionResponse"];
         };
       };
       /** @description Not Found */

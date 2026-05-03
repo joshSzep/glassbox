@@ -25,6 +25,7 @@ from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionRe
 from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionResult
 from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionService
 from glassbox.runtime.changeset_export import export_changeset_package
+from glassbox.runtime.changesets import AccessibilityEvidenceActionService
 from glassbox.runtime.changesets import BrowserEvidenceActionService
 from glassbox.runtime.changesets import ChangesetActionService
 from glassbox.runtime.changesets import ChangesetDerivationResult
@@ -341,6 +342,8 @@ def _changeset_evidence_command(args: argparse.Namespace) -> int:
         return _evidence_attach_command(args)
     if command in {"browser", "dashboard"}:
         return _evidence_browser_dashboard_command(args)
+    if command == "accessibility":
+        return _evidence_accessibility_command(args)
     if command == "list":
         return _evidence_list_command(args)
     raise ValueError("specify an evidence subcommand")
@@ -397,6 +400,37 @@ def _evidence_browser_dashboard_command(args: argparse.Namespace) -> int:
             screenshot_size_bytes=args.screenshot_size_bytes,
             screenshot_width=args.screenshot_width,
             screenshot_height=args.screenshot_height,
+            skipped_cases=args.skipped_case,
+            limitations=args.limitation,
+            actor=args.actor,
+            target_kind=ManualEvidenceTargetKind(args.target_kind),
+            target_id=args.target_id,
+            feedback_id=args.feedback_id,
+            freshness=ManualEvidenceFreshness(args.freshness),
+        )
+    return _print_manual_evidence_result(result, args.json)
+
+
+def _evidence_accessibility_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        result = AccessibilityEvidenceActionService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions),
+            runtime_context.repositories.artifacts,
+        ).attach(
+            args.changeset_id,
+            observation_kind=args.observation_kind,
+            summary=args.summary,
+            source_label=args.source_label,
+            environment=args.environment,
+            observed_issue=args.observed_issue,
+            tool=args.tool,
+            route_label=args.route_label,
+            reviewer_label=args.reviewer_label,
+            severity=args.severity,
+            disposition=args.disposition,
+            follow_up=args.follow_up,
+            paired_tool_output_label=args.paired_tool_output_label,
             skipped_cases=args.skipped_case,
             limitations=args.limitation,
             actor=args.actor,

@@ -715,6 +715,9 @@ function ManualEvidencePanel({ detail }: { detail: NonNullable<ChangesetDetailSt
   const liveEvidence = evidence.filter(
     (item) => item.evidence_kind === "browser_observation" || item.evidence_kind === "screenshot",
   );
+  const accessibilityEvidence = evidence.filter(
+    (item) => item.evidence_kind === "accessibility_note",
+  );
   return (
     <Section title="Manual Evidence Inbox">
       <div className="grid gap-3">
@@ -726,6 +729,9 @@ function ManualEvidencePanel({ detail }: { detail: NonNullable<ChangesetDetailSt
           <Badge variant={stale.length > 0 ? "warning" : "muted"}>{stale.length} stale</Badge>
           <Badge variant={liveEvidence.length > 0 ? "info" : "muted"}>
             {liveEvidence.length} live
+          </Badge>
+          <Badge variant={accessibilityEvidence.length > 0 ? "warning" : "muted"}>
+            {accessibilityEvidence.length} accessibility
           </Badge>
         </div>
         {evidence.length === 0 ? (
@@ -751,6 +757,12 @@ function ManualEvidencePanel({ detail }: { detail: NonNullable<ChangesetDetailSt
                     {item.target_id}
                   </DataListMeta>
                 ) : null}
+                {item.evidence_kind === "accessibility_note" ? (
+                  <DataListMeta>
+                    Accessibility observation is advisory - inspect target {item.target_kind}{" "}
+                    {item.target_id}
+                  </DataListMeta>
+                ) : null}
                 {item.rejected_reason ? (
                   <DataListMeta>Rejected: {item.rejected_reason}</DataListMeta>
                 ) : null}
@@ -771,6 +783,7 @@ function ManualEvidencePanel({ detail }: { detail: NonNullable<ChangesetDetailSt
           </li>
           <li>manual evidence is not retained command evidence or review approval</li>
           <li>browser and dashboard evidence is advisory, local-only, and not release authority</li>
+          <li>accessibility evidence is advisory and not certification or WCAG conformance</li>
         </ul>
       </div>
     </Section>

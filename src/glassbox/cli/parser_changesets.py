@@ -425,6 +425,83 @@ def _add_changeset_parsers(
         capture_kind="dashboard_walkthrough",
     )
 
+    evidence_accessibility_parser = evidence_subparsers.add_parser(
+        "accessibility",
+        help="attach advisory accessibility observation evidence to a changeset",
+    )
+    evidence_accessibility_parser.add_argument("changeset_id", type=_parse_uuid)
+    evidence_accessibility_parser.add_argument(
+        "--kind",
+        dest="observation_kind",
+        choices=(
+            "keyboard_pass",
+            "screen_reader_note",
+            "focus_order_issue",
+            "wrapping_issue",
+            "contrast_observation",
+            "responsive_review",
+        ),
+        required=True,
+    )
+    evidence_accessibility_parser.add_argument("--summary", required=True)
+    evidence_accessibility_parser.add_argument("--source-label", required=True)
+    evidence_accessibility_parser.add_argument("--environment", required=True)
+    evidence_accessibility_parser.add_argument("--observed-issue", required=True)
+    evidence_accessibility_parser.add_argument("--tool", default="manual")
+    evidence_accessibility_parser.add_argument("--route", dest="route_label")
+    evidence_accessibility_parser.add_argument("--reviewer-label")
+    evidence_accessibility_parser.add_argument(
+        "--severity",
+        choices=("info", "low", "medium", "high", "blocker"),
+        default="medium",
+    )
+    evidence_accessibility_parser.add_argument(
+        "--disposition",
+        choices=(
+            "open",
+            "paired_with_feedback",
+            "resolved_locally",
+            "accepted_with_risk",
+            "needs_follow_up",
+        ),
+        default="open",
+    )
+    evidence_accessibility_parser.add_argument("--follow-up")
+    evidence_accessibility_parser.add_argument("--paired-tool-output-label")
+    evidence_accessibility_parser.add_argument(
+        "--skipped-case", action="append", default=[]
+    )
+    evidence_accessibility_parser.add_argument(
+        "--limitation", action="append", default=[]
+    )
+    evidence_accessibility_parser.add_argument(
+        "--feedback",
+        dest="feedback_id",
+        type=_parse_uuid,
+    )
+    evidence_accessibility_parser.add_argument(
+        "--target-kind",
+        choices=(
+            "changeset",
+            "feedback",
+            "response",
+            "verification_requirement",
+            "review_brief",
+            "publication_boundary",
+            "unknown",
+        ),
+        default="changeset",
+    )
+    evidence_accessibility_parser.add_argument("--target-id")
+    evidence_accessibility_parser.add_argument(
+        "--freshness",
+        choices=("current", "needs_inspection", "stale", "unknown"),
+        default="unknown",
+    )
+    evidence_accessibility_parser.add_argument("--actor", default="operator")
+    evidence_accessibility_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(evidence_accessibility_parser)
+
     evidence_list_parser = evidence_subparsers.add_parser(
         "list",
         help="list manual evidence for a changeset or target",

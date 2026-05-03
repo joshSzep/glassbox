@@ -150,6 +150,50 @@ def test_changeset_create_list_show_refresh_and_archive(
         ]
     )
     evidence_browser = json.loads(capsys.readouterr().out)
+    evidence_accessibility_exit = main(
+        [
+            "changeset",
+            "evidence",
+            "accessibility",
+            changeset_id,
+            "--kind",
+            "focus_order_issue",
+            "--summary",
+            "focus leaves the feedback dialog",
+            "--source-label",
+            "keyboard-review",
+            "--environment",
+            "local-dev",
+            "--tool",
+            "manual keyboard",
+            "--route",
+            "/console/changesets",
+            "--reviewer-label",
+            "reviewer-a",
+            "--observed-issue",
+            "Tab moved focus behind the dialog.",
+            "--severity",
+            "high",
+            "--disposition",
+            "paired_with_feedback",
+            "--follow-up",
+            "Keep feedback open until focus order is fixed.",
+            "--paired-tool-output-label",
+            "playwright keyboard smoke",
+            "--skipped-case",
+            "screen reader pairing",
+            "--feedback",
+            feedback_id,
+            "--freshness",
+            "needs_inspection",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    evidence_accessibility = json.loads(capsys.readouterr().out)
     evidence_list_exit = main(
         [
             "changeset",
@@ -505,10 +549,17 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert "browser/dashboard evidence is advisory" in " ".join(
         evidence_browser["non_claims"]
     )
+    assert evidence_accessibility_exit == 0
+    assert evidence_accessibility["evidence"]["evidence_kind"] == "accessibility_note"
+    assert "severity: high" in evidence_accessibility["evidence"]["limitations"]
+    assert "not accessibility certification" in " ".join(
+        evidence_accessibility["evidence"]["non_claims"]
+    )
     assert evidence_list_exit == 0
-    assert "Manual evidence: 2" in evidence_list_output
+    assert "Manual evidence: 3" in evidence_list_output
     assert "external CI reported green" in evidence_list_output
     assert "dashboard rendered feedback with manual evidence" in evidence_list_output
+    assert "focus leaves the feedback dialog" in evidence_list_output
     assert feedback_list_exit == 0
     assert "Review feedback: 1" in feedback_list_output
     assert "Clarify the review-feedback list output" in feedback_list_output
@@ -537,6 +588,7 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert detail["changeset"]["task_id"] == str(task_id)
     assert detail["review_feedback"][0]["feedback_id"] == feedback_id
     assert {item["evidence_kind"] for item in detail["manual_evidence"]} == {
+        "accessibility_note",
         "browser_observation",
         "external_check",
     }

@@ -13,6 +13,8 @@ describe("generated OpenAPI types", () => {
     type TaskPageResponse = paths["/tasks"]["get"]["responses"][200]["content"]["application/json"];
     type BrowserEvidenceResponse =
       paths["/changesets/{changeset_id}/browser-evidence"]["post"]["responses"][200]["content"]["application/json"];
+    type AccessibilityEvidenceResponse =
+      paths["/changesets/{changeset_id}/accessibility-evidence"]["post"]["responses"][200]["content"]["application/json"];
 
     const approvalBody: components["schemas"]["ResolveApprovalRequest"] = {
       decision: "approved",
@@ -60,6 +62,20 @@ describe("generated OpenAPI types", () => {
       viewport_width: 1440,
     };
     const browserEvidenceKey: keyof BrowserEvidenceResponse = "safe_next_actions";
+    const accessibilityEvidenceBody: components["schemas"]["AccessibilityEvidenceAttachRequest"] = {
+      actor: "operator",
+      disposition: "paired_with_feedback",
+      environment: "local-dev",
+      freshness: "needs_inspection",
+      observation_kind: "focus_order_issue",
+      observed_issue: "Tab moved focus behind the dialog.",
+      severity: "high",
+      source_label: "keyboard-review",
+      summary: "focus leaves the feedback dialog",
+      target_kind: "feedback",
+      tool: "manual keyboard",
+    };
+    const accessibilityEvidenceKey: keyof AccessibilityEvidenceResponse = "non_claims";
 
     expect(approvalBody.decision).toBe("approved");
     expect(accepted.status).toBe("ok");
@@ -70,5 +86,7 @@ describe("generated OpenAPI types", () => {
     expect(taskPageKey).toBe("items");
     expect(browserEvidenceBody.capture_kind).toBe("dashboard_walkthrough");
     expect(browserEvidenceKey).toBe("safe_next_actions");
+    expect(accessibilityEvidenceBody.observation_kind).toBe("focus_order_issue");
+    expect(accessibilityEvidenceKey).toBe("non_claims");
   });
 });

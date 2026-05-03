@@ -176,6 +176,36 @@ output is actually retained. It must not say "WCAG compliant", "accessibility
 certified", or "fully accessible" unless a future release policy defines a
 formal conformance process outside this protocol.
 
+Record an accessibility observation with:
+
+```bash
+glassbox changeset evidence accessibility CHANGESET_ID \
+  --kind focus_order_issue \
+  --summary "focus leaves the feedback dialog" \
+  --source-label keyboard-review \
+  --environment local-dev \
+  --tool "manual keyboard" \
+  --route /console/changesets \
+  --observed-issue "Tab moved focus behind the dialog" \
+  --severity high \
+  --disposition paired_with_feedback \
+  --feedback FEEDBACK_ID \
+  --freshness needs_inspection \
+  --cwd .
+```
+
+API clients can attach the same evidence through:
+
+```http
+POST /changesets/{changeset_id}/accessibility-evidence
+```
+
+Use `--kind` values for `keyboard_pass`, `screen_reader_note`,
+`focus_order_issue`, `wrapping_issue`, `contrast_observation`, and
+`responsive_review`. The command requires the observed issue, environment, tool,
+severity, disposition, and follow-up posture to stay visible instead of
+flattening accessibility review into a generic note.
+
 ## Advisory Versus Blocking Policy
 
 Live review evidence is advisory by default. It can inform review responses,

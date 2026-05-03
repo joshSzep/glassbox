@@ -227,6 +227,25 @@ glassbox changeset evidence dashboard CHANGESET_ID \
   --cwd .
 ```
 
+Accessibility observations have a dedicated capture command for keyboard,
+screen-reader, focus-order, wrapping, contrast, and responsive review notes:
+
+```bash
+glassbox changeset evidence accessibility CHANGESET_ID \
+  --kind focus_order_issue \
+  --summary "focus leaves the feedback dialog" \
+  --source-label keyboard-review \
+  --environment local-dev \
+  --tool "manual keyboard" \
+  --route /console/changesets \
+  --observed-issue "Tab moved focus behind the dialog" \
+  --severity high \
+  --disposition paired_with_feedback \
+  --feedback FEEDBACK_ID \
+  --freshness needs_inspection \
+  --cwd .
+```
+
 Inspect retained manual evidence before relying on it:
 
 ```bash
@@ -237,11 +256,14 @@ glassbox changeset brief CHANGESET_ID --cwd .
 
 The dashboard changeset detail view shows a manual evidence inbox alongside
 review feedback. The inbox displays kind, state, redaction posture, freshness,
-target, artifact reference, limitations, and non-claims. Browser and dashboard
-evidence rows link back to their local changeset, feedback, or response target
-and are labeled advisory and local-only. The inbox does not mark manual evidence
-as verification proof, reviewer approval, publication readiness, release
-authority, or retained command evidence.
+target, artifact reference, limitations, and non-claims. Browser, dashboard,
+and accessibility evidence rows link back to their local changeset, feedback,
+or response target and are labeled advisory and local-only. Accessibility rows
+keep severity, disposition, follow-up, and pairing details in the retained
+limitations so unresolved observations remain visible. The inbox does not mark
+manual evidence as verification proof, reviewer approval, publication
+readiness, release authority, accessibility certification, or retained command
+evidence.
 
 ## Non-Claims
 

@@ -16,6 +16,7 @@ from glassbox.core import ReviewFeedbackDisposition
 from glassbox.core import ReviewFeedbackKind
 from glassbox.core import ReviewFeedbackProvenance
 from glassbox.core import ReviewFeedbackScopeKind
+from glassbox.runtime.changesets import AccessibilityEvidenceActionService
 from glassbox.runtime.changesets import BrowserEvidenceActionService
 from glassbox.runtime.changesets import ChangesetActionService
 from glassbox.runtime.changesets import ChangesetDerivationService
@@ -28,6 +29,7 @@ from glassbox.runtime.changesets import ReviewFeedbackActionService
 from glassbox.runtime.commit_messages import ChangesetCommitMessageSuggestionService
 from glassbox.runtime.commit_readiness import ChangesetCommitReadinessService
 from glassbox.web.app import RuntimeContextDep
+from glassbox.web.changeset_api import AccessibilityEvidenceAttachRequest
 from glassbox.web.changeset_api import BrowserEvidenceAttachRequest
 from glassbox.web.changeset_api import ChangesetActionResponse
 from glassbox.web.changeset_api import ChangesetArchiveRequest
@@ -339,6 +341,51 @@ async def attach_browser_evidence(
             screenshot_size_bytes=request.screenshot_size_bytes,
             screenshot_width=request.screenshot_width,
             screenshot_height=request.screenshot_height,
+            skipped_cases=request.skipped_cases,
+            limitations=request.limitations,
+            actor=request.actor,
+            target_kind=ManualEvidenceTargetKind(request.target_kind),
+            target_id=request.target_id,
+            feedback_id=(
+                UUID(request.feedback_id) if request.feedback_id is not None else None
+            ),
+            freshness=ManualEvidenceFreshness(request.freshness),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return build_manual_evidence_action_response(result)
+
+
+@router.post(
+    "/{changeset_id}/accessibility-evidence",
+    response_model=ManualEvidenceActionResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def attach_accessibility_evidence(
+    changeset_id: UUID,
+    request: AccessibilityEvidenceAttachRequest,
+    context: RuntimeContextDep,
+) -> ManualEvidenceActionResponse:
+    """Attach advisory accessibility evidence to one local changeset."""
+
+    try:
+        result = AccessibilityEvidenceActionService(
+            _repository(context),
+            context.repositories.artifacts,
+        ).attach(
+            changeset_id,
+            observation_kind=request.observation_kind,
+            summary=request.summary,
+            source_label=request.source_label,
+            environment=request.environment,
+            observed_issue=request.observed_issue,
+            tool=request.tool,
+            route_label=request.route_label,
+            reviewer_label=request.reviewer_label,
+            severity=request.severity,
+            disposition=request.disposition,
+            follow_up=request.follow_up,
+            paired_tool_output_label=request.paired_tool_output_label,
             skipped_cases=request.skipped_cases,
             limitations=request.limitations,
             actor=request.actor,

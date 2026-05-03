@@ -53,6 +53,9 @@ describe("changeset console", () => {
     expect(markup).toContain("dashboard walkthrough rendered manual evidence");
     expect(markup).toContain("Live evidence is advisory and local-only");
     expect(markup).toContain("browser and dashboard evidence is advisory");
+    expect(markup).toContain("focus order issue remains open");
+    expect(markup).toContain("Accessibility observation is advisory");
+    expect(markup).toContain("accessibility evidence is advisory");
     expect(markup).toContain("manual evidence is not retained command evidence");
     expect(markup).toContain("1 requested");
     expect(markup).toContain("1 questions");
@@ -376,6 +379,37 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
         task_id: "task-1",
         turn_id: null,
         updated_at: "2026-05-01T00:06:00Z",
+        verification_id: null,
+      },
+      {
+        archived_reason: null,
+        artifact_id: "accessibility-evidence-artifact-1",
+        artifact_schema_version: 1,
+        changeset_id: changeset.changeset_id,
+        created_at: "2026-05-01T00:07:00Z",
+        created_by: "operator",
+        evidence_id: "manual-evidence-3",
+        evidence_kind: "accessibility_note",
+        feedback_id: "feedback-1",
+        freshness: "needs_inspection",
+        last_sequence: 15,
+        limitations: ["severity: high", "disposition: paired_with_feedback"],
+        local_only: true,
+        non_claims: ["not accessibility certification"],
+        observed_at: null,
+        redaction_status: "passed",
+        rejected_reason: null,
+        replacement_evidence_id: null,
+        session_id: "session-1",
+        source_label: "keyboard-review",
+        state: "attached",
+        summary: "focus order issue remains open",
+        superseded_reason: null,
+        target_id: "feedback-1",
+        target_kind: "feedback",
+        task_id: "task-1",
+        turn_id: null,
+        updated_at: "2026-05-01T00:07:00Z",
         verification_id: null,
       },
     ],
