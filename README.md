@@ -91,8 +91,8 @@ The current package line is `0.10.0`. It publishes the v10 long-running-task
 operating model and the v11 confidence-and-adoption milestone. The v12
 implementation track evolves that baseline into reviewable local changesets
 with evidence-backed review briefs, verification readiness, commit readiness,
-worktree isolation, topology, and command evidence. The v13 task graph now
-scopes the next review-loop planning track for local feedback, fixups, manual
+worktree isolation, topology, and command evidence. The v13 review-loop
+contract now scopes the next planning track for local feedback, fixups, manual
 evidence, lifecycle briefs, publication boundaries, and integrated changeset UX.
 
 Start with
@@ -110,8 +110,9 @@ with the v11 release-candidate guide in
 [docs/v11-release-candidate.md](docs/v11-release-candidate.md). Active v12
 scope is defined in
 [docs/v12-reviewable-change-contract.md](docs/v12-reviewable-change-contract.md).
-The v13 planning task graph is in
-[docs/tasks-v13.md](docs/tasks-v13.md).
+The v13 planning contract is in
+[docs/v13-review-loop-contract.md](docs/v13-review-loop-contract.md), with the
+task graph in [docs/tasks-v13.md](docs/tasks-v13.md).
 
 ## Documentation
 
@@ -125,6 +126,7 @@ Start here based on what you need:
 - [docs/v10-long-running-task-contract.md](docs/v10-long-running-task-contract.md)
 - [docs/v11-confidence-adoption-contract.md](docs/v11-confidence-adoption-contract.md)
 - [docs/v12-reviewable-change-contract.md](docs/v12-reviewable-change-contract.md)
+- [docs/v13-review-loop-contract.md](docs/v13-review-loop-contract.md)
 - [docs/v12-release-gate.md](docs/v12-release-gate.md)
 - [docs/v12-dogfooding-summary.md](docs/v12-dogfooding-summary.md)
 - [docs/v12-release-candidate.md](docs/v12-release-candidate.md)

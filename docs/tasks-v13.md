@@ -374,7 +374,7 @@ shortcuts are shaped by the review-loop features that precede them.
 
 ### GBX-1300: Define The v13 Review Loop Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: none
 - Goal: publish the v13 product contract before changing behavior
 - Deliverables:

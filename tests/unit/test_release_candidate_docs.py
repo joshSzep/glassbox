@@ -449,6 +449,56 @@ def test_v12_reviewable_change_contract_covers_product_boundary() -> None:
     assert "tasks-v12.md" in docs_readme
 
 
+def test_v13_review_loop_contract_covers_product_boundary() -> None:
+    content = (REPO_ROOT / "docs" / "v13-review-loop-contract.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Scope",
+        "## Product Model",
+        "## Vocabulary",
+        "## Supported Workflow Set",
+        "## Evidence Expectations",
+        "## Release Authority",
+        "## Non-Goals",
+        "## Safety Rules",
+        "## Command And Dashboard Copy Guidelines",
+        "Review feedback",
+        "Requested change",
+        "Reviewer question",
+        "Fixup response",
+        "Manual evidence",
+        "Browser evidence",
+        "Accessibility evidence",
+        "Lifecycle brief",
+        "Handoff readiness",
+        "Publication boundary",
+        "Final operator action",
+        "manual evidence",
+        "browser, dashboard, and accessibility evidence",
+        "UX consolidation happens late in v13 after feature dogfooding",
+        "automatic review approval",
+        "automatic staging",
+        "automatic commits",
+        "automatic pushes",
+        "automatic pull request creation",
+        "automatic branch-search merging",
+        "Deterministic replay, eval, package, migration, unit, integration",
+        "Review feedback is evidence, not approval.",
+        "Do not say Glassbox approved, staged, committed, pushed, opened a PR",
+        "tasks-v13.md",
+    ):
+        assert required_text in content
+
+    assert "docs/v13-review-loop-contract.md" in root_readme
+    assert "v13-review-loop-contract.md" in docs_readme
+    assert "docs/tasks-v13.md" in root_readme
+    assert "tasks-v13.md" in docs_readme
+
+
 def test_v12_change_lifecycle_audit_covers_current_boundaries() -> None:
     content = (REPO_ROOT / "docs" / "v12-change-lifecycle-audit.md").read_text(
         encoding="utf-8"

@@ -11,7 +11,7 @@ Use this page by audience. Start with the current `0.10.0` package line and
 v10 long-running-task model for the product story, then follow the daily
 workflow guides before diving into release evidence or milestone history. The
 v12 reviewable-change contract is the current implemented review lifecycle, and
-the v13 task graph scopes the next review-loop planning track after the v12
+the v13 review-loop contract scopes the next planning track after the v12
 release candidate.
 
 ## Start Here
@@ -29,6 +29,10 @@ release candidate.
   active v12 contract for local changesets, review briefs, verification
   readiness, commit readiness, worktree isolation, topology, command evidence,
   and reviewable-change release authority
+- [v13-review-loop-contract.md](./v13-review-loop-contract.md): v13 contract
+  for local review feedback, requested changes, fixup responses, manual
+  evidence, browser/accessibility evidence, lifecycle briefs, handoff
+  readiness, publication boundaries, and integrated review-loop UX
 - [v12-change-lifecycle-audit.md](./v12-change-lifecycle-audit.md):
   source-linked audit of current diff, branch-search, checkpoint,
   verification, handoff, artifact, command, dashboard, export, and redaction
@@ -220,6 +224,10 @@ release candidate.
   release-candidate narrative tying the v12 contract, gate, dogfooding,
   changesets, review briefs, commit readiness, worktree, topology, command
   evidence, package, provider, and residual-risk evidence together
+- [v13-review-loop-contract.md](./v13-review-loop-contract.md): v13
+  review-loop contract for local feedback, requested changes, fixup responses,
+  manual evidence, browser/accessibility evidence, lifecycle briefs,
+  publication boundaries, handoff readiness, and late integrated UX
 - [v11-release-candidate.md](./v11-release-candidate.md): release-candidate
   narrative tying the v11 contract, gate, dogfooding, package, provider,
   accessibility, live cockpit, and residual-risk evidence together
