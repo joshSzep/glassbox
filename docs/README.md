@@ -184,6 +184,9 @@ release candidate.
 - [review-responses.md](./review-responses.md): define the v13 review response
   and fixup contract, lifecycle states, source model, stale-verification
   rules, eval fixture shape, and response non-claims
+- [manual-evidence.md](./manual-evidence.md): define the v13 manual evidence
+  attachment contract, supported evidence kinds, source labels, redaction,
+  size, freshness, local-only, and non-claim rules
 - [commit-readiness.md](./commit-readiness.md): understand the v12 read-only
   advisory model for staged changes, dirty worktree ambiguity, verification,
   review brief freshness, provenance, path-risk cues, and accepted risk before

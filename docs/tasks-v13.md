@@ -623,7 +623,7 @@ shortcuts are shaped by the review-loop features that precede them.
 
 ### GBX-1330: Define Manual Evidence Attachment Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1302`
 - Goal: create an honest path for attaching evidence that did not flow through
   retained Glassbox command instrumentation

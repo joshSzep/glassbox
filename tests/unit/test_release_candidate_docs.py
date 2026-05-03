@@ -550,6 +550,43 @@ def test_v13_review_loop_audit_covers_current_boundaries() -> None:
     assert "v13-review-loop-audit.md" in docs_readme
 
 
+def test_manual_evidence_contract_covers_attachment_boundaries() -> None:
+    content = (REPO_ROOT / "docs" / "manual-evidence.md").read_text(encoding="utf-8")
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Evidence Kinds",
+        "`manual_command`",
+        "`external_check`",
+        "`reviewer_note`",
+        "`screenshot`",
+        "`browser_observation`",
+        "`accessibility_note`",
+        "`local_file_reference`",
+        "`sanitized_log`",
+        "`operator_assertion`",
+        "## Attachment Targets",
+        "## Required Fields",
+        "## Redaction And Size Rules",
+        "## Freshness Rules",
+        "## Manual Evidence Versus Command Evidence",
+        "## Reviewer-Safe Language",
+        "## Redaction Fixture Plan",
+        "## Non-Claims",
+        "Manual evidence is not verification proof by itself",
+        "source label",
+        "local-only posture",
+        "Do not backfill manual command summaries as retained command evidence",
+        "Glassbox ran the command",
+        "files were staged, committed, pushed, published, merged, or deployed",
+    ):
+        assert required_text in content
+
+    assert "docs/manual-evidence.md" in root_readme
+    assert "manual-evidence.md" in docs_readme
+
+
 def test_v12_change_lifecycle_audit_covers_current_boundaries() -> None:
     content = (REPO_ROOT / "docs" / "v12-change-lifecycle-audit.md").read_text(
         encoding="utf-8"
