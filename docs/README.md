@@ -49,6 +49,9 @@ release candidate.
   `GBX-1392` dogfooding findings for local review feedback, manual evidence,
   advisory browser/accessibility evidence, lifecycle briefs, handoff readiness,
   stale verification, and in-session review-loop UX
+- [v13-release-candidate.md](./v13-release-candidate.md): v13
+  release-candidate guide for the supported review-loop operating model,
+  validation path, advisory evidence expectations, residual risks, and decision
 - [v12-change-lifecycle-audit.md](./v12-change-lifecycle-audit.md):
   source-linked audit of current diff, branch-search, checkpoint,
   verification, handoff, artifact, command, dashboard, export, and redaction
@@ -95,6 +98,9 @@ release candidate.
   dogfooding findings for review feedback, fixup responses, manual evidence,
   browser/dashboard evidence, lifecycle briefs, stale verification, handoff
   readiness, and in-session changeset UX
+- [v13-release-candidate.md](./v13-release-candidate.md): v13
+  release-candidate guide for review-loop release authority, evidence
+  expectations, advisory non-claims, accepted residual risks, and decision
 - [v12-dogfooding-summary.md](./v12-dogfooding-summary.md): sanitized v12
   dogfooding findings for changeset creation, review briefs, verification
   readiness, commit preparation, branch-candidate adoption, topology
@@ -285,6 +291,11 @@ release candidate.
   shape, advisory evidence policy, and pass/fail rules
 - [v13-dogfooding-summary.md](./v13-dogfooding-summary.md): sanitized v13
   dogfooding evidence and friction findings from local review-loop use
+- [v13-release-candidate.md](./v13-release-candidate.md):
+  release-candidate narrative tying the v13 contract, gate, dogfooding,
+  review feedback, manual evidence, browser/accessibility evidence, lifecycle
+  briefs, handoff readiness, publication boundaries, package, provider, and
+  residual-risk evidence together
 - [v11-release-candidate.md](./v11-release-candidate.md): release-candidate
   narrative tying the v11 contract, gate, dogfooding, package, provider,
   accessibility, live cockpit, and residual-risk evidence together

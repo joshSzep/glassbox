@@ -91,9 +91,9 @@ The current package line is `0.10.0`. It publishes the v10 long-running-task
 operating model and the v11 confidence-and-adoption milestone. The v12
 implementation track evolves that baseline into reviewable local changesets
 with evidence-backed review briefs, verification readiness, commit readiness,
-worktree isolation, topology, and command evidence. The v13 review-loop
-contract now scopes the next planning track for local feedback, fixups, manual
-evidence, lifecycle briefs, publication boundaries, and integrated changeset UX.
+worktree isolation, topology, and command evidence. The v13 review-loop release
+candidate adds local feedback, fixups, manual evidence, lifecycle briefs,
+publication boundaries, and integrated changeset UX.
 
 Start with
 [docs/v10-long-running-task-contract.md](docs/v10-long-running-task-contract.md)
@@ -112,7 +112,9 @@ scope is defined in
 [docs/v12-reviewable-change-contract.md](docs/v12-reviewable-change-contract.md).
 The v13 planning contract is in
 [docs/v13-review-loop-contract.md](docs/v13-review-loop-contract.md), with the
-task graph in [docs/tasks-v13.md](docs/tasks-v13.md).
+task graph in [docs/tasks-v13.md](docs/tasks-v13.md) and the
+release-candidate guide in
+[docs/v13-release-candidate.md](docs/v13-release-candidate.md).
 
 ## Documentation
 
@@ -130,6 +132,7 @@ Start here based on what you need:
 - [docs/v13-review-loop-ux-audit.md](docs/v13-review-loop-ux-audit.md)
 - [docs/v13-release-gate.md](docs/v13-release-gate.md)
 - [docs/v13-dogfooding-summary.md](docs/v13-dogfooding-summary.md)
+- [docs/v13-release-candidate.md](docs/v13-release-candidate.md)
 - [docs/review-feedback.md](docs/review-feedback.md)
 - [docs/review-responses.md](docs/review-responses.md)
 - [docs/manual-evidence.md](docs/manual-evidence.md)
@@ -137,6 +140,7 @@ Start here based on what you need:
 - [docs/publication-boundary.md](docs/publication-boundary.md)
 - [docs/v12-release-gate.md](docs/v12-release-gate.md)
 - [docs/v12-dogfooding-summary.md](docs/v12-dogfooding-summary.md)
+- [docs/v13-release-candidate.md](docs/v13-release-candidate.md)
 - [docs/v12-release-candidate.md](docs/v12-release-candidate.md)
 - [docs/v11-release-candidate.md](docs/v11-release-candidate.md)
 - [docs/v10-release-candidate.md](docs/v10-release-candidate.md)

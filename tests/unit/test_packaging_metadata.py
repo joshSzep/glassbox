@@ -146,6 +146,7 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert "sdist missing required file: docs/tasks-v12.md" in problems
     assert "sdist missing required file: docs/v13-release-gate.md" in problems
     assert "sdist missing required file: docs/v13-dogfooding-summary.md" in problems
+    assert "sdist missing required file: docs/v13-release-candidate.md" in problems
     assert "sdist missing required file: docs/tasks-v13.md" in problems
     assert "sdist missing required file: docs/review-feedback.md" in problems
     assert "sdist missing required file: docs/manual-evidence.md" in problems
@@ -366,6 +367,7 @@ def _write_sdist(
                 "docs/v13-review-loop-ux-audit.md",
                 "docs/v13-release-gate.md",
                 "docs/v13-dogfooding-summary.md",
+                "docs/v13-release-candidate.md",
                 "docs/review-feedback.md",
                 "docs/review-responses.md",
                 "docs/manual-evidence.md",

@@ -876,6 +876,43 @@ def test_v13_dogfooding_summary_records_review_loop_passes() -> None:
     assert "v13-dogfooding-summary.md" in docs_readme
 
 
+def test_v13_release_candidate_guide_covers_review_loop_model() -> None:
+    content = (REPO_ROOT / "docs" / "v13-release-candidate.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Release Posture",
+        "## Supported Operating Model",
+        "## Current Evidence Summary",
+        "## Known Residual Risks",
+        "## Release Decision",
+        "Decision: GO for v13 release candidate publication.",
+        ".glassbox/releases/gbx-1393-v13-release-candidate/",
+        ".glassbox/evals/gbx-1393-v13-release-candidate/",
+        ".glassbox/releases/gbx-1392-dogfooding/",
+        "85 blocking",
+        "three advisory evidence items were explicitly skipped",
+        "changeset.review-loop-lifecycle",
+        "changeset.in-session-review-ux",
+        "39/39 capabilities covered",
+        "22/22",
+        "response-linked fixup inventory",
+        "20-item limitation cap",
+        "manual evidence",
+        "browser/dashboard evidence",
+        "accessibility evidence",
+        "No deterministic blocker remains open",
+        "automatic pull request creation",
+    ):
+        assert required_text in content
+
+    assert "docs/v13-release-candidate.md" in root_readme
+    assert "v13-release-candidate.md" in docs_readme
+
+
 def test_v12_dogfooding_summary_records_real_reviewable_change_passes() -> None:
     content = (REPO_ROOT / "docs" / "v12-dogfooding-summary.md").read_text(
         encoding="utf-8"

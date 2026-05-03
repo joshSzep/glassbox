@@ -1549,7 +1549,7 @@ Completed slice:
 
 ### GBX-1393: Publish V13 Release-Candidate Guide
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1391`, `GBX-1392`
 - Goal: publish the operator-facing v13 release-candidate narrative and final
   milestone decision
@@ -1575,6 +1575,22 @@ Completed slice:
 - Done when:
   - the v13 release candidate has a coherent guide, retained evidence, accepted
     residual-risk list, and explicit GO/NO-GO decision
+- Completed slice:
+  - Ran the non-dry-run v13 release gate with retained evidence at
+    `.glassbox/releases/gbx-1393-v13-release-candidate/summary.json`; the gate
+    passed 85 blocking stages and retained three advisory skips for provider,
+    browser/dashboard, and accessibility evidence.
+  - Added `docs/v13-release-candidate.md` with the supported review-loop
+    operating model, validation path, evidence expectations, advisory
+    evidence boundaries, residual risks, deliberate non-goals, retained
+    evidence paths, and GO decision dated 2026-05-03.
+  - Linked the guide from the root README and docs hub, added it to package
+    content validation, and covered the guide with release-candidate docs and
+    packaging tests.
+  - Preserved v13 non-claims for review approval, provider reliability,
+    accessibility certification, browser evidence, automatic staging,
+    automatic commits, automatic pushes, pull requests, merges, deployment,
+    and publication.
 
 ## V13 Release-Candidate Readiness Checklist
 

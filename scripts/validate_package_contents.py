@@ -86,6 +86,7 @@ SDIST_REQUIRED_SUFFIXES = (
     "docs/v13-review-loop-ux-audit.md",
     "docs/v13-release-gate.md",
     "docs/v13-dogfooding-summary.md",
+    "docs/v13-release-candidate.md",
     "docs/review-feedback.md",
     "docs/review-responses.md",
     "docs/manual-evidence.md",
