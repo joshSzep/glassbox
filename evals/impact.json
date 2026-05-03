@@ -253,6 +253,103 @@
             "notes": "Verification-loop or branch-search changes should run the v8 autonomy advisory replay profile plus focused tests for command outcomes, repair budgets, candidate limits, and cleanup behavior."
         },
         {
+            "rule_id": "v13-changeset-runtime",
+            "title": "Changeset lifecycle and review-loop runtime surfaces",
+            "path_globs": [
+                "src/glassbox/runtime/changeset*.py",
+                "src/glassbox/runtime/change_inventory.py",
+                "src/glassbox/runtime/commit_messages.py",
+                "src/glassbox/runtime/commit_readiness.py",
+                "src/glassbox/runtime/precommit_evidence.py",
+                "src/glassbox/runtime/review_briefs.py",
+                "src/glassbox/runtime/review_responses.py",
+                "src/glassbox/runtime/manual_evidence.py",
+                "src/glassbox/runtime/browser_evidence.py",
+                "src/glassbox/runtime/accessibility_evidence.py",
+                "tests/unit/test_changeset*.py",
+                "tests/unit/test_change_inventory.py",
+                "tests/unit/test_commit_messages.py",
+                "tests/unit/test_commit_readiness.py",
+                "tests/unit/test_precommit_evidence.py",
+                "tests/unit/test_review_briefs.py",
+                "tests/unit/test_review_responses.py",
+                "tests/unit/test_manual_evidence.py",
+                "tests/unit/test_browser_evidence.py",
+                "tests/unit/test_accessibility_evidence.py",
+                "tests/integration/test_changeset*.py",
+                "tests/integration/test_change_inventory_provenance.py",
+                "tests/integration/test_review_response_fixup_inventory.py"
+            ],
+            "owners": ["runtime.changesets", "runtime.review-loop"],
+            "capabilities": [
+                "changeset_creation",
+                "change_inventory_provenance",
+                "changeset_stale_verification_readiness",
+                "changeset_review_brief_generation",
+                "changeset_commit_readiness",
+                "changeset_command_evidence"
+            ],
+            "case_ids": ["changeset.reviewable-lifecycle"],
+            "profile_ids": ["release-candidate"],
+            "notes": "Changeset, review feedback, response, manual evidence, browser evidence, accessibility evidence, brief, readiness, or commit-prep runtime changes should pair the v12 lifecycle replay case with focused v13 unit and integration tests. Existing replay evidence proves reviewable-change lifecycle posture; v13 feedback and live evidence claims remain bounded by focused tests until v13 replay fixtures are promoted."
+        },
+        {
+            "rule_id": "v13-review-loop-store",
+            "title": "Review-loop event store, projections, and query surfaces",
+            "path_globs": [
+                "src/glassbox/store/*changeset*.py",
+                "src/glassbox/store/*review_loop*.py",
+                "src/glassbox/store/repository_review_loop.py",
+                "src/glassbox/store/repository_changesets.py",
+                "tests/integration/test_review_loop_projection.py",
+                "tests/integration/test_changeset_projection.py",
+                "tests/integration/test_projection_rebuild.py",
+                "tests/integration/test_sqlite_projections.py"
+            ],
+            "owners": ["runtime.review-loop", "store.sqlite"],
+            "capabilities": [
+                "changeset_creation",
+                "change_inventory_provenance",
+                "changeset_command_evidence"
+            ],
+            "case_ids": ["changeset.reviewable-lifecycle"],
+            "profile_ids": ["release-candidate"],
+            "notes": "Review-loop store changes must preserve canonical events as source of truth and prove projections rebuild. Use focused projection tests for v13 feedback and evidence rows; replay remains lifecycle-level evidence until v13 fixtures exist."
+        },
+        {
+            "rule_id": "v13-review-loop-surfaces",
+            "title": "Changeset review-loop CLI, API, dashboard, and generated contract surfaces",
+            "path_globs": [
+                "src/glassbox/cli/changeset_commands.py",
+                "src/glassbox/cli/parser_changesets.py",
+                "src/glassbox/web/changeset_api.py",
+                "src/glassbox/web/routes/changesets.py",
+                "frontend/components/console/changeset-console.tsx",
+                "frontend/stores/changeset-store.ts",
+                "frontend/generated/api-types.ts",
+                "frontend/generated/openapi.json",
+                "frontend/tests/changeset-console.test.tsx",
+                "frontend/tests/generated-api-types.test.ts",
+                "tests/integration/test_cli_changeset_commands.py",
+                "tests/integration/test_web_changeset_routes.py",
+                "tests/integration/test_openapi_schema.py"
+            ],
+            "owners": ["runtime.review-loop", "web.dashboard"],
+            "capabilities": [
+                "changeset_creation",
+                "changeset_review_brief_generation",
+                "changeset_commit_readiness",
+                "dashboard_actions"
+            ],
+            "case_ids": [
+                "changeset.reviewable-lifecycle",
+                "dashboard.action-approval",
+                "dashboard.action-answer"
+            ],
+            "profile_ids": ["release-candidate"],
+            "notes": "Changeset review-loop surface changes should verify CLI/API/dashboard behavior plus generated types. Dashboard and generated assets are surface contracts, not ownership authority; browser, manual, and accessibility evidence remains advisory unless a deterministic fixture explicitly promotes it."
+        },
+        {
             "rule_id": "v10-checkpoint-compaction-recovery",
             "title": "v10 checkpoint and compaction recovery surfaces",
             "path_globs": [
@@ -365,8 +462,11 @@
             "rule_id": "release-path-governance",
             "title": "Release gate, candidate, and packaging paths",
             "path_globs": [
+                "scripts/validate_v13_release_gate.py",
                 "scripts/validate_v*_release_gate.py",
                 "scripts/validate_package_contents.py",
+                "docs/tasks-v13.md",
+                "docs/v13-*.md",
                 "docs/v*-release-gate.md",
                 "docs/v*-release-candidate.md",
                 "docs/release-packaging.md"

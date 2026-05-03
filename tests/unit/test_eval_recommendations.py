@@ -363,6 +363,69 @@ def test_recommend_eval_change_impact_names_v11_release_gate() -> None:
     assert "release-candidate" in release_surface.recommended_profile_ids
 
 
+def test_recommend_eval_change_impact_routes_changeset_runtime_paths() -> None:
+    report = recommend_eval_change_impact(
+        _REPO_ROOT,
+        touched_paths=["src/glassbox/runtime/changesets.py"],
+    )
+
+    assert "v13-changeset-runtime" in report.matched_rule_ids
+    assert "src/glassbox/runtime/changesets.py" not in report.unmatched_paths
+    assert "changeset.reviewable-lifecycle" in [
+        recommendation.case_id for recommendation in report.cases
+    ]
+    assert "changeset-runtime" in [
+        recommendation.recipe_id for recommendation in report.recipes
+    ]
+    assert any(
+        group.group == "capability-derived-rule" for group in report.reason_groups
+    )
+
+
+def test_recommend_eval_change_impact_routes_review_loop_evidence_paths() -> None:
+    report = recommend_eval_change_impact(
+        _REPO_ROOT,
+        touched_paths=[
+            "src/glassbox/runtime/manual_evidence.py",
+            "src/glassbox/store/sqlite_projection_review_loop.py",
+        ],
+    )
+
+    assert report.matched_rule_ids == [
+        "v13-changeset-runtime",
+        "v13-review-loop-store",
+    ]
+    assert report.unmatched_paths == []
+    assert "changeset.reviewable-lifecycle" in [
+        recommendation.case_id for recommendation in report.cases
+    ]
+    assert "review-loop-evidence" in [
+        recommendation.recipe_id for recommendation in report.recipes
+    ]
+    assert "store-schema" in [
+        recommendation.recipe_id for recommendation in report.recipes
+    ]
+
+
+def test_recommend_eval_change_impact_routes_generated_changeset_api_types() -> None:
+    report = recommend_eval_change_impact(
+        _REPO_ROOT,
+        touched_paths=["frontend/generated/api-types.ts"],
+    )
+
+    assert report.matched_rule_ids == ["v13-review-loop-surfaces"]
+    assert report.unmatched_paths == []
+    assert "changeset-surfaces" in [
+        recommendation.recipe_id for recommendation in report.recipes
+    ]
+    assert "frontend-dashboard" in [
+        recommendation.recipe_id for recommendation in report.recipes
+    ]
+    assert "changeset.reviewable-lifecycle" in [
+        recommendation.case_id for recommendation in report.cases
+    ]
+
+
 def test_recommend_eval_change_impact_routes_policy_changes_to_approval_case(
     tmp_path: Path,
 ) -> None:

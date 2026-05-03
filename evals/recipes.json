@@ -69,6 +69,89 @@
             "notes": "Add focused backend route tests when the touched path is under src/glassbox/web."
         },
         {
+            "recipe_id": "changeset-runtime",
+            "title": "Changeset runtime checks",
+            "path_globs": [
+                "src/glassbox/runtime/changeset*.py",
+                "src/glassbox/runtime/change_inventory.py",
+                "src/glassbox/runtime/commit_messages.py",
+                "src/glassbox/runtime/commit_readiness.py",
+                "src/glassbox/runtime/precommit_evidence.py",
+                "src/glassbox/runtime/review_briefs.py",
+                "tests/unit/test_changeset*.py",
+                "tests/unit/test_change_inventory.py",
+                "tests/unit/test_commit_messages.py",
+                "tests/unit/test_commit_readiness.py",
+                "tests/unit/test_precommit_evidence.py",
+                "tests/unit/test_review_briefs.py",
+                "tests/integration/test_changeset*.py",
+                "tests/integration/test_change_inventory_provenance.py"
+            ],
+            "commands": [
+                "uv run pytest tests/unit/test_changeset_derivation.py tests/unit/test_change_inventory.py tests/unit/test_changeset_verification_readiness.py tests/unit/test_review_briefs.py tests/unit/test_commit_readiness.py tests/integration/test_cli_changeset_commands.py tests/integration/test_web_changeset_routes.py -q",
+                "uv run glassbox eval run changeset.reviewable-lifecycle --cwd ."
+            ],
+            "case_ids": ["changeset.reviewable-lifecycle"],
+            "profile_ids": ["release-candidate"],
+            "notes": "Use for local changeset lifecycle internals, inventory provenance, readiness, review briefs, and commit-prep posture. Replay evidence is lifecycle-level; focused tests remain the source for exact path and CLI/API behavior."
+        },
+        {
+            "recipe_id": "review-loop-evidence",
+            "title": "Review-loop feedback and evidence checks",
+            "path_globs": [
+                "src/glassbox/runtime/review_responses.py",
+                "src/glassbox/runtime/manual_evidence.py",
+                "src/glassbox/runtime/browser_evidence.py",
+                "src/glassbox/runtime/accessibility_evidence.py",
+                "src/glassbox/store/*review_loop*.py",
+                "src/glassbox/store/repository_review_loop.py",
+                "tests/unit/test_review_responses.py",
+                "tests/unit/test_manual_evidence.py",
+                "tests/unit/test_browser_evidence.py",
+                "tests/unit/test_accessibility_evidence.py",
+                "tests/integration/test_review_loop_projection.py",
+                "tests/integration/test_review_response_fixup_inventory.py"
+            ],
+            "commands": [
+                "uv run pytest tests/unit/test_review_responses.py tests/unit/test_manual_evidence.py tests/unit/test_browser_evidence.py tests/unit/test_accessibility_evidence.py tests/integration/test_review_loop_projection.py tests/integration/test_review_response_fixup_inventory.py -q"
+            ],
+            "case_ids": ["changeset.reviewable-lifecycle"],
+            "notes": "Use for local review feedback, response fixups, manual evidence, browser evidence, accessibility notes, redaction, and projection behavior. These are advisory review-loop checks until v13 deterministic replay fixtures are added."
+        },
+        {
+            "recipe_id": "changeset-surfaces",
+            "title": "Changeset CLI, API, dashboard, and generated type checks",
+            "path_globs": [
+                "src/glassbox/cli/changeset_commands.py",
+                "src/glassbox/cli/parser_changesets.py",
+                "src/glassbox/web/changeset_api.py",
+                "src/glassbox/web/routes/changesets.py",
+                "frontend/components/console/changeset-console.tsx",
+                "frontend/stores/changeset-store.ts",
+                "frontend/generated/api-types.ts",
+                "frontend/generated/openapi.json",
+                "frontend/tests/changeset-console.test.tsx",
+                "frontend/tests/generated-api-types.test.ts",
+                "tests/integration/test_cli_changeset_commands.py",
+                "tests/integration/test_web_changeset_routes.py",
+                "tests/integration/test_openapi_schema.py"
+            ],
+            "commands": [
+                "uv run pytest tests/integration/test_cli_changeset_commands.py tests/integration/test_web_changeset_routes.py tests/integration/test_openapi_schema.py -q",
+                "pnpm --dir frontend lint",
+                "pnpm --dir frontend typecheck",
+                "pnpm --dir frontend test -- tests/changeset-console.test.tsx tests/generated-api-types.test.ts",
+                "pnpm --dir frontend build"
+            ],
+            "case_ids": [
+                "changeset.reviewable-lifecycle",
+                "dashboard.action-approval",
+                "dashboard.action-answer"
+            ],
+            "profile_ids": ["release-candidate"],
+            "notes": "Use when operator-visible review-loop surfaces or generated API contracts change. Keep browser and accessibility evidence advisory unless a later deterministic fixture promotes them."
+        },
+        {
             "recipe_id": "runtime-events",
             "title": "Runtime event contract checks",
             "path_globs": [

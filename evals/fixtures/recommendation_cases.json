@@ -54,6 +54,46 @@
             "expected_recipe_ids": ["frontend-dashboard"]
         },
         {
+            "case_id": "recommendation.changeset-runtime-path",
+            "title": "Changeset runtime path recommendation includes lifecycle and focused recipes",
+            "touched_paths": [
+                "src/glassbox/runtime/changesets.py"
+            ],
+            "expected_case_ids": ["changeset.reviewable-lifecycle"],
+            "expected_profile_ids": ["release-candidate"],
+            "expected_recipe_ids": ["changeset-runtime"],
+            "expected_reason_groups": [
+                "direct-path",
+                "capability-derived-rule",
+                "stage-derived-profile"
+            ]
+        },
+        {
+            "case_id": "recommendation.review-loop-evidence-path",
+            "title": "Review-loop evidence path recommendation includes focused evidence recipes",
+            "touched_paths": [
+                "src/glassbox/runtime/manual_evidence.py",
+                "src/glassbox/store/sqlite_projection_review_loop.py"
+            ],
+            "expected_case_ids": ["changeset.reviewable-lifecycle"],
+            "expected_profile_ids": ["release-candidate"],
+            "expected_recipe_ids": ["review-loop-evidence", "store-schema"]
+        },
+        {
+            "case_id": "recommendation.generated-changeset-api-types",
+            "title": "Generated changeset API types route to dashboard and surface checks",
+            "touched_paths": [
+                "frontend/generated/api-types.ts"
+            ],
+            "expected_case_ids": [
+                "changeset.reviewable-lifecycle",
+                "dashboard.action-approval",
+                "dashboard.action-answer"
+            ],
+            "expected_profile_ids": ["release-candidate"],
+            "expected_recipe_ids": ["changeset-surfaces", "frontend-dashboard"]
+        },
+        {
             "case_id": "recommendation.provider-path",
             "title": "Provider posture path recommendation keeps live canary advisory",
             "touched_paths": ["docs/providers.md"],

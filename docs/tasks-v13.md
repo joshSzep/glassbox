@@ -871,7 +871,7 @@ Completed in this slice:
 
 ### GBX-1350: Expand Topology Impact Rules For Review-Loop Surfaces
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1322`
 - Goal: close known topology recommendation gaps for review-loop and changeset
   internals
@@ -893,6 +893,24 @@ Completed in this slice:
 - Done when:
   - review-loop and changeset internal changes receive useful path-aware
     verification recommendations
+
+Completed in this slice:
+
+- Added v13 impact rules for changeset runtime internals, review-loop
+  runtime/evidence helpers, SQLite review-loop projections, CLI/API changeset
+  routes, dashboard changeset surfaces, generated API types, v13 docs, and
+  release scripts.
+- Added focused verification recipes for changeset runtime, review-loop
+  evidence, and CLI/API/dashboard/generated changeset surfaces, with advisory
+  notes that v12 replay proves lifecycle posture while focused v13 tests remain
+  authority for feedback and live evidence details.
+- Added recommendation unit and fixture coverage proving
+  `src/glassbox/runtime/changesets.py`, manual-evidence/projection paths, and
+  `frontend/generated/api-types.ts` no longer fall through to vague fallback
+  guidance.
+- Updated workspace topology docs with review-loop path guidance and explicit
+  freshness guidance for source manifests, lockfiles, generated API outputs,
+  `evals/impact.json`, and `evals/recipes.json`.
 
 ### GBX-1351: Detect Stale Verification After Review Fixups
 

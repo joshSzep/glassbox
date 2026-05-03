@@ -77,6 +77,32 @@ These recommendations are preview guidance. They are printed with
 limitations. Stale topology uses degraded confidence and tells the operator to
 rebuild the local snapshot before treating the guidance as current.
 
+## Review-Loop Path Guidance
+
+The repository-owned impact and recipe manifests include explicit review-loop
+coverage for changeset runtime internals, review feedback, response fixups,
+manual evidence, browser evidence, accessibility evidence, SQLite review-loop
+projections, CLI/API routes, dashboard changeset surfaces, generated API types,
+docs, and release-gate scripts.
+
+These rules are explainable path guidance. They can point operators toward
+focused `pytest`, frontend, and replay commands for review-loop changes, but
+they are not ownership facts and they do not claim human approval, publication
+readiness, or accessibility conformance. When a rule cites v12 lifecycle replay
+evidence, that replay case proves the existing reviewable-change lifecycle
+only; focused v13 tests remain the authority for review feedback and live
+evidence behavior until v13 replay fixtures are promoted.
+
+If source manifests, lockfiles, generated API outputs, `evals/impact.json`, or
+`evals/recipes.json` change, treat older topology and recommendation output as
+metadata-derived guidance that may be stale. Rebuild topology before leaning on
+component, package, generated-output, or ownership hints:
+
+```bash
+glassbox repo topology build --cwd .
+glassbox eval recommend PATH --cwd .
+```
+
 ## Single-Package Repositories
 
 Small repositories should not be noisy. A Python-only or frontend-only project
