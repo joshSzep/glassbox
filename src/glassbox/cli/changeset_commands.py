@@ -570,6 +570,19 @@ def _print_changeset_detail(
                 f"  {requirement.state.value}: {requirement.check_name} - "
                 f"{requirement.reason}"
             )
+    command_evidence = detail.command_evidence
+    print(
+        "Command evidence: "
+        f"{command_evidence.total_count} attempts "
+        f"({command_evidence.verification_count} verification, "
+        f"{command_evidence.failed_count} failed, "
+        f"{command_evidence.risky_count} risky)"
+    )
+    for item in command_evidence.items[:5]:
+        print(
+            f"  {item.purpose}/{item.status}: {item.summary} "
+            f"(attempt {item.tool_attempt_id[:8]})"
+        )
     print(f"Review briefs: {len(detail.review_briefs)}")
     print(f"Readiness decisions: {len(detail.readiness)}")
     _print_limitations(detail.limitations)

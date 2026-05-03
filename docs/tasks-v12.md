@@ -1578,7 +1578,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1283: Attach Command Evidence To Review Briefs And Changesets
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1241`, `GBX-1281`, `GBX-1282`
 - Goal: make command evidence reviewable beside verification and readiness
   summaries
@@ -1597,6 +1597,20 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - reviewers can inspect which commands support the change and how trustworthy
     they are
+- Completion notes:
+  - Added a changeset command-evidence summary derived from retained
+    `ToolAttemptHeartbeat` projection records, scoped to the changeset task
+    when available and otherwise to session command evidence.
+  - Surfaced purpose, status, verification relevance, failed/risky counts,
+    redacted environment posture, output artifact references, policy summaries,
+    limitations, and safe tool-attempt inspection commands through
+    `glassbox changeset show`, changeset API detail responses, generated
+    dashboard types, and the dashboard changeset review panel.
+  - Added a command-evidence section and `command` evidence references to
+    deterministic review brief artifacts without including raw stdout/stderr.
+  - Updated [command-evidence.md](./command-evidence.md) and
+    [review-briefs.md](./review-briefs.md) to document changeset scoping,
+    failed-command visibility, redacted environment posture, and non-claims.
 
 ---
 

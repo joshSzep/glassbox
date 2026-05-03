@@ -1535,6 +1535,172 @@
         "title": "ChangesetArchiveRequest",
         "type": "object"
       },
+      "ChangesetCommandEvidenceItemResponse": {
+        "properties": {
+          "environment_captured": {
+            "title": "Environment Captured",
+            "type": "boolean"
+          },
+          "local_only": {
+            "title": "Local Only",
+            "type": "boolean"
+          },
+          "output_artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Artifact Id"
+          },
+          "policy_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Summary"
+          },
+          "purpose": {
+            "title": "Purpose",
+            "type": "string"
+          },
+          "redaction_notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Redaction Notes",
+            "type": "array"
+          },
+          "review_relevance": {
+            "title": "Review Relevance",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "supports_verification": {
+            "title": "Supports Verification",
+            "type": "boolean"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "tool_attempt_id": {
+            "title": "Tool Attempt Id",
+            "type": "string"
+          },
+          "tool_name": {
+            "title": "Tool Name",
+            "type": "string"
+          },
+          "toolchain_count": {
+            "title": "Toolchain Count",
+            "type": "integer"
+          },
+          "turn_id": {
+            "title": "Turn Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tool_attempt_id",
+          "turn_id",
+          "tool_name",
+          "status",
+          "purpose",
+          "review_relevance",
+          "supports_verification",
+          "summary",
+          "environment_captured",
+          "toolchain_count",
+          "redaction_notes",
+          "local_only"
+        ],
+        "title": "ChangesetCommandEvidenceItemResponse",
+        "type": "object"
+      },
+      "ChangesetCommandEvidenceSummaryResponse": {
+        "properties": {
+          "artifact_count": {
+            "title": "Artifact Count",
+            "type": "integer"
+          },
+          "environment_captured_count": {
+            "title": "Environment Captured Count",
+            "type": "integer"
+          },
+          "failed_count": {
+            "title": "Failed Count",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ChangesetCommandEvidenceItemResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "risky_count": {
+            "title": "Risky Count",
+            "type": "integer"
+          },
+          "safe_next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safe Next Actions",
+            "type": "array"
+          },
+          "total_count": {
+            "title": "Total Count",
+            "type": "integer"
+          },
+          "verification_count": {
+            "title": "Verification Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total_count",
+          "verification_count",
+          "failed_count",
+          "risky_count",
+          "environment_captured_count",
+          "artifact_count",
+          "items",
+          "limitations",
+          "safe_next_actions"
+        ],
+        "title": "ChangesetCommandEvidenceSummaryResponse",
+        "type": "object"
+      },
       "ChangesetCreateRequest": {
         "properties": {
           "branch_search_id": {
@@ -1633,6 +1799,9 @@
           "changeset": {
             "$ref": "#/components/schemas/ChangesetSummaryResponse"
           },
+          "command_evidence": {
+            "$ref": "#/components/schemas/ChangesetCommandEvidenceSummaryResponse"
+          },
           "inventory": {
             "anyOf": [
               {
@@ -1698,6 +1867,7 @@
           "inventory_status",
           "review_briefs",
           "readiness",
+          "command_evidence",
           "limitations",
           "safe_next_actions"
         ],

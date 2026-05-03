@@ -29,6 +29,7 @@ ReviewBriefEvidenceKind = Literal[
     "inventory",
     "provenance",
     "verification",
+    "command",
     "branch_candidate",
     "risk",
     "artifact",
@@ -105,6 +106,7 @@ class ReviewBriefArtifact(BaseModel):
     affected_subsystems: ReviewBriefSection | None = None
     provenance: ReviewBriefSection
     verification: ReviewBriefSection
+    command_evidence: ReviewBriefSection
     branch_candidate_rationale: ReviewBriefSection | None = None
     risks: ReviewBriefSection
     non_claims: list[str] = Field(default_factory=list, min_length=1, max_length=20)
@@ -169,6 +171,7 @@ def review_brief_markdown(artifact: ReviewBriefArtifact) -> str:
         [
             ("Provenance", _section_markdown(artifact.provenance)),
             ("Verification", _section_markdown(artifact.verification)),
+            ("Command Evidence", _section_markdown(artifact.command_evidence)),
         ]
     )
     if artifact.branch_candidate_rationale is not None:

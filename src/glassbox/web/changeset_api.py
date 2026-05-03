@@ -93,6 +93,36 @@ class ChangesetInventoryStatusResponse(BaseModel):
     safe_next_actions: list[str]
 
 
+class ChangesetCommandEvidenceItemResponse(BaseModel):
+    tool_attempt_id: str
+    turn_id: str
+    task_id: str | None = None
+    tool_name: str
+    status: str
+    purpose: str
+    review_relevance: str
+    supports_verification: bool
+    summary: str
+    output_artifact_id: str | None = None
+    environment_captured: bool
+    toolchain_count: int
+    redaction_notes: list[str]
+    policy_summary: str | None = None
+    local_only: bool
+
+
+class ChangesetCommandEvidenceSummaryResponse(BaseModel):
+    total_count: int
+    verification_count: int
+    failed_count: int
+    risky_count: int
+    environment_captured_count: int
+    artifact_count: int
+    items: list[ChangesetCommandEvidenceItemResponse]
+    limitations: list[str]
+    safe_next_actions: list[str]
+
+
 class ChangesetVerificationPostureResponse(BaseModel):
     session_id: str
     changeset_id: str
@@ -158,6 +188,7 @@ class ChangesetDetailResponse(BaseModel):
     verification_posture: ChangesetVerificationPostureResponse | None = None
     review_briefs: list[ChangesetReviewBriefResponse]
     readiness: list[ChangesetReadinessResponse]
+    command_evidence: ChangesetCommandEvidenceSummaryResponse
     limitations: list[str]
     safe_next_actions: list[str]
 
@@ -446,6 +477,38 @@ def build_changeset_detail_response(
         readiness=[
             build_changeset_readiness_response(item) for item in detail.readiness
         ],
+        command_evidence=ChangesetCommandEvidenceSummaryResponse(
+            total_count=detail.command_evidence.total_count,
+            verification_count=detail.command_evidence.verification_count,
+            failed_count=detail.command_evidence.failed_count,
+            risky_count=detail.command_evidence.risky_count,
+            environment_captured_count=(
+                detail.command_evidence.environment_captured_count
+            ),
+            artifact_count=detail.command_evidence.artifact_count,
+            items=[
+                ChangesetCommandEvidenceItemResponse(
+                    tool_attempt_id=item.tool_attempt_id,
+                    turn_id=item.turn_id,
+                    task_id=item.task_id,
+                    tool_name=item.tool_name,
+                    status=item.status,
+                    purpose=item.purpose,
+                    review_relevance=item.review_relevance,
+                    supports_verification=item.supports_verification,
+                    summary=item.summary,
+                    output_artifact_id=_optional_str(item.output_artifact_id),
+                    environment_captured=item.environment_captured,
+                    toolchain_count=item.toolchain_count,
+                    redaction_notes=item.redaction_notes,
+                    policy_summary=item.policy_summary,
+                    local_only=item.local_only,
+                )
+                for item in detail.command_evidence.items
+            ],
+            limitations=detail.command_evidence.limitations,
+            safe_next_actions=detail.command_evidence.safe_next_actions,
+        ),
         limitations=detail.limitations,
         safe_next_actions=detail.safe_next_actions,
     )

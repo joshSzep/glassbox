@@ -862,6 +862,37 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
         verification_id: "verification-1",
       },
     ],
+    command_evidence: {
+      artifact_count: 1,
+      environment_captured_count: 1,
+      failed_count: 0,
+      items: [
+        {
+          environment_captured: true,
+          local_only: true,
+          output_artifact_id: "artifact-command-1",
+          policy_summary: null,
+          purpose: "test",
+          redaction_notes: ["raw environment is not stored"],
+          review_relevance: "verification",
+          status: "succeeded",
+          summary: "Targeted dashboard checks passed.",
+          supports_verification: true,
+          task_id: "task-1",
+          tool_attempt_id: "attempt-1",
+          tool_name: "run_command",
+          toolchain_count: 2,
+          turn_id: "turn-1",
+        },
+      ],
+      limitations: [],
+      risky_count: 0,
+      safe_next_actions: [
+        `glassbox session tool-attempt inspect attempt-1 --session ${defaultSessionId} --cwd .`,
+      ],
+      total_count: 1,
+      verification_count: 1,
+    },
     review_briefs:
       latestBriefId === null
         ? []

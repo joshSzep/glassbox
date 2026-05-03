@@ -49,6 +49,7 @@ from glassbox.core import TaskPlanStatus
 from glassbox.core import TaskRecord
 from glassbox.core import TaskVerificationId
 from glassbox.core import TaskVerificationLedgerRecord
+from glassbox.core import ToolAttemptRecord
 from glassbox.core import new_changeset_id
 from glassbox.runtime.change_inventory import CHANGE_INVENTORY_ARTIFACT_SCHEMA_VERSION
 from glassbox.runtime.change_inventory import ChangeInventoryArtifact
@@ -161,6 +162,14 @@ class ChangesetRepository(ChangesetDerivationRepository, Protocol):
         task_id: TaskId,
     ) -> list[TaskVerificationLedgerRecord]: ...
 
+    def list_tool_attempts(
+        self,
+        session_id: SessionId,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[ToolAttemptRecord]: ...
+
     def read_session_events(self, session_id: SessionId) -> list[EventEnvelope]: ...
 
 
@@ -188,6 +197,44 @@ class ChangesetInventoryStatus(BaseModel):
     safe_next_actions: list[str] = Field(default_factory=list)
 
 
+class ChangesetCommandEvidenceItem(BaseModel):
+    """One bounded command-evidence row relevant to a changeset."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tool_attempt_id: str
+    turn_id: str
+    task_id: str | None = None
+    tool_name: str
+    status: str
+    purpose: str
+    review_relevance: str
+    supports_verification: bool
+    summary: str
+    output_artifact_id: ArtifactId | None = None
+    environment_captured: bool = False
+    toolchain_count: int = Field(default=0, ge=0)
+    redaction_notes: list[str] = Field(default_factory=list)
+    policy_summary: str | None = None
+    local_only: bool = False
+
+
+class ChangesetCommandEvidenceSummary(BaseModel):
+    """Bounded command-evidence summary for changeset review surfaces."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    total_count: int = Field(default=0, ge=0)
+    verification_count: int = Field(default=0, ge=0)
+    failed_count: int = Field(default=0, ge=0)
+    risky_count: int = Field(default=0, ge=0)
+    environment_captured_count: int = Field(default=0, ge=0)
+    artifact_count: int = Field(default=0, ge=0)
+    items: list[ChangesetCommandEvidenceItem] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    safe_next_actions: list[str] = Field(default_factory=list)
+
+
 class ChangesetDetailView(BaseModel):
     """Read model for one changeset and its currently retained evidence refs."""
 
@@ -200,6 +247,7 @@ class ChangesetDetailView(BaseModel):
     inventory_status: ChangesetInventoryStatus
     review_briefs: list[ChangesetReviewBriefRecord] = Field(default_factory=list)
     readiness: list[ChangesetReadinessRecord] = Field(default_factory=list)
+    command_evidence: ChangesetCommandEvidenceSummary
     limitations: list[str] = Field(default_factory=list)
     safe_next_actions: list[str] = Field(default_factory=list)
 
@@ -573,6 +621,10 @@ class ChangesetQueryService:
             inventory,
             inventory_status,
         )
+        command_evidence = _changeset_command_evidence_summary(
+            self._repository,
+            changeset,
+        )
         return ChangesetDetailView(
             changeset=changeset,
             sources=sources,
@@ -581,6 +633,7 @@ class ChangesetQueryService:
             inventory_status=inventory_status,
             review_briefs=review_briefs,
             readiness=readiness,
+            command_evidence=command_evidence,
             limitations=_detail_limitations(
                 changeset,
                 sources,
@@ -857,12 +910,17 @@ class ChangesetReviewBriefService:
             self._repository,
             self._artifact_repository,
         ).preview_plan(changeset.changeset_id, workspace_root)
+        command_evidence = _changeset_command_evidence_summary(
+            self._repository,
+            changeset,
+        )
         limitations = _review_brief_limitations(
             sources=sources,
             inventory=inventory,
             inventory_status=inventory_status,
             inventory_limitations=inventory_limitations,
             verification_plan=verification_plan,
+            command_evidence=command_evidence,
         )
         review_state, blockers = _review_readiness_state(
             inventory_status=inventory_status,
@@ -877,6 +935,7 @@ class ChangesetReviewBriefService:
             inventory_status=inventory_status,
             verification_posture=verification_posture,
             verification_plan=verification_plan,
+            command_evidence=command_evidence,
             limitations=limitations,
         )
         content = review_brief_artifact_json(brief)
@@ -1681,6 +1740,128 @@ def _detail_safe_next_actions(
     return list(dict.fromkeys(actions))
 
 
+def _changeset_command_evidence_summary(
+    repository: ChangesetRepository,
+    changeset: ChangesetRecord,
+) -> ChangesetCommandEvidenceSummary:
+    attempts = [
+        attempt
+        for attempt in repository.list_tool_attempts(changeset.session_id, limit=200)
+        if attempt.command_purpose is not None
+    ]
+    if changeset.task_id is not None:
+        relevant = [
+            attempt for attempt in attempts if attempt.task_id == changeset.task_id
+        ]
+        scope = f"task {changeset.task_id}"
+    else:
+        relevant = attempts
+        scope = f"session {changeset.session_id}"
+    limitations: list[str] = []
+    if not relevant:
+        limitations.append(f"no retained command evidence matched {scope}")
+    if len(relevant) < len(attempts) and changeset.task_id is not None:
+        limitations.append(
+            "session has additional command evidence outside this changeset task"
+        )
+    ordered = sorted(
+        relevant,
+        key=lambda attempt: (
+            not _command_attempt_is_review_critical(attempt),
+            -attempt.last_sequence,
+        ),
+    )
+    visible = ordered[:12]
+    if len(ordered) > len(visible):
+        limitations.append(
+            f"{len(ordered) - len(visible)} additional command attempt(s) omitted"
+        )
+    items = [_command_evidence_item(attempt) for attempt in visible]
+    return ChangesetCommandEvidenceSummary(
+        total_count=len(relevant),
+        verification_count=sum(
+            1 for attempt in relevant if attempt.command_supports_verification
+        ),
+        failed_count=sum(1 for attempt in relevant if attempt.status.value == "failed"),
+        risky_count=sum(
+            1 for attempt in relevant if _command_attempt_is_risky(attempt)
+        ),
+        environment_captured_count=sum(
+            1 for attempt in relevant if attempt.command_environment is not None
+        ),
+        artifact_count=sum(
+            1 for attempt in relevant if attempt.output_artifact_id is not None
+        ),
+        items=items,
+        limitations=list(dict.fromkeys(limitations)),
+        safe_next_actions=[
+            (
+                "glassbox session tool-attempt inspect "
+                f"{item.tool_attempt_id} --session {changeset.session_id} --cwd ."
+            )
+            for item in items[:5]
+        ],
+    )
+
+
+def _command_evidence_item(attempt: ToolAttemptRecord) -> ChangesetCommandEvidenceItem:
+    environment = attempt.command_environment
+    purpose = (
+        attempt.command_purpose.value
+        if attempt.command_purpose is not None
+        else "unknown"
+    )
+    relevance = (
+        attempt.command_review_relevance.value
+        if attempt.command_review_relevance is not None
+        else "unknown"
+    )
+    summary = (
+        attempt.message or attempt.command_purpose_reason or "retained command attempt"
+    )
+    policy_summary = attempt.retry_policy_reason
+    return ChangesetCommandEvidenceItem(
+        tool_attempt_id=str(attempt.tool_attempt_id),
+        turn_id=str(attempt.turn_id),
+        task_id=str(attempt.task_id) if attempt.task_id is not None else None,
+        tool_name=attempt.tool_name,
+        status=attempt.status.value,
+        purpose=purpose,
+        review_relevance=relevance,
+        supports_verification=bool(attempt.command_supports_verification),
+        summary=summary,
+        output_artifact_id=attempt.output_artifact_id,
+        environment_captured=environment is not None,
+        toolchain_count=len(environment.toolchains) if environment is not None else 0,
+        redaction_notes=environment.redaction_notes if environment is not None else [],
+        policy_summary=policy_summary,
+        local_only=environment is not None or attempt.output_artifact_id is not None,
+    )
+
+
+def _command_attempt_is_review_critical(attempt: ToolAttemptRecord) -> bool:
+    return (
+        attempt.status.value == "failed"
+        or bool(attempt.command_supports_verification)
+        or _command_attempt_is_risky(attempt)
+    )
+
+
+def _command_attempt_is_risky(attempt: ToolAttemptRecord) -> bool:
+    purpose = (
+        attempt.command_purpose.value if attempt.command_purpose is not None else None
+    )
+    relevance = (
+        attempt.command_review_relevance.value
+        if attempt.command_review_relevance is not None
+        else None
+    )
+    return purpose in {"publish", "deploy", "dangerous"} or relevance in {
+        "release_or_remote_mutation",
+        "cleanup_or_destructive",
+    }
+
+
 def _review_brief_artifact(
     *,
     changeset: ChangesetRecord,
@@ -1690,6 +1871,7 @@ def _review_brief_artifact(
     inventory_status: ChangesetInventoryStatus,
     verification_posture: ChangesetVerificationPostureRecord | None,
     verification_plan: ChangesetVerificationPlanPreview,
+    command_evidence: ChangesetCommandEvidenceSummary,
     limitations: list[str],
 ) -> ReviewBriefArtifact:
     return ReviewBriefArtifact(
@@ -1702,6 +1884,7 @@ def _review_brief_artifact(
             sources,
             inventory_record,
             verification_posture,
+            command_evidence,
         ),
         objective=changeset.objective,
         change_summary=_review_brief_change_summary(changeset),
@@ -1716,6 +1899,7 @@ def _review_brief_artifact(
             verification_posture,
             verification_plan,
         ),
+        command_evidence=_review_brief_command_evidence_section(command_evidence),
         branch_candidate_rationale=_review_brief_branch_candidate_section(
             changeset,
             sources,
@@ -1931,6 +2115,37 @@ def _review_brief_verification_section(
     return ReviewBriefSection(title="Verification", body=body, evidence_refs=refs)
 
 
+def _review_brief_command_evidence_section(
+    command_evidence: ChangesetCommandEvidenceSummary,
+) -> ReviewBriefSection:
+    if command_evidence.total_count == 0:
+        body = "No retained command evidence matched this changeset."
+    else:
+        body = (
+            f"Command evidence includes {command_evidence.total_count} retained "
+            f"attempt(s): {command_evidence.verification_count} verification, "
+            f"{command_evidence.failed_count} failed, "
+            f"{command_evidence.risky_count} publish/deploy/destructive-risk, "
+            f"{command_evidence.environment_captured_count} with redacted "
+            "environment posture, and "
+            f"{command_evidence.artifact_count} with output artifact references."
+        )
+    refs = [
+        ReviewBriefEvidenceRef(
+            kind="command",
+            identifier=item.tool_attempt_id,
+            artifact_id=item.output_artifact_id,
+            summary=(
+                f"{item.purpose}/{item.status}: {item.summary}; "
+                f"environment captured {item.environment_captured}"
+            ),
+            local_only=item.local_only,
+        )
+        for item in command_evidence.items[:8]
+    ]
+    return ReviewBriefSection(title="Command Evidence", body=body, evidence_refs=refs)
+
+
 def _review_brief_branch_candidate_section(
     changeset: ChangesetRecord,
     sources: list[ChangesetSourceRecord],
@@ -2027,10 +2242,13 @@ def _review_brief_local_only(
     sources: list[ChangesetSourceRecord],
     inventory_record: ChangesetInventoryRecord | None,
     verification_posture: ChangesetVerificationPostureRecord | None,
+    command_evidence: ChangesetCommandEvidenceSummary,
 ) -> bool:
     return (
         inventory_record is not None
         or verification_posture is not None
+        or command_evidence.environment_captured_count > 0
+        or command_evidence.artifact_count > 0
         or any(source.artifact_id is not None for source in sources)
     )
 
@@ -2042,6 +2260,7 @@ def _review_brief_limitations(
     inventory_status: ChangesetInventoryStatus,
     inventory_limitations: list[str],
     verification_plan: ChangesetVerificationPlanPreview,
+    command_evidence: ChangesetCommandEvidenceSummary,
 ) -> list[str]:
     limitations = [
         source.limitation for source in sources if source.limitation is not None
@@ -2052,6 +2271,7 @@ def _review_brief_limitations(
     if inventory is not None:
         limitations.extend(inventory.limitations)
     limitations.extend(verification_plan.limitations)
+    limitations.extend(command_evidence.limitations)
     if verification_plan.readiness.state != ChangesetVerificationState.PASSED:
         limitations.append(
             f"verification readiness is {verification_plan.readiness.state.value}"

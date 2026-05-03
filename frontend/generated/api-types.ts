@@ -1939,6 +1939,60 @@ export interface components {
       /** Replacement Changeset Id */
       replacement_changeset_id?: string | null;
     };
+    /** ChangesetCommandEvidenceItemResponse */
+    ChangesetCommandEvidenceItemResponse: {
+      /** Environment Captured */
+      environment_captured: boolean;
+      /** Local Only */
+      local_only: boolean;
+      /** Output Artifact Id */
+      output_artifact_id?: string | null;
+      /** Policy Summary */
+      policy_summary?: string | null;
+      /** Purpose */
+      purpose: string;
+      /** Redaction Notes */
+      redaction_notes: string[];
+      /** Review Relevance */
+      review_relevance: string;
+      /** Status */
+      status: string;
+      /** Summary */
+      summary: string;
+      /** Supports Verification */
+      supports_verification: boolean;
+      /** Task Id */
+      task_id?: string | null;
+      /** Tool Attempt Id */
+      tool_attempt_id: string;
+      /** Tool Name */
+      tool_name: string;
+      /** Toolchain Count */
+      toolchain_count: number;
+      /** Turn Id */
+      turn_id: string;
+    };
+    /** ChangesetCommandEvidenceSummaryResponse */
+    ChangesetCommandEvidenceSummaryResponse: {
+      /** Artifact Count */
+      artifact_count: number;
+      /** Environment Captured Count */
+      environment_captured_count: number;
+      /** Failed Count */
+      failed_count: number;
+      /** Items */
+      items: components["schemas"]["ChangesetCommandEvidenceItemResponse"][];
+      /** Limitations */
+      limitations: string[];
+      /** Risky Count */
+      risky_count: number;
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+      /** Total Count */
+      total_count: number;
+      /** Verification Count */
+      verification_count: number;
+    };
     /** ChangesetCreateRequest */
     ChangesetCreateRequest: {
       /** Branch Search Id */
@@ -1968,6 +2022,7 @@ export interface components {
     /** ChangesetDetailResponse */
     ChangesetDetailResponse: {
       changeset: components["schemas"]["ChangesetSummaryResponse"];
+      command_evidence: components["schemas"]["ChangesetCommandEvidenceSummaryResponse"];
       inventory?: components["schemas"]["ChangesetInventoryResponse"] | null;
       inventory_status: components["schemas"]["ChangesetInventoryStatusResponse"];
       /** Limitations */

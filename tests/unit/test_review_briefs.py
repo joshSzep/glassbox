@@ -51,6 +51,7 @@ def test_review_brief_artifact_contract_and_render_targets() -> None:
     assert "Affected Subsystems" in markdown
     assert "runtime package" in markdown
     assert "Verification" in markdown
+    assert "Command Evidence" in markdown
     assert "Reviewer Checklist" in markdown
     assert "Safe Inspection Commands" in markdown
     assert '"artifact_kind": "changeset_review_brief"' in raw_json
@@ -166,6 +167,19 @@ def _brief(
                 )
             ],
         ),
+        command_evidence=ReviewBriefSection(
+            title="Command Evidence",
+            body="One retained command supports verification.",
+            evidence_refs=[
+                ReviewBriefEvidenceRef(
+                    kind="command",
+                    identifier="attempt-1",
+                    artifact_id=new_artifact_id(),
+                    summary="test/failed: retained command evidence.",
+                    local_only=True,
+                )
+            ],
+        ),
         risks=ReviewBriefSection(
             title="Risks",
             body="Medium advisory risk remains until verification is fresh.",
@@ -240,6 +254,10 @@ class _FakeReviewBriefRepository:
 
     def list_task_verification_ledger(self, session_id, task_id):
         del session_id, task_id
+        return []
+
+    def list_tool_attempts(self, session_id, *, limit=None, offset=0):
+        del session_id, limit, offset
         return []
 
     def read_session_events(self, session_id):

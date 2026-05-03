@@ -230,6 +230,7 @@ function ChangesetDetail({
         posture={detail.detail.verification_posture}
         verificationPlan={verificationPlan}
       />
+      <CommandEvidencePanel detail={detail.detail} />
       <CommitPreparationPanel detail={detail} />
       {branchCandidate ? <CandidateAdoptionPanel detail={detail} /> : null}
       <Section title="Brief Artifacts">
@@ -398,6 +399,67 @@ function CandidateAdoptionPanel({ detail }: { detail: ChangesetDetailState }) {
           </div>
         ) : null}
         <p className="text-xs text-muted-foreground">{mutationClaim}</p>
+      </div>
+    </Section>
+  );
+}
+
+function CommandEvidencePanel({ detail }: { detail: NonNullable<ChangesetDetailState["detail"]> }) {
+  const evidence = detail.command_evidence;
+  return (
+    <Section title="Command Evidence">
+      <div className="grid gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={evidence.verification_count > 0 ? "success" : "muted"}>
+            {evidence.verification_count} verification
+          </Badge>
+          <Badge variant={evidence.failed_count > 0 ? "warning" : "muted"}>
+            {evidence.failed_count} failed
+          </Badge>
+          <Badge variant={evidence.risky_count > 0 ? "warning" : "muted"}>
+            {evidence.risky_count} risky
+          </Badge>
+          <Badge variant="outline">{evidence.environment_captured_count} environment</Badge>
+        </div>
+        {evidence.items.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No retained command attempts are linked to this changeset.
+          </p>
+        ) : (
+          <DataList density="compact">
+            {evidence.items.slice(0, 6).map((item) => (
+              <DataListItem key={item.tool_attempt_id}>
+                <DataListLabel>
+                  {item.purpose} - {item.status}
+                </DataListLabel>
+                <DataListMeta>{item.summary}</DataListMeta>
+                <DataListMeta>
+                  {item.tool_name} attempt {item.tool_attempt_id} - {item.review_relevance}
+                  {item.output_artifact_id ? ` - artifact ${item.output_artifact_id}` : ""}
+                </DataListMeta>
+                {item.environment_captured ? (
+                  <DataListMeta>
+                    Environment captured with {item.toolchain_count} toolchain
+                    {item.toolchain_count === 1 ? "" : "s"}
+                  </DataListMeta>
+                ) : null}
+                {item.policy_summary ? <DataListMeta>{item.policy_summary}</DataListMeta> : null}
+              </DataListItem>
+            ))}
+          </DataList>
+        )}
+        {evidence.safe_next_actions.length > 0 ? (
+          <ul className="grid gap-2 text-console text-muted-foreground">
+            {evidence.safe_next_actions.map((action) => (
+              <li className="break-all" key={action}>
+                {action}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {evidence.limitations.length > 0 ? (
+          <p className="text-xs text-muted-foreground">{evidence.limitations.join("; ")}</p>
+        ) : null}
       </div>
     </Section>
   );

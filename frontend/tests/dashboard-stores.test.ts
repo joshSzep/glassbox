@@ -1508,6 +1508,17 @@ function makeChangesetDetail(
     },
     limitations: ["no structured change inventory is attached yet; inspect sources first"],
     readiness: [],
+    command_evidence: {
+      artifact_count: 0,
+      environment_captured_count: 0,
+      failed_count: 0,
+      items: [],
+      limitations: ["no retained command evidence matched task task-1"],
+      risky_count: 0,
+      safe_next_actions: [],
+      total_count: 0,
+      verification_count: 0,
+    },
     review_briefs: [],
     safe_next_actions: [`glassbox changeset show ${changesetId} --cwd .`],
     sources: [

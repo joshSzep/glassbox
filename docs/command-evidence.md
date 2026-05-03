@@ -44,6 +44,16 @@ They appear in `glassbox session tool-attempts`, `glassbox session
 tool-attempt inspect`, `glassbox session status`, and session API payloads when
 the original tool was a command tool.
 
+Changeset review surfaces also derive a bounded command-evidence summary from
+retained tool attempts. `glassbox changeset show`, `GET /changesets/{id}`, the
+dashboard changeset detail view, and generated review briefs list important
+command attempts with purpose, result, verification relevance, redacted
+environment posture, output artifact references, and policy retry summaries
+when retained. The summary is scoped to the changeset task when the changeset
+has one; otherwise it uses session command evidence. It keeps failed commands
+visible even if later verification passes, and it never copies raw stdout or
+stderr into the changeset or brief.
+
 ## Environment And Drift
 
 For verification and local package/artifact commands, Glassbox also records a

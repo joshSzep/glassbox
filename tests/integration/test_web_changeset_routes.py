@@ -7,6 +7,10 @@ from pathlib import Path
 
 import httpx
 
+from glassbox.core import CommandEnvironmentSummary
+from glassbox.core import CommandPurpose
+from glassbox.core import CommandReviewRelevance
+from glassbox.core import CommandToolchainVersion
 from glassbox.core import EventEnvelope
 from glassbox.core import SessionStarted
 from glassbox.core import TaskCreated
@@ -15,6 +19,8 @@ from glassbox.core import TaskStatusChanged
 from glassbox.core import TaskVerificationCompleted
 from glassbox.core import TaskVerificationPlanned
 from glassbox.core import TaskVerificationStatus
+from glassbox.core import ToolAttemptHeartbeat
+from glassbox.core import ToolAttemptStatus
 from glassbox.core import VerificationCheckKind
 from glassbox.core import VerificationPlanEntry
 from glassbox.core import VerificationPlanSource
@@ -22,6 +28,8 @@ from glassbox.core import new_artifact_id
 from glassbox.core import new_session_id
 from glassbox.core import new_task_id
 from glassbox.core import new_task_verification_id
+from glassbox.core import new_tool_attempt_id
+from glassbox.core import new_turn_id
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.store import SQLiteSessionRepository
 from glassbox.store.sqlite import initialize_database
@@ -107,6 +115,47 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                         artifact_id=artifact_id,
                     )
                 )
+                tool_attempt_id = new_tool_attempt_id()
+                repository.append_events(
+                    [
+                        EventEnvelope(
+                            session_id=session_id,
+                            sequence=0,
+                            payload=ToolAttemptHeartbeat(
+                                tool_attempt_id=tool_attempt_id,
+                                status=ToolAttemptStatus.FAILED,
+                                turn_id=new_turn_id(),
+                                tool_name="run_command",
+                                task_id=task_id,
+                                message="pytest failed before the selected rerun",
+                                output_artifact_id=artifact_id,
+                                command_purpose=CommandPurpose.TEST,
+                                command_review_relevance=(
+                                    CommandReviewRelevance.VERIFICATION
+                                ),
+                                command_supports_verification=True,
+                                command_purpose_reason=(
+                                    "test command can support verification evidence"
+                                ),
+                                command_environment=CommandEnvironmentSummary(
+                                    capture_scope="verification_or_local_artifact",
+                                    command_purpose=CommandPurpose.TEST,
+                                    platform="Darwin",
+                                    python_version="3.13.0",
+                                    toolchains=[
+                                        CommandToolchainVersion(
+                                            name="pytest",
+                                            version="8.0",
+                                            available=True,
+                                            source="executable",
+                                        )
+                                    ],
+                                    redaction_notes=["raw environment is not stored"],
+                                ),
+                            ),
+                        )
+                    ]
+                )
                 record_response = await client.post(
                     f"/changesets/{changeset_id}/record-verification",
                     json={"verification_id": str(verification_id)},
@@ -157,6 +206,13 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                 == "changeset_review_brief"
             )
             assert brief_response.json()["markdown"].startswith("# Review Brief:")
+            assert (
+                brief_response.json()["detail"]["command_evidence"]["failed_count"] == 1
+            )
+            assert brief_response.json()["detail"]["command_evidence"]["items"][0][
+                "tool_attempt_id"
+            ] == str(tool_attempt_id)
+            assert "Command Evidence" in brief_response.json()["markdown"]
             assert (
                 brief_response.json()["detail"]["changeset"][
                     "latest_review_brief_artifact_id"
