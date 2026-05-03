@@ -630,7 +630,7 @@ Completion notes:
 
 ### GBX-R522: Extract Browser And Accessibility Evidence Actions
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R521
 - Target files:
   - `src/glassbox/runtime/changesets.py`
@@ -651,6 +651,21 @@ Completion notes:
 - Validation:
   - `uv run pytest tests/integration/test_cli_changeset_commands.py -k "browser or dashboard or accessibility"`
   - `uv run pytest tests/integration/test_web_changeset_routes.py -k "browser or accessibility"`
+
+Completion notes:
+
+- Moved `BrowserEvidenceActionService` into
+  `src/glassbox/runtime/browser_evidence_actions.py` while preserving the
+  `runtime/changesets.py` compatibility import.
+- Moved `AccessibilityEvidenceActionService` into
+  `src/glassbox/runtime/accessibility_evidence_actions.py` while preserving the
+  same public facade import.
+- Kept browser and accessibility capture formatting, advisory limitations,
+  local-only references, and non-claim helpers in their existing evidence
+  modules.
+- The documented `-k` selectors currently match no tests in the integration
+  files, so the full CLI and web changeset route integration files were run
+  instead.
 
 ### GBX-R523: Extract Review Fixup Inventory Service Boundary
 
