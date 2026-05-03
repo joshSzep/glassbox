@@ -422,7 +422,7 @@ def test_repository_eval_profiles_align_with_v6_gate_stages() -> None:
     assert profiles["release-candidate"].verification_stage == "release-candidate"
     assert profiles["release-candidate"].blocking is True
     assert profiles["release-candidate"].budget is not None
-    assert profiles["release-candidate"].budget.max_selected_case_count == 18
+    assert profiles["release-candidate"].budget.max_selected_case_count == 20
     assert profiles["release-candidate"].budget.allow_advisory_cases is False
     assert provider_profiles["live-provider-canary"].blocking is False
     assert provider_profiles["live-provider-canary"].track == "live-provider-canary"
@@ -507,7 +507,32 @@ def test_repository_release_candidate_profile_includes_v11_confidence_cases() ->
         "knowledge_posture_summary",
         "branch_search_decision_support",
     }.issubset(capabilities)
-    assert len(cases) == 18
+    assert len(cases) >= 18
+
+
+def test_repository_release_candidate_profile_includes_v12_changeset_cases() -> None:
+    cases = load_eval_suite(REPO_ROOT, profile_id="release-candidate")
+    case_ids = {case.case_id for case in cases}
+    capabilities = {
+        capability
+        for case in cases
+        for capability in case.release_contract.capabilities
+    }
+
+    assert {
+        "changeset.reviewable-lifecycle",
+        "changeset.branch-candidate-adoption",
+    }.issubset(case_ids)
+    assert {
+        "changeset_creation",
+        "change_inventory_provenance",
+        "changeset_stale_verification_readiness",
+        "changeset_review_brief_generation",
+        "changeset_commit_readiness",
+        "changeset_command_evidence",
+        "changeset_branch_candidate_adoption",
+    }.issubset(capabilities)
+    assert len(cases) == 20
 
 
 def test_resolve_eval_suite_selection_applies_profile_before_extra_tag_filter(

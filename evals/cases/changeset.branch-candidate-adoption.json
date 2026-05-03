@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "changeset.branch-candidate-adoption",
+  "title": "Branch candidate adoption remains explicit changeset evidence",
+  "bundle_path": "../bundles/changeset.branch-candidate-adoption.json",
+  "tags": ["v12-reviewable-change", "changeset", "branch-search"],
+  "notes": "Compact deterministic v12 fixture evidence that selected branch candidates become changeset review evidence without automatic merge, commit, push, or PR behavior.",
+  "release_contract": {
+    "owner": "runtime.changesets",
+    "capabilities": ["changeset_branch_candidate_adoption"],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-03T12:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000129002",
+      "rationale": "Promoted for GBX-1290 to retain deterministic evidence for explicit branch-candidate adoption into a local changeset."
+    }
+  ]
+}

@@ -1,0 +1,153 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Assemble a reviewable changeset with lifecycle evidence"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "budget_posture": null,
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves reviewable changeset lifecycle evidence",
+        "turn_id": "00000000-0000-0000-0000-000000129101"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves reviewable changeset lifecycle evidence",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000129101"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TaskCreated",
+      "TaskStepCompleted",
+      "TaskVerificationCompleted",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "lineage": null,
+    "long_run_events": [],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Assemble a reviewable changeset with lifecycle evidence"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "questions": [],
+    "task_plans": [
+      {
+        "blocked_detail": null,
+        "blocked_reason": null,
+        "current_step_order": 5,
+        "goal": "Keep reviewable-change lifecycle evidence explicit before commit or review.",
+        "status": "completed",
+        "steps": [
+          {
+            "blocked_reason": null,
+            "description": "Create a local changeset from retained session, task, or workspace evidence.",
+            "order": 0,
+            "status": "completed",
+            "title": "Create changeset evidence"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Attach changed-path inventory with direct, inferred, and unknown provenance counts.",
+            "order": 1,
+            "status": "completed",
+            "title": "Attach inventory provenance"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Keep stale verification visible when inventory changes after a check.",
+            "order": 2,
+            "status": "completed",
+            "title": "Flag stale verification readiness"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Generate a reviewer-safe brief from deterministic evidence without raw logs.",
+            "order": 3,
+            "status": "completed",
+            "title": "Generate review brief"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Assess commit readiness without staging, committing, pushing, or opening a PR.",
+            "order": 4,
+            "status": "completed",
+            "title": "Assess commit readiness"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Classify command evidence by purpose, result, redacted environment, and artifact references.",
+            "order": 5,
+            "status": "completed",
+            "title": "Attach command evidence"
+          }
+        ],
+        "title": "Reviewable changeset lifecycle",
+        "verifications": [
+          {
+            "check_name": "changeset lifecycle evidence",
+            "status": "passed",
+            "step_order": 5,
+            "summary": "creation, inventory provenance, stale verification, review brief, commit readiness, and command evidence remain reviewable"
+          }
+        ]
+      }
+    ],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Assemble a reviewable changeset with lifecycle evidence"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000129001",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "changeset.reviewable-lifecycle"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

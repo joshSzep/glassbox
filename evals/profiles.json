@@ -40,11 +40,11 @@
     {
       "profile_id": "release-candidate",
       "title": "Release-candidate deterministic suite",
-      "description": "Repository-owned replay coverage intended for release candidate sign-off. Commit/push smoke remains small; v9 promotes the stable v8 autonomy core for budgets, verification outcomes, and branch-search comparison, v10 adds compact deterministic long-run recovery, compaction, tool-attempt, stale-verification, and cockpit fixtures, and v11 adds compact confidence fixtures for recommendations, compaction guardrails, checkpoint absence, knowledge posture, and branch-search decision support.",
+      "description": "Repository-owned replay coverage intended for release candidate sign-off. Commit/push smoke remains small; v9 promotes the stable v8 autonomy core for budgets, verification outcomes, and branch-search comparison, v10 adds compact deterministic long-run recovery, compaction, tool-attempt, stale-verification, and cockpit fixtures, v11 adds compact confidence fixtures for recommendations, compaction guardrails, checkpoint absence, knowledge posture, and branch-search decision support, and v12 adds compact reviewable-change lifecycle and branch-candidate adoption fixtures.",
       "verification_stage": "release-candidate",
       "blocking": true,
       "budget": {
-        "max_selected_case_count": 18,
+        "max_selected_case_count": 20,
         "max_selected_invariant_case_count": 1,
         "max_recorded_model_call_count": 8,
         "max_case_artifact_bytes": 500000,

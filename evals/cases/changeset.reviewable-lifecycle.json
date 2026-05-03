@@ -1,0 +1,33 @@
+{
+  "manifest_version": 1,
+  "case_id": "changeset.reviewable-lifecycle",
+  "title": "Reviewable changeset lifecycle keeps evidence visible",
+  "bundle_path": "../bundles/changeset.reviewable-lifecycle.json",
+  "tags": ["v12-reviewable-change", "changeset", "review", "command-evidence"],
+  "notes": "Compact deterministic v12 fixture evidence for changeset creation, inventory provenance, stale verification readiness, review brief generation, commit readiness, and command evidence classification.",
+  "release_contract": {
+    "owner": "runtime.changesets",
+    "capabilities": [
+      "changeset_creation",
+      "change_inventory_provenance",
+      "changeset_stale_verification_readiness",
+      "changeset_review_brief_generation",
+      "changeset_commit_readiness",
+      "changeset_command_evidence"
+    ],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-03T12:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000129001",
+      "rationale": "Promoted for GBX-1290 to retain deterministic evidence for v12 reviewable changeset lifecycle surfaces."
+    }
+  ]
+}

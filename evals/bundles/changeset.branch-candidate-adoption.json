@@ -1,0 +1,132 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Adopt a selected branch-search candidate into review evidence"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "budget_posture": null,
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves candidate adoption evidence",
+        "turn_id": "00000000-0000-0000-0000-000000129102"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves candidate adoption evidence",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000129102"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TaskCreated",
+      "TaskStepCompleted",
+      "TaskVerificationCompleted",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "lineage": null,
+    "long_run_events": [],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Adopt a selected branch-search candidate into review evidence"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "questions": [],
+    "task_plans": [
+      {
+        "blocked_detail": null,
+        "blocked_reason": null,
+        "current_step_order": 2,
+        "goal": "Represent a selected branch-search candidate as reviewable changeset evidence without mutating parent history.",
+        "status": "completed",
+        "steps": [
+          {
+            "blocked_reason": null,
+            "description": "Inspect selected and rejected candidate evidence before adoption.",
+            "order": 0,
+            "status": "completed",
+            "title": "Inspect candidate evidence"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Attach selected candidate source, verification posture, changed files, and accepted risks to the changeset.",
+            "order": 1,
+            "status": "completed",
+            "title": "Attach adoption provenance"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Preserve the no automatic merge, commit, push, or PR boundary.",
+            "order": 2,
+            "status": "completed",
+            "title": "Preserve explicit operator boundary"
+          }
+        ],
+        "title": "Branch candidate adoption review",
+        "verifications": [
+          {
+            "check_name": "candidate adoption evidence",
+            "status": "passed",
+            "step_order": 2,
+            "summary": "selected candidate source, alternatives, verification, risks, and no-automatic-mutation boundary are retained"
+          }
+        ]
+      }
+    ],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Adopt a selected branch-search candidate into review evidence"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000129002",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "changeset.branch-candidate-adoption"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

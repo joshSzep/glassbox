@@ -1618,7 +1618,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1290: Add Deterministic v12 Replay And Eval Cases
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1233`, `GBX-1241`, `GBX-1253`, `GBX-1262`
 - Goal: protect stable reviewable-change behavior with deterministic release
   evidence
@@ -1641,6 +1641,17 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - v12 reviewable-change behavior has deterministic evidence where it can be
     made deterministic
+- Completion notes:
+  - Added compact release-candidate eval cases
+    `changeset.reviewable-lifecycle` and
+    `changeset.branch-candidate-adoption` with deterministic replay bundles.
+  - Mapped v12 capabilities for changeset creation, inventory provenance,
+    stale verification readiness, review brief generation, commit readiness,
+    branch-candidate adoption, and command evidence classification in
+    `evals/coverage.json`.
+  - Updated the `release-candidate` profile budget from 18 to 20 selected
+    cases and documented the v12 fixtures in [replay-evals.md](./replay-evals.md)
+    and [../evals/README.md](../evals/README.md).
 
 ### GBX-1291: Add v12 Release Gate
 

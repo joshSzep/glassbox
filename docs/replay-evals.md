@@ -317,6 +317,23 @@ These cases are fixture-backed deterministic eval evidence. They intentionally
 do not replace focused unit/integration tests for the live derivation logic, and
 they do not claim live browser, screen-reader, or provider behavior.
 
+## V12 Reviewable-Change Fixtures
+
+The `release-candidate` profile includes two compact v12 reviewable-change
+fixtures:
+
+- `changeset.reviewable-lifecycle` for changeset creation, inventory
+  provenance, stale verification readiness, review brief generation, commit
+  readiness, and command evidence classification
+- `changeset.branch-candidate-adoption` for explicit selected-candidate
+  adoption into changeset review evidence without automatic merge, commit,
+  push, or PR behavior
+
+These cases are deterministic release-candidate evidence for the reviewable
+change contract. They are intentionally compact; focused runtime, CLI, API,
+dashboard, export, redaction, and policy tests remain the stronger authority
+for live derivation details.
+
 `eval recommend --execute` is the operator-approved path for turning the visible
 recommendation rows into local verification. It runs planned deterministic eval
 cases or profiles, writes the usual eval artifacts, and reports skipped checks

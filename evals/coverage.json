@@ -334,6 +334,76 @@
       "expected_case_ids": ["branch-search.decision-support"],
       "coverage_mode": "single_case",
       "notes": "GBX-1190 retains deterministic release-candidate evidence for candidate evidence, risk, cost, accepted-risk, follow-up, and verification recommendation posture without automatic merge behavior."
+    },
+    {
+      "capability_id": "changeset_creation",
+      "title": "Changeset creation",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["changeset.reviewable-lifecycle"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1290 retains deterministic v12 evidence that local changesets are explicit review objects derived from retained work rather than hidden memory."
+    },
+    {
+      "capability_id": "change_inventory_provenance",
+      "title": "Change inventory provenance",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["changeset.reviewable-lifecycle"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1290 keeps changed-path provenance visible in release-candidate replay evidence while focused inventory tests validate exact path matching."
+    },
+    {
+      "capability_id": "changeset_stale_verification_readiness",
+      "title": "Changeset stale verification readiness",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["changeset.reviewable-lifecycle"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1290 retains deterministic evidence that stale verification remains a named review posture instead of being smoothed over by later checks."
+    },
+    {
+      "capability_id": "changeset_review_brief_generation",
+      "title": "Changeset review brief generation",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["changeset.reviewable-lifecycle"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1290 retains deterministic evidence that review briefs summarize changeset evidence without raw logs, diffs, or file contents."
+    },
+    {
+      "capability_id": "changeset_commit_readiness",
+      "title": "Changeset commit readiness",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["changeset.reviewable-lifecycle"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1290 retains deterministic evidence for commit-readiness posture while preserving explicit operator control over staging and commits."
+    },
+    {
+      "capability_id": "changeset_command_evidence",
+      "title": "Changeset command evidence",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["changeset.reviewable-lifecycle"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1290 retains deterministic evidence that command purpose, result, redacted environment posture, and artifact references are reviewable beside changeset evidence."
+    },
+    {
+      "capability_id": "changeset_branch_candidate_adoption",
+      "title": "Changeset branch-candidate adoption",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["changeset.branch-candidate-adoption"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1290 retains deterministic evidence that selected branch-search candidates become changeset provenance without automatic merge, commit, push, or PR behavior."
     }
   ]
 }

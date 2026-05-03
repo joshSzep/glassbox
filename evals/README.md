@@ -313,6 +313,20 @@ These v11 cases are deterministic release-candidate evidence. They do not make
 live dashboard, screen-reader, or live-provider claims; those remain retained
 manual, browser, or advisory evidence with their own freshness labels.
 
+Current v12 reviewable-change release-candidate cases:
+
+- `changeset.reviewable-lifecycle`: fixture-backed replay evidence for
+  changeset creation, change-inventory provenance, stale verification
+  readiness, review brief generation, commit readiness, and command evidence
+  classification.
+- `changeset.branch-candidate-adoption`: fixture-backed replay evidence that a
+  selected branch-search candidate becomes changeset review evidence without
+  automatic merge, commit, push, or PR behavior.
+
+These v12 cases are compact release-candidate evidence. They intentionally
+index the reviewable-change lifecycle rather than replacing focused runtime,
+CLI, API, dashboard, and redaction tests for each live derivation path.
+
 Each run writes one JSON artifact per case plus `summary.json` into the selected
 output directory. If `--output-dir` is omitted, Glassbox creates a timestamped
 directory under `.glassbox/evals/`.
