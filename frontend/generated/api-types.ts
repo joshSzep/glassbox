@@ -2173,6 +2173,7 @@ export interface components {
       review_briefs: components["schemas"]["ChangesetReviewBriefResponse"][];
       /** Review Feedback */
       review_feedback: components["schemas"]["ReviewFeedbackResponse"][];
+      review_response_summary: components["schemas"]["ChangesetReviewResponseSummaryResponse"];
       /** Safe Next Actions */
       safe_next_actions: string[];
       /** Sources */
@@ -2380,6 +2381,33 @@ export interface components {
       turn_id?: string | null;
       /** Verification Id */
       verification_id?: string | null;
+    };
+    /** ChangesetReviewResponseSummaryResponse */
+    ChangesetReviewResponseSummaryResponse: {
+      /** Accepted Risk Count */
+      accepted_risk_count: number;
+      /** Blocked Count */
+      blocked_count: number;
+      /** Blockers */
+      blockers: string[];
+      /** Changeset Id */
+      changeset_id: string;
+      /** Items */
+      items: components["schemas"]["ReviewFeedbackResponseStatusResponse"][];
+      /** Non Claims */
+      non_claims: string[];
+      /** Open Count */
+      open_count: number;
+      /** Responded Count */
+      responded_count: number;
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+      /** Stale Response Count */
+      stale_response_count: number;
+      /** Total Feedback Count */
+      total_feedback_count: number;
+      /** Unresolved Count */
+      unresolved_count: number;
     };
     /** ChangesetSourceResponse */
     ChangesetSourceResponse: {
@@ -3886,6 +3914,7 @@ export interface components {
       feedback: components["schemas"]["ReviewFeedbackResponse"];
       /** Non Claims */
       non_claims: string[];
+      response_status: components["schemas"]["ReviewFeedbackResponseStatusResponse"];
       /** Safe Next Actions */
       safe_next_actions: string[];
       /** Scopes */
@@ -3895,6 +3924,7 @@ export interface components {
     ReviewFeedbackListPageResponse: {
       /** Items */
       items: components["schemas"]["ReviewFeedbackResponse"][];
+      response_summary?: components["schemas"]["ChangesetReviewResponseSummaryResponse"] | null;
     };
     /** ReviewFeedbackReopenRequest */
     ReviewFeedbackReopenRequest: {
@@ -3986,6 +4016,49 @@ export interface components {
       updated_by?: string | null;
       /** Verification Id */
       verification_id?: string | null;
+    };
+    /** ReviewFeedbackResponseStatusResponse */
+    ReviewFeedbackResponseStatusResponse: {
+      /** Blockers */
+      blockers: string[];
+      /** Changed Path Count */
+      changed_path_count: number;
+      /** Changeset Id */
+      changeset_id: string;
+      /** Disposition */
+      disposition: string;
+      /** Feedback Id */
+      feedback_id: string;
+      /** Fixup Inventory Count */
+      fixup_inventory_count: number;
+      /** Inventory Freshness */
+      inventory_freshness: string;
+      /** Latest Fixup Inventory Artifact Id */
+      latest_fixup_inventory_artifact_id?: string | null;
+      /** Latest Fixup Inventory At */
+      latest_fixup_inventory_at?: string | null;
+      /** Latest Fixup Inventory Sequence */
+      latest_fixup_inventory_sequence?: number | null;
+      /** Latest Source Kind */
+      latest_source_kind?: string | null;
+      /** Latest Source Summary */
+      latest_source_summary?: string | null;
+      /** Matched Scope Path Count */
+      matched_scope_path_count: number;
+      /** Non Claims */
+      non_claims: string[];
+      /** Path Summaries */
+      path_summaries: string[];
+      /** Response State */
+      response_state: string;
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+      /** Stale */
+      stale: boolean;
+      /** Stale Reason */
+      stale_reason?: string | null;
+      /** Summary */
+      summary: string;
     };
     /** ReviewFeedbackScopeResponse */
     ReviewFeedbackScopeResponse: {

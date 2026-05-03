@@ -37,6 +37,8 @@ from glassbox.runtime.commit_readiness import ChangesetCommitReadinessService
 from glassbox.runtime.commit_readiness import CommitReadinessAssessment
 from glassbox.runtime.precommit_evidence import ChangesetPreCommitEvidenceService
 from glassbox.runtime.precommit_evidence import PreCommitEvidenceRecordResult
+from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
+from glassbox.runtime.review_responses import ReviewFeedbackResponseStatus
 
 
 def _changeset_command(args: argparse.Namespace) -> int:
@@ -330,6 +332,8 @@ def _changeset_feedback_command(args: argparse.Namespace) -> int:
         return _feedback_list_command(args)
     if command == "show":
         return _feedback_show_command(args)
+    if command == "status":
+        return _feedback_status_command(args)
     if command == "resolve":
         return _feedback_resolve_command(args)
     if command == "reopen":
@@ -402,11 +406,32 @@ def _feedback_show_command(args: argparse.Namespace) -> int:
             feedback.session_id,
             feedback.feedback_id,
         )
-    payload = _feedback_payload(feedback, scopes=scopes)
+        response_status = service.get_review_feedback_response_status(
+            feedback.feedback_id,
+            workspace_root=cwd,
+        )
+    payload = _feedback_payload(
+        feedback,
+        scopes=scopes,
+        response_status=response_status,
+    )
     if args.json:
         print_json_output(payload)
     else:
-        _print_feedback_detail(feedback, scopes)
+        _print_feedback_detail(feedback, scopes, response_status=response_status)
+    return 0
+
+
+def _feedback_status_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        summary = ChangesetQueryService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions)
+        ).get_review_response_summary(args.changeset_id, workspace_root=cwd)
+    if args.json:
+        print_json_output(summary.model_dump(mode="json"))
+    else:
+        _print_review_response_summary(summary)
     return 0
 
 
@@ -737,6 +762,18 @@ def _print_changeset_detail(
         )
     print(f"Review briefs: {len(detail.review_briefs)}")
     print(f"Review feedback: {len(detail.review_feedback)}")
+    response_summary = detail.review_response_summary
+    print(
+        "Review responses: "
+        f"{response_summary.responded_count} responded, "
+        f"{response_summary.unresolved_count} unresolved, "
+        f"{response_summary.stale_response_count} stale, "
+        f"{response_summary.accepted_risk_count} accepted risk"
+    )
+    if response_summary.blockers:
+        print("Response blockers:")
+        for blocker in response_summary.blockers[:5]:
+            print(f"  - {blocker}")
     for item in detail.review_feedback[:5]:
         print(
             f"  {item.feedback_kind.value}/{item.disposition.value}: "
@@ -882,6 +919,8 @@ def _print_feedback_list(feedback: list[ReviewFeedbackRecord]) -> None:
 def _print_feedback_detail(
     feedback: ReviewFeedbackRecord,
     scopes,
+    *,
+    response_status: ReviewFeedbackResponseStatus,
 ) -> None:
     print(f"Review feedback {feedback.feedback_id}")
     print(f"Changeset: {feedback.changeset_id}")
@@ -911,9 +950,83 @@ def _print_feedback_detail(
                 if scope.line_end is not None and scope.line_end != scope.line_start:
                     suffix += f"-{scope.line_end}"
             print(f"    File: {scope.file_path}{suffix}")
+    print("Response status:")
+    print(f"  State: {response_status.response_state.value}")
+    print(
+        "  Fixup inventory: "
+        f"{response_status.fixup_inventory_count} records, "
+        f"{response_status.changed_path_count} changed paths, "
+        f"{response_status.matched_scope_path_count} scoped matches"
+    )
+    if response_status.latest_fixup_inventory_artifact_id is not None:
+        print(
+            f"  Latest artifact: {response_status.latest_fixup_inventory_artifact_id}"
+        )
+    if response_status.stale_reason is not None:
+        print(
+            f"  Freshness: {response_status.inventory_freshness.value} - "
+            f"{response_status.stale_reason}"
+        )
+    else:
+        print(f"  Freshness: {response_status.inventory_freshness.value}")
+    if response_status.path_summaries:
+        print("  Response paths:")
+        for summary in response_status.path_summaries[:5]:
+            print(f"    - {summary}")
+    if response_status.blockers:
+        print("  Blockers:")
+        for blocker in response_status.blockers:
+            print(f"    - {blocker}")
+    print("Safe next actions:")
+    for action in response_status.safe_next_actions:
+        print(f"  - {action}")
     print("Non-claims:")
-    print("  - review feedback is local evidence, not approval")
-    print("  - Glassbox did not stage, commit, push, open a PR, or merge")
+    for non_claim in response_status.non_claims:
+        print(f"  - {non_claim}")
+
+
+def _print_review_response_summary(
+    summary: ChangesetReviewResponseSummary,
+) -> None:
+    print(f"Review response status for changeset {summary.changeset_id}")
+    print(
+        f"Feedback: {summary.total_feedback_count} total, "
+        f"{summary.open_count} open, "
+        f"{summary.responded_count} responded, "
+        f"{summary.unresolved_count} unresolved, "
+        f"{summary.stale_response_count} stale, "
+        f"{summary.accepted_risk_count} accepted risk"
+    )
+    if summary.items:
+        for item in summary.items:
+            print(
+                f"{item.feedback_id}  {item.response_state.value}  "
+                f"{item.disposition.value}  {item.summary}"
+            )
+            print(
+                "  Fixup: "
+                f"{item.fixup_inventory_count} records, "
+                f"{item.changed_path_count} paths, "
+                f"{item.matched_scope_path_count} scoped matches"
+            )
+            if item.stale_reason is not None:
+                print(
+                    "  Freshness: "
+                    f"{item.inventory_freshness.value} - {item.stale_reason}"
+                )
+            if item.blockers:
+                print("  Blockers:")
+                for blocker in item.blockers:
+                    print(f"    - {blocker}")
+    else:
+        print("No local review feedback is attached to this changeset.")
+    if summary.safe_next_actions:
+        print("Safe next actions:")
+        for action in summary.safe_next_actions:
+            print(f"  - {action}")
+    print("Non-claims:")
+    for non_claim in summary.non_claims:
+        print(f"  - {non_claim}")
 
 
 def _print_feedback_result(
@@ -935,10 +1048,20 @@ def _print_feedback_result(
     return 0
 
 
-def _feedback_payload(feedback: ReviewFeedbackRecord, *, scopes) -> dict[str, object]:
+def _feedback_payload(
+    feedback: ReviewFeedbackRecord,
+    *,
+    scopes,
+    response_status: ReviewFeedbackResponseStatus | None = None,
+) -> dict[str, object]:
     return {
         "feedback": feedback.model_dump(mode="json"),
         "scopes": [scope.model_dump(mode="json") for scope in scopes],
+        "response_status": (
+            response_status.model_dump(mode="json")
+            if response_status is not None
+            else None
+        ),
         "non_claims": [
             "review feedback is local evidence, not approval",
             "Glassbox did not stage, commit, push, open a PR, or merge",

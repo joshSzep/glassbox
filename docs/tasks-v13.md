@@ -592,7 +592,7 @@ shortcuts are shaped by the review-loop features that precede them.
 
 ### GBX-1322: Surface Review Response Status In CLI, API, And Dashboard
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1321`
 - Goal: make review response state visible beside the changeset instead of
   hidden in prose

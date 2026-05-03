@@ -129,11 +129,19 @@ def test_fixup_inventory_links_feedback_paths_and_detects_drift(
             feedback.feedback_id,
             result.artifact.artifact_id,
         )
+        fresh_summary = query.get_review_response_summary(
+            changeset_id,
+            workspace_root=tmp_path,
+        )
         (tmp_path / "app.py").write_text(
             "print('drift after response')\n",
             encoding="utf-8",
         )
         stale_status = fixup_service.assess_record_freshness(inventories[0], tmp_path)
+        stale_summary = query.get_review_response_summary(
+            changeset_id,
+            workspace_root=tmp_path,
+        )
 
     assert result.inventory.latest_changeset_inventory_artifact_id == str(
         inventory_result.artifact.artifact_id
@@ -146,8 +154,14 @@ def test_fixup_inventory_links_feedback_paths_and_detects_drift(
     assert {path.path for path in paths} == {"app.py", "tests/test_app.py"}
     assert any(path.matches_feedback_scope for path in paths if path.path == "app.py")
     assert any(path.test_file for path in paths if path.path == "tests/test_app.py")
+    assert fresh_summary.responded_count == 1
+    assert fresh_summary.items[0].response_state.value == "responded"
+    assert fresh_summary.items[0].path_summaries[0].startswith("app.py:")
     assert stale_status.stale is True
     assert "source digest changed" in (stale_status.reason or "")
+    assert stale_summary.stale_response_count == 1
+    assert stale_summary.blocked_count == 1
+    assert stale_summary.items[0].response_state.value == "blocked"
 
 
 def _init_git_repo(tmp_path: Path) -> None:

@@ -51,6 +51,10 @@ describe("changeset console", () => {
     expect(markup).toContain("1 requested");
     expect(markup).toContain("1 questions");
     expect(markup).toContain("1 accepted risks");
+    expect(markup).toContain("1 responded");
+    expect(markup).toContain("1 stale responses");
+    expect(markup).toContain("Response planned");
+    expect(markup).toContain("app.py: matches feedback scope");
     expect(markup).toContain("Review feedback is local evidence, not approval.");
     expect(markup).toContain("Brief Artifacts");
     expect(markup).toContain("brief-artifact-1");
@@ -305,6 +309,101 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
         verification_id: null,
       },
     ],
+    review_response_summary: {
+      accepted_risk_count: 1,
+      blocked_count: 1,
+      blockers: [
+        "feedback-2: workspace diff source digest changed since fixup inventory was recorded",
+      ],
+      changeset_id: changeset.changeset_id,
+      items: [
+        {
+          blockers: [],
+          changed_path_count: 0,
+          changeset_id: changeset.changeset_id,
+          disposition: "open",
+          feedback_id: "feedback-1",
+          fixup_inventory_count: 0,
+          inventory_freshness: "unknown",
+          latest_fixup_inventory_artifact_id: null,
+          latest_fixup_inventory_at: null,
+          latest_fixup_inventory_sequence: null,
+          latest_source_kind: null,
+          latest_source_summary: null,
+          matched_scope_path_count: 0,
+          non_claims: ["review response status is local evidence, not reviewer acceptance"],
+          path_summaries: [],
+          response_state: "planned",
+          safe_next_actions: [
+            "glassbox changeset feedback show feedback-1 --cwd .",
+            `glassbox changeset show ${changeset.changeset_id} --cwd .`,
+          ],
+          stale: false,
+          stale_reason: null,
+          summary: "Clarify feedback copy",
+        },
+        {
+          blockers: ["workspace diff source digest changed since fixup inventory was recorded"],
+          changed_path_count: 2,
+          changeset_id: changeset.changeset_id,
+          disposition: "resolved_locally",
+          feedback_id: "feedback-2",
+          fixup_inventory_count: 1,
+          inventory_freshness: "stale",
+          latest_fixup_inventory_artifact_id: "fixup-artifact-1",
+          latest_fixup_inventory_at: "2026-05-01T00:04:00Z",
+          latest_fixup_inventory_sequence: 13,
+          latest_source_kind: "manual_workspace_edit",
+          latest_source_summary: "operator recorded response inventory",
+          matched_scope_path_count: 1,
+          non_claims: ["review response status is local evidence, not reviewer acceptance"],
+          path_summaries: ["app.py: matches feedback scope"],
+          response_state: "blocked",
+          safe_next_actions: [
+            "glassbox changeset feedback show feedback-2 --cwd .",
+            `glassbox changeset show ${changeset.changeset_id} --cwd .`,
+          ],
+          stale: true,
+          stale_reason: "workspace diff source digest changed since fixup inventory was recorded",
+          summary: "Does this expose questions?",
+        },
+        {
+          blockers: [],
+          changed_path_count: 0,
+          changeset_id: changeset.changeset_id,
+          disposition: "accepted_with_risk",
+          feedback_id: "feedback-3",
+          fixup_inventory_count: 0,
+          inventory_freshness: "unknown",
+          latest_fixup_inventory_artifact_id: null,
+          latest_fixup_inventory_at: null,
+          latest_fixup_inventory_sequence: null,
+          latest_source_kind: null,
+          latest_source_summary: null,
+          matched_scope_path_count: 0,
+          non_claims: ["review response status is local evidence, not reviewer acceptance"],
+          path_summaries: [],
+          response_state: "accepted_with_risk",
+          safe_next_actions: [
+            "glassbox changeset feedback show feedback-3 --cwd .",
+            `glassbox changeset show ${changeset.changeset_id} --cwd .`,
+          ],
+          stale: false,
+          stale_reason: null,
+          summary: "Dashboard mutation deferred",
+        },
+      ],
+      non_claims: ["Review feedback is local evidence, not approval."],
+      open_count: 1,
+      responded_count: 1,
+      safe_next_actions: [
+        `glassbox changeset feedback list --changeset ${changeset.changeset_id} --cwd .`,
+        `glassbox changeset show ${changeset.changeset_id} --cwd .`,
+      ],
+      stale_response_count: 1,
+      total_feedback_count: 3,
+      unresolved_count: 2,
+    },
     safe_next_actions: [`glassbox changeset show ${changeset.changeset_id} --cwd .`],
     sources: [
       {

@@ -109,6 +109,20 @@ def test_changeset_create_list_show_refresh_and_archive(
         ]
     )
     feedback_detail = json.loads(capsys.readouterr().out)
+    feedback_status_exit = main(
+        [
+            "changeset",
+            "feedback",
+            "status",
+            changeset_id,
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    feedback_status = json.loads(capsys.readouterr().out)
     feedback_resolve_exit = main(
         [
             "changeset",
@@ -399,6 +413,12 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert feedback_show_exit == 0
     assert feedback_detail["feedback"]["feedback_kind"] == "requested_change"
     assert feedback_detail["scopes"][0]["scope_kind"] == "file"
+    assert feedback_detail["response_status"]["response_state"] == "planned"
+    assert feedback_detail["response_status"]["fixup_inventory_count"] == 0
+    assert feedback_status_exit == 0
+    assert feedback_status["total_feedback_count"] == 1
+    assert feedback_status["unresolved_count"] == 1
+    assert feedback_status["items"][0]["response_state"] == "planned"
     assert feedback_resolve_exit == 0
     assert feedback_resolved["feedback"]["disposition"] == "resolved_locally"
     assert feedback_resolved["feedback"]["residual_risk"] == (
@@ -414,6 +434,8 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert show_exit == 0
     assert detail["changeset"]["task_id"] == str(task_id)
     assert detail["review_feedback"][0]["feedback_id"] == feedback_id
+    assert detail["review_response_summary"]["total_feedback_count"] == 1
+    assert detail["review_response_summary"]["accepted_risk_count"] == 1
     assert detail["sources"][0]["source_kind"] == "task"
     assert "glassbox changeset refresh" in detail["safe_next_actions"][1]
     assert refresh_exit == 0

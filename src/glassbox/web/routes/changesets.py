@@ -54,6 +54,7 @@ from glassbox.web.changeset_api import build_commit_readiness_response
 from glassbox.web.changeset_api import build_review_feedback_action_response
 from glassbox.web.changeset_api import build_review_feedback_detail_response
 from glassbox.web.changeset_api import build_review_feedback_response
+from glassbox.web.changeset_api import build_review_response_summary_response
 from glassbox.web.session_api import ErrorDetailResponse
 
 router = APIRouter(prefix="/changesets")
@@ -159,7 +160,9 @@ async def list_review_feedback(
 ) -> ReviewFeedbackListPageResponse:
     """Return bounded local review feedback rows for dashboard inspection."""
 
-    feedback = ChangesetQueryService(_repository(context)).list_review_feedback(
+    repository = _repository(context)
+    service = ChangesetQueryService(repository)
+    feedback = service.list_review_feedback(
         session_id=session_id,
         changeset_id=changeset_id,
         disposition=(
@@ -169,8 +172,21 @@ async def list_review_feedback(
         file_path=file_path,
         limit=limit,
     )
+    response_summary = (
+        service.get_review_response_summary(
+            changeset_id,
+            workspace_root=_workspace_root_for_changeset(repository, changeset_id),
+        )
+        if changeset_id is not None
+        else None
+    )
     return ReviewFeedbackListPageResponse(
-        items=[build_review_feedback_response(item) for item in feedback]
+        items=[build_review_feedback_response(item) for item in feedback],
+        response_summary=(
+            build_review_response_summary_response(response_summary)
+            if response_summary is not None
+            else None
+        ),
     )
 
 
@@ -194,7 +210,14 @@ async def get_review_feedback_detail(
     scopes = service.list_review_feedback_scopes(
         feedback.session_id, feedback.feedback_id
     )
-    return build_review_feedback_detail_response(feedback, scopes)
+    response_status = service.get_review_feedback_response_status(
+        feedback.feedback_id,
+        workspace_root=_workspace_root_for_changeset(
+            _repository(context),
+            feedback.changeset_id,
+        ),
+    )
+    return build_review_feedback_detail_response(feedback, scopes, response_status)
 
 
 @router.get(

@@ -20,6 +20,8 @@ from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.changesets import ReviewFeedbackRecordResult
 from glassbox.runtime.commit_messages import CommitMessageSuggestion
 from glassbox.runtime.commit_readiness import CommitReadinessAssessment
+from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
+from glassbox.runtime.review_responses import ReviewFeedbackResponseStatus
 
 
 class ChangesetSummaryResponse(BaseModel):
@@ -213,6 +215,44 @@ class ReviewFeedbackResponse(BaseModel):
     last_sequence: int
 
 
+class ReviewFeedbackResponseStatusResponse(BaseModel):
+    feedback_id: str
+    changeset_id: str
+    response_state: str
+    disposition: str
+    summary: str
+    fixup_inventory_count: int
+    latest_fixup_inventory_artifact_id: str | None = None
+    latest_fixup_inventory_sequence: int | None = None
+    latest_fixup_inventory_at: datetime | None = None
+    latest_source_kind: str | None = None
+    latest_source_summary: str | None = None
+    inventory_freshness: str
+    stale: bool
+    stale_reason: str | None = None
+    changed_path_count: int
+    matched_scope_path_count: int
+    path_summaries: list[str]
+    blockers: list[str]
+    safe_next_actions: list[str]
+    non_claims: list[str]
+
+
+class ChangesetReviewResponseSummaryResponse(BaseModel):
+    changeset_id: str
+    total_feedback_count: int
+    open_count: int
+    responded_count: int
+    unresolved_count: int
+    stale_response_count: int
+    accepted_risk_count: int
+    blocked_count: int
+    items: list[ReviewFeedbackResponseStatusResponse]
+    blockers: list[str]
+    safe_next_actions: list[str]
+    non_claims: list[str]
+
+
 class ChangesetReadinessResponse(BaseModel):
     session_id: str
     changeset_id: str
@@ -244,6 +284,7 @@ class ChangesetDetailResponse(BaseModel):
     verification_posture: ChangesetVerificationPostureResponse | None = None
     review_briefs: list[ChangesetReviewBriefResponse]
     review_feedback: list[ReviewFeedbackResponse]
+    review_response_summary: ChangesetReviewResponseSummaryResponse
     readiness: list[ChangesetReadinessResponse]
     command_evidence: ChangesetCommandEvidenceSummaryResponse
     limitations: list[str]
@@ -320,11 +361,13 @@ class ReviewFeedbackAcceptRiskRequest(BaseModel):
 
 class ReviewFeedbackListPageResponse(BaseModel):
     items: list[ReviewFeedbackResponse]
+    response_summary: ChangesetReviewResponseSummaryResponse | None = None
 
 
 class ReviewFeedbackDetailResponse(BaseModel):
     feedback: ReviewFeedbackResponse
     scopes: list[ReviewFeedbackScopeResponse]
+    response_status: ReviewFeedbackResponseStatusResponse
     safe_next_actions: list[str]
     non_claims: list[str]
 
@@ -599,6 +642,9 @@ def build_changeset_detail_response(
         review_feedback=[
             build_review_feedback_response(item) for item in detail.review_feedback
         ],
+        review_response_summary=build_review_response_summary_response(
+            detail.review_response_summary
+        ),
         readiness=[
             build_changeset_readiness_response(item) for item in detail.readiness
         ],
@@ -982,13 +1028,70 @@ def build_review_feedback_scope_response(
     )
 
 
+def build_review_feedback_response_status_response(
+    status: ReviewFeedbackResponseStatus,
+) -> ReviewFeedbackResponseStatusResponse:
+    return ReviewFeedbackResponseStatusResponse(
+        feedback_id=str(status.feedback_id),
+        changeset_id=str(status.changeset_id),
+        response_state=status.response_state.value,
+        disposition=status.disposition.value,
+        summary=status.summary,
+        fixup_inventory_count=status.fixup_inventory_count,
+        latest_fixup_inventory_artifact_id=_optional_str(
+            status.latest_fixup_inventory_artifact_id
+        ),
+        latest_fixup_inventory_sequence=status.latest_fixup_inventory_sequence,
+        latest_fixup_inventory_at=status.latest_fixup_inventory_at,
+        latest_source_kind=(
+            status.latest_source_kind.value
+            if status.latest_source_kind is not None
+            else None
+        ),
+        latest_source_summary=status.latest_source_summary,
+        inventory_freshness=status.inventory_freshness.value,
+        stale=status.stale,
+        stale_reason=status.stale_reason,
+        changed_path_count=status.changed_path_count,
+        matched_scope_path_count=status.matched_scope_path_count,
+        path_summaries=status.path_summaries,
+        blockers=status.blockers,
+        safe_next_actions=status.safe_next_actions,
+        non_claims=status.non_claims,
+    )
+
+
+def build_review_response_summary_response(
+    summary: ChangesetReviewResponseSummary,
+) -> ChangesetReviewResponseSummaryResponse:
+    return ChangesetReviewResponseSummaryResponse(
+        changeset_id=str(summary.changeset_id),
+        total_feedback_count=summary.total_feedback_count,
+        open_count=summary.open_count,
+        responded_count=summary.responded_count,
+        unresolved_count=summary.unresolved_count,
+        stale_response_count=summary.stale_response_count,
+        accepted_risk_count=summary.accepted_risk_count,
+        blocked_count=summary.blocked_count,
+        items=[
+            build_review_feedback_response_status_response(item)
+            for item in summary.items
+        ],
+        blockers=summary.blockers,
+        safe_next_actions=summary.safe_next_actions,
+        non_claims=summary.non_claims,
+    )
+
+
 def build_review_feedback_detail_response(
     feedback: ReviewFeedbackRecord,
     scopes: Sequence[ReviewFeedbackScopeRecord],
+    response_status: ReviewFeedbackResponseStatus,
 ) -> ReviewFeedbackDetailResponse:
     return ReviewFeedbackDetailResponse(
         feedback=build_review_feedback_response(feedback),
         scopes=[build_review_feedback_scope_response(scope) for scope in scopes],
+        response_status=build_review_feedback_response_status_response(response_status),
         safe_next_actions=[
             f"glassbox changeset feedback show {feedback.feedback_id} --cwd .",
             f"glassbox changeset show {feedback.changeset_id} --cwd .",

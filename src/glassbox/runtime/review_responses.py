@@ -1,6 +1,7 @@
 """Review response and fixup inventory artifact helpers."""
 
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
@@ -8,13 +9,18 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 
+from glassbox.core import ArtifactId
 from glassbox.core import ChangesetId
 from glassbox.core import ChangesetInventoryFreshness
+from glassbox.core import ReviewFeedbackDisposition
+from glassbox.core import ReviewFeedbackFixupInventoryRecord
+from glassbox.core import ReviewFeedbackFixupPathRecord
 from glassbox.core import ReviewFeedbackFixupPathSummary
 from glassbox.core import ReviewFeedbackId
 from glassbox.core import ReviewFeedbackRecord
 from glassbox.core import ReviewFeedbackScopeRecord
 from glassbox.core import ReviewFixupSourceKind
+from glassbox.core import ReviewResponseState
 from glassbox.runtime.change_inventory import ChangeInventoryArtifact
 from glassbox.runtime.change_inventory import ChangeInventoryPathEntry
 
@@ -55,6 +61,52 @@ class ReviewFixupInventoryArtifact(BaseModel):
     matched_scope_path_count: int = Field(ge=0)
     paths: list[ReviewFeedbackFixupPathSummary] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)
+    non_claims: list[str] = Field(default_factory=list)
+
+
+class ReviewFeedbackResponseStatus(BaseModel):
+    """Derived response posture for one feedback item."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    feedback_id: ReviewFeedbackId
+    changeset_id: ChangesetId
+    response_state: ReviewResponseState
+    disposition: ReviewFeedbackDisposition
+    summary: str
+    fixup_inventory_count: int = Field(ge=0)
+    latest_fixup_inventory_artifact_id: ArtifactId | None = None
+    latest_fixup_inventory_sequence: int | None = None
+    latest_fixup_inventory_at: datetime | None = None
+    latest_source_kind: ReviewFixupSourceKind | None = None
+    latest_source_summary: str | None = None
+    inventory_freshness: ChangesetInventoryFreshness
+    stale: bool = False
+    stale_reason: str | None = Field(default=None, max_length=2000)
+    changed_path_count: int = Field(default=0, ge=0)
+    matched_scope_path_count: int = Field(default=0, ge=0)
+    path_summaries: list[str] = Field(default_factory=list)
+    blockers: list[str] = Field(default_factory=list)
+    safe_next_actions: list[str] = Field(default_factory=list)
+    non_claims: list[str] = Field(default_factory=list)
+
+
+class ChangesetReviewResponseSummary(BaseModel):
+    """Derived response summary for all feedback on one changeset."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    changeset_id: ChangesetId
+    total_feedback_count: int = Field(ge=0)
+    open_count: int = Field(ge=0)
+    responded_count: int = Field(ge=0)
+    unresolved_count: int = Field(ge=0)
+    stale_response_count: int = Field(ge=0)
+    accepted_risk_count: int = Field(ge=0)
+    blocked_count: int = Field(ge=0)
+    items: list[ReviewFeedbackResponseStatus] = Field(default_factory=list)
+    blockers: list[str] = Field(default_factory=list)
+    safe_next_actions: list[str] = Field(default_factory=list)
     non_claims: list[str] = Field(default_factory=list)
 
 
@@ -122,6 +174,134 @@ def review_fixup_inventory_artifact_json(
     return json.dumps(artifact.model_dump(mode="json"), indent=2, sort_keys=True) + "\n"
 
 
+def review_feedback_response_status(
+    *,
+    feedback: ReviewFeedbackRecord,
+    inventories: list[ReviewFeedbackFixupInventoryRecord],
+    paths: list[ReviewFeedbackFixupPathRecord],
+    freshness_status: ReviewFixupInventoryStatus | None = None,
+) -> ReviewFeedbackResponseStatus:
+    """Derive cautious response status from feedback and latest fixup evidence."""
+
+    latest = inventories[0] if inventories else None
+    status_stale = (
+        latest.stale if freshness_status is None and latest is not None else False
+    )
+    status_reason = latest.stale_reason if latest is not None else None
+    status_freshness = (
+        latest.inventory_freshness
+        if latest is not None
+        else ChangesetInventoryFreshness.UNKNOWN
+    )
+    if freshness_status is not None:
+        status_stale = freshness_status.stale
+        status_reason = freshness_status.reason
+        status_freshness = freshness_status.freshness
+    response_state = _response_state(
+        feedback.disposition,
+        has_fixup=latest is not None,
+        stale=status_stale,
+    )
+    blockers = _response_blockers(
+        feedback,
+        latest=latest,
+        stale=status_stale,
+        stale_reason=status_reason,
+    )
+    return ReviewFeedbackResponseStatus(
+        feedback_id=feedback.feedback_id,
+        changeset_id=feedback.changeset_id,
+        response_state=response_state,
+        disposition=feedback.disposition,
+        summary=feedback.summary,
+        fixup_inventory_count=len(inventories),
+        latest_fixup_inventory_artifact_id=(
+            latest.artifact_id if latest is not None else None
+        ),
+        latest_fixup_inventory_sequence=(
+            latest.last_sequence if latest is not None else None
+        ),
+        latest_fixup_inventory_at=latest.created_at if latest is not None else None,
+        latest_source_kind=latest.source_kind if latest is not None else None,
+        latest_source_summary=latest.source_summary if latest is not None else None,
+        inventory_freshness=status_freshness,
+        stale=status_stale,
+        stale_reason=status_reason,
+        changed_path_count=latest.changed_path_count if latest is not None else 0,
+        matched_scope_path_count=(
+            latest.matched_scope_path_count if latest is not None else 0
+        ),
+        path_summaries=[path.summary for path in paths[:8]],
+        blockers=blockers,
+        safe_next_actions=[
+            f"glassbox changeset feedback show {feedback.feedback_id} --cwd .",
+            f"glassbox changeset show {feedback.changeset_id} --cwd .",
+            f"glassbox changeset verification-plan {feedback.changeset_id} --cwd .",
+        ],
+        non_claims=_review_response_non_claims(),
+    )
+
+
+def changeset_review_response_summary(
+    *,
+    changeset_id: ChangesetId,
+    items: list[ReviewFeedbackResponseStatus],
+) -> ChangesetReviewResponseSummary:
+    """Summarize derived response status rows for one changeset."""
+
+    unresolved_states = {
+        ReviewResponseState.PLANNED,
+        ReviewResponseState.IN_PROGRESS,
+        ReviewResponseState.RESPONDED,
+        ReviewResponseState.REOPENED,
+        ReviewResponseState.BLOCKED,
+    }
+    blockers = [
+        f"{item.feedback_id}: {blocker}" for item in items for blocker in item.blockers
+    ]
+    return ChangesetReviewResponseSummary(
+        changeset_id=changeset_id,
+        total_feedback_count=len(items),
+        open_count=sum(
+            1
+            for item in items
+            if item.disposition
+            in {
+                ReviewFeedbackDisposition.OPEN,
+                ReviewFeedbackDisposition.IN_PROGRESS,
+            }
+        ),
+        responded_count=sum(
+            1
+            for item in items
+            if item.response_state
+            in {
+                ReviewResponseState.RESPONDED,
+                ReviewResponseState.RESOLVED,
+            }
+        ),
+        unresolved_count=sum(
+            1 for item in items if item.response_state in unresolved_states
+        ),
+        stale_response_count=sum(1 for item in items if item.stale),
+        accepted_risk_count=sum(
+            1
+            for item in items
+            if item.response_state == ReviewResponseState.ACCEPTED_WITH_RISK
+        ),
+        blocked_count=sum(
+            1 for item in items if item.response_state == ReviewResponseState.BLOCKED
+        ),
+        items=items,
+        blockers=blockers,
+        safe_next_actions=[
+            f"glassbox changeset feedback list --changeset {changeset_id} --cwd .",
+            f"glassbox changeset show {changeset_id} --cwd .",
+        ],
+        non_claims=_review_response_non_claims(),
+    )
+
+
 def review_fixup_inventory_status(
     *,
     feedback_id: ReviewFeedbackId,
@@ -173,6 +353,63 @@ def review_fixup_inventory_status(
         current_source_digest=current_source_digest,
         safe_next_actions=safe_next_actions,
     )
+
+
+def _response_state(
+    disposition: ReviewFeedbackDisposition,
+    *,
+    has_fixup: bool,
+    stale: bool,
+) -> ReviewResponseState:
+    if disposition == ReviewFeedbackDisposition.ACCEPTED_WITH_RISK:
+        return ReviewResponseState.ACCEPTED_WITH_RISK
+    if disposition == ReviewFeedbackDisposition.ARCHIVED:
+        return ReviewResponseState.NOT_APPLICABLE
+    if stale:
+        return ReviewResponseState.BLOCKED
+    if disposition == ReviewFeedbackDisposition.RESOLVED_LOCALLY:
+        return (
+            ReviewResponseState.RESOLVED if has_fixup else ReviewResponseState.BLOCKED
+        )
+    if disposition == ReviewFeedbackDisposition.RESPONDED:
+        return (
+            ReviewResponseState.RESPONDED if has_fixup else ReviewResponseState.BLOCKED
+        )
+    if disposition == ReviewFeedbackDisposition.IN_PROGRESS:
+        return ReviewResponseState.IN_PROGRESS
+    if has_fixup:
+        return ReviewResponseState.RESPONDED
+    return ReviewResponseState.PLANNED
+
+
+def _response_blockers(
+    feedback: ReviewFeedbackRecord,
+    *,
+    latest: ReviewFeedbackFixupInventoryRecord | None,
+    stale: bool,
+    stale_reason: str | None,
+) -> list[str]:
+    blockers: list[str] = []
+    if stale:
+        blockers.append(stale_reason or "response-linked fixup inventory is stale")
+    if latest is None and feedback.disposition in {
+        ReviewFeedbackDisposition.RESPONDED,
+        ReviewFeedbackDisposition.RESOLVED_LOCALLY,
+    }:
+        blockers.append(
+            "feedback disposition cites a response but no fixup inventory is linked"
+        )
+    if latest is None and feedback.disposition == ReviewFeedbackDisposition.OPEN:
+        blockers.append("feedback has no response-linked fixup inventory yet")
+    return blockers
+
+
+def _review_response_non_claims() -> list[str]:
+    return [
+        "review response status is local evidence, not reviewer acceptance",
+        "response inventory does not retain raw diffs or file contents",
+        "Glassbox did not stage, commit, push, open a PR, or merge",
+    ]
 
 
 def _feedback_scope_paths(scopes: list[ReviewFeedbackScopeRecord]) -> set[str]:
@@ -250,6 +487,10 @@ __all__ = [
     "REVIEW_FIXUP_INVENTORY_SCHEMA_VERSION",
     "ReviewFixupInventoryArtifact",
     "ReviewFixupInventoryStatus",
+    "ReviewFeedbackResponseStatus",
+    "ChangesetReviewResponseSummary",
+    "changeset_review_response_summary",
+    "review_feedback_response_status",
     "review_fixup_inventory_artifact_json",
     "review_fixup_inventory_from_change_inventory",
     "review_fixup_inventory_status",

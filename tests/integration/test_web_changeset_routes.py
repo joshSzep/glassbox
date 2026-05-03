@@ -235,8 +235,24 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             assert (
                 feedback_list_response.json()["items"][0]["feedback_id"] == feedback_id
             )
+            assert (
+                feedback_list_response.json()["response_summary"][
+                    "total_feedback_count"
+                ]
+                == 1
+            )
+            assert (
+                feedback_list_response.json()["response_summary"]["items"][0][
+                    "response_state"
+                ]
+                == "planned"
+            )
             assert feedback_detail_response.status_code == 200
             assert feedback_detail_response.json()["scopes"][0]["scope_kind"] == "file"
+            assert (
+                feedback_detail_response.json()["response_status"]["response_state"]
+                == "planned"
+            )
             assert feedback_resolve_response.status_code == 200
             assert (
                 feedback_resolve_response.json()["feedback"]["disposition"]
@@ -261,6 +277,10 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             assert (
                 detail_response.json()["review_feedback"][0]["feedback_id"]
                 == feedback_id
+            )
+            assert (
+                detail_response.json()["review_response_summary"]["accepted_risk_count"]
+                == 1
             )
             assert (
                 "glassbox changeset show"

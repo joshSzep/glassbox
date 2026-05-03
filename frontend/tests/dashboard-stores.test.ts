@@ -1532,6 +1532,7 @@ function makeChangesetDetail(
     },
     review_briefs: [],
     review_feedback: [],
+    review_response_summary: makeReviewResponseSummary(changesetId),
     safe_next_actions: [`glassbox changeset show ${changesetId} --cwd .`],
     sources: [
       {
@@ -1552,6 +1553,25 @@ function makeChangesetDetail(
       },
     ],
     verification_posture: null,
+  };
+}
+
+function makeReviewResponseSummary(
+  changesetId: string,
+): components["schemas"]["ChangesetReviewResponseSummaryResponse"] {
+  return {
+    accepted_risk_count: 0,
+    blocked_count: 0,
+    blockers: [],
+    changeset_id: changesetId,
+    items: [],
+    non_claims: ["review response status is local evidence, not reviewer acceptance"],
+    open_count: 0,
+    responded_count: 0,
+    safe_next_actions: [`glassbox changeset feedback list --changeset ${changesetId} --cwd .`],
+    stale_response_count: 0,
+    total_feedback_count: 0,
+    unresolved_count: 0,
   };
 }
 

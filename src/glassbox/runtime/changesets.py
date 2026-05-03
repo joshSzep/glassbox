@@ -92,8 +92,12 @@ from glassbox.runtime.review_briefs import ReviewBriefSection
 from glassbox.runtime.review_briefs import review_brief_artifact_json
 from glassbox.runtime.review_briefs import review_brief_markdown
 from glassbox.runtime.review_responses import REVIEW_FIXUP_INVENTORY_SCHEMA_VERSION
+from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
+from glassbox.runtime.review_responses import ReviewFeedbackResponseStatus
 from glassbox.runtime.review_responses import ReviewFixupInventoryArtifact
 from glassbox.runtime.review_responses import ReviewFixupInventoryStatus
+from glassbox.runtime.review_responses import changeset_review_response_summary
+from glassbox.runtime.review_responses import review_feedback_response_status
 from glassbox.runtime.review_responses import review_fixup_inventory_artifact_json
 from glassbox.runtime.review_responses import (
     review_fixup_inventory_from_change_inventory,
@@ -309,6 +313,7 @@ class ChangesetDetailView(BaseModel):
     inventory_status: ChangesetInventoryStatus
     review_briefs: list[ChangesetReviewBriefRecord] = Field(default_factory=list)
     review_feedback: list[ReviewFeedbackRecord] = Field(default_factory=list)
+    review_response_summary: ChangesetReviewResponseSummary
     readiness: list[ChangesetReadinessRecord] = Field(default_factory=list)
     command_evidence: ChangesetCommandEvidenceSummary
     limitations: list[str] = Field(default_factory=list)
@@ -726,6 +731,60 @@ class ChangesetQueryService:
             artifact_id,
         )
 
+    def get_review_feedback_response_status(
+        self,
+        feedback_id: ReviewFeedbackId,
+        *,
+        workspace_root: Path | None = None,
+    ) -> ReviewFeedbackResponseStatus:
+        feedback = self._repository.get_review_feedback(feedback_id)
+        if feedback is None:
+            raise ValueError(f"unknown review feedback: {feedback_id}")
+        inventories = self._repository.list_review_feedback_fixup_inventories(
+            feedback.session_id,
+            feedback.feedback_id,
+        )
+        paths = (
+            self._repository.list_review_feedback_fixup_paths(
+                feedback.session_id,
+                feedback.feedback_id,
+                inventories[0].artifact_id,
+            )
+            if inventories
+            else []
+        )
+        freshness = (
+            ReviewFeedbackFixupInventoryService(
+                self._repository
+            ).assess_record_freshness(
+                inventories[0],
+                workspace_root,
+            )
+            if workspace_root is not None and inventories
+            else None
+        )
+        return review_feedback_response_status(
+            feedback=feedback,
+            inventories=inventories,
+            paths=paths,
+            freshness_status=freshness,
+        )
+
+    def get_review_response_summary(
+        self,
+        changeset_id: ChangesetId,
+        *,
+        workspace_root: Path | None = None,
+    ) -> ChangesetReviewResponseSummary:
+        changeset = self._repository.get_changeset(changeset_id)
+        if changeset is None:
+            raise ValueError(f"unknown changeset: {changeset_id}")
+        return _review_response_summary(
+            self._repository,
+            changeset,
+            workspace_root=workspace_root,
+        )
+
     def get_detail(
         self,
         changeset_id: ChangesetId,
@@ -756,6 +815,12 @@ class ChangesetQueryService:
             changeset_id=changeset.changeset_id,
             include_archived=True,
         )
+        review_response_summary = _review_response_summary(
+            self._repository,
+            changeset,
+            feedback=review_feedback,
+            workspace_root=workspace_root,
+        )
         readiness = self._repository.list_changeset_readiness(
             changeset.session_id,
             changeset.changeset_id,
@@ -781,6 +846,7 @@ class ChangesetQueryService:
             inventory_status=inventory_status,
             review_briefs=review_briefs,
             review_feedback=review_feedback,
+            review_response_summary=review_response_summary,
             readiness=readiness,
             command_evidence=command_evidence,
             limitations=_detail_limitations(
@@ -791,6 +857,57 @@ class ChangesetQueryService:
             ),
             safe_next_actions=_detail_safe_next_actions(changeset, inventory_status),
         )
+
+
+def _review_response_summary(
+    repository: ChangesetRepository,
+    changeset: ChangesetRecord,
+    *,
+    feedback: list[ReviewFeedbackRecord] | None = None,
+    workspace_root: Path | None = None,
+) -> ChangesetReviewResponseSummary:
+    feedback_items = (
+        feedback
+        if feedback is not None
+        else repository.list_review_feedback(
+            session_id=changeset.session_id,
+            changeset_id=changeset.changeset_id,
+            include_archived=True,
+        )
+    )
+    statuses: list[ReviewFeedbackResponseStatus] = []
+    freshness_service = ReviewFeedbackFixupInventoryService(repository)
+    for item in feedback_items:
+        inventories = repository.list_review_feedback_fixup_inventories(
+            item.session_id,
+            item.feedback_id,
+        )
+        paths = (
+            repository.list_review_feedback_fixup_paths(
+                item.session_id,
+                item.feedback_id,
+                inventories[0].artifact_id,
+            )
+            if inventories
+            else []
+        )
+        freshness = (
+            freshness_service.assess_record_freshness(inventories[0], workspace_root)
+            if workspace_root is not None and inventories
+            else None
+        )
+        statuses.append(
+            review_feedback_response_status(
+                feedback=item,
+                inventories=inventories,
+                paths=paths,
+                freshness_status=freshness,
+            )
+        )
+    return changeset_review_response_summary(
+        changeset_id=changeset.changeset_id,
+        items=statuses,
+    )
 
 
 class ReviewFeedbackActionService:

@@ -363,6 +363,18 @@ def _add_changeset_parsers(
     feedback_show_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(feedback_show_parser)
 
+    feedback_status_parser = feedback_subparsers.add_parser(
+        "status",
+        help="show response status for feedback on one changeset",
+        description=(
+            "Show open, responded, unresolved, stale, blocked, and accepted-risk "
+            "review response status without mutating git."
+        ),
+    )
+    feedback_status_parser.add_argument("changeset_id", type=_parse_uuid)
+    feedback_status_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(feedback_status_parser)
+
     feedback_resolve_parser = feedback_subparsers.add_parser(
         "resolve",
         help="mark feedback resolved locally with retained response text",

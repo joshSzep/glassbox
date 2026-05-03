@@ -603,6 +603,10 @@ function ReviewPanel({
 
 function ReviewFeedbackPanel({ detail }: { detail: NonNullable<ChangesetDetailState["detail"]> }) {
   const feedback = detail.review_feedback;
+  const responseSummary = detail.review_response_summary;
+  const responseByFeedbackId = new Map(
+    responseSummary.items.map((item) => [item.feedback_id, item]),
+  );
   const openItems = feedback.filter(
     (item) => item.disposition === "open" || item.disposition === "in_progress",
   );
@@ -629,6 +633,12 @@ function ReviewFeedbackPanel({ detail }: { detail: NonNullable<ChangesetDetailSt
           <Badge variant={acceptedRisks.length > 0 ? "outline" : "muted"}>
             {acceptedRisks.length} accepted risks
           </Badge>
+          <Badge variant={responseSummary.responded_count > 0 ? "success" : "muted"}>
+            {responseSummary.responded_count} responded
+          </Badge>
+          <Badge variant={responseSummary.stale_response_count > 0 ? "warning" : "muted"}>
+            {responseSummary.stale_response_count} stale responses
+          </Badge>
         </div>
         {feedback.length === 0 ? (
           <p className="text-sm text-muted-foreground">
@@ -636,31 +646,60 @@ function ReviewFeedbackPanel({ detail }: { detail: NonNullable<ChangesetDetailSt
           </p>
         ) : (
           <DataList density="compact">
-            {feedback.slice(0, 8).map((item) => (
-              <DataListItem key={item.feedback_id}>
-                <DataListLabel>{item.summary}</DataListLabel>
-                <DataListMeta>
-                  {item.feedback_kind} - {item.disposition} - {item.provenance}
-                  {item.reviewer_label ? ` - ${item.reviewer_label}` : ""}
-                </DataListMeta>
-                {item.resolution_summary ? (
-                  <DataListMeta>Resolution: {item.resolution_summary}</DataListMeta>
-                ) : null}
-                {item.risk_summary ? (
-                  <DataListMeta>Accepted risk: {item.risk_summary}</DataListMeta>
-                ) : null}
-                {item.residual_risk ? (
-                  <DataListMeta>Residual risk: {item.residual_risk}</DataListMeta>
-                ) : null}
-              </DataListItem>
-            ))}
+            {feedback.slice(0, 8).map((item) => {
+              const response = responseByFeedbackId.get(item.feedback_id);
+              return (
+                <DataListItem key={item.feedback_id}>
+                  <DataListLabel>{item.summary}</DataListLabel>
+                  <DataListMeta>
+                    {item.feedback_kind} - {item.disposition} - {item.provenance}
+                    {item.reviewer_label ? ` - ${item.reviewer_label}` : ""}
+                  </DataListMeta>
+                  {response ? (
+                    <>
+                      <DataListMeta>
+                        Response {response.response_state} - {response.fixup_inventory_count}{" "}
+                        inventories - {response.changed_path_count} paths -{" "}
+                        {response.matched_scope_path_count} scoped matches
+                      </DataListMeta>
+                      <DataListMeta>
+                        Freshness {response.inventory_freshness}
+                        {response.stale_reason ? ` - ${response.stale_reason}` : ""}
+                      </DataListMeta>
+                      {response.path_summaries.slice(0, 2).map((summary) => (
+                        <DataListMeta key={summary}>{summary}</DataListMeta>
+                      ))}
+                      {response.blockers.slice(0, 2).map((blocker) => (
+                        <DataListMeta key={blocker}>Blocker: {blocker}</DataListMeta>
+                      ))}
+                    </>
+                  ) : null}
+                  {item.resolution_summary ? (
+                    <DataListMeta>Resolution: {item.resolution_summary}</DataListMeta>
+                  ) : null}
+                  {item.risk_summary ? (
+                    <DataListMeta>Accepted risk: {item.risk_summary}</DataListMeta>
+                  ) : null}
+                  {item.residual_risk ? (
+                    <DataListMeta>Residual risk: {item.residual_risk}</DataListMeta>
+                  ) : null}
+                </DataListItem>
+              );
+            })}
           </DataList>
         )}
         <ul className="grid gap-2 text-console text-muted-foreground">
+          {responseSummary.safe_next_actions.map((action) => (
+            <li className="break-all" key={action}>
+              {action}
+            </li>
+          ))}
           <li className="break-all">
             glassbox changeset feedback list --changeset {detail.changeset.changeset_id} --cwd .
           </li>
-          <li>Review feedback is local evidence, not approval.</li>
+          {responseSummary.non_claims.slice(0, 1).map((claim) => (
+            <li key={claim}>{claim}</li>
+          ))}
         </ul>
       </div>
     </Section>

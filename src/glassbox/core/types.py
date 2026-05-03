@@ -286,6 +286,19 @@ class ReviewFixupSourceKind(StrEnum):
     MANUAL_EVIDENCE = "manual_evidence"
 
 
+class ReviewResponseState(StrEnum):
+    """Derived local response posture for review feedback."""
+
+    PLANNED = "planned"
+    IN_PROGRESS = "in_progress"
+    RESPONDED = "responded"
+    RESOLVED = "resolved"
+    REOPENED = "reopened"
+    BLOCKED = "blocked"
+    ACCEPTED_WITH_RISK = "accepted_with_risk"
+    NOT_APPLICABLE = "not_applicable"
+
+
 class ChangesetReadinessKind(StrEnum):
     """Kinds of readiness decisions a changeset can carry."""
 

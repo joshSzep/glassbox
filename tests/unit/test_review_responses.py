@@ -5,12 +5,16 @@ from datetime import datetime
 
 from glassbox.core import ChangesetInventoryFreshness
 from glassbox.core import ReviewFeedbackDisposition
+from glassbox.core import ReviewFeedbackFixupInventoryRecord
+from glassbox.core import ReviewFeedbackFixupPathRecord
 from glassbox.core import ReviewFeedbackKind
 from glassbox.core import ReviewFeedbackProvenance
 from glassbox.core import ReviewFeedbackRecord
 from glassbox.core import ReviewFeedbackScopeKind
 from glassbox.core import ReviewFeedbackScopeRecord
 from glassbox.core import ReviewFixupSourceKind
+from glassbox.core import ReviewResponseState
+from glassbox.core import new_artifact_id
 from glassbox.core import new_changeset_id
 from glassbox.core import new_review_feedback_id
 from glassbox.core import new_session_id
@@ -19,6 +23,8 @@ from glassbox.runtime.change_inventory import ChangeInventoryLimits
 from glassbox.runtime.change_inventory import ChangeInventoryPathEntry
 from glassbox.runtime.change_inventory import ChangeInventoryRiskLevel
 from glassbox.runtime.change_inventory import ChangeInventorySummary
+from glassbox.runtime.review_responses import changeset_review_response_summary
+from glassbox.runtime.review_responses import review_feedback_response_status
 from glassbox.runtime.review_responses import (
     review_fixup_inventory_from_change_inventory,
 )
@@ -119,6 +125,75 @@ def test_fixup_inventory_status_marks_workspace_digest_drift_stale() -> None:
     assert (
         f"glassbox changeset feedback show {feedback_id}" in status.safe_next_actions[0]
     )
+
+
+def test_response_status_marks_stale_fixup_blocked() -> None:
+    session_id = new_session_id()
+    changeset_id = new_changeset_id()
+    feedback_id = new_review_feedback_id()
+    artifact_id = new_artifact_id()
+    feedback = _feedback_record(session_id, changeset_id, feedback_id).model_copy(
+        update={"disposition": ReviewFeedbackDisposition.RESOLVED_LOCALLY}
+    )
+    inventory = ReviewFeedbackFixupInventoryRecord(
+        session_id=session_id,
+        feedback_id=feedback_id,
+        changeset_id=changeset_id,
+        artifact_id=artifact_id,
+        artifact_schema_version=1,
+        source_kind=ReviewFixupSourceKind.MANUAL_WORKSPACE_EDIT,
+        source_summary="operator recorded response inventory",
+        source_digest="sha256:before",
+        inventory_freshness=ChangesetInventoryFreshness.FRESH,
+        changed_path_count=2,
+        matched_scope_path_count=1,
+        stale=False,
+        recorded_by="operator",
+        created_at=datetime.now(UTC),
+        last_sequence=5,
+    )
+    path = ReviewFeedbackFixupPathRecord(
+        session_id=session_id,
+        feedback_id=feedback_id,
+        changeset_id=changeset_id,
+        artifact_id=artifact_id,
+        path="app.py",
+        change_kind="modified",
+        generated=False,
+        test_file=False,
+        docs_file=False,
+        policy_sensitive=False,
+        risk_level="low",
+        provenance_confidence="unknown",
+        matches_feedback_scope=True,
+        summary="app.py: matches feedback scope",
+        last_sequence=5,
+    )
+    freshness = review_fixup_inventory_status(
+        feedback_id=feedback_id,
+        changeset_id=changeset_id,
+        recorded_source_digest="sha256:before",
+        current_source_digest="sha256:after",
+    )
+
+    status = review_feedback_response_status(
+        feedback=feedback,
+        inventories=[inventory],
+        paths=[path],
+        freshness_status=freshness,
+    )
+    summary = changeset_review_response_summary(
+        changeset_id=changeset_id,
+        items=[status],
+    )
+
+    assert status.response_state == ReviewResponseState.BLOCKED
+    assert status.stale is True
+    assert status.path_summaries == ["app.py: matches feedback scope"]
+    assert "source digest changed" in status.blockers[0]
+    assert summary.blocked_count == 1
+    assert summary.stale_response_count == 1
+    assert summary.unresolved_count == 1
 
 
 def _feedback_record(session_id, changeset_id, feedback_id) -> ReviewFeedbackRecord:

@@ -1843,6 +1843,9 @@
             "title": "Review Feedback",
             "type": "array"
           },
+          "review_response_summary": {
+            "$ref": "#/components/schemas/ChangesetReviewResponseSummaryResponse"
+          },
           "safe_next_actions": {
             "items": {
               "type": "string"
@@ -1874,6 +1877,7 @@
           "inventory_status",
           "review_briefs",
           "review_feedback",
+          "review_response_summary",
           "readiness",
           "command_evidence",
           "limitations",
@@ -2491,6 +2495,86 @@
           "last_sequence"
         ],
         "title": "ChangesetReviewBriefResponse",
+        "type": "object"
+      },
+      "ChangesetReviewResponseSummaryResponse": {
+        "properties": {
+          "accepted_risk_count": {
+            "title": "Accepted Risk Count",
+            "type": "integer"
+          },
+          "blocked_count": {
+            "title": "Blocked Count",
+            "type": "integer"
+          },
+          "blockers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "changeset_id": {
+            "title": "Changeset Id",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewFeedbackResponseStatusResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Non Claims",
+            "type": "array"
+          },
+          "open_count": {
+            "title": "Open Count",
+            "type": "integer"
+          },
+          "responded_count": {
+            "title": "Responded Count",
+            "type": "integer"
+          },
+          "safe_next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safe Next Actions",
+            "type": "array"
+          },
+          "stale_response_count": {
+            "title": "Stale Response Count",
+            "type": "integer"
+          },
+          "total_feedback_count": {
+            "title": "Total Feedback Count",
+            "type": "integer"
+          },
+          "unresolved_count": {
+            "title": "Unresolved Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "changeset_id",
+          "total_feedback_count",
+          "open_count",
+          "responded_count",
+          "unresolved_count",
+          "stale_response_count",
+          "accepted_risk_count",
+          "blocked_count",
+          "items",
+          "blockers",
+          "safe_next_actions",
+          "non_claims"
+        ],
+        "title": "ChangesetReviewResponseSummaryResponse",
         "type": "object"
       },
       "ChangesetSourceResponse": {
@@ -6986,6 +7070,9 @@
             "title": "Non Claims",
             "type": "array"
           },
+          "response_status": {
+            "$ref": "#/components/schemas/ReviewFeedbackResponseStatusResponse"
+          },
           "safe_next_actions": {
             "items": {
               "type": "string"
@@ -7001,7 +7088,7 @@
             "type": "array"
           }
         },
-        "required": ["feedback", "scopes", "safe_next_actions", "non_claims"],
+        "required": ["feedback", "scopes", "response_status", "safe_next_actions", "non_claims"],
         "title": "ReviewFeedbackDetailResponse",
         "type": "object"
       },
@@ -7013,6 +7100,16 @@
             },
             "title": "Items",
             "type": "array"
+          },
+          "response_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChangesetReviewResponseSummaryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": ["items"],
@@ -7337,6 +7434,163 @@
           "last_sequence"
         ],
         "title": "ReviewFeedbackResponse",
+        "type": "object"
+      },
+      "ReviewFeedbackResponseStatusResponse": {
+        "properties": {
+          "blockers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "changed_path_count": {
+            "title": "Changed Path Count",
+            "type": "integer"
+          },
+          "changeset_id": {
+            "title": "Changeset Id",
+            "type": "string"
+          },
+          "disposition": {
+            "title": "Disposition",
+            "type": "string"
+          },
+          "feedback_id": {
+            "title": "Feedback Id",
+            "type": "string"
+          },
+          "fixup_inventory_count": {
+            "title": "Fixup Inventory Count",
+            "type": "integer"
+          },
+          "inventory_freshness": {
+            "title": "Inventory Freshness",
+            "type": "string"
+          },
+          "latest_fixup_inventory_artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Fixup Inventory Artifact Id"
+          },
+          "latest_fixup_inventory_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Fixup Inventory At"
+          },
+          "latest_fixup_inventory_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Fixup Inventory Sequence"
+          },
+          "latest_source_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Source Kind"
+          },
+          "latest_source_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Source Summary"
+          },
+          "matched_scope_path_count": {
+            "title": "Matched Scope Path Count",
+            "type": "integer"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Non Claims",
+            "type": "array"
+          },
+          "path_summaries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Path Summaries",
+            "type": "array"
+          },
+          "response_state": {
+            "title": "Response State",
+            "type": "string"
+          },
+          "safe_next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safe Next Actions",
+            "type": "array"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "stale_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stale Reason"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "feedback_id",
+          "changeset_id",
+          "response_state",
+          "disposition",
+          "summary",
+          "fixup_inventory_count",
+          "inventory_freshness",
+          "stale",
+          "changed_path_count",
+          "matched_scope_path_count",
+          "path_summaries",
+          "blockers",
+          "safe_next_actions",
+          "non_claims"
+        ],
+        "title": "ReviewFeedbackResponseStatusResponse",
         "type": "object"
       },
       "ReviewFeedbackScopeResponse": {

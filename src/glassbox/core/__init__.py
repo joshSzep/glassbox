@@ -267,6 +267,7 @@ from glassbox.core.types import ReviewFeedbackKind
 from glassbox.core.types import ReviewFeedbackProvenance
 from glassbox.core.types import ReviewFeedbackScopeKind
 from glassbox.core.types import ReviewFixupSourceKind
+from glassbox.core.types import ReviewResponseState
 from glassbox.core.types import SessionStatus
 from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
@@ -437,6 +438,7 @@ __all__ = [
     "ReviewFeedbackScopeKind",
     "ReviewFeedbackScopeRecord",
     "ReviewFixupSourceKind",
+    "ReviewResponseState",
     "RepositoryIndexEntry",
     "RepositoryIndexEntityKind",
     "RepositoryIndexFreshness",

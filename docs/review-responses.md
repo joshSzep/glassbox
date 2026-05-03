@@ -95,9 +95,20 @@ source summary, source digest, limitations, and non-claims. Projection tables
 retain the artifact reference and file-level rows so later CLI, API, and
 dashboard surfaces can answer which files appear to respond to feedback.
 
-The implementation deliberately does not expose a primary dashboard mutation
-control yet. GBX-1322 owns terminal, API, and dashboard status surfaces for
-open feedback, responded feedback, stale responses, and response blockers.
+The GBX-1322 implementation derives review-response status from feedback
+disposition, latest response-linked inventory, current inventory freshness,
+bounded path summaries, and accepted-risk posture. `glassbox changeset show`
+now includes response counts and blockers, and
+`glassbox changeset feedback status CHANGESET_ID --cwd .` gives a focused
+terminal view of open, responded, unresolved, stale, blocked, and
+accepted-risk feedback. API changeset detail and feedback list/detail responses
+expose the same summary for dashboard use. The dashboard shows this as a dense
+response timeline beside each feedback row.
+
+These surfaces remain read-only status views. Recording feedback disposition
+and response-linked inventory remains explicit operator action, and response
+status is not folded into commit readiness until publication-boundary tasks
+define that relationship.
 
 ## Stale Verification Rules
 
