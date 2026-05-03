@@ -7,8 +7,8 @@ from pydantic import BaseModel
 from glassbox.core import ApprovalMode
 from glassbox.core import PolicyDecision
 from glassbox.tools.policy_autonomy import describe_effective_approval_behavior
+from glassbox.tools.policy_command_risk import blocked_command_risk
 from glassbox.tools.policy_command_risk import command_text
-from glassbox.tools.policy_command_risk import is_destructive_command
 from glassbox.tools.policy_messages import decision_from_outcome
 from glassbox.tools.policy_models import ToolPolicyContext
 from glassbox.tools.policy_paths import first_out_of_scope_path
@@ -59,19 +59,21 @@ class ToolPolicyEngine:
                 source_label="workspace_scope",
             )
 
-        if (
-            tool_spec.risk_level is ToolRiskLevel.COMMAND
+        command_risk = (
+            blocked_command_risk(resolved_command_text)
+            if tool_spec.risk_level is ToolRiskLevel.COMMAND
             and resolved_command_text is not None
-            and is_destructive_command(resolved_command_text)
-        ):
+            else None
+        )
+        if command_risk is not None:
             return PolicyDecision(
                 allowed=False,
                 requires_approval=False,
-                reason="blocked: destructive command pattern is not allowed",
+                reason=command_risk.reason,
                 outcome="blocked",
                 risk_level=tool_spec.risk_level.value,
                 source_kind="invariant",
-                source_label="destructive_command",
+                source_label=command_risk.source_label,
             )
 
         outcome = resolve_policy_outcome(

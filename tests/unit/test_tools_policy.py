@@ -490,6 +490,58 @@ def test_policy_blocks_destructive_commands() -> None:
     assert decision.source_label == "destructive_command"
 
 
+@pytest.mark.parametrize(
+    ("command", "source_label", "reason_fragment"),
+    [
+        ("npm publish", "publish_command", "publish command"),
+        ("twine upload dist/*", "publish_command", "publish command"),
+        ("vercel deploy --prod", "deploy_command", "deploy command"),
+        ("kubectl apply -f deploy.yaml", "deploy_command", "deploy command"),
+        ("git push origin main", "remote_or_history_mutation", "remote git"),
+        ("git rebase main", "remote_or_history_mutation", "history mutation"),
+    ],
+)
+def test_policy_blocks_publish_deploy_and_history_mutation_commands(
+    command: str,
+    source_label: str,
+    reason_fragment: str,
+) -> None:
+    engine = ToolPolicyEngine()
+
+    decision = engine.evaluate(
+        RunCommandTool.spec,
+        arguments=RunCommandArgs(command=command, cwd="."),
+        context=ToolPolicyContext(
+            workspace_root=Path("/tmp/workspace"),
+            approval_mode=ApprovalMode.ON_REQUEST,
+        ),
+    )
+
+    assert decision.allowed is False
+    assert decision.requires_approval is False
+    assert reason_fragment in decision.reason
+    assert decision.outcome == "blocked"
+    assert decision.source_kind == "invariant"
+    assert decision.source_label == source_label
+
+
+def test_policy_allows_local_package_build_without_publish_block() -> None:
+    engine = ToolPolicyEngine()
+
+    decision = engine.evaluate(
+        RunCommandTool.spec,
+        arguments=RunCommandArgs(command="uv build", cwd="."),
+        context=ToolPolicyContext(
+            workspace_root=Path("/tmp/workspace"),
+            approval_mode=ApprovalMode.CONFIRM,
+        ),
+    )
+
+    assert decision.allowed is True
+    assert decision.outcome == "approve"
+    assert decision.source_kind == "default"
+
+
 def test_policy_summary_points_to_source_and_reason_details() -> None:
     summary = PolicyActivitySummary(
         total_decisions=2,

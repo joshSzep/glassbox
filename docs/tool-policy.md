@@ -135,8 +135,10 @@ The policy engine evaluates tools in this order:
 1. Reject any path argument that resolves outside the workspace.
 2. Allow in-scope `read_only` tools immediately.
 3. Gate or allow `workspace_write` tools according to approval mode, repository policy, and the resolved autonomy budget.
-4. For `command` tools, block destructive command patterns outright.
-5. For other non-destructive commands, gate or allow according to approval mode, repository policy, and the resolved autonomy budget.
+4. For `command` tools, block hard-risk command patterns outright:
+   destructive cleanup, package publish/upload, deploy, remote git mutation,
+   and history rewrite commands.
+5. For other non-destructive local commands, gate or allow according to approval mode, repository policy, and the resolved autonomy budget.
 
 This means a tool call can end in one of three practical outcomes:
 
@@ -149,7 +151,7 @@ This means a tool call can end in one of three practical outcomes:
 `glassbox-policy.json` can include `autonomy_rules` for local workflows the
 repository understands well. These rules run after hard invariants and explicit
 `rules`, but before default risk-bucket policy. They cannot allow paths outside
-the workspace or destructive command patterns.
+the workspace or hard-risk command patterns.
 
 Supported autonomy rule actions are:
 
@@ -232,6 +234,12 @@ These are rejected immediately and do not enter the approval queue:
   - `git clean -f`
   - `git reset --hard`
   - `mkfs`, `shutdown`, `reboot`, `poweroff`
+- publish or package-upload commands such as `npm publish`, `pnpm publish`,
+  `twine upload`, `uv publish`, `cargo publish`, or `gh release create`
+- deploy or remote runtime mutation commands such as `vercel deploy --prod`,
+  `netlify deploy`, `fly deploy`, `kubectl apply`, or `terraform apply`
+- remote git or history mutation commands such as `git push`, `git rebase`, or
+  `git filter-branch`
 
 Blocked tool requests fail the turn with a policy reason rather than pausing for
 operator input.
@@ -346,7 +354,8 @@ You can reliably expect the following:
 - in-scope read-only inspection tools run immediately
 - in-scope writes and commands pause for approval unless the session is in `never`
 - `never` blocks risky actions instead of queueing approvals
-- destructive command patterns are blocked outright
+- destructive, publish, deploy, remote git mutation, and history rewrite
+  command patterns are blocked outright
 - denying an approval does not execute the tool
 - approving an approval resumes the suspended turn from persisted state
 - `ask_user` pauses the turn for operator input without going through the approval queue
@@ -619,8 +628,8 @@ The effective decision order is:
 Hard invariants always outrank repository policy. A repository rule cannot:
 
 - allow a path argument outside the workspace
-- allow a destructive command pattern such as `rm -rf`, `git clean -f`, or
-  `git reset --hard`
+- allow a hard-risk command pattern such as `rm -rf`, `git clean -f`,
+  `git reset --hard`, `npm publish`, `vercel deploy`, or `git push`
 - make an unregistered or unknown tool executable
 - make invalid manifest content silently fall back to a safer-looking default
 - turn an `approve` decision into execution when approval mode is `never`
@@ -628,7 +637,8 @@ Hard invariants always outrank repository policy. A repository rule cannot:
 Rules and defaults can only refine behavior inside those guardrails. For
 example, a repo may allow `run_command` for `git status` immediately, require
 approval for build commands, and deny package-manager commands. It may not use a
-command prefix to bless destructive shell syntax.
+command prefix to bless destructive shell syntax, package publishing, deploys,
+remote git mutation, or history rewriting.
 
 ### Default Risk Posture
 

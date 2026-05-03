@@ -1544,7 +1544,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1282: Harden Publish, Deploy, And Destructive Command Guardrails
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1280`
 - Goal: prevent review-preparation workflows from accidentally crossing into
   irreversible release or publishing actions
@@ -1564,6 +1564,17 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - review and commit-readiness workflows cannot accidentally publish or
     destructively rewrite work
+- Completion notes:
+  - Expanded hard command-risk invariants to block package publish/upload,
+    deploy, remote git mutation, and history rewrite commands in addition to
+    existing destructive local cleanup patterns.
+  - Preserved local build/package validation such as `uv build`; dry-run
+    publish/deploy commands remain available for repository policy rules to
+    allow, approve, or deny explicitly.
+  - Added policy tests for publish, deploy, kubectl, git push/rebase, and local
+    package-build boundaries.
+  - Updated [tool-policy.md](./tool-policy.md) with the hard-risk command
+    vocabulary, examples, and override limits.
 
 ### GBX-1283: Attach Command Evidence To Review Briefs And Changesets
 
