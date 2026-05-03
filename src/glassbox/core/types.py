@@ -446,6 +446,35 @@ class ToolAttemptRetryClassification(StrEnum):
     ABANDONED = "abandoned"
 
 
+class CommandPurpose(StrEnum):
+    """Review-oriented purpose classes for retained command evidence."""
+
+    INSPECT = "inspect"
+    TEST = "test"
+    LINT = "lint"
+    TYPECHECK = "typecheck"
+    BUILD = "build"
+    PACKAGE = "package"
+    EVAL = "eval"
+    RELEASE_GATE = "release_gate"
+    PUBLISH = "publish"
+    DEPLOY = "deploy"
+    CLEANUP = "cleanup"
+    UNKNOWN = "unknown"
+    DANGEROUS = "dangerous"
+
+
+class CommandReviewRelevance(StrEnum):
+    """How a classified command should be interpreted during review."""
+
+    INSPECTION = "inspection"
+    VERIFICATION = "verification"
+    LOCAL_ARTIFACT = "local_artifact"
+    RELEASE_OR_REMOTE_MUTATION = "release_or_remote_mutation"
+    CLEANUP_OR_DESTRUCTIVE = "cleanup_or_destructive"
+    UNKNOWN = "unknown"
+
+
 class RecoveryDecision(StrEnum):
     """Operator-facing recovery decisions for interrupted long work."""
 

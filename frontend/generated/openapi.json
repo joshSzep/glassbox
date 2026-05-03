@@ -9367,6 +9367,50 @@
       },
       "ToolAttemptResponse": {
         "properties": {
+          "command_purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Command Purpose"
+          },
+          "command_purpose_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Command Purpose Reason"
+          },
+          "command_review_relevance": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Command Review Relevance"
+          },
+          "command_supports_verification": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Command Supports Verification"
+          },
           "completed_at": {
             "anyOf": [
               {

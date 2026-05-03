@@ -55,6 +55,10 @@ def ensure_tool_attempt_projection_schema(connection: sqlite3.Connection) -> Non
             retry_requires_approval integer,
             retry_reason text,
             retry_policy_reason text,
+            command_purpose text,
+            command_review_relevance text,
+            command_supports_verification integer,
+            command_purpose_reason text,
             last_sequence integer not null,
             primary key (session_id, tool_attempt_id),
             foreign key (session_id) references sessions(session_id)
@@ -91,4 +95,18 @@ def ensure_tool_attempt_projection_schema(connection: sqlite3.Connection) -> Non
     if "retry_policy_reason" not in existing_columns:
         connection.execute(
             "alter table tool_attempts add column retry_policy_reason text"
+        )
+    if "command_purpose" not in existing_columns:
+        connection.execute("alter table tool_attempts add column command_purpose text")
+    if "command_review_relevance" not in existing_columns:
+        connection.execute(
+            "alter table tool_attempts add column command_review_relevance text"
+        )
+    if "command_supports_verification" not in existing_columns:
+        connection.execute(
+            "alter table tool_attempts add column command_supports_verification integer"
+        )
+    if "command_purpose_reason" not in existing_columns:
+        connection.execute(
+            "alter table tool_attempts add column command_purpose_reason text"
         )

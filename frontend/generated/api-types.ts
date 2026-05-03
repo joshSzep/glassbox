@@ -4482,6 +4482,14 @@ export interface components {
     };
     /** ToolAttemptResponse */
     ToolAttemptResponse: {
+      /** Command Purpose */
+      command_purpose?: string | null;
+      /** Command Purpose Reason */
+      command_purpose_reason?: string | null;
+      /** Command Review Relevance */
+      command_review_relevance?: string | null;
+      /** Command Supports Verification */
+      command_supports_verification?: boolean | null;
       /** Completed At */
       completed_at?: string | null;
       /** Completed Units */

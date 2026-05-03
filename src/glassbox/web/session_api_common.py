@@ -57,6 +57,10 @@ class ToolAttemptResponse(BaseModel):
     retry_requires_approval: bool | None = None
     retry_reason: str | None = None
     retry_policy_reason: str | None = None
+    command_purpose: str | None = None
+    command_review_relevance: str | None = None
+    command_supports_verification: bool | None = None
+    command_purpose_reason: str | None = None
     last_sequence: int
 
 

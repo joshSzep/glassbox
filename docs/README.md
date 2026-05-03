@@ -120,6 +120,8 @@ v11 confidence and adoption release candidate.
   and inspection posture
 - [tool-attempts.md](./tool-attempts.md): inspect v10 durable tool-attempt
   heartbeats, statuses, and retry posture beside existing tool-call records
+- [command-evidence.md](./command-evidence.md): understand v12 command purpose
+  and review-relevance classification for retained command attempts
 - [verification-loops.md](./verification-loops.md): operate explicit,
   budgeted verification checks and verify-repair loops
 - [branching.md](./branching.md): inspect historical sessions, create child

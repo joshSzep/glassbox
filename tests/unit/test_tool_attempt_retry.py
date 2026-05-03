@@ -2,12 +2,20 @@
 
 from pathlib import Path
 
+from glassbox.core import CommandPurpose
+from glassbox.core import CommandReviewRelevance
+from glassbox.core import new_tool_attempt_id
+from glassbox.core import new_tool_call_id
+from glassbox.core import new_turn_id
 from glassbox.core.models import PolicyDecision
 from glassbox.core.types import ToolAttemptRetryClassification
 from glassbox.core.types import ToolAttemptStatus
 from glassbox.runtime.tool_attempts import classify_tool_attempt_retry
+from glassbox.runtime.turn_tool_attempt_heartbeats import build_tool_attempt_heartbeat
+from glassbox.tools import PreparedToolExecution
 from glassbox.tools.command import RunCommandArgs
 from glassbox.tools.command import RunCommandResult
+from glassbox.tools.command import RunCommandTool
 from glassbox.tools.registry import ToolRiskLevel
 from glassbox.tools.registry import ToolSpec
 
@@ -115,3 +123,28 @@ def test_read_only_tool_failure_is_retryable_without_approval() -> None:
     assert assessment.classification == ToolAttemptRetryClassification.RETRYABLE
     assert assessment.safe_to_retry is True
     assert assessment.requires_approval is False
+
+
+def test_tool_attempt_heartbeat_records_command_purpose() -> None:
+    command_tool = RunCommandTool(Path("."))
+    prepared = PreparedToolExecution(
+        event_tool_call_id=new_tool_call_id(),
+        provider_tool_call_id="provider-call",
+        tool_name="run_command",
+        tool=command_tool,
+        validated_arguments=RunCommandArgs(command="uv run pytest", cwd="."),
+        policy_decision=_policy_decision(),
+    )
+
+    heartbeat = build_tool_attempt_heartbeat(
+        tool_attempt_id=new_tool_attempt_id(),
+        status=ToolAttemptStatus.FAILED,
+        turn_id=new_turn_id(),
+        prepared_tool_call=prepared,
+        message="pytest failed",
+    )
+
+    assert heartbeat.command_purpose == CommandPurpose.TEST
+    assert heartbeat.command_review_relevance == CommandReviewRelevance.VERIFICATION
+    assert heartbeat.command_supports_verification is True
+    assert heartbeat.command_purpose_reason is not None

@@ -583,9 +583,15 @@ def _format_tool_attempt_summary(attempt: ToolAttemptRecord) -> str:
         retry_suffix += ")"
     elif attempt.safe_to_retry is not None:
         retry_suffix = f" (safe_to_retry={str(attempt.safe_to_retry).lower()})"
+    purpose_suffix = ""
+    if attempt.command_purpose is not None:
+        purpose_suffix = f" [{attempt.command_purpose.value}"
+        if attempt.command_supports_verification is True:
+            purpose_suffix += ", verification"
+        purpose_suffix += "]"
     return (
         f"{attempt.tool_name} attempt {str(attempt.tool_attempt_id)[:8]} "
-        f"{attempt.status.value}{message_suffix}{retry_suffix}"
+        f"{attempt.status.value}{message_suffix}{retry_suffix}{purpose_suffix}"
     )
 
 

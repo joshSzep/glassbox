@@ -57,6 +57,17 @@ def _session_tool_attempts_command(args: argparse.Namespace) -> int:
             print(f"  Retry reason: {row.retry_reason}")
         if row.retry_policy_reason:
             print(f"  Retry policy reason: {row.retry_policy_reason}")
+        if row.command_purpose is not None:
+            print(f"  Command purpose: {row.command_purpose.value}")
+        if row.command_review_relevance is not None:
+            print(f"  Review relevance: {row.command_review_relevance.value}")
+        if row.command_supports_verification is not None:
+            print(
+                "  Supports verification: "
+                f"{str(row.command_supports_verification).lower()}"
+            )
+        if row.command_purpose_reason:
+            print(f"  Command purpose reason: {row.command_purpose_reason}")
     return 0
 
 
@@ -88,6 +99,16 @@ def _session_tool_attempt_inspect_command(args: argparse.Namespace) -> int:
         print(f"Retry reason: {row.retry_reason}")
     if row.retry_requires_approval is not None:
         print(f"Retry requires approval: {str(row.retry_requires_approval).lower()}")
+    if row.command_purpose is not None:
+        print(f"Command purpose: {row.command_purpose.value}")
+    if row.command_review_relevance is not None:
+        print(f"Review relevance: {row.command_review_relevance.value}")
+    if row.command_supports_verification is not None:
+        print(
+            f"Supports verification: {str(row.command_supports_verification).lower()}"
+        )
+    if row.command_purpose_reason:
+        print(f"Command purpose reason: {row.command_purpose_reason}")
     if inspection.source_arguments is not None:
         print(
             "Source arguments: "

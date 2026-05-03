@@ -46,6 +46,8 @@ from glassbox.core.types import ChangesetRiskLevel
 from glassbox.core.types import ChangesetSourceKind
 from glassbox.core.types import ChangesetVerificationState
 from glassbox.core.types import CheckpointAbsenceReason
+from glassbox.core.types import CommandPurpose
+from glassbox.core.types import CommandReviewRelevance
 from glassbox.core.types import ContextCompactionFreshness
 from glassbox.core.types import ContextCompactionScope
 from glassbox.core.types import LongRunPhase
@@ -750,6 +752,10 @@ class ToolAttemptRecord(BaseModel):
     retry_requires_approval: bool | None = None
     retry_reason: str | None = None
     retry_policy_reason: str | None = None
+    command_purpose: CommandPurpose | None = None
+    command_review_relevance: CommandReviewRelevance | None = None
+    command_supports_verification: bool | None = None
+    command_purpose_reason: str | None = None
     last_sequence: int = Field(ge=0)
 
 

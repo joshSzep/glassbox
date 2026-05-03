@@ -9,6 +9,8 @@ from glassbox.core import AutonomyBudgetRemaining
 from glassbox.core import AutonomyBudgetUsage
 from glassbox.core import AutonomyMode
 from glassbox.core import BudgetDecisionRecorded
+from glassbox.core import CommandPurpose
+from glassbox.core import CommandReviewRelevance
 from glassbox.core import ContextCompactionCreated
 from glassbox.core import ContextCompactionFreshness
 from glassbox.core import ContextCompactionFreshnessChanged
@@ -588,6 +590,12 @@ def test_tool_attempt_projection_rebuilds_from_heartbeats(tmp_path: Path) -> Non
                             "attempt already succeeded; retrying could duplicate "
                             "completed work"
                         ),
+                        command_purpose=CommandPurpose.TEST,
+                        command_review_relevance=CommandReviewRelevance.VERIFICATION,
+                        command_supports_verification=True,
+                        command_purpose_reason=(
+                            "test command can support verification evidence"
+                        ),
                     ),
                 ),
             ],
@@ -617,6 +625,12 @@ def test_tool_attempt_projection_rebuilds_from_heartbeats(tmp_path: Path) -> Non
     assert after.retry_requires_approval is False
     assert after.retry_reason == (
         "attempt already succeeded; retrying could duplicate completed work"
+    )
+    assert after.command_purpose == CommandPurpose.TEST
+    assert after.command_review_relevance == CommandReviewRelevance.VERIFICATION
+    assert after.command_supports_verification is True
+    assert after.command_purpose_reason == (
+        "test command can support verification evidence"
     )
     assert after.completed_at is not None
     assert after.heartbeat_expires_at == heartbeat_expires_at

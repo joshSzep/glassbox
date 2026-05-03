@@ -53,8 +53,14 @@ def _apply_tool_attempt_projection(
             retry_requires_approval,
             retry_reason,
             retry_policy_reason,
+            command_purpose,
+            command_review_relevance,
+            command_supports_verification,
+            command_purpose_reason,
             last_sequence
-        ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) values (
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        )
         on conflict(session_id, tool_attempt_id) do update set
             turn_id = excluded.turn_id,
             tool_call_id = coalesce(excluded.tool_call_id, tool_attempts.tool_call_id),
@@ -94,6 +100,22 @@ def _apply_tool_attempt_projection(
                 excluded.retry_policy_reason,
                 tool_attempts.retry_policy_reason
             ),
+            command_purpose = coalesce(
+                excluded.command_purpose,
+                tool_attempts.command_purpose
+            ),
+            command_review_relevance = coalesce(
+                excluded.command_review_relevance,
+                tool_attempts.command_review_relevance
+            ),
+            command_supports_verification = coalesce(
+                excluded.command_supports_verification,
+                tool_attempts.command_supports_verification
+            ),
+            command_purpose_reason = coalesce(
+                excluded.command_purpose_reason,
+                tool_attempts.command_purpose_reason
+            ),
             last_sequence = excluded.last_sequence
         """,
         (
@@ -117,6 +139,10 @@ def _apply_tool_attempt_projection(
             _optional_bool(payload.retry_requires_approval),
             payload.retry_reason,
             payload.retry_policy_reason,
+            _optional_enum(payload.command_purpose),
+            _optional_enum(payload.command_review_relevance),
+            _optional_bool(payload.command_supports_verification),
+            payload.command_purpose_reason,
             event.sequence,
         ),
     )

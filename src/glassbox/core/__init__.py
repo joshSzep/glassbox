@@ -231,6 +231,8 @@ from glassbox.core.types import ChangesetRiskLevel
 from glassbox.core.types import ChangesetSourceKind
 from glassbox.core.types import ChangesetVerificationState
 from glassbox.core.types import CheckpointAbsenceReason
+from glassbox.core.types import CommandPurpose
+from glassbox.core.types import CommandReviewRelevance
 from glassbox.core.types import ContextCompactionFreshness
 from glassbox.core.types import ContextCompactionScope
 from glassbox.core.types import LongRunPhase
@@ -348,6 +350,8 @@ __all__ = [
     "ChangesetVerificationState",
     "CheckpointAbsenceReason",
     "CheckpointAbsenceRecord",
+    "CommandPurpose",
+    "CommandReviewRelevance",
     "ContextCompactionCreated",
     "ContextCompactionFreshnessChanged",
     "ContextCompactionFreshness",

@@ -1469,7 +1469,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1280: Classify Command Purpose And Review Relevance
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1201`
 - Goal: make command execution evidence more useful for review and policy
   decisions
@@ -1490,6 +1490,20 @@ Each phase below corresponds to one concrete milestone.
   - CLI formatting tests
 - Done when:
   - a reviewer can tell what kind of command produced a piece of evidence
+- Completion notes:
+  - Added `src/glassbox/runtime/command_evidence.py` with conservative
+    command-purpose classification for inspect, test, lint, typecheck, build,
+    package, eval, release-gate, publish, deploy, cleanup, dangerous, and
+    unknown commands.
+  - Added optional `ToolAttemptHeartbeat` command evidence fields and rebuilt
+    them through the `tool_attempts` projection, query models, CLI status,
+    tool-attempt inspection commands, and session API responses.
+  - Unknown commands are explicitly non-verification evidence, while test,
+    lint, typecheck, build, eval, and release-gate commands can support
+    verification review evidence.
+  - Added [command-evidence.md](./command-evidence.md) and updated
+    [tool-attempts.md](./tool-attempts.md) with the purpose vocabulary,
+    review-relevance posture, and non-claims.
 
 ### GBX-1281: Capture Redacted Environment And Toolchain Drift Evidence
 

@@ -6,6 +6,8 @@ from datetime import datetime
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import ToolAttemptId
 from glassbox.core.models import ToolAttemptRecord
+from glassbox.core.types import CommandPurpose
+from glassbox.core.types import CommandReviewRelevance
 from glassbox.core.types import ToolAttemptRetryClassification
 from glassbox.core.types import ToolAttemptStatus
 
@@ -85,6 +87,14 @@ def _tool_attempt_record_from_row(row: sqlite3.Row) -> ToolAttemptRecord:
         retry_requires_approval=_optional_bool(row["retry_requires_approval"]),
         retry_reason=row["retry_reason"],
         retry_policy_reason=row["retry_policy_reason"],
+        command_purpose=_optional_command_purpose(row["command_purpose"]),
+        command_review_relevance=_optional_command_review_relevance(
+            row["command_review_relevance"]
+        ),
+        command_supports_verification=_optional_bool(
+            row["command_supports_verification"]
+        ),
+        command_purpose_reason=row["command_purpose_reason"],
         last_sequence=row["last_sequence"],
     )
 
@@ -107,6 +117,20 @@ def _optional_retry_classification(
     if value is None:
         return None
     return ToolAttemptRetryClassification(value)
+
+
+def _optional_command_purpose(value: str | None) -> CommandPurpose | None:
+    if value is None:
+        return None
+    return CommandPurpose(value)
+
+
+def _optional_command_review_relevance(
+    value: str | None,
+) -> CommandReviewRelevance | None:
+    if value is None:
+        return None
+    return CommandReviewRelevance(value)
 
 
 __all__ = ["get_tool_attempt", "list_tool_attempts"]

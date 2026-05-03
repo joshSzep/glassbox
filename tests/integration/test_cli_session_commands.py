@@ -31,6 +31,8 @@ from glassbox.core.ids import new_tool_attempt_id
 from glassbox.core.ids import new_tool_call_id
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import AutonomyMode
+from glassbox.core.types import CommandPurpose
+from glassbox.core.types import CommandReviewRelevance
 from glassbox.core.types import LongRunPhase
 from glassbox.core.types import ToolAttemptRetryClassification
 from glassbox.core.types import ToolAttemptStatus
@@ -1648,6 +1650,12 @@ def test_cli_tool_attempts_lists_durable_attempts(
                         "from retained evidence"
                     ),
                     retry_policy_reason="command retry requires confirmation",
+                    command_purpose=CommandPurpose.TEST,
+                    command_review_relevance=CommandReviewRelevance.VERIFICATION,
+                    command_supports_verification=True,
+                    command_purpose_reason=(
+                        "test command can support verification evidence"
+                    ),
                 ),
             )
         )
@@ -1679,6 +1687,10 @@ def test_cli_tool_attempts_lists_durable_attempts(
     assert "Retry requires approval: true" in captured.out
     assert "retry side effects are unknown" in captured.out
     assert "Retry policy reason: command retry requires confirmation" in captured.out
+    assert "Command purpose: test" in captured.out
+    assert "Review relevance: verification" in captured.out
+    assert "Supports verification: true" in captured.out
+    assert "test command can support verification evidence" in captured.out
 
 
 def test_cli_tool_attempt_inspect_and_abandon_record_recovery(

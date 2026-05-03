@@ -34,6 +34,15 @@ For example, a failed pytest command can be classified as `idempotent` while
 still requiring approval when the original command policy required operator
 confirmation. Unknown command retries are approval-gated by default.
 
+GBX-1280 adds command-purpose evidence to command tool attempts. Command
+attempt heartbeats may record `command_purpose`, `command_review_relevance`,
+`command_supports_verification`, and a short `command_purpose_reason`.
+Recognized verification purposes are `test`, `lint`, `typecheck`, `build`,
+`eval`, and `release_gate`; inspection commands are review context, while
+publish, deploy, cleanup, dangerous, and unknown commands are not treated as
+verification proof. See [command-evidence.md](./command-evidence.md) for the
+purpose vocabulary and non-claims.
+
 Inspect attempts from the CLI:
 
 ```bash
