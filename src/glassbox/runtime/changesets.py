@@ -8,25 +8,20 @@ from pathlib import Path
 from typing import Literal
 
 from glassbox.core import ArtifactId
-from glassbox.core import ChangesetArchived
 from glassbox.core import ChangesetId
 from glassbox.core import ChangesetInventoryFreshness
 from glassbox.core import ChangesetInventoryRecord
-from glassbox.core import ChangesetInventoryRefreshed
 from glassbox.core import ChangesetReadinessDecided
 from glassbox.core import ChangesetReadinessKind
 from glassbox.core import ChangesetReadinessState
 from glassbox.core import ChangesetRecord
 from glassbox.core import ChangesetReviewBriefCreated
-from glassbox.core import ChangesetRiskLevel
-from glassbox.core import ChangesetSourceAttached
 from glassbox.core import ChangesetSourceKind
 from glassbox.core import ChangesetSourceRecord
 from glassbox.core import ChangesetVerificationPostureRecord
 from glassbox.core import ChangesetVerificationPostureUpdated
 from glassbox.core import ChangesetVerificationState
 from glassbox.core import EventEnvelope
-from glassbox.core import EventPayloadType
 from glassbox.core import ManualEvidenceAttached
 from glassbox.core import ManualEvidenceFreshness
 from glassbox.core import ManualEvidenceId
@@ -68,10 +63,9 @@ from glassbox.runtime.browser_evidence import browser_evidence_limitations
 from glassbox.runtime.browser_evidence import browser_evidence_local_reference
 from glassbox.runtime.browser_evidence import browser_evidence_non_claims
 from glassbox.runtime.browser_evidence import browser_evidence_note
-from glassbox.runtime.change_inventory import CHANGE_INVENTORY_ARTIFACT_SCHEMA_VERSION
 from glassbox.runtime.change_inventory import ChangeInventoryArtifact
-from glassbox.runtime.change_inventory import change_inventory_artifact_json
 from glassbox.runtime.change_inventory import change_inventory_from_diff_summary
+from glassbox.runtime.changeset_actions import ChangesetActionService
 from glassbox.runtime.changeset_derivation import ChangesetDerivationService
 from glassbox.runtime.changeset_detail import (
     changeset_command_evidence_summary as _changeset_command_evidence_summary,
@@ -119,12 +113,6 @@ from glassbox.runtime.changeset_verification_readiness import (
 )
 from glassbox.runtime.changeset_workspace_diff import (
     diff_summary_without_local_state as _diff_summary_without_local_state,
-)
-from glassbox.runtime.changeset_workspace_diff import (
-    workspace_diff_reason as _workspace_diff_reason,
-)
-from glassbox.runtime.changeset_workspace_diff import (
-    workspace_diff_snapshot as _workspace_diff_snapshot,
 )
 from glassbox.runtime.changeset_workspace_diff import (
     workspace_diff_source_digest as _workspace_diff_source_digest,
@@ -1369,197 +1357,6 @@ class ChangesetReviewBriefService:
             return ChangeInventoryArtifact.model_validate_json(content), []
         except (OSError, ValueError, json.JSONDecodeError) as exc:
             return None, [f"change inventory artifact could not be read: {exc}"]
-
-    def _require_changeset(self, changeset_id: ChangesetId) -> ChangesetRecord:
-        changeset = self._repository.get_changeset(changeset_id)
-        if changeset is None:
-            raise ValueError(f"unknown changeset: {changeset_id}")
-        return changeset
-
-
-class ChangesetActionService:
-    """Explicit operator actions against an existing changeset."""
-
-    def __init__(
-        self,
-        repository: ChangesetRepository,
-        artifact_repository: ArtifactRepository | None = None,
-    ) -> None:
-        self._repository = repository
-        self._artifact_repository = artifact_repository
-
-    def archive_changeset(
-        self,
-        changeset_id: ChangesetId,
-        *,
-        reason: str,
-        archived_by: str = "operator",
-        replacement_changeset_id: ChangesetId | None = None,
-    ) -> EventEnvelope:
-        changeset = self._require_changeset(changeset_id)
-        stored = self._repository.append_events(
-            [
-                EventEnvelope(
-                    session_id=changeset.session_id,
-                    sequence=0,
-                    payload=ChangesetArchived(
-                        changeset_id=changeset.changeset_id,
-                        reason=reason,
-                        archived_by=archived_by,
-                        replacement_changeset_id=replacement_changeset_id,
-                    ),
-                )
-            ]
-        )
-        return stored[0]
-
-    def refresh_source_evidence(
-        self,
-        changeset_id: ChangesetId,
-        workspace_root: Path,
-        *,
-        refreshed_by: str = "operator",
-    ) -> EventEnvelope:
-        changeset = self._require_changeset(changeset_id)
-        diff = _workspace_diff_snapshot(workspace_root)
-        limitation = (
-            "basic source refresh only; structured inventory refresh is added "
-            "by the change inventory phase"
-        )
-        if diff.error is not None:
-            limitation = f"{limitation}; workspace diff unavailable: {diff.error}"
-        stored = self._repository.append_events(
-            [
-                EventEnvelope(
-                    session_id=changeset.session_id,
-                    sequence=0,
-                    payload=ChangesetSourceAttached(
-                        changeset_id=changeset.changeset_id,
-                        source_kind=ChangesetSourceKind.WORKSPACE_DIFF,
-                        source_session_id=changeset.session_id,
-                        reason=(
-                            f"{_workspace_diff_reason(diff)}; "
-                            f"refreshed by {refreshed_by}"
-                        ),
-                        limitation=limitation,
-                        task_id=changeset.task_id,
-                        turn_id=changeset.turn_id,
-                        branch_search_id=changeset.branch_search_id,
-                        branch_candidate_id=changeset.branch_candidate_id,
-                    ),
-                )
-            ]
-        )
-        return stored[0]
-
-    async def refresh_inventory(
-        self,
-        changeset_id: ChangesetId,
-        workspace_root: Path,
-        *,
-        refreshed_by: str = "operator",
-    ) -> ChangesetInventoryRefreshResult:
-        """Record a fresh structured inventory artifact for one changeset."""
-
-        if self._artifact_repository is None:
-            raise ValueError("artifact repository is required for inventory refresh")
-        changeset = self._require_changeset(changeset_id)
-        previous_inventory = self._repository.get_changeset_inventory(
-            changeset.session_id,
-            changeset.changeset_id,
-        )
-        events = self._repository.read_session_events(changeset.session_id)
-        diff_summary = await DiffSummaryTool(workspace_root).execute(
-            DiffSummaryArgs(
-                scope=DiffSummaryScope.WORKSPACE,
-                max_files=1000,
-                inline_file_limit=200,
-            )
-        )
-        diff_summary = _diff_summary_without_local_state(diff_summary)
-        inventory = change_inventory_from_diff_summary(
-            diff_summary,
-            changeset_id=changeset.changeset_id,
-            provenance_events=events,
-        )
-        source_digest = _workspace_diff_source_digest(workspace_root)
-        content = change_inventory_artifact_json(inventory)
-        artifact = self._artifact_repository.write_text_artifact(
-            changeset.session_id,
-            content,
-            suffix=".changeset-inventory.json",
-        )
-        freshness = (
-            ChangesetInventoryFreshness.UNKNOWN
-            if source_digest.error is not None
-            else ChangesetInventoryFreshness.FRESH
-        )
-        payloads: list[EventPayloadType] = []
-        if previous_inventory is not None:
-            payloads.append(
-                ChangesetInventoryRefreshed(
-                    changeset_id=changeset.changeset_id,
-                    artifact_id=previous_inventory.artifact_id,
-                    artifact_schema_version=previous_inventory.artifact_schema_version,
-                    freshness=ChangesetInventoryFreshness.SUPERSEDED,
-                    changed_path_count=previous_inventory.changed_path_count,
-                    source_digest=previous_inventory.source_digest,
-                    previous_artifact_id=previous_inventory.previous_artifact_id,
-                    refreshed_by=refreshed_by,
-                    risk_level=previous_inventory.risk_level,
-                    risk_summary=previous_inventory.risk_summary,
-                    unresolved_risk_count=previous_inventory.unresolved_risk_count,
-                    accepted_risk_count=previous_inventory.accepted_risk_count,
-                    task_id=previous_inventory.task_id,
-                    turn_id=previous_inventory.turn_id,
-                    branch_search_id=previous_inventory.branch_search_id,
-                    branch_candidate_id=previous_inventory.branch_candidate_id,
-                )
-            )
-        payloads.append(
-            ChangesetInventoryRefreshed(
-                changeset_id=changeset.changeset_id,
-                artifact_id=artifact.artifact_id,
-                artifact_schema_version=CHANGE_INVENTORY_ARTIFACT_SCHEMA_VERSION,
-                freshness=freshness,
-                changed_path_count=inventory.summary.changed_path_count,
-                source_digest=source_digest.digest,
-                previous_artifact_id=(
-                    previous_inventory.artifact_id
-                    if previous_inventory is not None
-                    else None
-                ),
-                refreshed_by=refreshed_by,
-                risk_level=ChangesetRiskLevel(inventory.summary.risk_level),
-                risk_summary=inventory.summary.risk_summary,
-                unresolved_risk_count=inventory.summary.unresolved_risk_count,
-                accepted_risk_count=inventory.summary.accepted_risk_count,
-                task_id=changeset.task_id,
-                turn_id=changeset.turn_id,
-                branch_search_id=changeset.branch_search_id,
-                branch_candidate_id=changeset.branch_candidate_id,
-            )
-        )
-        stored = self._repository.append_events(
-            [
-                EventEnvelope(
-                    session_id=changeset.session_id,
-                    sequence=0,
-                    payload=payload,
-                )
-                for payload in payloads
-            ]
-        )
-        return ChangesetInventoryRefreshResult(
-            changeset_id=changeset.changeset_id,
-            session_id=changeset.session_id,
-            artifact=artifact,
-            inventory=inventory,
-            event=stored[-1],
-            superseded_event=stored[0] if len(stored) > 1 else None,
-            freshness=freshness,
-            source_digest=source_digest.digest,
-        )
 
     def _require_changeset(self, changeset_id: ChangesetId) -> ChangesetRecord:
         changeset = self._repository.get_changeset(changeset_id)

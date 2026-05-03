@@ -524,7 +524,7 @@ Completion notes:
 
 ### GBX-R513: Extract Changeset Mutation Actions
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R511, GBX-R512
 - Target files:
   - `src/glassbox/runtime/changesets.py`
@@ -543,6 +543,17 @@ Completion notes:
   - `uv run pytest tests/integration/test_changeset_derivation.py`
   - `uv run pytest tests/integration/test_changeset_projection.py`
   - `uv run pytest tests/integration/test_cli_changeset_commands.py -k refresh`
+
+Completion notes:
+
+- Moved `ChangesetActionService` into
+  `src/glassbox/runtime/changeset_actions.py` while preserving the
+  `runtime/changesets.py` compatibility import.
+- Moved structured inventory refresh mutation, artifact writing, supersede
+  event emission, source digest capture, and freshness shaping into
+  `src/glassbox/runtime/changeset_inventory_refresh.py`.
+- Kept the async `ChangesetActionService.refresh_inventory(...)` API intact by
+  delegating to `ChangesetInventoryRefreshService`.
 
 ---
 
