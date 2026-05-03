@@ -6,6 +6,20 @@ from glassbox.cli.parser_common import _add_runtime_location_arguments
 from glassbox.cli.parser_common import _parse_uuid
 
 
+def _parse_viewport(value: str) -> tuple[int, int]:
+    try:
+        width_raw, height_raw = value.lower().split("x", 1)
+        width = int(width_raw)
+        height = int(height_raw)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            "viewport must use WIDTHxHEIGHT, for example 1440x900"
+        ) from exc
+    if width < 1 or height < 1:
+        raise argparse.ArgumentTypeError("viewport dimensions must be positive")
+    return width, height
+
+
 def _add_changeset_parsers(
     subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
 ) -> None:
@@ -336,6 +350,80 @@ def _add_changeset_parsers(
     evidence_attach_parser.add_argument("--actor", default="operator")
     evidence_attach_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(evidence_attach_parser)
+
+    def add_browser_dashboard_arguments(
+        parser: argparse.ArgumentParser,
+        *,
+        capture_kind: str,
+    ) -> None:
+        parser.add_argument("changeset_id", type=_parse_uuid)
+        parser.add_argument("--summary", required=True)
+        parser.add_argument("--source-label", required=True)
+        parser.add_argument("--route", dest="route_label", required=True)
+        parser.add_argument("--environment", required=True)
+        parser.add_argument("--browser", default="unknown")
+        parser.add_argument("--viewport", type=_parse_viewport, required=True)
+        parser.add_argument("--observed-at")
+        parser.add_argument("--input-method", default="unknown")
+        parser.add_argument("--console-checked", action="store_true", default=None)
+        parser.add_argument(
+            "--console-not-checked",
+            action="store_false",
+            dest="console_checked",
+        )
+        parser.add_argument("--screenshot-file", dest="screenshot_path_hint")
+        parser.add_argument(
+            "--screenshot-label",
+            default="local screenshot metadata",
+        )
+        parser.add_argument("--screenshot-media-type", default="image/png")
+        parser.add_argument("--screenshot-size-bytes", type=int)
+        parser.add_argument("--screenshot-width", type=int)
+        parser.add_argument("--screenshot-height", type=int)
+        parser.add_argument("--skipped-case", action="append", default=[])
+        parser.add_argument("--limitation", action="append", default=[])
+        parser.add_argument("--feedback", dest="feedback_id", type=_parse_uuid)
+        parser.add_argument(
+            "--target-kind",
+            choices=(
+                "changeset",
+                "feedback",
+                "response",
+                "verification_requirement",
+                "review_brief",
+                "publication_boundary",
+                "unknown",
+            ),
+            default="changeset",
+        )
+        parser.add_argument("--target-id")
+        parser.add_argument(
+            "--freshness",
+            choices=("current", "needs_inspection", "stale", "unknown"),
+            default="unknown",
+        )
+        parser.add_argument("--actor", default="operator")
+        parser.add_argument("--json", action="store_true")
+        parser.set_defaults(evidence_capture_kind=capture_kind)
+        _add_runtime_location_arguments(parser)
+
+    evidence_browser_parser = evidence_subparsers.add_parser(
+        "browser",
+        help="attach advisory browser observation evidence to a changeset",
+    )
+    add_browser_dashboard_arguments(
+        evidence_browser_parser,
+        capture_kind="browser_check",
+    )
+
+    evidence_dashboard_parser = evidence_subparsers.add_parser(
+        "dashboard",
+        help="attach advisory dashboard walkthrough evidence to a changeset",
+    )
+    add_browser_dashboard_arguments(
+        evidence_dashboard_parser,
+        capture_kind="dashboard_walkthrough",
+    )
 
     evidence_list_parser = evidence_subparsers.add_parser(
         "list",

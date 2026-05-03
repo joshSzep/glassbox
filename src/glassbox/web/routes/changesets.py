@@ -16,6 +16,7 @@ from glassbox.core import ReviewFeedbackDisposition
 from glassbox.core import ReviewFeedbackKind
 from glassbox.core import ReviewFeedbackProvenance
 from glassbox.core import ReviewFeedbackScopeKind
+from glassbox.runtime.changesets import BrowserEvidenceActionService
 from glassbox.runtime.changesets import ChangesetActionService
 from glassbox.runtime.changesets import ChangesetDerivationService
 from glassbox.runtime.changesets import ChangesetQueryService
@@ -27,6 +28,7 @@ from glassbox.runtime.changesets import ReviewFeedbackActionService
 from glassbox.runtime.commit_messages import ChangesetCommitMessageSuggestionService
 from glassbox.runtime.commit_readiness import ChangesetCommitReadinessService
 from glassbox.web.app import RuntimeContextDep
+from glassbox.web.changeset_api import BrowserEvidenceAttachRequest
 from glassbox.web.changeset_api import ChangesetActionResponse
 from glassbox.web.changeset_api import ChangesetArchiveRequest
 from glassbox.web.changeset_api import ChangesetCreateRequest
@@ -295,6 +297,56 @@ async def attach_manual_evidence(
             external_url_label=request.external_url_label,
             local_file_label=request.local_file_label,
             local_file_path_hint=request.local_file_path_hint,
+            freshness=ManualEvidenceFreshness(request.freshness),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return build_manual_evidence_action_response(result)
+
+
+@router.post(
+    "/{changeset_id}/browser-evidence",
+    response_model=ManualEvidenceActionResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def attach_browser_evidence(
+    changeset_id: UUID,
+    request: BrowserEvidenceAttachRequest,
+    context: RuntimeContextDep,
+) -> ManualEvidenceActionResponse:
+    """Attach advisory browser or dashboard evidence to one local changeset."""
+
+    try:
+        result = BrowserEvidenceActionService(
+            _repository(context),
+            context.repositories.artifacts,
+        ).attach(
+            changeset_id,
+            capture_kind=request.capture_kind,
+            summary=request.summary,
+            source_label=request.source_label,
+            route_label=request.route_label,
+            environment=request.environment,
+            browser=request.browser,
+            viewport_width=request.viewport_width,
+            viewport_height=request.viewport_height,
+            observed_at=request.observed_at,
+            input_method=request.input_method,
+            console_checked=request.console_checked,
+            screenshot_path_hint=request.screenshot_path_hint,
+            screenshot_label=request.screenshot_label,
+            screenshot_media_type=request.screenshot_media_type,
+            screenshot_size_bytes=request.screenshot_size_bytes,
+            screenshot_width=request.screenshot_width,
+            screenshot_height=request.screenshot_height,
+            skipped_cases=request.skipped_cases,
+            limitations=request.limitations,
+            actor=request.actor,
+            target_kind=ManualEvidenceTargetKind(request.target_kind),
+            target_id=request.target_id,
+            feedback_id=(
+                UUID(request.feedback_id) if request.feedback_id is not None else None
+            ),
             freshness=ManualEvidenceFreshness(request.freshness),
         )
     except ValueError as exc:

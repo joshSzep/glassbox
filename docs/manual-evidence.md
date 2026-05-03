@@ -200,6 +200,33 @@ glassbox changeset evidence attach CHANGESET_ID \
   --cwd .
 ```
 
+Browser and dashboard observations have guided capture commands that still
+write summary-first manual evidence with local-only screenshot metadata:
+
+```bash
+glassbox changeset evidence browser CHANGESET_ID \
+  --summary "browser rendered the feedback list" \
+  --source-label local-browser \
+  --route /console/changesets \
+  --environment local-dev \
+  --browser chromium \
+  --viewport 1440x900 \
+  --cwd .
+
+glassbox changeset evidence dashboard CHANGESET_ID \
+  --summary "dashboard showed feedback and manual evidence" \
+  --source-label dashboard-local \
+  --route /console/changesets \
+  --environment local-dev \
+  --browser chromium \
+  --viewport 1440x900 \
+  --screenshot-file .glassbox/evidence/CHANGESET_ID/dashboard/inbox.png \
+  --screenshot-width 1440 \
+  --screenshot-height 900 \
+  --freshness needs_inspection \
+  --cwd .
+```
+
 Inspect retained manual evidence before relying on it:
 
 ```bash
@@ -210,9 +237,11 @@ glassbox changeset brief CHANGESET_ID --cwd .
 
 The dashboard changeset detail view shows a manual evidence inbox alongside
 review feedback. The inbox displays kind, state, redaction posture, freshness,
-target, artifact reference, limitations, and non-claims. It does not mark
-manual evidence as verification proof, reviewer approval, publication
-readiness, or retained command evidence.
+target, artifact reference, limitations, and non-claims. Browser and dashboard
+evidence rows link back to their local changeset, feedback, or response target
+and are labeled advisory and local-only. The inbox does not mark manual evidence
+as verification proof, reviewer approval, publication readiness, release
+authority, or retained command evidence.
 
 ## Non-Claims
 

@@ -67,6 +67,21 @@ After the walkthrough, list skipped cases, limitations, and non-claims. If the
 workspace changed after the walkthrough, mark the evidence stale or needs
 inspection before relying on it.
 
+Record a dashboard walkthrough with:
+
+```bash
+glassbox changeset evidence dashboard CHANGESET_ID \
+  --summary "dashboard showed feedback and manual evidence" \
+  --source-label dashboard-local \
+  --route /console/changesets \
+  --environment local-dev \
+  --browser chromium \
+  --viewport 1440x900 \
+  --skipped-case "mobile viewport" \
+  --freshness needs_inspection \
+  --cwd .
+```
+
 ## Browser Check Protocol
 
 A browser check should name the target page or route, browser, OS, viewport,
@@ -78,6 +93,19 @@ Browser checks are advisory live evidence. They do not replace retained
 Playwright, unit, integration, replay, eval, package, or migration evidence.
 When deterministic tests cover the same behavior, cite those tests separately
 and keep the browser check as corroborating context.
+
+Record a browser check with:
+
+```bash
+glassbox changeset evidence browser CHANGESET_ID \
+  --summary "browser rendered the feedback list" \
+  --source-label local-browser \
+  --route /console/changesets \
+  --environment local-dev \
+  --browser chromium \
+  --viewport 1440x900 \
+  --cwd .
+```
 
 ## Screenshot Evidence Protocol
 
@@ -99,6 +127,21 @@ enter reviewer-safe exports unless a later export policy reviews secrets,
 private user data, absolute paths, and proprietary content. Prefer cropped or
 redacted images only when the artifact system can preserve the redaction
 decision.
+
+Attach screenshot metadata to a browser or dashboard observation with
+`--screenshot-file`, `--screenshot-width`, `--screenshot-height`, and optional
+`--screenshot-size-bytes`. The command writes metadata-only local references
+into a manual evidence artifact and leaves binary review safety advisory.
+
+API clients can attach the same evidence through:
+
+```http
+POST /changesets/{changeset_id}/browser-evidence
+```
+
+The response is a manual evidence action response, so dashboard and API readers
+see the same evidence ID, artifact ID, target links, limitations, non-claims,
+and safe next actions as other manual evidence.
 
 ## Keyboard Navigation Protocol
 

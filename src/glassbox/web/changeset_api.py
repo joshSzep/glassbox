@@ -2,6 +2,7 @@
 
 from collections.abc import Sequence
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel
 from pydantic import Field
@@ -396,6 +397,48 @@ class ManualEvidenceAttachRequest(BaseModel):
     external_url_label: str | None = Field(default=None, max_length=300)
     local_file_label: str | None = Field(default=None, max_length=200)
     local_file_path_hint: str | None = Field(default=None, max_length=500)
+    freshness: str = Field(
+        default="unknown",
+        pattern="^(current|needs_inspection|stale|unknown)$",
+    )
+
+
+class BrowserEvidenceAttachRequest(BaseModel):
+    capture_kind: Literal["browser_check", "dashboard_walkthrough"]
+    summary: str = Field(min_length=1, max_length=1000)
+    source_label: str = Field(min_length=1, max_length=200)
+    route_label: str = Field(min_length=1, max_length=300)
+    environment: str = Field(min_length=1, max_length=200)
+    browser: str = Field(default="unknown", min_length=1, max_length=200)
+    viewport_width: int = Field(ge=1, le=10000)
+    viewport_height: int = Field(ge=1, le=10000)
+    observed_at: datetime | None = None
+    input_method: str = Field(default="unknown", min_length=1, max_length=100)
+    console_checked: bool | None = None
+    screenshot_path_hint: str | None = Field(default=None, max_length=500)
+    screenshot_label: str = Field(
+        default="local screenshot metadata",
+        min_length=1,
+        max_length=200,
+    )
+    screenshot_media_type: str = Field(
+        default="image/png", min_length=1, max_length=100
+    )
+    screenshot_size_bytes: int | None = Field(default=None, ge=0)
+    screenshot_width: int | None = Field(default=None, ge=1, le=10000)
+    screenshot_height: int | None = Field(default=None, ge=1, le=10000)
+    skipped_cases: list[str] = Field(default_factory=list, max_length=20)
+    limitations: list[str] = Field(default_factory=list, max_length=20)
+    actor: str = Field(default="operator", min_length=1, max_length=200)
+    target_kind: str = Field(
+        default="changeset",
+        pattern=(
+            "^(changeset|feedback|response|verification_requirement|review_brief|"
+            "publication_boundary|unknown)$"
+        ),
+    )
+    target_id: str | None = Field(default=None, max_length=200)
+    feedback_id: str | None = None
     freshness: str = Field(
         default="unknown",
         pattern="^(current|needs_inspection|stale|unknown)$",

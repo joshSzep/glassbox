@@ -112,6 +112,31 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                         "freshness": "current",
                     },
                 )
+                browser_evidence_response = await client.post(
+                    f"/changesets/{changeset_id}/browser-evidence",
+                    json={
+                        "capture_kind": "dashboard_walkthrough",
+                        "summary": "dashboard showed feedback and manual evidence",
+                        "source_label": "dashboard-local",
+                        "route_label": "/console/changesets",
+                        "environment": "local-dev",
+                        "browser": "chromium",
+                        "viewport_width": 1440,
+                        "viewport_height": 900,
+                        "observed_at": "2026-05-01T12:30:00",
+                        "input_method": "keyboard",
+                        "console_checked": True,
+                        "screenshot_path_hint": (
+                            ".glassbox/evidence/changeset/dashboard.png"
+                        ),
+                        "screenshot_width": 1440,
+                        "screenshot_height": 900,
+                        "skipped_cases": ["mobile viewport"],
+                        "limitations": ["local dashboard fixture only"],
+                        "feedback_id": feedback_id,
+                        "freshness": "needs_inspection",
+                    },
+                )
                 manual_evidence_list_response = await client.get(
                     "/changesets/manual-evidence",
                     params={
@@ -259,11 +284,24 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             assert "not retained command evidence" in " ".join(
                 manual_evidence_response.json()["non_claims"]
             )
-            assert manual_evidence_list_response.status_code == 200
+            assert browser_evidence_response.status_code == 200
             assert (
-                manual_evidence_list_response.json()["items"][0]["evidence_kind"]
-                == "external_check"
+                browser_evidence_response.json()["evidence"]["evidence_kind"]
+                == "browser_observation"
             )
+            assert (
+                browser_evidence_response.json()["evidence"]["target_kind"]
+                == "feedback"
+            )
+            assert (
+                "not deterministic release authority"
+                in browser_evidence_response.json()["evidence"]["non_claims"]
+            )
+            assert manual_evidence_list_response.status_code == 200
+            assert {
+                item["evidence_kind"]
+                for item in manual_evidence_list_response.json()["items"]
+            } == {"browser_observation", "external_check"}
             assert feedback_list_response.status_code == 200
             assert (
                 feedback_list_response.json()["items"][0]["feedback_id"] == feedback_id
@@ -311,10 +349,10 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                 detail_response.json()["review_feedback"][0]["feedback_id"]
                 == feedback_id
             )
-            assert (
-                detail_response.json()["manual_evidence"][0]["evidence_kind"]
-                == "external_check"
-            )
+            assert {
+                item["evidence_kind"]
+                for item in detail_response.json()["manual_evidence"]
+            } == {"browser_observation", "external_check"}
             assert (
                 detail_response.json()["review_response_summary"]["accepted_risk_count"]
                 == 1

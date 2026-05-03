@@ -1455,6 +1455,221 @@
         "title": "BranchableTurnResponse",
         "type": "object"
       },
+      "BrowserEvidenceAttachRequest": {
+        "properties": {
+          "actor": {
+            "default": "operator",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Actor",
+            "type": "string"
+          },
+          "browser": {
+            "default": "unknown",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Browser",
+            "type": "string"
+          },
+          "capture_kind": {
+            "enum": ["browser_check", "dashboard_walkthrough"],
+            "title": "Capture Kind",
+            "type": "string"
+          },
+          "console_checked": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Console Checked"
+          },
+          "environment": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Environment",
+            "type": "string"
+          },
+          "feedback_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback Id"
+          },
+          "freshness": {
+            "default": "unknown",
+            "pattern": "^(current|needs_inspection|stale|unknown)$",
+            "title": "Freshness",
+            "type": "string"
+          },
+          "input_method": {
+            "default": "unknown",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Input Method",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "route_label": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Route Label",
+            "type": "string"
+          },
+          "screenshot_height": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Screenshot Height"
+          },
+          "screenshot_label": {
+            "default": "local screenshot metadata",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Screenshot Label",
+            "type": "string"
+          },
+          "screenshot_media_type": {
+            "default": "image/png",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Screenshot Media Type",
+            "type": "string"
+          },
+          "screenshot_path_hint": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Screenshot Path Hint"
+          },
+          "screenshot_size_bytes": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Screenshot Size Bytes"
+          },
+          "screenshot_width": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Screenshot Width"
+          },
+          "skipped_cases": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Skipped Cases",
+            "type": "array"
+          },
+          "source_label": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Source Label",
+            "type": "string"
+          },
+          "summary": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "target_kind": {
+            "default": "changeset",
+            "pattern": "^(changeset|feedback|response|verification_requirement|review_brief|publication_boundary|unknown)$",
+            "title": "Target Kind",
+            "type": "string"
+          },
+          "viewport_height": {
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Viewport Height",
+            "type": "integer"
+          },
+          "viewport_width": {
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Viewport Width",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "capture_kind",
+          "summary",
+          "source_label",
+          "route_label",
+          "environment",
+          "viewport_width",
+          "viewport_height"
+        ],
+        "title": "BrowserEvidenceAttachRequest",
+        "type": "object"
+      },
       "CancelSessionTurnRequest": {
         "properties": {
           "reason": {
@@ -14252,6 +14467,67 @@
           }
         },
         "summary": "Generate Changeset Review Brief"
+      }
+    },
+    "/changesets/{changeset_id}/browser-evidence": {
+      "post": {
+        "description": "Attach advisory browser or dashboard evidence to one local changeset.",
+        "operationId": "attach_browser_evidence_changesets__changeset_id__browser_evidence_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "changeset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Changeset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrowserEvidenceAttachRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManualEvidenceActionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Attach Browser Evidence"
       }
     },
     "/changesets/{changeset_id}/commit-message": {

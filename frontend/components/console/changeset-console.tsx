@@ -712,6 +712,9 @@ function ManualEvidencePanel({ detail }: { detail: NonNullable<ChangesetDetailSt
   const attached = evidence.filter((item) => item.state === "attached");
   const rejected = evidence.filter((item) => item.state === "rejected");
   const stale = evidence.filter((item) => item.freshness === "stale");
+  const liveEvidence = evidence.filter(
+    (item) => item.evidence_kind === "browser_observation" || item.evidence_kind === "screenshot",
+  );
   return (
     <Section title="Manual Evidence Inbox">
       <div className="grid gap-3">
@@ -721,6 +724,9 @@ function ManualEvidencePanel({ detail }: { detail: NonNullable<ChangesetDetailSt
             {rejected.length} rejected
           </Badge>
           <Badge variant={stale.length > 0 ? "warning" : "muted"}>{stale.length} stale</Badge>
+          <Badge variant={liveEvidence.length > 0 ? "info" : "muted"}>
+            {liveEvidence.length} live
+          </Badge>
         </div>
         {evidence.length === 0 ? (
           <p className="text-sm text-muted-foreground">
@@ -738,6 +744,13 @@ function ManualEvidencePanel({ detail }: { detail: NonNullable<ChangesetDetailSt
                   Target {item.target_kind} {item.target_id} - source {item.source_label}
                 </DataListMeta>
                 {item.artifact_id ? <DataListMeta>Artifact {item.artifact_id}</DataListMeta> : null}
+                {item.evidence_kind === "browser_observation" ||
+                item.evidence_kind === "screenshot" ? (
+                  <DataListMeta>
+                    Live evidence is advisory and local-only - inspect target {item.target_kind}{" "}
+                    {item.target_id}
+                  </DataListMeta>
+                ) : null}
                 {item.rejected_reason ? (
                   <DataListMeta>Rejected: {item.rejected_reason}</DataListMeta>
                 ) : null}
@@ -752,7 +765,12 @@ function ManualEvidencePanel({ detail }: { detail: NonNullable<ChangesetDetailSt
           <li className="break-all">
             glassbox changeset evidence list --changeset {detail.changeset.changeset_id} --cwd .
           </li>
+          <li className="break-all">
+            glassbox changeset evidence browser {detail.changeset.changeset_id} --route ROUTE
+            --environment local --viewport WIDTHxHEIGHT --cwd .
+          </li>
           <li>manual evidence is not retained command evidence or review approval</li>
+          <li>browser and dashboard evidence is advisory, local-only, and not release authority</li>
         </ul>
       </div>
     </Section>

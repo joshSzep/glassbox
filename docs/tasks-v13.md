@@ -774,7 +774,7 @@ Completed in this slice:
 
 ### GBX-1341: Add Browser And Dashboard Evidence Capture Workflows
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1340`
 - Goal: help operators retain browser and dashboard walkthrough evidence around
   one changeset
@@ -799,6 +799,27 @@ Completed in this slice:
 - Done when:
   - a changeset can cite retained browser/dashboard evidence with clear
     advisory posture
+
+Completed in this slice:
+
+- Added browser/dashboard evidence capture helpers that render
+  `browser-accessibility-evidence.v1` metadata into summary-first manual
+  evidence artifacts with environment, route, browser, viewport, observed time,
+  skipped cases, limitations, and local-only screenshot metadata.
+- Added `glassbox changeset evidence browser` and
+  `glassbox changeset evidence dashboard` commands for attaching advisory live
+  evidence to a changeset, feedback item, response target, or other
+  review-loop target.
+- Added `POST /changesets/{changeset_id}/browser-evidence`, regenerated
+  OpenAPI/frontend types, and preserved the existing manual evidence response
+  shape for evidence IDs, artifact IDs, target links, limitations, non-claims,
+  and safe next actions.
+- Updated the dashboard manual evidence inbox to surface live browser and
+  dashboard evidence as advisory, local-only evidence beside changeset,
+  feedback, and response target references.
+- Added unit, CLI, API, generated-type, and frontend coverage for browser and
+  dashboard evidence capture without promoting it to deterministic release
+  authority.
 
 ### GBX-1342: Add Accessibility Evidence Pairing Support
 

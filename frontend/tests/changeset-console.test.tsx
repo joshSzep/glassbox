@@ -50,6 +50,9 @@ describe("changeset console", () => {
     expect(markup).toContain("Clarify feedback copy");
     expect(markup).toContain("Manual Evidence Inbox");
     expect(markup).toContain("operator says external CI passed");
+    expect(markup).toContain("dashboard walkthrough rendered manual evidence");
+    expect(markup).toContain("Live evidence is advisory and local-only");
+    expect(markup).toContain("browser and dashboard evidence is advisory");
     expect(markup).toContain("manual evidence is not retained command evidence");
     expect(markup).toContain("1 requested");
     expect(markup).toContain("1 questions");
@@ -342,6 +345,37 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
         task_id: "task-1",
         turn_id: null,
         updated_at: "2026-05-01T00:05:00Z",
+        verification_id: null,
+      },
+      {
+        archived_reason: null,
+        artifact_id: "browser-evidence-artifact-1",
+        artifact_schema_version: 1,
+        changeset_id: changeset.changeset_id,
+        created_at: "2026-05-01T00:06:00Z",
+        created_by: "operator",
+        evidence_id: "manual-evidence-2",
+        evidence_kind: "browser_observation",
+        feedback_id: "feedback-1",
+        freshness: "needs_inspection",
+        last_sequence: 14,
+        limitations: ["browser/dashboard evidence is advisory live evidence"],
+        local_only: true,
+        non_claims: ["not deterministic release authority"],
+        observed_at: "2026-05-01T00:06:00Z",
+        redaction_status: "passed",
+        rejected_reason: null,
+        replacement_evidence_id: null,
+        session_id: "session-1",
+        source_label: "dashboard-local",
+        state: "attached",
+        summary: "dashboard walkthrough rendered manual evidence",
+        superseded_reason: null,
+        target_id: "feedback-1",
+        target_kind: "feedback",
+        task_id: "task-1",
+        turn_id: null,
+        updated_at: "2026-05-01T00:06:00Z",
         verification_id: null,
       },
     ],

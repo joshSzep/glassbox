@@ -328,6 +328,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/changesets/{changeset_id}/browser-evidence": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Attach Browser Evidence
+     * @description Attach advisory browser or dashboard evidence to one local changeset.
+     */
+    post: operations["attach_browser_evidence_changesets__changeset_id__browser_evidence_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/changesets/{changeset_id}/commit-message": {
     parameters: {
       query?: never;
@@ -2089,6 +2109,81 @@ export interface components {
       sequence: number;
       /** Turn Id */
       turn_id: string;
+    };
+    /** BrowserEvidenceAttachRequest */
+    BrowserEvidenceAttachRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /**
+       * Browser
+       * @default unknown
+       */
+      browser: string;
+      /**
+       * Capture Kind
+       * @enum {string}
+       */
+      capture_kind: "browser_check" | "dashboard_walkthrough";
+      /** Console Checked */
+      console_checked?: boolean | null;
+      /** Environment */
+      environment: string;
+      /** Feedback Id */
+      feedback_id?: string | null;
+      /**
+       * Freshness
+       * @default unknown
+       */
+      freshness: string;
+      /**
+       * Input Method
+       * @default unknown
+       */
+      input_method: string;
+      /** Limitations */
+      limitations?: string[];
+      /** Observed At */
+      observed_at?: string | null;
+      /** Route Label */
+      route_label: string;
+      /** Screenshot Height */
+      screenshot_height?: number | null;
+      /**
+       * Screenshot Label
+       * @default local screenshot metadata
+       */
+      screenshot_label: string;
+      /**
+       * Screenshot Media Type
+       * @default image/png
+       */
+      screenshot_media_type: string;
+      /** Screenshot Path Hint */
+      screenshot_path_hint?: string | null;
+      /** Screenshot Size Bytes */
+      screenshot_size_bytes?: number | null;
+      /** Screenshot Width */
+      screenshot_width?: number | null;
+      /** Skipped Cases */
+      skipped_cases?: string[];
+      /** Source Label */
+      source_label: string;
+      /** Summary */
+      summary: string;
+      /** Target Id */
+      target_id?: string | null;
+      /**
+       * Target Kind
+       * @default changeset
+       */
+      target_kind: string;
+      /** Viewport Height */
+      viewport_height: number;
+      /** Viewport Width */
+      viewport_width: number;
     };
     /** CancelSessionTurnRequest */
     CancelSessionTurnRequest: {
@@ -6460,6 +6555,50 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ChangesetReviewBriefGenerateResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  attach_browser_evidence_changesets__changeset_id__browser_evidence_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        changeset_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BrowserEvidenceAttachRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ManualEvidenceActionResponse"];
         };
       };
       /** @description Not Found */

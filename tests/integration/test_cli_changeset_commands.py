@@ -105,6 +105,51 @@ def test_changeset_create_list_show_refresh_and_archive(
         ]
     )
     evidence_attached = json.loads(capsys.readouterr().out)
+    evidence_browser_exit = main(
+        [
+            "changeset",
+            "evidence",
+            "browser",
+            changeset_id,
+            "--summary",
+            "dashboard rendered feedback with manual evidence",
+            "--source-label",
+            "dashboard-local",
+            "--route",
+            "/console/changesets",
+            "--environment",
+            "local-dev",
+            "--browser",
+            "chromium",
+            "--viewport",
+            "1440x900",
+            "--observed-at",
+            "2026-05-01T12:30:00",
+            "--input-method",
+            "keyboard",
+            "--console-checked",
+            "--screenshot-file",
+            ".glassbox/evidence/changeset/dashboard.png",
+            "--screenshot-width",
+            "1440",
+            "--screenshot-height",
+            "900",
+            "--skipped-case",
+            "mobile viewport",
+            "--limitation",
+            "local dashboard fixture only",
+            "--feedback",
+            feedback_id,
+            "--freshness",
+            "needs_inspection",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    evidence_browser = json.loads(capsys.readouterr().out)
     evidence_list_exit = main(
         [
             "changeset",
@@ -450,9 +495,20 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert evidence_attached["evidence"]["summary"] == "external CI reported green"
     assert evidence_attached["artifact_id"] is not None
     assert "not retained command evidence" in " ".join(evidence_attached["non_claims"])
+    assert evidence_browser_exit == 0
+    assert evidence_browser["evidence"]["evidence_kind"] == "browser_observation"
+    assert evidence_browser["evidence"]["target_kind"] == "feedback"
+    assert evidence_browser["evidence"]["freshness"] == "needs_inspection"
+    assert "not deterministic release authority" in " ".join(
+        evidence_browser["evidence"]["non_claims"]
+    )
+    assert "browser/dashboard evidence is advisory" in " ".join(
+        evidence_browser["non_claims"]
+    )
     assert evidence_list_exit == 0
-    assert "Manual evidence: 1" in evidence_list_output
+    assert "Manual evidence: 2" in evidence_list_output
     assert "external CI reported green" in evidence_list_output
+    assert "dashboard rendered feedback with manual evidence" in evidence_list_output
     assert feedback_list_exit == 0
     assert "Review feedback: 1" in feedback_list_output
     assert "Clarify the review-feedback list output" in feedback_list_output
@@ -480,7 +536,10 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert show_exit == 0
     assert detail["changeset"]["task_id"] == str(task_id)
     assert detail["review_feedback"][0]["feedback_id"] == feedback_id
-    assert detail["manual_evidence"][0]["evidence_kind"] == "external_check"
+    assert {item["evidence_kind"] for item in detail["manual_evidence"]} == {
+        "browser_observation",
+        "external_check",
+    }
     assert detail["review_response_summary"]["total_feedback_count"] == 1
     assert detail["review_response_summary"]["accepted_risk_count"] == 1
     assert detail["sources"][0]["source_kind"] == "task"

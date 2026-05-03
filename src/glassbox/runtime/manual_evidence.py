@@ -196,6 +196,8 @@ def manual_evidence_artifact(
     external_url_label: str | None = None,
     local_references: Sequence[ManualEvidenceLocalReference] = (),
     freshness: ManualEvidenceFreshness = ManualEvidenceFreshness.UNKNOWN,
+    extra_limitations: Sequence[str] = (),
+    extra_non_claims: Sequence[str] = (),
     limits: ManualEvidenceLimits | None = None,
 ) -> ManualEvidenceArtifact:
     """Build a retained manual evidence artifact after redaction validation."""
@@ -206,6 +208,7 @@ def manual_evidence_artifact(
     limitations = [
         *redaction.limitations,
         "manual evidence does not mean Glassbox ran the cited command or check",
+        *extra_limitations,
     ]
     return ManualEvidenceArtifact(
         evidence_id=evidence_id,
@@ -228,6 +231,7 @@ def manual_evidence_artifact(
             "not deterministic verification proof",
             "not review approval",
             "not publication authority",
+            *extra_non_claims,
         ],
     )
 

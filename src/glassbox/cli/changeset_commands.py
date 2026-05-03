@@ -2,6 +2,7 @@
 
 import argparse
 import asyncio
+from datetime import datetime
 from pathlib import Path
 from typing import cast
 
@@ -24,6 +25,7 @@ from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionRe
 from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionResult
 from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionService
 from glassbox.runtime.changeset_export import export_changeset_package
+from glassbox.runtime.changesets import BrowserEvidenceActionService
 from glassbox.runtime.changesets import ChangesetActionService
 from glassbox.runtime.changesets import ChangesetDerivationResult
 from glassbox.runtime.changesets import ChangesetDerivationService
@@ -337,6 +339,8 @@ def _changeset_evidence_command(args: argparse.Namespace) -> int:
     command = getattr(args, "evidence_command", None)
     if command == "attach":
         return _evidence_attach_command(args)
+    if command in {"browser", "dashboard"}:
+        return _evidence_browser_dashboard_command(args)
     if command == "list":
         return _evidence_list_command(args)
     raise ValueError("specify an evidence subcommand")
@@ -367,6 +371,43 @@ def _evidence_attach_command(args: argparse.Namespace) -> int:
     return _print_manual_evidence_result(result, args.json)
 
 
+def _evidence_browser_dashboard_command(args: argparse.Namespace) -> int:
+    width, height = args.viewport
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        result = BrowserEvidenceActionService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions),
+            runtime_context.repositories.artifacts,
+        ).attach(
+            args.changeset_id,
+            capture_kind=args.evidence_capture_kind,
+            summary=args.summary,
+            source_label=args.source_label,
+            route_label=args.route_label,
+            environment=args.environment,
+            browser=args.browser,
+            viewport_width=width,
+            viewport_height=height,
+            observed_at=_parse_optional_datetime(args.observed_at),
+            input_method=args.input_method,
+            console_checked=args.console_checked,
+            screenshot_path_hint=args.screenshot_path_hint,
+            screenshot_label=args.screenshot_label,
+            screenshot_media_type=args.screenshot_media_type,
+            screenshot_size_bytes=args.screenshot_size_bytes,
+            screenshot_width=args.screenshot_width,
+            screenshot_height=args.screenshot_height,
+            skipped_cases=args.skipped_case,
+            limitations=args.limitation,
+            actor=args.actor,
+            target_kind=ManualEvidenceTargetKind(args.target_kind),
+            target_id=args.target_id,
+            feedback_id=args.feedback_id,
+            freshness=ManualEvidenceFreshness(args.freshness),
+        )
+    return _print_manual_evidence_result(result, args.json)
+
+
 def _evidence_list_command(args: argparse.Namespace) -> int:
     if args.limit is not None and args.limit < 1:
         raise ValueError("--limit must be greater than zero")
@@ -388,6 +429,16 @@ def _evidence_list_command(args: argparse.Namespace) -> int:
     else:
         _print_manual_evidence_list(evidence)
     return 0
+
+
+def _parse_optional_datetime(value: str | None) -> datetime | None:
+    if value is None:
+        return None
+    normalized = value.removesuffix("Z")
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError as exc:
+        raise ValueError("--observed-at must be an ISO-8601 datetime") from exc
 
 
 def _changeset_feedback_command(args: argparse.Namespace) -> int:

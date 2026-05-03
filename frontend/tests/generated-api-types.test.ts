@@ -11,6 +11,8 @@ describe("generated OpenAPI types", () => {
     type AggregateResponse =
       paths["/sessions/aggregate"]["get"]["responses"][200]["content"]["application/json"];
     type TaskPageResponse = paths["/tasks"]["get"]["responses"][200]["content"]["application/json"];
+    type BrowserEvidenceResponse =
+      paths["/changesets/{changeset_id}/browser-evidence"]["post"]["responses"][200]["content"]["application/json"];
 
     const approvalBody: components["schemas"]["ResolveApprovalRequest"] = {
       decision: "approved",
@@ -41,6 +43,23 @@ describe("generated OpenAPI types", () => {
       overall_status: "missing",
     };
     const taskPageKey: keyof TaskPageResponse = "items";
+    const browserEvidenceBody: components["schemas"]["BrowserEvidenceAttachRequest"] = {
+      actor: "operator",
+      browser: "chromium",
+      capture_kind: "dashboard_walkthrough",
+      environment: "local-dev",
+      freshness: "needs_inspection",
+      input_method: "keyboard",
+      route_label: "/console/changesets",
+      screenshot_label: "local screenshot metadata",
+      screenshot_media_type: "image/png",
+      source_label: "dashboard-local",
+      summary: "dashboard rendered evidence references",
+      target_kind: "changeset",
+      viewport_height: 900,
+      viewport_width: 1440,
+    };
+    const browserEvidenceKey: keyof BrowserEvidenceResponse = "safe_next_actions";
 
     expect(approvalBody.decision).toBe("approved");
     expect(accepted.status).toBe("ok");
@@ -49,5 +68,7 @@ describe("generated OpenAPI types", () => {
     expect(posture.overall_status).toBe("missing");
     expect(posture.cues[0]?.provenance?.[0]?.source_kind).toBe("repository-index");
     expect(taskPageKey).toBe("items");
+    expect(browserEvidenceBody.capture_kind).toBe("dashboard_walkthrough");
+    expect(browserEvidenceKey).toBe("safe_next_actions");
   });
 });
