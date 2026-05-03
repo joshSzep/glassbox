@@ -453,7 +453,7 @@ Completion notes:
 
 ### GBX-R511: Extract Changeset Source Derivation And Workspace Diff Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R510
 - Target files:
   - `src/glassbox/runtime/changesets.py`
@@ -474,6 +474,16 @@ Completion notes:
   - `uv run pytest tests/unit/test_changeset_derivation.py`
   - `uv run pytest tests/integration/test_changeset_derivation.py`
   - `uv run pytest tests/integration/test_cli_changeset_commands.py -k "create or refresh"`
+
+Completion notes:
+
+- Moved `ChangesetDerivationService`, source limitation shaping, and
+  source-specific creation paths into `src/glassbox/runtime/changeset_derivation.py`.
+- Moved workspace diff snapshots, source digests, git byte reads, porcelain
+  filtering, and `.glassbox` local-state filtering into
+  `src/glassbox/runtime/changeset_workspace_diff.py`.
+- Kept `src/glassbox/runtime/changesets.py` as the compatibility facade while
+  delegating derivation and workspace diff calls to the focused modules.
 
 ### GBX-R512: Extract Changeset Query View Assembly
 
