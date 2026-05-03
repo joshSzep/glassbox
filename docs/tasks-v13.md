@@ -462,7 +462,7 @@ shortcuts are shaped by the review-loop features that precede them.
 
 ### GBX-1310: Add Review Feedback Event Vocabulary
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1302`
 - Goal: introduce canonical events for local review feedback without creating
   hosted review state

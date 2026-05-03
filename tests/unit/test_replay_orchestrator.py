@@ -10,12 +10,15 @@ from glassbox.core import LongRunPhase
 from glassbox.core import LongRunPhaseChanged
 from glassbox.core import LongRunPhaseState
 from glassbox.core import ReplayArtifactRecorded
+from glassbox.core import ReviewFeedbackCreated
+from glassbox.core import ReviewFeedbackKind
 from glassbox.core import SessionConfig
 from glassbox.core import TaskCheckpointCreated
 from glassbox.core import ToolAttemptHeartbeat
 from glassbox.core import ToolAttemptStatus
 from glassbox.core import new_artifact_id
 from glassbox.core import new_changeset_id
+from glassbox.core import new_review_feedback_id
 from glassbox.core import new_session_id
 from glassbox.core import new_task_checkpoint_id
 from glassbox.core import new_task_id
@@ -158,6 +161,16 @@ def test_replay_normalizes_changeset_event_families() -> None:
             EventEnvelope(
                 session_id=session_id,
                 sequence=2,
+                payload=ReviewFeedbackCreated(
+                    feedback_id=new_review_feedback_id(),
+                    changeset_id=changeset_id,
+                    feedback_kind=ReviewFeedbackKind.REVIEWER_QUESTION,
+                    summary="Clarify stale verification posture.",
+                ),
+            ),
+            EventEnvelope(
+                session_id=session_id,
+                sequence=3,
                 payload=ReplayArtifactRecorded(
                     turn_id=new_turn_id(),
                     artifact_id=new_artifact_id(),
@@ -168,7 +181,7 @@ def test_replay_normalizes_changeset_event_families() -> None:
         ]
     )
 
-    assert families == ["ChangesetCreated"]
+    assert families == ["ChangesetCreated", "ReviewFeedbackCreated"]
 
 
 def test_replay_canonicalizes_tool_attempt_identifiers() -> None:

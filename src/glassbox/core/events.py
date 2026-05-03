@@ -25,6 +25,7 @@ from glassbox.core.ids import MessageId
 from glassbox.core.ids import PauseWindowId
 from glassbox.core.ids import QuestionId
 from glassbox.core.ids import RecoveryDecisionId
+from glassbox.core.ids import ReviewFeedbackId
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import TaskCheckpointId
 from glassbox.core.ids import TaskId
@@ -75,6 +76,10 @@ from glassbox.core.types import ProviderRecoveryAction
 from glassbox.core.types import ProviderRecoveryKind
 from glassbox.core.types import RecoveryDecision
 from glassbox.core.types import ResumeOutcomeStatus
+from glassbox.core.types import ReviewFeedbackDisposition
+from glassbox.core.types import ReviewFeedbackKind
+from glassbox.core.types import ReviewFeedbackProvenance
+from glassbox.core.types import ReviewFeedbackScopeKind
 from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskVerificationStatus
@@ -1134,6 +1139,125 @@ class ChangesetArchived(EventPayload):
     replacement_changeset_id: ChangesetId | None = None
 
 
+class ReviewFeedbackCreated(EventPayload):
+    event_type: Literal["ReviewFeedbackCreated"] = "ReviewFeedbackCreated"
+    feedback_id: ReviewFeedbackId
+    changeset_id: ChangesetId
+    feedback_kind: ReviewFeedbackKind
+    provenance: ReviewFeedbackProvenance = ReviewFeedbackProvenance.MANUAL
+    summary: str = Field(min_length=1, max_length=1000)
+    body: str | None = Field(default=None, max_length=4000)
+    source_label: str | None = Field(default=None, max_length=200)
+    reviewer_label: str | None = Field(default=None, max_length=200)
+    created_by: str = Field(default="operator", min_length=1, max_length=200)
+    source_session_id: SessionId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    artifact_id: ArtifactId | None = None
+    verification_id: TaskVerificationId | None = None
+
+
+class ReviewFeedbackScopeAttached(EventPayload):
+    event_type: Literal["ReviewFeedbackScopeAttached"] = "ReviewFeedbackScopeAttached"
+    feedback_id: ReviewFeedbackId
+    changeset_id: ChangesetId
+    scope_kind: ReviewFeedbackScopeKind
+    reason: str = Field(min_length=1, max_length=2000)
+    source_session_id: SessionId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    artifact_id: ArtifactId | None = None
+    verification_id: TaskVerificationId | None = None
+    branch_search_id: BranchSearchId | None = None
+    branch_candidate_id: BranchCandidateId | None = None
+    file_path: str | None = Field(default=None, max_length=2000)
+    line_start: int | None = Field(default=None, ge=1)
+    line_end: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def validate_line_range(self) -> ReviewFeedbackScopeAttached:
+        if (
+            self.line_start is not None
+            and self.line_end is not None
+            and self.line_end < self.line_start
+        ):
+            raise ValueError("line_end must be greater than or equal to line_start")
+        if self.scope_kind == ReviewFeedbackScopeKind.FILE and self.file_path is None:
+            raise ValueError("file_path is required for file feedback scope")
+        return self
+
+
+class ReviewFeedbackDispositionUpdated(EventPayload):
+    event_type: Literal["ReviewFeedbackDispositionUpdated"] = (
+        "ReviewFeedbackDispositionUpdated"
+    )
+    feedback_id: ReviewFeedbackId
+    changeset_id: ChangesetId
+    disposition: ReviewFeedbackDisposition
+    reason: str = Field(min_length=1, max_length=2000)
+    updated_by: str = Field(default="operator", min_length=1, max_length=200)
+    source_session_id: SessionId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    artifact_id: ArtifactId | None = None
+    verification_id: TaskVerificationId | None = None
+
+
+class ReviewFeedbackResolved(EventPayload):
+    event_type: Literal["ReviewFeedbackResolved"] = "ReviewFeedbackResolved"
+    feedback_id: ReviewFeedbackId
+    changeset_id: ChangesetId
+    resolution_summary: str = Field(min_length=1, max_length=4000)
+    resolved_by: str = Field(default="operator", min_length=1, max_length=200)
+    source_session_id: SessionId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    artifact_id: ArtifactId | None = None
+    verification_id: TaskVerificationId | None = None
+    residual_risk: str | None = Field(default=None, max_length=2000)
+
+
+class ReviewFeedbackReopened(EventPayload):
+    event_type: Literal["ReviewFeedbackReopened"] = "ReviewFeedbackReopened"
+    feedback_id: ReviewFeedbackId
+    changeset_id: ChangesetId
+    reason: str = Field(min_length=1, max_length=2000)
+    reopened_by: str = Field(default="operator", min_length=1, max_length=200)
+    source_session_id: SessionId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    artifact_id: ArtifactId | None = None
+    verification_id: TaskVerificationId | None = None
+
+
+class ReviewFeedbackArchived(EventPayload):
+    event_type: Literal["ReviewFeedbackArchived"] = "ReviewFeedbackArchived"
+    feedback_id: ReviewFeedbackId
+    changeset_id: ChangesetId
+    reason: str = Field(min_length=1, max_length=2000)
+    archived_by: str = Field(default="operator", min_length=1, max_length=200)
+    source_session_id: SessionId | None = None
+    replacement_feedback_id: ReviewFeedbackId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    artifact_id: ArtifactId | None = None
+    verification_id: TaskVerificationId | None = None
+
+
+class ReviewFeedbackRiskAccepted(EventPayload):
+    event_type: Literal["ReviewFeedbackRiskAccepted"] = "ReviewFeedbackRiskAccepted"
+    feedback_id: ReviewFeedbackId
+    changeset_id: ChangesetId
+    risk_summary: str = Field(min_length=1, max_length=4000)
+    accepted_by: str = Field(default="operator", min_length=1, max_length=200)
+    acceptance_reason: str = Field(min_length=1, max_length=2000)
+    source_session_id: SessionId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    artifact_id: ArtifactId | None = None
+    verification_id: TaskVerificationId | None = None
+
+
 class WorktreeCreated(EventPayload):
     event_type: Literal["WorktreeCreated"] = "WorktreeCreated"
     worktree_id: WorktreeId
@@ -1361,6 +1485,13 @@ EventPayloadType = Annotated[
     | ChangesetReadinessDecided
     | ChangesetCandidateAdopted
     | ChangesetArchived
+    | ReviewFeedbackCreated
+    | ReviewFeedbackScopeAttached
+    | ReviewFeedbackDispositionUpdated
+    | ReviewFeedbackResolved
+    | ReviewFeedbackReopened
+    | ReviewFeedbackArchived
+    | ReviewFeedbackRiskAccepted
     | WorktreeCreated
     | WorktreeStatusRecorded
     | WorktreeCleanupRecorded
@@ -1480,6 +1611,10 @@ class EventEnvelope(BaseModel):
     @property
     def changeset_id(self) -> ChangesetId | None:
         return getattr(self.payload, "changeset_id", None)
+
+    @property
+    def feedback_id(self) -> ReviewFeedbackId | None:
+        return getattr(self.payload, "feedback_id", None)
 
     @property
     def artifact_id(self) -> ArtifactId | None:

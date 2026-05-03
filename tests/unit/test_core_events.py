@@ -70,6 +70,17 @@ from glassbox.core import RecoveryDecision
 from glassbox.core import RecoveryDecisionRecorded
 from glassbox.core import ResumeOutcomeRecorded
 from glassbox.core import ResumeOutcomeStatus
+from glassbox.core import ReviewFeedbackArchived
+from glassbox.core import ReviewFeedbackCreated
+from glassbox.core import ReviewFeedbackDisposition
+from glassbox.core import ReviewFeedbackDispositionUpdated
+from glassbox.core import ReviewFeedbackKind
+from glassbox.core import ReviewFeedbackProvenance
+from glassbox.core import ReviewFeedbackReopened
+from glassbox.core import ReviewFeedbackResolved
+from glassbox.core import ReviewFeedbackRiskAccepted
+from glassbox.core import ReviewFeedbackScopeAttached
+from glassbox.core import ReviewFeedbackScopeKind
 from glassbox.core import SessionStarted
 from glassbox.core import TaskBlockedReason
 from glassbox.core import TaskCheckpointCreated
@@ -117,6 +128,7 @@ from glassbox.core import new_context_compaction_id
 from glassbox.core import new_message_id
 from glassbox.core import new_pause_window_id
 from glassbox.core import new_recovery_decision_id
+from glassbox.core import new_review_feedback_id
 from glassbox.core import new_session_id
 from glassbox.core import new_task_checkpoint_id
 from glassbox.core import new_task_id
@@ -935,6 +947,181 @@ def test_changeset_envelope_exposes_correlation_ids() -> None:
     )
 
     assert envelope.event_type == "ChangesetVerificationPostureUpdated"
+    assert envelope.changeset_id == changeset_id
+    assert envelope.artifact_id == artifact_id
+    assert envelope.verification_id == verification_id
+    assert envelope.task_id == task_id
+    assert envelope.turn_id == turn_id
+
+
+def test_review_feedback_payloads_round_trip_through_event_union() -> None:
+    adapter = TypeAdapter(EventPayloadType)
+    feedback_id = new_review_feedback_id()
+    changeset_id = new_changeset_id()
+    task_id = new_task_id()
+    turn_id = new_turn_id()
+    source_session_id = new_session_id()
+    artifact_id = new_artifact_id()
+    verification_id = new_task_verification_id()
+    branch_search_id = new_branch_search_id()
+    branch_candidate_id = new_branch_candidate_id()
+
+    created = adapter.validate_python(
+        {
+            "event_type": "ReviewFeedbackCreated",
+            "feedback_id": feedback_id,
+            "changeset_id": changeset_id,
+            "feedback_kind": "requested_change",
+            "provenance": "reviewer",
+            "summary": "Add regression coverage for stale verification.",
+            "body": "The change updates runtime behavior without a focused test.",
+            "source_label": "local-review-pass",
+            "reviewer_label": "reviewer-a",
+            "source_session_id": source_session_id,
+            "task_id": task_id,
+            "turn_id": turn_id,
+            "artifact_id": artifact_id,
+            "verification_id": verification_id,
+        }
+    )
+    scope = adapter.validate_python(
+        {
+            "event_type": "ReviewFeedbackScopeAttached",
+            "feedback_id": feedback_id,
+            "changeset_id": changeset_id,
+            "scope_kind": "file",
+            "reason": "comment points at the changed readiness code",
+            "file_path": "src/glassbox/runtime/changeset_verification_readiness.py",
+            "line_start": 40,
+            "line_end": 45,
+            "source_session_id": source_session_id,
+            "task_id": task_id,
+            "turn_id": turn_id,
+            "artifact_id": artifact_id,
+            "verification_id": verification_id,
+            "branch_search_id": branch_search_id,
+            "branch_candidate_id": branch_candidate_id,
+        }
+    )
+    disposition = adapter.validate_python(
+        {
+            "event_type": "ReviewFeedbackDispositionUpdated",
+            "feedback_id": feedback_id,
+            "changeset_id": changeset_id,
+            "disposition": "responded",
+            "reason": "fixup response artifact was attached",
+            "task_id": task_id,
+            "turn_id": turn_id,
+            "artifact_id": artifact_id,
+            "verification_id": verification_id,
+        }
+    )
+    resolved = adapter.validate_python(
+        {
+            "event_type": "ReviewFeedbackResolved",
+            "feedback_id": feedback_id,
+            "changeset_id": changeset_id,
+            "resolution_summary": "Added the stale verification unit test.",
+            "task_id": task_id,
+            "turn_id": turn_id,
+            "artifact_id": artifact_id,
+            "verification_id": verification_id,
+        }
+    )
+    reopened = adapter.validate_python(
+        {
+            "event_type": "ReviewFeedbackReopened",
+            "feedback_id": feedback_id,
+            "changeset_id": changeset_id,
+            "reason": "new fixup made the verification evidence stale again",
+            "task_id": task_id,
+        }
+    )
+    accepted = adapter.validate_python(
+        {
+            "event_type": "ReviewFeedbackRiskAccepted",
+            "feedback_id": feedback_id,
+            "changeset_id": changeset_id,
+            "risk_summary": "Browser evidence is advisory only.",
+            "acceptance_reason": "Deterministic tests cover the blocking claim.",
+            "verification_id": verification_id,
+        }
+    )
+    archived = adapter.validate_python(
+        {
+            "event_type": "ReviewFeedbackArchived",
+            "feedback_id": feedback_id,
+            "changeset_id": changeset_id,
+            "reason": "superseded by a narrower feedback record",
+            "replacement_feedback_id": new_review_feedback_id(),
+        }
+    )
+
+    assert isinstance(created, ReviewFeedbackCreated)
+    assert created.feedback_kind == ReviewFeedbackKind.REQUESTED_CHANGE
+    assert created.provenance == ReviewFeedbackProvenance.REVIEWER
+    assert created.source_session_id == source_session_id
+    assert isinstance(scope, ReviewFeedbackScopeAttached)
+    assert scope.scope_kind == ReviewFeedbackScopeKind.FILE
+    assert scope.file_path == "src/glassbox/runtime/changeset_verification_readiness.py"
+    assert scope.line_start == 40
+    assert scope.line_end == 45
+    assert isinstance(disposition, ReviewFeedbackDispositionUpdated)
+    assert disposition.disposition == ReviewFeedbackDisposition.RESPONDED
+    assert isinstance(resolved, ReviewFeedbackResolved)
+    assert resolved.resolution_summary.startswith("Added")
+    assert isinstance(reopened, ReviewFeedbackReopened)
+    assert reopened.feedback_id == feedback_id
+    assert isinstance(accepted, ReviewFeedbackRiskAccepted)
+    assert accepted.verification_id == verification_id
+    assert isinstance(archived, ReviewFeedbackArchived)
+    assert archived.changeset_id == changeset_id
+
+
+def test_review_feedback_scope_rejects_invalid_file_ranges() -> None:
+    with pytest.raises(ValidationError):
+        ReviewFeedbackScopeAttached(
+            feedback_id=new_review_feedback_id(),
+            changeset_id=new_changeset_id(),
+            scope_kind=ReviewFeedbackScopeKind.FILE,
+            reason="line range is inverted",
+            file_path="src/glassbox/runtime/changesets.py",
+            line_start=12,
+            line_end=10,
+        )
+
+    with pytest.raises(ValidationError):
+        ReviewFeedbackScopeAttached(
+            feedback_id=new_review_feedback_id(),
+            changeset_id=new_changeset_id(),
+            scope_kind=ReviewFeedbackScopeKind.FILE,
+            reason="file scopes need path metadata",
+        )
+
+
+def test_review_feedback_envelope_exposes_correlation_ids() -> None:
+    feedback_id = new_review_feedback_id()
+    changeset_id = new_changeset_id()
+    artifact_id = new_artifact_id()
+    verification_id = new_task_verification_id()
+    task_id = new_task_id()
+    turn_id = new_turn_id()
+    envelope = EventEnvelope(
+        session_id=new_session_id(),
+        sequence=25,
+        payload=ReviewFeedbackResolved(
+            feedback_id=feedback_id,
+            changeset_id=changeset_id,
+            resolution_summary="Recorded fixup response and focused verification.",
+            artifact_id=artifact_id,
+            verification_id=verification_id,
+            task_id=task_id,
+            turn_id=turn_id,
+        ),
+    )
+
+    assert envelope.event_type == "ReviewFeedbackResolved"
+    assert envelope.feedback_id == feedback_id
     assert envelope.changeset_id == changeset_id
     assert envelope.artifact_id == artifact_id
     assert envelope.verification_id == verification_id

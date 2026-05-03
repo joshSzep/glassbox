@@ -64,6 +64,13 @@ from glassbox.core.events import ProviderRecoveryRecorded
 from glassbox.core.events import RecoveryDecisionRecorded
 from glassbox.core.events import ReplayArtifactRecorded
 from glassbox.core.events import ResumeOutcomeRecorded
+from glassbox.core.events import ReviewFeedbackArchived
+from glassbox.core.events import ReviewFeedbackCreated
+from glassbox.core.events import ReviewFeedbackDispositionUpdated
+from glassbox.core.events import ReviewFeedbackReopened
+from glassbox.core.events import ReviewFeedbackResolved
+from glassbox.core.events import ReviewFeedbackRiskAccepted
+from glassbox.core.events import ReviewFeedbackScopeAttached
 from glassbox.core.events import RuntimeNoteRecorded
 from glassbox.core.events import SessionCompleted
 from glassbox.core.events import SessionFailed
@@ -129,6 +136,7 @@ from glassbox.core.ids import MessageId
 from glassbox.core.ids import PauseWindowId
 from glassbox.core.ids import QuestionId
 from glassbox.core.ids import RecoveryDecisionId
+from glassbox.core.ids import ReviewFeedbackId
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import TaskCheckpointId
 from glassbox.core.ids import TaskId
@@ -152,6 +160,7 @@ from glassbox.core.ids import new_message_id
 from glassbox.core.ids import new_pause_window_id
 from glassbox.core.ids import new_question_id
 from glassbox.core.ids import new_recovery_decision_id
+from glassbox.core.ids import new_review_feedback_id
 from glassbox.core.ids import new_session_id
 from glassbox.core.ids import new_task_checkpoint_id
 from glassbox.core.ids import new_task_id
@@ -247,6 +256,10 @@ from glassbox.core.types import RepositoryIndexEntityKind
 from glassbox.core.types import RepositoryIndexFreshness
 from glassbox.core.types import RepositoryIndexSourceType
 from glassbox.core.types import ResumeOutcomeStatus
+from glassbox.core.types import ReviewFeedbackDisposition
+from glassbox.core.types import ReviewFeedbackKind
+from glassbox.core.types import ReviewFeedbackProvenance
+from glassbox.core.types import ReviewFeedbackScopeKind
 from glassbox.core.types import SessionStatus
 from glassbox.core.types import TaskBlockedReason
 from glassbox.core.types import TaskPlanStatus
@@ -398,6 +411,18 @@ __all__ = [
     "RecoveryDecision",
     "RecoveryDecisionId",
     "RecoveryDecisionRecorded",
+    "ReviewFeedbackArchived",
+    "ReviewFeedbackCreated",
+    "ReviewFeedbackDisposition",
+    "ReviewFeedbackDispositionUpdated",
+    "ReviewFeedbackId",
+    "ReviewFeedbackKind",
+    "ReviewFeedbackProvenance",
+    "ReviewFeedbackReopened",
+    "ReviewFeedbackResolved",
+    "ReviewFeedbackRiskAccepted",
+    "ReviewFeedbackScopeAttached",
+    "ReviewFeedbackScopeKind",
     "RepositoryIndexEntry",
     "RepositoryIndexEntityKind",
     "RepositoryIndexFreshness",
@@ -522,6 +547,7 @@ __all__ = [
     "new_pause_window_id",
     "new_question_id",
     "new_recovery_decision_id",
+    "new_review_feedback_id",
     "new_session_id",
     "new_task_checkpoint_id",
     "new_task_id",

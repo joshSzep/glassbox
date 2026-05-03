@@ -18,6 +18,7 @@ type BudgetOverrideId = UUID
 type BackgroundJobId = UUID
 type WorkspaceMemoryId = UUID
 type ChangesetId = UUID
+type ReviewFeedbackId = UUID
 type BranchSearchId = UUID
 type BranchCandidateId = UUID
 type TaskCheckpointId = UUID
@@ -100,6 +101,11 @@ def new_workspace_memory_id() -> WorkspaceMemoryId:
 
 def new_changeset_id() -> ChangesetId:
     """Create a new changeset identifier."""
+    return uuid4()
+
+
+def new_review_feedback_id() -> ReviewFeedbackId:
+    """Create a new local review feedback identifier."""
     return uuid4()
 
 

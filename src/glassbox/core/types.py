@@ -230,6 +230,49 @@ class ChangesetVerificationState(StrEnum):
     NOT_APPLICABLE = "not_applicable"
 
 
+class ReviewFeedbackKind(StrEnum):
+    """Local review feedback classes captured as changeset evidence."""
+
+    REQUESTED_CHANGE = "requested_change"
+    REVIEWER_QUESTION = "reviewer_question"
+    OPERATOR_NOTE = "operator_note"
+    OBSERVATION = "observation"
+    RISK = "risk"
+
+
+class ReviewFeedbackProvenance(StrEnum):
+    """Where a local review feedback record came from."""
+
+    REVIEWER = "reviewer"
+    OPERATOR = "operator"
+    MANUAL = "manual"
+    IMPORTED = "imported"
+    UNKNOWN = "unknown"
+
+
+class ReviewFeedbackScopeKind(StrEnum):
+    """Supported local scope targets for review feedback."""
+
+    CHANGESET = "changeset"
+    FILE = "file"
+    TASK = "task"
+    TURN = "turn"
+    ARTIFACT = "artifact"
+    VERIFICATION = "verification"
+    BRANCH_CANDIDATE = "branch_candidate"
+
+
+class ReviewFeedbackDisposition(StrEnum):
+    """Local lifecycle state for review feedback."""
+
+    OPEN = "open"
+    IN_PROGRESS = "in_progress"
+    RESPONDED = "responded"
+    RESOLVED_LOCALLY = "resolved_locally"
+    ACCEPTED_WITH_RISK = "accepted_with_risk"
+    ARCHIVED = "archived"
+
+
 class ChangesetReadinessKind(StrEnum):
     """Kinds of readiness decisions a changeset can carry."""
 
