@@ -2,6 +2,7 @@
 
 from glassbox.cli.command_guide_models import CommandGuideEntry
 from glassbox.cli.command_guide_models import CommandGuideSection
+from glassbox.cli.command_guide_review import REVIEW_LOOP_COMMAND_GUIDE_SECTION
 
 COMMAND_GUIDE_SECTIONS: tuple[CommandGuideSection, ...] = (
     CommandGuideSection(
@@ -372,6 +373,7 @@ COMMAND_GUIDE_SECTIONS: tuple[CommandGuideSection, ...] = (
             ),
         ),
     ),
+    REVIEW_LOOP_COMMAND_GUIDE_SECTION,
     CommandGuideSection(
         key="recover-workspace",
         title="Recover Workspace",

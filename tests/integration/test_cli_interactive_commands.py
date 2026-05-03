@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import subprocess
 from contextlib import nullcontext
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,7 @@ from glassbox.core.events import SessionCompleted
 from glassbox.core.events import SessionFailed
 from glassbox.core.events import SessionStarted
 from glassbox.core.types import ApprovalDecision
+from glassbox.core.types import ChangesetSourceKind
 from glassbox.store.repositories import SQLiteSessionRepository
 from glassbox.store.sqlite import open_database
 from glassbox.web import WebServerConfig
@@ -148,6 +150,72 @@ def test_cli_chat_plain_flag_uses_line_mode_boundary(
     assert exit_code == 0
     assert "Attached to session" in captured.out
     assert "Leaving interactive session" in captured.out
+
+
+def test_cli_chat_plain_supports_review_shortcuts(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+    (tmp_path / "app.py").write_text("print('plain review')\n", encoding="utf-8")
+    interactive_inputs = iter(
+        [
+            "/review create Plain review parity",
+            "/review status",
+            "/review verify",
+            "/review dashboard",
+            "/exit",
+        ]
+    )
+
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_session._read_interactive_input",
+        lambda prompt: next(interactive_inputs),
+    )
+
+    exit_code = main(
+        [
+            "session",
+            "chat",
+            "--plain",
+            "--no-dashboard",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        session_id = repository.list_sessions()[0].session_id
+        changesets = repository.list_changesets(
+            session_id=session_id,
+            include_archived=False,
+            limit=10,
+        )
+        sources = repository.list_changeset_sources(
+            session_id,
+            changesets[0].changeset_id,
+        )
+    finally:
+        connection.close()
+
+    assert exit_code == 0
+    assert len(changesets) == 1
+    assert changesets[0].objective == "Plain review parity"
+    assert sources[0].source_kind == ChangesetSourceKind.WORKSPACE_DIFF
+    assert "Created review changeset" in captured.out
+    assert "Feedback status for" in captured.out
+    assert "Previewed verification for" in captured.out
+    assert (
+        "Dashboard: unavailable; run glassbox dashboard serve --cwd ." in captured.out
+    )
+    assert "No tests, staging, commit, push, PR, or merge was run." in captured.out
 
 
 def test_cli_chat_tui_flag_rejects_non_interactive_environment(

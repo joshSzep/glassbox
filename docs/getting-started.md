@@ -103,6 +103,14 @@ Open that URL while the `session chat` process is still running to watch the sam
 
 If stdin/stdout are redirected, the terminal is too limited, or a CI-like environment is detected, an implicit `session chat` launch falls back to the retained plain line-mode loop. Use `--plain` to request that compatibility mode deliberately, or `--tui` to require the full-screen app and fail if it cannot launch.
 
+Inside either terminal mode, use `/review create` to start local changeset
+review evidence from the current workspace diff. Follow with `/review status`,
+`/review verify CHANGESET_ID`, `/review brief CHANGESET_ID`, `/review handoff
+CHANGESET_ID`, or `/review dashboard CHANGESET_ID` to inspect feedback,
+verification, lifecycle brief, handoff, and dashboard detail state without
+running tests, staging, committing, pushing, opening a PR, merging, deploying,
+or publishing.
+
 ## Use The One-Shot CLI
 
 If you want a one-shot command instead of the long-lived terminal chat, use `glassbox session run`.
@@ -133,6 +141,12 @@ glassbox session fork SESSION_ID [--turn TURN_ID] [--branch-label LABEL] [--prom
 glassbox session status SESSION_ID
 glassbox session export SESSION_ID [OUTPUT]
 glassbox session import PACKAGE
+glassbox changeset show CHANGESET_ID
+glassbox changeset verification-plan CHANGESET_ID
+glassbox changeset feedback status CHANGESET_ID
+glassbox changeset evidence attach CHANGESET_ID --summary SUMMARY --source-label LABEL
+glassbox changeset brief CHANGESET_ID
+glassbox changeset handoff-readiness CHANGESET_ID
 glassbox replay run SESSION_ID [--json]
 glassbox replay bundle export SESSION_ID [OUTPUT]
 glassbox replay bundle inspect BUNDLE_PATH [--json]

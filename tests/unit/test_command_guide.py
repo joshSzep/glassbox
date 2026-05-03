@@ -13,6 +13,8 @@ def test_command_guide_renderer_preserves_terminal_contract() -> None:
     assert rendered.startswith("Glassbox command guide")
     assert "Start Work" in rendered
     assert "glassbox readiness check --cwd ." in rendered
+    assert "Review Loop" in rendered
+    assert "glassbox changeset feedback status CHANGESET_ID --cwd ." in rendered
     assert "Use `glassbox command tree`" in rendered
 
 
@@ -32,6 +34,7 @@ def test_command_guide_json_preserves_payload_shape() -> None:
 
 def test_command_guide_workflows_group_related_sections() -> None:
     recovery_sections = sections_for_workflow("recovery")
+    review_sections = sections_for_workflow("review")
 
     assert [section.key for section in recovery_sections] == [
         "unblock-work",
@@ -39,3 +42,4 @@ def test_command_guide_workflows_group_related_sections() -> None:
         "compaction",
         "tool-attempts",
     ]
+    assert [section.key for section in review_sections] == ["review-loop"]

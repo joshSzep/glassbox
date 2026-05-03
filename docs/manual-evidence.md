@@ -200,6 +200,13 @@ glassbox changeset evidence attach CHANGESET_ID \
   --cwd .
 ```
 
+The dashboard changeset detail route also has a manual evidence quick form.
+It attaches `operator_assertion` evidence with a summary, source label, and
+optional note, then reports the created evidence ID after the API records the
+local event and summary-first artifact. Dashboard evidence attachment remains
+manual evidence; it is not retained command proof, verification proof, review
+approval, or publication authority.
+
 Browser and dashboard observations have guided capture commands that still
 write summary-first manual evidence with local-only screenshot metadata:
 

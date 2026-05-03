@@ -424,6 +424,7 @@ describe("createGlassboxApiClient", () => {
       jsonResponse({ suggestion_label: "suggestion_only_not_committed" }),
       jsonResponse({ detail: { changeset: { changeset_id: "changeset/1" } } }),
       jsonResponse({ detail: { changeset: { changeset_id: "changeset/1" } } }),
+      jsonResponse({ evidence: { evidence_id: "evidence/1" } }),
     ]);
     const client = createGlassboxApiClient({ fetch });
 
@@ -437,6 +438,12 @@ describe("createGlassboxApiClient", () => {
       includeMarkdown: true,
     });
     await client.refreshChangeset({ changesetId: "changeset/1" });
+    await client.attachManualEvidence({
+      changesetId: "changeset/1",
+      note: "external check output summarized",
+      sourceLabel: "operator note",
+      summary: "manual note",
+    });
 
     expect(calls.map((call) => call.input)).toEqual([
       "/changesets?limit=10&session_id=session%2F1",
@@ -446,9 +453,23 @@ describe("createGlassboxApiClient", () => {
       "/changesets/changeset%2F1/commit-message",
       "/changesets/changeset%2F1/brief",
       "/changesets/changeset%2F1/refresh",
+      "/changesets/changeset%2F1/manual-evidence",
     ]);
     expect(calls[5].init?.body).toBe(JSON.stringify({ actor: "operator", include_markdown: true }));
     expect(calls[6].init?.body).toBe(JSON.stringify({ actor: "operator" }));
+    expect(calls[7].init?.body).toBe(
+      JSON.stringify({
+        actor: "operator",
+        command_text: null,
+        evidence_kind: "operator_assertion",
+        freshness: "needs_inspection",
+        note: "external check output summarized",
+        source_label: "operator note",
+        summary: "manual note",
+        target_id: "changeset/1",
+        target_kind: "changeset",
+      }),
+    );
   });
 
   it("normalizes FastAPI validation errors", async () => {

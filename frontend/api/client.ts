@@ -27,6 +27,7 @@ export type ChangesetDetailResponse = components["schemas"]["ChangesetDetailResp
 export type ChangesetListPageResponse = components["schemas"]["ChangesetListPageResponse"];
 export type ChangesetActionResponse = components["schemas"]["ChangesetActionResponse"];
 export type ReviewFeedbackActionResponse = components["schemas"]["ReviewFeedbackActionResponse"];
+export type ManualEvidenceActionResponse = components["schemas"]["ManualEvidenceActionResponse"];
 export type CommitReadinessResponse = components["schemas"]["CommitReadinessResponse"];
 export type HandoffReadinessResponse = components["schemas"]["HandoffReadinessResponse"];
 export type CommitMessageSuggestionResponse =
@@ -637,6 +638,40 @@ export function createGlassboxApiClient(options: GlassboxApiClientOptions = {}) 
             scope_reason: input.scopeReason ?? null,
             source_label: input.sourceLabel ?? null,
             summary: input.summary,
+          },
+        },
+      ),
+
+    attachManualEvidence: (
+      input: {
+        actor?: string;
+        changesetId: string;
+        commandText?: string | null;
+        evidenceKind?: components["schemas"]["ManualEvidenceAttachRequest"]["evidence_kind"];
+        freshness?: components["schemas"]["ManualEvidenceAttachRequest"]["freshness"];
+        note?: string | null;
+        sourceLabel: string;
+        summary: string;
+        targetId?: string | null;
+        targetKind?: components["schemas"]["ManualEvidenceAttachRequest"]["target_kind"];
+      },
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<ManualEvidenceActionResponse>(
+        "POST",
+        `/changesets/${encodeURIComponent(input.changesetId)}/manual-evidence`,
+        {
+          ...requestOptions,
+          body: {
+            actor: input.actor ?? "operator",
+            command_text: input.commandText ?? null,
+            evidence_kind: input.evidenceKind ?? "operator_assertion",
+            freshness: input.freshness ?? "needs_inspection",
+            note: input.note ?? null,
+            source_label: input.sourceLabel,
+            summary: input.summary,
+            target_id: input.targetId ?? input.changesetId,
+            target_kind: input.targetKind ?? "changeset",
           },
         },
       ),

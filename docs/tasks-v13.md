@@ -1366,7 +1366,7 @@ Completed in this slice:
 
 ### GBX-1382: Add Plain Interactive And Dashboard UX Parity
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1381`
 - Goal: make the in-session review entry points discoverable outside the
   full-screen TUI and complete the dashboard handoff
@@ -1392,6 +1392,27 @@ Completed in this slice:
 - Done when:
   - TUI, plain interactive mode, and dashboard tell a coherent story for
     starting and continuing review-loop work
+
+Completed in this slice:
+
+- Added plain interactive `/review` and `/changeset` support for create,
+  status/feedback, refresh, lifecycle brief generation, verification preview,
+  handoff readiness, and dashboard detail handoff.
+- Reused the existing review-loop client boundary so plain mode records the
+  same local changeset evidence as the TUI and prints evidence IDs,
+  limitations, safe next inspection commands, and dashboard detail routes when
+  available.
+- Added dashboard changeset quick actions for inventory refresh, verification
+  preview, feedback status, lifecycle brief generation, handoff posture, and
+  manual evidence attachment.
+- Added frontend API/store support for manual evidence attachment and
+  dashboard action messages that report created evidence IDs or refreshed
+  artifact/inspection posture.
+- Updated command guide, getting-started, interactive workflow, dashboard,
+  manual evidence, and v13 UX docs for the now-coherent TUI, plain-mode, and
+  dashboard review-loop story.
+- Verified with focused backend/unit/integration tests, frontend tests,
+  frontend lint/typecheck/build, and packaged static asset validation.
 
 ---
 

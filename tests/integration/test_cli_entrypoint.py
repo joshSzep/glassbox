@@ -169,6 +169,7 @@ def test_cli_command_guide_prints_json_payload(
         "provider-posture",
         "knowledge-freshness",
         "branch-search-review",
+        "review-loop",
         "recover-workspace",
         "release-evidence",
     ]

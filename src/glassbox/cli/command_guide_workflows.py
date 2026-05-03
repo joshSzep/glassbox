@@ -14,6 +14,7 @@ CommandGuideWorkflow = Literal[
     "provider",
     "knowledge",
     "branch-search",
+    "review",
     "handoff",
     "release",
 ]
@@ -26,7 +27,8 @@ COMMAND_GUIDE_WORKFLOW_GROUPS: dict[CommandGuideWorkflow, tuple[str, ...]] = {
     "provider": ("provider-posture",),
     "knowledge": ("knowledge-freshness",),
     "branch-search": ("branch-search-review",),
-    "handoff": ("checkpoint-inspection",),
+    "review": ("review-loop",),
+    "handoff": ("checkpoint-inspection", "review-loop"),
     "release": ("release-evidence",),
 }
 

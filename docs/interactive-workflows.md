@@ -93,10 +93,26 @@ Implicit `session chat` falls back to plain mode when stdin/stdout are not both 
 
 In plain mode, freeform text sends prompts or answers pending questions,
 `/approve` and `/deny` resolve the current approval, and `/status`, `/help`,
-and `/exit` remain available. The `/review` shortcut family is currently
-full-screen TUI-only; use the printed lower-level `glassbox changeset ...`
-commands from the TUI or run those commands directly when working in plain
-mode.
+and `/exit` remain available. Plain mode also supports the same review-loop
+shortcut family as the TUI:
+
+```text
+/review create [OBJECTIVE]
+/review status [CHANGESET_ID]
+/review refresh CHANGESET_ID
+/review brief CHANGESET_ID
+/review verify CHANGESET_ID
+/review handoff CHANGESET_ID
+/review dashboard CHANGESET_ID
+```
+
+Plain `/review create` records explicit local changeset evidence from the
+current workspace diff and prints the created changeset ID. Review status,
+verification preview, handoff posture, and dashboard handoff are safe
+inspection actions; refresh and lifecycle brief generation report the updated
+inventory or brief artifact. When no dashboard is attached, plain mode prints
+the lower-level `glassbox dashboard serve --cwd .` fallback instead of trying
+to open a browser.
 
 ## Reopen A Persisted Session: `attach`
 

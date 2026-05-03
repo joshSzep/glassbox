@@ -26,6 +26,7 @@ describe("changeset console", () => {
           commitMessage: makeCommitMessageSuggestion("changeset-1"),
           commitReadiness: makeCommitReadiness("changeset-1"),
           handoffReadiness: makeHandoffReadiness("changeset-1"),
+          lastActionMessage: "Manual evidence manual-evidence-1 attached.",
           loadState: "loaded",
           selectedChangesetId: "changeset-1",
           verificationPlan: makeVerificationPlan("changeset-1"),
@@ -51,6 +52,12 @@ describe("changeset console", () => {
     expect(markup).toContain("uv run pytest tests/unit");
     expect(markup).toContain("artifact-1");
     expect(markup).toContain("Review Readiness");
+    expect(markup).toContain("Review Quick Actions");
+    expect(markup).toContain("Preview Verification");
+    expect(markup).toContain("Feedback Status");
+    expect(markup).toContain("Handoff Posture");
+    expect(markup).toContain("Manual evidence summary");
+    expect(markup).toContain("Actions inspect state or record explicit local evidence only");
     expect(markup).toContain("ready");
     expect(markup).toContain("Review Feedback");
     expect(markup).toContain("Clarify feedback copy");

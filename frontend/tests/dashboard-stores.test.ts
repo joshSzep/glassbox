@@ -230,6 +230,19 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
       readiness_event_sequence: 7,
       session_id: "session-1",
     }),
+    attachManualEvidence: async (input) => ({
+      artifact_id: "manual-artifact-1",
+      artifact_path: ".glassbox/sessions/session-1/artifacts/manual-artifact-1.json",
+      event_sequence: 9,
+      evidence: {
+        ...makeManualEvidence(input.changesetId),
+        evidence_id: "manual-evidence-1",
+        source_label: input.sourceLabel,
+        summary: input.summary,
+      },
+      non_claims: ["manual evidence is local evidence, not retained command proof"],
+      safe_next_actions: [`glassbox changeset evidence list --changeset ${input.changesetId}`],
+    }),
     addReviewFeedback: async (input) => ({
       event_sequences: [8, 9],
       feedback: makeReviewFeedback(input.changesetId),
@@ -805,6 +818,13 @@ describe("changeset store", () => {
 
     await store.getState().loadChangesetPage();
     await store.getState().selectChangeset("changeset-1");
+    await store.getState().previewVerification();
+    await store.getState().inspectFeedbackStatus();
+    await store.getState().inspectHandoff();
+    await store.getState().attachManualEvidence({
+      sourceLabel: "operator note",
+      summary: "manual dashboard note",
+    });
     await store.getState().refreshChangeset();
     await store.getState().generateReviewBrief();
 
@@ -817,6 +837,9 @@ describe("changeset store", () => {
     expect(store.getState().detail.commitReadiness?.state).toBe("needs_verification");
     expect(store.getState().detail.commitMessage?.suggestion_label).toBe(
       "suggestion_only_not_committed",
+    );
+    expect(store.getState().detail.lastActionMessage).toBe(
+      "Lifecycle brief brief-artifact-1 generated.",
     );
     expect(store.getState().action.state).toBe("succeeded");
     expect(store.getState().action.kind).toBe("generate-brief");
@@ -1609,6 +1632,40 @@ function makeReviewFeedback(changesetId: string): components["schemas"]["ReviewF
     turn_id: null,
     updated_at: timestamp(4),
     updated_by: null,
+    verification_id: null,
+  };
+}
+
+function makeManualEvidence(changesetId: string): components["schemas"]["ManualEvidenceResponse"] {
+  return {
+    archived_reason: null,
+    artifact_id: "manual-artifact-1",
+    artifact_schema_version: 1,
+    changeset_id: changesetId,
+    created_at: timestamp(5),
+    created_by: "operator",
+    evidence_id: "manual-evidence-1",
+    evidence_kind: "operator_assertion",
+    feedback_id: null,
+    freshness: "needs_inspection",
+    last_sequence: 9,
+    limitations: ["manual evidence is not retained command evidence"],
+    local_only: true,
+    non_claims: ["manual evidence is local evidence, not review approval"],
+    observed_at: null,
+    redaction_status: "redacted",
+    rejected_reason: null,
+    replacement_evidence_id: null,
+    session_id: "session-1",
+    source_label: "operator note",
+    state: "attached",
+    summary: "manual dashboard note",
+    superseded_reason: null,
+    target_id: changesetId,
+    target_kind: "changeset",
+    task_id: null,
+    turn_id: null,
+    updated_at: timestamp(5),
     verification_id: null,
   };
 }

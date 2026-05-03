@@ -1,8 +1,6 @@
 import {
   openLineageTargetRoute,
   parseAppRoute,
-  selectChangesetRoute,
-  selectChangesetSurfaceRoute,
   selectQueueRoute,
   selectSessionRoute,
   selectTaskQueueRoute,
@@ -14,6 +12,8 @@ import {
 } from "@/routing/app-route";
 import type { ConsoleFilters } from "@/stores/dashboard-stores";
 
+import { confirmAction } from "./action-confirm";
+export { changesetConsoleActions } from "./changeset-actions";
 import type { WorkspaceConsoleStores } from "./types";
 
 type Navigate = (route: AppRouteState) => void;
@@ -174,46 +174,6 @@ export function branchSearchConsoleActions({
   };
 }
 
-export function changesetConsoleActions({
-  changesetStore,
-  navigate,
-  route,
-}: Pick<WorkspaceConsoleStores, "changesetStore"> & {
-  navigate: Navigate;
-  route: AppRouteState;
-}) {
-  return {
-    onRefresh: () => {
-      void changesetStore.getState().loadChangesetPage();
-      const selected = changesetStore.getState().detail.selectedChangesetId;
-      if (selected !== null) {
-        void changesetStore.getState().selectChangeset(selected);
-      }
-    },
-    onRefreshChangeset: () => {
-      if (!confirmAction("Refresh basic source evidence for this changeset?")) {
-        return;
-      }
-      void changesetStore.getState().refreshChangeset();
-    },
-    onGenerateReviewBrief: () => {
-      if (!confirmAction("Generate a reviewer-safe brief for this changeset?")) {
-        return;
-      }
-      void changesetStore.getState().generateReviewBrief();
-    },
-    onSelectChangeset: (changesetId: string) => {
-      navigate(selectChangesetRoute(route, changesetId));
-      void changesetStore.getState().selectChangeset(changesetId);
-    },
-    onShowList: () => {
-      navigate(selectChangesetSurfaceRoute(route));
-      changesetStore.getState().reset();
-      void changesetStore.getState().loadChangesetPage();
-    },
-  };
-}
-
 export function sessionInspectorActions({
   consoleStore,
   navigate,
@@ -338,11 +298,4 @@ export function workspaceOverviewActions({
       void sessionStore.getState().loadSession(sessionId);
     },
   };
-}
-
-export function confirmAction(message: string): boolean {
-  if (typeof window === "undefined" || typeof window.confirm !== "function") {
-    return true;
-  }
-  return window.confirm(message);
 }

@@ -150,6 +150,7 @@ async def _chat_command_async(args: argparse.Namespace) -> int:
                 runtime_context,
                 session_state.session_id,
                 prompt_state,
+                dashboard_url=dashboard_url,
             )
         finally:
             if dashboard_server is not None:
@@ -278,6 +279,7 @@ async def _attach_command_async(args: argparse.Namespace) -> int:
             runtime_context,
             args.session_id,
             prompt_state,
+            dashboard_url=None,
         )
 
     return await _run_with_renderer(cwd, db_path, action)

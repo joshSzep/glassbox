@@ -1508,7 +1508,7 @@ def test_interactive_workflows_cover_tui_review_loop_shortcuts() -> None:
         "active chat session",
         "do not auto-run tests",
         "stage files, commit, push, open pull requests",
-        "full-screen TUI-only",
+        "Plain mode also supports the same review-loop",
     ):
         assert required_text in content
 

@@ -9,6 +9,7 @@ import type {
   CommitReadinessResponse,
   GlassboxApiClient,
   HandoffReadinessResponse,
+  ManualEvidenceActionResponse,
 } from "@/api/client";
 import {
   createFailedActionStatus,
@@ -21,7 +22,13 @@ import {
   type StoreActionStatus,
 } from "@/stores/store-actions";
 
-export type ChangesetActionKind = "generate-brief" | "refresh-changeset";
+export type ChangesetActionKind =
+  | "attach-manual-evidence"
+  | "generate-brief"
+  | "inspect-feedback"
+  | "inspect-handoff"
+  | "preview-verification"
+  | "refresh-changeset";
 
 export type ChangesetActionStatus = StoreActionStatus<ChangesetActionKind>;
 
@@ -38,6 +45,7 @@ export type ChangesetDetailState = {
   commitMessage: CommitMessageSuggestionResponse | null;
   commitReadiness: CommitReadinessResponse | null;
   handoffReadiness: HandoffReadinessResponse | null;
+  lastActionMessage: string | null;
   loadState: LoadState;
   selectedChangesetId: string | null;
   verificationPlan: ChangesetVerificationPlanPreviewResponse | null;
@@ -45,10 +53,21 @@ export type ChangesetDetailState = {
 
 export type ChangesetStoreState = {
   action: ChangesetActionStatus;
+  attachManualEvidence: (input: {
+    commandText?: string | null;
+    evidenceKind?: Parameters<GlassboxApiClient["attachManualEvidence"]>[0]["evidenceKind"];
+    freshness?: Parameters<GlassboxApiClient["attachManualEvidence"]>[0]["freshness"];
+    note?: string | null;
+    sourceLabel: string;
+    summary: string;
+  }) => Promise<void>;
   detail: ChangesetDetailState;
   generateReviewBrief: (changesetId?: string) => Promise<void>;
+  inspectFeedbackStatus: (changesetId?: string) => Promise<void>;
+  inspectHandoff: (changesetId?: string) => Promise<void>;
   loadChangesetPage: (query?: { sessionId?: string | null }) => Promise<void>;
   page: ChangesetPageState;
+  previewVerification: (changesetId?: string) => Promise<void>;
   refreshChangeset: (changesetId?: string) => Promise<void>;
   reset: () => void;
   selectChangeset: (changesetId: string) => Promise<void>;
@@ -62,6 +81,28 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
 
   return createStore<ChangesetStoreState>((set, get) => ({
     action: createIdleActionStatus(),
+    attachManualEvidence: async (input) => {
+      const selectedChangesetId = requireSelectedChangesetId(get().detail);
+      set({ action: createPendingActionStatus("attach-manual-evidence") });
+      try {
+        const response = await apiClient.attachManualEvidence({
+          changesetId: selectedChangesetId,
+          commandText: input.commandText,
+          evidenceKind: input.evidenceKind,
+          freshness: input.freshness,
+          note: input.note,
+          sourceLabel: input.sourceLabel,
+          summary: input.summary,
+        });
+        await reloadSelectedChangeset(apiClient, selectedChangesetId, set, {
+          lastActionMessage: manualEvidenceActionMessage(response),
+        });
+        set({ action: createSucceededActionStatus("attach-manual-evidence") });
+        await get().loadChangesetPage();
+      } catch (error) {
+        set({ action: createFailedActionStatus("attach-manual-evidence", error) });
+      }
+    },
     detail: createIdleChangesetDetailState(),
     generateReviewBrief: async (changesetId) => {
       const selectedChangesetId = changesetId ?? requireSelectedChangesetId(get().detail);
@@ -86,6 +127,7 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
             detail: response.detail,
             error: null,
             handoffReadiness,
+            lastActionMessage: `Lifecycle brief ${response.artifact_id} generated.`,
             loadState: "loaded",
             selectedChangesetId,
             verificationPlan,
@@ -94,6 +136,67 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
         await get().loadChangesetPage();
       } catch (error) {
         set({ action: createFailedActionStatus("generate-brief", error) });
+      }
+    },
+    inspectFeedbackStatus: async (changesetId) => {
+      const selectedChangesetId = changesetId ?? requireSelectedChangesetId(get().detail);
+      set({ action: createPendingActionStatus("inspect-feedback") });
+      try {
+        const response = await apiClient.getReviewFeedbackPage({
+          changeset_id: selectedChangesetId,
+        });
+        const currentDetail = get().detail.detail;
+        if (
+          currentDetail === null ||
+          currentDetail.changeset.changeset_id !== selectedChangesetId
+        ) {
+          await reloadSelectedChangeset(apiClient, selectedChangesetId, set, {
+            lastActionMessage: "Feedback status refreshed.",
+          });
+        } else {
+          set((state) => ({
+            detail: {
+              ...state.detail,
+              detail: {
+                ...currentDetail,
+                review_feedback: response.items,
+                review_response_summary:
+                  response.response_summary ?? currentDetail.review_response_summary,
+              },
+              error: null,
+              lastActionMessage: "Feedback status refreshed.",
+              loadState: "loaded",
+              selectedChangesetId,
+            },
+          }));
+        }
+        set({ action: createSucceededActionStatus("inspect-feedback") });
+      } catch (error) {
+        set({ action: createFailedActionStatus("inspect-feedback", error) });
+      }
+    },
+    inspectHandoff: async (changesetId) => {
+      const selectedChangesetId = changesetId ?? requireSelectedChangesetId(get().detail);
+      set({ action: createPendingActionStatus("inspect-handoff") });
+      try {
+        const [handoffReadiness, commitReadiness] = await Promise.all([
+          apiClient.getChangesetHandoffReadiness(selectedChangesetId),
+          apiClient.getChangesetCommitReadiness(selectedChangesetId),
+        ]);
+        set((state) => ({
+          detail: {
+            ...state.detail,
+            commitReadiness,
+            error: null,
+            handoffReadiness,
+            lastActionMessage: `Handoff posture ${handoffReadiness.state} refreshed.`,
+            loadState: "loaded",
+            selectedChangesetId,
+          },
+        }));
+        set({ action: createSucceededActionStatus("inspect-handoff") });
+      } catch (error) {
+        set({ action: createFailedActionStatus("inspect-handoff", error) });
       }
     },
     loadChangesetPage: async (query = {}) => {
@@ -120,6 +223,29 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
       }
     },
     page: createIdleChangesetPageState(),
+    previewVerification: async (changesetId) => {
+      const selectedChangesetId = changesetId ?? requireSelectedChangesetId(get().detail);
+      set({ action: createPendingActionStatus("preview-verification") });
+      try {
+        const verificationPlan = await apiClient.getChangesetVerificationPlan(selectedChangesetId);
+        const commandCount = verificationPlan.recommended_commands.length;
+        set((state) => ({
+          detail: {
+            ...state.detail,
+            error: null,
+            lastActionMessage:
+              `${commandCount} verification command${commandCount === 1 ? "" : "s"} ` +
+              "previewed; none were run.",
+            loadState: "loaded",
+            selectedChangesetId,
+            verificationPlan,
+          },
+        }));
+        set({ action: createSucceededActionStatus("preview-verification") });
+      } catch (error) {
+        set({ action: createFailedActionStatus("preview-verification", error) });
+      }
+    },
     refreshChangeset: async (changesetId) => {
       const selectedChangesetId = changesetId ?? requireSelectedChangesetId(get().detail);
       set({ action: createPendingActionStatus("refresh-changeset") });
@@ -141,6 +267,7 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
             detail: response.detail,
             error: null,
             handoffReadiness,
+            lastActionMessage: `Inventory refreshed at sequence ${response.event_sequence}.`,
             loadState: "loaded",
             selectedChangesetId,
             verificationPlan,
@@ -170,6 +297,7 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
           detail: null,
           error: null,
           handoffReadiness: null,
+          lastActionMessage: null,
           loadState: "loading",
           selectedChangesetId: changesetId,
           verificationPlan: null,
@@ -201,6 +329,7 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
             detail,
             error: null,
             handoffReadiness,
+            lastActionMessage: null,
             loadState: "loaded",
             selectedChangesetId: changesetId,
             verificationPlan,
@@ -218,6 +347,7 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
             detail: null,
             error: errorMessage(error),
             handoffReadiness: null,
+            lastActionMessage: null,
             loadState: "failed",
             selectedChangesetId: changesetId,
             verificationPlan: null,
@@ -240,10 +370,46 @@ function createIdleChangesetDetailState(): ChangesetDetailState {
     detail: null,
     error: null,
     handoffReadiness: null,
+    lastActionMessage: null,
     loadState: "idle",
     selectedChangesetId: null,
     verificationPlan: null,
   };
+}
+
+async function reloadSelectedChangeset(
+  apiClient: GlassboxApiClient,
+  changesetId: string,
+  set: StoreApi<ChangesetStoreState>["setState"],
+  options: { lastActionMessage: string | null },
+) {
+  const detail = await apiClient.getChangesetDetail(changesetId);
+  const [verificationPlan, commitReadiness, handoffReadiness, commitMessage, branchSearchDetail] =
+    await Promise.all([
+      apiClient.getChangesetVerificationPlan(changesetId),
+      apiClient.getChangesetCommitReadiness(changesetId),
+      apiClient.getChangesetHandoffReadiness(changesetId),
+      apiClient.getChangesetCommitMessage(changesetId),
+      loadBranchSearchForChangeset(apiClient, detail),
+    ]);
+  set({
+    detail: {
+      branchSearchDetail,
+      commitMessage,
+      commitReadiness,
+      detail,
+      error: null,
+      handoffReadiness,
+      lastActionMessage: options.lastActionMessage,
+      loadState: "loaded",
+      selectedChangesetId: changesetId,
+      verificationPlan,
+    },
+  });
+}
+
+function manualEvidenceActionMessage(response: ManualEvidenceActionResponse): string {
+  return `Manual evidence ${response.evidence.evidence_id} attached.`;
 }
 
 async function loadBranchSearchForChangeset(

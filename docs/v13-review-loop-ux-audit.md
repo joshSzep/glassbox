@@ -254,3 +254,22 @@ or print the exact safe next inspection command.
 
 The implementation uses lower-level changeset services and daemon HTTP APIs as
 the source of behavior, not terminal-only review-loop state.
+
+## GBX-1382 Parity Notes
+
+`GBX-1382` extends the same model to plain interactive mode and the dashboard:
+
+- plain `glassbox session chat --plain` supports `/review` and `/changeset`
+  aliases for create, status, refresh, brief, verify, handoff, feedback, and
+  dashboard handoff
+- plain review output prints created or updated evidence identifiers,
+  limitations, safe next inspection commands, and the dashboard detail route
+  when a dashboard URL is known
+- dashboard changeset detail quick actions cover inventory refresh,
+  verification preview, feedback status, lifecycle brief generation, handoff
+  posture, and manual evidence attachment
+- dashboard manual evidence attachment reports the created evidence ID and
+  labels the evidence as local, manual, and not retained command proof
+- all parity shortcuts remain read-only or evidence-only and do not run tests,
+  stage, commit, push, open pull requests, merge, deploy, publish, or imply
+  reviewer approval

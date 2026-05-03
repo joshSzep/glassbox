@@ -1,11 +1,23 @@
 "use client";
 
-import { ChevronLeft, FileText, GitBranch, RefreshCcw } from "lucide-react";
+import {
+  ChevronLeft,
+  ClipboardCheck,
+  FileText,
+  GitBranch,
+  MessageSquareText,
+  PlusCircle,
+  RefreshCcw,
+  ShieldCheck,
+} from "lucide-react";
 import type { ReactNode } from "react";
+import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataList, DataListItem, DataListLabel, DataListMeta } from "@/components/ui/data-list";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { operatorIconSizeClass } from "@/design-system/operator-status";
 import type {
   ChangesetActionStatus,
@@ -17,6 +29,17 @@ export type ChangesetConsoleProps = {
   action?: ChangesetActionStatus;
   detail: ChangesetDetailState;
   onGenerateReviewBrief?: () => void;
+  onAttachManualEvidence?: (input: {
+    commandText?: string | null;
+    evidenceKind?: "manual_command" | "external_check" | "operator_assertion" | "reviewer_note";
+    freshness?: "current" | "needs_inspection" | "stale" | "unknown";
+    note?: string | null;
+    sourceLabel: string;
+    summary: string;
+  }) => void;
+  onInspectFeedbackStatus?: () => void;
+  onInspectHandoff?: () => void;
+  onPreviewVerification?: () => void;
   onRefresh?: () => void;
   onRefreshChangeset?: () => void;
   onSelectChangeset?: (changesetId: string) => void;
@@ -28,6 +51,10 @@ export function ChangesetConsole({
   action = { error: null, kind: null, state: "idle" },
   detail,
   onGenerateReviewBrief,
+  onAttachManualEvidence,
+  onInspectFeedbackStatus,
+  onInspectHandoff,
+  onPreviewVerification,
   onRefresh,
   onRefreshChangeset,
   onSelectChangeset,
@@ -67,7 +94,11 @@ export function ChangesetConsole({
           <ChangesetDetail
             action={action}
             detail={detail}
+            onAttachManualEvidence={onAttachManualEvidence}
             onGenerateReviewBrief={onGenerateReviewBrief}
+            onInspectFeedbackStatus={onInspectFeedbackStatus}
+            onInspectHandoff={onInspectHandoff}
+            onPreviewVerification={onPreviewVerification}
             onRefreshChangeset={onRefreshChangeset}
             onShowList={onShowList}
           />
@@ -120,13 +151,21 @@ function ChangesetList({
 function ChangesetDetail({
   action,
   detail,
+  onAttachManualEvidence,
   onGenerateReviewBrief,
+  onInspectFeedbackStatus,
+  onInspectHandoff,
+  onPreviewVerification,
   onRefreshChangeset,
   onShowList,
 }: {
   action: ChangesetActionStatus;
   detail: ChangesetDetailState;
+  onAttachManualEvidence?: ChangesetConsoleProps["onAttachManualEvidence"];
   onGenerateReviewBrief?: () => void;
+  onInspectFeedbackStatus?: () => void;
+  onInspectHandoff?: () => void;
+  onPreviewVerification?: () => void;
   onRefreshChangeset?: () => void;
   onShowList?: () => void;
 }) {
@@ -219,6 +258,16 @@ function ChangesetDetail({
       {inventoryStatus.reason ? (
         <StateLine tone={staleInventory ? "destructive" : "muted"} value={inventoryStatus.reason} />
       ) : null}
+      {detail.lastActionMessage ? <StateLine value={detail.lastActionMessage} /> : null}
+      <ReviewQuickActionsPanel
+        action={action}
+        onAttachManualEvidence={onAttachManualEvidence}
+        onGenerateReviewBrief={onGenerateReviewBrief}
+        onInspectFeedbackStatus={onInspectFeedbackStatus}
+        onInspectHandoff={onInspectHandoff}
+        onPreviewVerification={onPreviewVerification}
+        onRefreshChangeset={onRefreshChangeset}
+      />
       <ReviewPanel
         briefCount={briefCount}
         latestBriefId={changeset.latest_review_brief_artifact_id ?? null}
@@ -289,6 +338,139 @@ function ChangesetDetail({
         </Section>
       ) : null}
     </article>
+  );
+}
+
+function ReviewQuickActionsPanel({
+  action,
+  onAttachManualEvidence,
+  onGenerateReviewBrief,
+  onInspectFeedbackStatus,
+  onInspectHandoff,
+  onPreviewVerification,
+  onRefreshChangeset,
+}: {
+  action: ChangesetActionStatus;
+  onAttachManualEvidence?: ChangesetConsoleProps["onAttachManualEvidence"];
+  onGenerateReviewBrief?: () => void;
+  onInspectFeedbackStatus?: () => void;
+  onInspectHandoff?: () => void;
+  onPreviewVerification?: () => void;
+  onRefreshChangeset?: () => void;
+}) {
+  const [summary, setSummary] = useState("");
+  const [sourceLabel, setSourceLabel] = useState("operator note");
+  const [note, setNote] = useState("");
+  const actionPending = action.state === "pending";
+  const canAttach =
+    onAttachManualEvidence !== undefined &&
+    summary.trim().length > 0 &&
+    sourceLabel.trim().length > 0;
+  return (
+    <Section title="Review Quick Actions">
+      <div className="grid gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            disabled={actionPending || onRefreshChangeset === undefined}
+            onClick={onRefreshChangeset}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <RefreshCcw className={operatorIconSizeClass} aria-hidden="true" />
+            Refresh Inventory
+          </Button>
+          <Button
+            disabled={actionPending || onPreviewVerification === undefined}
+            onClick={onPreviewVerification}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <ClipboardCheck className={operatorIconSizeClass} aria-hidden="true" />
+            Preview Verification
+          </Button>
+          <Button
+            disabled={actionPending || onInspectFeedbackStatus === undefined}
+            onClick={onInspectFeedbackStatus}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <MessageSquareText className={operatorIconSizeClass} aria-hidden="true" />
+            Feedback Status
+          </Button>
+          <Button
+            disabled={actionPending || onGenerateReviewBrief === undefined}
+            onClick={onGenerateReviewBrief}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <FileText className={operatorIconSizeClass} aria-hidden="true" />
+            Generate Lifecycle
+          </Button>
+          <Button
+            disabled={actionPending || onInspectHandoff === undefined}
+            onClick={onInspectHandoff}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <ShieldCheck className={operatorIconSizeClass} aria-hidden="true" />
+            Handoff Posture
+          </Button>
+        </div>
+        <form
+          className="grid gap-2 rounded-md border border-border/70 bg-surface p-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!canAttach || actionPending) {
+              return;
+            }
+            onAttachManualEvidence?.({
+              evidenceKind: "operator_assertion",
+              freshness: "needs_inspection",
+              note: note.trim() || null,
+              sourceLabel: sourceLabel.trim(),
+              summary: summary.trim(),
+            });
+            setSummary("");
+            setNote("");
+          }}
+        >
+          <div className="grid gap-2 md:grid-cols-[1fr_14rem_auto]">
+            <Input
+              aria-label="Manual evidence summary"
+              onChange={(event) => setSummary(event.target.value)}
+              placeholder="Manual evidence summary"
+              value={summary}
+            />
+            <Input
+              aria-label="Manual evidence source label"
+              onChange={(event) => setSourceLabel(event.target.value)}
+              placeholder="Source label"
+              value={sourceLabel}
+            />
+            <Button disabled={!canAttach || actionPending} size="sm" type="submit">
+              <PlusCircle className={operatorIconSizeClass} aria-hidden="true" />
+              Attach
+            </Button>
+          </div>
+          <Textarea
+            aria-label="Manual evidence note"
+            className="min-h-20"
+            onChange={(event) => setNote(event.target.value)}
+            placeholder="Optional note. Manual evidence stays local-only and does not become retained command proof."
+            value={note}
+          />
+          <p className="text-xs text-muted-foreground">
+            Actions inspect state or record explicit local evidence only. Glassbox does not run
+            checks, stage, commit, push, open PRs, merge, deploy, or publish from this panel.
+          </p>
+        </form>
+      </div>
+    </Section>
   );
 }
 

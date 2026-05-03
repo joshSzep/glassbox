@@ -71,20 +71,29 @@ The dashboard shell exposes the operator surfaces backed by the snapshot and SSE
 - pending approvals
 - event log
 
-The changeset surface at `/app/changesets` is the v12 review panel for local
-changesets. It shows review readiness, changed-file inventory summaries,
+The changeset surface at `/app/changesets` is the v13 review-loop panel for
+local changesets. Terminal `/review dashboard CHANGESET_ID` and post-create
+review output hand off directly to `/app/changesets/CHANGESET_ID` when a
+dashboard URL is available. The panel shows review readiness, feedback and
+response status, manual evidence, changed-file inventory summaries,
 verification readiness and retained artifacts, affected topology subsystems
-when available, candidate-adoption comparisons when a branch-search candidate
-is attached, generated review brief artifacts, source evidence, limitations,
-and safe inspection commands. The affected-subsystems panel names package/app
-components, topology freshness, matched paths, test roots, owner hints, and
-dependency hints without treating stale topology as current fact. The adoption
-panel shows the selected candidate, rejected alternatives, retained rationale,
-verification and risk posture, accepted risks, and follow-up actions while
-stating that Glassbox did not merge, rebase, stage, commit, push, or open a PR.
-The `Brief` action calls the local review-brief API and refreshes the panel with
-the latest redacted artifact reference; it does not stage, commit, push, or run
-verification commands.
+when available, handoff posture, commit preparation, candidate-adoption
+comparisons when a branch-search candidate is attached, generated review brief
+artifacts, source evidence, limitations, and safe inspection commands.
+
+The quick-action row refreshes inventory, previews verification, refreshes
+feedback status, generates lifecycle briefs, and reloads handoff posture. The
+manual evidence form attaches an explicit local evidence record and reports the
+created evidence ID after the API returns. These actions are read-only or
+evidence-only: they do not run tests, stage, commit, push, open a PR, merge,
+deploy, publish, or imply reviewer approval.
+
+The affected-subsystems panel names package/app components, topology freshness,
+matched paths, test roots, owner hints, and dependency hints without treating
+stale topology as current fact. The adoption panel shows the selected
+candidate, rejected alternatives, retained rationale, verification and risk
+posture, accepted risks, and follow-up actions while stating that Glassbox did
+not merge, rebase, stage, commit, push, or open a PR.
 
 The browser first reads `GET /sessions/{session_id}` and then subscribes to `GET /sessions/{session_id}/events`.
 Session summary and snapshot responses include a `long_run_status` read model
