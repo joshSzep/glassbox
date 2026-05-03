@@ -758,6 +758,11 @@ class CommitReadinessResponse(BaseModel):
     inventory_artifact_id: str | None = None
     review_brief_artifact_id: str | None = None
     verification_id: str | None = None
+    review_feedback_count: int
+    unresolved_feedback_count: int
+    stale_response_count: int
+    manual_evidence_count: int
+    local_only_evidence_count: int
     accepted_risk_count: int
     git: CommitReadinessGitSummaryResponse
     signals: list[CommitReadinessSignalResponse]
@@ -1112,6 +1117,11 @@ def build_commit_readiness_response(
         inventory_artifact_id=_optional_str(readiness.inventory_artifact_id),
         review_brief_artifact_id=_optional_str(readiness.review_brief_artifact_id),
         verification_id=_optional_str(readiness.verification_id),
+        review_feedback_count=readiness.review_feedback_count,
+        unresolved_feedback_count=readiness.unresolved_feedback_count,
+        stale_response_count=readiness.stale_response_count,
+        manual_evidence_count=readiness.manual_evidence_count,
+        local_only_evidence_count=readiness.local_only_evidence_count,
         accepted_risk_count=readiness.accepted_risk_count,
         git=CommitReadinessGitSummaryResponse(
             branch=readiness.git.branch,

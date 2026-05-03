@@ -1215,7 +1215,7 @@ Completed in this slice:
 
 ### GBX-1372: Improve Commit Preparation With Review-Loop Context
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1371`
 - Goal: make commit preparation account for review feedback and response state
   while preserving the no-mutation boundary
@@ -1239,6 +1239,24 @@ Completed in this slice:
 - Done when:
   - commit preparation reflects the review loop but remains read-only and
     operator-controlled
+
+Completed in this changeset:
+
+- Extended commit-readiness assessments with review feedback, unresolved
+  feedback, stale response, manual evidence, local-only evidence, and
+  review-loop accepted-risk context.
+- Added blocking signals for unresolved feedback, stale/missing/failed response
+  verification, and manual evidence that needs inspection; local-only manual
+  evidence remains visible as non-blocking accepted risk.
+- Updated commit-prep CLI JSON/text output to include final handoff posture
+  while preserving the no-stage/no-commit/no-push/no-PR boundary.
+- Updated deterministic commit-message suggestions to cite review response
+  scope, manual evidence, and handoff posture without claiming reviewer
+  approval.
+- Surfaced the same context through the API schema, generated frontend types,
+  and dashboard Commit Preparation panel.
+- Updated commit-readiness, commit-message, and commit-preparation docs and
+  added focused unit, CLI, API, OpenAPI, and frontend coverage.
 
 ---
 

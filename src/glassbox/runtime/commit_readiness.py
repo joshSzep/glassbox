@@ -17,6 +17,9 @@ from glassbox.core import ChangesetReadinessState
 from glassbox.core import ChangesetRecord
 from glassbox.core import ChangesetReviewBriefRecord
 from glassbox.core import ChangesetVerificationState
+from glassbox.core import ManualEvidenceFreshness
+from glassbox.core import ManualEvidenceRecord
+from glassbox.core import ManualEvidenceState
 from glassbox.core import SessionId
 from glassbox.core import TaskVerificationId
 from glassbox.runtime.changesets import ChangesetInventoryStatus
@@ -24,6 +27,7 @@ from glassbox.runtime.changesets import ChangesetQueryService
 from glassbox.runtime.changesets import ChangesetRepository
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.changesets import ChangesetVerificationService
+from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
 from glassbox.services import ArtifactRepository
 from glassbox.tools.workflow import DiffSummaryArgs
 from glassbox.tools.workflow import DiffSummaryResult
@@ -80,6 +84,11 @@ class CommitReadinessAssessment(BaseModel):
     inventory_artifact_id: ArtifactId | None = None
     review_brief_artifact_id: ArtifactId | None = None
     verification_id: TaskVerificationId | None = None
+    review_feedback_count: int = Field(default=0, ge=0)
+    unresolved_feedback_count: int = Field(default=0, ge=0)
+    stale_response_count: int = Field(default=0, ge=0)
+    manual_evidence_count: int = Field(default=0, ge=0)
+    local_only_evidence_count: int = Field(default=0, ge=0)
     accepted_risk_count: int = Field(default=0, ge=0)
     git: CommitReadinessGitSummary
     signals: list[CommitReadinessSignal] = Field(default_factory=list)
@@ -127,6 +136,8 @@ class ChangesetCommitReadinessService:
             inventory_status=detail.inventory_status,
             verification_plan=verification_plan,
             review_briefs=detail.review_briefs,
+            review_response_summary=detail.review_response_summary,
+            manual_evidence=detail.manual_evidence,
             readiness=detail.readiness,
             git_status=git_status,
             workspace_diff=workspace_diff,
@@ -141,6 +152,8 @@ def derive_commit_readiness(
     inventory_status: ChangesetInventoryStatus,
     verification_plan: ChangesetVerificationPlanPreview,
     review_briefs: Sequence[ChangesetReviewBriefRecord] = (),
+    review_response_summary: ChangesetReviewResponseSummary | None = None,
+    manual_evidence: Sequence[ManualEvidenceRecord] = (),
     readiness: Sequence[ChangesetReadinessRecord] = (),
     git_status: GitStatusResult,
     workspace_diff: DiffSummaryResult,
@@ -155,9 +168,13 @@ def derive_commit_readiness(
     signals.extend(_provenance_signals(changeset, inventory))
     signals.extend(_verification_signals(verification_plan))
     signals.extend(_review_signals(changeset, inventory, review_briefs, readiness))
+    signals.extend(_review_loop_signals(review_response_summary))
+    signals.extend(_manual_evidence_signals(manual_evidence))
     signals.extend(_recorded_commit_evidence_signals(readiness))
     signals.extend(_path_risk_signals(workspace_diff))
-    signals.extend(_accepted_risk_signals(changeset, verification_plan))
+    signals.extend(
+        _accepted_risk_signals(changeset, verification_plan, review_response_summary)
+    )
 
     state = _aggregate_commit_state(signals)
     blockers = [signal.summary for signal in signals if signal.blocking]
@@ -187,8 +204,36 @@ def derive_commit_readiness(
             latest_brief.artifact_id if latest_brief is not None else None
         ),
         verification_id=verification_id,
+        review_feedback_count=(
+            review_response_summary.total_feedback_count
+            if review_response_summary is not None
+            else 0
+        ),
+        unresolved_feedback_count=(
+            review_response_summary.unresolved_count
+            if review_response_summary is not None
+            else 0
+        ),
+        stale_response_count=(
+            review_response_summary.stale_response_count
+            if review_response_summary is not None
+            else 0
+        ),
+        manual_evidence_count=sum(
+            1 for item in manual_evidence if item.state == ManualEvidenceState.ATTACHED
+        ),
+        local_only_evidence_count=sum(
+            1
+            for item in manual_evidence
+            if item.state == ManualEvidenceState.ATTACHED and item.local_only
+        ),
         accepted_risk_count=changeset.accepted_risk_count
-        + verification_plan.readiness.accepted_risk_count,
+        + verification_plan.readiness.accepted_risk_count
+        + (
+            review_response_summary.accepted_risk_count
+            if review_response_summary is not None
+            else 0
+        ),
         git=_git_summary(git_status, workspace_diff, staged_diff),
         signals=signals,
         non_claims=[
@@ -410,6 +455,111 @@ def _review_signals(
     return signals
 
 
+def _review_loop_signals(
+    review_response_summary: ChangesetReviewResponseSummary | None,
+) -> list[CommitReadinessSignal]:
+    if review_response_summary is None:
+        return []
+    signals: list[CommitReadinessSignal] = []
+    if review_response_summary.unresolved_count > 0:
+        signals.append(
+            CommitReadinessSignal(
+                signal_id="review-feedback-unresolved",
+                state=ChangesetReadinessState.NEEDS_REVIEW,
+                summary=(
+                    f"{review_response_summary.unresolved_count} review feedback "
+                    "item(s) still need local response before commit preparation"
+                ),
+            )
+        )
+    if review_response_summary.stale_response_count > 0:
+        signals.append(
+            CommitReadinessSignal(
+                signal_id="review-response-stale",
+                state=ChangesetReadinessState.NEEDS_VERIFICATION,
+                summary=(
+                    f"{review_response_summary.stale_response_count} review "
+                    "response item(s) need refreshed response verification"
+                ),
+            )
+        )
+    failed_response_count = sum(
+        1
+        for item in review_response_summary.items
+        if item.verification_state == ChangesetVerificationState.FAILED
+    )
+    missing_response_count = sum(
+        1
+        for item in review_response_summary.items
+        if item.verification_state == ChangesetVerificationState.MISSING
+    )
+    if failed_response_count > 0:
+        signals.append(
+            CommitReadinessSignal(
+                signal_id="review-response-verification-failed",
+                state=ChangesetReadinessState.FAILED_CHECKS,
+                summary=(
+                    f"{failed_response_count} review response verification "
+                    "item(s) failed"
+                ),
+            )
+        )
+    if missing_response_count > 0:
+        signals.append(
+            CommitReadinessSignal(
+                signal_id="review-response-verification-missing",
+                state=ChangesetReadinessState.NEEDS_VERIFICATION,
+                summary=(
+                    f"{missing_response_count} review response verification "
+                    "item(s) are missing"
+                ),
+            )
+        )
+    return signals
+
+
+def _manual_evidence_signals(
+    manual_evidence: Sequence[ManualEvidenceRecord],
+) -> list[CommitReadinessSignal]:
+    attached = [
+        item for item in manual_evidence if item.state == ManualEvidenceState.ATTACHED
+    ]
+    if not attached:
+        return []
+    signals: list[CommitReadinessSignal] = []
+    stale_or_needs_inspection = [
+        item
+        for item in attached
+        if item.freshness
+        in {ManualEvidenceFreshness.STALE, ManualEvidenceFreshness.NEEDS_INSPECTION}
+    ]
+    if stale_or_needs_inspection:
+        signals.append(
+            CommitReadinessSignal(
+                signal_id="manual-evidence-needs-inspection",
+                state=ChangesetReadinessState.NEEDS_REVIEW,
+                summary=(
+                    f"{len(stale_or_needs_inspection)} manual evidence item(s) "
+                    "need inspection before commit preparation"
+                ),
+            )
+        )
+    local_only_count = sum(1 for item in attached if item.local_only)
+    if local_only_count > 0:
+        signals.append(
+            CommitReadinessSignal(
+                signal_id="manual-evidence-local-only",
+                state=ChangesetReadinessState.ACCEPTED_WITH_RISK,
+                summary=(
+                    f"{local_only_count} local-only manual evidence item(s) "
+                    "remain advisory context, not retained command proof"
+                ),
+                blocking=False,
+            )
+        )
+    return signals
+
+
 def _recorded_commit_evidence_signals(
     readiness: Sequence[ChangesetReadinessRecord],
 ) -> list[CommitReadinessSignal]:
@@ -460,9 +610,16 @@ def _path_risk_signals(
 def _accepted_risk_signals(
     changeset: ChangesetRecord,
     verification_plan: ChangesetVerificationPlanPreview,
+    review_response_summary: ChangesetReviewResponseSummary | None,
 ) -> list[CommitReadinessSignal]:
     accepted_count = (
-        changeset.accepted_risk_count + verification_plan.readiness.accepted_risk_count
+        changeset.accepted_risk_count
+        + verification_plan.readiness.accepted_risk_count
+        + (
+            review_response_summary.accepted_risk_count
+            if review_response_summary is not None
+            else 0
+        )
     )
     if accepted_count == 0:
         return []
@@ -523,6 +680,13 @@ def _safe_next_actions(
         actions.append("glassbox changeset refresh CHANGESET --cwd .")
     if "verification-readiness" in signal_ids:
         actions.extend(verification_actions)
+    if any(signal.signal_id.startswith("review-feedback") for signal in signals):
+        actions.append("glassbox changeset feedback status CHANGESET --cwd .")
+    if any(signal.signal_id.startswith("review-response") for signal in signals):
+        actions.extend(verification_actions)
+        actions.append("glassbox changeset feedback status CHANGESET --cwd .")
+    if "manual-evidence-needs-inspection" in signal_ids:
+        actions.append("glassbox changeset evidence list --changeset CHANGESET --cwd .")
     if "review-brief-missing" in signal_ids or any(
         signal.signal_id.startswith("review-brief-stale") for signal in signals
     ):

@@ -663,6 +663,12 @@ def test_changeset_create_list_show_refresh_and_archive(
         "ready",
         "stale_inventory",
     }
+    assert commit_prep["commit_readiness"]["review_feedback_count"] == 1
+    assert commit_prep["commit_readiness"]["manual_evidence_count"] == 3
+    assert commit_prep["commit_readiness"]["local_only_evidence_count"] == 3
+    assert commit_prep["commit_readiness"]["accepted_risk_count"] >= 1
+    assert commit_prep["handoff_readiness"]["readiness_kind"] == "handoff"
+    assert "not reviewer approval" in commit_prep["commit_message"]["message"]
     assert handoff_exit == 0
     assert handoff["readiness_kind"] == "handoff"
     assert handoff["state"] == "unresolved_risk"

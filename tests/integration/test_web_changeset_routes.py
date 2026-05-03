@@ -451,6 +451,10 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             assert "Commit readiness:" in commit_message_response.json()["message"]
             assert commit_readiness_response.status_code == 200
             assert commit_readiness_response.json()["readiness_kind"] == "commit"
+            assert commit_readiness_response.json()["review_feedback_count"] == 1
+            assert commit_readiness_response.json()["manual_evidence_count"] == 3
+            assert commit_readiness_response.json()["local_only_evidence_count"] == 3
+            assert commit_readiness_response.json()["accepted_risk_count"] >= 1
             assert "does not stage" in " ".join(
                 commit_readiness_response.json()["non_claims"]
             )

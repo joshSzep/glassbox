@@ -471,6 +471,7 @@ function CommandEvidencePanel({ detail }: { detail: NonNullable<ChangesetDetailS
 function CommitPreparationPanel({ detail }: { detail: ChangesetDetailState }) {
   const readiness = detail.commitReadiness;
   const suggestion = detail.commitMessage;
+  const handoffReadiness = detail.handoffReadiness;
   if (readiness === null && suggestion === null) {
     return (
       <Section title="Commit Preparation">
@@ -502,8 +503,44 @@ function CommitPreparationPanel({ detail }: { detail: ChangesetDetailState }) {
               <Badge variant={readiness.git.untracked_paths.length > 0 ? "warning" : "muted"}>
                 {readiness.git.untracked_paths.length} untracked
               </Badge>
+              <Badge variant={readiness.unresolved_feedback_count > 0 ? "warning" : "muted"}>
+                {readiness.unresolved_feedback_count} unresolved feedback
+              </Badge>
+              <Badge variant={readiness.stale_response_count > 0 ? "warning" : "muted"}>
+                {readiness.stale_response_count} stale responses
+              </Badge>
+              <Badge variant={readiness.local_only_evidence_count > 0 ? "info" : "muted"}>
+                {readiness.local_only_evidence_count} local-only evidence
+              </Badge>
+              {handoffReadiness ? (
+                <Badge variant={handoffBadgeVariant(handoffReadiness.state)}>
+                  Handoff {handoffReadiness.state.replaceAll("_", " ")}
+                </Badge>
+              ) : null}
             </div>
             <p className="text-sm text-muted-foreground">{readiness.reason}</p>
+            <DataList density="compact">
+              <DataListItem>
+                <DataListLabel>Review loop</DataListLabel>
+                <DataListMeta>
+                  {readiness.review_feedback_count} feedback, {readiness.unresolved_feedback_count}{" "}
+                  unresolved, {readiness.stale_response_count} stale responses
+                </DataListMeta>
+              </DataListItem>
+              <DataListItem>
+                <DataListLabel>Manual evidence</DataListLabel>
+                <DataListMeta>
+                  {readiness.manual_evidence_count} attached, {readiness.local_only_evidence_count}{" "}
+                  local-only
+                </DataListMeta>
+              </DataListItem>
+              {handoffReadiness ? (
+                <DataListItem>
+                  <DataListLabel>Handoff posture</DataListLabel>
+                  <DataListMeta>{handoffReadiness.reason}</DataListMeta>
+                </DataListItem>
+              ) : null}
+            </DataList>
             {blockingSignals.length > 0 ? (
               <DataList density="compact">
                 {blockingSignals.slice(0, 5).map((signal) => (

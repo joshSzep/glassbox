@@ -68,6 +68,9 @@ describe("changeset console", () => {
     expect(markup).toContain("1 accepted risks");
     expect(markup).toContain("1 responded");
     expect(markup).toContain("1 stale responses");
+    expect(markup).toContain("1 unresolved feedback");
+    expect(markup).toContain("3 attached");
+    expect(markup).toContain("Handoff needs verification");
     expect(markup).toContain("Response planned");
     expect(markup).toContain("Verification stale");
     expect(markup).toContain("predates response-linked fixups");
@@ -793,9 +796,12 @@ function makeCommitReadiness(changesetId: string): CommitReadiness {
       workspace_path_count: 3,
     },
     inventory_artifact_id: "artifact-inventory",
+    local_only_evidence_count: 3,
+    manual_evidence_count: 3,
     non_claims: ["this model does not stage files or run git commit"],
     readiness_kind: "commit",
     reason: "verification readiness is missing",
+    review_feedback_count: 3,
     review_brief_artifact_id: "brief-artifact-1",
     safe_next_actions: ["git status --short"],
     session_id: "session-1",
@@ -809,6 +815,8 @@ function makeCommitReadiness(changesetId: string): CommitReadiness {
       },
     ],
     state: "needs_verification",
+    stale_response_count: 1,
+    unresolved_feedback_count: 1,
     verification_id: "verification-1",
   };
 }

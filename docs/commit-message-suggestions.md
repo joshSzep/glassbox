@@ -24,11 +24,18 @@ The suggestion may include:
 - changed-path count and bounded path examples from the verification plan
 - verification readiness state and summary
 - commit-readiness state and reason
+- review response scope: responded, unresolved, stale response, and
+  accepted-risk counts
+- manual-evidence counts, including local-only evidence when commit readiness
+  has that context
+- handoff-readiness posture when available
 - risk level plus unresolved and accepted risk counts
 
 The message generator does not call a model, inspect raw diffs, include file
 contents, include raw command output, stage files, run `git commit`, push, or
-claim the operator should use the draft unchanged.
+claim the operator should use the draft unchanged. Review response lines are
+phrased as local response evidence and explicitly do not claim reviewer
+approval.
 
 ## Output Shape
 
@@ -43,6 +50,7 @@ whitespace cleanup and terminal punctuation removal. The optional
 `docs:` for docs-only changes, `test:` for test-only changes, and `chore:` for
 mixed or unknown changes.
 
-Operators are expected to edit the suggestion before committing. Later Phase
-125 tasks can add richer commit-preparation guidance and retained pre-commit
-evidence without changing this non-mutating boundary.
+Operators are expected to edit the suggestion before committing. The commit
+preparation workflow can include this suggestion beside readiness, review-loop,
+manual-evidence, and handoff posture without changing the non-mutating
+boundary.

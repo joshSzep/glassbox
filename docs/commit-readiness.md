@@ -13,6 +13,10 @@ The model combines:
 - the latest structured change inventory and its current freshness check
 - verification-plan readiness from retained evidence and recommended checks
 - the latest review brief and review-readiness decision
+- review-response summary counts for unresolved feedback, stale response
+  verification, failed or missing response checks, and accepted risk
+- attached manual evidence counts, including local-only evidence and evidence
+  that needs inspection
 - `git status --porcelain=v1 -b` for staged, unstaged, untracked, branch-ahead,
   and branch-behind posture
 - summary-only workspace and staged diff summaries for changed-path counts,
@@ -30,8 +34,8 @@ Commit readiness uses the existing `ChangesetReadinessKind.COMMIT` and
 | --- | --- |
 | `ready` | Staged changes exist, the working tree has no unstaged or untracked ambiguity, inventory is fresh, verification is passing or not applicable, and the review brief is current. |
 | `blocked` | Required read-only evidence, such as git status or diff summary, could not be inspected. |
-| `needs_verification` | Verification is missing, planned, running, skipped, or otherwise not yet passing. |
-| `needs_review` | Review evidence is missing or stale, the branch is behind upstream, or policy-sensitive paths need explicit review. |
+| `needs_verification` | Verification is missing, planned, running, skipped, otherwise not yet passing, or review-response verification is stale or missing. |
+| `needs_review` | Review evidence is missing or stale, unresolved feedback remains, manual evidence needs inspection, the branch is behind upstream, or policy-sensitive paths need explicit review. |
 | `stale_inventory` | The structured change inventory is missing, stale, superseded, or cannot be trusted against the current workspace. |
 | `dirty_untracked_risk` | Unstaged or untracked files make the proposed commit contents ambiguous. |
 | `failed_checks` | Retained verification reports failed checks. |
@@ -53,8 +57,10 @@ clear before the operator can trust the commit boundary.
 - local git summary fields for staged, unstaged, untracked, policy-sensitive,
   generated, branch-ahead, and branch-behind posture
 - references to current inventory, review brief, and verification evidence
-- per-signal explanations for inventory, verification, review, provenance, git
-  status, path risk, and accepted risk
+- review feedback, unresolved feedback, stale response, manual evidence, and
+  local-only evidence counts
+- per-signal explanations for inventory, verification, review, review-loop,
+  manual evidence, provenance, git status, path risk, and accepted risk
 - non-claims that make the boundary explicit
 
 The safe next actions are intentionally commands to inspect, refresh, generate a

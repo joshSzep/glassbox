@@ -4642,6 +4642,14 @@
             ],
             "title": "Inventory Artifact Id"
           },
+          "local_only_evidence_count": {
+            "title": "Local Only Evidence Count",
+            "type": "integer"
+          },
+          "manual_evidence_count": {
+            "title": "Manual Evidence Count",
+            "type": "integer"
+          },
           "non_claims": {
             "items": {
               "type": "string"
@@ -4668,6 +4676,10 @@
             ],
             "title": "Review Brief Artifact Id"
           },
+          "review_feedback_count": {
+            "title": "Review Feedback Count",
+            "type": "integer"
+          },
           "safe_next_actions": {
             "items": {
               "type": "string"
@@ -4686,9 +4698,17 @@
             "title": "Signals",
             "type": "array"
           },
+          "stale_response_count": {
+            "title": "Stale Response Count",
+            "type": "integer"
+          },
           "state": {
             "title": "State",
             "type": "string"
+          },
+          "unresolved_feedback_count": {
+            "title": "Unresolved Feedback Count",
+            "type": "integer"
           },
           "verification_id": {
             "anyOf": [
@@ -4710,6 +4730,11 @@
           "reason",
           "blockers",
           "safe_next_actions",
+          "review_feedback_count",
+          "unresolved_feedback_count",
+          "stale_response_count",
+          "manual_evidence_count",
+          "local_only_evidence_count",
           "accepted_risk_count",
           "git",
           "signals",

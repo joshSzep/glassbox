@@ -12,8 +12,18 @@ from glassbox.core import ChangesetRecord
 from glassbox.core import ChangesetReviewBriefRecord
 from glassbox.core import ChangesetRiskLevel
 from glassbox.core import ChangesetVerificationState
+from glassbox.core import ManualEvidenceFreshness
+from glassbox.core import ManualEvidenceKind
+from glassbox.core import ManualEvidenceRecord
+from glassbox.core import ManualEvidenceRedactionStatus
+from glassbox.core import ManualEvidenceState
+from glassbox.core import ManualEvidenceTargetKind
+from glassbox.core import ReviewFeedbackDisposition
+from glassbox.core import ReviewResponseState
 from glassbox.core import new_artifact_id
 from glassbox.core import new_changeset_id
+from glassbox.core import new_manual_evidence_id
+from glassbox.core import new_review_feedback_id
 from glassbox.core import new_session_id
 from glassbox.core import new_task_id
 from glassbox.core import new_task_verification_id
@@ -23,6 +33,8 @@ from glassbox.runtime.changeset_verification_readiness import (
 from glassbox.runtime.changesets import ChangesetInventoryStatus
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.commit_readiness import derive_commit_readiness
+from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
+from glassbox.runtime.review_responses import ReviewFeedbackResponseStatus
 from glassbox.tools.workflow import DiffFileSummary
 from glassbox.tools.workflow import DiffSummaryResult
 from glassbox.tools.workflow import DiffSummaryScope
@@ -263,6 +275,183 @@ def test_commit_readiness_cites_failed_retained_precommit_evidence() -> None:
     assert "pre-commit failed" in assessment.reason
 
 
+def test_commit_readiness_blocks_unresolved_review_feedback() -> None:
+    fixture = _fixture()
+
+    assessment = derive_commit_readiness(
+        changeset=fixture.changeset,
+        inventory=fixture.inventory,
+        inventory_status=_fresh_inventory_status(),
+        verification_plan=_verification_plan(
+            fixture.changeset.changeset_id,
+            fixture.changeset.session_id,
+            state=ChangesetVerificationState.PASSED,
+            verification_id=fixture.verification_id,
+        ),
+        review_briefs=[
+            _review_brief(
+                fixture,
+                inventory_artifact_id=fixture.inventory.artifact_id,
+                verification_id=fixture.verification_id,
+            )
+        ],
+        review_response_summary=_review_response_summary(
+            fixture,
+            unresolved_count=1,
+            verification_state=ChangesetVerificationState.MISSING,
+        ),
+        readiness=[_review_readiness(fixture, ChangesetReadinessState.READY)],
+        git_status=GitStatusResult(branch="main", staged=["src/app.py"]),
+        workspace_diff=_diff(["src/app.py"]),
+        staged_diff=_diff(["src/app.py"], scope=DiffSummaryScope.STAGED),
+    )
+
+    assert assessment.state == ChangesetReadinessState.NEEDS_VERIFICATION
+    assert assessment.review_feedback_count == 1
+    assert assessment.unresolved_feedback_count == 1
+    assert any(
+        signal.signal_id == "review-feedback-unresolved"
+        for signal in assessment.signals
+    )
+    assert any("feedback status" in action for action in assessment.safe_next_actions)
+
+
+def test_commit_readiness_blocks_stale_and_failed_response_verification() -> None:
+    fixture = _fixture()
+
+    stale = derive_commit_readiness(
+        changeset=fixture.changeset,
+        inventory=fixture.inventory,
+        inventory_status=_fresh_inventory_status(),
+        verification_plan=_verification_plan(
+            fixture.changeset.changeset_id,
+            fixture.changeset.session_id,
+            state=ChangesetVerificationState.PASSED,
+            verification_id=fixture.verification_id,
+        ),
+        review_briefs=[
+            _review_brief(
+                fixture,
+                inventory_artifact_id=fixture.inventory.artifact_id,
+                verification_id=fixture.verification_id,
+            )
+        ],
+        review_response_summary=_review_response_summary(
+            fixture,
+            stale_response_count=1,
+            verification_state=ChangesetVerificationState.STALE,
+        ),
+        readiness=[_review_readiness(fixture, ChangesetReadinessState.READY)],
+        git_status=GitStatusResult(branch="main", staged=["src/app.py"]),
+        workspace_diff=_diff(["src/app.py"]),
+        staged_diff=_diff(["src/app.py"], scope=DiffSummaryScope.STAGED),
+    )
+    failed = derive_commit_readiness(
+        changeset=fixture.changeset,
+        inventory=fixture.inventory,
+        inventory_status=_fresh_inventory_status(),
+        verification_plan=_verification_plan(
+            fixture.changeset.changeset_id,
+            fixture.changeset.session_id,
+            state=ChangesetVerificationState.PASSED,
+            verification_id=fixture.verification_id,
+        ),
+        review_briefs=[
+            _review_brief(
+                fixture,
+                inventory_artifact_id=fixture.inventory.artifact_id,
+                verification_id=fixture.verification_id,
+            )
+        ],
+        review_response_summary=_review_response_summary(
+            fixture,
+            verification_state=ChangesetVerificationState.FAILED,
+        ),
+        readiness=[_review_readiness(fixture, ChangesetReadinessState.READY)],
+        git_status=GitStatusResult(branch="main", staged=["src/app.py"]),
+        workspace_diff=_diff(["src/app.py"]),
+        staged_diff=_diff(["src/app.py"], scope=DiffSummaryScope.STAGED),
+    )
+
+    assert stale.state == ChangesetReadinessState.NEEDS_VERIFICATION
+    assert stale.stale_response_count == 1
+    assert any(signal.signal_id == "review-response-stale" for signal in stale.signals)
+    assert failed.state == ChangesetReadinessState.FAILED_CHECKS
+    assert any(
+        signal.signal_id == "review-response-verification-failed"
+        for signal in failed.signals
+    )
+
+
+def test_commit_readiness_surfaces_manual_evidence_context() -> None:
+    fixture = _fixture()
+
+    local_only = derive_commit_readiness(
+        changeset=fixture.changeset,
+        inventory=fixture.inventory,
+        inventory_status=_fresh_inventory_status(),
+        verification_plan=_verification_plan(
+            fixture.changeset.changeset_id,
+            fixture.changeset.session_id,
+            state=ChangesetVerificationState.PASSED,
+            verification_id=fixture.verification_id,
+        ),
+        review_briefs=[
+            _review_brief(
+                fixture,
+                inventory_artifact_id=fixture.inventory.artifact_id,
+                verification_id=fixture.verification_id,
+            )
+        ],
+        manual_evidence=[_manual_evidence(fixture)],
+        readiness=[_review_readiness(fixture, ChangesetReadinessState.READY)],
+        git_status=GitStatusResult(branch="main", staged=["src/app.py"]),
+        workspace_diff=_diff(["src/app.py"]),
+        staged_diff=_diff(["src/app.py"], scope=DiffSummaryScope.STAGED),
+    )
+    stale = derive_commit_readiness(
+        changeset=fixture.changeset,
+        inventory=fixture.inventory,
+        inventory_status=_fresh_inventory_status(),
+        verification_plan=_verification_plan(
+            fixture.changeset.changeset_id,
+            fixture.changeset.session_id,
+            state=ChangesetVerificationState.PASSED,
+            verification_id=fixture.verification_id,
+        ),
+        review_briefs=[
+            _review_brief(
+                fixture,
+                inventory_artifact_id=fixture.inventory.artifact_id,
+                verification_id=fixture.verification_id,
+            )
+        ],
+        manual_evidence=[
+            _manual_evidence(
+                fixture,
+                freshness=ManualEvidenceFreshness.NEEDS_INSPECTION,
+            )
+        ],
+        readiness=[_review_readiness(fixture, ChangesetReadinessState.READY)],
+        git_status=GitStatusResult(branch="main", staged=["src/app.py"]),
+        workspace_diff=_diff(["src/app.py"]),
+        staged_diff=_diff(["src/app.py"], scope=DiffSummaryScope.STAGED),
+    )
+
+    assert local_only.state == ChangesetReadinessState.ACCEPTED_WITH_RISK
+    assert local_only.manual_evidence_count == 1
+    assert local_only.local_only_evidence_count == 1
+    assert any(
+        signal.signal_id == "manual-evidence-local-only" and not signal.blocking
+        for signal in local_only.signals
+    )
+    assert stale.state == ChangesetReadinessState.NEEDS_REVIEW
+    assert any(
+        signal.signal_id == "manual-evidence-needs-inspection"
+        for signal in stale.signals
+    )
+
+
 class _Fixture:
     def __init__(self, *, accepted_risk_count: int = 0) -> None:
         now = datetime.now(UTC)
@@ -392,6 +581,84 @@ def _commit_readiness_record(
         decided_by="operator",
         updated_at=now,
         last_sequence=14,
+    )
+
+
+def _review_response_summary(
+    fixture: _Fixture,
+    *,
+    unresolved_count: int = 0,
+    stale_response_count: int = 0,
+    accepted_risk_count: int = 0,
+    verification_state: ChangesetVerificationState = (
+        ChangesetVerificationState.NOT_APPLICABLE
+    ),
+) -> ChangesetReviewResponseSummary:
+    feedback_id = new_review_feedback_id()
+    unresolved = unresolved_count > 0
+    disposition = (
+        ReviewFeedbackDisposition.OPEN
+        if unresolved
+        else ReviewFeedbackDisposition.RESPONDED
+    )
+    response_state = (
+        ReviewResponseState.PLANNED if unresolved else ReviewResponseState.RESPONDED
+    )
+    item = ReviewFeedbackResponseStatus(
+        feedback_id=feedback_id,
+        changeset_id=fixture.changeset.changeset_id,
+        response_state=response_state,
+        disposition=disposition,
+        summary="review feedback response status",
+        fixup_inventory_count=1 if not unresolved else 0,
+        inventory_freshness=ChangesetInventoryFreshness.FRESH,
+        stale=stale_response_count > 0,
+        changed_path_count=1,
+        matched_scope_path_count=1,
+        verification_state=verification_state,
+        verification_reason="response verification needs attention",
+        safe_next_actions=["glassbox changeset feedback status CHANGESET --cwd ."],
+    )
+    return ChangesetReviewResponseSummary(
+        changeset_id=fixture.changeset.changeset_id,
+        total_feedback_count=1,
+        open_count=unresolved_count,
+        responded_count=0 if unresolved else 1,
+        unresolved_count=unresolved_count,
+        stale_response_count=stale_response_count,
+        accepted_risk_count=accepted_risk_count,
+        blocked_count=0,
+        items=[item],
+    )
+
+
+def _manual_evidence(
+    fixture: _Fixture,
+    *,
+    freshness: ManualEvidenceFreshness = ManualEvidenceFreshness.CURRENT,
+) -> ManualEvidenceRecord:
+    now = datetime.now(UTC)
+    return ManualEvidenceRecord(
+        session_id=fixture.changeset.session_id,
+        evidence_id=new_manual_evidence_id(),
+        evidence_kind=ManualEvidenceKind.EXTERNAL_CHECK,
+        state=ManualEvidenceState.ATTACHED,
+        target_kind=ManualEvidenceTargetKind.CHANGESET,
+        target_id=str(fixture.changeset.changeset_id),
+        changeset_id=fixture.changeset.changeset_id,
+        artifact_id=new_artifact_id(),
+        artifact_schema_version=1,
+        summary="external CI reported green",
+        source_label="external-ci",
+        created_by="operator",
+        local_only=True,
+        redaction_status=ManualEvidenceRedactionStatus.LOCAL_ONLY,
+        freshness=freshness,
+        limitations=["manual evidence is summary-first"],
+        non_claims=["manual evidence is not retained command evidence"],
+        created_at=now,
+        updated_at=now,
+        last_sequence=15,
     )
 
 

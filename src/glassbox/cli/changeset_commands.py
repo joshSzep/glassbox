@@ -751,11 +751,17 @@ def _changeset_commit_prep_command(args: argparse.Namespace) -> int:
                 style=args.style,
             )
         )
+        handoff_readiness = preview_handoff_readiness(
+            ChangesetHandoffReadinessService(repository, artifacts),
+            args.changeset_id,
+            cwd,
+        )
 
     payload = {
         "changeset_id": str(args.changeset_id),
         "commit_readiness": readiness.model_dump(mode="json"),
         "commit_message": suggestion.model_dump(mode="json"),
+        "handoff_readiness": handoff_readiness.model_dump(mode="json"),
         "safe_copy": (
             "Glassbox prepared local commit guidance only; it did not stage, "
             "commit, push, or open a PR."
@@ -764,7 +770,7 @@ def _changeset_commit_prep_command(args: argparse.Namespace) -> int:
     if args.json:
         print_json_output(payload)
     else:
-        _print_commit_prep(readiness, suggestion)
+        _print_commit_prep(readiness, suggestion, handoff_readiness)
     return 0
 
 
@@ -1038,9 +1044,22 @@ def _print_commit_message_suggestion(
 def _print_commit_prep(
     readiness: CommitReadinessAssessment,
     suggestion: CommitMessageSuggestion,
+    handoff_readiness: HandoffReadinessAssessment,
 ) -> None:
     print("Commit preparation (read-only):")
     print(f"Readiness: {readiness.state.value} - {readiness.reason}")
+    print(
+        "Review loop: "
+        f"{readiness.review_feedback_count} feedback, "
+        f"{readiness.unresolved_feedback_count} unresolved, "
+        f"{readiness.stale_response_count} stale responses"
+    )
+    print(
+        "Manual evidence: "
+        f"{readiness.manual_evidence_count} attached, "
+        f"{readiness.local_only_evidence_count} local-only"
+    )
+    print(f"Handoff readiness: {handoff_readiness.state} - {handoff_readiness.reason}")
     if readiness.blockers:
         print("Blockers:")
         for blocker in readiness.blockers:

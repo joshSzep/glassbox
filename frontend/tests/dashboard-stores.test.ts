@@ -1701,9 +1701,12 @@ function makeCommitReadiness(changesetId: string): CommitReadiness {
       workspace_path_count: 1,
     },
     inventory_artifact_id: "artifact-inventory",
+    local_only_evidence_count: 0,
+    manual_evidence_count: 0,
     non_claims: ["this model does not stage files or run git commit"],
     readiness_kind: "commit",
     reason: "verification readiness is missing",
+    review_feedback_count: 0,
     review_brief_artifact_id: null,
     safe_next_actions: ["uv run glassbox eval run commit-smoke --cwd ."],
     session_id: "session-1",
@@ -1717,6 +1720,8 @@ function makeCommitReadiness(changesetId: string): CommitReadiness {
       },
     ],
     state: "needs_verification",
+    stale_response_count: 0,
+    unresolved_feedback_count: 0,
     verification_id: null,
   };
 }

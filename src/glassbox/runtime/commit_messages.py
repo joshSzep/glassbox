@@ -18,6 +18,9 @@ from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.changesets import ChangesetVerificationService
 from glassbox.runtime.commit_readiness import ChangesetCommitReadinessService
 from glassbox.runtime.commit_readiness import CommitReadinessAssessment
+from glassbox.runtime.handoff_readiness import ChangesetHandoffReadinessService
+from glassbox.runtime.handoff_readiness import HandoffReadinessAssessment
+from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
 from glassbox.services import ArtifactRepository
 
 COMMIT_MESSAGE_SUGGESTION_KIND = "changeset_commit_message_suggestion"
@@ -89,6 +92,10 @@ class ChangesetCommitMessageSuggestionService:
             self._repository,
             self._artifact_repository,
         ).preview(changeset_id, workspace_root)
+        handoff_readiness = await ChangesetHandoffReadinessService(
+            self._repository,
+            self._artifact_repository,
+        ).preview(changeset_id, workspace_root)
         task = (
             self._repository.get_task(detail.changeset.task_id)
             if detail.changeset.task_id is not None
@@ -99,6 +106,9 @@ class ChangesetCommitMessageSuggestionService:
             task=task,
             verification_plan=verification_plan,
             commit_readiness=commit_readiness,
+            review_response_summary=detail.review_response_summary,
+            manual_evidence_count=len(detail.manual_evidence),
+            handoff_readiness=handoff_readiness,
             changed_paths=verification_plan.changed_paths,
             style=style,
         )
@@ -111,6 +121,9 @@ def build_commit_message_suggestion(
     verification_plan: ChangesetVerificationPlanPreview,
     commit_readiness: CommitReadinessAssessment,
     changed_paths: Sequence[str],
+    review_response_summary: ChangesetReviewResponseSummary | None = None,
+    manual_evidence_count: int = 0,
+    handoff_readiness: HandoffReadinessAssessment | None = None,
     style: str = "plain",
 ) -> CommitMessageSuggestion:
     """Build a deterministic commit message suggestion from evidence."""
@@ -121,6 +134,9 @@ def build_commit_message_suggestion(
         task=task,
         verification_plan=verification_plan,
         commit_readiness=commit_readiness,
+        review_response_summary=review_response_summary,
+        manual_evidence_count=manual_evidence_count,
+        handoff_readiness=handoff_readiness,
         changed_paths=changed_paths,
     )
     body = [line.summary for line in evidence]
@@ -146,6 +162,7 @@ def build_commit_message_suggestion(
             "operator should edit the message before committing",
             "message does not include raw diffs, file contents, or command output",
             "facts absent from changeset evidence are not invented",
+            "review response summaries do not claim reviewer approval",
         ],
     )
 
@@ -171,6 +188,9 @@ def _evidence_lines(
     task: TaskRecord | None,
     verification_plan: ChangesetVerificationPlanPreview,
     commit_readiness: CommitReadinessAssessment,
+    review_response_summary: ChangesetReviewResponseSummary | None,
+    manual_evidence_count: int,
+    handoff_readiness: HandoffReadinessAssessment | None,
     changed_paths: Sequence[str],
 ) -> list[CommitMessageEvidenceLine]:
     lines = [
@@ -196,6 +216,22 @@ def _evidence_lines(
                 f"Commit readiness: {commit_readiness.state.value} - "
                 f"{commit_readiness.reason}"
             ),
+        ),
+        CommitMessageEvidenceLine(
+            kind="review_loop",
+            summary=_review_loop_summary(review_response_summary),
+        ),
+        CommitMessageEvidenceLine(
+            kind="manual_evidence",
+            summary=(
+                f"Manual evidence: {manual_evidence_count} item(s); "
+                f"{commit_readiness.local_only_evidence_count} local-only; "
+                "manual evidence is not retained command proof"
+            ),
+        ),
+        CommitMessageEvidenceLine(
+            kind="handoff_readiness",
+            summary=_handoff_summary(handoff_readiness),
         ),
         CommitMessageEvidenceLine(
             kind="risk",
@@ -225,6 +261,29 @@ def _evidence_lines(
             ),
         )
     return lines
+
+
+def _review_loop_summary(
+    review_response_summary: ChangesetReviewResponseSummary | None,
+) -> str:
+    if review_response_summary is None:
+        return "Review responses: no retained response summary available"
+    return (
+        "Review responses: "
+        f"{review_response_summary.responded_count} responded, "
+        f"{review_response_summary.unresolved_count} unresolved, "
+        f"{review_response_summary.stale_response_count} stale, "
+        f"{review_response_summary.accepted_risk_count} accepted risk; "
+        "not reviewer approval"
+    )
+
+
+def _handoff_summary(
+    handoff_readiness: HandoffReadinessAssessment | None,
+) -> str:
+    if handoff_readiness is None:
+        return "Handoff readiness: not assessed"
+    return f"Handoff readiness: {handoff_readiness.state} - {handoff_readiness.reason}"
 
 
 def _changed_paths_summary(changed_paths: Sequence[str]) -> str:

@@ -3174,6 +3174,10 @@ export interface components {
       git: components["schemas"]["CommitReadinessGitSummaryResponse"];
       /** Inventory Artifact Id */
       inventory_artifact_id?: string | null;
+      /** Local Only Evidence Count */
+      local_only_evidence_count: number;
+      /** Manual Evidence Count */
+      manual_evidence_count: number;
       /** Non Claims */
       non_claims: string[];
       /** Readiness Kind */
@@ -3182,14 +3186,20 @@ export interface components {
       reason: string;
       /** Review Brief Artifact Id */
       review_brief_artifact_id?: string | null;
+      /** Review Feedback Count */
+      review_feedback_count: number;
       /** Safe Next Actions */
       safe_next_actions: string[];
       /** Session Id */
       session_id: string;
       /** Signals */
       signals: components["schemas"]["CommitReadinessSignalResponse"][];
+      /** Stale Response Count */
+      stale_response_count: number;
       /** State */
       state: string;
+      /** Unresolved Feedback Count */
+      unresolved_feedback_count: number;
       /** Verification Id */
       verification_id?: string | null;
     };

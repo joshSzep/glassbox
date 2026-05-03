@@ -8,9 +8,12 @@ from glassbox.core import ChangesetReadinessState
 from glassbox.core import ChangesetRecord
 from glassbox.core import ChangesetRiskLevel
 from glassbox.core import ChangesetVerificationState
+from glassbox.core import ReviewFeedbackDisposition
+from glassbox.core import ReviewResponseState
 from glassbox.core import TaskPlanStatus
 from glassbox.core import TaskRecord
 from glassbox.core import new_changeset_id
+from glassbox.core import new_review_feedback_id
 from glassbox.core import new_session_id
 from glassbox.core import new_task_id
 from glassbox.runtime.changeset_verification_readiness import (
@@ -21,6 +24,8 @@ from glassbox.runtime.commit_messages import COMMIT_MESSAGE_SUGGESTION_KIND
 from glassbox.runtime.commit_messages import build_commit_message_suggestion
 from glassbox.runtime.commit_readiness import CommitReadinessAssessment
 from glassbox.runtime.commit_readiness import CommitReadinessGitSummary
+from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
+from glassbox.runtime.review_responses import ReviewFeedbackResponseStatus
 
 
 def test_commit_message_suggestion_uses_evidence_and_labels_non_action() -> None:
@@ -80,6 +85,35 @@ def test_commit_message_suggestion_exposes_missing_evidence_limitations() -> Non
     assert "changeset has no separate summary field" in suggestion.limitations
 
 
+def test_commit_message_suggestion_mentions_review_loop_without_approval_claims() -> (
+    None
+):
+    fixture = _fixture()
+
+    suggestion = build_commit_message_suggestion(
+        changeset=fixture.changeset,
+        task=fixture.task,
+        verification_plan=_verification_plan(fixture),
+        commit_readiness=_commit_readiness(
+            fixture,
+            local_only_evidence_count=1,
+        ),
+        review_response_summary=_review_response_summary(fixture),
+        manual_evidence_count=2,
+        changed_paths=["src/glassbox/runtime/commit_messages.py"],
+    )
+
+    assert "Review responses: 1 responded, 1 unresolved, 1 stale" in (
+        suggestion.message
+    )
+    assert "not reviewer approval" in suggestion.message
+    assert "Manual evidence: 2 item(s); 1 local-only" in suggestion.message
+    assert "reviewer approved" not in suggestion.message.lower()
+    assert "review response summaries do not claim reviewer approval" in (
+        suggestion.non_claims
+    )
+
+
 class _Fixture:
     def __init__(
         self,
@@ -136,11 +170,44 @@ def _verification_plan(fixture: _Fixture) -> ChangesetVerificationPlanPreview:
     )
 
 
-def _commit_readiness(fixture: _Fixture) -> CommitReadinessAssessment:
+def _commit_readiness(
+    fixture: _Fixture,
+    *,
+    local_only_evidence_count: int = 0,
+) -> CommitReadinessAssessment:
     return CommitReadinessAssessment(
         changeset_id=fixture.changeset.changeset_id,
         session_id=fixture.session_id,
         state=ChangesetReadinessState.READY,
         reason="evidence is ready",
+        manual_evidence_count=local_only_evidence_count,
+        local_only_evidence_count=local_only_evidence_count,
         git=CommitReadinessGitSummary(staged_paths=["src/glassbox/runtime/foo.py"]),
+    )
+
+
+def _review_response_summary(
+    fixture: _Fixture,
+) -> ChangesetReviewResponseSummary:
+    item = ReviewFeedbackResponseStatus(
+        feedback_id=new_review_feedback_id(),
+        changeset_id=fixture.changeset.changeset_id,
+        response_state=ReviewResponseState.RESPONDED,
+        disposition=ReviewFeedbackDisposition.RESPONDED,
+        summary="response cites local fixup evidence",
+        fixup_inventory_count=1,
+        inventory_freshness=ChangesetInventoryFreshness.FRESH,
+        stale=True,
+        verification_state=ChangesetVerificationState.STALE,
+    )
+    return ChangesetReviewResponseSummary(
+        changeset_id=fixture.changeset.changeset_id,
+        total_feedback_count=2,
+        open_count=1,
+        responded_count=1,
+        unresolved_count=1,
+        stale_response_count=1,
+        accepted_risk_count=1,
+        blocked_count=0,
+        items=[item],
     )
