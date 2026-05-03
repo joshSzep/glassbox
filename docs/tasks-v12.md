@@ -1655,7 +1655,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1291: Add v12 Release Gate
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1290`
 - Goal: provide one command that records v12 blocking and advisory evidence
   clearly
@@ -1681,6 +1681,16 @@ Each phase below corresponds to one concrete milestone.
   - v12 readiness has one command that records deterministic, package,
     changeset, review, commit-readiness, topology, command-evidence, and
     advisory evidence clearly
+- Completion notes:
+  - Added `scripts/validate_v12_release_gate.py` as an inherited v11 gate with
+    v12 deterministic eval report, reviewable-change release profile, changeset
+    lifecycle smoke, eval coverage audit, installed-wheel smoke, and retained
+    `summary.json` release authority.
+  - Added [v12-release-gate.md](./v12-release-gate.md), README links, package
+    content requirements for the v12 gate/doc/eval/script artifacts, and focused
+    unit/docs/packaging coverage.
+  - Verified the dry-run evidence path with
+    `uv run python scripts/validate_v12_release_gate.py --dry-run --include-provider-canaries --evidence-dir /private/tmp/glassbox-v12-gate-dry-run`.
 
 ### GBX-1292: Run v12 Dogfooding Passes
 

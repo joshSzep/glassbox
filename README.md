@@ -121,6 +121,7 @@ Start here based on what you need:
 - [docs/v10-long-running-task-contract.md](docs/v10-long-running-task-contract.md)
 - [docs/v11-confidence-adoption-contract.md](docs/v11-confidence-adoption-contract.md)
 - [docs/v12-reviewable-change-contract.md](docs/v12-reviewable-change-contract.md)
+- [docs/v12-release-gate.md](docs/v12-release-gate.md)
 - [docs/v11-release-candidate.md](docs/v11-release-candidate.md)
 - [docs/v10-release-candidate.md](docs/v10-release-candidate.md)
 - [docs/v9-vocabulary.md](docs/v9-vocabulary.md)

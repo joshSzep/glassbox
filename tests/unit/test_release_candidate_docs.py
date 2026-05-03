@@ -484,6 +484,34 @@ def test_v12_change_lifecycle_audit_covers_current_boundaries() -> None:
     assert "v12-change-lifecycle-audit.md" in docs_readme
 
 
+def test_v12_release_gate_documents_reviewable_change_evidence() -> None:
+    content = (REPO_ROOT / "docs" / "v12-release-gate.md").read_text(encoding="utf-8")
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Automated Stages",
+        "## Evidence Summary",
+        "## Pass And Fail Policy",
+        "scripts/validate_v12_release_gate.py",
+        "v12 deterministic eval release report",
+        "v12 reviewable-change release profile",
+        "v12 changeset lifecycle smoke",
+        "v12 eval coverage audit",
+        "changeset.reviewable-lifecycle",
+        "changeset.branch-candidate-adoption",
+        "package contents",
+        "installed-wheel smoke",
+        "advisory",
+        "summary.json",
+        "live pull request creation",
+    ):
+        assert required_text in content
+
+    assert "docs/v12-release-gate.md" in root_readme
+    assert "v12-release-gate.md" in docs_readme
+
+
 def test_v12_worktree_isolation_contract_covers_safety_boundary() -> None:
     content = (REPO_ROOT / "docs" / "worktree-isolation.md").read_text(encoding="utf-8")
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
