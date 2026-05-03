@@ -1,6 +1,6 @@
 # Glassbox Refactor Boundaries
 
-For the docs hub and operator guides, start at [README.md](./README.md). This note defines the target architectural boundaries for the v1 refactor roadmap in [refactor-v1.md](./refactor-v1.md), the post-v8 follow-on roadmap in [refactor-v8.md](./refactor-v8.md), the second-order v10 roadmap in [refactor-v10.md](./refactor-v10.md), and the post-v11 confidence-surface roadmap in [refactor-v11.md](./refactor-v11.md).
+For the docs hub and operator guides, start at [README.md](./README.md). This note defines the target architectural boundaries for the v1 refactor roadmap in [refactor-v1.md](./refactor-v1.md), the post-v8 follow-on roadmap in [refactor-v8.md](./refactor-v8.md), the second-order v10 roadmap in [refactor-v10.md](./refactor-v10.md), the post-v11 confidence-surface roadmap in [refactor-v11.md](./refactor-v11.md), and the post-v13 review-loop roadmap in [refactor-v13.md](./refactor-v13.md).
 
 ## Purpose
 
@@ -10,7 +10,7 @@ It exists to answer one question before code moves begin:
 
 What are the intended module boundaries for the current Glassbox implementation, and what kinds of changes are explicitly out of scope for the first refactor pass?
 
-This note is intentionally code-aligned. It describes the current implementation shape and the target decomposition boundaries for refactor work already captured in [refactor-v1.md](./refactor-v1.md), [refactor-v8.md](./refactor-v8.md), [refactor-v10.md](./refactor-v10.md), and [refactor-v11.md](./refactor-v11.md). It does not define a new product architecture.
+This note is intentionally code-aligned. It describes the current implementation shape and the target decomposition boundaries for refactor work already captured in [refactor-v1.md](./refactor-v1.md), [refactor-v8.md](./refactor-v8.md), [refactor-v10.md](./refactor-v10.md), [refactor-v11.md](./refactor-v11.md), and [refactor-v13.md](./refactor-v13.md). It does not define a new product architecture.
 
 ## Implementation Status
 
@@ -45,6 +45,15 @@ command-guide surfaces, interactive command handlers, frontend session-store
 helpers, recovery helpers, compaction helpers, turn hooks, and task/background
 projection handlers now follow the helper boundaries described below.
 
+The post-v13 review-loop boundary map is defined but not yet implemented. The
+current v13 surfaces are stable compatibility entrypoints that should not grow
+new behavior while helper modules are extracted in [refactor-v13.md](./refactor-v13.md):
+`runtime/changesets.py`, `cli/changeset_commands.py`,
+`cli/parser_changesets.py`, `web/changeset_api.py`,
+`web/routes/changesets.py`, `frontend/components/console/changeset-console.tsx`,
+`frontend/stores/changeset-store.ts`, and
+`scripts/validate_v13_release_gate.py`.
+
 ## Scope
 
 This refactor pass is about implementation structure, not product behavior.
@@ -73,6 +82,10 @@ The non-goals are:
   checks, branch-search actions, handoff package fields, release-gate stages,
   command semantics, dashboard workflows, or projection schemas while
   performing v11 confidence-surface refactor-only movement
+- change v13 review-loop semantics, local evidence authority, publication
+  boundary non-claims, handoff/commit read-only posture, or advisory browser,
+  dashboard, accessibility, provider, and dogfooding evidence contracts while
+  performing post-v13 review-loop refactor-only movement
 
 ## Behavior-Preservation Contract
 
@@ -255,6 +268,45 @@ packaging concerns now sit next to one another:
   handlers now live in focused `sqlite_projection_task_*` helpers, while
   background-job creation, lifecycle, pause/cancel, retry, and recovery SQL
   handlers live in focused `sqlite_projection_background_job_*` helpers.
+
+The post-v13 pressure points are review-loop surfaces that grew while changesets
+became locally reviewable and handoff-ready:
+
+- `src/glassbox/runtime/changesets.py` mixes changeset source derivation,
+  workspace diff helpers, query view assembly, feedback and evidence actions,
+  verification preview, lifecycle brief assembly, safe-command guidance, and
+  handoff/commit adjacency helpers. It should become the stable changeset
+  runtime facade over focused `changeset_*`, review-feedback, manual-evidence,
+  browser/accessibility-evidence, verification, and brief-section owners.
+- `src/glassbox/cli/changeset_commands.py` mixes runtime-context wiring, command
+  dispatch, JSON payload construction, and terminal formatting. It should remain
+  the scriptable command facade while handlers, payload builders, and formatters
+  move into changeset command helper modules.
+- `src/glassbox/cli/parser_changesets.py`, `src/glassbox/cli/tui/commands.py`,
+  `src/glassbox/cli/tui/app_commands.py`, and
+  `src/glassbox/cli/interactive_session.py` carry the in-session `/review` and
+  `/changeset` workflow entrypoints. Parser, TUI, and plain interactive helpers
+  should split by review-loop command family without changing command names,
+  defaults, or current-session behavior.
+- `src/glassbox/web/changeset_api.py` and `src/glassbox/web/routes/changesets.py`
+  mix transport models, response builders, service factories, request branching,
+  and HTTP error translation. They should remain stable web import/route
+  surfaces while transport models, builders, route services, request helpers,
+  and error mapping move into web-owned helper modules.
+- `frontend/components/console/changeset-console.tsx` combines list/detail
+  presentation, feedback, evidence, verification, handoff, commit preparation,
+  actions, formatting, and local form state. It should remain the component
+  entrypoint while typed helpers and section modules own presentation families.
+- `frontend/stores/changeset-store.ts` should keep transport and action state
+  in the store layer while API action groups and derived selectors split under
+  store-owned helpers. React components must not take over transport behavior.
+- Changeset and review-loop SQLite projections, query helpers, and repository
+  adapters should split by canonical event/read-model family without making
+  projection tables authoritative.
+- `scripts/validate_v13_release_gate.py` should remain the operator entrypoint
+  while v13-specific release-gate stage construction, advisory evidence rows,
+  dry-run planning, and summary metadata move into helper functions or a helper
+  module.
 
 Large files that are primarily model-heavy and should not be split just for
 line count include core event/model/type modules, generated frontend API types,
@@ -470,6 +522,43 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   artifact recording, replay capture hooks, task-plan capture linkage, and
   tool-attempt heartbeat construction move into focused helpers.
 
+#### V13 Review-Loop Runtime Sub-Boundaries
+
+- `runtime/changesets.py` is the stable changeset runtime facade for the
+  post-v13 roadmap. It should continue to preserve public imports for CLI, web,
+  readiness, handoff, commit, replay/eval, and tests while behavior moves into
+  focused owner modules.
+- Changeset source creation and workspace diff behavior belong under
+  `changeset_derivation.py` and `changeset_workspace_diff.py`. They preserve
+  source limitation behavior, event emission, artifact retention, digest
+  calculation, and no-mutation claims.
+- Runtime-only result/view models and repository protocols belong under
+  `changeset_models.py` and `changeset_repository_contracts.py`. Core event and
+  record models stay in `core/`.
+- Query view assembly belongs under `changeset_queries.py`,
+  `changeset_detail.py`, and `changeset_inventory_status.py`. Query helpers
+  stay transport-agnostic and repository-backed.
+- Review feedback actions belong under `review_feedback_actions.py` and
+  `review_feedback_scopes.py`; manual, browser, and accessibility evidence
+  actions belong under `manual_evidence_actions.py`,
+  `browser_evidence_actions.py`, and `accessibility_evidence_actions.py`.
+  Artifact schema/redaction helpers remain in the existing evidence modules.
+- Response-linked fixup inventory mutation belongs under
+  `review_fixup_actions.py`; response-status derivation remains in
+  `review_responses.py`.
+- Verification preview, safe command templates, command evidence shaping, and
+  lifecycle brief section assembly belong under dedicated changeset helper
+  modules. `changeset_verification_readiness.py`, `command_evidence.py`, and
+  `review_briefs.py` remain the lower-level schema/derivation owners where
+  they already exist.
+- Handoff and commit readiness should depend on extracted query, verification,
+  safe-command, and command-evidence helpers rather than the broad
+  `runtime/changesets.py` facade once those helpers exist.
+- All v13 review-loop helpers must preserve local-first authority: feedback,
+  manual evidence, browser/dashboard evidence, accessibility evidence,
+  lifecycle briefs, handoff readiness, and commit preparation remain advisory
+  unless the current event contract already records a canonical mutation.
+
 ### Store
 
 The `store` package should own canonical persistence and projection application.
@@ -550,6 +639,24 @@ The `store` package should not own runtime orchestration, CLI formatting, or web
 - Projection helper extraction should not introduce abstract projection
   frameworks, dynamic handler discovery, runtime service imports, HTTP models,
   CLI formatters, or frontend state.
+
+#### V13 Store Review-Loop Sub-Boundaries
+
+- Changeset and review-loop projection helpers remain rebuildable from
+  canonical changeset, feedback, response, manual-evidence, browser-evidence,
+  accessibility-evidence, verification, and brief events.
+- `sqlite_projection_changesets.py` and `sqlite_projection_review_loop.py` may
+  remain compatibility coordinators while lifecycle, inventory, readiness,
+  feedback, fixup inventory, and evidence handlers move into event-family
+  helpers.
+- Changeset query helpers should split by read-model family when they change:
+  detail, inventory/status, review feedback, manual evidence, live evidence,
+  and response summaries. Row ordering, pagination, include flags, and enum
+  coercion stay unchanged.
+- Repository adapters should expose the existing changeset and review-loop
+  service contracts while delegating method bodies to store-owned domain
+  modules. Store modules must not import runtime services, web response models,
+  CLI formatters, or frontend code.
 
 ### Services
 
@@ -640,6 +747,24 @@ The `cli` package should not build its own parallel session-query logic when the
   session mutations, and daemon-forwarded action payloads. Session launch
   parser options live in `cli/parser_session_launch.py`.
 
+#### V13 CLI And Terminal Review-Loop Sub-Boundaries
+
+- `cli/changeset_commands.py` should remain the scriptable `glassbox changeset`
+  command facade. Runtime-context opening and service wiring belong in
+  `changeset_command_handlers.py`; JSON payload builders belong in
+  `changeset_command_payloads.py`; terminal formatting belongs in
+  `changeset_command_formatters.py`.
+- `cli/parser_changesets.py` should remain the parser entrypoint while feedback,
+  evidence, verification/brief/handoff, and commit-preparation parser families
+  move into parser helper modules.
+- TUI and plain interactive `/review` and `/changeset` parsing, disabled
+  reasons, current-session defaults, action routing, and feedback messages
+  belong in review-specific helpers. The scriptable changeset CLI remains the
+  lower-level API.
+- Terminal helpers may render runtime-derived posture and safe commands, but
+  they should not duplicate runtime evidence, readiness, publication-boundary,
+  or response-status derivation.
+
 #### Post-v8 TUI Sub-Boundaries
 
 - the TUI conversation split now keeps `cli/tui/conversation.py` as a
@@ -695,6 +820,21 @@ The `web` package should not own the canonical logic for deriving session summar
   windows, pause windows, pause/resume/cancel, and budget-adjustment actions
 - web response models and Pydantic serializers belong in web API modules, not
   in runtime query services
+
+#### V13 Changeset Web Sub-Boundaries
+
+- `web/changeset_api.py` remains the stable compatibility facade for changeset
+  route imports. Transport models belong in `changeset_api_models.py` and
+  review-loop model modules; response builders belong in
+  `changeset_api_builders.py` and focused builder helpers.
+- Web builder modules may consume runtime query/detail/readiness models, but
+  they must not import FastAPI dependencies or become runtime service owners.
+- `web/routes/changesets.py` remains the FastAPI declaration surface. Service
+  factories, repository casts, workspace-root lookup, route request helpers,
+  and HTTP error translation belong in route-local helper modules.
+- Route helpers preserve paths, response models, status codes, validation
+  patterns, OpenAPI shape, local evidence advisory copy, and publication-boundary
+  non-claims.
 
 #### Historical Web Frontend Sub-Boundaries
 
@@ -789,6 +929,23 @@ the Next.js SPA contract in [architecture.md](./architecture.md) and
   `session-store-types.ts` own stream lifecycle, detail pagination, draft
   shaping, action mutations, shared guards, and public store types.
 
+#### V13 Frontend Changeset Sub-Boundaries
+
+- `frontend/components/console/changeset-console.tsx` remains the stable
+  component entrypoint. Types, badge variants, fact rows, state labels, and
+  shared presentation helpers belong under `components/console/changeset/`.
+- Changeset list, detail shell, actions, feedback, evidence, verification,
+  handoff, and commit-preparation sections should split into focused component
+  modules without changing visual hierarchy, accessibility labels, advisory
+  copy, or local form-state behavior.
+- `frontend/stores/changeset-store.ts` owns transport and action state. Store
+  action groups and selectors may split into helper modules, but React
+  components must continue to consume store state rather than calling the API
+  directly.
+- Frontend changeset formatting helpers should consume typed API/store state and
+  must not duplicate backend review-loop derivation, response-status logic,
+  readiness scoring, or publication-boundary rules.
+
 ### Replay And Eval
 
 Replay and eval logic lives in `runtime`, but it should maintain its own internal boundaries.
@@ -821,6 +978,11 @@ Its internal ownership should stay explicit:
   `scripts/v11_release_gate_helpers.py` owns stage summary rows, dry-run
   planning, retained evidence summary writing, advisory provider evidence rows,
   and terminal summary rendering.
+- The v13 release-gate script should follow the same pattern: keep
+  `scripts/validate_v13_release_gate.py` as the operator entrypoint while
+  v13-specific stage construction, review-loop evidence rows, browser and
+  accessibility advisory rows, dry-run planning, and summary metadata move into
+  `scripts/v13_release_gate_helpers.py` or focused helper functions.
 
 The replay and eval stack should not maintain a bespoke copy of live model-loop behavior when a shared execution boundary can serve both paths.
 
@@ -954,6 +1116,21 @@ The practical rules are:
 - session export/import redaction helpers must not depend on CLI, web,
   frontend, or raw `.glassbox` filesystem layout beyond explicit package input
   paths
+- v13 review-loop runtime helpers must stay below transport and presentation:
+  they may derive changeset, feedback, evidence, verification, lifecycle brief,
+  handoff, and commit posture, while CLI/web/frontend modules render or
+  serialize those results without reimplementing the rules
+- v13 web changeset builders own transport serialization only and must not
+  import FastAPI when a pure builder function is enough
+- v13 frontend changeset components should import store types and UI controls,
+  not API transports, SSE transports, Next server modules, or backend source
+- v13 store projection and query helpers must remain rebuildable/read-only
+  derivations from canonical events or projection tables and must not import
+  runtime services, CLI formatters, web models, or frontend state
+- v13 release-gate helper modules may depend on standard library process/path
+  helpers, inherited release-gate helpers, and runtime eval models, but should
+  not import CLI renderers, web routes, frontend code, or dashboard component
+  state
 
 ## Boundary Guardrails
 
@@ -989,6 +1166,11 @@ The guardrails are intentionally narrow:
   importing CLI/web/frontend presentation code, block frontend section helpers
   from importing stores or backend source where they should be pure, and give
   every failure message a concrete destination module
+- v13 guardrails initially freeze the known review-loop pressure points against
+  further growth before extraction, block the clearest cross-layer imports, and
+  document the future facade/helper expectations. After the first runtime, web,
+  CLI, and frontend helper modules exist, [refactor-v13.md](./refactor-v13.md)
+  calls for tighter delegate-import and facade-size checks.
 
 If a guardrail fails, the default repair should be to move new behavior into the owning split module or add one focused neighbor module, not to widen a facade or cross a subsystem boundary.
 
@@ -1048,6 +1230,14 @@ shape:
   `turn_tool_executor.py`, `sqlite_projection_tasks.py`, and
   `sqlite_projection_background_jobs.py` while existing commands, imports,
   routes, tests, and component entrypoints transition to focused helpers
+- v13 compatibility facades may include `runtime/changesets.py`,
+  `cli/changeset_commands.py`, `cli/parser_changesets.py`,
+  `web/changeset_api.py`, `web/routes/changesets.py`,
+  `frontend/components/console/changeset-console.tsx`,
+  `frontend/stores/dashboard-stores.ts`, and
+  `scripts/validate_v13_release_gate.py` while existing runtime imports,
+  commands, parser entrypoints, routes, generated API consumers, component
+  entrypoints, and release-gate invocations transition to focused helpers
 
 These facades are acceptable only while they stay thin, reviewable, and oriented
 around stable public imports. New behavior should move into the owning domain
@@ -1093,6 +1283,37 @@ owners:
 - `core/events.py`, `core/models.py`, and `core/__init__.py`: stable core import
   surfaces; future domain modules must keep explicit event registration and
   compatibility re-exports.
+
+### V13 Accepted Compatibility Shims
+
+The post-v13 refactor accepts these compatibility surfaces and intended owners:
+
+- `runtime/changesets.py`: changeset runtime facade; new source derivation,
+  workspace diff, query/detail, feedback, evidence, verification, safe-command,
+  command-evidence, brief-section, and action behavior belongs in focused
+  runtime helper modules.
+- `cli/changeset_commands.py`: scriptable command facade; new service wiring
+  belongs in changeset command handlers, JSON payload shaping belongs in
+  payload helpers, and terminal formatting belongs in formatter helpers.
+- `cli/parser_changesets.py`: parser entrypoint; new feedback, evidence,
+  review, handoff, and commit-preparation parser wiring belongs in parser
+  helper modules.
+- TUI and plain interactive review entrypoints: generic app/session command
+  modules may keep stable wrappers, while review-loop parsing and action routing
+  belongs in review-specific helpers.
+- `web/changeset_api.py`: response-model compatibility facade; new transport
+  models and builders belong in focused web changeset/review-loop API modules.
+- `web/routes/changesets.py`: FastAPI declaration surface; new service
+  factories, request helpers, and error translation belong in route-local
+  helper modules.
+- `frontend/components/console/changeset-console.tsx`: component entrypoint;
+  new changeset list/detail/action/evidence/feedback/verification/handoff
+  presentation belongs under `components/console/changeset/`.
+- `frontend/stores/changeset-store.ts`: store factory and action-state owner;
+  new API action groups and selectors belong in changeset store helper modules.
+- `scripts/validate_v13_release_gate.py`: operator entrypoint; new v13 gate
+  stage construction, advisory evidence row shaping, dry-run planning, and
+  summary metadata belongs in release-gate helper code.
 
 ## Patterns That Must Not Become Permanent
 
@@ -1147,6 +1368,12 @@ The intended mapping is:
   cleanup
 - `GBX-R401`: planned v11 guardrails for the post-v11 pressure points before
   bulk movement begins
+- `GBX-R500`: v13 review-loop boundary map for changeset runtime services,
+  review feedback/evidence, lifecycle brief and readiness helpers, CLI/TUI/web
+  transports, frontend changeset console/store, store projections, and release
+  gate helper ownership
+- `GBX-R502`: planned v13 post-extraction guardrails that keep the new
+  compatibility facades thin and delegated after the first helper modules exist
 
 Later tasks should follow this boundary map rather than redefining subsystem ownership case by case.
 

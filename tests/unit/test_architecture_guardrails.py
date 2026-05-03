@@ -2411,6 +2411,204 @@ V11_COMPATIBILITY_FACADE_DELEGATES: tuple[tuple[Path, tuple[str, ...], str], ...
     ),
 )
 
+V13_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
+    (
+        SRC_ROOT / "runtime" / "changesets.py",
+        4086,
+        (
+            "v13 changesets runtime facade should move new derivation, "
+            "feedback, evidence, verification, brief, and readiness behavior "
+            "into focused review-loop helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "changeset_commands.py",
+        1407,
+        (
+            "v13 changeset CLI facade should move new service wiring, JSON "
+            "payloads, and terminal formatting into changeset command helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "parser_changesets.py",
+        687,
+        (
+            "v13 changeset parser facade should move new feedback, evidence, "
+            "review, and commit-prep parser families into helper modules"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "tui" / "app_commands.py",
+        246,
+        (
+            "v13 TUI app command helpers should move new review-loop routing "
+            "and feedback messages into review command helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "tui" / "commands.py",
+        386,
+        (
+            "v13 TUI command registry should move new review-loop command "
+            "families into review command helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "interactive_session.py",
+        479,
+        (
+            "v13 plain interactive review commands should move new review-loop "
+            "routing into interactive review helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "web" / "changeset_api.py",
+        1541,
+        (
+            "v13 changeset API facade should move new transport models and "
+            "response builders into changeset API helper modules"
+        ),
+    ),
+    (
+        SRC_ROOT / "web" / "routes" / "changesets.py",
+        837,
+        (
+            "v13 changeset routes should move new service factories, request "
+            "helpers, and HTTP error mapping into route helper modules"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_changesets.py",
+        436,
+        (
+            "v13 changeset projection coordinator should move new event-family "
+            "handlers into focused projection helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_review_loop.py",
+        573,
+        (
+            "v13 review-loop projection coordinator should move new feedback "
+            "and evidence handlers into focused projection helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_query_changesets.py",
+        324,
+        (
+            "v13 changeset query helpers should move new detail, inventory, "
+            "and readiness reads into focused query modules"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_query_review_loop.py",
+        393,
+        (
+            "v13 review-loop query helpers should move new feedback, response, "
+            "and evidence reads into focused query modules"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "repository_changesets.py",
+        94,
+        (
+            "v13 changeset repository adapter should keep method ownership "
+            "thin over store-owned query helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "repository_review_loop.py",
+        120,
+        (
+            "v13 review-loop repository adapter should keep method ownership "
+            "thin over store-owned query helpers"
+        ),
+    ),
+)
+
+V13_FRONTEND_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
+    (
+        FRONTEND_ROOT / "components" / "console" / "changeset-console.tsx",
+        1382,
+        (
+            "v13 changeset-console should move new list, detail, feedback, "
+            "evidence, verification, handoff, and commit-prep presentation "
+            "into changeset section modules"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "stores" / "changeset-store.ts",
+        435,
+        (
+            "v13 changeset store should move new API action groups and "
+            "selectors into store-owned helpers"
+        ),
+    ),
+)
+
+V13_PYTHON_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
+    (
+        SRC_ROOT / "runtime" / "changesets.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "v13 changeset runtime helpers must keep review-loop derivation "
+            "independent from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "parser_changesets.py",
+        ("glassbox.runtime", "glassbox.store", "glassbox.web"),
+        (
+            "v13 changeset parser helpers must stay parser-only and avoid "
+            "runtime orchestration, raw store, or web imports"
+        ),
+    ),
+    (
+        SRC_ROOT / "web" / "changeset_api.py",
+        ("fastapi",),
+        (
+            "v13 changeset API model and builder helpers should keep FastAPI "
+            "dependencies in route modules"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_changesets.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        (
+            "v13 changeset projection handlers must stay below runtime and "
+            "transport layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "store" / "sqlite_projection_review_loop.py",
+        ("glassbox.cli", "glassbox.runtime", "glassbox.web"),
+        (
+            "v13 review-loop projection handlers must stay below runtime and "
+            "transport layers"
+        ),
+    ),
+)
+
+V13_FRONTEND_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
+    (
+        FRONTEND_ROOT / "components" / "console" / "changeset-console.tsx",
+        ("@/api/client", "@/api/sse", "next/", "src/glassbox"),
+        (
+            "v13 changeset console should consume store state and avoid API "
+            "transport, SSE, Next server, or backend imports"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "stores" / "changeset-store.ts",
+        ("@/components", "next/", "react", "src/glassbox"),
+        (
+            "v13 changeset store should own API transport without importing "
+            "React components, Next server, or backend source"
+        ),
+    ),
+)
+
 
 def test_dependency_direction_rules_hold_for_refactor_boundaries() -> None:
     violations: list[str] = []
@@ -2602,6 +2800,40 @@ def test_v11_compatibility_facades_delegate_to_intended_owners() -> None:
     assert violations == []
 
 
+def test_v13_python_pressure_points_do_not_grow_before_split() -> None:
+    violations = _line_count_violations(V13_PYTHON_PRESSURE_POINT_RULES)
+
+    assert violations == []
+
+
+def test_v13_frontend_pressure_points_do_not_grow_before_split() -> None:
+    violations = _line_count_violations(V13_FRONTEND_PRESSURE_POINT_RULES)
+
+    assert violations == []
+
+
+def test_v13_python_boundaries_avoid_transport_and_presentation_imports() -> None:
+    violations: list[str] = []
+
+    for file_path, forbidden_prefixes, message in V13_PYTHON_IMPORT_RULES:
+        violations.extend(
+            _python_import_violations(file_path, forbidden_prefixes, message)
+        )
+
+    assert violations == []
+
+
+def test_v13_frontend_boundaries_avoid_transport_and_backend_imports() -> None:
+    violations: list[str] = []
+
+    for file_path, forbidden_prefixes, message in V13_FRONTEND_IMPORT_RULES:
+        violations.extend(
+            _frontend_import_violations(file_path, forbidden_prefixes, message)
+        )
+
+    assert violations == []
+
+
 def test_post_v8_python_guardrail_messages_point_to_owned_boundaries(
     tmp_path: Path,
 ) -> None:
@@ -2747,6 +2979,53 @@ def test_v11_guardrail_messages_point_to_next_owner(tmp_path: Path) -> None:
     ]
 
 
+def test_v13_guardrail_messages_point_to_next_owner(tmp_path: Path) -> None:
+    changesets_file = tmp_path / "changesets.py"
+    changesets_file.write_text(
+        "from glassbox.web.changeset_api import ChangesetDetailResponse\n",
+        encoding="utf-8",
+    )
+
+    import_violations = _python_import_violations(
+        changesets_file,
+        ("glassbox.web",),
+        (
+            "v13 changeset runtime helpers must keep review-loop derivation "
+            "independent from CLI and web presentation layers"
+        ),
+    )
+
+    assert import_violations == [
+        (
+            f"{changesets_file}: v13 changeset runtime helpers must keep "
+            "review-loop derivation independent from CLI and web presentation "
+            "layers: glassbox.web.changeset_api"
+        )
+    ]
+
+    growth_violations = _line_count_violations(
+        (
+            (
+                changesets_file,
+                0,
+                (
+                    "v13 changesets runtime facade should move new derivation, "
+                    "feedback, evidence, verification, brief, and readiness "
+                    "behavior into focused review-loop helpers"
+                ),
+            ),
+        )
+    )
+
+    assert growth_violations == [
+        (
+            f"{changesets_file}: v13 changesets runtime facade should move new "
+            "derivation, feedback, evidence, verification, brief, and readiness "
+            "behavior into focused review-loop helpers: 1 lines exceeds 0"
+        )
+    ]
+
+
 def test_v11_confidence_boundary_strategy_is_documented() -> None:
     boundary_doc = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
         encoding="utf-8"
@@ -2764,6 +3043,39 @@ def test_v11_confidence_boundary_strategy_is_documented() -> None:
         "v11 guardrails should extend the same narrow approach",
     ):
         assert required_text in boundary_doc
+
+
+def test_v13_review_loop_boundary_strategy_is_documented() -> None:
+    boundary_doc = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
+        encoding="utf-8"
+    )
+    architecture_doc = (REPO_ROOT / "docs" / "architecture.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "#### V13 Review-Loop Runtime Sub-Boundaries",
+        "`runtime/changesets.py` is the stable changeset runtime facade",
+        "Review feedback actions belong under `review_feedback_actions.py`",
+        "#### V13 Store Review-Loop Sub-Boundaries",
+        "#### V13 CLI And Terminal Review-Loop Sub-Boundaries",
+        "#### V13 Changeset Web Sub-Boundaries",
+        "#### V13 Frontend Changeset Sub-Boundaries",
+        "### V13 Accepted Compatibility Shims",
+        "v13 guardrails initially freeze the known review-loop pressure points",
+        "`scripts/validate_v13_release_gate.py`: operator entrypoint",
+    ):
+        assert required_text in boundary_doc
+
+    for required_text in (
+        "## Current Post-v13 Review-Loop Refactor Shape",
+        "`runtime/changesets.py` is the stable changeset runtime facade",
+        "### Runtime Review-Loop Boundaries",
+        "Publication-boundary behavior is part of this runtime contract",
+        "[v13-review-loop-contract.md](./v13-review-loop-contract.md)",
+        "[publication-boundary.md](./publication-boundary.md)",
+    ):
+        assert required_text in architecture_doc
 
 
 def test_v10_core_domain_strategy_is_documented() -> None:

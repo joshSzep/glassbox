@@ -98,6 +98,50 @@ The important current boundaries are:
 These splits are refactor-only architecture. They do not add new autonomy
 behavior, change event semantics, or make projection tables authoritative.
 
+## Current Post-v13 Review-Loop Refactor Shape
+
+The v13 review-loop implementation extends changesets from reviewable local
+diff summaries into an operator workflow for local review feedback, response
+tracking, manual evidence, advisory browser/dashboard/accessibility evidence,
+lifecycle briefs, handoff readiness, and commit preparation. Those surfaces are
+still local-first and event-sourced: canonical events and managed artifacts stay
+authoritative, while projection tables, web payloads, CLI output, and dashboard
+state remain derived views.
+
+The post-v13 refactor keeps the current behavior and public entrypoints while
+splitting the review-loop surfaces that grew during the milestone:
+
+- `runtime/changesets.py` is the stable changeset runtime facade while
+    source derivation, workspace diff helpers, query/detail assembly, feedback
+    actions, evidence actions, verification preview, safe-command guidance,
+    command evidence, lifecycle brief sections, and readiness adjacency move
+    into focused runtime modules
+- `cli/changeset_commands.py`, `cli/parser_changesets.py`, TUI review commands,
+    and plain interactive review commands stay stable terminal entrypoints while
+    service wiring, payload shaping, formatting, parser families, and
+    in-session review routing move into CLI-owned helpers
+- `web/changeset_api.py` and `web/routes/changesets.py` remain transport
+    compatibility surfaces while models, builders, service factories, request
+    helpers, and HTTP error translation split into web-owned modules
+- `frontend/components/console/changeset-console.tsx` remains the dashboard
+    entrypoint while changeset list, detail, feedback, evidence, verification,
+    handoff, commit-preparation, formatting, and shared rows move under
+    `frontend/components/console/changeset/`
+- changeset/review-loop store projections and repository adapters continue to
+    derive from canonical events and projection tables, never from dashboard or
+    transport state
+- `scripts/validate_v13_release_gate.py` remains the operator command while
+    v13-specific gate stage construction and advisory evidence summaries move
+    into release-gate helpers
+
+These splits must preserve the v13 non-claims described in
+[v13-review-loop-contract.md](./v13-review-loop-contract.md) and
+[publication-boundary.md](./publication-boundary.md): local review feedback is
+not approval, manual and live evidence are advisory unless the event contract
+says otherwise, handoff and commit preparation are read-only, and release-gate
+authority remains deterministic rather than browser/dashboard/provider
+advisory evidence.
+
 ## Runtime Model
 
 The current shipped implementation still centers on one runtime owner per
@@ -221,6 +265,26 @@ Maintenance collectors and observability modules are read-only except for
 explicit job-progress records. Task continuation is the runtime background path
 that may mutate task or session state. Repository intelligence remains derived
 from local files and rebuildable persisted state.
+
+### Runtime Review-Loop Boundaries
+
+Changeset review-loop services are runtime-owned, transport-agnostic, and
+repository-backed. Runtime helpers may derive changeset detail, inventory
+freshness, feedback posture, evidence posture, response status, verification
+preview, lifecycle brief sections, safe commands, handoff readiness, and commit
+readiness from canonical events, managed artifacts, repository read models, and
+explicit service inputs.
+
+Runtime review-loop helpers must not import CLI formatting, FastAPI response
+models, dashboard components, generated frontend types, or raw projection SQL.
+They may preserve compatibility re-exports through `runtime/changesets.py`
+until callers move to narrower modules.
+
+Publication-boundary behavior is part of this runtime contract. Review-loop
+helpers can say what was inspected locally, what remains stale or missing, and
+what safe command could be run next; they must not turn manual evidence, browser
+evidence, accessibility evidence, dashboard evidence, provider canaries, or
+dogfooding notes into publication approval.
 
 ### Tool Runtime
 
