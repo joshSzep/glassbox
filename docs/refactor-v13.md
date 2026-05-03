@@ -669,7 +669,7 @@ Completion notes:
 
 ### GBX-R523: Extract Review Fixup Inventory Service Boundary
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R520, GBX-R513
 - Target files:
   - `src/glassbox/runtime/changesets.py`
@@ -689,6 +689,18 @@ Completion notes:
   - `uv run pytest tests/integration/test_review_response_fixup_inventory.py`
   - `uv run pytest tests/unit/test_review_responses.py`
   - `uv run pytest tests/integration/test_cli_changeset_commands.py -k "feedback and status"`
+
+Completion notes:
+
+- Moved `ReviewFeedbackFixupInventoryService` into
+  `src/glassbox/runtime/review_fixup_actions.py` while preserving the
+  `runtime/changesets.py` compatibility import.
+- Kept fixup inventory artifact schema helpers and response-status derivation
+  in `src/glassbox/runtime/review_responses.py`.
+- Moved response-linked workspace inventory attachment, artifact persistence,
+  freshness event construction, and result shaping into the action module.
+- The documented CLI `-k "feedback and status"` selector currently matches no
+  tests, so the full CLI changeset integration file was run instead.
 
 ---
 
