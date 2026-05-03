@@ -36,6 +36,27 @@ class ToolCallResponse(ActiveToolCallResponse):
     """Tool-call detail row for paginated session reads."""
 
 
+class CommandToolchainVersionResponse(BaseModel):
+    name: str
+    version: str | None = None
+    available: bool
+    source: str
+    redacted_executable: str | None = None
+    error: str | None = None
+
+
+class CommandEnvironmentSummaryResponse(BaseModel):
+    schema_version: int
+    capture_scope: str
+    command_purpose: str
+    platform: str
+    python_version: str
+    toolchains: list[CommandToolchainVersionResponse]
+    environment: dict[str, str]
+    redaction_notes: list[str]
+    limitations: list[str]
+
+
 class ToolAttemptResponse(BaseModel):
     tool_attempt_id: str
     session_id: str
@@ -61,6 +82,7 @@ class ToolAttemptResponse(BaseModel):
     command_review_relevance: str | None = None
     command_supports_verification: bool | None = None
     command_purpose_reason: str | None = None
+    command_environment: CommandEnvironmentSummaryResponse | None = None
     last_sequence: int
 
 

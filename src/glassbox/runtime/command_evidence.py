@@ -1,14 +1,26 @@
 """Review-oriented command purpose classification."""
 
+import os
+import platform
 import re
 import shlex
+import shutil
+import subprocess
+import sys
+from collections.abc import Callable
+from collections.abc import Mapping
+from dataclasses import dataclass
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
 
+from glassbox.core.models import CommandEnvironmentSummary
+from glassbox.core.models import CommandToolchainVersion
 from glassbox.core.types import CommandPurpose
 from glassbox.core.types import CommandReviewRelevance
+from glassbox.tools.policy_command_risk import command_text
 from glassbox.tools.policy_command_risk import is_destructive_command
+from glassbox.tools.registry import ToolSpec
 
 
 class CommandPurposeAssessment(BaseModel):
@@ -20,6 +32,20 @@ class CommandPurposeAssessment(BaseModel):
     review_relevance: CommandReviewRelevance
     supports_verification: bool
     reason: str
+
+
+@dataclass(frozen=True, slots=True)
+class CommandAttemptEvidence:
+    """Optional command evidence fields for a tool-attempt heartbeat."""
+
+    purpose: CommandPurpose | None = None
+    review_relevance: CommandReviewRelevance | None = None
+    supports_verification: bool | None = None
+    reason: str | None = None
+    environment: CommandEnvironmentSummary | None = None
+
+
+VersionLookup = Callable[[str], CommandToolchainVersion]
 
 
 def classify_command_purpose(command: str | None) -> CommandPurposeAssessment:
@@ -73,6 +99,98 @@ def classify_command_purpose(command: str | None) -> CommandPurposeAssessment:
             f"multi-command shell line includes {purposes}; using highest-risk purpose"
         ),
     )
+
+
+def capture_command_environment(
+    *,
+    command: str,
+    assessment: CommandPurposeAssessment,
+    environment: Mapping[str, str] | None = None,
+    version_lookup: VersionLookup | None = None,
+) -> CommandEnvironmentSummary | None:
+    """Return a bounded environment summary for review-relevant commands."""
+
+    if assessment.review_relevance not in {
+        CommandReviewRelevance.VERIFICATION,
+        CommandReviewRelevance.LOCAL_ARTIFACT,
+    }:
+        return None
+
+    env = os.environ if environment is None else environment
+    lookup = version_lookup or _toolchain_version
+    tool_names = _toolchain_names_for_command(command)
+    toolchains = [lookup(name) for name in tool_names]
+    redacted_env, redaction_notes = _redacted_environment_subset(env)
+    limitations: list[str] = []
+    if not toolchains:
+        limitations.append("no command-specific toolchain executables were detected")
+    if any(not item.available for item in toolchains):
+        limitations.append("one or more detected toolchain executables were missing")
+
+    return CommandEnvironmentSummary(
+        capture_scope="verification_or_local_artifact",
+        command_purpose=assessment.purpose,
+        platform=platform.system() or "unknown",
+        python_version=_python_version(),
+        toolchains=toolchains,
+        environment=redacted_env,
+        redaction_notes=redaction_notes,
+        limitations=limitations,
+    )
+
+
+def command_attempt_evidence(
+    tool_spec: ToolSpec,
+    arguments: Mapping[str, object],
+) -> CommandAttemptEvidence:
+    """Classify command evidence fields from one tool request."""
+
+    command = command_text(tool_spec, arguments)
+    if command is None:
+        return CommandAttemptEvidence()
+    assessment = classify_command_purpose(command)
+    return CommandAttemptEvidence(
+        purpose=assessment.purpose,
+        review_relevance=assessment.review_relevance,
+        supports_verification=assessment.supports_verification,
+        reason=assessment.reason,
+        environment=capture_command_environment(
+            command=command,
+            assessment=assessment,
+        ),
+    )
+
+
+def command_toolchain_drift_warnings(
+    recorded: CommandEnvironmentSummary | None,
+    *,
+    version_lookup: VersionLookup | None = None,
+) -> list[str]:
+    """Compare retained toolchain evidence to the current local posture."""
+
+    if recorded is None:
+        return []
+    lookup = version_lookup or _toolchain_version
+    warnings: list[str] = []
+    if recorded.python_version != _python_version():
+        warnings.append(
+            "python version changed from "
+            f"{recorded.python_version} to {_python_version()}"
+        )
+    for item in recorded.toolchains:
+        current = lookup(item.name)
+        if item.available and not current.available:
+            warnings.append(f"{item.name} is no longer available")
+            continue
+        if not item.available and current.available:
+            warnings.append(f"{item.name} is now available but was missing before")
+            continue
+        if item.version != current.version:
+            warnings.append(
+                f"{item.name} version changed from "
+                f"{item.version or 'unknown'} to {current.version or 'unknown'}"
+            )
+    return warnings
 
 
 def _classify_simple_command(command: str) -> CommandPurposeAssessment:
@@ -203,6 +321,102 @@ def _command_tokens(command: str) -> list[str]:
         return shlex.split(command)
     except ValueError:
         return []
+
+
+def _toolchain_names_for_command(command: str) -> list[str]:
+    names = ["python"]
+    tokens = _command_tokens(command)
+    if not tokens:
+        return names
+    first = tokens[0]
+    if first in {"uv", "node", "npm", "pnpm", "yarn", "ruff", "ty", "pytest"}:
+        names.append(first)
+    script = _package_script(tokens)
+    if first in {"npm", "pnpm", "yarn"}:
+        names.append("node")
+    if script in {"lint", "test", "typecheck", "build"}:
+        names.append(first)
+    for token in tokens:
+        if token in {"ruff", "ty", "pytest"}:
+            names.append(token)
+    return sorted(dict.fromkeys(names))
+
+
+def _toolchain_version(name: str) -> CommandToolchainVersion:
+    if name == "python":
+        return CommandToolchainVersion(
+            name="python",
+            version=_python_version(),
+            available=True,
+            source="runtime",
+            redacted_executable=_redacted_executable(sys.executable),
+        )
+    executable = shutil.which(name)
+    if executable is None:
+        return CommandToolchainVersion(
+            name=name,
+            version=None,
+            available=False,
+            source="executable_version",
+            error="executable not found on PATH",
+        )
+    version = _run_version_command(name)
+    return CommandToolchainVersion(
+        name=name,
+        version=version,
+        available=True,
+        source="executable_version",
+        redacted_executable=_redacted_executable(executable),
+        error=None if version is not None else "version command produced no output",
+    )
+
+
+def _run_version_command(name: str) -> str | None:
+    command = [name, "--version"]
+    try:
+        completed = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+    except OSError, subprocess.TimeoutExpired:
+        return None
+    output = (completed.stdout or completed.stderr).strip()
+    if not output:
+        return None
+    return output.splitlines()[0][:200]
+
+
+def _redacted_executable(path: str) -> str:
+    return f"<redacted-path>/{os.path.basename(path)}"
+
+
+def _redacted_environment_subset(
+    environment: Mapping[str, str],
+) -> tuple[dict[str, str], list[str]]:
+    captured: dict[str, str] = {}
+    notes = ["environment capture is allowlist-only; raw environment is not stored"]
+    for key in ("CI", "GITHUB_ACTIONS", "GIT_BRANCH", "VIRTUAL_ENV"):
+        value = environment.get(key)
+        if value is None:
+            continue
+        captured[key] = _redacted_environment_value(key, value)
+    return captured, notes
+
+
+def _redacted_environment_value(key: str, value: str) -> str:
+    key_upper = key.upper()
+    if any(marker in key_upper for marker in ("TOKEN", "SECRET", "KEY", "PASSWORD")):
+        return "<redacted-secret>"
+    if key_upper in {"VIRTUAL_ENV"}:
+        return "<redacted-path>"
+    return value[:200]
+
+
+def _python_version() -> str:
+    return platform.python_version()
 
 
 def _package_script(tokens: list[str]) -> str | None:
@@ -342,4 +556,11 @@ def _highest_priority(
     return max(assessments, key=lambda item: priority[item.purpose])
 
 
-__all__ = ["CommandPurposeAssessment", "classify_command_purpose"]
+__all__ = [
+    "CommandAttemptEvidence",
+    "CommandPurposeAssessment",
+    "capture_command_environment",
+    "command_attempt_evidence",
+    "classify_command_purpose",
+    "command_toolchain_drift_warnings",
+]

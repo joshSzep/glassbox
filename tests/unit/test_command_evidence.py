@@ -2,7 +2,10 @@
 
 from glassbox.core import CommandPurpose
 from glassbox.core import CommandReviewRelevance
+from glassbox.core import CommandToolchainVersion
+from glassbox.runtime.command_evidence import capture_command_environment
 from glassbox.runtime.command_evidence import classify_command_purpose
+from glassbox.runtime.command_evidence import command_toolchain_drift_warnings
 
 
 def test_classifies_inspection_command_as_review_context() -> None:
@@ -75,3 +78,77 @@ def test_multi_command_uses_highest_risk_purpose() -> None:
     )
     assert assessment.supports_verification is False
     assert "multi-command" in assessment.reason
+
+
+def test_captures_bounded_redacted_environment_for_verification() -> None:
+    assessment = classify_command_purpose("uv run pytest")
+
+    summary = capture_command_environment(
+        command="uv run pytest",
+        assessment=assessment,
+        environment={
+            "CI": "true",
+            "VIRTUAL_ENV": "/Users/example/project/.venv",
+            "OPENAI_API_KEY": "secret",
+        },
+        version_lookup=lambda name: CommandToolchainVersion(
+            name=name,
+            version=f"{name} 1.0",
+            available=True,
+            source="fixture",
+            redacted_executable=f"<redacted-path>/{name}",
+        ),
+    )
+
+    assert summary is not None
+    assert summary.command_purpose == CommandPurpose.TEST
+    assert summary.environment == {
+        "CI": "true",
+        "VIRTUAL_ENV": "<redacted-path>",
+    }
+    assert "OPENAI_API_KEY" not in summary.environment
+    assert {item.name for item in summary.toolchains} == {"python", "pytest", "uv"}
+    assert all(
+        "<redacted-path>" in (item.redacted_executable or "")
+        for item in summary.toolchains
+    )
+
+
+def test_skips_environment_capture_for_inspection_commands() -> None:
+    assessment = classify_command_purpose("git status")
+
+    summary = capture_command_environment(
+        command="git status",
+        assessment=assessment,
+        environment={"CI": "true"},
+    )
+
+    assert summary is None
+
+
+def test_reports_toolchain_drift_against_current_versions() -> None:
+    assessment = classify_command_purpose("pnpm --dir frontend test")
+    recorded = capture_command_environment(
+        command="pnpm --dir frontend test",
+        assessment=assessment,
+        environment={},
+        version_lookup=lambda name: CommandToolchainVersion(
+            name=name,
+            version="old",
+            available=True,
+            source="fixture",
+        ),
+    )
+
+    assert recorded is not None
+    warnings = command_toolchain_drift_warnings(
+        recorded,
+        version_lookup=lambda name: CommandToolchainVersion(
+            name=name,
+            version="new",
+            available=True,
+            source="fixture",
+        ),
+    )
+
+    assert any("version changed" in warning for warning in warnings)

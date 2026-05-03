@@ -148,3 +148,5 @@ def test_tool_attempt_heartbeat_records_command_purpose() -> None:
     assert heartbeat.command_review_relevance == CommandReviewRelevance.VERIFICATION
     assert heartbeat.command_supports_verification is True
     assert heartbeat.command_purpose_reason is not None
+    assert heartbeat.command_environment is not None
+    assert heartbeat.command_environment.command_purpose == CommandPurpose.TEST

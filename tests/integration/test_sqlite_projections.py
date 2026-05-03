@@ -9,8 +9,10 @@ from glassbox.core import AutonomyBudgetRemaining
 from glassbox.core import AutonomyBudgetUsage
 from glassbox.core import AutonomyMode
 from glassbox.core import BudgetDecisionRecorded
+from glassbox.core import CommandEnvironmentSummary
 from glassbox.core import CommandPurpose
 from glassbox.core import CommandReviewRelevance
+from glassbox.core import CommandToolchainVersion
 from glassbox.core import ContextCompactionCreated
 from glassbox.core import ContextCompactionFreshness
 from glassbox.core import ContextCompactionFreshnessChanged
@@ -596,6 +598,23 @@ def test_tool_attempt_projection_rebuilds_from_heartbeats(tmp_path: Path) -> Non
                         command_purpose_reason=(
                             "test command can support verification evidence"
                         ),
+                        command_environment=CommandEnvironmentSummary(
+                            capture_scope="verification_or_local_artifact",
+                            command_purpose=CommandPurpose.TEST,
+                            platform="Darwin",
+                            python_version="3.13.0",
+                            toolchains=[
+                                CommandToolchainVersion(
+                                    name="python",
+                                    version="3.13.0",
+                                    available=True,
+                                    source="fixture",
+                                    redacted_executable="<redacted-path>/python",
+                                )
+                            ],
+                            environment={"CI": "true"},
+                            redaction_notes=["raw environment is not stored"],
+                        ),
                     ),
                 ),
             ],
@@ -631,6 +650,11 @@ def test_tool_attempt_projection_rebuilds_from_heartbeats(tmp_path: Path) -> Non
     assert after.command_supports_verification is True
     assert after.command_purpose_reason == (
         "test command can support verification evidence"
+    )
+    assert after.command_environment is not None
+    assert after.command_environment.environment == {"CI": "true"}
+    assert after.command_environment.toolchains[0].redacted_executable == (
+        "<redacted-path>/python"
     )
     assert after.completed_at is not None
     assert after.heartbeat_expires_at == heartbeat_expires_at

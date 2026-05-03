@@ -44,6 +44,29 @@ They appear in `glassbox session tool-attempts`, `glassbox session
 tool-attempt inspect`, `glassbox session status`, and session API payloads when
 the original tool was a command tool.
 
+## Environment And Drift
+
+For verification and local package/artifact commands, Glassbox also records a
+bounded `command_environment` summary. It includes:
+
+- operating-system family and Python runtime version
+- detected command toolchain versions, such as `python`, `uv`, `node`, `pnpm`,
+  `npm`, `yarn`, `ruff`, `ty`, or `pytest` when those executables are relevant
+  and available
+- a tiny allowlisted environment subset such as `CI`, `GITHUB_ACTIONS`,
+  `GIT_BRANCH`, and redacted `VIRTUAL_ENV`
+- redaction notes and limitations
+
+Glassbox does not persist raw environment variables, `PATH`, provider keys,
+tokens, passwords, credentials, or absolute executable paths. Executable paths
+are reduced to a basename behind `<redacted-path>`.
+
+`glassbox session tool-attempt inspect` compares retained toolchain evidence
+with the current local toolchain posture and prints drift warnings when a
+recorded version is missing or has changed. Drift warnings are review cues, not
+failure verdicts; stale or changed toolchains should send the operator to
+inspect or rerun the relevant verification command explicitly.
+
 ## Non-Claims
 
 Purpose classification does not execute commands, rerun checks, stage files,

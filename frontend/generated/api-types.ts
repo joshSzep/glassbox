@@ -2539,6 +2539,44 @@ export interface components {
        */
       updated_at: string;
     };
+    /** CommandEnvironmentSummaryResponse */
+    CommandEnvironmentSummaryResponse: {
+      /** Capture Scope */
+      capture_scope: string;
+      /** Command Purpose */
+      command_purpose: string;
+      /** Environment */
+      environment: {
+        [key: string]: string;
+      };
+      /** Limitations */
+      limitations: string[];
+      /** Platform */
+      platform: string;
+      /** Python Version */
+      python_version: string;
+      /** Redaction Notes */
+      redaction_notes: string[];
+      /** Schema Version */
+      schema_version: number;
+      /** Toolchains */
+      toolchains: components["schemas"]["CommandToolchainVersionResponse"][];
+    };
+    /** CommandToolchainVersionResponse */
+    CommandToolchainVersionResponse: {
+      /** Available */
+      available: boolean;
+      /** Error */
+      error?: string | null;
+      /** Name */
+      name: string;
+      /** Redacted Executable */
+      redacted_executable?: string | null;
+      /** Source */
+      source: string;
+      /** Version */
+      version?: string | null;
+    };
     /** CommitMessageEvidenceLineResponse */
     CommitMessageEvidenceLineResponse: {
       /** Kind */
@@ -4482,6 +4520,7 @@ export interface components {
     };
     /** ToolAttemptResponse */
     ToolAttemptResponse: {
+      command_environment?: components["schemas"]["CommandEnvironmentSummaryResponse"] | null;
       /** Command Purpose */
       command_purpose?: string | null;
       /** Command Purpose Reason */

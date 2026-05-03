@@ -5,6 +5,7 @@ from datetime import datetime
 
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import ToolAttemptId
+from glassbox.core.models import CommandEnvironmentSummary
 from glassbox.core.models import ToolAttemptRecord
 from glassbox.core.types import CommandPurpose
 from glassbox.core.types import CommandReviewRelevance
@@ -95,6 +96,9 @@ def _tool_attempt_record_from_row(row: sqlite3.Row) -> ToolAttemptRecord:
             row["command_supports_verification"]
         ),
         command_purpose_reason=row["command_purpose_reason"],
+        command_environment=_optional_command_environment(
+            row["command_environment_json"]
+        ),
         last_sequence=row["last_sequence"],
     )
 
@@ -131,6 +135,14 @@ def _optional_command_review_relevance(
     if value is None:
         return None
     return CommandReviewRelevance(value)
+
+
+def _optional_command_environment(
+    value: str | None,
+) -> CommandEnvironmentSummary | None:
+    if value is None:
+        return None
+    return CommandEnvironmentSummary.model_validate_json(value)
 
 
 __all__ = ["get_tool_attempt", "list_tool_attempts"]

@@ -43,6 +43,14 @@ publish, deploy, cleanup, dangerous, and unknown commands are not treated as
 verification proof. See [command-evidence.md](./command-evidence.md) for the
 purpose vocabulary and non-claims.
 
+GBX-1281 adds a bounded `command_environment` summary for verification and
+local artifact commands. The summary records a small set of toolchain versions,
+Python runtime posture, allowlisted/redacted environment cues, redaction notes,
+and limitations. It never stores raw environment variables, `PATH`, provider
+keys, credentials, or absolute executable paths. `tool-attempt inspect` prints
+toolchain drift warnings when retained command evidence no longer matches the
+current local toolchain posture.
+
 Inspect attempts from the CLI:
 
 ```bash

@@ -1507,7 +1507,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1281: Capture Redacted Environment And Toolchain Drift Evidence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1280`
 - Goal: make verification and build evidence more reproducible without leaking
   secrets
@@ -1528,6 +1528,19 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - command evidence can explain the local environment enough for review
     without exposing secrets
+- Completion notes:
+  - Added bounded `command_environment` summaries for verification and local
+    artifact command attempts, including Python/runtime posture, detected
+    toolchain versions, allowlisted environment cues, redaction notes, and
+    limitations.
+  - Persisted environment summaries through `ToolAttemptHeartbeat`,
+    `tool_attempts` projection JSON, query models, session API responses, and
+    tool-attempt CLI inspection.
+  - Added drift warnings that compare retained toolchain evidence with current
+    local versions during CLI tool-attempt inspection/listing.
+  - Updated [command-evidence.md](./command-evidence.md) and
+    [tool-attempts.md](./tool-attempts.md) with redaction guarantees,
+    environment non-claims, and drift guidance.
 
 ### GBX-1282: Harden Publish, Deploy, And Destructive Command Guardrails
 

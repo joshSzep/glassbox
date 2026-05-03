@@ -8,6 +8,7 @@ from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.core.types import ToolAttemptStatus
 from glassbox.runtime.bootstrap import open_runtime_context
+from glassbox.runtime.command_evidence import command_toolchain_drift_warnings
 from glassbox.runtime.tool_attempt_recovery import ToolAttemptRecoveryError
 from glassbox.runtime.tool_attempt_recovery import abandon_tool_attempt
 from glassbox.runtime.tool_attempt_recovery import inspect_tool_attempt
@@ -68,6 +69,10 @@ def _session_tool_attempts_command(args: argparse.Namespace) -> int:
             )
         if row.command_purpose_reason:
             print(f"  Command purpose reason: {row.command_purpose_reason}")
+        if row.command_environment is not None:
+            print("  Command environment: captured")
+            for warning in command_toolchain_drift_warnings(row.command_environment):
+                print(f"  Toolchain drift: {warning}")
     return 0
 
 
@@ -109,6 +114,19 @@ def _session_tool_attempt_inspect_command(args: argparse.Namespace) -> int:
         )
     if row.command_purpose_reason:
         print(f"Command purpose reason: {row.command_purpose_reason}")
+    if row.command_environment is not None:
+        print(f"Command environment: {row.command_environment.capture_scope}")
+        print(f"Python version: {row.command_environment.python_version}")
+        for toolchain in row.command_environment.toolchains:
+            version = toolchain.version or "unknown"
+            available = str(toolchain.available).lower()
+            print(f"Toolchain: {toolchain.name} {version} available={available}")
+        for key, value in row.command_environment.environment.items():
+            print(f"Environment: {key}={value}")
+        for note in row.command_environment.redaction_notes:
+            print(f"Redaction note: {note}")
+        for warning in command_toolchain_drift_warnings(row.command_environment):
+            print(f"Toolchain drift: {warning}")
     if inspection.source_arguments is not None:
         print(
             "Source arguments: "

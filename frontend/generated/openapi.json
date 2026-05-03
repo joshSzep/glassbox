@@ -3510,6 +3510,123 @@
         "title": "ChildSessionSummaryResponse",
         "type": "object"
       },
+      "CommandEnvironmentSummaryResponse": {
+        "properties": {
+          "capture_scope": {
+            "title": "Capture Scope",
+            "type": "string"
+          },
+          "command_purpose": {
+            "title": "Command Purpose",
+            "type": "string"
+          },
+          "environment": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Environment",
+            "type": "object"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "platform": {
+            "title": "Platform",
+            "type": "string"
+          },
+          "python_version": {
+            "title": "Python Version",
+            "type": "string"
+          },
+          "redaction_notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Redaction Notes",
+            "type": "array"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "toolchains": {
+            "items": {
+              "$ref": "#/components/schemas/CommandToolchainVersionResponse"
+            },
+            "title": "Toolchains",
+            "type": "array"
+          }
+        },
+        "required": [
+          "schema_version",
+          "capture_scope",
+          "command_purpose",
+          "platform",
+          "python_version",
+          "toolchains",
+          "environment",
+          "redaction_notes",
+          "limitations"
+        ],
+        "title": "CommandEnvironmentSummaryResponse",
+        "type": "object"
+      },
+      "CommandToolchainVersionResponse": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "redacted_executable": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redacted Executable"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": ["name", "available", "source"],
+        "title": "CommandToolchainVersionResponse",
+        "type": "object"
+      },
       "CommitMessageEvidenceLineResponse": {
         "properties": {
           "kind": {
@@ -9367,6 +9484,16 @@
       },
       "ToolAttemptResponse": {
         "properties": {
+          "command_environment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CommandEnvironmentSummaryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "command_purpose": {
             "anyOf": [
               {

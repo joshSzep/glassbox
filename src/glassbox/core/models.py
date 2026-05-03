@@ -727,6 +727,35 @@ class ToolCallRecord(BaseModel):
     policy_reason: str | None = None
 
 
+class CommandToolchainVersion(BaseModel):
+    """Bounded toolchain-version evidence for one command attempt."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=80)
+    version: str | None = Field(default=None, max_length=200)
+    available: bool
+    source: str = Field(min_length=1, max_length=80)
+    redacted_executable: str | None = Field(default=None, max_length=200)
+    error: str | None = Field(default=None, max_length=300)
+
+
+class CommandEnvironmentSummary(BaseModel):
+    """Redacted local environment summary for retained command evidence."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: int = Field(default=1, ge=1)
+    capture_scope: str = Field(min_length=1, max_length=80)
+    command_purpose: CommandPurpose
+    platform: str = Field(min_length=1, max_length=120)
+    python_version: str = Field(min_length=1, max_length=120)
+    toolchains: list[CommandToolchainVersion] = Field(default_factory=list)
+    environment: dict[str, str] = Field(default_factory=dict)
+    redaction_notes: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+
+
 class ToolAttemptRecord(BaseModel):
     """Projected long-running tool-attempt state for recovery surfaces."""
 
@@ -756,6 +785,7 @@ class ToolAttemptRecord(BaseModel):
     command_review_relevance: CommandReviewRelevance | None = None
     command_supports_verification: bool | None = None
     command_purpose_reason: str | None = None
+    command_environment: CommandEnvironmentSummary | None = None
     last_sequence: int = Field(ge=0)
 
 

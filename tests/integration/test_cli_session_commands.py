@@ -29,6 +29,8 @@ from glassbox.core.ids import new_message_id
 from glassbox.core.ids import new_task_checkpoint_id
 from glassbox.core.ids import new_tool_attempt_id
 from glassbox.core.ids import new_tool_call_id
+from glassbox.core.models import CommandEnvironmentSummary
+from glassbox.core.models import CommandToolchainVersion
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import AutonomyMode
 from glassbox.core.types import CommandPurpose
@@ -1656,6 +1658,23 @@ def test_cli_tool_attempts_lists_durable_attempts(
                     command_purpose_reason=(
                         "test command can support verification evidence"
                     ),
+                    command_environment=CommandEnvironmentSummary(
+                        capture_scope="verification_or_local_artifact",
+                        command_purpose=CommandPurpose.TEST,
+                        platform="Darwin",
+                        python_version="3.13.0",
+                        toolchains=[
+                            CommandToolchainVersion(
+                                name="python",
+                                version="3.13.0",
+                                available=True,
+                                source="fixture",
+                                redacted_executable="<redacted-path>/python",
+                            )
+                        ],
+                        environment={"CI": "true"},
+                        redaction_notes=["raw environment is not stored"],
+                    ),
                 ),
             )
         )
@@ -1691,6 +1710,7 @@ def test_cli_tool_attempts_lists_durable_attempts(
     assert "Review relevance: verification" in captured.out
     assert "Supports verification: true" in captured.out
     assert "test command can support verification evidence" in captured.out
+    assert "Command environment: captured" in captured.out
 
 
 def test_cli_tool_attempt_inspect_and_abandon_record_recovery(

@@ -39,6 +39,7 @@ from glassbox.core.ids import new_event_id
 from glassbox.core.models import AutonomyBudget
 from glassbox.core.models import AutonomyBudgetRemaining
 from glassbox.core.models import AutonomyBudgetUsage
+from glassbox.core.models import CommandEnvironmentSummary
 from glassbox.core.models import MessagePart
 from glassbox.core.models import PolicyDecisionOutcome
 from glassbox.core.models import PolicyDecisionSourceKind
@@ -959,6 +960,7 @@ class ToolAttemptHeartbeat(EventPayload):
     command_review_relevance: CommandReviewRelevance | None = None
     command_supports_verification: bool | None = None
     command_purpose_reason: str | None = Field(default=None, max_length=2000)
+    command_environment: CommandEnvironmentSummary | None = None
 
 
 class RecoveryDecisionRecorded(EventPayload):

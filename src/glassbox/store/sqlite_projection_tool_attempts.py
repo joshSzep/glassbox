@@ -57,9 +57,11 @@ def _apply_tool_attempt_projection(
             command_review_relevance,
             command_supports_verification,
             command_purpose_reason,
+            command_environment_json,
             last_sequence
         ) values (
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+            ?
         )
         on conflict(session_id, tool_attempt_id) do update set
             turn_id = excluded.turn_id,
@@ -116,6 +118,10 @@ def _apply_tool_attempt_projection(
                 excluded.command_purpose_reason,
                 tool_attempts.command_purpose_reason
             ),
+            command_environment_json = coalesce(
+                excluded.command_environment_json,
+                tool_attempts.command_environment_json
+            ),
             last_sequence = excluded.last_sequence
         """,
         (
@@ -143,6 +149,7 @@ def _apply_tool_attempt_projection(
             _optional_enum(payload.command_review_relevance),
             _optional_bool(payload.command_supports_verification),
             payload.command_purpose_reason,
+            _optional_json(payload.command_environment),
             event.sequence,
         ),
     )
@@ -162,6 +169,12 @@ def _optional_enum(value) -> str | None:
     if value is None:
         return None
     return value.value
+
+
+def _optional_json(value) -> str | None:
+    if value is None:
+        return None
+    return value.model_dump_json()
 
 
 def _optional_datetime(value) -> str | None:

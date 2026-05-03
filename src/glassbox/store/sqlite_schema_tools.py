@@ -59,6 +59,7 @@ def ensure_tool_attempt_projection_schema(connection: sqlite3.Connection) -> Non
             command_review_relevance text,
             command_supports_verification integer,
             command_purpose_reason text,
+            command_environment_json text,
             last_sequence integer not null,
             primary key (session_id, tool_attempt_id),
             foreign key (session_id) references sessions(session_id)
@@ -109,4 +110,8 @@ def ensure_tool_attempt_projection_schema(connection: sqlite3.Connection) -> Non
     if "command_purpose_reason" not in existing_columns:
         connection.execute(
             "alter table tool_attempts add column command_purpose_reason text"
+        )
+    if "command_environment_json" not in existing_columns:
+        connection.execute(
+            "alter table tool_attempts add column command_environment_json text"
         )

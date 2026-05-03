@@ -177,6 +177,8 @@ from glassbox.core.models import ChangesetReviewBriefRecord
 from glassbox.core.models import ChangesetSourceRecord
 from glassbox.core.models import ChangesetVerificationPostureRecord
 from glassbox.core.models import CheckpointAbsenceRecord
+from glassbox.core.models import CommandEnvironmentSummary
+from glassbox.core.models import CommandToolchainVersion
 from glassbox.core.models import ContextCompactionRecord
 from glassbox.core.models import ForkedSession
 from glassbox.core.models import InheritedTranscriptMessage
@@ -352,6 +354,8 @@ __all__ = [
     "CheckpointAbsenceRecord",
     "CommandPurpose",
     "CommandReviewRelevance",
+    "CommandEnvironmentSummary",
+    "CommandToolchainVersion",
     "ContextCompactionCreated",
     "ContextCompactionFreshnessChanged",
     "ContextCompactionFreshness",

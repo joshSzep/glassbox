@@ -177,6 +177,7 @@ BOOTSTRAP_STATEMENTS = (
         command_review_relevance text,
         command_supports_verification integer,
         command_purpose_reason text,
+        command_environment_json text,
         last_sequence integer not null,
         primary key (session_id, tool_attempt_id),
         foreign key (session_id) references sessions(session_id)
@@ -819,6 +820,7 @@ V3_BASELINE_SCHEMA_STATEMENTS = (
         command_review_relevance text,
         command_supports_verification integer,
         command_purpose_reason text,
+        command_environment_json text,
         last_sequence integer not null,
         primary key (session_id, tool_attempt_id),
         foreign key (session_id) references sessions(session_id)
