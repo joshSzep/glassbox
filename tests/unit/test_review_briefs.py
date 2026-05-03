@@ -5,16 +5,32 @@ from datetime import datetime
 from pathlib import Path
 from typing import cast
 
+from glassbox.core import ChangesetInventoryFreshness
 from glassbox.core import ChangesetReadinessDecided
+from glassbox.core import ChangesetReadinessState
 from glassbox.core import ChangesetRecord
 from glassbox.core import ChangesetReviewBriefCreated
 from glassbox.core import ChangesetRiskLevel
 from glassbox.core import ChangesetSourceKind
 from glassbox.core import ChangesetSourceRecord
 from glassbox.core import EventEnvelope
+from glassbox.core import ManualEvidenceFreshness
+from glassbox.core import ManualEvidenceKind
+from glassbox.core import ManualEvidenceRecord
+from glassbox.core import ManualEvidenceRedactionStatus
+from glassbox.core import ManualEvidenceState
+from glassbox.core import ManualEvidenceTargetKind
+from glassbox.core import ReviewFeedbackDisposition
+from glassbox.core import ReviewFeedbackFixupInventoryRecord
+from glassbox.core import ReviewFeedbackKind
+from glassbox.core import ReviewFeedbackProvenance
+from glassbox.core import ReviewFeedbackRecord
+from glassbox.core import ReviewFixupSourceKind
 from glassbox.core import SessionId
 from glassbox.core import new_artifact_id
 from glassbox.core import new_changeset_id
+from glassbox.core import new_manual_evidence_id
+from glassbox.core import new_review_feedback_id
 from glassbox.core import new_session_id
 from glassbox.core import new_task_verification_id
 from glassbox.runtime.changesets import ChangesetRepository
@@ -226,6 +242,127 @@ def test_review_brief_generation_degrades_without_inventory(tmp_path: Path) -> N
     )
 
 
+def test_review_brief_generation_includes_review_loop_evidence(
+    tmp_path: Path,
+) -> None:
+    repository = _FakeReviewBriefRepository(tmp_path)
+    artifacts = _FakeArtifactRepository(tmp_path)
+    feedback_id = new_review_feedback_id()
+    manual_evidence_id = new_manual_evidence_id()
+    manual_artifact_id = new_artifact_id()
+    fixup_artifact_id = new_artifact_id()
+    now = datetime.now(UTC)
+    repository.feedback = [
+        ReviewFeedbackRecord(
+            session_id=repository.session_id,
+            feedback_id=feedback_id,
+            changeset_id=repository.changeset.changeset_id,
+            feedback_kind=ReviewFeedbackKind.REQUESTED_CHANGE,
+            provenance=ReviewFeedbackProvenance.REVIEWER,
+            disposition=ReviewFeedbackDisposition.RESPONDED,
+            summary="Clarify lifecycle brief feedback handling",
+            body=None,
+            source_label="local-review",
+            reviewer_label="reviewer",
+            created_by="operator",
+            updated_by="operator",
+            resolved_by=None,
+            archived_by=None,
+            accepted_by=None,
+            resolution_summary=None,
+            residual_risk=None,
+            risk_summary=None,
+            acceptance_reason=None,
+            archived_reason=None,
+            replacement_feedback_id=None,
+            reopened_count=0,
+            created_at=now,
+            updated_at=now,
+            last_sequence=3,
+        )
+    ]
+    repository.fixup_inventories[feedback_id] = [
+        ReviewFeedbackFixupInventoryRecord(
+            session_id=repository.session_id,
+            feedback_id=feedback_id,
+            changeset_id=repository.changeset.changeset_id,
+            artifact_id=fixup_artifact_id,
+            artifact_schema_version=1,
+            source_kind=ReviewFixupSourceKind.MANUAL_WORKSPACE_EDIT,
+            source_summary="Updated review brief contract tests",
+            source_digest="before",
+            inventory_freshness=ChangesetInventoryFreshness.STALE,
+            changed_path_count=2,
+            matched_scope_path_count=1,
+            stale=True,
+            stale_reason="workspace changed after response fixup inventory",
+            recorded_by="operator",
+            created_at=now,
+            last_sequence=4,
+        )
+    ]
+    repository.manual_evidence = [
+        ManualEvidenceRecord(
+            session_id=repository.session_id,
+            evidence_id=manual_evidence_id,
+            evidence_kind=ManualEvidenceKind.ACCESSIBILITY_NOTE,
+            state=ManualEvidenceState.ATTACHED,
+            target_kind=ManualEvidenceTargetKind.FEEDBACK,
+            target_id=str(feedback_id),
+            changeset_id=repository.changeset.changeset_id,
+            feedback_id=feedback_id,
+            artifact_id=manual_artifact_id,
+            artifact_schema_version=1,
+            summary="Keyboard review noted one unresolved focus risk",
+            source_label="manual-a11y",
+            observed_at=now,
+            created_by="operator",
+            local_only=True,
+            redaction_status=ManualEvidenceRedactionStatus.PASSED,
+            freshness=ManualEvidenceFreshness.CURRENT,
+            limitations=["manual accessibility note is advisory"],
+            non_claims=["not accessibility certification"],
+            created_at=now,
+            updated_at=now,
+            last_sequence=5,
+        )
+    ]
+
+    result = ChangesetReviewBriefService(
+        cast(ChangesetRepository, repository),
+        cast(ArtifactRepository, artifacts),
+    ).generate(
+        repository.changeset.changeset_id,
+        Path(__file__).resolve().parents[2],
+        created_by="qa",
+    )
+
+    assert result.brief.lifecycle_summary is not None
+    assert result.brief.review_feedback is not None
+    assert result.brief.review_responses is not None
+    assert result.brief.manual_evidence is not None
+    assert result.brief.live_review_evidence is not None
+    assert result.brief.stale_verification is not None
+    assert result.brief.publication_boundary is not None
+    assert result.brief.review_feedback.evidence_refs[0].kind == "feedback"
+    assert result.brief.review_responses.evidence_refs[0].kind == "response"
+    assert (
+        result.brief.manual_evidence.evidence_refs[0].kind == "accessibility_evidence"
+    )
+    assert result.brief.local_only is True
+    assert "Review Feedback" in result.markdown
+    assert "Live Review Evidence" in result.markdown
+    assert "Publication Boundary" in result.markdown
+    assert isinstance(repository.events[1].payload, ChangesetReadinessDecided)
+    assert repository.events[1].payload.state == (
+        ChangesetReadinessState.NEEDS_VERIFICATION
+    )
+    assert any(
+        "need fresh verification" in blocker
+        for blocker in repository.events[1].payload.blockers
+    )
+
+
 def _brief(
     objective: str = "Review deterministic changeset evidence",
     lifecycle_summary: ReviewBriefSection | None = None,
@@ -351,6 +488,12 @@ class _FakeReviewBriefRepository:
                 last_sequence=2,
             )
         ]
+        self.feedback: list[ReviewFeedbackRecord] = []
+        self.fixup_inventories: dict[
+            object,
+            list[ReviewFeedbackFixupInventoryRecord],
+        ] = {}
+        self.manual_evidence: list[ManualEvidenceRecord] = []
         self.events: list[EventEnvelope] = []
         self.tmp_path = tmp_path
 
@@ -376,6 +519,22 @@ class _FakeReviewBriefRepository:
     def list_changeset_readiness(self, session_id, changeset_id):
         del session_id, changeset_id
         return []
+
+    def list_review_feedback(self, **kwargs):
+        del kwargs
+        return list(self.feedback)
+
+    def list_review_feedback_fixup_inventories(self, session_id, feedback_id):
+        del session_id
+        return list(self.fixup_inventories.get(feedback_id, []))
+
+    def list_review_feedback_fixup_paths(self, session_id, feedback_id, artifact_id):
+        del session_id, feedback_id, artifact_id
+        return []
+
+    def list_manual_evidence(self, **kwargs):
+        del kwargs
+        return list(self.manual_evidence)
 
     def list_task_verification_ledger(self, session_id, task_id):
         del session_id, task_id

@@ -173,13 +173,16 @@ with an optional body:
 The action does not run verification commands. It summarizes current inventory
 freshness, changed-file classifications, affected packages/apps/docs roots from
 topology when available, topology freshness, owner and dependency hints,
-provenance confidence, retained verification posture, verification readiness,
-command evidence summaries, branch-candidate evidence when present, risks,
-limitations, and safe inspection commands. Missing inventory, unloaded
-artifacts, stale workspace digests, stale topology, missing verification, failed
-checks, missing command evidence, failed command attempts, and accepted-risk
-evidence are rendered as limitations or explicit section evidence instead of
-being smoothed over.
+provenance confidence, retained review feedback, response posture, manual
+evidence, browser/dashboard/accessibility observations, retained verification
+posture, response-level verification freshness, verification readiness, command
+evidence summaries, branch-candidate evidence when present,
+publication-boundary posture, risks, limitations, and safe inspection commands.
+Missing inventory, unloaded artifacts, unresolved feedback, stale response
+verification, stale workspace digests, stale topology, missing verification,
+failed checks, missing command evidence, failed command attempts, local-only
+evidence, and accepted-risk evidence are rendered as limitations or explicit
+section evidence instead of being smoothed over.
 
 Review readiness is advisory. A brief can be ready for review while still
 showing unresolved review risks. v13 lifecycle briefs also distinguish

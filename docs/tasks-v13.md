@@ -1042,7 +1042,7 @@ Completed in this slice:
 
 ### GBX-1361: Generate Lifecycle Briefs From Review-Loop Evidence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1360`
 - Goal: make generated briefs reflect the full local review loop
 - Deliverables:
@@ -1064,6 +1064,22 @@ Completed in this slice:
 - Done when:
   - a generated brief can answer what changed, what review feedback exists,
     what was fixed, what remains uncertain, and what evidence supports handoff
+
+Completed in this slice:
+
+- Updated lifecycle brief generation to populate deterministic sections for
+  lifecycle summary, review feedback, review responses, manual evidence,
+  browser/dashboard/accessibility evidence, stale response verification, and
+  publication-boundary posture.
+- Degraded review readiness when unresolved feedback or stale response
+  verification remains, keeping those blockers visible beside otherwise
+  passing changeset evidence.
+- Kept manual and live evidence summary-first with local-only evidence
+  references and non-claims instead of raw logs, screenshots, provider
+  transcripts, diffs, or file contents.
+- Updated `docs/review-briefs.md` and focused review-brief tests to cover mixed
+  feedback, response, manual accessibility evidence, stale verification, and
+  publication-boundary rendering.
 
 ### GBX-1362: Upgrade Reviewer-Safe Evidence Exports
 

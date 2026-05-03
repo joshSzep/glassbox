@@ -3,6 +3,7 @@
 import hashlib
 import json
 import subprocess
+from collections.abc import Iterable
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
@@ -1075,6 +1076,19 @@ def _review_response_summary_for_preview(
         repository,
         changeset,
         workspace_root=workspace_root,
+    )
+
+
+def _review_feedback_for_preview(
+    repository: ChangesetRepository,
+    changeset: ChangesetRecord,
+) -> list[ReviewFeedbackRecord]:
+    if not hasattr(repository, "list_review_feedback"):
+        return []
+    return repository.list_review_feedback(
+        session_id=changeset.session_id,
+        changeset_id=changeset.changeset_id,
+        include_archived=True,
     )
 
 
@@ -2181,6 +2195,13 @@ class ChangesetReviewBriefService:
             self._repository,
             changeset,
         )
+        review_feedback = _review_feedback_for_preview(self._repository, changeset)
+        review_response_summary = _review_response_summary_for_preview(
+            self._repository,
+            changeset,
+            workspace_root=workspace_root,
+        )
+        manual_evidence = _manual_evidence_for_preview(self._repository, changeset)
         limitations = _review_brief_limitations(
             sources=sources,
             inventory=inventory,
@@ -2188,11 +2209,14 @@ class ChangesetReviewBriefService:
             inventory_limitations=inventory_limitations,
             verification_plan=verification_plan,
             command_evidence=command_evidence,
+            review_response_summary=review_response_summary,
+            manual_evidence=manual_evidence,
         )
         review_state, blockers = _review_readiness_state(
             inventory_status=inventory_status,
             verification_plan=verification_plan,
             changeset=changeset,
+            review_response_summary=review_response_summary,
         )
         brief = _review_brief_artifact(
             changeset=changeset,
@@ -2203,6 +2227,9 @@ class ChangesetReviewBriefService:
             verification_posture=verification_posture,
             verification_plan=verification_plan,
             command_evidence=command_evidence,
+            review_feedback=review_feedback,
+            review_response_summary=review_response_summary,
+            manual_evidence=manual_evidence,
             limitations=limitations,
         )
         content = review_brief_artifact_json(brief)
@@ -3234,6 +3261,9 @@ def _review_brief_artifact(
     verification_posture: ChangesetVerificationPostureRecord | None,
     verification_plan: ChangesetVerificationPlanPreview,
     command_evidence: ChangesetCommandEvidenceSummary,
+    review_feedback: list[ReviewFeedbackRecord],
+    review_response_summary: ChangesetReviewResponseSummary,
+    manual_evidence: list[ManualEvidenceRecord],
     limitations: list[str],
 ) -> ReviewBriefArtifact:
     return ReviewBriefArtifact(
@@ -3247,6 +3277,7 @@ def _review_brief_artifact(
             inventory_record,
             verification_posture,
             command_evidence,
+            manual_evidence,
         ),
         objective=changeset.objective,
         change_summary=_review_brief_change_summary(changeset),
@@ -3257,8 +3288,22 @@ def _review_brief_artifact(
         ),
         affected_subsystems=_review_brief_topology_section(verification_plan),
         provenance=_review_brief_provenance_section(sources, inventory),
+        lifecycle_summary=_review_brief_lifecycle_section(
+            changeset,
+            review_response_summary,
+            manual_evidence,
+            verification_plan,
+        ),
+        review_feedback=_review_brief_feedback_section(review_feedback),
+        review_responses=_review_brief_response_section(review_response_summary),
+        manual_evidence=_review_brief_manual_evidence_section(manual_evidence),
+        live_review_evidence=_review_brief_live_evidence_section(manual_evidence),
         verification=_review_brief_verification_section(
             verification_posture,
+            verification_plan,
+        ),
+        stale_verification=_review_brief_stale_verification_section(
+            review_response_summary,
             verification_plan,
         ),
         command_evidence=_review_brief_command_evidence_section(command_evidence),
@@ -3266,11 +3311,16 @@ def _review_brief_artifact(
             changeset,
             sources,
         ),
+        publication_boundary=_review_brief_publication_boundary_section(changeset),
         risks=_review_brief_risk_section(changeset, inventory),
         non_claims=[
-            "review brief is a deterministic summary, not proof",
+            "review brief is a deterministic lifecycle summary, not proof",
             "raw command output is not included",
+            "raw manual evidence, screenshots, and browser traces are not included",
             "raw diffs and file contents are not included",
+            "review feedback response does not imply reviewer acceptance",
+            "manual evidence is advisory unless retained verification supports it",
+            "handoff posture is advisory and does not mean publication occurred",
             "commit, push, PR, and merge remain explicit operator actions",
         ],
         reviewer_checklist=_reviewer_checklist(changeset, verification_plan),
@@ -3430,6 +3480,180 @@ def _review_brief_topology_section(
     )
 
 
+def _review_brief_lifecycle_section(
+    changeset: ChangesetRecord,
+    response_summary: ChangesetReviewResponseSummary,
+    manual_evidence: list[ManualEvidenceRecord],
+    verification_plan: ChangesetVerificationPlanPreview,
+) -> ReviewBriefSection:
+    review_loop = verification_plan.review_loop_summary
+    body = (
+        f"Lifecycle summary for changeset {changeset.changeset_id}: "
+        f"{response_summary.total_feedback_count} feedback item(s), "
+        f"{response_summary.unresolved_count} unresolved, "
+        f"{response_summary.stale_response_count} stale response(s), "
+        f"{response_summary.accepted_risk_count} accepted-risk response(s), "
+        f"{len(manual_evidence)} manual evidence item(s), and verification "
+        f"readiness {verification_plan.readiness.state.value}. "
+        "The lifecycle brief summarizes retained local evidence and does not "
+        "claim reviewer approval or publication."
+    )
+    return ReviewBriefSection(
+        title="Lifecycle Summary",
+        body=body,
+        evidence_refs=[
+            ReviewBriefEvidenceRef(
+                kind="readiness",
+                identifier=f"review-loop-{changeset.changeset_id}",
+                summary=(
+                    f"verification preview has "
+                    f"{review_loop.open_feedback_count} open feedback item(s), "
+                    f"{review_loop.stale_response_count} stale response(s), and "
+                    f"{review_loop.manual_evidence_count} manual evidence item(s)"
+                ),
+            )
+        ],
+    )
+
+
+def _review_brief_feedback_section(
+    feedback: list[ReviewFeedbackRecord],
+) -> ReviewBriefSection | None:
+    if not feedback:
+        return None
+    disposition_counts = _value_counts(item.disposition.value for item in feedback)
+    kind_counts = _value_counts(item.feedback_kind.value for item in feedback)
+    body = (
+        f"Review feedback includes {len(feedback)} item(s). "
+        f"Disposition counts: {_format_counts(disposition_counts)}. "
+        f"Kind counts: {_format_counts(kind_counts)}. "
+        "Unresolved feedback remains visible even when verification is passing."
+    )
+    return ReviewBriefSection(
+        title="Review Feedback",
+        body=body,
+        evidence_refs=[
+            ReviewBriefEvidenceRef(
+                kind="feedback",
+                identifier=str(item.feedback_id),
+                artifact_id=item.artifact_id,
+                verification_id=item.verification_id,
+                summary=(
+                    f"{item.feedback_kind.value}/{item.disposition.value}: "
+                    f"{item.summary}"
+                ),
+                local_only=item.artifact_id is not None,
+            )
+            for item in feedback[:8]
+        ],
+    )
+
+
+def _review_brief_response_section(
+    response_summary: ChangesetReviewResponseSummary,
+) -> ReviewBriefSection | None:
+    if response_summary.total_feedback_count == 0:
+        return None
+    body = (
+        f"Response posture covers {response_summary.total_feedback_count} feedback "
+        f"item(s): {response_summary.responded_count} responded, "
+        f"{response_summary.unresolved_count} unresolved, "
+        f"{response_summary.stale_response_count} stale, "
+        f"{response_summary.blocked_count} blocked, and "
+        f"{response_summary.accepted_risk_count} accepted with risk. "
+        "Response state is local evidence and does not imply reviewer acceptance."
+    )
+    return ReviewBriefSection(
+        title="Review Responses",
+        body=body,
+        evidence_refs=[
+            ReviewBriefEvidenceRef(
+                kind="response",
+                identifier=str(item.feedback_id),
+                artifact_id=item.latest_fixup_inventory_artifact_id,
+                summary=(
+                    f"{item.response_state.value}: {item.summary}; "
+                    f"{item.changed_path_count} fixup path(s), verification "
+                    f"{item.verification_state.value}"
+                ),
+                local_only=item.latest_fixup_inventory_artifact_id is not None,
+            )
+            for item in response_summary.items[:8]
+        ],
+    )
+
+
+def _review_brief_manual_evidence_section(
+    manual_evidence: list[ManualEvidenceRecord],
+) -> ReviewBriefSection | None:
+    if not manual_evidence:
+        return None
+    kind_counts = _value_counts(item.evidence_kind.value for item in manual_evidence)
+    state_counts = _value_counts(item.state.value for item in manual_evidence)
+    local_only_count = sum(1 for item in manual_evidence if item.local_only)
+    body = (
+        f"Manual evidence includes {len(manual_evidence)} item(s), "
+        f"{local_only_count} local-only. Kind counts: "
+        f"{_format_counts(kind_counts)}. State counts: {_format_counts(state_counts)}. "
+        "Manual evidence remains advisory and is not retained command evidence."
+    )
+    return ReviewBriefSection(
+        title="Manual Evidence",
+        body=body,
+        evidence_refs=[
+            ReviewBriefEvidenceRef(
+                kind=_manual_evidence_ref_kind(item),
+                identifier=str(item.evidence_id),
+                artifact_id=item.artifact_id,
+                verification_id=item.verification_id,
+                summary=(
+                    f"{item.evidence_kind.value}/{item.state.value}: {item.summary}"
+                ),
+                local_only=item.local_only,
+            )
+            for item in manual_evidence[:8]
+        ],
+    )
+
+
+def _review_brief_live_evidence_section(
+    manual_evidence: list[ManualEvidenceRecord],
+) -> ReviewBriefSection | None:
+    live_evidence = [
+        item
+        for item in manual_evidence
+        if item.evidence_kind
+        in {
+            ManualEvidenceKind.BROWSER_OBSERVATION,
+            ManualEvidenceKind.SCREENSHOT,
+            ManualEvidenceKind.ACCESSIBILITY_NOTE,
+        }
+    ]
+    if not live_evidence:
+        return None
+    kind_counts = _value_counts(item.evidence_kind.value for item in live_evidence)
+    body = (
+        f"Live review evidence includes {len(live_evidence)} browser, dashboard, "
+        f"screenshot, or accessibility item(s). Kind counts: "
+        f"{_format_counts(kind_counts)}. These observations are advisory unless a "
+        "deterministic fixture-backed gate separately promotes them."
+    )
+    return ReviewBriefSection(
+        title="Live Review Evidence",
+        body=body,
+        evidence_refs=[
+            ReviewBriefEvidenceRef(
+                kind=_manual_evidence_ref_kind(item),
+                identifier=str(item.evidence_id),
+                artifact_id=item.artifact_id,
+                summary=f"{item.evidence_kind.value}: {item.summary}",
+                local_only=item.local_only,
+            )
+            for item in live_evidence[:8]
+        ],
+    )
+
+
 def _review_brief_verification_section(
     verification_posture: ChangesetVerificationPostureRecord | None,
     verification_plan: ChangesetVerificationPlanPreview,
@@ -3477,6 +3701,46 @@ def _review_brief_verification_section(
     return ReviewBriefSection(title="Verification", body=body, evidence_refs=refs)
 
 
+def _review_brief_stale_verification_section(
+    response_summary: ChangesetReviewResponseSummary,
+    verification_plan: ChangesetVerificationPlanPreview,
+) -> ReviewBriefSection | None:
+    stale_responses = [
+        item
+        for item in response_summary.items
+        if item.stale or item.verification_state == ChangesetVerificationState.STALE
+    ]
+    if (
+        not stale_responses
+        and verification_plan.readiness.state != ChangesetVerificationState.STALE
+    ):
+        return None
+    body = (
+        f"Stale verification posture includes {len(stale_responses)} stale "
+        f"response-linked item(s) and changeset readiness "
+        f"{verification_plan.readiness.state.value}: "
+        f"{verification_plan.readiness.summary}. Rerun focused checks before "
+        "handoff when response-linked fixups changed after retained passes."
+    )
+    return ReviewBriefSection(
+        title="Stale Verification",
+        body=body,
+        evidence_refs=[
+            ReviewBriefEvidenceRef(
+                kind="verification",
+                identifier=str(item.feedback_id),
+                artifact_id=item.latest_fixup_inventory_artifact_id,
+                summary=(
+                    f"{item.response_state.value}: "
+                    f"{item.verification_reason or item.stale_reason or item.summary}"
+                ),
+                local_only=item.latest_fixup_inventory_artifact_id is not None,
+            )
+            for item in stale_responses[:8]
+        ],
+    )
+
+
 def _review_brief_command_evidence_section(
     command_evidence: ChangesetCommandEvidenceSummary,
 ) -> ReviewBriefSection:
@@ -3506,6 +3770,31 @@ def _review_brief_command_evidence_section(
         for item in command_evidence.items[:8]
     ]
     return ReviewBriefSection(title="Command Evidence", body=body, evidence_refs=refs)
+
+
+def _review_brief_publication_boundary_section(
+    changeset: ChangesetRecord,
+) -> ReviewBriefSection:
+    body = (
+        "Publication boundary posture is advisory in this lifecycle brief. "
+        "Glassbox generated local evidence only; it did not stage, commit, push, "
+        "open a pull request, merge, deploy, or publish. Final handoff and "
+        "publication require explicit operator action."
+    )
+    return ReviewBriefSection(
+        title="Publication Boundary",
+        body=body,
+        evidence_refs=[
+            ReviewBriefEvidenceRef(
+                kind="publication_boundary",
+                identifier=str(changeset.changeset_id),
+                summary=(
+                    "local lifecycle brief records non-publication posture for "
+                    "this changeset"
+                ),
+            )
+        ],
+    )
 
 
 def _review_brief_branch_candidate_section(
@@ -3600,17 +3889,50 @@ def _review_brief_safe_commands(
     return list(dict.fromkeys(commands))
 
 
+def _manual_evidence_ref_kind(
+    evidence: ManualEvidenceRecord,
+) -> Literal[
+    "manual_evidence",
+    "browser_evidence",
+    "dashboard_evidence",
+    "accessibility_evidence",
+]:
+    if evidence.evidence_kind == ManualEvidenceKind.ACCESSIBILITY_NOTE:
+        return "accessibility_evidence"
+    if evidence.evidence_kind == ManualEvidenceKind.BROWSER_OBSERVATION:
+        summary = evidence.summary.lower()
+        return "dashboard_evidence" if "dashboard" in summary else "browser_evidence"
+    if evidence.evidence_kind == ManualEvidenceKind.SCREENSHOT:
+        return "browser_evidence"
+    return "manual_evidence"
+
+
+def _value_counts(values: Iterable[str]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for value in values:
+        counts[value] = counts.get(value, 0) + 1
+    return counts
+
+
+def _format_counts(counts: dict[str, int]) -> str:
+    if not counts:
+        return "none"
+    return ", ".join(f"{key} {value}" for key, value in sorted(counts.items()))
+
+
 def _review_brief_local_only(
     sources: list[ChangesetSourceRecord],
     inventory_record: ChangesetInventoryRecord | None,
     verification_posture: ChangesetVerificationPostureRecord | None,
     command_evidence: ChangesetCommandEvidenceSummary,
+    manual_evidence: list[ManualEvidenceRecord],
 ) -> bool:
     return (
         inventory_record is not None
         or verification_posture is not None
         or command_evidence.environment_captured_count > 0
         or command_evidence.artifact_count > 0
+        or any(item.local_only for item in manual_evidence)
         or any(source.artifact_id is not None for source in sources)
     )
 
@@ -3623,6 +3945,8 @@ def _review_brief_limitations(
     inventory_limitations: list[str],
     verification_plan: ChangesetVerificationPlanPreview,
     command_evidence: ChangesetCommandEvidenceSummary,
+    review_response_summary: ChangesetReviewResponseSummary,
+    manual_evidence: list[ManualEvidenceRecord],
 ) -> list[str]:
     limitations = [
         source.limitation for source in sources if source.limitation is not None
@@ -3634,9 +3958,22 @@ def _review_brief_limitations(
         limitations.extend(inventory.limitations)
     limitations.extend(verification_plan.limitations)
     limitations.extend(command_evidence.limitations)
+    limitations.extend(review_response_summary.blockers)
+    for evidence in manual_evidence:
+        limitations.extend(evidence.limitations)
     if verification_plan.readiness.state != ChangesetVerificationState.PASSED:
         limitations.append(
             f"verification readiness is {verification_plan.readiness.state.value}"
+        )
+    if review_response_summary.unresolved_count > 0:
+        limitations.append(
+            f"{review_response_summary.unresolved_count} review feedback item(s) "
+            "remain unresolved"
+        )
+    if review_response_summary.stale_response_count > 0:
+        limitations.append(
+            f"{review_response_summary.stale_response_count} review response(s) "
+            "need fresh verification"
         )
     return list(dict.fromkeys(limitations))
 
@@ -3646,8 +3983,23 @@ def _review_readiness_state(
     inventory_status: ChangesetInventoryStatus,
     verification_plan: ChangesetVerificationPlanPreview,
     changeset: ChangesetRecord,
+    review_response_summary: ChangesetReviewResponseSummary,
 ) -> tuple[ChangesetReadinessState, list[str]]:
     blockers: list[str] = []
+    if review_response_summary.blockers:
+        blockers.extend(review_response_summary.blockers)
+    if review_response_summary.stale_response_count > 0:
+        blockers.append(
+            f"{review_response_summary.stale_response_count} review response(s) "
+            "need fresh verification"
+        )
+        return ChangesetReadinessState.NEEDS_VERIFICATION, blockers
+    if review_response_summary.unresolved_count > 0:
+        blockers.append(
+            f"{review_response_summary.unresolved_count} review feedback item(s) "
+            "remain unresolved"
+        )
+        return ChangesetReadinessState.NEEDS_REVIEW, blockers
     readiness = verification_plan.readiness
     if inventory_status.stale:
         blockers.append(
