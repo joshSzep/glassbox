@@ -561,7 +561,7 @@ Completion notes:
 
 ### GBX-R520: Extract Review Feedback Action Service
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R512
 - Target files:
   - `src/glassbox/runtime/changesets.py`
@@ -579,6 +579,17 @@ Completion notes:
   - `uv run pytest tests/integration/test_review_loop_projection.py`
   - `uv run pytest tests/integration/test_cli_changeset_commands.py -k feedback`
   - `uv run pytest tests/integration/test_web_changeset_routes.py -k feedback`
+
+Completion notes:
+
+- Moved `ReviewFeedbackActionService` into
+  `src/glassbox/runtime/review_feedback_actions.py` while preserving the
+  `runtime/changesets.py` compatibility import.
+- Moved review-feedback scope inference and default scope reasons into
+  `src/glassbox/runtime/review_feedback_scopes.py`.
+- Kept result shaping, local-evidence non-claims, and no-publication non-claims
+  unchanged; the documented `-k feedback` selectors currently match no tests,
+  so the full CLI and web changeset route integration files were run instead.
 
 ### GBX-R521: Extract Manual Evidence Action Service
 
