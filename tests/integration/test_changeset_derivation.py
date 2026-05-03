@@ -11,8 +11,12 @@ from glassbox.core import BranchCandidateVerificationStatus
 from glassbox.core import BranchCandidateVerified
 from glassbox.core import BranchSearchStarted
 from glassbox.core import ChangesetCandidateAdopted
+from glassbox.core import ChangesetInventoryFreshness
 from glassbox.core import ChangesetSourceKind
 from glassbox.core import EventEnvelope
+from glassbox.core import ManualEvidenceKind
+from glassbox.core import ManualEvidenceRedactionStatus
+from glassbox.core import ManualEvidenceState
 from glassbox.core import SessionStarted
 from glassbox.core import TaskCreated
 from glassbox.core import TaskPlanStatus
@@ -22,6 +26,9 @@ from glassbox.core import new_branch_search_id
 from glassbox.core import new_session_id
 from glassbox.core import new_task_id
 from glassbox.runtime.changesets import ChangesetDerivationService
+from glassbox.runtime.changesets import ChangesetQueryService
+from glassbox.runtime.changesets import ManualEvidenceActionService
+from glassbox.store.repositories import FilesystemArtifactRepository
 from glassbox.store.repositories import SQLiteSessionRepository
 from glassbox.store.sqlite import append_events
 from glassbox.store.sqlite import initialize_database
@@ -199,3 +206,90 @@ def test_changeset_derivation_creates_from_workspace_diff_without_staging(
     assert sources[0].source_kind == ChangesetSourceKind.WORKSPACE_DIFF
     assert "1 changed path" in sources[0].reason
     assert staged.stdout == ""
+
+
+def test_changeset_query_detail_characterizes_missing_inventory_and_rejected_evidence(
+    tmp_path: Path,
+) -> None:
+    connection = _open_initialized_database(tmp_path)
+    try:
+        session_id = _start_session(connection)
+        task_id = new_task_id()
+        append_events(
+            connection,
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskCreated(
+                        task_id=task_id,
+                        title="Characterize review-loop detail",
+                        goal="Keep changeset detail posture stable during extraction",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskStatusChanged(
+                        task_id=task_id,
+                        status=TaskPlanStatus.COMPLETED,
+                    ),
+                ),
+            ],
+        )
+        repository = SQLiteSessionRepository(connection)
+        changeset_id = (
+            ChangesetDerivationService(repository)
+            .create_from_task(task_id)
+            .changeset_id
+        )
+
+        rejected = ManualEvidenceActionService(
+            repository,
+            FilesystemArtifactRepository(connection, tmp_path),
+        ).attach(
+            changeset_id,
+            evidence_kind=ManualEvidenceKind.SANITIZED_LOG,
+            summary="operator attempted to attach raw provider output",
+            source_label="local-shell",
+            note='{"choices": [{"message": "raw provider output"}]}',
+        )
+
+        detail = ChangesetQueryService(repository).get_detail(
+            changeset_id,
+            workspace_root=tmp_path,
+        )
+    finally:
+        connection.close()
+
+    assert detail.inventory is None
+    assert detail.inventory_status.freshness == ChangesetInventoryFreshness.UNKNOWN
+    assert detail.inventory_status.stale is False
+    assert detail.inventory_status.reason == (
+        "no structured change inventory is attached yet"
+    )
+    assert detail.limitations == [
+        "session is running, not terminal",
+        "no structured change inventory is attached yet; inspect sources first",
+        "no structured change inventory is attached yet",
+    ]
+    assert detail.safe_next_actions == [
+        f"glassbox changeset show {changeset_id} --cwd .",
+        f"glassbox changeset refresh {changeset_id} --cwd .",
+        "glassbox eval recommend PATH --cwd .  # inspect verification options",
+    ]
+    assert detail.review_response_summary.total_feedback_count == 0
+    assert detail.review_response_summary.safe_next_actions == [
+        f"glassbox changeset feedback list --changeset {changeset_id} --cwd .",
+        f"glassbox changeset show {changeset_id} --cwd .",
+    ]
+    assert "not reviewer acceptance" in " ".join(
+        detail.review_response_summary.non_claims
+    )
+    assert rejected.artifact is None
+    assert rejected.evidence.state == ManualEvidenceState.REJECTED
+    assert rejected.evidence.redaction_status == ManualEvidenceRedactionStatus.REJECTED
+    assert rejected.evidence.rejected_reason == "provider-output"
+    assert [evidence.evidence_id for evidence in detail.manual_evidence] == [
+        rejected.evidence.evidence_id
+    ]

@@ -351,7 +351,7 @@ Completion notes:
 
 ### GBX-R501: Characterize Current Changeset Facade Behavior
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R500
 - Target files:
   - [test_changeset_derivation.py](../tests/unit/test_changeset_derivation.py)
@@ -376,6 +376,24 @@ Completion notes:
   - `uv run pytest tests/integration/test_cli_changeset_commands.py -k changeset`
   - `uv run pytest tests/integration/test_web_changeset_routes.py`
   - `pnpm --dir frontend test -- dashboard-stores.test.ts changeset-console.test.tsx`
+
+Completion notes:
+
+- Added focused runtime characterization for changeset detail assembly when a
+  changeset has no structured inventory, including source limitations,
+  inventory posture, safe next actions, empty response-summary non-claims, and
+  rejected manual evidence appearing in detail views.
+- Accepted behavior gaps for the first runtime extraction:
+  - broad CLI and web integration flows already cover feedback, evidence,
+    verification, handoff, commit-prep, stale verification, and advisory
+    non-claims, so no extra duplicate CLI/web assertions were added here
+  - frontend changeset console and store coverage already exercises the current
+    response status, handoff, verification, evidence, and non-claim rendering;
+    frontend section splits should add narrower component tests when sections
+    are extracted in Phase 85
+  - response-linked fixup inventory has dedicated coverage in
+    `test_review_response_fixup_inventory.py` and remains out of scope for this
+    first characterization slice
 
 ### GBX-R502: Add V13 Facade Guardrails After First Extraction
 
