@@ -23,6 +23,7 @@ from glassbox.runtime.changesets import ManualEvidenceRecordResult
 from glassbox.runtime.changesets import ReviewFeedbackRecordResult
 from glassbox.runtime.commit_messages import CommitMessageSuggestion
 from glassbox.runtime.commit_readiness import CommitReadinessAssessment
+from glassbox.runtime.handoff_readiness import HandoffReadinessAssessment
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
 from glassbox.runtime.review_responses import ReviewFeedbackResponseStatus
 
@@ -763,6 +764,47 @@ class CommitReadinessResponse(BaseModel):
     non_claims: list[str]
 
 
+class HandoffReadinessSignalResponse(BaseModel):
+    signal_id: str
+    state: str
+    summary: str
+    blocking: bool
+    paths: list[str]
+
+
+class HandoffReadinessEvidenceSummaryResponse(BaseModel):
+    feedback_count: int
+    unresolved_feedback_count: int
+    stale_response_count: int
+    manual_evidence_count: int
+    local_only_evidence_count: int
+    stale_manual_evidence_count: int
+    needs_inspection_evidence_count: int
+    browser_evidence_count: int
+    accessibility_evidence_count: int
+    review_brief_count: int
+    accepted_risk_count: int
+
+
+class HandoffReadinessResponse(BaseModel):
+    changeset_id: str
+    session_id: str
+    readiness_kind: str
+    state: str
+    reason: str
+    blockers: list[str]
+    limitations: list[str]
+    safe_next_actions: list[str]
+    inventory_artifact_id: str | None = None
+    review_brief_artifact_id: str | None = None
+    verification_id: str | None = None
+    commit_readiness_state: str
+    evidence: HandoffReadinessEvidenceSummaryResponse
+    git: CommitReadinessGitSummaryResponse
+    signals: list[HandoffReadinessSignalResponse]
+    non_claims: list[str]
+
+
 def build_changeset_summary_response(
     changeset: ChangesetRecord,
 ) -> ChangesetSummaryResponse:
@@ -1089,6 +1131,69 @@ def build_commit_readiness_response(
             CommitReadinessSignalResponse(
                 signal_id=signal.signal_id,
                 state=signal.state.value,
+                summary=signal.summary,
+                blocking=signal.blocking,
+                paths=signal.paths,
+            )
+            for signal in readiness.signals
+        ],
+        non_claims=readiness.non_claims,
+    )
+
+
+def build_handoff_readiness_response(
+    readiness: HandoffReadinessAssessment,
+) -> HandoffReadinessResponse:
+    return HandoffReadinessResponse(
+        changeset_id=str(readiness.changeset_id),
+        session_id=str(readiness.session_id),
+        readiness_kind=readiness.readiness_kind,
+        state=readiness.state,
+        reason=readiness.reason,
+        blockers=readiness.blockers,
+        limitations=readiness.limitations,
+        safe_next_actions=readiness.safe_next_actions,
+        inventory_artifact_id=_optional_str(readiness.inventory_artifact_id),
+        review_brief_artifact_id=_optional_str(readiness.review_brief_artifact_id),
+        verification_id=_optional_str(readiness.verification_id),
+        commit_readiness_state=readiness.commit_readiness_state.value,
+        evidence=HandoffReadinessEvidenceSummaryResponse(
+            feedback_count=readiness.evidence.feedback_count,
+            unresolved_feedback_count=(readiness.evidence.unresolved_feedback_count),
+            stale_response_count=readiness.evidence.stale_response_count,
+            manual_evidence_count=readiness.evidence.manual_evidence_count,
+            local_only_evidence_count=readiness.evidence.local_only_evidence_count,
+            stale_manual_evidence_count=(
+                readiness.evidence.stale_manual_evidence_count
+            ),
+            needs_inspection_evidence_count=(
+                readiness.evidence.needs_inspection_evidence_count
+            ),
+            browser_evidence_count=readiness.evidence.browser_evidence_count,
+            accessibility_evidence_count=(
+                readiness.evidence.accessibility_evidence_count
+            ),
+            review_brief_count=readiness.evidence.review_brief_count,
+            accepted_risk_count=readiness.evidence.accepted_risk_count,
+        ),
+        git=CommitReadinessGitSummaryResponse(
+            branch=readiness.git.branch,
+            ahead=readiness.git.ahead,
+            behind=readiness.git.behind,
+            staged_paths=readiness.git.staged_paths,
+            unstaged_paths=readiness.git.unstaged_paths,
+            untracked_paths=readiness.git.untracked_paths,
+            workspace_path_count=readiness.git.workspace_path_count,
+            staged_path_count=readiness.git.staged_path_count,
+            policy_sensitive_paths=readiness.git.policy_sensitive_paths,
+            generated_paths=readiness.git.generated_paths,
+            clean=readiness.git.clean,
+            error=readiness.git.error,
+        ),
+        signals=[
+            HandoffReadinessSignalResponse(
+                signal_id=signal.signal_id,
+                state=signal.state,
                 summary=signal.summary,
                 blocking=signal.blocking,
                 paths=signal.paths,

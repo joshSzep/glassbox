@@ -421,7 +421,7 @@ def test_changeset_create_list_show_refresh_and_archive(
         ]
     )
     commit_message = json.loads(capsys.readouterr().out)
-    precommit_summary_path = tmp_path / "precommit-summary.json"
+    precommit_summary_path = tmp_path / ".glassbox" / "precommit-summary.json"
     precommit_summary_path.write_text(
         json.dumps(
             {
@@ -462,6 +462,19 @@ def test_changeset_create_list_show_refresh_and_archive(
         ]
     )
     commit_prep = json.loads(capsys.readouterr().out)
+    handoff_exit = main(
+        [
+            "changeset",
+            "handoff-readiness",
+            changeset_id,
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    handoff = json.loads(capsys.readouterr().out)
     export_path = tmp_path / "changeset-export.json"
     export_exit = main(
         [
@@ -650,6 +663,13 @@ def test_changeset_create_list_show_refresh_and_archive(
         "ready",
         "stale_inventory",
     }
+    assert handoff_exit == 0
+    assert handoff["readiness_kind"] == "handoff"
+    assert handoff["state"] == "unresolved_risk"
+    assert handoff["evidence"]["accepted_risk_count"] == 1
+    assert handoff["evidence"]["manual_evidence_count"] == 3
+    assert "not publication" in " ".join(handoff["non_claims"])
+    assert any("changeset show" in action for action in handoff["safe_next_actions"])
     assert export_exit == 0
     assert exported["status"] == "exported"
     assert export_payload["export_kind"] == "changeset_review_export"

@@ -18,6 +18,7 @@ redacted by design:
 | Surface | Command Or Path | Good For | Review Before Sharing |
 | --- | --- | --- | --- |
 | Handoff export | `uv run glassbox session export SESSION_ID handoff.json --cwd .` | Session story, latest objective, checkpoint and compaction posture, verification state, accepted risks, branch lineage, knowledge posture, and safe inspection commands. | Transcript text, operator note, branch labels, and accepted-risk wording. |
+| Handoff readiness | `uv run glassbox changeset handoff-readiness CHANGESET_ID --cwd .` | Final local posture for one reviewed changeset, including unresolved feedback, stale verification, stale inventory, lifecycle brief freshness, local-only evidence, accepted risks, commit-prep posture, and safe next commands. | State wording, accepted-risk summaries, local-only limitations, and any command listed as safe next action. |
 | Changeset export | `uv run glassbox changeset export CHANGESET_ID changeset-review.json --cwd .` | Change-centered objective, inventory summary, provenance, verification readiness, latest lifecycle brief metadata, feedback summaries, response summaries, manual evidence summaries, browser/accessibility summaries, artifact references, redaction report, and non-claims. | Objective text, feedback summaries, response wording, risk summaries, source reasons, artifact IDs, local-only evidence limitations, and advisory live-evidence claims. |
 | Eval report | `uv run glassbox eval report commit-smoke --cwd .` | Deterministic profile pass/fail evidence and retained `summary.json` paths. | Changed path names, case notes, and failure summaries. |
 | Eval audit | `uv run glassbox eval audit --cwd .` | Coverage gaps and profile manifest health. | Repository path names and local output paths. |
@@ -90,6 +91,7 @@ release gate explicitly promotes a deterministic fixture-backed check.
 For a normal code-review handoff, provide:
 
 ```bash
+uv run glassbox changeset handoff-readiness CHANGESET_ID --cwd .
 uv run glassbox changeset export CHANGESET_ID changeset-review.json --cwd .
 uv run glassbox session export SESSION_ID handoff.json --cwd .
 uv run glassbox eval recommend PATH --cwd .

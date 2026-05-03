@@ -29,6 +29,7 @@ type ChangesetSummary = components["schemas"]["ChangesetSummaryResponse"];
 type ChangesetVerificationPlan = components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
 type CommitMessageSuggestion = components["schemas"]["CommitMessageSuggestionResponse"];
 type CommitReadiness = components["schemas"]["CommitReadinessResponse"];
+type HandoffReadiness = components["schemas"]["HandoffReadinessResponse"];
 type RepositoryEntry = components["schemas"]["RepositoryIndexEntryResponse"];
 type TaskDetail = components["schemas"]["TaskDetailResponse"];
 type TaskEvent = components["schemas"]["TaskEventResponse"];
@@ -400,6 +401,10 @@ async function installAutonomyConsoleRoutes(page: Page, state: GlassboxApiFixtur
     }
     if (path === `/changesets/${changeset.changeset_id}/commit-readiness`) {
       await route.fulfill({ json: makeCommitReadiness(changeset.changeset_id) });
+      return;
+    }
+    if (path === `/changesets/${changeset.changeset_id}/handoff-readiness`) {
+      await route.fulfill({ json: makeHandoffReadiness(changeset.changeset_id) });
       return;
     }
     if (path === `/changesets/${changeset.changeset_id}/commit-message`) {
@@ -1187,6 +1192,63 @@ function makeCommitReadiness(changesetId: string): CommitReadiness {
     safe_next_actions: ["git status --short"],
     session_id: defaultSessionId,
     signals: [],
+    state: "accepted_with_risk",
+    verification_id: "verification-1",
+  };
+}
+
+function makeHandoffReadiness(changesetId: string): HandoffReadiness {
+  return {
+    blockers: [],
+    changeset_id: changesetId,
+    commit_readiness_state: "accepted_with_risk",
+    evidence: {
+      accepted_risk_count: 1,
+      accessibility_evidence_count: 0,
+      browser_evidence_count: 0,
+      feedback_count: 1,
+      local_only_evidence_count: 1,
+      manual_evidence_count: 1,
+      needs_inspection_evidence_count: 0,
+      review_brief_count: 1,
+      stale_manual_evidence_count: 0,
+      stale_response_count: 0,
+      unresolved_feedback_count: 1,
+    },
+    git: {
+      ahead: 0,
+      behind: 0,
+      branch: "main",
+      clean: false,
+      error: null,
+      generated_paths: ["frontend/generated/api-types.ts"],
+      policy_sensitive_paths: [],
+      staged_path_count: 2,
+      staged_paths: [
+        "frontend/components/console/changeset-console.tsx",
+        "frontend/stores/changeset-store.ts",
+      ],
+      untracked_paths: [],
+      unstaged_paths: [],
+      workspace_path_count: 2,
+    },
+    inventory_artifact_id: "artifact-inventory",
+    limitations: ["local-only evidence can support local handoff context"],
+    non_claims: ["handoff readiness is advisory local posture, not publication"],
+    readiness_kind: "handoff",
+    reason: "handoff evidence is coherent with accepted risks that must remain visible",
+    review_brief_artifact_id: "brief-artifact-1",
+    safe_next_actions: [`glassbox changeset show ${changesetId} --cwd .`],
+    session_id: defaultSessionId,
+    signals: [
+      {
+        blocking: false,
+        paths: [],
+        signal_id: "accepted-risk",
+        state: "accepted_with_risk",
+        summary: "1 accepted risk must be visible in handoff",
+      },
+    ],
     state: "accepted_with_risk",
     verification_id: "verification-1",
   };

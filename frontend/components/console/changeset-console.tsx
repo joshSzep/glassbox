@@ -233,6 +233,7 @@ function ChangesetDetail({
         verificationPlan={verificationPlan}
       />
       <CommandEvidencePanel detail={detail.detail} />
+      <HandoffReadinessPanel detail={detail} />
       <CommitPreparationPanel detail={detail} />
       {branchCandidate ? <CandidateAdoptionPanel detail={detail} /> : null}
       <Section title="Brief Artifacts">
@@ -556,6 +557,75 @@ function CommitPreparationPanel({ detail }: { detail: ChangesetDetailState }) {
         <p className="text-xs text-muted-foreground">
           Glassbox did not stage, commit, push, or open a PR.
         </p>
+      </div>
+    </Section>
+  );
+}
+
+function HandoffReadinessPanel({ detail }: { detail: ChangesetDetailState }) {
+  const readiness = detail.handoffReadiness;
+  if (readiness === null) {
+    return (
+      <Section title="Final Handoff">
+        <p className="text-sm text-muted-foreground">Handoff readiness is not loaded yet.</p>
+      </Section>
+    );
+  }
+  const blockingSignals = readiness.signals.filter((signal) => signal.blocking);
+  return (
+    <Section title="Final Handoff">
+      <div className="grid gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={handoffBadgeVariant(readiness.state)}>
+            {readiness.state.replaceAll("_", " ")}
+          </Badge>
+          <Badge variant="outline">Commit {readiness.commit_readiness_state}</Badge>
+          <Badge variant={readiness.evidence.unresolved_feedback_count > 0 ? "warning" : "muted"}>
+            {readiness.evidence.unresolved_feedback_count} unresolved feedback
+          </Badge>
+          <Badge variant={readiness.evidence.accepted_risk_count > 0 ? "outline" : "muted"}>
+            {readiness.evidence.accepted_risk_count} accepted risk
+          </Badge>
+          <Badge variant={readiness.evidence.local_only_evidence_count > 0 ? "info" : "muted"}>
+            {readiness.evidence.local_only_evidence_count} local-only evidence
+          </Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">{readiness.reason}</p>
+        {blockingSignals.length > 0 ? (
+          <DataList density="compact">
+            {blockingSignals.slice(0, 5).map((signal) => (
+              <DataListItem key={`${signal.signal_id}-${signal.summary}`}>
+                <DataListLabel>{signal.signal_id.replaceAll("-", " ")}</DataListLabel>
+                <DataListMeta>{signal.summary}</DataListMeta>
+                {signal.paths.slice(0, 2).map((path) => (
+                  <DataListMeta className="break-all" key={path}>
+                    {path}
+                  </DataListMeta>
+                ))}
+              </DataListItem>
+            ))}
+          </DataList>
+        ) : null}
+        {readiness.limitations.length > 0 ? (
+          <DataList density="compact">
+            {readiness.limitations.slice(0, 4).map((limitation) => (
+              <DataListItem key={limitation}>
+                <DataListLabel>Limitation</DataListLabel>
+                <DataListMeta>{limitation}</DataListMeta>
+              </DataListItem>
+            ))}
+          </DataList>
+        ) : null}
+        <ul className="grid gap-2 text-console text-muted-foreground">
+          {readiness.safe_next_actions.slice(0, 6).map((action) => (
+            <li className="break-all" key={action}>
+              {action}
+            </li>
+          ))}
+          {readiness.non_claims.slice(0, 1).map((claim) => (
+            <li key={claim}>{claim}</li>
+          ))}
+        </ul>
       </div>
     </Section>
   );
@@ -1008,6 +1078,29 @@ function readinessBadgeVariant(
     return "outline";
   }
   if (state === "needs_verification" || state === "stale_inventory") {
+    return "warning";
+  }
+  return "muted";
+}
+
+function handoffBadgeVariant(
+  state: string,
+): "destructive" | "muted" | "outline" | "success" | "warning" {
+  if (state === "handoff_ready" || state === "commit_prep_ready") {
+    return "success";
+  }
+  if (state === "accepted_with_risk") {
+    return "outline";
+  }
+  if (state === "publication_blocked") {
+    return "destructive";
+  }
+  if (
+    state === "needs_review_response" ||
+    state === "needs_verification" ||
+    state === "stale_inventory" ||
+    state === "unresolved_risk"
+  ) {
     return "warning";
   }
   return "muted";

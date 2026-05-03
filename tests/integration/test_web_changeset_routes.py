@@ -269,6 +269,9 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                 commit_readiness_response = await client.get(
                     f"/changesets/{changeset_id}/commit-readiness"
                 )
+                handoff_readiness_response = await client.get(
+                    f"/changesets/{changeset_id}/handoff-readiness"
+                )
                 (tmp_path / "app.py").write_text(
                     "print('changed again')\n",
                     encoding="utf-8",
@@ -450,6 +453,16 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             assert commit_readiness_response.json()["readiness_kind"] == "commit"
             assert "does not stage" in " ".join(
                 commit_readiness_response.json()["non_claims"]
+            )
+            assert handoff_readiness_response.status_code == 200
+            assert handoff_readiness_response.json()["readiness_kind"] == "handoff"
+            assert handoff_readiness_response.json()["state"] == "unresolved_risk"
+            assert (
+                handoff_readiness_response.json()["evidence"]["manual_evidence_count"]
+                == 3
+            )
+            assert "not publication" in " ".join(
+                handoff_readiness_response.json()["non_claims"]
             )
             assert stale_response.status_code == 200
             assert stale_response.json()["inventory_status"]["stale"] is True

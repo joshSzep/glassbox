@@ -5361,6 +5361,218 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "HandoffReadinessEvidenceSummaryResponse": {
+        "properties": {
+          "accepted_risk_count": {
+            "title": "Accepted Risk Count",
+            "type": "integer"
+          },
+          "accessibility_evidence_count": {
+            "title": "Accessibility Evidence Count",
+            "type": "integer"
+          },
+          "browser_evidence_count": {
+            "title": "Browser Evidence Count",
+            "type": "integer"
+          },
+          "feedback_count": {
+            "title": "Feedback Count",
+            "type": "integer"
+          },
+          "local_only_evidence_count": {
+            "title": "Local Only Evidence Count",
+            "type": "integer"
+          },
+          "manual_evidence_count": {
+            "title": "Manual Evidence Count",
+            "type": "integer"
+          },
+          "needs_inspection_evidence_count": {
+            "title": "Needs Inspection Evidence Count",
+            "type": "integer"
+          },
+          "review_brief_count": {
+            "title": "Review Brief Count",
+            "type": "integer"
+          },
+          "stale_manual_evidence_count": {
+            "title": "Stale Manual Evidence Count",
+            "type": "integer"
+          },
+          "stale_response_count": {
+            "title": "Stale Response Count",
+            "type": "integer"
+          },
+          "unresolved_feedback_count": {
+            "title": "Unresolved Feedback Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "feedback_count",
+          "unresolved_feedback_count",
+          "stale_response_count",
+          "manual_evidence_count",
+          "local_only_evidence_count",
+          "stale_manual_evidence_count",
+          "needs_inspection_evidence_count",
+          "browser_evidence_count",
+          "accessibility_evidence_count",
+          "review_brief_count",
+          "accepted_risk_count"
+        ],
+        "title": "HandoffReadinessEvidenceSummaryResponse",
+        "type": "object"
+      },
+      "HandoffReadinessResponse": {
+        "properties": {
+          "blockers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "changeset_id": {
+            "title": "Changeset Id",
+            "type": "string"
+          },
+          "commit_readiness_state": {
+            "title": "Commit Readiness State",
+            "type": "string"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/HandoffReadinessEvidenceSummaryResponse"
+          },
+          "git": {
+            "$ref": "#/components/schemas/CommitReadinessGitSummaryResponse"
+          },
+          "inventory_artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inventory Artifact Id"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Non Claims",
+            "type": "array"
+          },
+          "readiness_kind": {
+            "title": "Readiness Kind",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "review_brief_artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Brief Artifact Id"
+          },
+          "safe_next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safe Next Actions",
+            "type": "array"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "signals": {
+            "items": {
+              "$ref": "#/components/schemas/HandoffReadinessSignalResponse"
+            },
+            "title": "Signals",
+            "type": "array"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "verification_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verification Id"
+          }
+        },
+        "required": [
+          "changeset_id",
+          "session_id",
+          "readiness_kind",
+          "state",
+          "reason",
+          "blockers",
+          "limitations",
+          "safe_next_actions",
+          "commit_readiness_state",
+          "evidence",
+          "git",
+          "signals",
+          "non_claims"
+        ],
+        "title": "HandoffReadinessResponse",
+        "type": "object"
+      },
+      "HandoffReadinessSignalResponse": {
+        "properties": {
+          "blocking": {
+            "title": "Blocking",
+            "type": "boolean"
+          },
+          "paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Paths",
+            "type": "array"
+          },
+          "signal_id": {
+            "title": "Signal Id",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": ["signal_id", "state", "summary", "blocking", "paths"],
+        "title": "HandoffReadinessSignalResponse",
+        "type": "object"
+      },
       "HealthResponse": {
         "properties": {
           "event_transport": {
@@ -15087,6 +15299,57 @@
           }
         },
         "summary": "Add Review Feedback"
+      }
+    },
+    "/changesets/{changeset_id}/handoff-readiness": {
+      "get": {
+        "description": "Preview final handoff readiness without publication mutation.",
+        "operationId": "preview_changeset_handoff_readiness_changesets__changeset_id__handoff_readiness_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "changeset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Changeset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoffReadinessResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Changeset Handoff Readiness"
       }
     },
     "/changesets/{changeset_id}/manual-evidence": {

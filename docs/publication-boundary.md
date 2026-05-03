@@ -61,6 +61,36 @@ accepted risks even when the git working tree looks tidy. Commit readiness can
 be blocked by unstaged or untracked ambiguity even when review feedback has been
 handled locally.
 
+## Handoff Readiness Surfaces
+
+`GBX-1371` adds a derived handoff-readiness service for changesets. It reads the
+current changeset detail, response summary, manual evidence inbox,
+verification-plan preview, latest lifecycle brief, commit-readiness preview, and
+local git status. It records no new evidence and performs no git or remote
+mutation.
+
+Use the CLI first:
+
+```bash
+uv run glassbox changeset handoff-readiness CHANGESET_ID --cwd .
+uv run glassbox changeset handoff-readiness CHANGESET_ID --cwd . --json
+uv run glassbox changeset show CHANGESET_ID --cwd .
+```
+
+The JSON and dashboard API surface uses underscore state names such as
+`needs_review_response`, `stale_inventory`, `handoff_ready`, and
+`commit_prep_ready`; the product vocabulary keeps the hyphenated wording from
+the table above. The dashboard changeset detail view shows the same posture in
+the **Final Handoff** panel, including blockers, local-only evidence counts,
+accepted-risk counts, limitations, safe next commands, and non-claims.
+
+The service treats unresolved feedback, failed or missing deterministic
+verification, stale inventory, missing lifecycle briefs, unresolved risks, and
+untracked non-Glassbox files as blockers. Manual, browser, dashboard, and
+accessibility evidence marked local-only or needs-inspection remains visible as
+bounded advisory context unless deterministic verification or inventory is also
+stale.
+
 ## Safe Next-Action Policy
 
 Guidance must start with inspection before mutation:

@@ -28,6 +28,7 @@ from glassbox.runtime.changesets import ManualEvidenceActionService
 from glassbox.runtime.changesets import ReviewFeedbackActionService
 from glassbox.runtime.commit_messages import ChangesetCommitMessageSuggestionService
 from glassbox.runtime.commit_readiness import ChangesetCommitReadinessService
+from glassbox.runtime.handoff_readiness import ChangesetHandoffReadinessService
 from glassbox.web.app import RuntimeContextDep
 from glassbox.web.changeset_api import AccessibilityEvidenceAttachRequest
 from glassbox.web.changeset_api import BrowserEvidenceAttachRequest
@@ -45,6 +46,7 @@ from glassbox.web.changeset_api import ChangesetReviewBriefRequest
 from glassbox.web.changeset_api import ChangesetVerificationPlanPreviewResponse
 from glassbox.web.changeset_api import CommitMessageSuggestionResponse
 from glassbox.web.changeset_api import CommitReadinessResponse
+from glassbox.web.changeset_api import HandoffReadinessResponse
 from glassbox.web.changeset_api import ManualEvidenceActionResponse
 from glassbox.web.changeset_api import ManualEvidenceAttachRequest
 from glassbox.web.changeset_api import ManualEvidenceListPageResponse
@@ -63,6 +65,7 @@ from glassbox.web.changeset_api import build_changeset_verification_plan_respons
 from glassbox.web.changeset_api import build_changeset_verification_readiness_response
 from glassbox.web.changeset_api import build_commit_message_suggestion_response
 from glassbox.web.changeset_api import build_commit_readiness_response
+from glassbox.web.changeset_api import build_handoff_readiness_response
 from glassbox.web.changeset_api import build_manual_evidence_action_response
 from glassbox.web.changeset_api import build_manual_evidence_response
 from glassbox.web.changeset_api import build_review_feedback_action_response
@@ -745,6 +748,31 @@ async def preview_changeset_commit_readiness(
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return build_commit_readiness_response(readiness)
+
+
+@router.get(
+    "/{changeset_id}/handoff-readiness",
+    response_model=HandoffReadinessResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def preview_changeset_handoff_readiness(
+    changeset_id: UUID,
+    context: RuntimeContextDep,
+) -> HandoffReadinessResponse:
+    """Preview final handoff readiness without publication mutation."""
+
+    repository = _repository(context)
+    try:
+        readiness = await ChangesetHandoffReadinessService(
+            repository,
+            context.repositories.artifacts,
+        ).preview(
+            changeset_id,
+            _workspace_root_for_changeset(repository, changeset_id),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return build_handoff_readiness_response(readiness)
 
 
 @router.post(

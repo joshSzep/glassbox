@@ -8,6 +8,7 @@ import type {
   CommitMessageSuggestionResponse,
   CommitReadinessResponse,
   GlassboxApiClient,
+  HandoffReadinessResponse,
 } from "@/api/client";
 import {
   createFailedActionStatus,
@@ -36,6 +37,7 @@ export type ChangesetDetailState = {
   error: string | null;
   commitMessage: CommitMessageSuggestionResponse | null;
   commitReadiness: CommitReadinessResponse | null;
+  handoffReadiness: HandoffReadinessResponse | null;
   loadState: LoadState;
   selectedChangesetId: string | null;
   verificationPlan: ChangesetVerificationPlanPreviewResponse | null;
@@ -70,8 +72,9 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
         });
         const branchSearchDetail = await loadBranchSearchForChangeset(apiClient, response.detail);
         const verificationPlan = await apiClient.getChangesetVerificationPlan(selectedChangesetId);
-        const [commitReadiness, commitMessage] = await Promise.all([
+        const [commitReadiness, handoffReadiness, commitMessage] = await Promise.all([
           apiClient.getChangesetCommitReadiness(selectedChangesetId),
+          apiClient.getChangesetHandoffReadiness(selectedChangesetId),
           apiClient.getChangesetCommitMessage(selectedChangesetId),
         ]);
         set({
@@ -82,6 +85,7 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
             commitReadiness,
             detail: response.detail,
             error: null,
+            handoffReadiness,
             loadState: "loaded",
             selectedChangesetId,
             verificationPlan,
@@ -123,8 +127,9 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
         const response = await apiClient.refreshChangeset({ changesetId: selectedChangesetId });
         const branchSearchDetail = await loadBranchSearchForChangeset(apiClient, response.detail);
         const verificationPlan = await apiClient.getChangesetVerificationPlan(selectedChangesetId);
-        const [commitReadiness, commitMessage] = await Promise.all([
+        const [commitReadiness, handoffReadiness, commitMessage] = await Promise.all([
           apiClient.getChangesetCommitReadiness(selectedChangesetId),
+          apiClient.getChangesetHandoffReadiness(selectedChangesetId),
           apiClient.getChangesetCommitMessage(selectedChangesetId),
         ]);
         set({
@@ -135,6 +140,7 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
             commitReadiness,
             detail: response.detail,
             error: null,
+            handoffReadiness,
             loadState: "loaded",
             selectedChangesetId,
             verificationPlan,
@@ -163,6 +169,7 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
           commitReadiness: null,
           detail: null,
           error: null,
+          handoffReadiness: null,
           loadState: "loading",
           selectedChangesetId: changesetId,
           verificationPlan: null,
@@ -170,13 +177,19 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
       });
       try {
         const detail = await apiClient.getChangesetDetail(changesetId);
-        const [verificationPlan, commitReadiness, commitMessage, branchSearchDetail] =
-          await Promise.all([
-            apiClient.getChangesetVerificationPlan(changesetId),
-            apiClient.getChangesetCommitReadiness(changesetId),
-            apiClient.getChangesetCommitMessage(changesetId),
-            loadBranchSearchForChangeset(apiClient, detail),
-          ]);
+        const [
+          verificationPlan,
+          commitReadiness,
+          handoffReadiness,
+          commitMessage,
+          branchSearchDetail,
+        ] = await Promise.all([
+          apiClient.getChangesetVerificationPlan(changesetId),
+          apiClient.getChangesetCommitReadiness(changesetId),
+          apiClient.getChangesetHandoffReadiness(changesetId),
+          apiClient.getChangesetCommitMessage(changesetId),
+          loadBranchSearchForChangeset(apiClient, detail),
+        ]);
         if (!detailRequests.isCurrent(currentRequestId)) {
           return;
         }
@@ -187,6 +200,7 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
             commitReadiness,
             detail,
             error: null,
+            handoffReadiness,
             loadState: "loaded",
             selectedChangesetId: changesetId,
             verificationPlan,
@@ -203,6 +217,7 @@ export function createChangesetStore(apiClient: GlassboxApiClient): StoreApi<Cha
             commitReadiness: null,
             detail: null,
             error: errorMessage(error),
+            handoffReadiness: null,
             loadState: "failed",
             selectedChangesetId: changesetId,
             verificationPlan: null,
@@ -224,6 +239,7 @@ function createIdleChangesetDetailState(): ChangesetDetailState {
     commitReadiness: null,
     detail: null,
     error: null,
+    handoffReadiness: null,
     loadState: "idle",
     selectedChangesetId: null,
     verificationPlan: null,

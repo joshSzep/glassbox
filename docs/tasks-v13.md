@@ -1167,7 +1167,7 @@ Completed in this slice:
 
 ### GBX-1371: Add Handoff Readiness Service And Surfaces
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1370`
 - Goal: calculate final handoff posture from changeset, feedback, responses,
   evidence, verification, risks, and commit-prep signals
@@ -1189,6 +1189,29 @@ Completed in this slice:
 - Done when:
   - operators can see whether a reviewed changeset is ready for handoff and
     exactly what remains before final operator action
+
+Completed in this slice:
+
+- Added `src/glassbox/runtime/handoff_readiness.py`, a read-only advisory
+  handoff-readiness aggregation service that derives v13 publication-boundary
+  states from current changeset inventory, review feedback, response status,
+  manual/live/accessibility evidence, verification posture, lifecycle brief
+  freshness, accepted and unresolved risks, commit-readiness posture, and local
+  git ambiguity.
+- Added `glassbox changeset handoff-readiness CHANGESET_ID --cwd .` plus a
+  handoff section in `glassbox changeset show`, with JSON output, safe
+  inspection-first next actions, blockers, limitations, evidence counts, and
+  explicit non-claims for publication, approval, staging, committing, pushing,
+  pull requests, merging, deploying, and publishing.
+- Added `/changesets/{changeset_id}/handoff-readiness`, generated OpenAPI and
+  TypeScript API types, frontend store loading, and a dashboard **Final
+  Handoff** panel for blockers, local-only evidence, accepted risk, limitations,
+  and safe commands.
+- Updated publication-boundary and reviewer-evidence bundle docs to document
+  the new handoff-readiness command and advisory boundaries.
+- Added focused unit, CLI, API, and frontend coverage for unresolved feedback,
+  stale inventory, accepted-risk, local-only evidence, command/API output, and
+  dashboard rendering.
 
 ### GBX-1372: Improve Commit Preparation With Review-Loop Context
 

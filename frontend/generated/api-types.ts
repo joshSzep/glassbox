@@ -428,6 +428,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/changesets/{changeset_id}/handoff-readiness": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Preview Changeset Handoff Readiness
+     * @description Preview final handoff readiness without publication mutation.
+     */
+    get: operations["preview_changeset_handoff_readiness_changesets__changeset_id__handoff_readiness_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/changesets/{changeset_id}/manual-evidence": {
     parameters: {
       query?: never;
@@ -3426,6 +3446,77 @@ export interface components {
     HTTPValidationError: {
       /** Detail */
       detail?: components["schemas"]["ValidationError"][];
+    };
+    /** HandoffReadinessEvidenceSummaryResponse */
+    HandoffReadinessEvidenceSummaryResponse: {
+      /** Accepted Risk Count */
+      accepted_risk_count: number;
+      /** Accessibility Evidence Count */
+      accessibility_evidence_count: number;
+      /** Browser Evidence Count */
+      browser_evidence_count: number;
+      /** Feedback Count */
+      feedback_count: number;
+      /** Local Only Evidence Count */
+      local_only_evidence_count: number;
+      /** Manual Evidence Count */
+      manual_evidence_count: number;
+      /** Needs Inspection Evidence Count */
+      needs_inspection_evidence_count: number;
+      /** Review Brief Count */
+      review_brief_count: number;
+      /** Stale Manual Evidence Count */
+      stale_manual_evidence_count: number;
+      /** Stale Response Count */
+      stale_response_count: number;
+      /** Unresolved Feedback Count */
+      unresolved_feedback_count: number;
+    };
+    /** HandoffReadinessResponse */
+    HandoffReadinessResponse: {
+      /** Blockers */
+      blockers: string[];
+      /** Changeset Id */
+      changeset_id: string;
+      /** Commit Readiness State */
+      commit_readiness_state: string;
+      evidence: components["schemas"]["HandoffReadinessEvidenceSummaryResponse"];
+      git: components["schemas"]["CommitReadinessGitSummaryResponse"];
+      /** Inventory Artifact Id */
+      inventory_artifact_id?: string | null;
+      /** Limitations */
+      limitations: string[];
+      /** Non Claims */
+      non_claims: string[];
+      /** Readiness Kind */
+      readiness_kind: string;
+      /** Reason */
+      reason: string;
+      /** Review Brief Artifact Id */
+      review_brief_artifact_id?: string | null;
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+      /** Session Id */
+      session_id: string;
+      /** Signals */
+      signals: components["schemas"]["HandoffReadinessSignalResponse"][];
+      /** State */
+      state: string;
+      /** Verification Id */
+      verification_id?: string | null;
+    };
+    /** HandoffReadinessSignalResponse */
+    HandoffReadinessSignalResponse: {
+      /** Blocking */
+      blocking: boolean;
+      /** Paths */
+      paths: string[];
+      /** Signal Id */
+      signal_id: string;
+      /** State */
+      state: string;
+      /** Summary */
+      summary: string;
     };
     /** HealthResponse */
     HealthResponse: {
@@ -6914,6 +7005,46 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ReviewFeedbackActionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  preview_changeset_handoff_readiness_changesets__changeset_id__handoff_readiness_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        changeset_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HandoffReadinessResponse"];
         };
       };
       /** @description Not Found */

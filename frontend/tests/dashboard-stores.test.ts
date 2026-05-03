@@ -159,6 +159,7 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
     getChangesetDetail: async (changesetId) => makeChangesetDetail(changesetId),
     getChangesetCommitMessage: async (changesetId) => makeCommitMessageSuggestion(changesetId),
     getChangesetCommitReadiness: async (changesetId) => makeCommitReadiness(changesetId),
+    getChangesetHandoffReadiness: async (changesetId) => makeHandoffReadiness(changesetId),
     getChangesetPage: async () => ({ items: [makeChangesetSummary("changeset-1")] }),
     getChangesetVerificationPlan: async (changesetId) => makeChangesetVerificationPlan(changesetId),
     getReviewFeedbackPage: async () => ({ items: [] }),
@@ -1342,6 +1343,7 @@ type BranchSearchSummary = components["schemas"]["BranchSearchSummaryResponse"];
 type ChangesetDetail = components["schemas"]["ChangesetDetailResponse"];
 type CommitMessageSuggestion = components["schemas"]["CommitMessageSuggestionResponse"];
 type CommitReadiness = components["schemas"]["CommitReadinessResponse"];
+type HandoffReadiness = components["schemas"]["HandoffReadinessResponse"];
 type ChangesetVerificationPlan = components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
 type ChangesetSummary = components["schemas"]["ChangesetSummaryResponse"];
 type RepositoryEntry = components["schemas"]["RepositoryIndexEntryResponse"];
@@ -1710,6 +1712,60 @@ function makeCommitReadiness(changesetId: string): CommitReadiness {
         blocking: true,
         paths: [],
         signal_id: "verification-readiness",
+        state: "needs_verification",
+        summary: "verification readiness is missing",
+      },
+    ],
+    state: "needs_verification",
+    verification_id: null,
+  };
+}
+
+function makeHandoffReadiness(changesetId: string): HandoffReadiness {
+  return {
+    blockers: ["verification readiness is missing"],
+    changeset_id: changesetId,
+    commit_readiness_state: "needs_verification",
+    evidence: {
+      accepted_risk_count: 0,
+      accessibility_evidence_count: 0,
+      browser_evidence_count: 0,
+      feedback_count: 0,
+      local_only_evidence_count: 0,
+      manual_evidence_count: 0,
+      needs_inspection_evidence_count: 0,
+      review_brief_count: 1,
+      stale_manual_evidence_count: 0,
+      stale_response_count: 0,
+      unresolved_feedback_count: 0,
+    },
+    git: {
+      ahead: 0,
+      behind: 0,
+      branch: "main",
+      clean: false,
+      error: null,
+      generated_paths: [],
+      policy_sensitive_paths: [],
+      staged_path_count: 0,
+      staged_paths: [],
+      untracked_paths: [],
+      unstaged_paths: ["src/glassbox/runtime/changesets.py"],
+      workspace_path_count: 1,
+    },
+    inventory_artifact_id: "artifact-inventory",
+    limitations: [],
+    non_claims: ["handoff readiness is advisory local posture, not publication"],
+    readiness_kind: "handoff",
+    reason: "needs verification: verification readiness is missing",
+    review_brief_artifact_id: null,
+    safe_next_actions: [`glassbox changeset verification-plan ${changesetId} --cwd .`],
+    session_id: "session-1",
+    signals: [
+      {
+        blocking: true,
+        paths: [],
+        signal_id: "verification-not-passed",
         state: "needs_verification",
         summary: "verification readiness is missing",
       },

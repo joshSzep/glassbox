@@ -11,6 +11,7 @@ type ChangesetSummary = components["schemas"]["ChangesetSummaryResponse"];
 type ChangesetVerificationPlan = components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
 type CommitMessageSuggestion = components["schemas"]["CommitMessageSuggestionResponse"];
 type CommitReadiness = components["schemas"]["CommitReadinessResponse"];
+type HandoffReadiness = components["schemas"]["HandoffReadinessResponse"];
 
 describe("changeset console", () => {
   it("renders verification readiness states and safe next actions", () => {
@@ -24,6 +25,7 @@ describe("changeset console", () => {
           error: null,
           commitMessage: makeCommitMessageSuggestion("changeset-1"),
           commitReadiness: makeCommitReadiness("changeset-1"),
+          handoffReadiness: makeHandoffReadiness("changeset-1"),
           loadState: "loaded",
           selectedChangesetId: "changeset-1",
           verificationPlan: makeVerificationPlan("changeset-1"),
@@ -82,6 +84,11 @@ describe("changeset console", () => {
     expect(markup).toContain("test - failed");
     expect(markup).toContain("selected verification failed before rerun");
     expect(markup).toContain("Environment captured with 2 toolchains");
+    expect(markup).toContain("Final Handoff");
+    expect(markup).toContain("needs verification");
+    expect(markup).toContain("1 unresolved feedback");
+    expect(markup).toContain("3 local-only evidence");
+    expect(markup).toContain("handoff readiness is advisory local posture");
     expect(markup).toContain("Commit Preparation");
     expect(markup).toContain("needs verification");
     expect(markup).toContain("Suggested message");
@@ -799,6 +806,70 @@ function makeCommitReadiness(changesetId: string): CommitReadiness {
         signal_id: "verification-readiness",
         state: "needs_verification",
         summary: "verification readiness is missing",
+      },
+    ],
+    state: "needs_verification",
+    verification_id: "verification-1",
+  };
+}
+
+function makeHandoffReadiness(changesetId: string): HandoffReadiness {
+  return {
+    blockers: ["verification readiness is missing"],
+    changeset_id: changesetId,
+    commit_readiness_state: "needs_verification",
+    evidence: {
+      accepted_risk_count: 1,
+      accessibility_evidence_count: 1,
+      browser_evidence_count: 1,
+      feedback_count: 3,
+      local_only_evidence_count: 3,
+      manual_evidence_count: 3,
+      needs_inspection_evidence_count: 2,
+      review_brief_count: 1,
+      stale_manual_evidence_count: 0,
+      stale_response_count: 1,
+      unresolved_feedback_count: 1,
+    },
+    git: {
+      ahead: 0,
+      behind: 0,
+      branch: "main",
+      clean: false,
+      error: null,
+      generated_paths: ["frontend/generated/api-types.ts"],
+      policy_sensitive_paths: ["docs/tasks-v12.md"],
+      staged_path_count: 1,
+      staged_paths: ["src/glassbox/runtime/changesets.py"],
+      untracked_paths: ["notes.txt"],
+      unstaged_paths: ["docs/tasks-v12.md"],
+      workspace_path_count: 3,
+    },
+    inventory_artifact_id: "artifact-inventory",
+    limitations: ["local-only evidence can support local handoff context"],
+    non_claims: ["handoff readiness is advisory local posture, not publication"],
+    readiness_kind: "handoff",
+    reason: "needs verification: verification readiness is missing",
+    review_brief_artifact_id: "brief-artifact-1",
+    safe_next_actions: [
+      `glassbox changeset show ${changesetId} --cwd .`,
+      `glassbox changeset verification-plan ${changesetId} --cwd .`,
+    ],
+    session_id: "session-1",
+    signals: [
+      {
+        blocking: true,
+        paths: ["src/glassbox/runtime/changesets.py"],
+        signal_id: "verification-not-passed",
+        state: "needs_verification",
+        summary: "verification readiness is missing",
+      },
+      {
+        blocking: false,
+        paths: [],
+        signal_id: "local-only-evidence",
+        state: "handoff_ready",
+        summary: "3 local-only evidence items must remain labeled",
       },
     ],
     state: "needs_verification",

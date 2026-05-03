@@ -271,6 +271,19 @@ def _add_changeset_parsers(
     commit_prep_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(commit_prep_parser)
 
+    handoff_readiness_parser = changeset_subparsers.add_parser(
+        "handoff-readiness",
+        help="show read-only final handoff posture for a changeset",
+        description=(
+            "Show advisory review-loop handoff posture, blockers, limitations, "
+            "and safe next commands without staging, committing, pushing, "
+            "opening a PR, merging, deploying, or publishing."
+        ),
+    )
+    handoff_readiness_parser.add_argument("changeset_id", type=_parse_uuid)
+    handoff_readiness_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(handoff_readiness_parser)
+
     archive_parser = changeset_subparsers.add_parser(
         "archive",
         help="archive a changeset",

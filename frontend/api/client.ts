@@ -28,6 +28,7 @@ export type ChangesetListPageResponse = components["schemas"]["ChangesetListPage
 export type ChangesetActionResponse = components["schemas"]["ChangesetActionResponse"];
 export type ReviewFeedbackActionResponse = components["schemas"]["ReviewFeedbackActionResponse"];
 export type CommitReadinessResponse = components["schemas"]["CommitReadinessResponse"];
+export type HandoffReadinessResponse = components["schemas"]["HandoffReadinessResponse"];
 export type CommitMessageSuggestionResponse =
   components["schemas"]["CommitMessageSuggestionResponse"];
 export type ChangesetReviewBriefGenerateResponse =
@@ -554,6 +555,13 @@ export function createGlassboxApiClient(options: GlassboxApiClientOptions = {}) 
       requestJson<CommitReadinessResponse>(
         "GET",
         `/changesets/${encodeURIComponent(changesetId)}/commit-readiness`,
+        requestOptions,
+      ),
+
+    getChangesetHandoffReadiness: (changesetId: string, requestOptions?: RequestOptions) =>
+      requestJson<HandoffReadinessResponse>(
+        "GET",
+        `/changesets/${encodeURIComponent(changesetId)}/handoff-readiness`,
         requestOptions,
       ),
 

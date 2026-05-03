@@ -45,6 +45,9 @@ from glassbox.runtime.commit_messages import ChangesetCommitMessageSuggestionSer
 from glassbox.runtime.commit_messages import CommitMessageSuggestion
 from glassbox.runtime.commit_readiness import ChangesetCommitReadinessService
 from glassbox.runtime.commit_readiness import CommitReadinessAssessment
+from glassbox.runtime.handoff_readiness import ChangesetHandoffReadinessService
+from glassbox.runtime.handoff_readiness import HandoffReadinessAssessment
+from glassbox.runtime.handoff_readiness import preview_handoff_readiness
 from glassbox.runtime.precommit_evidence import ChangesetPreCommitEvidenceService
 from glassbox.runtime.precommit_evidence import PreCommitEvidenceRecordResult
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
@@ -79,6 +82,8 @@ def _changeset_command(args: argparse.Namespace) -> int:
         return _changeset_record_precommit_command(args)
     if command == "commit-prep":
         return _changeset_commit_prep_command(args)
+    if command == "handoff-readiness":
+        return _changeset_handoff_readiness_command(args)
     if command == "archive":
         return _changeset_archive_command(args)
     if command == "evidence":
@@ -190,19 +195,30 @@ def _changeset_show_command(args: argparse.Namespace) -> int:
     cwd, db_path = resolve_runtime_location(args)
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
         repository = cast(ChangesetRepository, runtime_context.repositories.sessions)
+        artifacts = runtime_context.repositories.artifacts
         service = ChangesetQueryService(repository)
         detail = service.get_detail(args.changeset_id, workspace_root=cwd)
         verification_plan = ChangesetVerificationService(
             repository,
-            runtime_context.repositories.artifacts,
+            artifacts,
         ).preview_plan(args.changeset_id, cwd)
+        handoff_readiness = preview_handoff_readiness(
+            ChangesetHandoffReadinessService(repository, artifacts),
+            args.changeset_id,
+            cwd,
+        )
 
     if args.json:
         payload = detail.model_dump(mode="json")
         payload["verification_plan"] = verification_plan.model_dump(mode="json")
+        payload["handoff_readiness"] = handoff_readiness.model_dump(mode="json")
         print_json_output(payload)
     else:
-        _print_changeset_detail(detail, verification_plan=verification_plan)
+        _print_changeset_detail(
+            detail,
+            verification_plan=verification_plan,
+            handoff_readiness=handoff_readiness,
+        )
     return 0
 
 
@@ -752,6 +768,25 @@ def _changeset_commit_prep_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def _changeset_handoff_readiness_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        readiness = preview_handoff_readiness(
+            ChangesetHandoffReadinessService(
+                cast(ChangesetRepository, runtime_context.repositories.sessions),
+                runtime_context.repositories.artifacts,
+            ),
+            args.changeset_id,
+            cwd,
+        )
+
+    if args.json:
+        print_json_output(readiness.model_dump(mode="json"))
+    else:
+        _print_handoff_readiness(readiness)
+    return 0
+
+
 def _create_changeset_from_args(
     service: ChangesetDerivationService,
     args: argparse.Namespace,
@@ -839,6 +874,7 @@ def _print_changeset_detail(
     detail: ChangesetDetailView,
     *,
     verification_plan: ChangesetVerificationPlanPreview | None = None,
+    handoff_readiness: HandoffReadinessAssessment | None = None,
 ) -> None:
     changeset = detail.changeset
     print(f"Changeset {changeset.changeset_id}")
@@ -937,6 +973,18 @@ def _print_changeset_detail(
             f"{item.summary} ({item.feedback_id})"
         )
     print(f"Readiness decisions: {len(detail.readiness)}")
+    if handoff_readiness is not None:
+        print(
+            f"Handoff readiness: {handoff_readiness.state} - {handoff_readiness.reason}"
+        )
+        if handoff_readiness.blockers:
+            print("Handoff blockers:")
+            for blocker in handoff_readiness.blockers[:5]:
+                print(f"  - {blocker}")
+        if handoff_readiness.limitations:
+            print("Handoff limitations:")
+            for limitation in handoff_readiness.limitations[:5]:
+                print(f"  - {limitation}")
     _print_limitations(detail.limitations)
     print("Safe next actions:")
     for action in detail.safe_next_actions:
@@ -1016,6 +1064,37 @@ def _print_commit_prep(
         for action in readiness.safe_next_actions:
             print(f"  - {action}")
     print("Glassbox did not stage, commit, push, or open a PR.")
+
+
+def _print_handoff_readiness(readiness: HandoffReadinessAssessment) -> None:
+    print("Handoff readiness (read-only):")
+    print(f"Changeset: {readiness.changeset_id}")
+    print(f"State: {readiness.state}")
+    print(f"Reason: {readiness.reason}")
+    print(f"Commit readiness: {readiness.commit_readiness_state.value}")
+    print(
+        "Evidence: "
+        f"{readiness.evidence.feedback_count} feedback, "
+        f"{readiness.evidence.unresolved_feedback_count} unresolved, "
+        f"{readiness.evidence.manual_evidence_count} manual evidence, "
+        f"{readiness.evidence.review_brief_count} lifecycle briefs, "
+        f"{readiness.evidence.accepted_risk_count} accepted risk"
+    )
+    if readiness.blockers:
+        print("Blockers:")
+        for blocker in readiness.blockers:
+            print(f"  - {blocker}")
+    if readiness.limitations:
+        print("Limitations:")
+        for limitation in readiness.limitations:
+            print(f"  - {limitation}")
+    if readiness.safe_next_actions:
+        print("Safe next commands:")
+        for action in readiness.safe_next_actions:
+            print(f"  - {action}")
+    print("Non-claims:")
+    for non_claim in readiness.non_claims:
+        print(f"  - {non_claim}")
 
 
 def _print_limitations(limitations: list[str]) -> None:
