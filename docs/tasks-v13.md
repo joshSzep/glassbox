@@ -732,7 +732,7 @@ Completed in this slice:
 
 ### GBX-1340: Define Live Review Evidence Protocol
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1330`
 - Goal: make browser, dashboard, and accessibility evidence structured without
   overclaiming release authority
@@ -754,6 +754,23 @@ Completed in this slice:
   - release-evidence language guardrails if applicable
 - Done when:
   - live review evidence has a repeatable local protocol and bounded claims
+
+Completed in this slice:
+
+- Added `docs/browser-accessibility-evidence.md` with structured evidence
+  kinds for live dashboard walkthroughs, browser checks, screenshot metadata,
+  keyboard notes, responsive observations, and accessibility pairings.
+- Defined required metadata for environment, browser, viewport, date, skipped
+  cases, limitations, local-only posture, freshness, redaction, and non-claims.
+- Documented advisory-versus-blocking policy that preserves deterministic
+  replay, eval, package, migration, unit, and integration checks as release
+  authority unless a later deterministic fixture-backed gate promotes live
+  evidence.
+- Added local evidence directory naming and retention rules for browser,
+  dashboard, and accessibility artifacts under `.glassbox/evidence/`.
+- Added reviewer-safe language and explicit non-claims that avoid accessibility
+  certification, reviewer approval, publication authority, and git mutation
+  claims.
 
 ### GBX-1341: Add Browser And Dashboard Evidence Capture Workflows
 

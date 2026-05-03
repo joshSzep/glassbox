@@ -587,6 +587,56 @@ def test_manual_evidence_contract_covers_attachment_boundaries() -> None:
     assert "manual-evidence.md" in docs_readme
 
 
+def test_browser_accessibility_evidence_protocol_bounds_live_claims() -> None:
+    content = (REPO_ROOT / "docs" / "browser-accessibility-evidence.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "# Browser, Dashboard, And Accessibility Evidence Protocol",
+        "## Evidence Kinds",
+        "`live_dashboard_walkthrough`",
+        "`browser_check`",
+        "`screenshot_evidence`",
+        "`keyboard_navigation_note`",
+        "`responsive_layout_observation`",
+        "`accessibility_pairing`",
+        "## Required Fields",
+        "environment",
+        "viewport width and height",
+        "date and observation time",
+        "skipped cases",
+        "limitations",
+        "non-claims",
+        "## Live Dashboard Walkthrough Protocol",
+        "## Browser Check Protocol",
+        "## Screenshot Evidence Protocol",
+        "## Keyboard Navigation Protocol",
+        "## Responsive Layout Protocol",
+        "## Accessibility Pairing Protocol",
+        "## Advisory Versus Blocking Policy",
+        "## Naming And Retention",
+        ".glassbox/evidence/<changeset-id>/browser/",
+        ".glassbox/evidence/<changeset-id>/dashboard/",
+        ".glassbox/evidence/<changeset-id>/accessibility/",
+        "## Reviewer-Safe Language",
+        "## Non-Claims",
+        "Live review evidence is not deterministic release authority",
+        "not accessibility certification",
+        "advisory by default",
+        "deterministic fixture-backed check",
+        "must not override failed, missing, or stale deterministic checks",
+        "the application is WCAG compliant",
+        "files were staged, committed, pushed, published, merged, or deployed",
+    ):
+        assert required_text in content
+
+    assert "docs/browser-accessibility-evidence.md" in root_readme
+    assert "browser-accessibility-evidence.md" in docs_readme
+
+
 def test_v12_change_lifecycle_audit_covers_current_boundaries() -> None:
     content = (REPO_ROOT / "docs" / "v12-change-lifecycle-audit.md").read_text(
         encoding="utf-8"

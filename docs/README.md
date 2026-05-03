@@ -187,6 +187,10 @@ release candidate.
 - [manual-evidence.md](./manual-evidence.md): define the v13 manual evidence
   attachment contract, supported evidence kinds, source labels, redaction,
   size, freshness, local-only, and non-claim rules
+- [browser-accessibility-evidence.md](./browser-accessibility-evidence.md):
+  define the v13 live dashboard, browser, screenshot, keyboard, responsive
+  layout, and accessibility-pairing evidence protocol with advisory posture,
+  local-only retention, and bounded non-claims
 - [commit-readiness.md](./commit-readiness.md): understand the v12 read-only
   advisory model for staged changes, dirty worktree ambiguity, verification,
   review brief freshness, provenance, path-risk cues, and accepted risk before
