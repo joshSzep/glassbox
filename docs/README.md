@@ -37,6 +37,10 @@ release candidate.
   of v12 changeset creation, review briefs, verification readiness, commit
   preparation, manual command evidence, branch-candidate adoption, topology,
   dashboard review, TUI entry points, and exports against v13 review-loop needs
+- [v13-review-loop-ux-audit.md](./v13-review-loop-ux-audit.md): v13 UX audit
+  choosing `/review` as the primary in-session review-loop command, with
+  build-order notes for TUI, plain interactive mode, dashboard handoff, and
+  docs
 - [v12-change-lifecycle-audit.md](./v12-change-lifecycle-audit.md):
   source-linked audit of current diff, branch-search, checkpoint,
   verification, handoff, artifact, command, dashboard, export, and redaction
@@ -194,6 +198,9 @@ release candidate.
 - [publication-boundary.md](./publication-boundary.md): define the v13
   advisory handoff and publication boundary between review-loop evidence,
   commit preparation, and final operator-controlled actions
+- [v13-review-loop-ux-audit.md](./v13-review-loop-ux-audit.md): choose the
+  v13 in-session `/review` vocabulary and command-palette/dashboard build
+  order before implementing integrated changeset UX
 - [commit-readiness.md](./commit-readiness.md): understand the v12 read-only
   advisory model for staged changes, dirty worktree ambiguity, verification,
   review brief freshness, provenance, path-risk cues, and accepted risk before
@@ -254,6 +261,9 @@ release candidate.
 - [v13-review-loop-audit.md](./v13-review-loop-audit.md): source-linked v13
   audit separating v12 reviewable-change evidence from review-loop feedback,
   response, manual evidence, live evidence, lifecycle, and handoff gaps
+- [v13-review-loop-ux-audit.md](./v13-review-loop-ux-audit.md): source-linked
+  v13 UX audit for terminal chat, plain interactive mode, command palette,
+  dashboard review actions, and `/review` vocabulary
 - [v11-release-candidate.md](./v11-release-candidate.md): release-candidate
   narrative tying the v11 contract, gate, dogfooding, package, provider,
   accessibility, live cockpit, and residual-risk evidence together

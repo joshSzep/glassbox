@@ -127,6 +127,7 @@ Start here based on what you need:
 - [docs/v11-confidence-adoption-contract.md](docs/v11-confidence-adoption-contract.md)
 - [docs/v12-reviewable-change-contract.md](docs/v12-reviewable-change-contract.md)
 - [docs/v13-review-loop-contract.md](docs/v13-review-loop-contract.md)
+- [docs/v13-review-loop-ux-audit.md](docs/v13-review-loop-ux-audit.md)
 - [docs/review-feedback.md](docs/review-feedback.md)
 - [docs/review-responses.md](docs/review-responses.md)
 - [docs/manual-evidence.md](docs/manual-evidence.md)

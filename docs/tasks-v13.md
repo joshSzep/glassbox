@@ -1264,7 +1264,7 @@ Completed in this changeset:
 
 ### GBX-1380: Audit Review-Loop UX After Dogfooding
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1372`
 - Goal: rethink changeset and review-loop UX after the underlying v13 features
   exist
@@ -1288,6 +1288,25 @@ Completed in this changeset:
 - Done when:
   - the UX work has an evidence-backed target instead of a prematurely chosen
     command name
+
+Completed in this slice:
+
+- Added `docs/v13-review-loop-ux-audit.md`, a source-linked audit of terminal
+  chat, plain interactive mode, command-palette actions, dashboard changeset
+  surfaces, review feedback, manual evidence, lifecycle briefs, handoff
+  readiness, and commit-preparation posture after the v13 review-loop model
+  landed through `GBX-1372`.
+- Chose `/review` as the primary in-session slash command, with `/changeset`
+  retained as a compatibility alias and lower-level `glassbox changeset ...`
+  commands preserved as the scriptable surface.
+- Defined the recommended review-loop command vocabulary, command-palette
+  titles, disabled-state language, dashboard quick-action boundaries, and
+  build order for `GBX-1381` and `GBX-1382`.
+- Reaffirmed that integrated UX shortcuts may inspect state or record explicit
+  local evidence, but must not auto-run checks, stage, commit, push, open pull
+  requests, merge, deploy, publish, or imply reviewer approval.
+- Linked the audit from the docs hub and root README, and added focused docs
+  guardrails for the chosen vocabulary and non-goals.
 
 ### GBX-1381: Add TUI Slash Commands And Command-Palette Review Actions
 

@@ -550,6 +550,45 @@ def test_v13_review_loop_audit_covers_current_boundaries() -> None:
     assert "v13-review-loop-audit.md" in docs_readme
 
 
+def test_v13_review_loop_ux_audit_chooses_review_command_shape() -> None:
+    content = (REPO_ROOT / "docs" / "v13-review-loop-ux-audit.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Summary",
+        "## Evidence Sources",
+        "## Surface Findings",
+        "## Command Vocabulary Decision",
+        "## Build Order",
+        "## Non-Goals",
+        "## GBX-1381 Target",
+        "Use `/review` as the primary slash command.",
+        "`/changeset` should remain a compatibility alias",
+        "Review: Create Changeset",
+        "Review: Generate Lifecycle Brief",
+        "Review: Preview Verification",
+        "Review: Inspect Handoff",
+        "src/glassbox/cli/tui/commands.py",
+        "src/glassbox/cli/interactive_session.py",
+        "frontend/components/console/changeset-console.tsx",
+        "auto-run verification commands",
+        "auto-stage files",
+        "auto-commit",
+        "auto-push",
+        "auto-open pull requests",
+        "auto-merge branches",
+        "imply reviewer approval",
+        "current-session defaulting for changeset creation",
+    ):
+        assert required_text in content
+
+    assert "docs/v13-review-loop-ux-audit.md" in root_readme
+    assert "v13-review-loop-ux-audit.md" in docs_readme
+
+
 def test_v13_review_brief_lifecycle_contract_covers_non_claims() -> None:
     content = (REPO_ROOT / "docs" / "review-briefs.md").read_text(encoding="utf-8")
 
