@@ -541,7 +541,7 @@ shortcuts are shaped by the review-loop features that precede them.
 
 ### GBX-1320: Define Review Response And Fixup Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1312`
 - Goal: define how Glassbox links workspace edits and verification changes to
   review feedback without claiming ownership of every manual edit

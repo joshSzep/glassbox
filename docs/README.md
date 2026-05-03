@@ -181,6 +181,9 @@ release candidate.
 - [review-feedback.md](./review-feedback.md): record and inspect v13 local
   review feedback, requested changes, reviewer questions, accepted risks,
   feedback scopes, CLI/API mutations, dashboard read surfaces, and non-claims
+- [review-responses.md](./review-responses.md): define the v13 review response
+  and fixup contract, lifecycle states, source model, stale-verification
+  rules, eval fixture shape, and response non-claims
 - [commit-readiness.md](./commit-readiness.md): understand the v12 read-only
   advisory model for staged changes, dirty worktree ambiguity, verification,
   review brief freshness, provenance, path-risk cues, and accepted risk before

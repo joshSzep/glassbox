@@ -1,0 +1,174 @@
+# Review Responses And Fixups
+
+Review responses are local evidence that explains how an operator handled
+review feedback. A response can cite workspace edits, task work, verification,
+manual notes, branch candidates, worktrees, or accepted risk, but it does not
+prove that a reviewer accepted the answer.
+
+This contract defines the v13 response and fixup model before implementation
+adds response-linked inventory deltas and dashboard mutation flows.
+
+## Lifecycle States
+
+Use these states for response evidence and dashboard copy:
+
+- `planned`: the operator intends to respond, but no fixup or answer evidence
+  is attached yet
+- `in_progress`: response work has started and may cite a session turn, task
+  step, branch candidate, worktree, manual edit, or operator note
+- `responded`: response evidence exists, but Glassbox is not claiming local
+  resolution or reviewer acceptance
+- `resolved`: the operator marks the feedback resolved locally with retained
+  response evidence
+- `reopened`: newer evidence, reviewer input, workspace edits, or stale
+  verification made the previous response insufficient
+- `blocked`: the operator cannot respond yet because required evidence,
+  context, permission, dependency, or verification is missing
+- `accepted-with-risk`: the operator records an explicit residual-risk path
+  instead of claiming the feedback was fully fixed
+- `not-applicable`: the feedback no longer applies because the scoped change,
+  file, candidate, task, or requirement was superseded
+
+These states are evidence posture. They are not remote review states, not pull
+request review decisions, and not approval.
+
+## Fixup Source Model
+
+A response may cite one or more fixup sources. Each source should name
+provenance, scope, and limitations without retaining raw diffs unless a later
+task deliberately extends the redacted artifact contract.
+
+| Source | What it can prove | Required boundaries |
+| --- | --- | --- |
+| Session turn | A Glassbox turn produced an answer, edit, command, or artifact. | Cite turn ID and summary; do not imply every workspace edit came from that turn. |
+| Task step | A planned task step was completed, blocked, or changed. | Cite task and step state; task progress is not a full review response by itself. |
+| Manual workspace edit | The operator says local files changed outside retained tool instrumentation. | Label as manual; require refreshed inventory before treating verification as current. |
+| Branch-search candidate | A selected or rejected candidate contributed comparison or fixup evidence. | Preserve candidate non-merge boundaries; adoption does not merge, commit, push, or open a PR. |
+| Worktree | A temporary local worktree contained isolated fixup work or evidence. | Record custody and cleanup posture; do not imply parent workspace mutation unless recorded separately. |
+| Operator note | The operator supplied context, rationale, or decision text. | Say "operator says" unless corroborated by retained command, inventory, artifact, or verification evidence. |
+| Verification record | A retained task verification or eval supports the response. | Name freshness, command, artifact, and whether the check is stale, failed, skipped, or accepted with risk. |
+| Manual evidence | External command output, screenshot, observation, sanitized log, or reviewer note supports the response. | Label as manual or external; never backfill it as Glassbox-run command evidence. |
+
+Response summaries should use provenance-aware language:
+
+- "evidence indicates" when retained Glassbox evidence supports the statement
+- "operator says" when the source is manual, external, or not directly
+  instrumented
+- "response cites" when the record links to evidence without proving the
+  underlying claim
+- "resolved locally" only when a retained local disposition supports it
+- "accepted with risk" only when the operator records residual risk and reason
+
+Avoid these claims:
+
+- "review approved"
+- "reviewer accepted"
+- "PR requested changes resolved"
+- "verified" without fresh retained verification evidence
+- "fixed" when only an operator note or manual observation exists
+
+## Inventory And Delta Rules
+
+GBX-1321 will attach response-linked inventory deltas. Until then, the
+contract for those deltas is:
+
+- use the existing changeset inventory artifact as the baseline where possible
+- record response-linked inventory as bounded path summaries, not raw diff
+  bodies
+- separate code, tests, docs, generated files, config, lockfiles, and
+  policy-sensitive paths in summaries
+- keep file-level links between feedback scopes, changed paths, inventory
+  artifact IDs, and freshness state
+- mark generated outputs and lockfiles explicitly so reviewers can inspect
+  source changes first
+- preserve redaction rules for paths, artifacts, provider output, local state,
+  and logs
+
+A response-linked inventory delta can support "what changed after feedback."
+It cannot prove why every change was made unless source evidence links each
+path to a turn, task step, manual note, candidate, worktree, or artifact.
+
+## Stale Verification Rules
+
+Verification becomes stale for a response when any of these are true:
+
+- response-linked inventory changes after the latest retained verification
+  sequence
+- the current workspace digest differs from the inventory digest cited by the
+  response
+- a feedback scope touches a path not covered by the retained verification
+  plan
+- a manual workspace edit is cited without a subsequent inventory refresh
+- a generated output or lockfile changes after the verification evidence
+- a failed or skipped check remains attached to the scoped feedback
+- the operator accepts risk instead of rerunning a relevant check
+
+When verification is stale, Glassbox surfaces safe inspection before mutation:
+
+```bash
+glassbox changeset feedback show FEEDBACK_ID --cwd .
+glassbox changeset show CHANGESET_ID --cwd .
+glassbox changeset verification-plan CHANGESET_ID --cwd .
+```
+
+Glassbox should recommend verification commands only as inspection or local
+checks. It should not recommend publish, deploy, push, upload, merge, or
+release commands as response verification.
+
+## Response Records And Feedback Dispositions
+
+Feedback dispositions from [review-feedback.md](./review-feedback.md) remain
+the current implemented surface. Response records will extend that model:
+
+- feedback `open` pairs naturally with response `planned`, `in_progress`, or
+  `blocked`
+- feedback `responded` should cite response evidence but avoid local
+  resolution claims
+- feedback `resolved_locally` should cite the response, inventory, and
+  verification posture that support local resolution
+- feedback `accepted_with_risk` should cite residual risk and the reason the
+  operator chose not to fully fix or verify the item
+- feedback `archived` should cite replacement feedback or not-applicable
+  response evidence when available
+
+If response state and feedback disposition disagree, surfaces should show the
+more cautious posture. For example, a resolved feedback item with stale
+response verification should surface as needing inspection before handoff.
+
+## Fixture Design For Evals
+
+The v13 response lifecycle eval fixtures should cover compact deterministic
+cases rather than live review systems:
+
+- requested change with response-linked inventory and fresh verification
+- reviewer question answered with retained artifact evidence but no reviewer
+  acceptance claim
+- manual workspace edit that makes previously passing verification stale
+- branch-search candidate response that preserves non-merge boundaries
+- worktree-sourced fixup with cleanup posture and parent workspace limitation
+- accepted-with-risk response that keeps blockers and non-claims visible
+- reopened feedback after a later inventory refresh changes scoped paths
+- not-applicable response after a scoped file or candidate is superseded
+
+Each fixture should assert:
+
+- response state and feedback disposition are distinct fields
+- summaries include provenance-aware language
+- stale verification is explained with safe next inspection commands
+- manual evidence is labeled manual
+- lifecycle briefs and exports do not claim approval, commit, push, PR, merge,
+  deploy, or publication
+
+## Non-Claims
+
+Review responses do not mean:
+
+- a reviewer saw the response
+- a reviewer accepted the response
+- a pull request is approved
+- verification is current unless fresh retained evidence says so
+- all manual edits were captured by Glassbox
+- the changeset is committed, pushed, merged, deployed, or published
+
+Glassbox can prepare evidence. Final operator action remains explicit and
+outside the response evidence model.

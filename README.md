@@ -128,6 +128,7 @@ Start here based on what you need:
 - [docs/v12-reviewable-change-contract.md](docs/v12-reviewable-change-contract.md)
 - [docs/v13-review-loop-contract.md](docs/v13-review-loop-contract.md)
 - [docs/review-feedback.md](docs/review-feedback.md)
+- [docs/review-responses.md](docs/review-responses.md)
 - [docs/v12-release-gate.md](docs/v12-release-gate.md)
 - [docs/v12-dogfooding-summary.md](docs/v12-dogfooding-summary.md)
 - [docs/v12-release-candidate.md](docs/v12-release-candidate.md)
