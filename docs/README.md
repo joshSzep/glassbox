@@ -10,8 +10,9 @@ Glassbox has two documentation layers:
 Use this page by audience. Start with the current `0.10.0` package line and
 v10 long-running-task model for the product story, then follow the daily
 workflow guides before diving into release evidence or milestone history. The
-v12 reviewable-change contract is the active implementation track after the
-v11 confidence and adoption release candidate.
+v12 reviewable-change contract is the current implemented review lifecycle, and
+the v13 task graph scopes the next review-loop planning track after the v12
+release candidate.
 
 ## Start Here
 
@@ -73,6 +74,10 @@ v11 confidence and adoption release candidate.
 - [v12-release-candidate.md](./v12-release-candidate.md): v12
   release-candidate guide for the supported reviewable-change operating model,
   validation path, evidence expectations, residual risks, and decision
+- [tasks-v13.md](./tasks-v13.md): v13 review-loop task graph for local review
+  feedback, fixups, manual evidence, browser/accessibility evidence, lifecycle
+  briefs, publication boundaries, integrated changeset UX, evals, dogfooding,
+  and release signoff
 - [v11-dogfooding-summary.md](./v11-dogfooding-summary.md): sanitized v11
   dogfooding findings for release recommendations, compaction guidance, live
   cockpit evidence, branch-search review, and candidate follow-ups
@@ -430,6 +435,10 @@ but they are not the first-run operator path.
 - [tasks-v11.md](./tasks-v11.md): v11 confidence, adoption, residual-risk
   closure, verification recommendations, live cockpit evidence, provider,
   knowledge posture, branch-search, handoff, package, and release task graph
+- [tasks-v13.md](./tasks-v13.md): v13 review-loop task graph for local review
+  feedback, fixups, manual evidence, browser/accessibility evidence, lifecycle
+  briefs, publication boundaries, integrated changeset UX, evals, dogfooding,
+  and release signoff
 - [tasks-v12.md](./tasks-v12.md): v12 reviewable-change lifecycle task graph
   for changesets, inventories, review briefs, commit readiness, worktree
   isolation, topology, command evidence, evals, dogfooding, and release signoff

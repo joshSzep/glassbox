@@ -88,10 +88,12 @@ Glassbox team workflows remain local-first. A foreground `session chat` process 
 ## Current Baseline
 
 The current package line is `0.10.0`. It publishes the v10 long-running-task
-operating model and the v11 confidence-and-adoption milestone. The active v12
+operating model and the v11 confidence-and-adoption milestone. The v12
 implementation track evolves that baseline into reviewable local changesets
 with evidence-backed review briefs, verification readiness, commit readiness,
-worktree isolation, topology, and command evidence.
+worktree isolation, topology, and command evidence. The v13 task graph now
+scopes the next review-loop planning track for local feedback, fixups, manual
+evidence, lifecycle briefs, publication boundaries, and integrated changeset UX.
 
 Start with
 [docs/v10-long-running-task-contract.md](docs/v10-long-running-task-contract.md)
@@ -108,6 +110,8 @@ with the v11 release-candidate guide in
 [docs/v11-release-candidate.md](docs/v11-release-candidate.md). Active v12
 scope is defined in
 [docs/v12-reviewable-change-contract.md](docs/v12-reviewable-change-contract.md).
+The v13 planning task graph is in
+[docs/tasks-v13.md](docs/tasks-v13.md).
 
 ## Documentation
 
@@ -153,8 +157,9 @@ Release evidence and milestone history remain available when you need them:
 - [docs/v7-release-candidate.md](docs/v7-release-candidate.md)
 - [docs/v6-release-candidate.md](docs/v6-release-candidate.md)
 - [docs/v2-release-candidate.md](docs/v2-release-candidate.md)
-- [docs/tasks-v10.md](docs/tasks-v10.md)
+- [docs/tasks-v13.md](docs/tasks-v13.md)
 - [docs/tasks-v12.md](docs/tasks-v12.md)
+- [docs/tasks-v10.md](docs/tasks-v10.md)
 - [docs/tasks-v9.md](docs/tasks-v9.md)
 - [docs/tasks-v8.md](docs/tasks-v8.md)
 - [docs/tasks-v7.md](docs/tasks-v7.md)
