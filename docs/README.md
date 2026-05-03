@@ -45,6 +45,10 @@ release candidate.
   command for inherited v12 checks plus review-loop evals, in-session command
   coverage, package contents, installed smoke, and advisory
   provider/browser/accessibility evidence
+- [v13-dogfooding-summary.md](./v13-dogfooding-summary.md): sanitized
+  `GBX-1392` dogfooding findings for local review feedback, manual evidence,
+  advisory browser/accessibility evidence, lifecycle briefs, handoff readiness,
+  stale verification, and in-session review-loop UX
 - [v12-change-lifecycle-audit.md](./v12-change-lifecycle-audit.md):
   source-linked audit of current diff, branch-search, checkpoint,
   verification, handoff, artifact, command, dashboard, export, and redaction
@@ -87,6 +91,10 @@ release candidate.
   command for inherited v12 checks plus review-loop evals, in-session command
   coverage, package contents, installed smoke, and advisory
   provider/browser/accessibility evidence
+- [v13-dogfooding-summary.md](./v13-dogfooding-summary.md): sanitized v13
+  dogfooding findings for review feedback, fixup responses, manual evidence,
+  browser/dashboard evidence, lifecycle briefs, stale verification, handoff
+  readiness, and in-session changeset UX
 - [v12-dogfooding-summary.md](./v12-dogfooding-summary.md): sanitized v12
   dogfooding findings for changeset creation, review briefs, verification
   readiness, commit preparation, branch-candidate adoption, topology
@@ -275,6 +283,8 @@ release candidate.
 - [v13-release-gate.md](./v13-release-gate.md): automated v13 release evidence
   command, inherited v12 stage map, review-loop eval stages, retained summary
   shape, advisory evidence policy, and pass/fail rules
+- [v13-dogfooding-summary.md](./v13-dogfooding-summary.md): sanitized v13
+  dogfooding evidence and friction findings from local review-loop use
 - [v11-release-candidate.md](./v11-release-candidate.md): release-candidate
   narrative tying the v11 contract, gate, dogfooding, package, provider,
   accessibility, live cockpit, and residual-risk evidence together

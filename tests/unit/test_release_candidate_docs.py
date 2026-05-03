@@ -843,6 +843,39 @@ def test_v13_release_gate_documents_review_loop_evidence() -> None:
     assert "v13-release-gate.md" in docs_readme
 
 
+def test_v13_dogfooding_summary_records_review_loop_passes() -> None:
+    content = (REPO_ROOT / "docs" / "v13-dogfooding-summary.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Passes",
+        "## Findings",
+        "## Disposition",
+        ".glassbox/releases/gbx-1392-dogfooding/",
+        "Dogfooding session seed",
+        "Review feedback creation",
+        "Manual evidence redaction",
+        "Dashboard advisory evidence",
+        "Accessibility advisory evidence",
+        "Lifecycle brief generation",
+        "Handoff readiness",
+        "Feedback response",
+        "Docs-only validation",
+        "dogfood:local",
+        "absolute-path",
+        "response-linked fixup inventory",
+        "artifact schema cap of 20 items",
+        "no staging, commit, push, pull request, merge, deploy, or publication",
+    ):
+        assert required_text in content
+
+    assert "docs/v13-dogfooding-summary.md" in root_readme
+    assert "v13-dogfooding-summary.md" in docs_readme
+
+
 def test_v12_dogfooding_summary_records_real_reviewable_change_passes() -> None:
     content = (REPO_ROOT / "docs" / "v12-dogfooding-summary.md").read_text(
         encoding="utf-8"

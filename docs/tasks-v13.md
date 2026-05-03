@@ -1507,7 +1507,7 @@ Completed slice:
 
 ### GBX-1392: Run V13 Dogfooding Passes
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1391`
 - Goal: use the v13 review-loop workflows on ordinary local work before release
   signoff
@@ -1529,6 +1529,23 @@ Completed slice:
 - Done when:
   - dogfooding findings are classified as fixes, docs, tests/evals, accepted
     risks, or post-v13 follow-ups
+- Completed slice:
+  - Added `docs/v13-dogfooding-summary.md` with retained local evidence
+    location, sanitized pass results, review-loop findings, bounded
+    non-claims, and follow-up dispositions.
+  - Exercised retained local review feedback, manual evidence redaction,
+    advisory browser/dashboard evidence, advisory accessibility evidence,
+    verification preview, lifecycle brief generation, handoff readiness,
+    feedback response tracking, in-session review command coverage, and the
+    v13 release-gate dry-run path.
+  - Recorded product-area friction for stale provider-prefix recipes, skipped
+    dashboard viewport capture, lifecycle-brief limitation overflow,
+    response-linked fixup inventory, and advisory live browser/accessibility
+    gaps without expanding the implementation scope during dogfooding.
+  - Linked the summary from root and docs indexes and added it to package
+    content validation.
+  - Verified with focused release-doc and packaging tests plus the review-loop
+    command coverage run captured in the dogfooding summary.
 
 ### GBX-1393: Publish V13 Release-Candidate Guide
 
