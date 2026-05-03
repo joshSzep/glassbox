@@ -1006,6 +1006,12 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
             "frontend/components/console/changeset-console.tsx: matches feedback scope",
           ],
           response_state: "responded",
+          verification_reason: "verification ledger was not available for this response surface",
+          verification_requirement_ids: [],
+          verification_safe_next_actions: [
+            `glassbox changeset verification-plan ${changeset.changeset_id} --cwd .`,
+          ],
+          verification_state: "not_applicable",
           safe_next_actions: [
             "glassbox changeset feedback show feedback-1 --cwd .",
             `glassbox changeset show ${changeset.changeset_id} --cwd .`,

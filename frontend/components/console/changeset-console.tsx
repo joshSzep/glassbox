@@ -667,6 +667,15 @@ function ReviewFeedbackPanel({ detail }: { detail: NonNullable<ChangesetDetailSt
                         Freshness {response.inventory_freshness}
                         {response.stale_reason ? ` - ${response.stale_reason}` : ""}
                       </DataListMeta>
+                      <DataListMeta>
+                        Verification {response.verification_state}
+                        {response.verification_reason ? ` - ${response.verification_reason}` : ""}
+                      </DataListMeta>
+                      {response.verification_safe_next_actions.slice(0, 1).map((action) => (
+                        <DataListMeta className="break-all" key={action}>
+                          {action}
+                        </DataListMeta>
+                      ))}
                       {response.path_summaries.slice(0, 2).map((summary) => (
                         <DataListMeta key={summary}>{summary}</DataListMeta>
                       ))}

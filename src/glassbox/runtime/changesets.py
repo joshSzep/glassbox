@@ -857,11 +857,21 @@ class ChangesetQueryService:
             if workspace_root is not None and inventories
             else None
         )
+        changeset = self._repository.get_changeset(feedback.changeset_id)
+        task_ledger = (
+            self._repository.list_task_verification_ledger(
+                changeset.session_id,
+                changeset.task_id,
+            )
+            if changeset is not None and changeset.task_id is not None
+            else None
+        )
         return review_feedback_response_status(
             feedback=feedback,
             inventories=inventories,
             paths=paths,
             freshness_status=freshness,
+            task_ledger=task_ledger,
         )
 
     def get_review_response_summary(
@@ -979,6 +989,14 @@ def _review_response_summary(
     )
     statuses: list[ReviewFeedbackResponseStatus] = []
     freshness_service = ReviewFeedbackFixupInventoryService(repository)
+    task_ledger = (
+        repository.list_task_verification_ledger(
+            changeset.session_id,
+            changeset.task_id,
+        )
+        if changeset.task_id is not None
+        else None
+    )
     for item in feedback_items:
         inventories = repository.list_review_feedback_fixup_inventories(
             item.session_id,
@@ -1004,6 +1022,7 @@ def _review_response_summary(
                 inventories=inventories,
                 paths=paths,
                 freshness_status=freshness,
+                task_ledger=task_ledger,
             )
         )
     return changeset_review_response_summary(

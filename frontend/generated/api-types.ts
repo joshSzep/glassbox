@@ -4415,6 +4415,14 @@ export interface components {
       stale_reason?: string | null;
       /** Summary */
       summary: string;
+      /** Verification Reason */
+      verification_reason?: string | null;
+      /** Verification Requirement Ids */
+      verification_requirement_ids: string[];
+      /** Verification Safe Next Actions */
+      verification_safe_next_actions: string[];
+      /** Verification State */
+      verification_state: string;
     };
     /** ReviewFeedbackScopeResponse */
     ReviewFeedbackScopeResponse: {

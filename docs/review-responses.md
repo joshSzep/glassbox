@@ -112,6 +112,12 @@ define that relationship.
 
 ## Stale Verification Rules
 
+Each response status now includes a response-level verification state:
+`passed`, `stale`, `missing`, `failed`, `skipped`, `accepted_with_risk`,
+`planned`, `running`, or `not_applicable`. Glassbox derives that state from the
+latest response-linked fixup inventory, current inventory freshness, and the
+task verification ledger when the changeset is task-backed.
+
 Verification becomes stale for a response when any of these are true:
 
 - response-linked inventory changes after the latest retained verification
@@ -125,6 +131,10 @@ Verification becomes stale for a response when any of these are true:
 - a failed or skipped check remains attached to the scoped feedback
 - the operator accepts risk instead of rerunning a relevant check
 
+When path mapping is unavailable, Glassbox marks response verification as
+missing or not applicable instead of inventing staleness. The response row says
+which mapping is absent and points back to the changeset verification plan.
+
 When verification is stale, Glassbox surfaces safe inspection before mutation:
 
 ```bash
@@ -133,9 +143,11 @@ glassbox changeset show CHANGESET_ID --cwd .
 glassbox changeset verification-plan CHANGESET_ID --cwd .
 ```
 
-Glassbox should recommend verification commands only as inspection or local
-checks. It should not recommend publish, deploy, push, upload, merge, or
-release commands as response verification.
+When a retained check is known and stale, the response row names the exact
+local check to rerun and why, for example that the check predates
+response-linked fixups. Glassbox should recommend verification commands only as
+inspection or local checks. It should not recommend publish, deploy, push,
+upload, merge, or release commands as response verification.
 
 ## Response Records And Feedback Dispositions
 

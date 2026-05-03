@@ -236,6 +236,10 @@ class ReviewFeedbackResponseStatusResponse(BaseModel):
     changed_path_count: int
     matched_scope_path_count: int
     path_summaries: list[str]
+    verification_state: str
+    verification_reason: str | None = None
+    verification_requirement_ids: list[str]
+    verification_safe_next_actions: list[str]
     blockers: list[str]
     safe_next_actions: list[str]
     non_claims: list[str]
@@ -1279,6 +1283,10 @@ def build_review_feedback_response_status_response(
         changed_path_count=status.changed_path_count,
         matched_scope_path_count=status.matched_scope_path_count,
         path_summaries=status.path_summaries,
+        verification_state=status.verification_state.value,
+        verification_reason=status.verification_reason,
+        verification_requirement_ids=status.verification_requirement_ids,
+        verification_safe_next_actions=status.verification_safe_next_actions,
         blockers=status.blockers,
         safe_next_actions=status.safe_next_actions,
         non_claims=status.non_claims,

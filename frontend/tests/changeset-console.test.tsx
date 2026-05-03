@@ -63,6 +63,8 @@ describe("changeset console", () => {
     expect(markup).toContain("1 responded");
     expect(markup).toContain("1 stale responses");
     expect(markup).toContain("Response planned");
+    expect(markup).toContain("Verification stale");
+    expect(markup).toContain("predates response-linked fixups");
     expect(markup).toContain("app.py: matches feedback scope");
     expect(markup).toContain("Review feedback is local evidence, not approval.");
     expect(markup).toContain("Brief Artifacts");
@@ -438,6 +440,12 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
           non_claims: ["review response status is local evidence, not reviewer acceptance"],
           path_summaries: [],
           response_state: "planned",
+          verification_reason: "feedback has no response-linked fixup inventory to verify",
+          verification_requirement_ids: [],
+          verification_safe_next_actions: [
+            `glassbox changeset verification-plan ${changeset.changeset_id} --cwd .`,
+          ],
+          verification_state: "missing",
           safe_next_actions: [
             "glassbox changeset feedback show feedback-1 --cwd .",
             `glassbox changeset show ${changeset.changeset_id} --cwd .`,
@@ -463,6 +471,13 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
           non_claims: ["review response status is local evidence, not reviewer acceptance"],
           path_summaries: ["app.py: matches feedback scope"],
           response_state: "blocked",
+          verification_reason:
+            "focused response check passed before response-linked fixup inventory changed overlapping paths",
+          verification_requirement_ids: ["verification-1", "fixup-inventory:fixup-artifact-1"],
+          verification_safe_next_actions: [
+            "rerun uv run pytest tests/test_app.py because focused response check predates response-linked fixups",
+          ],
+          verification_state: "stale",
           safe_next_actions: [
             "glassbox changeset feedback show feedback-2 --cwd .",
             `glassbox changeset show ${changeset.changeset_id} --cwd .`,
@@ -488,6 +503,10 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
           non_claims: ["review response status is local evidence, not reviewer acceptance"],
           path_summaries: [],
           response_state: "accepted_with_risk",
+          verification_reason: "feedback response is accepted with local risk",
+          verification_requirement_ids: [],
+          verification_safe_next_actions: ["glassbox changeset feedback show feedback-3 --cwd ."],
+          verification_state: "accepted_with_risk",
           safe_next_actions: [
             "glassbox changeset feedback show feedback-3 --cwd .",
             `glassbox changeset show ${changeset.changeset_id} --cwd .`,

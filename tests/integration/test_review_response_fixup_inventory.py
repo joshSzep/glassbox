@@ -12,8 +12,15 @@ from glassbox.core import SessionStarted
 from glassbox.core import TaskCreated
 from glassbox.core import TaskPlanStatus
 from glassbox.core import TaskStatusChanged
+from glassbox.core import TaskVerificationCompleted
+from glassbox.core import TaskVerificationPlanned
+from glassbox.core import TaskVerificationStatus
+from glassbox.core import VerificationCheckKind
+from glassbox.core import VerificationPlanEntry
+from glassbox.core import VerificationPlanSource
 from glassbox.core import new_session_id
 from glassbox.core import new_task_id
+from glassbox.core import new_task_verification_id
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.changesets import ChangesetActionService
 from glassbox.runtime.changesets import ChangesetDerivationService
@@ -95,6 +102,37 @@ def test_fixup_inventory_links_feedback_paths_and_detects_drift(
             )
             .feedback
         )
+        verification_id = new_task_verification_id()
+        repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskVerificationPlanned(
+                        task_id=task_id,
+                        verification=VerificationPlanEntry(
+                            verification_id=verification_id,
+                            check_name="focused app verification",
+                            kind=VerificationCheckKind.COMMAND,
+                            command=["uv", "run", "pytest", "tests/test_app.py"],
+                            source=VerificationPlanSource.EVAL_RECOMMENDATION,
+                            rationale="operator ran focused app verification",
+                            changed_paths=[Path("app.py")],
+                        ),
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskVerificationCompleted(
+                        task_id=task_id,
+                        verification_id=verification_id,
+                        status=TaskVerificationStatus.PASSED,
+                        summary="focused app verification passed before fixup",
+                    ),
+                ),
+            ]
+        )
         (tmp_path / "app.py").write_text(
             "print('changed after feedback')\n",
             encoding="utf-8",
@@ -154,8 +192,18 @@ def test_fixup_inventory_links_feedback_paths_and_detects_drift(
     assert {path.path for path in paths} == {"app.py", "tests/test_app.py"}
     assert any(path.matches_feedback_scope for path in paths if path.path == "app.py")
     assert any(path.test_file for path in paths if path.path == "tests/test_app.py")
-    assert fresh_summary.responded_count == 1
-    assert fresh_summary.items[0].response_state.value == "responded"
+    assert fresh_summary.responded_count == 0
+    assert fresh_summary.stale_response_count == 1
+    assert fresh_summary.blocked_count == 1
+    assert fresh_summary.items[0].response_state.value == "blocked"
+    assert fresh_summary.items[0].verification_state.value == "stale"
+    assert "passed before response-linked fixup" in (
+        fresh_summary.items[0].verification_reason or ""
+    )
+    assert (
+        "rerun uv run pytest"
+        in (fresh_summary.items[0].verification_safe_next_actions[0])
+    )
     assert fresh_summary.items[0].path_summaries[0].startswith("app.py:")
     assert stale_status.stale is True
     assert "source digest changed" in (stale_status.reason or "")

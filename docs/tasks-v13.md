@@ -914,7 +914,7 @@ Completed in this slice:
 
 ### GBX-1351: Detect Stale Verification After Review Fixups
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1321`, `GBX-1350`
 - Goal: make verification readiness degrade when response-linked changes
   invalidate retained checks
@@ -935,6 +935,21 @@ Completed in this slice:
 - Done when:
   - Glassbox can explain which review responses need fresh verification before
     handoff
+
+Completed in this slice:
+
+- Added response-level verification state to review response status rows,
+  distinguishing passed, stale, missing, failed, skipped, accepted-with-risk,
+  planned/running, and not-applicable evidence.
+- Compared response-linked fixup paths against task verification ledger entries
+  by sequence and path overlap, marking passed checks stale when they predate
+  later fixup inventory and naming the exact local check to rerun.
+- Kept missing path mapping conservative: responses with no mappable fixup
+  paths become missing/not-applicable instead of invented stale evidence.
+- Threaded the new fields through changeset query services, FastAPI responses,
+  regenerated OpenAPI/frontend API types, and dashboard review-feedback rows.
+- Updated review-response docs plus unit, integration, OpenAPI, generated-type,
+  and dashboard tests for stale-after-fixup and safe next-action behavior.
 
 ### GBX-1352: Add Review-Loop Verification Recommendation Summaries
 

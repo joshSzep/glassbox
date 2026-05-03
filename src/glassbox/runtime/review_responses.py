@@ -12,6 +12,7 @@ from pydantic import Field
 from glassbox.core import ArtifactId
 from glassbox.core import ChangesetId
 from glassbox.core import ChangesetInventoryFreshness
+from glassbox.core import ChangesetVerificationState
 from glassbox.core import ReviewFeedbackDisposition
 from glassbox.core import ReviewFeedbackFixupInventoryRecord
 from glassbox.core import ReviewFeedbackFixupPathRecord
@@ -21,6 +22,8 @@ from glassbox.core import ReviewFeedbackRecord
 from glassbox.core import ReviewFeedbackScopeRecord
 from glassbox.core import ReviewFixupSourceKind
 from glassbox.core import ReviewResponseState
+from glassbox.core import TaskVerificationLedgerRecord
+from glassbox.core import TaskVerificationStatus
 from glassbox.runtime.change_inventory import ChangeInventoryArtifact
 from glassbox.runtime.change_inventory import ChangeInventoryPathEntry
 
@@ -86,6 +89,12 @@ class ReviewFeedbackResponseStatus(BaseModel):
     changed_path_count: int = Field(default=0, ge=0)
     matched_scope_path_count: int = Field(default=0, ge=0)
     path_summaries: list[str] = Field(default_factory=list)
+    verification_state: ChangesetVerificationState = (
+        ChangesetVerificationState.NOT_APPLICABLE
+    )
+    verification_reason: str | None = Field(default=None, max_length=2000)
+    verification_requirement_ids: list[str] = Field(default_factory=list)
+    verification_safe_next_actions: list[str] = Field(default_factory=list)
     blockers: list[str] = Field(default_factory=list)
     safe_next_actions: list[str] = Field(default_factory=list)
     non_claims: list[str] = Field(default_factory=list)
@@ -180,6 +189,7 @@ def review_feedback_response_status(
     inventories: list[ReviewFeedbackFixupInventoryRecord],
     paths: list[ReviewFeedbackFixupPathRecord],
     freshness_status: ReviewFixupInventoryStatus | None = None,
+    task_ledger: list[TaskVerificationLedgerRecord] | None = None,
 ) -> ReviewFeedbackResponseStatus:
     """Derive cautious response status from feedback and latest fixup evidence."""
 
@@ -197,17 +207,36 @@ def review_feedback_response_status(
         status_stale = freshness_status.stale
         status_reason = freshness_status.reason
         status_freshness = freshness_status.freshness
+    verification_state, verification_reason, verification_ids, verification_actions = (
+        _response_verification_state(
+            feedback=feedback,
+            latest=latest,
+            paths=paths,
+            task_ledger=task_ledger,
+            freshness_stale=status_stale,
+            freshness_reason=status_reason,
+        )
+    )
     response_state = _response_state(
         feedback.disposition,
         has_fixup=latest is not None,
         stale=status_stale,
+        verification_state=verification_state,
     )
     blockers = _response_blockers(
         feedback,
         latest=latest,
         stale=status_stale,
         stale_reason=status_reason,
+        verification_state=verification_state,
+        verification_reason=verification_reason,
     )
+    safe_next_actions = [
+        f"glassbox changeset feedback show {feedback.feedback_id} --cwd .",
+        f"glassbox changeset show {feedback.changeset_id} --cwd .",
+        f"glassbox changeset verification-plan {feedback.changeset_id} --cwd .",
+        *verification_actions,
+    ]
     return ReviewFeedbackResponseStatus(
         feedback_id=feedback.feedback_id,
         changeset_id=feedback.changeset_id,
@@ -232,12 +261,12 @@ def review_feedback_response_status(
             latest.matched_scope_path_count if latest is not None else 0
         ),
         path_summaries=[path.summary for path in paths[:8]],
+        verification_state=verification_state,
+        verification_reason=verification_reason,
+        verification_requirement_ids=verification_ids,
+        verification_safe_next_actions=verification_actions,
         blockers=blockers,
-        safe_next_actions=[
-            f"glassbox changeset feedback show {feedback.feedback_id} --cwd .",
-            f"glassbox changeset show {feedback.changeset_id} --cwd .",
-            f"glassbox changeset verification-plan {feedback.changeset_id} --cwd .",
-        ],
+        safe_next_actions=list(dict.fromkeys(safe_next_actions)),
         non_claims=_review_response_non_claims(),
     )
 
@@ -283,7 +312,11 @@ def changeset_review_response_summary(
         unresolved_count=sum(
             1 for item in items if item.response_state in unresolved_states
         ),
-        stale_response_count=sum(1 for item in items if item.stale),
+        stale_response_count=sum(
+            1
+            for item in items
+            if item.stale or item.verification_state == ChangesetVerificationState.STALE
+        ),
         accepted_risk_count=sum(
             1
             for item in items
@@ -360,12 +393,18 @@ def _response_state(
     *,
     has_fixup: bool,
     stale: bool,
+    verification_state: ChangesetVerificationState,
 ) -> ReviewResponseState:
     if disposition == ReviewFeedbackDisposition.ACCEPTED_WITH_RISK:
         return ReviewResponseState.ACCEPTED_WITH_RISK
     if disposition == ReviewFeedbackDisposition.ARCHIVED:
         return ReviewResponseState.NOT_APPLICABLE
     if stale:
+        return ReviewResponseState.BLOCKED
+    if verification_state in {
+        ChangesetVerificationState.STALE,
+        ChangesetVerificationState.FAILED,
+    }:
         return ReviewResponseState.BLOCKED
     if disposition == ReviewFeedbackDisposition.RESOLVED_LOCALLY:
         return (
@@ -388,10 +427,20 @@ def _response_blockers(
     latest: ReviewFeedbackFixupInventoryRecord | None,
     stale: bool,
     stale_reason: str | None,
+    verification_state: ChangesetVerificationState,
+    verification_reason: str | None,
 ) -> list[str]:
     blockers: list[str] = []
     if stale:
         blockers.append(stale_reason or "response-linked fixup inventory is stale")
+    if verification_state in {
+        ChangesetVerificationState.STALE,
+        ChangesetVerificationState.FAILED,
+    }:
+        blockers.append(
+            verification_reason
+            or f"response verification is {verification_state.value}"
+        )
     if latest is None and feedback.disposition in {
         ReviewFeedbackDisposition.RESPONDED,
         ReviewFeedbackDisposition.RESOLVED_LOCALLY,
@@ -402,6 +451,146 @@ def _response_blockers(
     if latest is None and feedback.disposition == ReviewFeedbackDisposition.OPEN:
         blockers.append("feedback has no response-linked fixup inventory yet")
     return blockers
+
+
+def _response_verification_state(
+    *,
+    feedback: ReviewFeedbackRecord,
+    latest: ReviewFeedbackFixupInventoryRecord | None,
+    paths: list[ReviewFeedbackFixupPathRecord],
+    task_ledger: list[TaskVerificationLedgerRecord] | None,
+    freshness_stale: bool,
+    freshness_reason: str | None,
+) -> tuple[ChangesetVerificationState, str | None, list[str], list[str]]:
+    if feedback.disposition == ReviewFeedbackDisposition.ACCEPTED_WITH_RISK:
+        return (
+            ChangesetVerificationState.ACCEPTED_WITH_RISK,
+            "feedback response is accepted with local risk",
+            [],
+            [f"glassbox changeset feedback show {feedback.feedback_id} --cwd ."],
+        )
+    if latest is None:
+        return (
+            ChangesetVerificationState.MISSING,
+            "feedback has no response-linked fixup inventory to verify",
+            [],
+            [f"glassbox changeset verification-plan {feedback.changeset_id} --cwd ."],
+        )
+    if freshness_stale:
+        return (
+            ChangesetVerificationState.STALE,
+            freshness_reason
+            or "response-linked fixup inventory is stale against workspace state",
+            [f"fixup-inventory:{latest.artifact_id}"],
+            [f"glassbox changeset verification-plan {feedback.changeset_id} --cwd ."],
+        )
+    if task_ledger is None:
+        return (
+            ChangesetVerificationState.NOT_APPLICABLE,
+            "verification ledger was not available for this response surface",
+            [],
+            [f"glassbox changeset verification-plan {feedback.changeset_id} --cwd ."],
+        )
+
+    response_paths = {_normalize_path(path.path) for path in paths}
+    if latest.changed_path_count > 0 and not response_paths:
+        return (
+            ChangesetVerificationState.MISSING,
+            "fixup inventory has no path records, so verification cannot be mapped",
+            [f"fixup-inventory:{latest.artifact_id}"],
+            [f"glassbox changeset verification-plan {feedback.changeset_id} --cwd ."],
+        )
+    matching_entries = [
+        entry
+        for entry in task_ledger
+        if response_paths.intersection(
+            {_normalize_path(path) for path in entry.changed_paths}
+        )
+    ]
+    if not matching_entries:
+        return (
+            ChangesetVerificationState.MISSING,
+            "no retained verification check targets response-linked fixup paths",
+            [f"fixup-inventory:{latest.artifact_id}"],
+            [f"glassbox changeset verification-plan {feedback.changeset_id} --cwd ."],
+        )
+    entry = max(matching_entries, key=lambda candidate: candidate.last_sequence)
+    state = _verification_state_for_task_status(entry.status)
+    evidence_sequence = entry.last_success_sequence or entry.last_sequence
+    if (
+        state == ChangesetVerificationState.PASSED
+        and latest.last_sequence is not None
+        and evidence_sequence < latest.last_sequence
+    ):
+        command = _ledger_command(entry)
+        return (
+            ChangesetVerificationState.STALE,
+            (
+                f"{entry.check_name} passed before response-linked fixup inventory "
+                "changed overlapping paths"
+            ),
+            [str(entry.verification_id), f"fixup-inventory:{latest.artifact_id}"],
+            [
+                (
+                    f"rerun {command} because {entry.check_name} predates "
+                    "response-linked fixups"
+                )
+            ],
+        )
+    reason = _verification_reason(entry, state)
+    actions = (
+        [] if state == ChangesetVerificationState.PASSED else [_retry_action(entry)]
+    )
+    return (
+        state,
+        reason,
+        [str(entry.verification_id), f"fixup-inventory:{latest.artifact_id}"],
+        actions,
+    )
+
+
+def _verification_state_for_task_status(
+    status: TaskVerificationStatus,
+) -> ChangesetVerificationState:
+    if status == TaskVerificationStatus.PLANNED:
+        return ChangesetVerificationState.PLANNED
+    if status == TaskVerificationStatus.RUNNING:
+        return ChangesetVerificationState.RUNNING
+    if status == TaskVerificationStatus.PASSED:
+        return ChangesetVerificationState.PASSED
+    if status in {TaskVerificationStatus.FAILED, TaskVerificationStatus.CANCELLED}:
+        return ChangesetVerificationState.FAILED
+    if status == TaskVerificationStatus.SKIPPED:
+        return ChangesetVerificationState.SKIPPED
+    if status == TaskVerificationStatus.ACCEPTED_WITH_RISK:
+        return ChangesetVerificationState.ACCEPTED_WITH_RISK
+    return ChangesetVerificationState.MISSING
+
+
+def _verification_reason(
+    entry: TaskVerificationLedgerRecord,
+    state: ChangesetVerificationState,
+) -> str:
+    if state == ChangesetVerificationState.PASSED:
+        return f"{entry.check_name} is fresh for response-linked fixup paths"
+    if state == ChangesetVerificationState.FAILED:
+        return entry.latest_failed_summary or f"{entry.check_name} failed"
+    if state == ChangesetVerificationState.SKIPPED:
+        return f"{entry.check_name} was skipped for response-linked fixup paths"
+    if state == ChangesetVerificationState.ACCEPTED_WITH_RISK:
+        return entry.residual_risk_reason or f"{entry.check_name} accepted with risk"
+    return f"{entry.check_name} is {state.value} for response-linked fixup paths"
+
+
+def _retry_action(entry: TaskVerificationLedgerRecord) -> str:
+    command = _ledger_command(entry)
+    if command:
+        return f"rerun {command} for response-linked fixup paths"
+    return f"inspect retained verification {entry.verification_id} before retrying"
+
+
+def _ledger_command(entry: TaskVerificationLedgerRecord) -> str:
+    return " ".join(str(part) for part in entry.command).strip()
 
 
 def _review_response_non_claims() -> list[str]:

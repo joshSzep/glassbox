@@ -8399,6 +8399,35 @@
           "summary": {
             "title": "Summary",
             "type": "string"
+          },
+          "verification_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verification Reason"
+          },
+          "verification_requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Verification Requirement Ids",
+            "type": "array"
+          },
+          "verification_safe_next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Verification Safe Next Actions",
+            "type": "array"
+          },
+          "verification_state": {
+            "title": "Verification State",
+            "type": "string"
           }
         },
         "required": [
@@ -8413,6 +8442,9 @@
           "changed_path_count",
           "matched_scope_path_count",
           "path_summaries",
+          "verification_state",
+          "verification_requirement_ids",
+          "verification_safe_next_actions",
           "blockers",
           "safe_next_actions",
           "non_claims"
