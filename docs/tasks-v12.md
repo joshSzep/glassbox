@@ -1736,7 +1736,7 @@ Each phase below corresponds to one concrete milestone.
 
 ### GBX-1293: Publish v12 Release-Candidate Guide
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1291`, `GBX-1292`
 - Goal: publish a concise public guide for the supported v12 reviewable-change
   operating model, validation path, evidence expectations, non-goals,
@@ -1767,6 +1767,16 @@ Each phase below corresponds to one concrete milestone.
 - Done when:
   - v12 has a publishable release-candidate narrative backed by retained
     automated, dogfooding, manual, and advisory evidence
+- Completion notes:
+  - Added [v12-release-candidate.md](./v12-release-candidate.md) with supported
+    operating model, primary flows, release-readiness checklist, current
+    evidence summary, residual risks, deliberate non-goals, release decision,
+    and related docs.
+  - Linked the v12 release-candidate guide from the root README and docs hub.
+  - Ran the full v12 release gate:
+    `uv run python scripts/validate_v12_release_gate.py --evidence-dir .glassbox/releases/gbx-1293-v12-release-candidate`;
+    result: passed, with 80 blocking stages passed and one advisory provider
+    evidence skip retained in `summary.json`.
 
 ## v12 Release-Candidate Readiness Checklist
 

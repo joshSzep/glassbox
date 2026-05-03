@@ -544,6 +544,42 @@ def test_v12_dogfooding_summary_records_real_reviewable_change_passes() -> None:
     assert "v12-dogfooding-summary.md" in docs_readme
 
 
+def test_v12_release_candidate_guide_covers_supported_reviewable_change_model() -> None:
+    content = (REPO_ROOT / "docs" / "v12-release-candidate.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Release Posture",
+        "## Supported Operating Model",
+        "## Primary Operator Flows",
+        "## Release-Readiness Checklist",
+        "## Current Evidence Summary",
+        "## Known Residual Risks",
+        "## Deliberate Non-Goals",
+        "## Release Decision",
+        "Decision: GO for v12 release candidate publication.",
+        "scripts/validate_v12_release_gate.py",
+        ".glassbox/releases/gbx-1293-v12-release-candidate/",
+        ".glassbox/evals/gbx-1293-v12-release-candidate/",
+        "changeset.reviewable-lifecycle",
+        "changeset.branch-candidate-adoption",
+        "80",
+        "advisory provider evidence",
+        "hosted code review",
+        "automatic pull request creation",
+        "src/glassbox/runtime/changesets.py",
+        "v12-dogfooding-summary.md",
+        "command-evidence.md",
+    ):
+        assert required_text in content
+
+    assert "docs/v12-release-candidate.md" in root_readme
+    assert "v12-release-candidate.md" in docs_readme
+
+
 def test_v12_worktree_isolation_contract_covers_safety_boundary() -> None:
     content = (REPO_ROOT / "docs" / "worktree-isolation.md").read_text(encoding="utf-8")
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")

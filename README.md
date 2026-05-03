@@ -123,6 +123,7 @@ Start here based on what you need:
 - [docs/v12-reviewable-change-contract.md](docs/v12-reviewable-change-contract.md)
 - [docs/v12-release-gate.md](docs/v12-release-gate.md)
 - [docs/v12-dogfooding-summary.md](docs/v12-dogfooding-summary.md)
+- [docs/v12-release-candidate.md](docs/v12-release-candidate.md)
 - [docs/v11-release-candidate.md](docs/v11-release-candidate.md)
 - [docs/v10-release-candidate.md](docs/v10-release-candidate.md)
 - [docs/v9-vocabulary.md](docs/v9-vocabulary.md)
@@ -144,9 +145,10 @@ Start here based on what you need:
 
 Release evidence and milestone history remain available when you need them:
 
-- [docs/v9-release-candidate.md](docs/v9-release-candidate.md)
-- [docs/v10-release-candidate.md](docs/v10-release-candidate.md)
+- [docs/v12-release-candidate.md](docs/v12-release-candidate.md)
 - [docs/v11-release-candidate.md](docs/v11-release-candidate.md)
+- [docs/v10-release-candidate.md](docs/v10-release-candidate.md)
+- [docs/v9-release-candidate.md](docs/v9-release-candidate.md)
 - [docs/v8-release-candidate.md](docs/v8-release-candidate.md)
 - [docs/v7-release-candidate.md](docs/v7-release-candidate.md)
 - [docs/v6-release-candidate.md](docs/v6-release-candidate.md)
