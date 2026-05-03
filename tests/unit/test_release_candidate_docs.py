@@ -582,6 +582,48 @@ def test_v13_review_brief_lifecycle_contract_covers_non_claims() -> None:
         assert required_text in content
 
 
+def test_publication_boundary_contract_covers_final_action_boundary() -> None:
+    content = (REPO_ROOT / "docs" / "publication-boundary.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Scope",
+        "## States",
+        "## Relationship To Commit Readiness",
+        "## Safe Next-Action Policy",
+        "## Non-Goals",
+        "## Non-Claims",
+        "`not-ready`",
+        "`needs-review-response`",
+        "`needs-verification`",
+        "`stale-inventory`",
+        "`unresolved-risk`",
+        "`handoff-ready`",
+        "`commit-prep-ready`",
+        "`publication-blocked`",
+        "`accepted-with-risk`",
+        "Handoff readiness can be blocked by unresolved feedback",
+        "Guidance must start with inspection before mutation",
+        "automatic staging",
+        "automatic committing",
+        "automatic pushing",
+        "automatic pull request creation",
+        "automatic merging",
+        "automatic deployment",
+        "automatic package publishing",
+        "No state means a",
+        "pull request, merge, deploy, package upload",
+        "release publication happened",
+    ):
+        assert required_text in content
+
+    assert "docs/publication-boundary.md" in root_readme
+    assert "publication-boundary.md" in docs_readme
+
+
 def test_manual_evidence_contract_covers_attachment_boundaries() -> None:
     content = (REPO_ROOT / "docs" / "manual-evidence.md").read_text(encoding="utf-8")
     root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")

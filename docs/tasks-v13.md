@@ -1128,7 +1128,7 @@ Completed in this slice:
 
 ### GBX-1370: Define Publication Boundary Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1362`
 - Goal: define the line between review-loop handoff readiness and actual git or
   remote publication
@@ -1151,6 +1151,19 @@ Completed in this slice:
 - Done when:
   - the milestone has clear language for final handoff without crossing into
     automatic publication
+
+Completed in this slice:
+
+- Added `docs/publication-boundary.md` with v13 states for not-ready,
+  needs-review-response, needs-verification, stale-inventory, unresolved-risk,
+  handoff-ready, commit-prep-ready, publication-blocked, and
+  accepted-with-risk posture.
+- Defined the relationship between review-loop handoff readiness, commit
+  readiness, and final operator action while preserving non-goals for automatic
+  staging, committing, pushing, pull request creation, merging, rebasing,
+  force-pushing, deploying, and package publishing.
+- Added safe next-action policy that starts with inspection before mutation and
+  docs guardrails plus README/docs-hub links for publication-boundary language.
 
 ### GBX-1371: Add Handoff Readiness Service And Surfaces
 

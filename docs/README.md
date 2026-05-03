@@ -191,6 +191,9 @@ release candidate.
   define the v13 live dashboard, browser, screenshot, keyboard, responsive
   layout, and accessibility-pairing evidence protocol with advisory posture,
   local-only retention, and bounded non-claims
+- [publication-boundary.md](./publication-boundary.md): define the v13
+  advisory handoff and publication boundary between review-loop evidence,
+  commit preparation, and final operator-controlled actions
 - [commit-readiness.md](./commit-readiness.md): understand the v12 read-only
   advisory model for staged changes, dirty worktree ambiguity, verification,
   review brief freshness, provenance, path-risk cues, and accepted risk before
@@ -245,6 +248,9 @@ release candidate.
   review-loop contract for local feedback, requested changes, fixup responses,
   manual evidence, browser/accessibility evidence, lifecycle briefs,
   publication boundaries, handoff readiness, and late integrated UX
+- [publication-boundary.md](./publication-boundary.md): v13 publication
+  boundary language for handoff-ready, commit-prep-ready, blocked, stale, and
+  accepted-risk posture without automatic git or remote publication
 - [v13-review-loop-audit.md](./v13-review-loop-audit.md): source-linked v13
   audit separating v12 reviewable-change evidence from review-loop feedback,
   response, manual evidence, live evidence, lifecycle, and handoff gaps

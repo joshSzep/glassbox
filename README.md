@@ -131,6 +131,7 @@ Start here based on what you need:
 - [docs/review-responses.md](docs/review-responses.md)
 - [docs/manual-evidence.md](docs/manual-evidence.md)
 - [docs/browser-accessibility-evidence.md](docs/browser-accessibility-evidence.md)
+- [docs/publication-boundary.md](docs/publication-boundary.md)
 - [docs/v12-release-gate.md](docs/v12-release-gate.md)
 - [docs/v12-dogfooding-summary.md](docs/v12-dogfooding-summary.md)
 - [docs/v12-release-candidate.md](docs/v12-release-candidate.md)
