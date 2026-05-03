@@ -33,6 +33,10 @@ release candidate.
   for local review feedback, requested changes, fixup responses, manual
   evidence, browser/accessibility evidence, lifecycle briefs, handoff
   readiness, publication boundaries, and integrated review-loop UX
+- [v13-review-loop-audit.md](./v13-review-loop-audit.md): source-linked audit
+  of v12 changeset creation, review briefs, verification readiness, commit
+  preparation, manual command evidence, branch-candidate adoption, topology,
+  dashboard review, TUI entry points, and exports against v13 review-loop needs
 - [v12-change-lifecycle-audit.md](./v12-change-lifecycle-audit.md):
   source-linked audit of current diff, branch-search, checkpoint,
   verification, handoff, artifact, command, dashboard, export, and redaction
@@ -228,6 +232,9 @@ release candidate.
   review-loop contract for local feedback, requested changes, fixup responses,
   manual evidence, browser/accessibility evidence, lifecycle briefs,
   publication boundaries, handoff readiness, and late integrated UX
+- [v13-review-loop-audit.md](./v13-review-loop-audit.md): source-linked v13
+  audit separating v12 reviewable-change evidence from review-loop feedback,
+  response, manual evidence, live evidence, lifecycle, and handoff gaps
 - [v11-release-candidate.md](./v11-release-candidate.md): release-candidate
   narrative tying the v11 contract, gate, dogfooding, package, provider,
   accessibility, live cockpit, and residual-risk evidence together

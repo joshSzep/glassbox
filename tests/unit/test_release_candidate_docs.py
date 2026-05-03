@@ -499,6 +499,48 @@ def test_v13_review_loop_contract_covers_product_boundary() -> None:
     assert "tasks-v13.md" in docs_readme
 
 
+def test_v13_review_loop_audit_covers_current_boundaries() -> None:
+    content = (REPO_ROOT / "docs" / "v13-review-loop-audit.md").read_text(
+        encoding="utf-8"
+    )
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Summary",
+        "## Classification Legend",
+        "## Audit Entries",
+        "## Test Inventory",
+        "## Disposition",
+        "Fixed in v13",
+        "Evidence-only in v13",
+        "Accepted non-goal",
+        "Carried-forward risk",
+        "Changeset creation",
+        "Review briefs",
+        "Verification readiness",
+        "Commit preparation",
+        "Manual command evidence",
+        "Branch-candidate adoption",
+        "Topology recommendations",
+        "Dashboard review",
+        "TUI slash commands",
+        "Exports",
+        "src/glassbox/core/events.py",
+        "src/glassbox/runtime/review_briefs.py",
+        "src/glassbox/runtime/changeset_verification_readiness.py",
+        "src/glassbox/runtime/commit_readiness.py",
+        "src/glassbox/runtime/command_evidence.py",
+        "frontend/components/console/changeset-console.tsx",
+        "Manual evidence must be labeled manual or external",
+        "Automatic merge remains an **accepted non-goal**.",
+        "impact-rule coverage remains a carried-forward risk",
+        "No product-code change is required by this audit.",
+    ):
+        assert required_text in content
+
+    assert "v13-review-loop-audit.md" in docs_readme
+
+
 def test_v12_change_lifecycle_audit_covers_current_boundaries() -> None:
     content = (REPO_ROOT / "docs" / "v12-change-lifecycle-audit.md").read_text(
         encoding="utf-8"

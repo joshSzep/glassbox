@@ -405,7 +405,7 @@ shortcuts are shaped by the review-loop features that precede them.
 
 ### GBX-1301: Audit V12 Residual Risks Against Review-Loop Needs
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1300`
 - Goal: ground v13 implementation in actual gaps between v12 reviewable-change
   evidence and review-loop needs
