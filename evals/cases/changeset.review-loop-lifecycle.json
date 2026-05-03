@@ -1,0 +1,40 @@
+{
+  "manifest_version": 1,
+  "case_id": "changeset.review-loop-lifecycle",
+  "title": "Review-loop lifecycle keeps feedback and handoff evidence bounded",
+  "bundle_path": "../bundles/changeset.review-loop-lifecycle.json",
+  "tags": [
+    "v13-review-loop",
+    "changeset",
+    "review",
+    "manual-evidence",
+    "handoff"
+  ],
+  "notes": "Compact deterministic v13 fixture evidence for review feedback creation, response tracking, manual evidence, stale fixup verification, lifecycle brief generation, handoff readiness, and publication-boundary non-claims.",
+  "release_contract": {
+    "owner": "runtime.changesets",
+    "capabilities": [
+      "review_feedback_creation",
+      "review_response_tracking",
+      "manual_evidence_inbox",
+      "review_fixup_stale_verification",
+      "review_lifecycle_brief_generation",
+      "handoff_readiness",
+      "publication_boundary_non_claims"
+    ],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-03T12:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000139001",
+      "rationale": "Promoted for GBX-1390 to retain deterministic evidence that stable v13 review-loop lifecycle contracts are part of release-candidate sign-off."
+    }
+  ]
+}

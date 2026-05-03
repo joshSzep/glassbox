@@ -327,6 +327,22 @@ These v12 cases are compact release-candidate evidence. They intentionally
 index the reviewable-change lifecycle rather than replacing focused runtime,
 CLI, API, dashboard, and redaction tests for each live derivation path.
 
+Current v13 review-loop release-candidate cases:
+
+- `changeset.review-loop-lifecycle`: fixture-backed replay evidence for review
+  feedback creation, response tracking, manual evidence, stale verification
+  after fixups, lifecycle brief generation, handoff readiness, and
+  publication-boundary non-claims.
+- `changeset.in-session-review-ux`: fixture-backed replay evidence that plain
+  interactive chat, terminal command-palette actions, and dashboard quick
+  actions expose review-loop changeset affordances without implying automatic
+  staging, commit, push, pull request, merge, deploy, or publication behavior.
+
+These v13 cases are deterministic release-candidate evidence for stable
+review-loop contracts. They do not replace focused store, runtime, CLI, TUI,
+API, dashboard, browser, accessibility, or manual-evidence tests for live
+behavior and freshness-sensitive workflows.
+
 Each run writes one JSON artifact per case plus `summary.json` into the selected
 output directory. If `--output-dir` is omitted, Glassbox creates a timestamped
 directory under `.glassbox/evals/`.

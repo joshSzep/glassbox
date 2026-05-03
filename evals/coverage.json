@@ -404,6 +404,96 @@
       "expected_case_ids": ["changeset.branch-candidate-adoption"],
       "coverage_mode": "single_case",
       "notes": "GBX-1290 retains deterministic evidence that selected branch-search candidates become changeset provenance without automatic merge, commit, push, or PR behavior."
+    },
+    {
+      "capability_id": "review_feedback_creation",
+      "title": "Review feedback creation",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["changeset.review-loop-lifecycle"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1390 retains deterministic v13 evidence that review feedback is recorded as local changeset evidence with provenance and scope instead of hidden conversation state."
+    },
+    {
+      "capability_id": "review_response_tracking",
+      "title": "Review response tracking",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["changeset.review-loop-lifecycle"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1390 keeps response state, unresolved feedback, and residual risk distinct from reviewer approval in release-candidate replay evidence."
+    },
+    {
+      "capability_id": "manual_evidence_inbox",
+      "title": "Manual evidence inbox",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["changeset.review-loop-lifecycle"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1390 retains deterministic evidence that manual observations, external checks, screenshots, and sanitized notes remain source-labeled with redaction posture, limitations, and non-claims."
+    },
+    {
+      "capability_id": "review_fixup_stale_verification",
+      "title": "Review fixup stale verification",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["changeset.review-loop-lifecycle"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1390 protects the contract that review-driven fixup inventory can make verification stale and that stale posture stays visible before handoff."
+    },
+    {
+      "capability_id": "review_lifecycle_brief_generation",
+      "title": "Review lifecycle brief generation",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["changeset.review-loop-lifecycle"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1390 retains deterministic evidence that lifecycle briefs summarize feedback, responses, manual evidence, limitations, and residual risk without raw logs or approval claims."
+    },
+    {
+      "capability_id": "handoff_readiness",
+      "title": "Handoff readiness",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["changeset.review-loop-lifecycle"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1390 keeps handoff posture, blockers, and safe next actions as release-candidate evidence distinct from publication."
+    },
+    {
+      "capability_id": "publication_boundary_non_claims",
+      "title": "Publication-boundary non-claims",
+      "kind": "operator_workflow",
+      "criticality": "release-critical",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["changeset.review-loop-lifecycle"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1390 makes no automatic staging, committing, pushing, pull request, merge, deploy, or publication behavior a deterministic release-candidate boundary."
+    },
+    {
+      "capability_id": "in_session_review_entrypoints",
+      "title": "In-session review entry points",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["changeset.in-session-review-ux"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1390 retains deterministic evidence that plain interactive and TUI review shortcuts expose creation, status, verification, brief, handoff, feedback, and dashboard routing without leaving chat."
+    },
+    {
+      "capability_id": "dashboard_review_quick_actions",
+      "title": "Dashboard review quick actions",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["changeset.in-session-review-ux"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1390 keeps dashboard changeset quick actions in the deterministic release map while focused frontend tests remain the authority for live interaction details."
     }
   ]
 }

@@ -1,0 +1,35 @@
+{
+  "manifest_version": 1,
+  "case_id": "changeset.in-session-review-ux",
+  "title": "In-session review UX keeps changeset actions discoverable",
+  "bundle_path": "../bundles/changeset.in-session-review-ux.json",
+  "tags": [
+    "v13-review-loop",
+    "changeset",
+    "review",
+    "terminal-ux",
+    "dashboard"
+  ],
+  "notes": "Compact deterministic v13 fixture evidence for plain interactive, TUI, and dashboard review-loop entry points after the review model stabilized.",
+  "release_contract": {
+    "owner": "cli.interactive",
+    "capabilities": [
+      "in_session_review_entrypoints",
+      "dashboard_review_quick_actions"
+    ],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-03T12:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000139002",
+      "rationale": "Promoted for GBX-1390 to retain deterministic evidence that v13 in-session changeset UX parity is part of release-candidate sign-off."
+    }
+  ]
+}

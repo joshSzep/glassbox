@@ -1,0 +1,159 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Use in-session review shortcuts to inspect and prepare a changeset"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "budget_posture": null,
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves v13 in-session review UX evidence",
+        "turn_id": "00000000-0000-0000-0000-000000139102"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves v13 in-session review UX evidence",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000139102"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TaskCreated",
+      "TaskStepCompleted",
+      "ChangesetCreated",
+      "ChangesetSourceAttached",
+      "ChangesetInventoryRefreshed",
+      "ChangesetVerificationPostureUpdated",
+      "ChangesetReviewBriefCreated",
+      "ChangesetReadinessDecided",
+      "ManualEvidenceAttached",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "lineage": null,
+    "long_run_events": [],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Use in-session review shortcuts to inspect and prepare a changeset"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "questions": [],
+    "task_plans": [
+      {
+        "blocked_detail": null,
+        "blocked_reason": null,
+        "current_step_order": 5,
+        "goal": "Expose changeset review actions from chat, terminal command palette, and dashboard without leaving the session.",
+        "status": "completed",
+        "steps": [
+          {
+            "blocked_reason": null,
+            "description": "Create a review changeset from plain interactive chat and show status without requiring a separate command session.",
+            "order": 0,
+            "status": "completed",
+            "title": "Create review changeset in chat"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Expose refresh, verification preview, lifecycle brief, handoff, feedback status, and dashboard shortcuts in the terminal command palette.",
+            "order": 1,
+            "status": "completed",
+            "title": "Expose TUI review actions"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Show the dashboard changeset route for the selected review object when a dashboard URL exists.",
+            "order": 2,
+            "status": "completed",
+            "title": "Link dashboard route"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Provide dashboard quick actions for inventory refresh, verification preview, feedback status, lifecycle brief, handoff posture, and manual evidence attachment.",
+            "order": 3,
+            "status": "completed",
+            "title": "Expose dashboard quick actions"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Keep every entry point advisory and inspection-first when feedback, stale verification, or handoff blockers exist.",
+            "order": 4,
+            "status": "completed",
+            "title": "Keep inspection first"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Avoid implying automatic staging, commit, push, pull request, merge, deployment, or publication from any review shortcut.",
+            "order": 5,
+            "status": "completed",
+            "title": "Preserve non-publication UX"
+          }
+        ],
+        "title": "In-session changeset review UX",
+        "verifications": [
+          {
+            "check_name": "in-session review UX fixture",
+            "status": "passed",
+            "step_order": 5,
+            "summary": "plain chat, TUI, and dashboard review actions remain discoverable while preserving inspection-first publication boundaries"
+          }
+        ]
+      }
+    ],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Use in-session review shortcuts to inspect and prepare a changeset"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000139002",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "changeset.in-session-review-ux"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

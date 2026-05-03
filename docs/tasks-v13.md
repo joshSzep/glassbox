@@ -1420,7 +1420,7 @@ Completed in this slice:
 
 ### GBX-1390: Add Deterministic v13 Replay And Eval Cases
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1382`
 - Goal: promote stable review-loop behavior into deterministic release
   authority
@@ -1444,6 +1444,24 @@ Completed in this slice:
   - focused eval runs for new cases
 - Done when:
   - stable v13 review-loop behavior has deterministic release coverage
+
+Completed slice:
+
+- Added `changeset.review-loop-lifecycle` and
+  `changeset.in-session-review-ux` compact release-candidate eval cases and
+  bundles.
+- Extended the release-candidate profile budget to 22 cases and documented the
+  v13 deterministic review-loop coverage in the eval README.
+- Added coverage-manifest entries for review feedback creation, response
+  tracking, manual evidence, stale fixup verification, lifecycle brief
+  generation, handoff readiness, publication-boundary non-claims, in-session
+  review entry points, and dashboard review quick actions.
+- Included new review-loop event families in the curated replay baselines:
+  review feedback, feedback scope, fixup inventory, manual evidence,
+  changeset verification posture, lifecycle brief, and readiness events.
+- Verified with focused eval metadata tests, targeted eval runs for both new
+  cases, replay/eval CLI integration tests, release-candidate coverage audit,
+  and the full release-candidate eval profile.
 
 ### GBX-1391: Add v13 Release Gate
 
