@@ -487,7 +487,7 @@ Completion notes:
 
 ### GBX-R512: Extract Changeset Query View Assembly
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R510
 - Target files:
   - `src/glassbox/runtime/changesets.py`
@@ -507,6 +507,20 @@ Completion notes:
   - `uv run pytest tests/unit/test_changeset_derivation.py`
   - `uv run pytest tests/integration/test_web_changeset_routes.py`
   - `uv run pytest tests/integration/test_cli_changeset_commands.py -k show`
+
+Completion notes:
+
+- Moved `ChangesetQueryService` into
+  `src/glassbox/runtime/changeset_queries.py` while preserving the
+  `runtime/changesets.py` compatibility import.
+- Moved detail read-model assembly, review-response summaries, preview query
+  helpers, and bounded command-evidence shaping into
+  `src/glassbox/runtime/changeset_detail.py`.
+- Moved changeset inventory freshness/status and review-fixup inventory
+  freshness checks into `src/glassbox/runtime/changeset_inventory_status.py`.
+- Kept query/detail helpers transport-agnostic and repository-backed; CLI, web,
+  commit, handoff, and export callers continue through the existing public
+  facade.
 
 ### GBX-R513: Extract Changeset Mutation Actions
 

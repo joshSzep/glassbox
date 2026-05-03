@@ -34,14 +34,11 @@ from glassbox.core import ManualEvidenceKind
 from glassbox.core import ManualEvidenceRecord
 from glassbox.core import ManualEvidenceRedactionStatus
 from glassbox.core import ManualEvidenceRejected
-from glassbox.core import ManualEvidenceState
 from glassbox.core import ManualEvidenceTargetKind
 from glassbox.core import ReviewFeedbackArchived
 from glassbox.core import ReviewFeedbackCreated
-from glassbox.core import ReviewFeedbackDisposition
 from glassbox.core import ReviewFeedbackFixupInventoryAttached
 from glassbox.core import ReviewFeedbackFixupInventoryRecord
-from glassbox.core import ReviewFeedbackFixupPathRecord
 from glassbox.core import ReviewFeedbackId
 from glassbox.core import ReviewFeedbackKind
 from glassbox.core import ReviewFeedbackProvenance
@@ -51,13 +48,11 @@ from glassbox.core import ReviewFeedbackResolved
 from glassbox.core import ReviewFeedbackRiskAccepted
 from glassbox.core import ReviewFeedbackScopeAttached
 from glassbox.core import ReviewFeedbackScopeKind
-from glassbox.core import ReviewFeedbackScopeRecord
 from glassbox.core import ReviewFixupSourceKind
 from glassbox.core import SessionId
 from glassbox.core import TaskId
 from glassbox.core import TaskVerificationId
 from glassbox.core import TaskVerificationLedgerRecord
-from glassbox.core import ToolAttemptRecord
 from glassbox.core import TurnId
 from glassbox.core import new_manual_evidence_id
 from glassbox.core import new_review_feedback_id
@@ -78,7 +73,24 @@ from glassbox.runtime.change_inventory import ChangeInventoryArtifact
 from glassbox.runtime.change_inventory import change_inventory_artifact_json
 from glassbox.runtime.change_inventory import change_inventory_from_diff_summary
 from glassbox.runtime.changeset_derivation import ChangesetDerivationService
-from glassbox.runtime.changeset_models import ChangesetCommandEvidenceItem
+from glassbox.runtime.changeset_detail import (
+    changeset_command_evidence_summary as _changeset_command_evidence_summary,
+)
+from glassbox.runtime.changeset_detail import (
+    manual_evidence_for_preview as _manual_evidence_for_preview,
+)
+from glassbox.runtime.changeset_detail import (
+    review_feedback_for_preview as _review_feedback_for_preview,
+)
+from glassbox.runtime.changeset_detail import (
+    review_response_summary_for_preview as _review_response_summary_for_preview,
+)
+from glassbox.runtime.changeset_inventory_status import (
+    inventory_status as _inventory_status,
+)
+from glassbox.runtime.changeset_inventory_status import (
+    review_fixup_inventory_freshness as _review_fixup_inventory_freshness,
+)
 from glassbox.runtime.changeset_models import ChangesetCommandEvidenceSummary
 from glassbox.runtime.changeset_models import ChangesetDerivationResult
 from glassbox.runtime.changeset_models import ChangesetDetailView
@@ -92,6 +104,7 @@ from glassbox.runtime.changeset_models import ChangesetVerificationReviewLoopSum
 from glassbox.runtime.changeset_models import ManualEvidenceRecordResult
 from glassbox.runtime.changeset_models import ReviewFeedbackFixupInventoryResult
 from glassbox.runtime.changeset_models import ReviewFeedbackRecordResult
+from glassbox.runtime.changeset_queries import ChangesetQueryService
 from glassbox.runtime.changeset_repository_contracts import (
     ChangesetDerivationRepository,
 )
@@ -132,10 +145,7 @@ from glassbox.runtime.review_briefs import review_brief_artifact_json
 from glassbox.runtime.review_briefs import review_brief_markdown
 from glassbox.runtime.review_responses import REVIEW_FIXUP_INVENTORY_SCHEMA_VERSION
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
-from glassbox.runtime.review_responses import ReviewFeedbackResponseStatus
 from glassbox.runtime.review_responses import ReviewFixupInventoryStatus
-from glassbox.runtime.review_responses import changeset_review_response_summary
-from glassbox.runtime.review_responses import review_feedback_response_status
 from glassbox.runtime.review_responses import review_fixup_inventory_artifact_json
 from glassbox.runtime.review_responses import (
     review_fixup_inventory_from_change_inventory,
@@ -147,362 +157,6 @@ from glassbox.services import StoredArtifact
 from glassbox.tools.workflow import DiffSummaryArgs
 from glassbox.tools.workflow import DiffSummaryScope
 from glassbox.tools.workflow import DiffSummaryTool
-
-
-class ChangesetQueryService:
-    """Read-only changeset query service."""
-
-    def __init__(self, repository: ChangesetRepository) -> None:
-        self._repository = repository
-
-    def list_changesets(
-        self,
-        *,
-        session_id: SessionId | None = None,
-        include_archived: bool = False,
-        limit: int | None = None,
-    ) -> list[ChangesetRecord]:
-        return self._repository.list_changesets(
-            session_id=session_id,
-            include_archived=include_archived,
-            limit=limit,
-        )
-
-    def list_review_feedback(
-        self,
-        *,
-        session_id: SessionId | None = None,
-        changeset_id: ChangesetId | None = None,
-        disposition: ReviewFeedbackDisposition | None = None,
-        include_archived: bool = False,
-        file_path: str | None = None,
-        limit: int | None = None,
-    ) -> list[ReviewFeedbackRecord]:
-        return self._repository.list_review_feedback(
-            session_id=session_id,
-            changeset_id=changeset_id,
-            disposition=disposition,
-            include_archived=include_archived,
-            file_path=file_path,
-            limit=limit,
-        )
-
-    def get_review_feedback(
-        self,
-        feedback_id: ReviewFeedbackId,
-    ) -> ReviewFeedbackRecord | None:
-        return self._repository.get_review_feedback(feedback_id)
-
-    def list_review_feedback_scopes(
-        self,
-        session_id: SessionId,
-        feedback_id: ReviewFeedbackId,
-    ) -> list[ReviewFeedbackScopeRecord]:
-        return self._repository.list_review_feedback_scopes(session_id, feedback_id)
-
-    def list_review_feedback_fixup_inventories(
-        self,
-        session_id: SessionId,
-        feedback_id: ReviewFeedbackId,
-    ) -> list[ReviewFeedbackFixupInventoryRecord]:
-        return self._repository.list_review_feedback_fixup_inventories(
-            session_id,
-            feedback_id,
-        )
-
-    def list_review_feedback_fixup_paths(
-        self,
-        session_id: SessionId,
-        feedback_id: ReviewFeedbackId,
-        artifact_id: ArtifactId,
-    ) -> list[ReviewFeedbackFixupPathRecord]:
-        return self._repository.list_review_feedback_fixup_paths(
-            session_id,
-            feedback_id,
-            artifact_id,
-        )
-
-    def list_manual_evidence(
-        self,
-        *,
-        session_id: SessionId | None = None,
-        changeset_id: ChangesetId | None = None,
-        target_kind: ManualEvidenceTargetKind | None = None,
-        target_id: str | None = None,
-        state: ManualEvidenceState | None = None,
-        include_archived: bool = False,
-        include_rejected: bool = False,
-        include_superseded: bool = False,
-        limit: int | None = None,
-    ) -> list[ManualEvidenceRecord]:
-        return self._repository.list_manual_evidence(
-            session_id=session_id,
-            changeset_id=changeset_id,
-            target_kind=target_kind,
-            target_id=target_id,
-            state=state,
-            include_archived=include_archived,
-            include_rejected=include_rejected,
-            include_superseded=include_superseded,
-            limit=limit,
-        )
-
-    def get_manual_evidence(
-        self,
-        evidence_id: ManualEvidenceId,
-    ) -> ManualEvidenceRecord | None:
-        return self._repository.get_manual_evidence(evidence_id)
-
-    def get_review_feedback_response_status(
-        self,
-        feedback_id: ReviewFeedbackId,
-        *,
-        workspace_root: Path | None = None,
-    ) -> ReviewFeedbackResponseStatus:
-        feedback = self._repository.get_review_feedback(feedback_id)
-        if feedback is None:
-            raise ValueError(f"unknown review feedback: {feedback_id}")
-        inventories = self._repository.list_review_feedback_fixup_inventories(
-            feedback.session_id,
-            feedback.feedback_id,
-        )
-        paths = (
-            self._repository.list_review_feedback_fixup_paths(
-                feedback.session_id,
-                feedback.feedback_id,
-                inventories[0].artifact_id,
-            )
-            if inventories
-            else []
-        )
-        freshness = (
-            ReviewFeedbackFixupInventoryService(
-                self._repository
-            ).assess_record_freshness(
-                inventories[0],
-                workspace_root,
-            )
-            if workspace_root is not None and inventories
-            else None
-        )
-        changeset = self._repository.get_changeset(feedback.changeset_id)
-        task_ledger = (
-            self._repository.list_task_verification_ledger(
-                changeset.session_id,
-                changeset.task_id,
-            )
-            if changeset is not None and changeset.task_id is not None
-            else None
-        )
-        return review_feedback_response_status(
-            feedback=feedback,
-            inventories=inventories,
-            paths=paths,
-            freshness_status=freshness,
-            task_ledger=task_ledger,
-        )
-
-    def get_review_response_summary(
-        self,
-        changeset_id: ChangesetId,
-        *,
-        workspace_root: Path | None = None,
-    ) -> ChangesetReviewResponseSummary:
-        changeset = self._repository.get_changeset(changeset_id)
-        if changeset is None:
-            raise ValueError(f"unknown changeset: {changeset_id}")
-        return _review_response_summary(
-            self._repository,
-            changeset,
-            workspace_root=workspace_root,
-        )
-
-    def get_detail(
-        self,
-        changeset_id: ChangesetId,
-        *,
-        workspace_root: Path | None = None,
-    ) -> ChangesetDetailView:
-        changeset = self._repository.get_changeset(changeset_id)
-        if changeset is None:
-            raise ValueError(f"unknown changeset: {changeset_id}")
-        sources = self._repository.list_changeset_sources(
-            changeset.session_id,
-            changeset.changeset_id,
-        )
-        inventory = self._repository.get_changeset_inventory(
-            changeset.session_id,
-            changeset.changeset_id,
-        )
-        verification_posture = self._repository.get_changeset_verification_posture(
-            changeset.session_id,
-            changeset.changeset_id,
-        )
-        review_briefs = self._repository.list_changeset_review_briefs(
-            changeset.session_id,
-            changeset.changeset_id,
-        )
-        review_feedback = self._repository.list_review_feedback(
-            session_id=changeset.session_id,
-            changeset_id=changeset.changeset_id,
-            include_archived=True,
-        )
-        manual_evidence = self._repository.list_manual_evidence(
-            session_id=changeset.session_id,
-            changeset_id=changeset.changeset_id,
-            include_archived=True,
-            include_rejected=True,
-            include_superseded=True,
-        )
-        review_response_summary = _review_response_summary(
-            self._repository,
-            changeset,
-            feedback=review_feedback,
-            workspace_root=workspace_root,
-        )
-        readiness = self._repository.list_changeset_readiness(
-            changeset.session_id,
-            changeset.changeset_id,
-        )
-        inventory_status = _inventory_status(
-            changeset,
-            inventory,
-            workspace_root=workspace_root,
-        )
-        inventory_for_detail = _inventory_with_status_freshness(
-            inventory,
-            inventory_status,
-        )
-        command_evidence = _changeset_command_evidence_summary(
-            self._repository,
-            changeset,
-        )
-        return ChangesetDetailView(
-            changeset=changeset,
-            sources=sources,
-            inventory=inventory_for_detail,
-            verification_posture=verification_posture,
-            inventory_status=inventory_status,
-            review_briefs=review_briefs,
-            review_feedback=review_feedback,
-            manual_evidence=manual_evidence,
-            review_response_summary=review_response_summary,
-            readiness=readiness,
-            command_evidence=command_evidence,
-            limitations=_detail_limitations(
-                changeset,
-                sources,
-                inventory_for_detail,
-                inventory_status,
-            ),
-            safe_next_actions=_detail_safe_next_actions(changeset, inventory_status),
-        )
-
-
-def _review_response_summary(
-    repository: ChangesetRepository,
-    changeset: ChangesetRecord,
-    *,
-    feedback: list[ReviewFeedbackRecord] | None = None,
-    workspace_root: Path | None = None,
-) -> ChangesetReviewResponseSummary:
-    feedback_items = (
-        feedback
-        if feedback is not None
-        else repository.list_review_feedback(
-            session_id=changeset.session_id,
-            changeset_id=changeset.changeset_id,
-            include_archived=True,
-        )
-    )
-    statuses: list[ReviewFeedbackResponseStatus] = []
-    freshness_service = ReviewFeedbackFixupInventoryService(repository)
-    task_ledger = (
-        repository.list_task_verification_ledger(
-            changeset.session_id,
-            changeset.task_id,
-        )
-        if changeset.task_id is not None
-        else None
-    )
-    for item in feedback_items:
-        inventories = repository.list_review_feedback_fixup_inventories(
-            item.session_id,
-            item.feedback_id,
-        )
-        paths = (
-            repository.list_review_feedback_fixup_paths(
-                item.session_id,
-                item.feedback_id,
-                inventories[0].artifact_id,
-            )
-            if inventories
-            else []
-        )
-        freshness = (
-            freshness_service.assess_record_freshness(inventories[0], workspace_root)
-            if workspace_root is not None and inventories
-            else None
-        )
-        statuses.append(
-            review_feedback_response_status(
-                feedback=item,
-                inventories=inventories,
-                paths=paths,
-                freshness_status=freshness,
-                task_ledger=task_ledger,
-            )
-        )
-    return changeset_review_response_summary(
-        changeset_id=changeset.changeset_id,
-        items=statuses,
-    )
-
-
-def _review_response_summary_for_preview(
-    repository: ChangesetRepository,
-    changeset: ChangesetRecord,
-    *,
-    workspace_root: Path,
-) -> ChangesetReviewResponseSummary:
-    if not hasattr(repository, "list_review_feedback"):
-        return changeset_review_response_summary(
-            changeset_id=changeset.changeset_id,
-            items=[],
-        )
-    return _review_response_summary(
-        repository,
-        changeset,
-        workspace_root=workspace_root,
-    )
-
-
-def _review_feedback_for_preview(
-    repository: ChangesetRepository,
-    changeset: ChangesetRecord,
-) -> list[ReviewFeedbackRecord]:
-    if not hasattr(repository, "list_review_feedback"):
-        return []
-    return repository.list_review_feedback(
-        session_id=changeset.session_id,
-        changeset_id=changeset.changeset_id,
-        include_archived=True,
-    )
-
-
-def _manual_evidence_for_preview(
-    repository: ChangesetRepository,
-    changeset: ChangesetRecord,
-) -> list[ManualEvidenceRecord]:
-    if not hasattr(repository, "list_manual_evidence"):
-        return []
-    return repository.list_manual_evidence(
-        session_id=changeset.session_id,
-        changeset_id=changeset.changeset_id,
-        include_archived=True,
-        include_rejected=True,
-        include_superseded=True,
-    )
 
 
 class ReviewFeedbackActionService:
@@ -1279,14 +933,7 @@ class ReviewFeedbackFixupInventoryService:
         record: ReviewFeedbackFixupInventoryRecord,
         workspace_root: Path,
     ) -> ReviewFixupInventoryStatus:
-        current = _workspace_diff_source_digest(workspace_root)
-        return review_fixup_inventory_status(
-            feedback_id=record.feedback_id,
-            changeset_id=record.changeset_id,
-            recorded_source_digest=record.source_digest,
-            current_source_digest=current.digest,
-            current_error=current.error,
-        )
+        return _review_fixup_inventory_freshness(record, workspace_root)
 
     def _require_feedback(self, feedback_id: ReviewFeedbackId) -> ReviewFeedbackRecord:
         feedback = self._repository.get_review_feedback(feedback_id)
@@ -1921,84 +1568,6 @@ class ChangesetActionService:
         return changeset
 
 
-def _inventory_status(
-    changeset: ChangesetRecord,
-    inventory: ChangesetInventoryRecord | None,
-    *,
-    workspace_root: Path | None,
-) -> ChangesetInventoryStatus:
-    refresh_action = f"glassbox changeset refresh {changeset.changeset_id} --cwd ."
-    if inventory is None:
-        return ChangesetInventoryStatus(
-            freshness=ChangesetInventoryFreshness.UNKNOWN,
-            stale=False,
-            reason="no structured change inventory is attached yet",
-            safe_next_actions=[refresh_action],
-        )
-    if workspace_root is None:
-        return ChangesetInventoryStatus(
-            freshness=inventory.freshness,
-            stale=inventory.freshness
-            in {
-                ChangesetInventoryFreshness.STALE,
-                ChangesetInventoryFreshness.SUPERSEDED,
-            },
-            recorded_source_digest=inventory.source_digest,
-            safe_next_actions=[refresh_action],
-        )
-    current = _workspace_diff_source_digest(workspace_root)
-    if current.error is not None:
-        return ChangesetInventoryStatus(
-            freshness=ChangesetInventoryFreshness.UNKNOWN,
-            stale=False,
-            reason=f"workspace source digest unavailable: {current.error}",
-            recorded_source_digest=inventory.source_digest,
-            current_source_digest=current.digest,
-            safe_next_actions=[refresh_action],
-        )
-    if inventory.source_digest is None:
-        return ChangesetInventoryStatus(
-            freshness=ChangesetInventoryFreshness.UNKNOWN,
-            stale=False,
-            reason="latest inventory has no recorded workspace source digest",
-            recorded_source_digest=None,
-            current_source_digest=current.digest,
-            safe_next_actions=[refresh_action],
-        )
-    source_digest_changed = (
-        inventory.source_digest is not None
-        and inventory.source_digest != current.digest
-    )
-    if source_digest_changed:
-        return ChangesetInventoryStatus(
-            freshness=ChangesetInventoryFreshness.STALE,
-            stale=True,
-            reason=(
-                "workspace diff source digest changed since the latest inventory "
-                "artifact was recorded"
-            ),
-            recorded_source_digest=inventory.source_digest,
-            current_source_digest=current.digest,
-            safe_next_actions=[refresh_action],
-        )
-    return ChangesetInventoryStatus(
-        freshness=inventory.freshness,
-        stale=inventory.freshness == ChangesetInventoryFreshness.STALE,
-        recorded_source_digest=inventory.source_digest,
-        current_source_digest=current.digest,
-        safe_next_actions=[refresh_action],
-    )
-
-
-def _inventory_with_status_freshness(
-    inventory: ChangesetInventoryRecord | None,
-    inventory_status: ChangesetInventoryStatus,
-) -> ChangesetInventoryRecord | None:
-    if inventory is None or inventory.freshness == inventory_status.freshness:
-        return inventory
-    return inventory.model_copy(update={"freshness": inventory_status.freshness})
-
-
 def _changeset_inventory_artifact_path(
     session_id: SessionId,
     artifact_id: ArtifactId,
@@ -2242,169 +1811,6 @@ def _artifact_ids_from_readiness(
         if requirement.artifact_id is not None
     ]
     return list(dict.fromkeys(artifact_ids))
-
-
-def _detail_limitations(
-    changeset: ChangesetRecord,
-    sources: list[ChangesetSourceRecord],
-    inventory: ChangesetInventoryRecord | None,
-    inventory_status: ChangesetInventoryStatus,
-) -> list[str]:
-    limitations = [
-        source.limitation for source in sources if source.limitation is not None
-    ]
-    if inventory is None:
-        limitations.append(
-            "no structured change inventory is attached yet; inspect sources first"
-        )
-    if inventory_status.stale:
-        limitations.append(
-            inventory_status.reason
-            or "structured change inventory is stale against the current workspace"
-        )
-    elif inventory_status.reason is not None and inventory_status.freshness == (
-        ChangesetInventoryFreshness.UNKNOWN
-    ):
-        limitations.append(inventory_status.reason)
-    if changeset.risk_level.value == "high":
-        summary = changeset.risk_summary or "path classification marked high risk"
-        limitations.append(f"high review risk: {summary}")
-    return limitations
-
-
-def _detail_safe_next_actions(
-    changeset: ChangesetRecord,
-    inventory_status: ChangesetInventoryStatus,
-) -> list[str]:
-    actions = [f"glassbox changeset show {changeset.changeset_id} --cwd ."]
-    if changeset.status != "archived":
-        actions.extend(inventory_status.safe_next_actions)
-        actions.append(
-            "glassbox eval recommend PATH --cwd .  # inspect verification options"
-        )
-    return list(dict.fromkeys(actions))
-
-
-def _changeset_command_evidence_summary(
-    repository: ChangesetRepository,
-    changeset: ChangesetRecord,
-) -> ChangesetCommandEvidenceSummary:
-    attempts = [
-        attempt
-        for attempt in repository.list_tool_attempts(changeset.session_id, limit=200)
-        if attempt.command_purpose is not None
-    ]
-    if changeset.task_id is not None:
-        relevant = [
-            attempt for attempt in attempts if attempt.task_id == changeset.task_id
-        ]
-        scope = f"task {changeset.task_id}"
-    else:
-        relevant = attempts
-        scope = f"session {changeset.session_id}"
-    limitations: list[str] = []
-    if not relevant:
-        limitations.append(f"no retained command evidence matched {scope}")
-    if len(relevant) < len(attempts) and changeset.task_id is not None:
-        limitations.append(
-            "session has additional command evidence outside this changeset task"
-        )
-    ordered = sorted(
-        relevant,
-        key=lambda attempt: (
-            not _command_attempt_is_review_critical(attempt),
-            -attempt.last_sequence,
-        ),
-    )
-    visible = ordered[:12]
-    if len(ordered) > len(visible):
-        limitations.append(
-            f"{len(ordered) - len(visible)} additional command attempt(s) omitted"
-        )
-    items = [_command_evidence_item(attempt) for attempt in visible]
-    return ChangesetCommandEvidenceSummary(
-        total_count=len(relevant),
-        verification_count=sum(
-            1 for attempt in relevant if attempt.command_supports_verification
-        ),
-        failed_count=sum(1 for attempt in relevant if attempt.status.value == "failed"),
-        risky_count=sum(
-            1 for attempt in relevant if _command_attempt_is_risky(attempt)
-        ),
-        environment_captured_count=sum(
-            1 for attempt in relevant if attempt.command_environment is not None
-        ),
-        artifact_count=sum(
-            1 for attempt in relevant if attempt.output_artifact_id is not None
-        ),
-        items=items,
-        limitations=list(dict.fromkeys(limitations)),
-        safe_next_actions=[
-            (
-                "glassbox session tool-attempt inspect "
-                f"{item.tool_attempt_id} --session {changeset.session_id} --cwd ."
-            )
-            for item in items[:5]
-        ],
-    )
-
-
-def _command_evidence_item(attempt: ToolAttemptRecord) -> ChangesetCommandEvidenceItem:
-    environment = attempt.command_environment
-    purpose = (
-        attempt.command_purpose.value
-        if attempt.command_purpose is not None
-        else "unknown"
-    )
-    relevance = (
-        attempt.command_review_relevance.value
-        if attempt.command_review_relevance is not None
-        else "unknown"
-    )
-    summary = (
-        attempt.message or attempt.command_purpose_reason or "retained command attempt"
-    )
-    policy_summary = attempt.retry_policy_reason
-    return ChangesetCommandEvidenceItem(
-        tool_attempt_id=str(attempt.tool_attempt_id),
-        turn_id=str(attempt.turn_id),
-        task_id=str(attempt.task_id) if attempt.task_id is not None else None,
-        tool_name=attempt.tool_name,
-        status=attempt.status.value,
-        purpose=purpose,
-        review_relevance=relevance,
-        supports_verification=bool(attempt.command_supports_verification),
-        summary=summary,
-        output_artifact_id=attempt.output_artifact_id,
-        environment_captured=environment is not None,
-        toolchain_count=len(environment.toolchains) if environment is not None else 0,
-        redaction_notes=environment.redaction_notes if environment is not None else [],
-        policy_summary=policy_summary,
-        local_only=environment is not None or attempt.output_artifact_id is not None,
-    )
-
-
-def _command_attempt_is_review_critical(attempt: ToolAttemptRecord) -> bool:
-    return (
-        attempt.status.value == "failed"
-        or bool(attempt.command_supports_verification)
-        or _command_attempt_is_risky(attempt)
-    )
-
-
-def _command_attempt_is_risky(attempt: ToolAttemptRecord) -> bool:
-    purpose = (
-        attempt.command_purpose.value if attempt.command_purpose is not None else None
-    )
-    relevance = (
-        attempt.command_review_relevance.value
-        if attempt.command_review_relevance is not None
-        else None
-    )
-    return purpose in {"publish", "deploy", "dangerous"} or relevance in {
-        "release_or_remote_mutation",
-        "cleanup_or_destructive",
-    }
 
 
 def _review_brief_artifact(
